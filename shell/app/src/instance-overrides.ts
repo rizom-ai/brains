@@ -1,4 +1,5 @@
 import { z, parseYamlDocument, interpolateEnv } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
 import { entityActionPolicyConfigSchema } from "@brains/templates";
 import { presetNameSchema, modeSchema } from "./brain-definition";
 import { logLevelSchema } from "./types";
@@ -9,6 +10,7 @@ import { logLevelSchema } from "./types";
  * Validates the structure after YAML parsing + env interpolation.
  */
 const pluginConfigOverrideSchema = z.record(z.unknown());
+const rawRecordSchema = z4.record(z4.string(), z4.unknown());
 
 export const externalPluginDeclarationSchema = z
   .object({
@@ -337,9 +339,10 @@ function nullsToUndefined(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((v) => nullsToUndefined(v)).filter((v) => v !== undefined);
   }
-  if (typeof value === "object") {
+  const parsedRecord = rawRecordSchema.safeParse(value);
+  if (parsedRecord.success) {
     const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    for (const [k, v] of Object.entries(parsedRecord.data)) {
       const converted = nullsToUndefined(v);
       if (converted !== undefined) {
         result[k] = converted;

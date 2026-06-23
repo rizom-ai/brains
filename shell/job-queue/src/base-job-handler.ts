@@ -1,6 +1,9 @@
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
 import type { JobHandler } from "./types";
+
+const logDataSchema = z4.record(z4.string(), z4.unknown());
 
 /**
  * Configuration options for BaseJobHandler
@@ -58,8 +61,7 @@ export abstract class BaseJobHandler<
   TJobType extends string = string,
   TInput = unknown,
   TOutput = unknown,
-> implements JobHandler<TJobType, TInput, TOutput>
-{
+> implements JobHandler<TJobType, TInput, TOutput> {
   protected readonly logger: Logger;
   protected readonly schema: z.ZodSchema<TInput> | undefined;
   protected readonly jobTypeName: string;
@@ -175,7 +177,7 @@ export abstract class BaseJobHandler<
    * @returns An object suitable for logging
    */
   protected summarizeDataForLog(data: TInput): Record<string, unknown> {
-    // Default: return the data as-is (subclasses can override)
-    return data as Record<string, unknown>;
+    const parsed = logDataSchema.safeParse(data);
+    return parsed.success ? parsed.data : {};
   }
 }

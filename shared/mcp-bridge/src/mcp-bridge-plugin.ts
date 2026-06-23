@@ -3,6 +3,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { ServicePlugin } from "@brains/plugins";
 import type { Tool, ServicePluginContext, ToolResponse } from "@brains/plugins";
 import { z, getErrorMessage } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
+
+const recordSchema = z4.record(z4.string(), z4.unknown());
 
 /**
  * Server command configuration for spawning an MCP server child process.
@@ -238,9 +241,10 @@ export abstract class MCPBridgePlugin<
     }
 
     try {
+      const inputRecord = recordSchema.safeParse(input ?? {});
       const result = await this.client.callTool({
         name: toolName,
-        arguments: (input ?? {}) as Record<string, unknown>,
+        arguments: inputRecord.success ? inputRecord.data : {},
       });
 
       // Validate and extract text content from the MCP response
@@ -332,9 +336,13 @@ export abstract class MCPBridgePlugin<
    * Convert a single JSON Schema property to a Zod type.
    */
   private jsonSchemaPropertyToZod(schema: object): z.ZodTypeAny {
-    const s = schema as Record<string, unknown>;
-    const type = s["type"] as string | undefined;
-    const description = s["description"] as string | undefined;
+    const parsedSchema = recordSchema.safeParse(schema);
+    const s = parsedSchema.success ? parsedSchema.data : {};
+    const rawType = s["type"];
+    const rawDescription = s["description"];
+    const type = typeof rawType === "string" ? rawType : undefined;
+    const description =
+      typeof rawDescription === "string" ? rawDescription : undefined;
 
     let zodType: z.ZodTypeAny;
 

@@ -677,6 +677,8 @@ Incremental migration progress:
   redaction helpers to explicit Zod 4 local record/object guards.
 - Tightened core upload-ref conversation metadata checks plus topic/skill
   derivation metadata reads with explicit Zod 4 local guards.
+- Replaced local record casts in job log summaries, MCP bridge request/schema
+  helpers, and brain.yaml null stripping with explicit Zod 4 record guards.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
