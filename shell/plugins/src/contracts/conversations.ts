@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { messageRoleSchema, type MessageRole } from "@brains/contracts";
 import { ExtensionMetadataSchema } from "./metadata";
 

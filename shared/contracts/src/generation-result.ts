@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * Base result schema for generation job handlers.

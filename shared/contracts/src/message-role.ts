@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /** Canonical role of a stored conversation message. */
 export type MessageRole = "user" | "assistant";

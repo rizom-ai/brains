@@ -717,6 +717,10 @@ Incremental migration progress:
 - Replaced the remaining shared ATProto contract record predicate helper with
   an explicit schema parser while keeping the contract schemas on the current
   main-Zod public boundary.
+- Started public/framework boundary cleanup by moving shared contracts and
+  plugin public contract schema authoring off direct `zod` imports and onto the
+  current `@brains/utils` Zod boundary; do not switch these to Zod 4 until their
+  composing consumers can move as one unmixed boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 export const AGENT_CONTEXT_REQUEST_CHANNEL = "agent:context:request";
 

@@ -1,5 +1,5 @@
 import type { UserPermissionLevel } from "@brains/templates";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { ExtensionMetadataSchema } from "./metadata";
 
 export const MessageResponseSchema = z.union([

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * Best-effort extension metadata carried across public DTO boundaries.
