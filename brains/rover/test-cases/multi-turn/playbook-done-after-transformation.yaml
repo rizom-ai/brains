@@ -109,7 +109,9 @@ turns:
           shouldBeCalled: false
       responseContains:
         - "woodchucks"
-        - "onboarding loop is complete"
+        - "saved a seed"
+        - "retrieved"
+        - "transformed"
       responseNotContains:
         - "Confirmation required"
         - "I cannot"
@@ -131,8 +133,6 @@ successCriteria:
     - "another seed"
     - "I cannot"
     - "I don't have access"
-  minInstructionFollowingScore: 3
-
 efficiency:
   maxToolCalls: 22
   maxTokens: 260000

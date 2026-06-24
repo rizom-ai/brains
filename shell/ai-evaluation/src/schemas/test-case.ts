@@ -44,6 +44,7 @@ export type ExpectedToolCall = z.infer<typeof expectedToolCallSchema>;
 
 export const expectedAnyToolCallSchema = z.object({
   toolNames: z.array(z.string()).min(1),
+  argsContain: z.record(z.unknown()).optional(),
   shouldBeCalled: z.boolean().default(true),
 });
 

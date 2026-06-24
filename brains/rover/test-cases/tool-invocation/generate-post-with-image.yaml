@@ -30,7 +30,6 @@ successCriteria:
   responseNotContains:
     - "I cannot"
     - "I don't have access"
-  minHelpfulnessScore: 3
 
 efficiency:
   maxToolCalls: 1

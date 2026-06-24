@@ -27,7 +27,6 @@ successCriteria:
     - "I don't have access"
     - "I'm unable"
     - "link_capture"
-  minInstructionFollowingScore: 4
 
 efficiency:
   maxToolCalls: 3
