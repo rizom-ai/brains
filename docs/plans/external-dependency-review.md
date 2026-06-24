@@ -723,9 +723,10 @@ Incremental migration progress:
   composing consumers can move as one unmixed boundary.
 - Pointed shared contract, shared site/media/document/image/content schemas,
   messaging-service contract helpers, entity/content/conversation/identity
-  service schemas, interface config/transport schemas, selected plugin
-  integration config/tool schemas, core system and config schemas, MCP service
-  and bridge schemas, job-queue, runtime-state, and template schemas, plugin
+  service schemas, interface config/transport schemas, selected site package and
+  Relay site-composition schemas, selected plugin integration config/tool
+  schemas, core system and config schemas, MCP service and bridge schemas,
+  job-queue, runtime-state, and template schemas, plugin
   public contract schema imports, plugin author-facing Zod type references, and
   plugin framework schema/type imports at the explicit
   `@brains/utils/zod` subpath while keeping them on the current main Zod

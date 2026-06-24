@@ -1,5 +1,5 @@
 import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   RELAY_HOME_DIAGRAM_FALLBACK,
   parseRelayDiagramContent,
