@@ -139,6 +139,7 @@
         "@brains/topics": "workspace:*",
         "@brains/web-chat": "workspace:*",
         "@brains/webserver": "workspace:*",
+        "@brains/whitepaper": "workspace:*",
         "@brains/wishlist": "workspace:*",
       },
       "devDependencies": {
@@ -522,6 +523,21 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/whitepaper": {
+      "name": "@brains/whitepaper",
+      "version": "0.2.0-alpha.127",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "bun-types": "latest",
         "typescript": "^5.3.3",
       },
     },

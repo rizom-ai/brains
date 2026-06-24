@@ -1,0 +1,44 @@
+id: shell-whitepaper-mapping
+name: White paper entity mapping
+description: Tests that white paper language maps to the whitepaper entity type.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - shell
+  - tool-invocation
+  - create
+  - whitepaper
+  - rover
+  - preset-full
+
+turns:
+  - userMessage: "Create a white paper outline about technology for new institutions"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: whitepaper
+
+  - userMessage: "Save this as a strategic paper about sovereign civic infrastructure"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: whitepaper
+
+  - userMessage: "Draft a whitepaper called Regenerative Coordination Infrastructure"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: whitepaper
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 9
+  maxTokens: 60000

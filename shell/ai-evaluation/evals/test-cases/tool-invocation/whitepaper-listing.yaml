@@ -1,0 +1,43 @@
+id: shell-whitepaper-listing
+name: White paper listing uses whitepaper entity type
+description: Tests that read/list questions about white papers list whitepaper entities instead of creating content.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - shell
+  - tool-invocation
+  - list
+  - whitepaper
+  - rover
+  - preset-full
+
+turns:
+  - userMessage: "Do I have any white papers?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_list
+          shouldBeCalled: true
+          argsContain:
+            entityType: whitepaper
+        - toolName: system_create
+          shouldBeCalled: false
+
+  - userMessage: "Show me my draft strategic papers"
+    successCriteria:
+      expectedTools:
+        - toolName: system_list
+          shouldBeCalled: true
+          argsContain:
+            entityType: whitepaper
+        - toolName: system_create
+          shouldBeCalled: false
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 40000

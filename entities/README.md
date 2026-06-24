@@ -37,23 +37,24 @@ Projection jobs own their sync/source lifecycle and are queued by the projection
 
 ## Plugins
 
-| Plugin       | Entity Type   | Projection | Description                                              |
-| ------------ | ------------- | ---------- | -------------------------------------------------------- |
-| blog         | `post`        |            | Blog posts with frontmatter, publish pipeline, RSS       |
-| decks        | `deck`        |            | Slide decks with markdown directives                     |
-| note         | `note`        |            | Personal notes with markdown-first workflow              |
-| link         | `link`        |            | Web links with AI-powered content extraction             |
-| portfolio    | `project`     |            | Portfolio projects with structured case studies          |
-| newsletter   | `newsletter`  |            | Email newsletters with publish pipeline                  |
-| wishlist     | `wish`        |            | Unfulfilled user requests with semantic dedup            |
-| products     | `product`     |            | Product entities with marketing overview                 |
-| image        | `image`       |            | AI image generation                                      |
-| site-info    | `site-info`   |            | Site metadata — title, description, CTA, theme           |
-| series       | `series`      | yes        | Cross-content series, projected from seriesName field    |
-| topics       | `topic`       | yes        | AI-extracted topics from posts, links, and other content |
-| skill        | `skill`       | yes        | A2A capabilities projected from topics and tools         |
-| summary      | `summary`     |            | Conversation summaries generated from digest events      |
-| social-media | `social-post` |            | Social media posts generated from published content      |
+| Plugin       | Entity Type   | Projection | Description                                               |
+| ------------ | ------------- | ---------- | --------------------------------------------------------- |
+| blog         | `post`        |            | Blog posts with frontmatter, publish pipeline, RSS        |
+| decks        | `deck`        |            | Slide decks with markdown directives                      |
+| note         | `note`        |            | Personal notes with markdown-first workflow               |
+| link         | `link`        |            | Web links with AI-powered content extraction              |
+| portfolio    | `project`     |            | Portfolio projects with structured case studies           |
+| newsletter   | `newsletter`  |            | Email newsletters with publish pipeline                   |
+| whitepaper   | `whitepaper`  |            | Strategic long-form white papers with structured metadata |
+| wishlist     | `wish`        |            | Unfulfilled user requests with semantic dedup             |
+| products     | `product`     |            | Product entities with marketing overview                  |
+| image        | `image`       |            | AI image generation                                       |
+| site-info    | `site-info`   |            | Site metadata — title, description, CTA, theme            |
+| series       | `series`      | yes        | Cross-content series, projected from seriesName field     |
+| topics       | `topic`       | yes        | AI-extracted topics from posts, links, and other content  |
+| skill        | `skill`       | yes        | A2A capabilities projected from topics and tools          |
+| summary      | `summary`     |            | Conversation summaries generated from digest events       |
+| social-media | `social-post` |            | Social media posts generated from published content       |
 
 ## vs plugins/
 

@@ -1,0 +1,40 @@
+id: shell-whitepaper-no-false-positive
+name: White paper mentions do not always create whitepapers
+description: Tests that note-like capture requests mentioning white papers still map to notes, not whitepaper entities.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - shell
+  - tool-invocation
+  - create
+  - note
+  - whitepaper
+  - regression
+  - preset-full
+
+turns:
+  - userMessage: "Capture this as a note: white papers should use clear executive summaries"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+
+  - userMessage: "Save a memo about possible white paper topics for later"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 40000

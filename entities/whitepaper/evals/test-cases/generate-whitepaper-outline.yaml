@@ -1,0 +1,46 @@
+id: whitepaper-generate-outline
+name: Generate white paper outline
+description: Tests that AI generates a structured white paper outline with lifecycle metadata fields.
+type: plugin
+tags:
+  - whitepaper
+  - generation
+  - outline
+  - core
+plugin: whitepaper
+handler: generateWhitepaper
+
+input:
+  prompt: "Create a white paper outline about technology for sovereign, regenerative, distributed coordination"
+
+expectedOutput:
+  validateEach:
+    - path: title
+      matches: ".{10,120}"
+    - path: thesis
+      matches: ".{40,300}"
+    - path: abstract
+      matches: ".{80,800}"
+    - path: body
+      matches: "[\\s\\S]{300,}"
+    - path: body
+      matches: "## Executive Summary"
+    - path: body
+      matches: "## Why Now|## Problem / Context"
+    - path: body
+      matches: "## Implementation Roadmap"
+    - path: body
+      matches: "[Tt]rade-?offs?|[Rr]isks?|[Cc]onstraints?"
+    - path: body
+      matches: "institutions?|public-interest|civic|governance"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Judge this as a strategic white paper outline, not a generic article outline.
+      Reward concrete institutional framing, audience awareness, clear tradeoffs,
+      implementation specificity, and a differentiated thesis. Penalize buzzword-heavy
+      or generic decentralization language, unjustified tokenization/blockchain claims,
+      and outlines that could apply to any technology strategy topic.

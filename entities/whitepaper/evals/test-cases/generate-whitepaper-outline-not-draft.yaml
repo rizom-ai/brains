@@ -1,0 +1,46 @@
+id: whitepaper-generate-outline-not-draft
+name: Generate white paper request as outline, not full draft
+description: Tests that broad write/generate requests still produce an outline-stage white paper rather than a prose-heavy full draft.
+type: plugin
+tags:
+  - whitepaper
+  - generation
+  - outline
+  - lifecycle
+  - regression
+plugin: whitepaper
+handler: generateWhitepaper
+
+input:
+  prompt: "Write a white paper about public-interest AI infrastructure for democratic institutions"
+
+expectedOutput:
+  validateEach:
+    - path: title
+      matches: ".{10,120}"
+    - path: thesis
+      matches: ".{40,300}"
+    - path: abstract
+      matches: ".{80,800}"
+    - path: body
+      matches: "[\\s\\S]{300,}"
+    - path: body
+      matches: "## Executive Summary"
+    - path: body
+      matches: "## Problem / Context|## Why Now"
+    - path: body
+      matches: "## Implementation Roadmap"
+    - path: body
+      matches: "[\\s\\S]*\\n- .+"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Judge whether the output stays at outline stage despite the user saying
+      "write a white paper." It should provide a structured outline with headings
+      and bullets that can be expanded later, not a polished long-form prose draft.
+      Reward clear public-interest/democratic-institution framing, concrete risks,
+      and implementation sequencing. Penalize generic AI policy language, marketing
+      copy, or full-draft prose without outline structure.
