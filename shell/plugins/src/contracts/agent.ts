@@ -1,5 +1,5 @@
 import { UserPermissionLevelSchema } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
