@@ -1,4 +1,4 @@
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 
 export interface RuntimeStateDbConfig {
   url: string;

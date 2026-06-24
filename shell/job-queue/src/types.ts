@@ -3,7 +3,7 @@ import type { JobOptions, JobContext } from "./schema/types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import type { DbConfig } from "@brains/contracts";
 import type { ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 // Re-export types that are used internally
 export type { JobOptions, JobContext, BatchOperation };

@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import {
   runtimeStateRecords,
   type RuntimeStateRecord,
