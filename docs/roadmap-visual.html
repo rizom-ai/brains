@@ -34,7 +34,7 @@
         display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
         padding-bottom: 8px; border-bottom: 1px solid #21262d; }
       .group-num { color: #6e7681; font-variant-numeric: tabular-nums; font-size: 14px; }
-      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; margin-top: 14px; }
       .card { border: 1px solid #21262d; border-left-width: 3px; border-radius: 8px;
         padding: 14px 16px; background: #161b22; }
       .card.status-active { border-left-color: #d29922; }
@@ -53,7 +53,13 @@
       .badge-done { background: #122119; color: #3fb950; }
       .card-desc { font-size: 13px; color: #8b949e; margin-top: 8px; }
       .card-file { font-size: 11px; color: #6e7681; margin-top: 8px; font-family: ui-monospace, monospace; }
-      .group-completed .completed-list { display: flex; flex-direction: column; gap: 6px; }
+      summary.group-title { cursor: pointer; list-style: none; margin-bottom: 0; }
+      summary.group-title::-webkit-details-marker { display: none; }
+      summary.group-title::after { content: "▸"; color: #6e7681; font-size: 12px;
+        margin-left: auto; transition: transform 0.15s; }
+      .group[open] summary.group-title::after { transform: rotate(90deg); }
+      .completed-count { color: #6e7681; font-size: 12px; font-weight: 400; }
+      .group-completed .completed-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
       .completed-item { font-size: 13px; color: #8b949e; }
       .completed-name { color: #c9d1d9; font-weight: 600; }
       code { background: #1c2128; padding: 1px 5px; border-radius: 4px;
@@ -74,8 +80,8 @@
         <span class="legend-item"><span class="legend-dot dot-done"></span>Done</span>
     </div>
     <main>
-      <section class="group">
-        <h2 class="group-title"><span class="group-num">§1</span>The brain and its bundles</h2>
+      <details class="group" open>
+        <summary class="group-title"><span class="group-num">§1</span>The brain and its bundles</summary>
         <div class="cards">
         <div class="card status-partial">
           <div class="card-head">
@@ -110,18 +116,10 @@
           <div class="card-file">web-search-tool.md</div>
         </div>
         </div>
-      </section>
-      <section class="group">
-        <h2 class="group-title"><span class="group-num">§2</span>The collective posture (active POC)</h2>
+      </details>
+      <details class="group" open>
+        <summary class="group-title"><span class="group-num">§2</span>The collective posture (active POC)</summary>
         <div class="cards">
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Message-interface semantic tool status</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">shared lifecycle model for tool-status updates rendered per interface (web-chat, Discord, future adapters), so shared-space participants can see what the brain is doing.</div>
-          <div class="card-file">message-interface-tool-status.md</div>
-        </div>
         <div class="card status-parked">
           <div class="card-head">
             <span class="card-name">Team-Posture Capabilities</span>
@@ -131,9 +129,9 @@
           <div class="card-file">team-posture-capabilities.md</div>
         </div>
         </div>
-      </section>
-      <section class="group">
-        <h2 class="group-title"><span class="group-num">§3</span>Trust &amp; identity — the frontier</h2>
+      </details>
+      <details class="group" open>
+        <summary class="group-title"><span class="group-num">§3</span>Trust &amp; identity — the frontier</summary>
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
@@ -168,18 +166,10 @@
           <div class="card-file">a2a-request-signing.md</div>
         </div>
         </div>
-      </section>
-      <section class="group">
-        <h2 class="group-title"><span class="group-num">§4</span>Hosting &amp; operations</h2>
+      </details>
+      <details class="group" open>
+        <summary class="group-title"><span class="group-num">§4</span>Hosting &amp; operations</summary>
         <div class="cards">
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Hosted Rovers on Kubernetes</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">hosted rover control plane direction.</div>
-          <div class="card-file">hosted-rovers.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Rover default batch onboarding</span>
@@ -205,25 +195,17 @@
           <div class="card-file">discord-opt-in-plan.md</div>
         </div>
         </div>
-      </section>
-      <section class="group">
-        <h2 class="group-title"><span class="group-num">§5</span>Interfaces</h2>
+      </details>
+      <details class="group" open>
+        <summary class="group-title"><span class="group-num">§5</span>Interfaces</summary>
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">First-Party CMS Editor</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync); supersedes the hosted GitHub-App token plan below.</div>
+          <div class="card-desc">first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync). The committed CMS direction, replacing the Sveltia/GitHub-App token path.</div>
           <div class="card-file">first-party-cms-editor.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Hosted CMS GitHub App Tokens</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">hosted-product CMS login via short-lived GitHub App installation tokens; superseded if the first-party editor lands (the browser-token problem it hardens disappears).</div>
-          <div class="card-file">cms-github-app-hosted.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -257,18 +239,10 @@
           <div class="card-desc">parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.</div>
           <div class="card-file">message-feedback.md</div>
         </div>
-        <div class="card status-parked">
-          <div class="card-head">
-            <span class="card-name">Desktop App (Electrobun)</span>
-            <span class="badge badge-parked">Parked</span>
-          </div>
-          <div class="card-desc">parked Electrobun-based native-app direction.</div>
-          <div class="card-file">desktop-app.md</div>
         </div>
-        </div>
-      </section>
-      <section class="group">
-        <h2 class="group-title"><span class="group-num">§6</span>Ecosystem</h2>
+      </details>
+      <details class="group" open>
+        <summary class="group-title"><span class="group-num">§6</span>Ecosystem</summary>
         <div class="cards">
         <div class="card status-partial">
           <div class="card-head">
@@ -296,41 +270,17 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">OKF interop (Open Knowledge Format export/import)</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">export/import the entity store as Google Open Knowledge Format bundles via <code>directory-sync</code>, for interchange with external OKF producers/consumers.</div>
-          <div class="card-file">okf-interop.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
             <span class="card-name">Opportunity Priority Engine</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
           <div class="card-desc">Opportunity Priority Engine: proposed standalone <code>@brains/opportunity</code> package for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for opportunity prioritization; brain-agnostic, not in any default bundle.</div>
           <div class="card-file">bd-priority-engine.md</div>
         </div>
-        <div class="card status-parked">
-          <div class="card-head">
-            <span class="card-name">Custom Brain Definitions (brain.ts)</span>
-            <span class="badge badge-parked">Parked</span>
-          </div>
-          <div class="card-desc">parked programmatic composition escape hatch.</div>
-          <div class="card-file">custom-brain-definitions.md</div>
         </div>
-        </div>
-      </section>
-      <section class="group">
-        <h2 class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</h2>
+      </details>
+      <details class="group" open>
+        <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Runtime state store</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">service shipped (<code>shell/runtime-state</code>); remaining work wires the pending consumers (chat subscriptions, playbook run state, notification/setup-email dedupe).</div>
-          <div class="card-file">runtime-state-store.md</div>
-        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Local AI Runtime</span>
@@ -389,14 +339,6 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Memory Reduction — Registries, Templates &amp; Eager Loading</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">profile first, then optimize registry/template/lazy-loading pressure.</div>
-          <div class="card-file">memory-reduction.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
             <span class="card-name">Template Renderer Contracts</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -412,9 +354,9 @@
           <div class="card-file">turso-database-engine.md</div>
         </div>
         </div>
-      </section>
-      <section class="group group-completed">
-        <h2 class="group-title"><span class="group-num">✓</span>Recently completed</h2>
+      </details>
+      <details class="group group-completed">
+        <summary class="group-title"><span class="group-num">✓</span>Recently completed<span class="completed-count">45 items</span></summary>
         <div class="completed-list">
           <div class="completed-item"><span class="completed-name">Entity and plugin architecture</span> — unified <code>EntityPlugin</code> / <code>ServicePlugin</code> / <code>InterfacePlugin</code> split</div>
           <div class="completed-item"><span class="completed-name">System tool surface</span> — create, update, delete, search, extract, status, and insights consolidated into framework-level tools, with durable writes routed through explicit confirmation</div>
@@ -462,7 +404,7 @@
           <div class="completed-item"><span class="completed-name">Web chat outbound attachments</span> — generated documents stream through the web-chat transport as AI SDK UI data parts, so saved PDF/document artifacts render inline in the chat surface with download affordances</div>
           <div class="completed-item"><span class="completed-name">Runtime state store service</span> — <code>shell/runtime-state</code> ships a shell-owned, namespaced, typed store for ephemeral operational state (libSQL + Drizzle, shell-owned migrations), wired into <code>shell/core</code> service initialization and exposed to plugins via <code>context.runtimeState</code>; consumers (chat thread subscriptions, playbook run state, notification/setup-email dedupe) are pending</div>
         </div>
-      </section>
+      </details>
     </main>
   </body>
 </html>

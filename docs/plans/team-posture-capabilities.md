@@ -44,4 +44,3 @@ Team source bridges worth adding once the import/sync UX is scoped — read-only
 
 - [brain-model-unification.md](./brain-model-unification.md) — defines the `team` bundle these capabilities extend.
 - [multi-user.md](./multi-user.md) — the per-person identity substrate real team attribution depends on.
-- [message-interface-tool-status.md](./message-interface-tool-status.md) — shared-space participants seeing what the brain is doing.
