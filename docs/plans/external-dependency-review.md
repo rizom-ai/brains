@@ -724,6 +724,8 @@ Incremental migration progress:
 - Moved the public `@rizom/brain` root `z` export to the centralized
   `@brains/utils/zod` boundary while preserving the generated public declaration
   contract for plugin authors.
+- Cleared the remaining direct test import of `zod`; direct `zod` references are
+  now limited to the centralized utils export and public API assertions.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
