@@ -26,6 +26,7 @@ export type {
   AIModelConfig,
   AIModelConfigUpdate,
   IAIService,
+  JudgeInput,
   AspectRatio,
   ImageGenerationOptions,
   ImageGenerationResult,

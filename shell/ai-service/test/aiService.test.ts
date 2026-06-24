@@ -350,6 +350,42 @@ describe("AIService", () => {
     });
   });
 
+  describe("Judgment", () => {
+    it("should generate a schema-constrained verdict from instruction and material", async () => {
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
+      const schema = z.object({ met: z.boolean(), reason: z.string() });
+      generateObjectSpy.mockResolvedValueOnce({
+        object: { met: true, reason: "Evidence satisfies the goal." },
+        usage: {
+          inputTokens: 8,
+          outputTokens: 5,
+          totalTokens: 13,
+        },
+      });
+
+      const result = await service.judge({
+        instruction: "Decide whether the goal is met.",
+        material: "The KB contains the requested fact.",
+        schema,
+      });
+
+      expect(result.verdict).toEqual({
+        met: true,
+        reason: "Evidence satisfies the goal.",
+      });
+      expect(generateObjectSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          system: expect.stringContaining("careful judge"),
+          prompt: expect.stringContaining("Decide whether the goal is met."),
+          schema,
+        }),
+      );
+    });
+  });
+
   describe("Object Generation", () => {
     const testSchema = z.object({
       result: z.string(),

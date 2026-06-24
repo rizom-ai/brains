@@ -208,11 +208,7 @@ git commit -m "Auto-sync: <timestamp>"
 
 Before committing, it checks staged text files for conflict markers:
 
-```text
-<<<<<<<
-=======
->>>>>>>
-```
+`<<<<<<<`, `=======`, or `>>>>>>>`
 
 If conflict markers are found, the commit fails and manual intervention is required.
 

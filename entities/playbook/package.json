@@ -1,0 +1,29 @@
+{
+  "name": "@brains/playbook",
+  "private": true,
+  "version": "0.2.0-alpha.107",
+  "description": "Playbook entity for durable guided agent workflows",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint \"**/*.ts\"",
+    "lint:fix": "eslint \"**/*.ts\" --fix"
+  },
+  "dependencies": {
+    "@brains/content-formatters": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "bun-types": "^1.3.14",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3"
+  }
+}

@@ -2,8 +2,11 @@ brain: rover
 preset: core
 
 plugins:
+  playbooks:
+    triggers:
+      first-anchor-web-chat: true
   directory-sync:
-    seedContentPath: ../../eval-content
+    seedContentPath: ../../eval-content-core
     autoSync: true
     initialSync: true
     git:

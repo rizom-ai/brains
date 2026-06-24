@@ -15,6 +15,9 @@ permissions:
       level: public
 
 plugins:
+  playbooks:
+    triggers:
+      first-anchor-web-chat: true
   chat:
     adapters:
       discord:
@@ -22,7 +25,7 @@ plugins:
         publicKey: ${DISCORD_PUBLIC_KEY}
         applicationId: ${DISCORD_APPLICATION_ID}
   directory-sync:
-    seedContentPath: ../../eval-content
+    seedContentPath: ../../eval-content-full
     autoSync: true
     initialSync: true
     git:

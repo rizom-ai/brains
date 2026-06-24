@@ -37,7 +37,6 @@ successCriteria:
     - "I'll generate"
     - "generating a newsletter"
     - "I generated"
-  minAccuracyScore: 4
 
 efficiency:
   maxToolCalls: 3

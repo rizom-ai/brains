@@ -7,7 +7,8 @@ import type {
 } from "./agent-types";
 import {
   buildAttachmentCardFromToolData,
-  buildEntityMemoryNote,
+  buildEntityMemoryRefs,
+  type EntityMemoryRef,
 } from "./agent-results";
 
 const recordSchema = z.record(z.string(), z.unknown());
@@ -58,7 +59,7 @@ export interface ConfirmedActionResult {
   resultText: string;
   toolResult: ToolResultData;
   cards: StructuredChatCard[];
-  entityMemoryNote: string;
+  entityMemoryRefs: EntityMemoryRef[];
 }
 
 /**
@@ -75,12 +76,14 @@ export function buildConfirmedActionResult(
   const errorMessage = failed
     ? (getStringField(result, "error") ?? getStringField(result, "message"))
     : undefined;
-  const completionSummary = statementFromConfirmationSummary(
-    pendingConfirmation.summary,
+  const actionLabel = statementFromConfirmationSummary(
+    failed
+      ? pendingConfirmation.summary
+      : (pendingConfirmation.completionSummary ?? pendingConfirmation.summary),
   );
   const resultText = errorMessage
-    ? `${prefix}: ${completionSummary}\n\n${errorMessage}`
-    : `${prefix}: ${completionSummary}`;
+    ? `${prefix}: ${actionLabel}\n\n${errorMessage}`
+    : `${prefix}: ${actionLabel}`;
   const pendingArgs = parseRecord(pendingConfirmation.args);
   const toolResult: ToolResultData = {
     toolName: pendingConfirmation.toolName,
@@ -97,6 +100,9 @@ export function buildConfirmedActionResult(
     toolName: pendingConfirmation.toolName,
     ...(approvalInput ? { input: approvalInput } : {}),
     summary: pendingConfirmation.summary,
+    ...(pendingConfirmation.completionSummary !== undefined
+      ? { completionSummary: pendingConfirmation.completionSummary }
+      : {}),
     state: failed ? "output-error" : "output-available",
     output: result,
     ...(failed
@@ -111,14 +117,14 @@ export function buildConfirmedActionResult(
     approvalCard,
     ...(attachmentCard ? [attachmentCard] : []),
   ];
-  const entityMemoryNote = successResult.success
-    ? buildEntityMemoryNote([
+  const entityMemoryRefs = successResult.success
+    ? buildEntityMemoryRefs([
         {
           ...toolResult,
           data: successResult.data.data,
         },
       ])
-    : "";
+    : [];
 
-  return { resultText, toolResult, cards, entityMemoryNote };
+  return { resultText, toolResult, cards, entityMemoryRefs };
 }

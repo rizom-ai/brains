@@ -5,7 +5,6 @@ import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "../src/scheduler-backend";
-import type { PublishProvider } from "@brains/contracts";
 import { createMockLogger } from "@brains/test-utils";
 
 type SchedulerConfigOverrides = Partial<SchedulerConfig>;
@@ -199,29 +198,6 @@ describe("ContentScheduler", () => {
 
       const retryInfo = retryTracker.getRetryInfo("post-1");
       expect(retryInfo?.retryCount).toBe(1);
-    });
-  });
-
-  describe("publishDirect", () => {
-    it("should publish immediately without queue", async () => {
-      const publishMock = mock(() =>
-        Promise.resolve({ id: "result-1", url: "http://example.com" }),
-      );
-      const provider: PublishProvider = {
-        name: "test",
-        publish: publishMock,
-      };
-      providerRegistry.register("blog-post", provider);
-
-      const result = await scheduler.publishDirect(
-        "blog-post",
-        "post-1",
-        "content",
-        {},
-      );
-
-      expect(publishMock).toHaveBeenCalled();
-      expect(result.id).toBe("result-1");
     });
   });
 

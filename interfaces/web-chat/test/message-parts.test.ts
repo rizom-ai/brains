@@ -132,6 +132,25 @@ describe("web chat message part grouping", () => {
     });
   });
 
+  it("keeps resolved approval tool output visible in the message body", () => {
+    const resolvedApprovalPart = {
+      type: "dynamic-tool" as const,
+      toolCallId: "call-1",
+      toolName: "system_update",
+      state: "output-available" as const,
+      title: 'Update "Big people are small too"?',
+      input: { entityType: "base", id: "big-people-are-small-too" },
+      output: { success: true, data: { updated: "big-people-are-small-too" } },
+    };
+
+    expect(groupMessagePartSections([resolvedApprovalPart])).toEqual({
+      body: [{ kind: "native-tool", data: resolvedApprovalPart }],
+      sources: [],
+      actions: [],
+      details: [],
+    });
+  });
+
   it("groups structured progress parts semantically", () => {
     const progress = {
       status: "processing",

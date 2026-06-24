@@ -7,16 +7,25 @@ suites:
     preset: core
     tags:
       - preset-core
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content-core
   default:
     extends: core
     preset: default
     tags:
       - preset-default
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content-default
   full:
     extends: default
     preset: full
     tags:
       - preset-full
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content-full
 
 # Single model eval with OpenAI LLM judge
 models:
@@ -43,7 +52,10 @@ permissions:
       publish: anchor
 
 plugins:
+  playbooks:
+    triggers:
+      first-anchor-web-chat: true
   directory-sync:
-    seedContentPath: eval-content
+    seedContentPath: eval-content-full
     git:
       gitUrl: "file://${EVAL_GIT_REMOTE}"

@@ -48,6 +48,7 @@ import type {
   IAgentService,
   ImageGenerationOptions,
   ImageGenerationResult,
+  JudgeInput,
 } from "@brains/ai-service";
 import type { Daemon } from "@brains/plugins";
 import type {
@@ -285,6 +286,18 @@ export class Shell implements IShell {
       schema,
     );
     return { object };
+  }
+
+  public async judge<T>(input: JudgeInput<T>): Promise<{
+    verdict: T;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }> {
+    this.requireInitialized("Shell judge");
+    return this.services.aiService.judge(input);
   }
 
   public getAIService(): IAIService {

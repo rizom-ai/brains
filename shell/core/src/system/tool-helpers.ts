@@ -1,4 +1,7 @@
-import type { BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntityMutationEventContext,
+} from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type {
   EntityAction,
@@ -65,9 +68,12 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
     input: z.infer<TSchema>,
     context: ToolContext,
   ) => Promise<ToolResponse>,
-  options: { visibility?: Tool["visibility"] } = {},
+  options: {
+    visibility?: Tool["visibility"];
+    sideEffects?: Tool["sideEffects"];
+  } = {},
 ): Tool {
-  const { visibility = "anchor" } = options;
+  const { visibility = "anchor", sideEffects } = options;
   return {
     name: `${PLUGIN_ID}_${name}`,
     description,
@@ -87,7 +93,22 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
       }
     },
     visibility,
+    ...(sideEffects ? { sideEffects } : {}),
   };
+}
+
+export function buildEntityMutationEventContext(
+  context: ToolContext,
+): EntityMutationEventContext | undefined {
+  const eventContext: EntityMutationEventContext = {
+    ...(context.conversationId
+      ? { conversationId: context.conversationId }
+      : {}),
+    ...(context.channelId ? { channelId: context.channelId } : {}),
+    ...(context.runId ? { runId: context.runId } : {}),
+    ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
+  };
+  return Object.keys(eventContext).length > 0 ? eventContext : undefined;
 }
 
 export function sanitizeEntity<T extends BaseEntity>(entity: T): T {
@@ -142,6 +163,16 @@ export function normalizeUpdateInput(input: {
   }
 
   return { content: input.content };
+}
+
+const ENTITY_TYPE_DISPLAY_NAMES: Record<string, string> = {
+  base: "note",
+};
+
+export function humanizeEntityType(entityType: string): string {
+  return (
+    ENTITY_TYPE_DISPLAY_NAMES[entityType] ?? entityType.replaceAll("-", " ")
+  );
 }
 
 export function getEntityDisplayLabel(entity: BaseEntity): string {

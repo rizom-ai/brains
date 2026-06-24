@@ -25,9 +25,11 @@ export interface ToolContext {
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
   userId: string; // User who invoked the tool
-  conversationId?: string; // Conversation/session context for conversation-scoped tools
-  channelId?: string; // Channel/room context (for Matrix, etc.)
+  conversationId?: string; // Durable conversation/session id for conversation-scoped tools when available
+  channelId?: string; // Transport channel/room context (for Matrix, etc.)
   channelName?: string; // Human-readable channel name (for display)
+  runId?: string; // Runtime workflow/playbook run context when available
+  toolCallId?: string; // AI SDK tool call id when invoked by an agent
   /** Caller's permission level. Tools that read/write entities use this to derive
    *  the content-visibility scope they are allowed to see. */
   userPermissionLevel?: UserPermissionLevel;
@@ -43,6 +45,8 @@ export const ToolContextRoutingSchema = z.object({
   conversationId: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
+  runId: z.string().optional(),
+  toolCallId: z.string().optional(),
   userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
 });
 
@@ -54,6 +58,7 @@ export const toolSuccessSchema = z
     success: z.literal(true),
     data: z.unknown(),
     message: z.string().optional(),
+    cached: z.literal(true).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -87,6 +92,7 @@ export const toolConfirmationSchema = z
     needsConfirmation: z.literal(true),
     toolName: z.string(),
     summary: z.string(),
+    completionSummary: z.string().optional(),
     preview: z.string().optional(),
     args: z.unknown(),
   })
@@ -106,6 +112,8 @@ export const toolResponseSchema = z.union([
 
 export type ToolResponse = z.infer<typeof toolResponseSchema>;
 
+export type ToolSideEffects = "none" | "writes" | "external";
+
 /**
  * Tool definition
  * @template TOutput - The output type, defaults to ToolResponse for backward compatibility
@@ -117,6 +125,8 @@ export interface Tool<TOutput = ToolResponse> {
   outputSchema?: ZodType<TOutput>; // Optional: Zod schema for type-safe outputs
   handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
+  /** Declares whether this tool is safe to repeat/cache within one model turn. Undefined defaults to not cacheable. */
+  sideEffects?: ToolSideEffects;
   /** Optional CLI metadata — makes this tool invocable as a brain CLI command */
   cli?: {
     /** CLI command name (e.g. "list", "sync", "build") */

@@ -68,6 +68,12 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("public user");
     expect(instructions).toContain("Public users are not the anchor");
     expect(instructions).toContain("generally cannot create, update, delete");
+    expect(instructions).toContain(
+      "Do not name, volunteer, or disclose the configured anchor/profile identity in that answer",
+    );
+    expect(instructions).toContain(
+      "Do not confirm, deny, reveal, or compare against the configured profile details unless the user separately asks who owns the brain.",
+    );
   });
 
   it("should not disclose profile identity when answering whether caller is anchor", () => {
@@ -76,10 +82,10 @@ describe("buildInstructions", () => {
       kind: "professional" as const,
     });
     expect(instructions).toContain(
-      "Do not name or disclose the anchor/profile identity in that answer",
+      "Do not name, volunteer, or disclose the configured anchor/profile identity in that answer",
     );
     expect(instructions).toContain(
-      "Do not confirm or deny by revealing the configured profile details",
+      "Do not confirm, deny, reveal, or compare against the configured profile details",
     );
   });
 
@@ -237,7 +243,7 @@ describe("buildInstructions", () => {
   it("should keep discussion and summary notes off upload import paths", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, create a `note` entity with `content` from the conversation; do not import the image/PDF/file upload and do not pass `upload` or `transform`.",
+      "If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, create a `note` entity with `content` from the conversation; do not call `system_upload_save`, do not import the image/PDF/file upload, and do not pass `upload` or `transform`.",
     );
     expect(instructions).toContain(
       "After you summarize/read/describe/analyze an uploaded file, follow-ups like “save it”, “save that”, “save the note”, or “save the summary” refer to the visible summary/notes you just wrote unless the user explicitly says to save/import/promote the uploaded PDF/file/document itself.",
@@ -262,6 +268,16 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should keep inline transformations out of durable create flows", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "Transforming retrieved or discussed content in chat is not a durable create by default.",
+    );
+    expect(instructions).toContain(
+      "Do not call `system_create` or ask for confirmation for inline transformations.",
+    );
+  });
+
   it("should distinguish artifact previews from durable artifact saves", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
@@ -272,6 +288,9 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "use the returned canonical entity `id` in `sourceAttachment.sourceEntityId` and continue to `system_create` in the same turn",
+    );
+    expect(instructions).toContain(
+      "Once `system_get` succeeds for a named source artifact, do not add `system_search`",
     );
   });
 
@@ -357,6 +376,12 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       'if metadata says `status: "draft"`, do not answer that it is already published',
+    );
+    expect(instructions).toContain(
+      'If a confirmed `system_update` just changed a post to `fields.status: "draft"`, and the user then asks to publish it, call the publish tool for that same canonical post ID.',
+    );
+    expect(instructions).toContain(
+      "Do not re-resolve by title, do not trust stale frontmatter over the confirmed update result, and do not ask which version they mean.",
     );
   });
 

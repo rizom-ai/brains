@@ -245,6 +245,20 @@ export class JobQueueRepository {
       .orderBy(desc(jobQueue.createdAt));
   }
 
+  public async getFailedJobs(types?: string[]): Promise<JobInfo[]> {
+    const failedStatusFilter = eq(jobQueue.status, JOB_STATUS.FAILED);
+    const whereClause =
+      types && types.length > 0
+        ? and(failedStatusFilter, inArray(jobQueue.type, types))
+        : failedStatusFilter;
+
+    return this.db
+      .select()
+      .from(jobQueue)
+      .where(whereClause)
+      .orderBy(desc(jobQueue.createdAt));
+  }
+
   /**
    * Atomically claim the highest-priority ready job.
    *

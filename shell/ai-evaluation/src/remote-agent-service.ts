@@ -3,85 +3,17 @@ import type {
   AgentResponse,
   ChatContext,
 } from "@brains/ai-service";
-import {
-  AgentResponseSchema,
-  toPublicActionsCard,
-  toPublicAttachmentCard,
-  toPublicSourcesCard,
-} from "@brains/plugins";
+import { parseAgentResponse as parseSharedAgentResponse } from "@brains/contracts";
 
 function parseAgentResponse(json: unknown): AgentResponse {
-  const result = AgentResponseSchema.safeParse(json);
-  if (!result.success) {
+  try {
+    return parseSharedAgentResponse(json);
+  } catch (error) {
     throw new Error(
-      `Invalid response from remote agent: ${result.error.message}`,
+      `Invalid response from remote agent: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
-
-  const parsed = result.data;
-  const response: AgentResponse = {
-    text: parsed.text,
-    usage: parsed.usage,
-  };
-
-  if (parsed.toolResults) {
-    response.toolResults = parsed.toolResults.map((toolResult) => ({
-      toolName: toolResult.toolName,
-      ...(toolResult.args !== undefined ? { args: toolResult.args } : {}),
-      ...(toolResult.jobId !== undefined ? { jobId: toolResult.jobId } : {}),
-      ...(toolResult.data !== undefined ? { data: toolResult.data } : {}),
-    }));
-  }
-
-  if (parsed.cards) {
-    response.cards = parsed.cards.map((card) => {
-      if (card.kind === "attachment") {
-        return toPublicAttachmentCard(card);
-      }
-
-      if (card.kind === "sources") {
-        return toPublicSourcesCard(card);
-      }
-
-      if (card.kind === "actions") {
-        return toPublicActionsCard(card);
-      }
-
-      return {
-        kind: card.kind,
-        id: card.id,
-        ...(card.toolCallId !== undefined
-          ? { toolCallId: card.toolCallId }
-          : {}),
-        toolName: card.toolName,
-        ...(card.input !== undefined ? { input: card.input } : {}),
-        summary: card.summary,
-        ...(card.preview !== undefined ? { preview: card.preview } : {}),
-        state: card.state,
-        ...(card.output !== undefined ? { output: card.output } : {}),
-        ...(card.error !== undefined ? { error: card.error } : {}),
-      };
-    });
-  }
-
-  if (parsed.pendingConfirmations) {
-    response.pendingConfirmations = parsed.pendingConfirmations.map(
-      (confirmation) => ({
-        id: confirmation.id,
-        ...(confirmation.toolCallId !== undefined
-          ? { toolCallId: confirmation.toolCallId }
-          : {}),
-        toolName: confirmation.toolName,
-        summary: confirmation.summary,
-        ...(confirmation.preview !== undefined
-          ? { preview: confirmation.preview }
-          : {}),
-        args: confirmation.args,
-      }),
-    );
-  }
-
-  return response;
 }
 
 export interface RemoteAgentServiceConfig {

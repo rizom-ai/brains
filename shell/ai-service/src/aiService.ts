@@ -8,6 +8,7 @@ import type {
   IAIService,
   ImageGenerationOptions,
   ImageGenerationResult,
+  JudgeInput,
 } from "./types";
 import {
   resolveTextModelCapabilities,
@@ -157,6 +158,28 @@ export class AIService implements IAIService {
       this.logger.error("Failed to generate object", error);
       throw new Error("AI object generation failed", { cause: error });
     }
+  }
+
+  /**
+   * Make a bounded schema-constrained judgment against supplied material.
+   */
+  public async judge<T>(input: JudgeInput<T>): Promise<{
+    verdict: T;
+    usage: TokenUsage;
+  }> {
+    const { object, usage } = await this.generateObject(
+      "You are a careful judge. Answer only by filling the requested verdict schema. Do not author new source material; evaluate only the supplied material against the instruction.",
+      [
+        "## Judgment instruction",
+        input.instruction,
+        "",
+        "## Material",
+        input.material,
+      ].join("\n"),
+      input.schema,
+    );
+
+    return { verdict: object, usage };
   }
 
   /**

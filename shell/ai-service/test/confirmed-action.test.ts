@@ -17,7 +17,7 @@ const pending: PendingConfirmation = {
 };
 
 describe("buildConfirmedActionResult", () => {
-  test("reports success and records an entity memory note", () => {
+  test("reports success and records structured entity memory refs", () => {
     const result = buildConfirmedActionResult(pending, {
       success: true,
       data: { entityId: "my-note", status: "updated" },
@@ -29,7 +29,14 @@ describe("buildConfirmedActionResult", () => {
       data: { success: true, data: { entityId: "my-note", status: "updated" } },
       args: pending.args as Record<string, unknown>,
     });
-    expect(result.entityMemoryNote).toContain("my-note");
+    expect(result.entityMemoryRefs).toEqual([
+      {
+        entityType: "note",
+        entityId: "my-note",
+        operation: "created",
+        status: "updated",
+      },
+    ]);
 
     const approvalCard = result.cards[0];
     expect(approvalCard).toMatchObject({
@@ -54,14 +61,14 @@ describe("buildConfirmedActionResult", () => {
     });
   });
 
-  test("reports failure with the tool error and no memory note", () => {
+  test("reports failure with the tool error and no memory refs", () => {
     const result = buildConfirmedActionResult(pending, {
       success: false,
       error: "boom",
     });
 
     expect(result.resultText).toBe('Failed: Update "My Note"\n\nboom');
-    expect(result.entityMemoryNote).toBe("");
+    expect(result.entityMemoryRefs).toEqual([]);
     expect(result.cards[0]).toMatchObject({
       state: "output-error",
       error: "boom",

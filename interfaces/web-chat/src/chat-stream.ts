@@ -13,6 +13,7 @@ import {
   writeStructuredCards,
   writeTextPart,
 } from "./stream-writer";
+import { stripInternalEntityMemoryNote } from "./display-content";
 
 export interface ActiveStream {
   writer: UIMessageStreamWriter<UIMessage>;
@@ -165,6 +166,6 @@ export function writeText(
   createId: (prefix: string) => string,
 ): string {
   const id = createId(prefix);
-  writeTextPart(writer, id, text);
+  writeTextPart(writer, id, stripInternalEntityMemoryNote(text));
   return id;
 }

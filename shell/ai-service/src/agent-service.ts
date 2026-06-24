@@ -1,5 +1,5 @@
 import type { AgentContextItem } from "@brains/contracts";
-import { type Logger, getErrorMessage } from "@brains/utils";
+import { type Logger, getErrorMessage, z } from "@brains/utils";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
 import type {
@@ -40,7 +40,9 @@ import {
 import {
   buildSourcesCardFromContextItems,
   extractToolResults,
-  buildEntityMemoryNote,
+  buildEntityMemoryRefs,
+  buildToolResultPromptFallback,
+  type EntityMemoryRef,
 } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
 import { buildBrainCallOptions } from "./call-options";
@@ -52,6 +54,25 @@ import { toTokenUsage } from "./generation-options";
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
+
+const asyncGeneratingToolResultSchema = z
+  .object({
+    success: z.literal(true),
+    data: z
+      .object({
+        status: z.literal("generating"),
+        entityId: z.string().min(1).optional(),
+        jobId: z.string().min(1).optional(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+function buildAsyncGenerationFallback(data: unknown): string | undefined {
+  const parsed = asyncGeneratingToolResultSchema.safeParse(data);
+  if (!parsed.success) return undefined;
+  return "The draft is generating now. Once it is ready, I can review it with you, refine it, or turn it into another format.";
+}
 
 function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   const filenames = attachments.map((attachment) => attachment.filename);
@@ -207,6 +228,7 @@ export class AgentService implements IAgentService {
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   private agentContextProvider: AgentConfig["agentContextProvider"];
+  private indexReadiness: AgentConfig["indexReadiness"];
   private uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
 
   // Provided machine with injected actors (created once, reused per conversation)
@@ -305,6 +327,7 @@ export class AgentService implements IAgentService {
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
     this.agentContextProvider = config.agentContextProvider;
+    this.indexReadiness = config.indexReadiness;
     this.uploadAttachmentResolver = config.uploadAttachmentResolver;
   }
 
@@ -358,10 +381,17 @@ export class AgentService implements IAgentService {
     conversationId: string,
     context?: ChatContext,
   ): Promise<AgentResponse> {
+    if (this.indexReadiness && !this.indexReadiness.isIndexReady()) {
+      return {
+        text: "I'm still getting the knowledge base ready. Please try again in a moment.",
+        usage: emptyUsage,
+      };
+    }
+
     const userPermissionLevel = context?.userPermissionLevel ?? "public";
     const interfaceType = context?.interfaceType ?? "agent";
-    const channelId = context?.channelId ?? conversationId;
-    const channelName = context?.channelName ?? channelId;
+    const channelId = context?.channelId;
+    const channelName = context?.channelName ?? channelId ?? conversationId;
 
     this.logger.debug("Processing chat message", {
       conversationId,
@@ -489,7 +519,7 @@ export class AgentService implements IAgentService {
     previousContext: AgentMachineContext,
   ): {
     interfaceType: string;
-    channelId: string;
+    channelId: string | undefined;
     channelName: string;
     userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
     actor: ConversationMessageActor | null;
@@ -549,12 +579,19 @@ export class AgentService implements IAgentService {
       attachments,
     } = input;
 
-    // Ensure conversation exists
+    // Ensure conversation exists. Conversation-service currently requires a
+    // channelId for storage compatibility; do not reuse this fallback for tool
+    // provenance, where absent channelId must remain absent.
+    const storageChannelId = channelId ?? conversationId;
     await this.conversationService.startConversation({
       sessionId: conversationId,
       interfaceType,
-      channelId,
-      metadata: { channelName, interfaceType, channelId },
+      channelId: storageChannelId,
+      metadata: {
+        channelName,
+        interfaceType,
+        channelId: storageChannelId,
+      },
     });
 
     if (message.trim().length === 0 && attachments.length > 0) {
@@ -677,17 +714,21 @@ export class AgentService implements IAgentService {
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
     const responseText =
-      pendingConfirmations.length > 0 ? "Confirmation required." : result.text;
-    const entityMemoryNote =
-      pendingConfirmations.length > 0 ? "" : buildEntityMemoryNote(toolResults);
+      pendingConfirmations.length > 0
+        ? "Confirmation required."
+        : result.text.trim().length > 0
+          ? result.text
+          : (buildToolResultPromptFallback(toolResults) ?? result.text);
+    const entityMemoryRefs =
+      pendingConfirmations.length > 0 ? [] : buildEntityMemoryRefs(toolResults);
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
     // the action has actually been confirmed and executed.
     //
-    // Store a memory note of entities this turn created/updated so their IDs
-    // stay addressable next turn. The note is injected into model history from
-    // metadata only; visible assistant content stays clean.
+    // Store structured refs for entities this turn created/updated so their IDs
+    // stay addressable next turn. These refs are injected into model history
+    // from metadata only; visible assistant content stays clean.
     if (responseText.trim()) {
       await this.conversationService.addMessage({
         conversationId,
@@ -697,7 +738,7 @@ export class AgentService implements IAgentService {
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
           cards: responseCards,
-          entityMemoryNote,
+          entityMemoryRefs,
         }),
       });
     }
@@ -785,7 +826,7 @@ export class AgentService implements IAgentService {
     conversationId: string;
     message: string;
     interfaceType: string;
-    channelId: string;
+    channelId: string | undefined;
     channelName: string;
     userPermissionLevel: ChatContext["userPermissionLevel"];
   }): Promise<AgentContextItem[] | undefined> {
@@ -838,31 +879,122 @@ export class AgentService implements IAgentService {
       interfaceType,
       userId: "agent-user",
       conversationId,
-      channelId,
+      ...(channelId ? { channelId } : {}),
       channelName,
       userPermissionLevel,
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
     const outcome = buildConfirmedActionResult(pendingConfirmation, result);
+    const failed = outcome.cards.some(
+      (card) => card.kind === "tool-approval" && card.state === "output-error",
+    );
+    const response = failed
+      ? undefined
+      : await this.generatePostConfirmationFollowUp({
+          conversationId,
+          resultText: outcome.resultText,
+          interfaceType,
+          channelId,
+          channelName,
+          userPermissionLevel,
+        });
+    const fallbackText = buildAsyncGenerationFallback(outcome.toolResult.data);
+    const responseText = response?.text.trim()
+      ? `${outcome.resultText}\n\n${response.text}`
+      : fallbackText
+        ? `${outcome.resultText}\n\n${fallbackText}`
+        : outcome.resultText;
+    const cards = [...outcome.cards, ...(response?.cards ?? [])];
+    const toolResults = [outcome.toolResult, ...(response?.toolResults ?? [])];
+    const followUpEntityMemoryRefs = response
+      ? buildEntityMemoryRefs(response.toolResults ?? [])
+      : [];
+    const entityMemoryRefs = [
+      ...outcome.entityMemoryRefs,
+      ...followUpEntityMemoryRefs,
+    ];
 
     await this.conversationService.addMessage({
       conversationId,
       role: "assistant",
-      content: outcome.resultText,
+      content: responseText,
       ...this.messageMetadata({
         actor: this.getAssistantActor(),
         source: this.buildAssistantSource(channelId, channelName),
-        cards: outcome.cards,
-        entityMemoryNote: outcome.entityMemoryNote,
+        cards,
+        entityMemoryRefs,
       }),
     });
 
     return {
-      text: outcome.resultText,
-      toolResults: [outcome.toolResult],
-      cards: outcome.cards,
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      text: responseText,
+      toolResults,
+      cards,
+      ...(response?.pendingConfirmations
+        ? { pendingConfirmations: response.pendingConfirmations }
+        : {}),
+      usage: response?.usage ?? {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+      },
+    };
+  }
+
+  private async generatePostConfirmationFollowUp(params: {
+    conversationId: string;
+    resultText: string;
+    interfaceType: string;
+    channelId: string | undefined;
+    channelName: string;
+    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+  }): Promise<AgentResponse | undefined> {
+    if (!this.agentContextProvider) return undefined;
+
+    const followUpPrompt = `The operator approved the pending action. The system executed it successfully: ${params.resultText} Continue the conversation naturally. If an active playbook is underway, use the current playbook context as the source of truth, ask only for what is missing in the current playbook state, and give the next immediate action or question. Do not skip ahead or imply uncompleted playbook steps are done. Do not ask for the same confirmation again. Do not suggest repeating the same collection, save, or create task unless the current playbook context explicitly asks for another item. If the approved action saved, created, or updated an item for a completed playbook collection step, do not ask for another item; follow the refreshed current state instead. Do not offer a completed prior-state task as an alternative to the current playbook task. Do not say you found, retrieved, or showed an entity unless the approved action or latest tool result actually performed retrieval or display; after a save or update, say it was saved or updated.`;
+    const contextItems = await this.fetchAgentContext({
+      conversationId: params.conversationId,
+      message: followUpPrompt,
+      interfaceType: params.interfaceType,
+      channelId: params.channelId,
+      channelName: params.channelName,
+      userPermissionLevel: params.userPermissionLevel,
+    });
+    if (!contextItems || contextItems.length === 0) return undefined;
+
+    const historyMessages = await this.conversationService.getMessages(
+      params.conversationId,
+      { limit: 50 },
+    );
+    const messages = buildModelMessages(historyMessages, followUpPrompt);
+    const agentContextInstructions =
+      buildAgentContextInstructions(contextItems);
+    const result = await this.getAgent().generate({
+      messages,
+      options: {
+        userPermissionLevel: params.userPermissionLevel,
+        conversationId: params.conversationId,
+        ...(params.channelId ? { channelId: params.channelId } : {}),
+        channelName: params.channelName,
+        interfaceType: params.interfaceType,
+        ...(agentContextInstructions ? { agentContextInstructions } : {}),
+        disableTools: true,
+      },
+    });
+
+    const { toolResults, pendingConfirmations, cards } = extractToolResults(
+      result.steps,
+    );
+    return {
+      text:
+        pendingConfirmations.length > 0
+          ? "Confirmation required."
+          : result.text,
+      toolResults,
+      ...(cards.length > 0 ? { cards } : {}),
+      ...(pendingConfirmations.length > 0 ? { pendingConfirmations } : {}),
+      usage: toTokenUsage(result.usage),
     };
   }
 
@@ -871,7 +1003,7 @@ export class AgentService implements IAgentService {
     source: ConversationMessageSource | null;
     attachments?: ChatAttachment[];
     cards?: StructuredChatCard[];
-    entityMemoryNote?: string;
+    entityMemoryRefs?: EntityMemoryRef[];
   }): { metadata: Record<string, unknown> } | Record<string, never> {
     return withMessageMetadata(
       buildMessageMetadata({
@@ -891,11 +1023,11 @@ export class AgentService implements IAgentService {
   }
 
   private buildAssistantSource(
-    channelId: string,
+    channelId: string | undefined,
     channelName: string,
   ): ConversationMessageSource {
     return {
-      channelId,
+      ...(channelId ? { channelId } : {}),
       channelName,
     };
   }

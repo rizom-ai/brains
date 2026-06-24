@@ -1,10 +1,21 @@
 import type { UIMessage } from "ai";
 import { parseUploadPartData } from "./uploads";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function getPartData(part: unknown): unknown {
-  if (!part || typeof part !== "object") return null;
+  if (!isRecord(part)) return null;
   if (!("data" in part)) return null;
-  return part.data;
+  return part["data"];
+}
+
+function isCompletedNativeToolPart(part: RenderedPart): boolean {
+  if (part.kind !== "native-tool") return false;
+  if (!isRecord(part.data)) return false;
+  const state = part.data["state"];
+  return typeof state === "string" && state.startsWith("output-");
 }
 
 type MessagePart = UIMessage["parts"][number];
@@ -41,9 +52,10 @@ function getMessagePartSection(part: RenderedPart): keyof MessagePartSections {
     case "actions":
       return "actions";
     case "tools":
-    case "native-tool":
     case "generic":
       return "details";
+    case "native-tool":
+      return isCompletedNativeToolPart(part) ? "body" : "details";
     case "text":
     case "attachment":
     case "progress":

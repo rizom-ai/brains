@@ -88,11 +88,12 @@ export function createTool<
   ) => Promise<ToolResult<TOutput>>,
   options: {
     visibility?: Tool["visibility"];
+    sideEffects?: Tool["sideEffects"];
     debug?: boolean;
     cli?: Tool["cli"];
   } = {},
 ): Tool {
-  const { visibility = "anchor", debug = false, cli } = options;
+  const { visibility = "anchor", sideEffects, debug = false, cli } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
 
   return {
@@ -129,6 +130,7 @@ export function createTool<
       }
     },
     visibility,
+    ...(sideEffects ? { sideEffects } : {}),
     ...(cli ? { cli } : {}),
   };
 }

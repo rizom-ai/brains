@@ -23,8 +23,59 @@ import {
 } from "./criteria-evaluator";
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
+type AgentResponseCard = NonNullable<AgentResponse["cards"]>[number];
+type ToolApprovalCard = Extract<AgentResponseCard, { kind: "tool-approval" }>;
 
-const emptyToolArgs: Record<string, unknown> = {};
+function isToolApprovalCard(card: AgentResponseCard): card is ToolApprovalCard {
+  return card.kind === "tool-approval";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function sanitizeEvalToolArgs(
+  toolName: string,
+  args: unknown,
+): Record<string, unknown> {
+  if (!isRecord(args)) return {};
+
+  const { confirmationToken: _confirmationToken, ...argsWithoutToken } = args;
+  if (!toolName.startsWith("system_")) return argsWithoutToken;
+
+  const { confirmed: _confirmed, ...rest } = argsWithoutToken;
+  return rest;
+}
+
+function getApprovalSignature(input: {
+  toolName: string;
+  args?: unknown;
+  input?: unknown;
+}): string {
+  const args = input.args ?? input.input;
+  return JSON.stringify({
+    toolName: input.toolName,
+    args: sanitizeEvalToolArgs(input.toolName, args),
+  });
+}
+
+function dedupeApprovalIds(
+  approvals: Array<{
+    id: string;
+    toolName: string;
+    args?: unknown;
+    input?: unknown;
+  }>,
+): string[] {
+  const bySignature = new Map<string, string>();
+  for (const approval of approvals) {
+    const signature = getApprovalSignature(approval);
+    if (!bySignature.has(signature)) {
+      bySignature.set(signature, approval.id);
+    }
+  }
+  return [...bySignature.values()];
+}
 
 function getRuntimeUploadNamespace(refKind: string): string | null {
   return refKind === "upload" ? "upload" : null;
@@ -81,6 +132,7 @@ export class TestRunner implements ITestRunner {
 
       collector.startTurn();
       let response: AgentResponse;
+      const pendingApprovalIdsBeforeTurn = pendingApprovalIds;
       if (turn.confirmPendingAction !== undefined) {
         const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
         if (!approvalId) {
@@ -122,12 +174,12 @@ export class TestRunner implements ITestRunner {
       );
       const metrics = collector.endTurn({
         usage: response.usage,
-        toolResults:
-          response.toolResults?.map((toolResult) => ({
-            toolName: toolResult.toolName,
-            args: toolResult.args ?? emptyToolArgs,
-            result: toolResult.data,
-          })) ?? [],
+        toolResults: this.collectToolCallsForMetrics(
+          response,
+          turn.confirmPendingAction !== undefined
+            ? pendingApprovalIdsBeforeTurn
+            : [],
+        ),
       });
 
       const toolCalls = collector.getToolCallsForTurn(i);
@@ -190,6 +242,34 @@ export class TestRunner implements ITestRunner {
     };
   }
 
+  private collectToolCallsForMetrics(
+    response: AgentResponse,
+    existingPendingApprovalIds: string[] = [],
+  ): Array<{
+    toolName: string;
+    args?: Record<string, unknown>;
+    result?: unknown;
+  }> {
+    const existingPendingApprovalIdSet = new Set(existingPendingApprovalIds);
+    const newPendingConfirmations =
+      response.pendingConfirmations?.filter(
+        (confirmation) => !existingPendingApprovalIdSet.has(confirmation.id),
+      ) ?? [];
+
+    return [
+      ...(response.toolResults?.map((toolResult) => ({
+        toolName: toolResult.toolName,
+        args: sanitizeEvalToolArgs(toolResult.toolName, toolResult.args),
+        result: toolResult.data,
+      })) ?? []),
+      ...newPendingConfirmations.map((confirmation) => ({
+        toolName: confirmation.toolName,
+        args: sanitizeEvalToolArgs(confirmation.toolName, confirmation.args),
+        result: { needsConfirmation: true },
+      })),
+    ];
+  }
+
   private resolveApprovalId(
     turn: AgentTestCase["turns"][number],
     pendingApprovalIds: string[],
@@ -210,19 +290,23 @@ export class TestRunner implements ITestRunner {
   private extractPendingApprovalIds(response: AgentResponse): string[] {
     const approvalCards =
       response.cards?.filter(
-        (card) =>
-          card.kind === "tool-approval" && card.state === "approval-requested",
+        (card): card is ToolApprovalCard =>
+          isToolApprovalCard(card) && card.state === "approval-requested",
       ) ?? [];
     if (approvalCards.length > 0) {
-      return approvalCards.map((card) => card.id);
+      return dedupeApprovalIds(
+        approvalCards.map((card) => ({
+          id: card.id,
+          toolName: card.toolName,
+          input: card.input,
+        })),
+      );
     }
     if (
       response.pendingConfirmations &&
       response.pendingConfirmations.length > 0
     ) {
-      return response.pendingConfirmations.map(
-        (confirmation) => confirmation.id,
-      );
+      return dedupeApprovalIds(response.pendingConfirmations);
     }
     return [];
   }

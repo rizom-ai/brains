@@ -8,6 +8,8 @@ import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
   hasVisibilityFrontmatter,
+  permissionToVisibilityScope,
+  resolveEntityOrError,
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { slugify } from "@brains/utils";
@@ -16,6 +18,7 @@ import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
+  buildEntityMutationEventContext,
   createSystemTool,
   hasStructuredFrontmatter,
   normalizeOptionalString,
@@ -127,6 +130,30 @@ function validateCoverImageSupport(
   };
 }
 
+async function resolveSourceAttachment(
+  services: SystemServices,
+  input:
+    | {
+        sourceEntityType: string;
+        sourceEntityId: string;
+        attachmentType: string;
+      }
+    | undefined,
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): Promise<typeof input> {
+  if (!input) return undefined;
+  const result = await resolveEntityOrError(
+    services.entityService,
+    input.sourceEntityType,
+    input.sourceEntityId,
+    services.logger,
+    undefined,
+    visibilityScope,
+  );
+  if (!result.ok) return input;
+  return { ...input, sourceEntityId: result.entity.id };
+}
+
 function parseMessageMetadata(
   metadata: unknown,
 ): Record<string, unknown> | null {
@@ -232,10 +259,21 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload only for upload-to-note extraction, or sourceAttachment for source attachment saves. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload only for upload-to-note extraction, or sourceAttachment for source attachment saves. For uploaded PDF/text/markdown/JSON note imports, use entityType note with upload and transform extract-markdown; do not copy uploaded file bytes into content. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
-      const normalizedSource = normalizeCreateSource(input);
+      const visibilityScope = permissionToVisibilityScope(
+        toolContext.userPermissionLevel,
+      );
+      const sourceAttachment = await resolveSourceAttachment(
+        services,
+        input.sourceAttachment,
+        visibilityScope,
+      );
+      const normalizedSource = normalizeCreateSource({
+        ...input,
+        sourceAttachment,
+      });
       if (!normalizedSource.success) return normalizedSource;
       const { prompt, content, url, from, uploadRef, transform } =
         normalizedSource.source;
@@ -299,6 +337,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         }
       }
 
+      const eventContext = buildEntityMutationEventContext(toolContext);
+
       let createInput: CreateInput = {
         entityType: input.entityType,
         ...(prompt && { prompt }),
@@ -361,8 +401,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           ...(content && { content }),
           ...(url && { url }),
           ...(uploadRef && { upload: uploadRef }),
-          ...(input.sourceAttachment && {
-            sourceAttachment: input.sourceAttachment,
+          ...(sourceAttachment && {
+            sourceAttachment,
           }),
         });
         const confirmationArgs = {
@@ -372,8 +412,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           ...(createInput.content && { content: createInput.content }),
           ...(createInput.url && { url: createInput.url }),
           ...(uploadRef && { upload: uploadRef }),
-          ...(input.sourceAttachment && {
-            sourceAttachment: input.sourceAttachment,
+          ...(sourceAttachment && {
+            sourceAttachment,
           }),
           ...(createInput.transform && { transform: createInput.transform }),
           ...(createInput.replace && { replace: createInput.replace }),
@@ -482,7 +522,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         try {
           const result = await entityService.createEntity({
             entity: stub,
-            options: { deduplicateId: true },
+            options: {
+              deduplicateId: true,
+              ...(eventContext ? { eventContext } : {}),
+            },
           });
           resolvedEntityId = result.entityId;
         } catch (error) {
@@ -539,6 +582,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         createInput.entityType,
       );
       try {
+        const createOptions = {
+          deduplicateId: true,
+          ...(eventContext ? { eventContext } : {}),
+        };
         const result =
           createInput.content && hasStructuredFrontmatter(frontmatterSchema)
             ? await entityService.createEntityFromMarkdown({
@@ -547,7 +594,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   id,
                   markdown: createInput.content,
                 },
-                options: { deduplicateId: true },
+                options: createOptions,
               })
             : await entityService.createEntity({
                 entity: {
@@ -558,7 +605,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   created: new Date().toISOString(),
                   updated: new Date().toISOString(),
                 },
-                options: { deduplicateId: true },
+                options: createOptions,
               });
         if (coverImage) {
           await enqueueCoverImageGeneration(
@@ -586,6 +633,6 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         };
       }
     },
-    { visibility: "trusted" },
+    { visibility: "trusted", sideEffects: "writes" },
   );
 }

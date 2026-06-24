@@ -9,7 +9,7 @@
 import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
 import { z } from "@brains/utils/zod";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
-import type { Tool } from "@brains/mcp-service";
+import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { BrainAgent, BrainAgentFactory } from "./agent-types";
@@ -29,6 +29,7 @@ export const brainCallOptionsSchema = z.object({
   channelName: z.string().optional(),
   interfaceType: z.string(),
   agentContextInstructions: z.string().optional(),
+  disableTools: z.boolean().optional(),
   enableCreateUpload: z.boolean().optional(),
   enableCreateTransform: z.boolean().optional(),
   enableCreateSourceAttachment: z.boolean().optional(),
@@ -38,6 +39,23 @@ export const brainCallOptionsSchema = z.object({
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
+
+export function shouldStopToolLoop(input: {
+  steps: Array<{
+    toolResults?: Array<
+      { output?: unknown; toolName?: string } & Record<string, unknown>
+    >;
+  }>;
+}): boolean {
+  const latestStep = input.steps.at(-1);
+  return (
+    latestStep?.toolResults?.some(
+      (result) =>
+        toolConfirmationSchema.safeParse(result.output).success ||
+        result.toolName === "playbook_start",
+    ) ?? false
+  );
+}
 
 /**
  * Configuration for creating a BrainAgent
@@ -100,24 +118,28 @@ export function createBrainAgentFactory(
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: ({ options: callOptions, ...settings }) => {
-        // Get tools available for this permission level
-        const allowedTools = config
-          .getToolsForPermission(callOptions.userPermissionLevel)
-          .filter(
-            (tool) =>
-              !(
-                callOptions.disableDocumentGenerate === true &&
-                tool.name === "document_generate"
-              ) &&
-              !(
-                callOptions.disableSystemCreate === true &&
-                tool.name === "system_create"
-              ) &&
-              !(
-                callOptions.enableUploadSave !== true &&
-                tool.name === "system_upload_save"
-              ),
-          );
+        // Get tools available for this permission level, unless this bounded
+        // model turn is intentionally text-only (for example, after executing
+        // an already-confirmed action).
+        const allowedTools = callOptions.disableTools
+          ? []
+          : config
+              .getToolsForPermission(callOptions.userPermissionLevel)
+              .filter(
+                (tool) =>
+                  !(
+                    callOptions.disableDocumentGenerate === true &&
+                    tool.name === "document_generate"
+                  ) &&
+                  !(
+                    callOptions.disableSystemCreate === true &&
+                    tool.name === "system_create"
+                  ) &&
+                  !(
+                    callOptions.enableUploadSave !== true &&
+                    tool.name === "system_upload_save"
+                  ),
+              );
         const allowedToolNames = allowedTools.map((t) => t.name);
 
         // Convert tools with proper context from call options
@@ -163,7 +185,7 @@ export function createBrainAgentFactory(
       },
 
       tools: allTools,
-      stopWhen: stepCountIs(config.stepLimit ?? 10),
+      stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
     });
   };
 }

@@ -21,6 +21,8 @@ successCriteria:
         entityType: "post"
         id: "resilience-in-distributed-systems"
         fields.coverImageId: null
+      argsAbsent:
+        - fields.ogImageId
   responseNotContains:
     - "I cannot"
     - "I don't have access"

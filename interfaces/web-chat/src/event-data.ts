@@ -45,31 +45,50 @@ export function toProgressData(event: JobProgressEvent): WebChatProgressData {
 export function toToolStatusData(
   update: ToolStatusUpdate,
 ): WebChatToolStatusData {
+  const toolLabel = formatToolLabel(update.toolName);
   switch (update.state) {
     case "running":
       return {
         status: "tool-running",
         toolName: update.toolName,
-        message: `Using ${update.toolName}…`,
+        message: `Using ${toolLabel}…`,
       };
     case "completed":
       return {
         status: "tool-completed",
         toolName: update.toolName,
-        message: `Finished ${update.toolName}.`,
+        message: `Finished ${toolLabel}.`,
       };
     case "awaiting-approval":
       return {
         status: "tool-awaiting-approval",
         toolName: update.toolName,
-        message: `${update.toolName} is awaiting approval.`,
+        message: `${capitalize(toolLabel)} is awaiting approval.`,
       };
     case "failed":
       return {
         status: "tool-failed",
         toolName: update.toolName,
-        message: `${update.toolName} failed.`,
+        message: `${capitalize(toolLabel)} failed.`,
         ...(update.error !== undefined && { error: update.error }),
       };
   }
+}
+
+function formatToolLabel(toolName: string): string {
+  if (toolName.startsWith("playbook_")) return "playbook";
+  const withoutSystemPrefix = toolName.startsWith("system_")
+    ? toolName.slice("system_".length)
+    : toolName;
+  return withoutSystemPrefix
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function capitalize(value: string): string {
+  return value.length > 0
+    ? `${value[0]?.toUpperCase()}${value.slice(1)}`
+    : value;
 }

@@ -1,4 +1,7 @@
-import type { AgentContextItem } from "@brains/contracts";
+import {
+  StructuredChatCardSchema,
+  type AgentContextItem,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod-v4";
 import {
   toolConfirmationSchema,
@@ -31,6 +34,18 @@ const searchToolDataSchema = z.object({
 });
 const getToolDataSchema = z.object({
   entity: sourceEntitySchema,
+});
+const structuredChatCardParserSchema = z.custom<StructuredChatCard>(
+  (value) => StructuredChatCardSchema.safeParse(value).success,
+  "expected structured chat card",
+);
+const toolDataCardsSchema = z.object({
+  cards: z.array(structuredChatCardParserSchema),
+});
+const toolStatePromptDataSchema = z.object({
+  currentState: z.object({
+    prompt: z.string().min(1).optional(),
+  }),
 });
 const listToolDataSchema = z.object({
   entities: z.array(sourceEntitySchema),
@@ -76,6 +91,18 @@ function buildQueuedAttachmentDescription(
     return `Uploaded ${mediaLabel} save has been queued. This artifact will open once the job completes.`;
   }
   return `${mediaLabel} generation has been queued. This artifact will open once the job completes.`;
+}
+
+export function buildToolResultPromptFallback(
+  toolResults: ToolResultData[],
+): string | undefined {
+  for (const toolResult of toolResults) {
+    const parsed = toolStatePromptDataSchema.safeParse(toolResult.data);
+    if (parsed.success && parsed.data.currentState.prompt) {
+      return parsed.data.currentState.prompt;
+    }
+  }
+  return undefined;
 }
 
 export function buildAttachmentCardFromToolData(
@@ -331,6 +358,8 @@ export function extractToolResults(
       }
     }
 
+    let stepRequestedConfirmation = false;
+
     for (const tr of step.toolResults) {
       if (tr.output === null) continue;
 
@@ -347,17 +376,17 @@ export function extractToolResults(
           ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
           toolName: confirmationParsed.data.toolName,
           summary: confirmationParsed.data.summary,
+          ...(confirmationParsed.data.completionSummary !== undefined
+            ? { completionSummary: confirmationParsed.data.completionSummary }
+            : {}),
           ...(confirmationParsed.data.preview !== undefined
             ? { preview: confirmationParsed.data.preview }
             : {}),
           args: confirmationParsed.data.args,
         };
         pendingConfirmations.push(confirmation);
+        stepRequestedConfirmation = true;
 
-        toolResults.push({
-          toolName: tr.toolName,
-          ...(args !== undefined ? { args } : {}),
-        });
         cards.push({
           kind: "tool-approval",
           id: approvalId,
@@ -365,6 +394,9 @@ export function extractToolResults(
           toolName: confirmationParsed.data.toolName,
           ...(args !== undefined ? { input: args } : {}),
           summary: confirmationParsed.data.summary,
+          ...(confirmationParsed.data.completionSummary !== undefined
+            ? { completionSummary: confirmationParsed.data.completionSummary }
+            : {}),
           ...(confirmationParsed.data.preview !== undefined
             ? { preview: confirmationParsed.data.preview }
             : {}),
@@ -379,6 +411,11 @@ export function extractToolResults(
         continue;
       }
 
+      const successParsed = toolSuccessSchema.safeParse(parsed.data);
+      if (successParsed.success && successParsed.data.cached === true) {
+        continue;
+      }
+
       const args = tr.toolCallId
         ? toolCallArgsMap.get(tr.toolCallId)
         : undefined;
@@ -388,13 +425,16 @@ export function extractToolResults(
         toolResult.args = args;
       }
 
-      const successParsed = toolSuccessSchema.safeParse(parsed.data);
       if (successParsed.success && successParsed.data.data != null) {
         toolResult.data = successParsed.data.data;
         const jobIdParsed = jobIdSchema.safeParse(successParsed.data.data);
         if (jobIdParsed.success) {
           toolResult.jobId = jobIdParsed.data.jobId;
         }
+        const structuredCards = toolDataCardsSchema.safeParse(
+          successParsed.data.data,
+        );
+        if (structuredCards.success) cards.push(...structuredCards.data.cards);
         const attachmentCard = buildAttachmentCardFromToolData(
           successParsed.data.data,
         );
@@ -409,6 +449,8 @@ export function extractToolResults(
 
       toolResults.push(toolResult);
     }
+
+    if (stepRequestedConfirmation) break;
   }
 
   const sourcesCard = buildToolSourcesCard(sourceCitations);
@@ -431,21 +473,30 @@ const entityRefDataSchema = z.object({
 const entityRefArgsSchema = z.object({
   entityType: z.string().optional(),
   id: z.string().optional(),
+  title: z.string().optional(),
 });
 
+export const entityMemoryRefSchema = z.object({
+  entityType: z.string().min(1).optional(),
+  entityId: z.string().min(1),
+  operation: z.string().min(1).optional(),
+  title: z.string().min(1).optional(),
+  status: z.string().min(1).optional(),
+  listIndex: z.number().int().positive().optional(),
+});
+
+export type EntityMemoryRef = z.infer<typeof entityMemoryRefSchema>;
+
 /**
- * Build a compact memory note listing entities a turn created, updated, or listed.
- *
- * Conversation history is text-only, so tool results (and the entity IDs they
- * return) are otherwise lost after a turn — a follow-up like "add a cover image
- * to that post" then has no ID to reference and is forced to search. Appending
- * this note to the stored assistant message keeps those IDs addressable on the
- * next turn. Returns "" when no tool produced an addressable entity.
+ * Extract structured entity references from tool results so follow-up turns can
+ * resolve phrases like "that post" without searching. These refs are stored in
+ * message metadata, never appended to user-visible assistant text.
  */
-export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
+export function buildEntityMemoryRefs(
+  toolResults: ToolResultData[],
+): EntityMemoryRef[] {
   const seen = new Set<string>();
-  const affectedRefs: string[] = [];
-  const listedRefs: string[] = [];
+  const refs: EntityMemoryRef[] = [];
   for (const tr of toolResults) {
     const data = entityRefDataSchema.safeParse(tr.data);
     const entityId = data.success
@@ -458,15 +509,19 @@ export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
 
       const args = entityRefArgsSchema.safeParse(tr.args ?? {});
       const entityType = args.success ? args.data.entityType : undefined;
+      const title = args.success ? args.data.title : undefined;
       const operation = data.data.updated
         ? "updated"
         : data.data.deleted
           ? "deleted"
-          : status;
-      const label = entityType
-        ? `${entityType} "${entityId}"`
-        : `"${entityId}"`;
-      affectedRefs.push(operation ? `${label} (${operation})` : label);
+          : "created";
+      refs.push({
+        ...(entityType ? { entityType } : {}),
+        entityId,
+        operation,
+        ...(title ? { title } : {}),
+        ...(status ? { status } : {}),
+      });
       continue;
     }
 
@@ -478,27 +533,35 @@ export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
       seen.add(entity.id);
       const title = getEntityTitle(entity);
       const status = getMetadataString(entity.metadata, "status");
-      const details = [
-        title !== entity.id ? `title: ${title}` : undefined,
-        status !== undefined ? `status: ${status}` : undefined,
-      ]
-        .filter((value): value is string => value !== undefined)
-        .join(", ");
-      listedRefs.push(
-        `${listedRefs.length + 1}. ${entity.entityType} "${entity.id}"${details.length > 0 ? ` (${details})` : ""}`,
-      );
+      refs.push({
+        entityType: entity.entityType,
+        entityId: entity.id,
+        operation: "listed",
+        listIndex: refs.filter((ref) => ref.operation === "listed").length + 1,
+        ...(title !== entity.id ? { title } : {}),
+        ...(status !== undefined ? { status } : {}),
+      });
     }
   }
-  const notes: string[] = [];
-  if (affectedRefs.length > 0) {
-    notes.push(
-      `Entities affected this turn: ${affectedRefs.join("; ")}. Reference these IDs directly in follow-ups instead of searching for them.`,
+  return refs;
+}
+
+export function buildEntityMemoryContext(refs: EntityMemoryRef[]): string {
+  if (refs.length === 0) return "";
+  const lines = refs.map((ref) => {
+    const details = [
+      ref.entityType !== undefined
+        ? `entityType: ${ref.entityType}`
+        : undefined,
+      `entityId: ${ref.entityId}`,
+      ref.operation !== undefined ? `operation: ${ref.operation}` : undefined,
+      ref.listIndex !== undefined ? `item ${ref.listIndex}` : undefined,
+      ref.title !== undefined ? `title: ${ref.title}` : undefined,
+      ref.status !== undefined ? `status: ${ref.status}` : undefined,
+    ].filter(
+      (value): value is string => value !== undefined && value.length > 0,
     );
-  }
-  if (listedRefs.length > 0) {
-    notes.push(
-      `Entities listed this turn: ${listedRefs.join("; ")}. For follow-ups like first one, second one, or that item, reference these IDs directly instead of searching by title.`,
-    );
-  }
-  return notes.length > 0 ? `\n\n[${notes.join(" ")}]` : "";
+    return `- ${details.join("; ")}`;
+  });
+  return `\n\nInternal entity refs from previous assistant turns for follow-up resolution. These are typed runtime references, not visible user text. Use the canonical entityId when a follow-up refers to the same item (for example “it”, “that”, “that post”, “the draft”, “publish it”, or “a cover image to go with that”). Do not derive or rewrite IDs from titles; copy the exact entityId value from the matching ref. A ref with operation created and status generating/draft is already a valid target for follow-up operations such as cover-image generation; do not ask the user for its slug again.\n${lines.join("\n")}`;
 }

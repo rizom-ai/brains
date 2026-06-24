@@ -1,3 +1,4 @@
+import { AGENT_ACTION_REQUEST_CHANNEL } from "@brains/contracts";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type {
   IAgentService,
@@ -244,7 +245,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(13);
+    expect(routes).toHaveLength(15);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -256,60 +257,129 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[2]).toMatchObject({
-      path: "/api/chat/sessions",
+      path: "/api/chat/bootstrap",
       method: "GET",
       public: true,
     });
     expect(routes[3]).toMatchObject({
-      path: "/api/chat/sessions",
-      method: "DELETE",
+      path: "/api/chat/actions",
+      method: "POST",
       public: true,
     });
     expect(routes[4]).toMatchObject({
       path: "/api/chat/sessions",
-      method: "PUT",
+      method: "GET",
       public: true,
     });
     expect(routes[5]).toMatchObject({
+      path: "/api/chat/sessions",
+      method: "DELETE",
+      public: true,
+    });
+    expect(routes[6]).toMatchObject({
+      path: "/api/chat/sessions",
+      method: "PUT",
+      public: true,
+    });
+    expect(routes[7]).toMatchObject({
       path: "/api/chat/sessions/archive",
       method: "PUT",
       public: true,
     });
-    expect(routes[6]).toMatchObject({
+    expect(routes[8]).toMatchObject({
       path: "/api/chat/messages",
       method: "GET",
       public: true,
     });
-    expect(routes[7]).toMatchObject({
+    expect(routes[9]).toMatchObject({
       path: "/api/chat/attachments/document",
       method: "GET",
       public: true,
     });
-    expect(routes[8]).toMatchObject({
+    expect(routes[10]).toMatchObject({
       path: "/api/chat/attachments/image",
       method: "GET",
       public: true,
     });
-    expect(routes[9]).toMatchObject({
+    expect(routes[11]).toMatchObject({
       path: "/api/chat/jobs/status",
       method: "GET",
       public: true,
     });
-    expect(routes[10]).toMatchObject({
+    expect(routes[12]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
     });
-    expect(routes[11]).toMatchObject({
+    expect(routes[13]).toMatchObject({
       path: "/api/chat/uploads",
       method: "POST",
       public: true,
     });
-    expect(routes[12]).toMatchObject({
+    expect(routes[14]).toMatchObject({
       path: "/api/chat/uploads",
       method: "GET",
       public: true,
     });
+  });
+
+  it("routes structured event actions through runtime action channel without model chat", async () => {
+    const plugin = operatorPlugin();
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    await harness.installPlugin(plugin);
+    const received: unknown[] = [];
+    harness.subscribe(AGENT_ACTION_REQUEST_CHANNEL, async (message) => {
+      received.push(message.payload);
+      return {
+        success: true,
+        data: {
+          text: "Continuing onboarding.",
+          toolResults: [
+            {
+              toolName: "playbook_send_event",
+              args: { event: "NEXT" },
+              data: { currentState: "identity" },
+            },
+          ],
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        },
+      };
+    });
+
+    const route = getRoute(plugin, "/api/chat/actions", "POST");
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/actions", {
+        method: "POST",
+        body: JSON.stringify({
+          conversationId: "web-session",
+          action: { type: "event", event: "NEXT" },
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({
+      text: "Continuing onboarding.",
+      toolResults: [
+        {
+          toolName: "playbook_send_event",
+          args: { event: "NEXT" },
+          data: { currentState: "identity" },
+        },
+      ],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    expect(received).toEqual([
+      {
+        conversationId: "web-session",
+        interfaceType: "web-chat",
+        channelName: "Web Chat",
+        userPermissionLevel: "anchor",
+        action: { type: "event", event: "NEXT" },
+      },
+    ]);
+    expect(agent.chatCalls).toHaveLength(0);
   });
 
   it("requires operator auth for the chat page", async () => {
@@ -360,6 +430,77 @@ describe("WebChatInterface", () => {
     expect(html).not.toContain("fonts.googleapis.com");
     expect(html).not.toContain("fonts.gstatic.com");
     expect(html).not.toContain("Fraunces");
+  });
+
+  it("returns playbook lifecycle starters for operators", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    harness.subscribe("playbooks:lifecycle-starters", async (message) => {
+      expect(message.payload).toEqual({
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "anchor",
+      });
+      return {
+        success: true,
+        data: {
+          starters: [
+            {
+              id: "onboarding",
+              title: "Set up Rover",
+              description: "Learn Rover by doing real setup work.",
+              playbookId: "rover-onboarding",
+              lifecycle: "onboarding",
+              starterPrompt: "Start the Rover onboarding playbook.",
+            },
+          ],
+        },
+      };
+    });
+    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/bootstrap"),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({
+      starters: [
+        {
+          id: "onboarding",
+          title: "Set up Rover",
+          description: "Learn Rover by doing real setup work.",
+          playbookId: "rover-onboarding",
+          lifecycle: "onboarding",
+          starterPrompt: "Start the Rover onboarding playbook.",
+        },
+      ],
+    });
+  });
+
+  it("returns no playbook lifecycle starters when none are registered", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/bootstrap"),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({ starters: [] });
+  });
+
+  it("rejects playbook bootstrap requests from non-operators", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/bootstrap"),
+    );
+
+    expect(response?.status).toBe(403);
   });
 
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
@@ -475,7 +616,7 @@ describe("WebChatInterface", () => {
             operationType: "batch_processing",
             operationTarget: "/tmp/brain-data",
             interfaceType: "web-chat",
-            channelId: conversationId,
+            conversationId,
           },
         });
         return {
@@ -535,7 +676,7 @@ describe("WebChatInterface", () => {
             operationType: "file_operations",
             operationTarget: "notes.pdf",
             interfaceType: "web-chat",
-            channelId: conversationId,
+            conversationId,
           },
         });
         await harness.sendMessage("job-progress", {
@@ -548,7 +689,7 @@ describe("WebChatInterface", () => {
             operationType: "file_operations",
             operationTarget: "notes.pdf",
             interfaceType: "web-chat",
-            channelId: conversationId,
+            conversationId,
           },
         });
         return {
@@ -593,17 +734,17 @@ describe("WebChatInterface", () => {
     expect(body).toContain('"transient":false');
   });
 
-  it("streams active tool activity as transient status parts", async () => {
+  it("streams active tool activity as readable transient status parts", async () => {
     const agent: IAgentService = {
       chat: async (_message, conversationId) => {
         await harness.sendMessage("tool:invoking", {
-          toolName: "search_notes",
+          toolName: "playbook_start",
           conversationId,
           interfaceType: "web-chat",
           channelId: conversationId,
         });
         return {
-          text: "Search complete.",
+          text: "Playbook started.",
           usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
         };
       },
@@ -627,7 +768,7 @@ describe("WebChatInterface", () => {
           messages: [
             {
               role: "user",
-              parts: [{ type: "text", text: "Search notes" }],
+              parts: [{ type: "text", text: "Start onboarding" }],
             },
           ],
         }),
@@ -638,7 +779,8 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(body).toContain("data-status");
     expect(body).toContain("tool-running");
-    expect(body).toContain("Using search_notes…");
+    expect(body).toContain("Using playbook…");
+    expect(body).not.toContain("Using playbook_start…");
   });
 
   it("streams awaiting approval when a completed tool returns a pending confirmation", async () => {
@@ -701,7 +843,7 @@ describe("WebChatInterface", () => {
     expect(body).toContain("tool-running");
     expect(body).not.toContain("tool-completed");
     expect(body).toContain("tool-awaiting-approval");
-    expect(body).toContain("system_create is awaiting approval.");
+    expect(body).toContain("Create is awaiting approval.");
   });
 
   it("ignores tool activity outside the active web-chat channel", async () => {
@@ -751,7 +893,7 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain("tool-running");
   });
 
-  it("ignores progress notifications outside the active web-chat channel", async () => {
+  it("ignores progress notifications outside the active web-chat conversation", async () => {
     const agent: IAgentService = {
       chat: async () => {
         await harness.sendMessage("job-progress", {
@@ -763,7 +905,7 @@ describe("WebChatInterface", () => {
             operationType: "batch_processing",
             operationTarget: "/tmp/background",
             interfaceType: "web-chat",
-            channelId: "other-conversation",
+            conversationId: "other-conversation",
           },
         });
         return {
@@ -1997,6 +2139,9 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(1);
     expect(agent.chatCalls[0]?.context?.userPermissionLevel).toBe("anchor");
+    expect(agent.chatCalls[0]?.context?.interfaceType).toBe("web-chat");
+    expect(agent.chatCalls[0]?.context?.channelId).toBe("test-conversation");
+    expect(agent.chatCalls[0]?.context?.channelName).toBe("Web Chat");
   });
 
   it("passes inline uploaded text file content to the agent as native attachments", async () => {

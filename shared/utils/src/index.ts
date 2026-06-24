@@ -54,6 +54,9 @@ export {
 // Array utilities
 export { ensureArray } from "./array";
 
+// Object utilities
+export { stripUndefinedDeep } from "./strip-undefined";
+
 // Message chunking
 export { chunkMessage } from "./chunk-message";
 

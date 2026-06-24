@@ -52,6 +52,9 @@ async function runEvaluationsWithReporters(
     testCasesDirectory: testCasesDir,
     reporters,
     evalHandlerRegistry: EvalHandlerRegistry.getInstance(),
+    ...(options.indexReadiness
+      ? { indexReadiness: options.indexReadiness }
+      : {}),
     ...(options.runtimeUploads
       ? { runtimeUploads: options.runtimeUploads }
       : {}),

@@ -166,8 +166,8 @@ identical between the two.
 
 Triggered by either:
 
-- A third consumer needing the same build steps (desktop app
-  per `desktop-app.md`, hosted rover / app-repo deploy flows),
+- A third consumer needing the same build steps (hosted /
+  app-repo deploy flows, or a future native-app build),
   OR
 - The next time someone has to debug a divergence between the
   two pipelines (e.g. CI fails on one but not the other, or
@@ -190,5 +190,4 @@ sync needed.
 ## Related
 
 - the published `@rizom/brain` library subpaths (`/plugins`, `/entities`, `/services`, `/interfaces`, `/templates`, `/site`, `/themes`, `/deploy`) — defined in `build.ts`
-- `docs/plans/desktop-app.md` — potential third consumer
-- hosted rover / app-repo deploy flows — potential fourth consumer
+- hosted / app-repo deploy flows — potential third consumer

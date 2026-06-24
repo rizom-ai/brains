@@ -16,7 +16,11 @@ import type {
 } from "@brains/conversation-service";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
-import type { EvalHandler, PluginRegistrationContext } from "../interfaces";
+import type {
+  EvalHandler,
+  JudgeInput,
+  PluginRegistrationContext,
+} from "../interfaces";
 import type { AppInfo } from "../contracts/app-info";
 import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
@@ -199,6 +203,16 @@ export interface BasePluginContext {
   /** App metadata (version, model, plugins) */
   readonly appInfo: () => Promise<AppInfo>;
 
+  /** Bounded model-as-judge capability; schema-constrained verdicts only. */
+  readonly judge: <T>(input: JudgeInput<T>) => Promise<{
+    verdict: T;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
+
   // ============================================================================
   // Entity Service (Read-Only)
   // ============================================================================
@@ -359,6 +373,7 @@ export function createBasePluginContext(
     identity: createIdentityNamespace(shell, getAppInfo),
 
     appInfo: getAppInfo,
+    judge: (input) => shell.judge(input),
 
     domain,
     siteUrl: domain ? `https://${domain}` : undefined,

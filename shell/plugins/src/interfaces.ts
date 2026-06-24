@@ -191,6 +191,16 @@ export interface QueryContext {
 }
 
 /**
+ * Bounded model-as-judge request exposed to plugins.
+ * Kept structural here so public plugin declarations do not import ai-service internals.
+ */
+export interface JudgeInput<T> {
+  instruction: string;
+  material: string;
+  schema: z.ZodType<T>;
+}
+
+/**
  * Shell interface that plugins use to access core services
  * This avoids circular dependencies between core and plugin-context
  */
@@ -269,6 +279,14 @@ export interface IShell {
     prompt: string,
     schema: z.ZodType<T>,
   ): Promise<{ object: T }>;
+  judge<T>(input: JudgeInput<T>): Promise<{
+    verdict: T;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
 
   // Image generation (requires AI_API_KEY)

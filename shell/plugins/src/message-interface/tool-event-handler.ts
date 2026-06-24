@@ -13,6 +13,7 @@ const toolActivityPayloadSchema = z.object({
   interfaceType: z.string().min(1),
   channelId: z.string().min(1).optional(),
   channelName: z.string().min(1).optional(),
+  toolCallId: z.string().min(1).optional(),
   error: z.string().optional(),
 });
 

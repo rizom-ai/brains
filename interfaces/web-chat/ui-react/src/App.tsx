@@ -148,6 +148,19 @@ const webChatSessionsResponseSchema = z.looseObject({
 
 type WebChatSession = z.output<typeof webChatSessionSchema>;
 
+interface WebChatStarter {
+  id: string;
+  title: string;
+  description?: string;
+  playbookId: string;
+  lifecycle: string;
+  starterPrompt: string;
+}
+
+interface WebChatBootstrapResponse {
+  starters: WebChatStarter[];
+}
+
 function createConversationId(): string {
   return `web-${crypto.randomUUID()}`;
 }
@@ -336,6 +349,34 @@ function describeFetchFailure(response: Response, fallback: string): string {
   return `${fallback} (${response.status})`;
 }
 
+function PlaybookStarterCard({
+  starter,
+  onStart,
+  disabled,
+}: {
+  starter: WebChatStarter;
+  onStart: (starter: WebChatStarter) => void;
+  disabled: boolean;
+}): React.ReactElement {
+  return (
+    <section className="web-chat-playbook-starter" aria-label={starter.title}>
+      <span className="web-chat-playbook-starter-kicker">guided start</span>
+      <h2>{starter.title}</h2>
+      <p>
+        {starter.description ??
+          "Start a guided playbook inside this chat. Rover will teach by doing real work with your brain."}
+      </p>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onStart(starter)}
+      >
+        Start setup
+      </button>
+    </section>
+  );
+}
+
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState(() =>
@@ -363,6 +404,8 @@ export function App(): React.ReactElement {
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
+  const [bootstrapStarter, setBootstrapStarter] =
+    useState<WebChatStarter | null>(null);
   const [liveStatusMessage, setLiveStatusMessage] = useState<string | null>(
     null,
   );
@@ -459,6 +502,7 @@ export function App(): React.ReactElement {
           key={key}
           data={group.data}
           onPromptAction={(prompt) => void submitMessage(prompt)}
+          onEventAction={(event) => void submitRuntimeEvent(event)}
         />
       );
     }
@@ -506,7 +550,21 @@ export function App(): React.ReactElement {
   useEffect(() => {
     focusPromptTextarea(promptInputRef.current);
     void loadSessions();
+    void loadBootstrap();
   }, []);
+
+  async function loadBootstrap(): Promise<void> {
+    try {
+      const response = await fetch("/api/chat/bootstrap", {
+        credentials: "include",
+      });
+      if (!response.ok) return;
+      const body = (await response.json()) as WebChatBootstrapResponse;
+      setBootstrapStarter(body.starters[0] ?? null);
+    } catch {
+      setBootstrapStarter(null);
+    }
+  }
 
   async function loadSessions(
     options: { quiet?: boolean } = {},
@@ -657,6 +715,68 @@ export function App(): React.ReactElement {
         void loadSessions({ quiet: true });
         focusPromptTextarea(promptInputRef.current);
       });
+  }
+
+  async function submitRuntimeEvent(event: string): Promise<void> {
+    if (isBusyStatus(status)) return;
+    setHistoryError(null);
+
+    try {
+      const response = await fetch("/api/chat/actions", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          action: { type: "event", event },
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Runtime action failed: ${response.status}`);
+      }
+      const data = (await response.json()) as {
+        text?: string;
+        cards?: Array<{ kind: string }>;
+        toolResults?: unknown[];
+      };
+      const parts: UIMessage["parts"] = [];
+      if (data.text && data.text.trim().length > 0) {
+        parts.push({ type: "text", text: data.text });
+      }
+      for (const toolResult of data.toolResults ?? []) {
+        parts.push({ type: "data-tool-result", data: toolResult });
+      }
+      for (const card of data.cards ?? []) {
+        parts.push({
+          type:
+            card.kind === "sources"
+              ? "data-sources"
+              : card.kind === "actions"
+                ? "data-actions"
+                : "data-attachment",
+          data: card,
+        });
+      }
+      if (parts.length > 0) {
+        setMessages((current) => [
+          ...current,
+          {
+            id: `runtime-${crypto.randomUUID()}`,
+            role: "assistant",
+            parts,
+          },
+        ]);
+      }
+      void loadSessions({ quiet: true });
+    } catch (error) {
+      const effect = classifySubmitError(error, "send");
+      if (effect.uploadNotice) setUploadNotice(effect.uploadNotice);
+      setHistoryError(effect.historyError);
+    }
+  }
+
+  function startPlaybook(starter: WebChatStarter): void {
+    void submitMessage(starter.starterPrompt);
   }
 
   function resetToNewConversation(): void {
@@ -1253,10 +1373,18 @@ export function App(): React.ReactElement {
         <Conversation>
           <ConversationContent>
             {messages.length === 0 ? (
-              <ConversationEmptyState
-                title="Begin a field note."
-                description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
-              />
+              bootstrapStarter ? (
+                <PlaybookStarterCard
+                  starter={bootstrapStarter}
+                  disabled={isBusyStatus(status)}
+                  onStart={startPlaybook}
+                />
+              ) : (
+                <ConversationEmptyState
+                  title="Begin a field note."
+                  description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
+                />
+              )
             ) : (
               messages.map((message) => (
                 <Message

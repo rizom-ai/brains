@@ -12,8 +12,10 @@ import { updateInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
+  buildEntityMutationEventContext,
   createSystemTool,
   getEntityDisplayLabel,
+  humanizeEntityType,
   normalizeUpdateInput,
 } from "./tool-helpers";
 import { getPublishBoundaryState } from "./entity-publish-policy";
@@ -55,11 +57,42 @@ function applyFieldUpdates(
     }
   }
 
-  return {
+  const nextEntity: BaseEntity & Record<string, unknown> = {
     ...withOgImage,
     visibility: nextVisibility,
     metadata: nextMetadata,
   };
+
+  // Keep metadata-backed top-level fields in sync before adapter serialization.
+  // DB metadata is the source of truth on read, but adapters serialize from the
+  // typed entity shape; without this, field updates can persist fresh metadata
+  // beside stale frontmatter content.
+  for (const [key, value] of Object.entries(metadataFields)) {
+    if (value === null) {
+      delete nextEntity[key];
+    } else {
+      nextEntity[key] = value;
+    }
+  }
+
+  return nextEntity;
+}
+
+function validateAnchorProfileUpdate(
+  entityType: string,
+  normalizedInput: { fields?: Record<string, unknown>; content?: string },
+): { success: false; error: string } | undefined {
+  if (entityType !== "anchor-profile") return undefined;
+
+  if (normalizedInput.fields) {
+    return {
+      success: false,
+      error:
+        "anchor-profile updates require full markdown content replacement, not fields-only updates.",
+    };
+  }
+
+  return undefined;
 }
 
 function validateCoverImageFieldUpdate(
@@ -154,7 +187,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "update",
-    "Update an entity's fields or content. Requires confirmation.",
+    "Update an entity's fields or content. Requires confirmation. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
     updateInputSchema,
     async (input, context) => {
       const visibilityScope = permissionToVisibilityScope(
@@ -204,6 +237,12 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           error:
             "Provide 'content' (full replacement) or 'fields' (partial update)",
         };
+
+      const anchorProfileError = validateAnchorProfileUpdate(
+        entity.entityType,
+        normalizedInput,
+      );
+      if (anchorProfileError) return anchorProfileError;
 
       const coverImageFieldError = validateCoverImageFieldUpdate(
         entity.entityType,
@@ -293,7 +332,11 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         }
 
         try {
-          await entityService.updateEntity({ entity: updated });
+          const eventContext = buildEntityMutationEventContext(context);
+          await entityService.updateEntity({
+            entity: updated,
+            ...(eventContext ? { options: { eventContext } } : {}),
+          });
         } catch (error) {
           return {
             success: false,
@@ -312,6 +355,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         needsConfirmation: true,
         toolName: "system_update",
         summary: `Update "${label}"?`,
+        completionSummary: `Updated ${humanizeEntityType(entity.entityType)}.`,
         preview: diff,
         args: {
           ...input,
@@ -322,6 +366,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         },
       };
     },
-    { visibility: "trusted" },
+    { visibility: "trusted", sideEffects: "writes" },
   );
 }

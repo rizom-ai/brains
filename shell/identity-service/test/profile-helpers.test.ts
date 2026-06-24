@@ -2,6 +2,7 @@ import { describe, it, expect, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
   baseProfileExtension,
+  professionalProfileExtension,
   fetchAnchorProfile,
 } from "../src/profile-helpers";
 
@@ -36,6 +37,22 @@ describe("baseProfileExtension", () => {
     });
     expect(result.tagline).toBe("hello");
     expect(result.expertise).toEqual(["TypeScript", "Rust"]);
+  });
+});
+
+describe("professionalProfileExtension", () => {
+  it("should parse professional profile fields", () => {
+    const result = professionalProfileExtension.parse({
+      role: "advisor",
+      audience: "climate-tech founders",
+      expertise: ["resilient software systems"],
+      desiredTone: "clear, practical, quietly confident",
+    });
+
+    expect(result.role).toBe("advisor");
+    expect(result.audience).toBe("climate-tech founders");
+    expect(result.expertise).toEqual(["resilient software systems"]);
+    expect(result.desiredTone).toBe("clear, practical, quietly confident");
   });
 });
 

@@ -129,6 +129,8 @@
         "@brains/note": "workspace:*",
         "@brains/notifications": "workspace:*",
         "@brains/obsidian-vault": "workspace:*",
+        "@brains/playbook": "workspace:*",
+        "@brains/playbooks": "workspace:*",
         "@brains/portfolio": "workspace:*",
         "@brains/prompt": "workspace:*",
         "@brains/rizom-ecosystem": "workspace:*",
@@ -366,6 +368,23 @@
       },
       "devDependencies": {
         "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.5.0",
+        "typescript": "^6.0.3",
+      },
+    },
+    "entities/playbook": {
+      "name": "@brains/playbook",
+      "version": "0.2.0-alpha.107",
+      "dependencies": {
+        "@brains/content-formatters": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
@@ -1006,6 +1025,27 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.5.0",
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/playbooks": {
+      "name": "@brains/playbooks",
+      "version": "0.2.0-alpha.107",
+      "dependencies": {
+        "@brains/contracts": "workspace:*",
+        "@brains/playbook": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/runtime-state": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "xstate": "^5.32.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
@@ -1964,6 +2004,10 @@
     "@brains/notion": ["@brains/notion@workspace:plugins/notion"],
 
     "@brains/obsidian-vault": ["@brains/obsidian-vault@workspace:plugins/obsidian-vault"],
+
+    "@brains/playbook": ["@brains/playbook@workspace:entities/playbook"],
+
+    "@brains/playbooks": ["@brains/playbooks@workspace:plugins/playbooks"],
 
     "@brains/plugin-examples": ["@brains/plugin-examples@workspace:plugins/examples"],
 

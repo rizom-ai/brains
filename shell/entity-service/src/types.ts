@@ -30,9 +30,17 @@ export interface EmbeddingJobData {
 /**
  * Options for entity mutation operations (create, update, upsert)
  */
+export interface EntityMutationEventContext {
+  conversationId?: string;
+  channelId?: string;
+  runId?: string;
+  toolCallId?: string;
+}
+
 export interface EntityJobOptions {
   priority?: number;
   maxRetries?: number;
+  eventContext?: EntityMutationEventContext;
 }
 
 export {
@@ -555,6 +563,34 @@ export interface IEntitiesNamespace {
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 }
 
+export interface EmbeddingBackfillResult {
+  queued: number;
+  skipped: number;
+}
+
+export interface EmbeddingFailureReference {
+  entityId: string;
+  entityType: string;
+  contentHash: string;
+}
+
+export interface EmbeddingIndexStats {
+  missingEmbeddings: number;
+  staleEmbeddings: number;
+  failedEmbeddings: number;
+}
+
+export interface IndexReadinessOptions {
+  timeoutMs: number;
+  intervalMs?: number;
+}
+
+export interface IndexReadinessStatus extends EmbeddingIndexStats {
+  ready: boolean;
+  degraded: boolean;
+  activeEmbeddingJobs: number;
+}
+
 export interface EntityService extends ICoreEntityService {
   // Mutations
   createEntity<T extends BaseEntity>(
@@ -571,6 +607,11 @@ export interface EntityService extends ICoreEntityService {
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;
   storeEmbedding(data: StoreEmbeddingData): Promise<void>;
+  backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
+  isIndexReady(): boolean;
+  awaitIndexReady(
+    options: IndexReadinessOptions,
+  ): Promise<IndexReadinessStatus>;
 
   // Serialization
   serializeEntity(entity: BaseEntity): string;

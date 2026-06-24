@@ -255,18 +255,18 @@ export function renderHtml(model: RoadmapModel): string {
         </div>`,
         )
         .join("\n");
-      return `      <section class="group">
-        <h2 class="group-title"><span class="group-num">§${sec.n}</span>${esc(sec.title)}</h2>
+      return `      <details class="group" open>
+        <summary class="group-title"><span class="group-num">§${sec.n}</span>${esc(sec.title)}</summary>
         <div class="cards">
 ${cards}
         </div>
-      </section>`;
+      </details>`;
     })
     .join("\n");
 
   const completedHtml = model.completed.length
-    ? `      <section class="group group-completed">
-        <h2 class="group-title"><span class="group-num">✓</span>Recently completed</h2>
+    ? `      <details class="group group-completed">
+        <summary class="group-title"><span class="group-num">✓</span>Recently completed<span class="completed-count">${model.completed.length} items</span></summary>
         <div class="completed-list">
 ${model.completed
   .map(
@@ -277,7 +277,7 @@ ${model.completed
   )
   .join("\n")}
         </div>
-      </section>`
+      </details>`
     : "";
 
   return `<!doctype html>
@@ -316,7 +316,7 @@ ${model.completed
         display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
         padding-bottom: 8px; border-bottom: 1px solid #21262d; }
       .group-num { color: #6e7681; font-variant-numeric: tabular-nums; font-size: 14px; }
-      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; margin-top: 14px; }
       .card { border: 1px solid #21262d; border-left-width: 3px; border-radius: 8px;
         padding: 14px 16px; background: #161b22; }
       .card.status-active { border-left-color: #d29922; }
@@ -335,7 +335,13 @@ ${model.completed
       .badge-done { background: #122119; color: #3fb950; }
       .card-desc { font-size: 13px; color: #8b949e; margin-top: 8px; }
       .card-file { font-size: 11px; color: #6e7681; margin-top: 8px; font-family: ui-monospace, monospace; }
-      .group-completed .completed-list { display: flex; flex-direction: column; gap: 6px; }
+      summary.group-title { cursor: pointer; list-style: none; margin-bottom: 0; }
+      summary.group-title::-webkit-details-marker { display: none; }
+      summary.group-title::after { content: "▸"; color: #6e7681; font-size: 12px;
+        margin-left: auto; transition: transform 0.15s; }
+      .group[open] summary.group-title::after { transform: rotate(90deg); }
+      .completed-count { color: #6e7681; font-size: 12px; font-weight: 400; }
+      .group-completed .completed-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
       .completed-item { font-size: 13px; color: #8b949e; }
       .completed-name { color: #c9d1d9; font-weight: 600; }
       code { background: #1c2128; padding: 1px 5px; border-radius: 4px;

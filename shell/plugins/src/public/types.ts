@@ -29,6 +29,12 @@ import type {
 export type PluginConfig = Record<string, unknown>;
 export type PluginConfigInput<T extends z.ZodTypeAny> = z.input<T>;
 
+export interface JudgeInput<T> {
+  instruction: string;
+  material: string;
+  schema: z.ZodType<T>;
+}
+
 export interface Plugin {
   readonly id: string;
   readonly version: string;
@@ -60,8 +66,11 @@ export interface ToolContext {
   }) => Promise<void>;
   interfaceType?: string;
   userId?: string;
+  conversationId?: string;
   channelId?: string;
   channelName?: string;
+  runId?: string;
+  toolCallId?: string;
   userPermissionLevel?: UserPermissionLevel;
 }
 
@@ -78,6 +87,8 @@ export interface ToolConfirmation {
   message?: string;
 }
 
+export type ToolSideEffects = "none" | "writes" | "external";
+
 export interface Tool<TArgs = unknown, TResult = unknown> {
   name: string;
   description: string;
@@ -85,6 +96,7 @@ export interface Tool<TArgs = unknown, TResult = unknown> {
   handler: (args: TArgs, context: ToolContext) => Promise<TResult> | TResult;
   visibility?: ToolVisibility;
   confirmation?: ToolConfirmation;
+  sideEffects?: ToolSideEffects;
 }
 
 export interface Resource<TResult = unknown> {
@@ -154,6 +166,7 @@ export interface JobProgressContext {
   progressToken?: string | number | undefined;
   operationTarget?: string | undefined;
   interfaceType?: string | undefined;
+  conversationId?: string | undefined;
   channelId?: string | undefined;
 }
 
@@ -364,6 +377,14 @@ export interface BasePluginContext {
   readonly previewUrl: string | undefined;
   readonly preferLocalUrls: boolean;
   readonly appInfo: () => Promise<AppInfo>;
+  readonly judge: <T>(input: JudgeInput<T>) => Promise<{
+    verdict: T;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
   readonly entityService: IEntityService;
   readonly identity: IIdentityNamespace;
   readonly messaging: IMessagingNamespace;

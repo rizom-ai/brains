@@ -25,6 +25,7 @@ export interface ToolContextInfo {
 export interface ToolInvocationEvent extends ToolContextInfo {
   toolName: string;
   args?: unknown;
+  toolCallId?: string | undefined;
 }
 
 /**
@@ -34,6 +35,7 @@ export interface ToolInvocationEvent extends ToolContextInfo {
 export interface ToolCompletionEvent extends ToolContextInfo {
   toolName: string;
   error?: string | undefined;
+  toolCallId?: string | undefined;
 }
 
 /**
@@ -47,7 +49,14 @@ export interface ToolEventEmitter {
 /**
  * Tool handler function type
  */
-type ToolHandler = (args: unknown) => Promise<unknown>;
+interface ToolExecutionOptionsLike {
+  toolCallId?: string | undefined;
+}
+
+type ToolHandler = (
+  args: unknown,
+  options?: ToolExecutionOptionsLike,
+) => Promise<unknown>;
 
 /**
  * Create a wrapper function that emits events around tool execution
@@ -64,7 +73,10 @@ export function createToolExecuteWrapper(
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter | undefined,
 ): ToolHandler {
-  return async (args: unknown): Promise<unknown> => {
+  return async (
+    args: unknown,
+    options?: ToolExecutionOptionsLike,
+  ): Promise<unknown> => {
     // Emit tool:invoking event
     if (emitter) {
       const invokingPayload: ToolInvocationEvent = {
@@ -78,13 +90,18 @@ export function createToolExecuteWrapper(
         ...(contextInfo.channelName !== undefined && {
           channelName: contextInfo.channelName,
         }),
+        ...(options?.toolCallId !== undefined && {
+          toolCallId: options.toolCallId,
+        }),
       };
       await emitter.emit("tool:invoking", invokingPayload);
     }
 
     try {
       // Execute the original handler
-      const result = await handler(args);
+      const result = options
+        ? await handler(args, options)
+        : await handler(args);
 
       // Emit tool:completed event
       if (emitter) {
@@ -97,6 +114,9 @@ export function createToolExecuteWrapper(
           }),
           ...(contextInfo.channelName !== undefined && {
             channelName: contextInfo.channelName,
+          }),
+          ...(options?.toolCallId !== undefined && {
+            toolCallId: options.toolCallId,
           }),
         };
         await emitter.emit("tool:completed", completedPayload);
@@ -116,6 +136,9 @@ export function createToolExecuteWrapper(
           }),
           ...(contextInfo.channelName !== undefined && {
             channelName: contextInfo.channelName,
+          }),
+          ...(options?.toolCallId !== undefined && {
+            toolCallId: options.toolCallId,
           }),
         };
         await emitter.emit("tool:failed", failedPayload);

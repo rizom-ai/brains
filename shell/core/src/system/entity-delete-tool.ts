@@ -87,6 +87,6 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         args: { ...input, id: entity.id, confirmed: true, confirmationToken },
       };
     },
-    { visibility: "public" },
+    { visibility: "public", sideEffects: "writes" },
   );
 }

@@ -23,6 +23,12 @@ export type AIModelConfigUpdate = Partial<AIModelConfig>;
 /**
  * AI Service interface for generating text and structured objects
  */
+export interface JudgeInput<T> {
+  instruction: string;
+  material: string;
+  schema: z.ZodType<T>;
+}
+
 export interface IAIService {
   generateText(
     systemPrompt: string,
@@ -42,6 +48,15 @@ export interface IAIService {
     schema: z.ZodType<T>,
   ): Promise<{
     object: T;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
+
+  judge<T>(input: JudgeInput<T>): Promise<{
+    verdict: T;
     usage: {
       promptTokens: number;
       completionTokens: number;

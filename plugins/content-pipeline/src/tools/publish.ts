@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
   BaseEntity,
   Tool,
@@ -24,6 +25,7 @@ export const publishInputSchema = zConfig.object({
   confirmed: zConfig.boolean().optional(),
   confirmationToken: zConfig.string().optional(),
   contentHash: zConfig.string().optional(),
+  expiresAt: zConfig.string().datetime().optional(),
 });
 
 const publishInputParserSchema = z.object({
@@ -33,9 +35,10 @@ const publishInputParserSchema = z.object({
   confirmed: z.boolean().optional(),
   confirmationToken: z.string().optional(),
   contentHash: z.string().optional(),
+  expiresAt: z.string().datetime().optional(),
 });
 
-export type PublishInput = zConfig.infer<typeof publishInputSchema>;
+export type PublishInput = zConfig.output<typeof publishInputSchema>;
 
 /**
  * Output schema for publish-pipeline:publish tool - discriminated union for success/error cases
@@ -78,48 +81,6 @@ export const publishOutputSchema = zConfig.union([
 export type PublishOutput = zConfig.infer<typeof publishOutputSchema>;
 
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
-const MAX_PENDING_CONFIRMATIONS = 1000;
-
-/**
- * In-memory store of outstanding publish confirmation tokens.
- *
- * Tokens are consumed on a confirmed call, but abandoned confirmations would
- * otherwise accumulate forever, so entries expire after a TTL and the store is
- * capped (oldest evicted first) as a backstop.
- */
-class PendingConfirmationTokens {
-  private readonly tokens = new Map<string, number>();
-
-  public add(token: string): void {
-    this.prune();
-    if (this.tokens.size >= MAX_PENDING_CONFIRMATIONS) {
-      const oldest = this.tokens.keys().next().value;
-      if (oldest !== undefined) this.tokens.delete(oldest);
-    }
-    this.tokens.set(token, Date.now() + CONFIRMATION_TTL_MS);
-  }
-
-  public has(token: string): boolean {
-    const expiresAt = this.tokens.get(token);
-    if (expiresAt === undefined) return false;
-    if (expiresAt <= Date.now()) {
-      this.tokens.delete(token);
-      return false;
-    }
-    return true;
-  }
-
-  public delete(token: string): void {
-    this.tokens.delete(token);
-  }
-
-  private prune(): void {
-    const now = Date.now();
-    for (const [token, expiresAt] of this.tokens) {
-      if (expiresAt <= now) this.tokens.delete(token);
-    }
-  }
-}
 
 /**
  * Create the publish-pipeline:publish tool
@@ -143,7 +104,6 @@ export function createPublishTool(
       context,
       providerRegistry,
     });
-  const pendingConfirmationTokens = new PendingConfirmationTokens();
   const toolName = `${pluginId}_publish`;
 
   return {
@@ -188,23 +148,12 @@ export function createPublishTool(
 
       const { entity } = validation;
       if (input.confirmed) {
-        const token = input.confirmationToken;
-        if (!token || !pendingConfirmationTokens.has(token)) {
-          return createPublishConfirmation(
-            toolName,
-            input,
-            entity,
-            pendingConfirmationTokens,
-          );
-        }
-        pendingConfirmationTokens.delete(token);
-
-        if (input.contentHash && input.contentHash !== entity.contentHash) {
-          return {
-            success: false,
-            error: `Cannot publish ${entityType}:${entity.id} because it changed after confirmation. Review it and try again.`,
-          };
-        }
+        const tokenValidation = validateConfirmationToken(
+          toolName,
+          input,
+          entity,
+        );
+        if (tokenValidation !== null) return tokenValidation;
 
         let publishResult: Awaited<
           ReturnType<PublishEntityExecutor["publish"]>
@@ -240,12 +189,7 @@ export function createPublishTool(
         };
       }
 
-      return createPublishConfirmation(
-        toolName,
-        input,
-        entity,
-        pendingConfirmationTokens,
-      );
+      return createPublishConfirmation(toolName, input, entity);
     },
   } as Tool<PublishOutput>;
 }
@@ -254,10 +198,13 @@ function createPublishConfirmation(
   toolName: string,
   input: PublishInput,
   entity: BaseEntity,
-  pendingConfirmationTokens: PendingConfirmationTokens,
 ): ToolResponse {
-  const confirmationToken = crypto.randomUUID();
-  pendingConfirmationTokens.add(confirmationToken);
+  const expiresAt = new Date(Date.now() + CONFIRMATION_TTL_MS).toISOString();
+  const confirmationToken = createConfirmationToken(
+    toolName,
+    entity,
+    expiresAt,
+  );
   const label = getEntityLabel(entity);
 
   return {
@@ -272,8 +219,82 @@ function createPublishConfirmation(
       confirmed: true,
       confirmationToken,
       contentHash: entity.contentHash,
+      expiresAt,
     },
   };
+}
+
+function validateConfirmationToken(
+  toolName: string,
+  input: PublishInput,
+  entity: BaseEntity,
+): ToolResponse | null {
+  const { confirmationToken, contentHash, expiresAt } = input;
+  if (!confirmationToken || !expiresAt) {
+    return {
+      success: false,
+      error:
+        "Invalid publish confirmation token. Request confirmation again and retry with the returned confirmation args.",
+      code: "INVALID_CONFIRMATION_TOKEN",
+    };
+  }
+
+  const expiresAtMs = Date.parse(expiresAt);
+  if (Number.isNaN(expiresAtMs)) {
+    return {
+      success: false,
+      error:
+        "Invalid publish confirmation expiry. Request confirmation again and retry with the returned confirmation args.",
+      code: "INVALID_CONFIRMATION_TOKEN",
+    };
+  }
+
+  if (expiresAtMs <= Date.now()) {
+    return {
+      success: false,
+      error:
+        "Publish confirmation expired. Request confirmation again before publishing.",
+      code: "EXPIRED_CONFIRMATION_TOKEN",
+    };
+  }
+
+  if (contentHash && contentHash !== entity.contentHash) {
+    return {
+      success: false,
+      error: `Cannot publish ${entity.entityType}:${entity.id} because it changed after confirmation. Review it and try again.`,
+    };
+  }
+
+  if (
+    confirmationToken !== createConfirmationToken(toolName, entity, expiresAt)
+  ) {
+    return {
+      success: false,
+      error:
+        "Invalid publish confirmation token. Request confirmation again and retry with the returned confirmation args.",
+      code: "INVALID_CONFIRMATION_TOKEN",
+    };
+  }
+
+  return null;
+}
+
+function createConfirmationToken(
+  toolName: string,
+  entity: BaseEntity,
+  expiresAt: string,
+): string {
+  return createHash("sha256")
+    .update(toolName)
+    .update("\0")
+    .update(entity.entityType)
+    .update("\0")
+    .update(entity.id)
+    .update("\0")
+    .update(entity.contentHash)
+    .update("\0")
+    .update(expiresAt)
+    .digest("hex");
 }
 
 function getEntityLabel(entity: BaseEntity): string {

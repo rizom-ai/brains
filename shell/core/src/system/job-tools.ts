@@ -9,7 +9,7 @@ export function createJobTools(services: SystemServices): Tool[] {
   return [
     createSystemTool(
       "check-job-status",
-      "Check the status of background operations",
+      "Check the status of background operations. Use this for ready checks, follow-up questions about queued/background work, and status disputes where the operator says logs or runtime state disagree with the conversation. Inspect runtime job status before answering. Do not argue from the transcript alone when job status is available.",
       checkJobStatusInputSchema,
       async (input) => {
         if (input.batchId) {

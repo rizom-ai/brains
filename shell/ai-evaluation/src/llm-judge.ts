@@ -88,9 +88,7 @@ export class LLMJudge implements ILLMJudge {
     // Format conversation for evaluation
     const conversationText = this.formatConversation(testCase, turnResults);
 
-    const userPrompt = `Please evaluate the following agent conversation:
-
-## Test Case
+    const material = `## Test Case
 Name: ${testCase.name}
 Description: ${testCase.description ?? "No description"}
 Type: ${testCase.type}
@@ -99,23 +97,21 @@ Type: ${testCase.type}
 ${conversationText}
 
 ## Tools Called
-${this.formatToolCalls(turnResults)}
-
-Provide your evaluation scores and reasoning.`;
+${this.formatToolCalls(turnResults)}`;
 
     try {
-      const { object } = await this.aiService.generateObject(
-        JUDGE_SYSTEM_PROMPT,
-        userPrompt,
-        qualityEvaluationSchema,
-      );
+      const { verdict } = await this.aiService.judge({
+        instruction: `${JUDGE_SYSTEM_PROMPT}\n\nEvaluate the supplied agent conversation and provide quality scores and reasoning.`,
+        material,
+        schema: qualityEvaluationSchema,
+      });
 
       return {
-        helpfulness: object.helpfulness,
-        accuracy: object.accuracy,
-        instructionFollowing: object.instructionFollowing,
-        appropriateToolUse: object.appropriateToolUse,
-        reasoning: object.reasoning,
+        helpfulness: verdict.helpfulness,
+        accuracy: verdict.accuracy,
+        instructionFollowing: verdict.instructionFollowing,
+        appropriateToolUse: verdict.appropriateToolUse,
+        reasoning: verdict.reasoning,
       };
     } catch (error) {
       Logger.getInstance().error("LLM Judge failed:", error);

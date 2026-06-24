@@ -203,6 +203,7 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      indexReadiness: entityService,
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
       agentContextProvider: async (request: AgentContextRequest) => {

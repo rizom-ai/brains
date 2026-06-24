@@ -121,16 +121,6 @@ export class ContentScheduler {
     sendPublishFailed(entityType, entityId, error, this.publishDeps);
   }
 
-  public async publishDirect(
-    entityType: string,
-    _entityId: string,
-    content: string,
-    metadata: Record<string, unknown>,
-  ): Promise<PublishResult> {
-    const provider = this.config.providerRegistry.get(entityType);
-    return provider.publish(content, metadata);
-  }
-
   // -------------------------------------------------------------------
   // Generation scheduling
   // -------------------------------------------------------------------

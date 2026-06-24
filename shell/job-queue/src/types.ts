@@ -166,6 +166,11 @@ export interface IJobQueueService {
   getActiveJobs(types?: string[]): Promise<JobInfo[]>;
 
   /**
+   * Get failed jobs
+   */
+  getFailedJobs(types?: string[]): Promise<JobInfo[]>;
+
+  /**
    * Get registered job types
    */
   getRegisteredTypes(): string[];

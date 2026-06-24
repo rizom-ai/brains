@@ -94,6 +94,7 @@ async function runSingleModelIteration(
 
   const evalDbBase = prepareEvalEnvironment({
     brainModelPath: options.brainModelPath,
+    config: options.config,
     cloneData: options.cloneData,
     suffix: model.replace(/[^a-z0-9-]/gi, "-"),
   });
@@ -127,6 +128,7 @@ async function runSingleModelIteration(
     verbose: options.verbose,
     parallel: options.parallel,
     maxParallel: options.maxParallel,
+    ...(!options.remoteUrl && { indexReadiness: shell.getEntityService() }),
     ...(options.tags && { tags: options.tags }),
     ...(options.testCaseIds && { testCaseIds: options.testCaseIds }),
     ...(options.testType && { testType: options.testType }),
