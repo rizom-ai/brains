@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   createMockShell,
   createServicePluginContext,

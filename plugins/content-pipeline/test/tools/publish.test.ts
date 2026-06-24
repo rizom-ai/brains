@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createPublishTool, publishInputSchema } from "../../src/tools/publish";
 import { ProviderRegistry } from "../../src/provider-registry";
 import type { PublishProvider } from "@brains/contracts";

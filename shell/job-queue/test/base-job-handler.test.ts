@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import {
   createMockLogger,

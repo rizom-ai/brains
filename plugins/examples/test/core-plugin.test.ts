@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { calculatorPlugin } from "../src/core-plugin-example";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { DefaultContentFormatter } from "@brains/content-formatters";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 describe("ServicePlugin (formerly CorePlugin)", () => {
   let harness: ReturnType<typeof createPluginHarness>;

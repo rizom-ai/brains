@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
 

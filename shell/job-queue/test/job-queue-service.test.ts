@@ -4,7 +4,8 @@ import type { JobHandler, JobQueueDbConfig } from "../src/types";
 import type { JobOptions } from "../src/schema/types";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/test-utils";
-import { createId, z } from "@brains/utils";
+import { createId } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { ProgressReporter } from "@brains/utils";
 interface EntityWithoutEmbedding {
   id: string;

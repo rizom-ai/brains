@@ -4,7 +4,7 @@ import { MessageBus } from "@/messageBus";
 
 import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 describe("MessageBus", () => {
   let messageBus: MessageBus;

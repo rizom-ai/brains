@@ -4,7 +4,7 @@ import type { BuildContext } from "../../src/lib/static-site-builder";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import type { RouteDefinition } from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";

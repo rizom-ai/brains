@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { ServicePlugin } from "../src/service/service-plugin";
 import { createPluginHarness } from "../src/test/harness";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 class PluginWithInstructions extends ServicePlugin<
   Record<string, never>,

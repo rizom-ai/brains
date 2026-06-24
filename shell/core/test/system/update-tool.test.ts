@@ -3,7 +3,7 @@ import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 describe("system_update tool", () => {
   let tools: Tool[];

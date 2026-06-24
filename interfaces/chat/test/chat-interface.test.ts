@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
-import { chunkMessage, z } from "@brains/utils";
+import { chunkMessage } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createDiscordChatUploadStoreScope } from "../src/upload-store";
 import type { DiscordChatAdapterConfig } from "../src/config";
 import type {

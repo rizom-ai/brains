@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createSilentLogger } from "@brains/test-utils";
 import { EntityRegistry } from "../src/entityRegistry";
 import { EntitySerializer } from "../src/entity-serializer";

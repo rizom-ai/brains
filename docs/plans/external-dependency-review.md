@@ -728,9 +728,8 @@ Incremental migration progress:
   schemas, plugin integration config/tool/site-builder schemas, shell
   app/AI/auth/evaluation schemas, brain CLI YAML/schema-mapping helpers, core
   system and config schemas, MCP service and bridge schemas, job-queue,
-  runtime-state, and template schemas,
-  plugin
-  public contract schema imports, plugin author-facing Zod type references, and
+  runtime-state, template schemas, workspace test schema helpers, plugin public
+  contract schema imports, plugin author-facing Zod type references, and
   plugin framework schema/type imports at the explicit
   `@brains/utils/zod` subpath while keeping them on the current main Zod
   boundary.

@@ -11,7 +11,8 @@ import type {
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
-import { z, slugify } from "@brains/utils";
+import { slugify } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const enqueuedCreateJobSchema = z.object({
   targetEntityType: z.string(),

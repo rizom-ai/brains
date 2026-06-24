@@ -6,7 +6,7 @@
  * default rebuild-from-metadata behavior.
  */
 import { describe, it, expect } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { baseEntitySchema } from "../src/types";
 

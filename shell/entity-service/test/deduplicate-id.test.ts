@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import {
