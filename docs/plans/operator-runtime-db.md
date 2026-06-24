@@ -31,7 +31,7 @@ The operator DB is for durable operator/security state, not durable user-authore
 Moved to the the runtime state store (`shell/runtime-state`) (ephemeral tier, not here):
 
 - chat thread subscriptions
-- playbook run state: runs, typed evidence rows, gate verdicts ([Rover chat-native onboarding](./rover-chat-native-onboarding.md))
+- playbook run state: runs, typed evidence rows, gate verdicts
 - notification / setup-email delivery dedupe records
 
 Out of scope for the first pass:
@@ -114,5 +114,4 @@ The earlier open question — "one shared runtime-state DB file, or one per cons
 
 - the runtime state store (`shell/runtime-state`) — the ephemeral operational tier this plan is deliberately not part of
 - [Auth runtime database](./auth-runtime-db.md)
-- [Rover chat-native onboarding](./rover-chat-native-onboarding.md)
 - [Multi-user and permissions](./multi-user.md)

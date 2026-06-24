@@ -3,9 +3,8 @@
 ## Status
 
 The generic playbook runtime — a reusable markdown state-machine engine whose gates are
-prose goals checked against the KB; nothing here is Rover-specific. First consumer is
-[Rover onboarding](./rover-chat-native-onboarding.md). A first slice exists on
-`feature/rover-chat-native-onboarding`; this plan is the engine half.
+prose goals checked against the KB; nothing here is Rover-specific. Rover onboarding is
+the first consumer; this plan tracks the reusable engine shape.
 
 ## Current implementation gaps
 
