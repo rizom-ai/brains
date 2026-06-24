@@ -1,5 +1,5 @@
 import { createResultAttachmentSchema } from "@brains/entity-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 // ── Input schemas ──
 

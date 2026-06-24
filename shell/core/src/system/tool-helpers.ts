@@ -5,7 +5,8 @@ import type {
   PermissionService,
   UserPermissionLevel,
 } from "@brains/templates";
-import { getErrorMessage, type z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 
 const PLUGIN_ID = "system";

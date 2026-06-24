@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/entity-service";
 import type { IEntityService } from "@brains/entity-service";
-import type { z as frameworkZod } from "@brains/utils";
+import type { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { SHELL_DATASOURCE_IDS } from "../constants";
 

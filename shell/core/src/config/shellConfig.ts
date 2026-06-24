@@ -1,5 +1,5 @@
 import { dbConfigSchema } from "@brains/contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type {
   Plugin,
   IEvalHandlerRegistry,
