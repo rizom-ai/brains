@@ -3,11 +3,31 @@ import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import { createMockLogger } from "@brains/test-utils";
+import { z } from "@brains/utils/zod-v4";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 const TINY_PDF_BYTES = Buffer.from("%PDF-1.4\n%%EOF\n");
+
+const linkedInUgcPostBodySchema = z.looseObject({
+  specificContent: z.looseObject({
+    "com.linkedin.ugc.ShareContent": z.looseObject({
+      shareMediaCategory: z.string(),
+      media: z.unknown().optional(),
+    }),
+  }),
+});
+
+const linkedInAuthoredPostBodySchema = z.looseObject({
+  author: z.string(),
+});
+
+const linkedInRegisterUploadBodySchema = z.looseObject({
+  registerUploadRequest: z.looseObject({
+    owner: z.string(),
+  }),
+});
 
 type FetchHandler = (...args: unknown[]) => Promise<Partial<Response>>;
 
@@ -87,7 +107,7 @@ describe("LinkedInClient", () => {
 
       expect(fetchStub).toHaveBeenCalled();
       const [, options] = fetchStub.mock.calls[1] as [string, RequestInit];
-      const body = JSON.parse(options.body as string);
+      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
 
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
@@ -147,7 +167,7 @@ describe("LinkedInClient", () => {
       expect(result.id).toBe("urn:li:share:456");
 
       const [, options] = fetchStub.mock.calls[3] as [string, RequestInit];
-      const body = JSON.parse(options.body as string);
+      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
           .shareMediaCategory,
@@ -198,7 +218,7 @@ describe("LinkedInClient", () => {
       expect(result.id).toBe("urn:li:share:789");
 
       const [, options] = fetchStub.mock.calls[2] as [string, RequestInit];
-      const body = JSON.parse(options.body as string);
+      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
           .shareMediaCategory,
@@ -522,7 +542,9 @@ describe("LinkedInClient", () => {
       expect(fetchStub).toHaveBeenCalledTimes(1);
       const [url, options] = fetchStub.mock.calls[0] as [string, RequestInit];
       expect(url).toContain("/ugcPosts");
-      const body = JSON.parse(options.body as string);
+      const body = linkedInAuthoredPostBodySchema.parse(
+        parseRequestJson(options),
+      );
       expect(body.author).toBe("urn:li:organization:12345");
       expect(result.id).toBe("urn:li:share:123");
     });
@@ -571,7 +593,9 @@ describe("LinkedInClient", () => {
         string,
         RequestInit,
       ];
-      const registerBody = JSON.parse(registerOptions.body as string);
+      const registerBody = linkedInRegisterUploadBodySchema.parse(
+        parseRequestJson(registerOptions),
+      );
       expect(registerBody.registerUploadRequest.owner).toBe(
         "urn:li:organization:12345",
       );
