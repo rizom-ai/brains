@@ -1,5 +1,5 @@
 import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
-import type { z as zMain } from "@brains/utils";
+import type { z as zMain } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { parseEcosystemContent } from "../lib";
 

@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 import {
   siteInfoSchema,

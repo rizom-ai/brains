@@ -1,5 +1,5 @@
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const topicMergeSynthesisSchema = z.object({
   title: z.string().max(100),

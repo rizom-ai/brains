@@ -1,5 +1,5 @@
 import { baseEntitySchema } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const ecosystemSuffixSchema = z.enum(["ai", "foundation", "work"]);
 

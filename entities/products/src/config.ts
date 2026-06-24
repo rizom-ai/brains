@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const productsConfigSchema = z.object({
   route: z.string().default("/products"),

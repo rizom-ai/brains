@@ -5,7 +5,8 @@ import type {
   BaseEntity,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger, z as frameworkZod } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import type { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { Series } from "../schemas/series";
 import {

@@ -1,7 +1,7 @@
 import { paginationInfoSchema } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { enrichedBlogPostSchema } from "../schemas/blog-post";
 import { BlogListTemplate, type BlogListProps } from "../templates/blog-list";
 import { BlogPostTemplate, type BlogPostProps } from "../templates/blog-post";

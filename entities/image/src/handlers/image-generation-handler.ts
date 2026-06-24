@@ -8,7 +8,8 @@ import {
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import { imageAdapter, setCoverImageId } from "@brains/image";
-import { getErrorMessage, z, slugify } from "@brains/utils";
+import { getErrorMessage, slugify } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import { buildImageBasePrompt } from "../lib/build-image-base-prompt";
 import { getDistillableEntityContent } from "../lib/distillable-content";

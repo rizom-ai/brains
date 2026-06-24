@@ -1,5 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger, z as zMain } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import type { z as zMain } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { BlogPost } from "../schemas/blog-post";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";

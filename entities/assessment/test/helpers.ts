@@ -5,7 +5,7 @@ import {
   skillDataSchema,
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const testAgentSkillSchema = z.object({
   name: z.string(),

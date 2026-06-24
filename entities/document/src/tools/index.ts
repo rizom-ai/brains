@@ -1,6 +1,6 @@
 import type { Tool, ToolContext } from "@brains/plugins";
 import { createTool, toolError, toolSuccess } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import {
   documentGenerationJobSchema,
   documentGenerationJobSchemaBase,

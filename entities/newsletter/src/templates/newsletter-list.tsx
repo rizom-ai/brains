@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { paginationInfoSchema, createTemplate } from "@brains/plugins";
 import {
   Head,

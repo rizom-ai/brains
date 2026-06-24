@@ -6,7 +6,8 @@ import type {
   Tool,
 } from "@brains/plugins";
 import { createPendingEntity, ServicePlugin } from "@brains/plugins";
-import { slugify, z } from "@brains/utils";
+import { slugify } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   documentAdapter,
   documentSchema,

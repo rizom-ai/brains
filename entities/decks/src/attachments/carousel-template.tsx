@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { splitWordmark, useMarkdownToHtml } from "@brains/ui-library";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const DECK_CAROUSEL_ATTACHMENT_TYPE = "carousel";

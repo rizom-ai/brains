@@ -1,7 +1,8 @@
 import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import { slugify } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { projectAdapter } from "../adapters/project-adapter";

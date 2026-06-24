@@ -15,7 +15,8 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { z as zEval } from "@brains/utils/zod-v4";
 import type { PublishProvider, PublishResult } from "@brains/contracts";
 import { createTemplate } from "@brains/templates";

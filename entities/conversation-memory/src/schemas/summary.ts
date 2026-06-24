@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { baseEntitySchema, type ContentVisibility } from "@brains/plugins";
 
 export const summaryTimeRangeSchema = z.object({

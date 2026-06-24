@@ -1,5 +1,5 @@
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { topicExtractionResponseSchema } from "../schemas/extraction";
 
 // Schema for the AI response

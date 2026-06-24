@@ -1,7 +1,8 @@
 import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { slugify, z as frameworkZod } from "@brains/utils";
+import { slugify } from "@brains/utils";
+import { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/plugins";
 import {
   Head,

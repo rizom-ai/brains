@@ -8,7 +8,8 @@ import {
 import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z, truncateText } from "@brains/utils";
+import { truncateText } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   type Newsletter,
   newsletterFrontmatterSchema,

@@ -3,7 +3,7 @@ import { AgentDataSource } from "../src/datasources/agent-datasource";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { createTestAgent } from "./fixtures/agent";
 

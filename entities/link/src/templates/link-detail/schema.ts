@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { linkFrontmatterSchema } from "../../schemas/link";
 
 // Schema for link detail - frontmatter fields plus id and summary

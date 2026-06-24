@@ -6,7 +6,8 @@ import {
   saveProcessedEntity,
 } from "@brains/plugins";
 import type { ProgressReporter, Logger } from "@brains/utils";
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
   createDataUrl,

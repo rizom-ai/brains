@@ -3,7 +3,7 @@ import { SocialPostDataSource } from "../../src/datasources/social-post-datasour
 import { createSilentLogger } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { BaseDataSourceContext } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const postListSchema = z.object({
   posts: z.array(z.any()),

@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { SiteInfoDataSource } from "../src/datasources/site-info-datasource";
 import { createSilentLogger } from "@brains/test-utils";
 import { createMockShell } from "@brains/plugins/test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const outputSchema = z.record(z.unknown());
 

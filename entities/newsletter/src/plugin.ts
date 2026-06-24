@@ -7,7 +7,8 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { getErrorMessage, z as zConfig } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
+import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { PublishProvider } from "@brains/contracts";
 import { h } from "preact";
