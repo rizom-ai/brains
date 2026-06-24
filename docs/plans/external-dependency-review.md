@@ -721,6 +721,9 @@ Incremental migration progress:
   plugin public contract schema authoring off direct `zod` imports and onto the
   current `@brains/utils` Zod boundary; do not switch these to Zod 4 until their
   composing consumers can move as one unmixed boundary.
+- Moved the public `@rizom/brain` root `z` export to the centralized
+  `@brains/utils/zod` boundary while preserving the generated public declaration
+  contract for plugin authors.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -16,5 +16,5 @@ export type {
   PluginConfig,
 } from "@brains/app/contracts/brain-definition";
 export { PLUGIN_API_VERSION } from "../plugin-api-version";
-export { z, ZodError } from "zod";
-export type { ZodSchema, ZodType } from "zod";
+export { z, ZodError } from "@brains/utils/zod";
+export type { ZodSchema, ZodType } from "@brains/utils/zod";
