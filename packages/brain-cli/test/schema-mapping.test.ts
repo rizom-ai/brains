@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { mapArgsToInput } from "@brains/mcp-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 describe("mapArgsToInput", () => {
   it("should map single positional arg to required field", () => {

@@ -726,8 +726,9 @@ Incremental migration progress:
   service schemas, entity package schemas/templates/data sources, interface
   config/transport schemas, selected site package and Relay site-composition
   schemas, plugin integration config/tool/site-builder schemas, shell
-  app/AI/auth/evaluation schemas, core system and config schemas,
-  MCP service and bridge schemas, job-queue, runtime-state, and template schemas,
+  app/AI/auth/evaluation schemas, brain CLI YAML/schema-mapping helpers, core
+  system and config schemas, MCP service and bridge schemas, job-queue,
+  runtime-state, and template schemas,
   plugin
   public contract schema imports, plugin author-facing Zod type references, and
   plugin framework schema/type imports at the explicit

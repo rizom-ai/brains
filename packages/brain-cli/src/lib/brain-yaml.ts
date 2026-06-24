@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { z, parseYamlDocument } from "@brains/utils";
+import { parseYamlDocument } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { pluginOverrideEntrySchema } from "@brains/app";
 import { resolveModelName } from "./model-registry";
 
