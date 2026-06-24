@@ -1,4 +1,5 @@
-import { formatLabel, pluralize, type z } from "@brains/utils";
+import { formatLabel, pluralize } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import { NOTE_ENTITY_TYPE } from "@brains/entity-service";
 
 /**

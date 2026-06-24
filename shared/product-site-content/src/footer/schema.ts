@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const NavigationItemSchema = z.object({
   label: z.string(),

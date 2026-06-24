@@ -2,7 +2,7 @@
  * Reusable formatters for common entity field types
  */
 
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Source reference schema

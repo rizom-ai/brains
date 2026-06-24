@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { NavigationItemSchema } from "./routes";
 
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";

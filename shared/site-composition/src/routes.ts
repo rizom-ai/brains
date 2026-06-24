@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /** Section definition schema for site routes. */
 export const SectionDefinitionSchema = z.object({

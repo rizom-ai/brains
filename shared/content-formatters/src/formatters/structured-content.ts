@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import type { z as frameworkZod } from "@brains/utils";
+import type { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { remark } from "remark";
 import type {

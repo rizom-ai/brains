@@ -1,5 +1,5 @@
 import type { EntityAdapter } from "@brains/entity-service";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import {
   documentSchema,
   type DocumentEntity,

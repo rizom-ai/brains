@@ -1,5 +1,5 @@
 import type { VNode } from "preact";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { SiteImageRendererService } from "@brains/site-engine";
 
 export type MediaTemplateFormat = "image" | "pdf";
