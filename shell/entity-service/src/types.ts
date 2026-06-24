@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { DataSource } from "./datasource-types";
 import {
   contentVisibilitySchema,

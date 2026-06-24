@@ -1,4 +1,5 @@
-import type { z, Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import type {
   BaseEntity,

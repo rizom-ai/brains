@@ -1,5 +1,5 @@
 import type { Template } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Schema for public query responses
