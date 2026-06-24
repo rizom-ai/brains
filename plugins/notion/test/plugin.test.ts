@@ -1,5 +1,8 @@
 import { describe, it, expect } from "bun:test";
+import { z } from "@brains/utils/zod-v4";
 import { NotionPlugin, notionPlugin, notionConfigSchema } from "../src/index";
+
+const openApiMcpHeadersSchema = z.record(z.string(), z.string());
 
 // ============================================================================
 // Access protected methods via a test subclass
@@ -82,7 +85,7 @@ describe("NotionPlugin", () => {
       const cmd = plugin.exposedGetServerCommand();
       const env = cmd.env ?? {};
       const rawHeaders = env["OPENAPI_MCP_HEADERS"] ?? "{}";
-      const headers = JSON.parse(rawHeaders) as Record<string, string>;
+      const headers = openApiMcpHeadersSchema.parse(JSON.parse(rawHeaders));
 
       expect(headers["Authorization"]).toBe("Bearer ntn_my_secret");
       expect(headers["Notion-Version"]).toBe("2022-06-28");

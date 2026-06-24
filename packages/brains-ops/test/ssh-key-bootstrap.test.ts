@@ -9,12 +9,18 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
+import { z } from "@brains/utils/zod-v4";
 
 import {
   bootstrapPilotSshKey,
   runPilotSshKeyBootstrap,
   type SshKeygen,
 } from "../src/ssh-key-bootstrap";
+
+const hcloudCreateSshKeyBodySchema = z.strictObject({
+  name: z.string(),
+  public_key: z.string(),
+});
 
 describe("pilot ssh key bootstrap", () => {
   let testDir: string;
@@ -81,10 +87,9 @@ describe("pilot ssh key bootstrap", () => {
         }
 
         if (url.endsWith("/ssh_keys") && init?.method === "POST") {
-          const body = JSON.parse(String(init.body)) as {
-            name: string;
-            public_key: string;
-          };
+          const body = hcloudCreateSshKeyBodySchema.parse(
+            JSON.parse(String(init.body)),
+          );
           expect(body).toEqual({
             name: "rover-pilot-deploy",
             public_key: publicKey,

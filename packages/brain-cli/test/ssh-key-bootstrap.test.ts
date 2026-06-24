@@ -9,11 +9,17 @@ import {
 } from "fs";
 import { dirname, join } from "path";
 import { tmpdir } from "os";
+import { z } from "@brains/utils/zod-v4";
 import {
   bootstrapSshKey,
   runSshKeyBootstrap,
   type SshKeygen,
 } from "../src/commands/ssh-key-bootstrap";
+
+const hcloudCreateSshKeyBodySchema = z.strictObject({
+  name: z.string(),
+  public_key: z.string(),
+});
 
 describe("ssh key bootstrap", () => {
   let testDir: string;
@@ -80,10 +86,9 @@ describe("ssh key bootstrap", () => {
         }
 
         if (url.endsWith("/ssh_keys") && init?.method === "POST") {
-          const body = JSON.parse(String(init.body)) as {
-            name: string;
-            public_key: string;
-          };
+          const body = hcloudCreateSshKeyBodySchema.parse(
+            JSON.parse(String(init.body)),
+          );
           expect(body).toEqual({
             name: "mylittlephoney-deploy",
             public_key: publicKey,

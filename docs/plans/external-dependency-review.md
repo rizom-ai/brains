@@ -738,6 +738,9 @@ Incremental migration progress:
   contract for plugin authors.
 - Cleared the remaining direct test import of `zod`; direct `zod` references are
   now limited to the centralized utils export and public API assertions.
+- Replaced remaining test `JSON.parse(... as ...)` shape casts with explicit Zod
+  4 guards in CLI/ops bootstrap tests, web-chat package metadata assertions,
+  Notion header checks, and utils logger JSON assertions.
 - Normalized the chat interface Bun type metadata from `latest` to the pinned
   workspace range so `deps:check` stays stable after the merge refresh.
 - Cleaned direct Zod package metadata after public contract centralization:
