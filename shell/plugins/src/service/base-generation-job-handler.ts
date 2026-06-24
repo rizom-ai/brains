@@ -1,12 +1,12 @@
 import { BaseJobHandler } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Logger, ProgressReporter } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import {
   generateMarkdown,
   getErrorMessage,
   parseMarkdown,
   updateFrontmatterField,
-  type z,
 } from "@brains/utils";
 import {
   PROGRESS_STEPS,

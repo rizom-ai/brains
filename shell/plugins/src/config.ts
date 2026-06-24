@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Base configuration schema that all plugins should extend

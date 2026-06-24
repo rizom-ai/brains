@@ -5,7 +5,7 @@ import type {
   ToolResponse,
   ToolConfirmation,
 } from "../interfaces";
-import { type z } from "@brains/utils";
+import { type z } from "@brains/utils/zod";
 import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
 
 type ToolSuccess = z.infer<typeof toolSuccessSchema>;
