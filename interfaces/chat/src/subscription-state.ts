@@ -1,6 +1,6 @@
 import { createMemoryState } from "@chat-adapter/state-memory";
 import type { IRuntimeStateNamespace } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 
 export const discordThreadSubscriptionStateSchema = z.object({

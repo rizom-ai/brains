@@ -1,5 +1,5 @@
 import { urlCaptureConfigSchema } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const discordAdapterConfigSchema = z.object({
   botToken: z.string().min(1).describe("Discord bot token"),
