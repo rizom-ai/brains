@@ -728,6 +728,9 @@ Incremental migration progress:
   now limited to the centralized utils export and public API assertions.
 - Normalized the chat interface Bun type metadata from `latest` to the pinned
   workspace range so `deps:check` stays stable after the merge refresh.
+- Cleaned direct Zod package metadata after public contract centralization:
+  shared contracts now depend on `@brains/utils`, and plugins no longer declare
+  an unused direct `zod` dependency.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

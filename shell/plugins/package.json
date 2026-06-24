@@ -43,8 +43,7 @@
     "@brains/runtime-state": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "zod": "^3.25.76"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/ai-service": "workspace:*",
