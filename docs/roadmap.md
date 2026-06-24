@@ -120,7 +120,6 @@ Plans:
 - [brain-model-unification.md](./plans/brain-model-unification.md) — **the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + `brain init` recipes. Supersedes the three-reference-model framing.
 - [rover-core-preset-evals.md](./plans/rover-core-preset-evals.md) — preset-aware eval harness merged; remaining work fills behavioral coverage and re-tags toward bundle combinations as unification lands.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
-- [publish-pipeline-consolidation.md](./plans/publish-pipeline-consolidation.md) — consolidate direct, queued, and message-driven publishing behind one executor path and harden direct-publish confirmations so invalid/expired tokens fail clearly instead of looping.
 
 ### 2. The collective posture (active POC)
 
