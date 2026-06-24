@@ -711,6 +711,9 @@ Incremental migration progress:
   artifact-display record hand guards with explicit Zod 4 local parsers while
   leaving shared agent card schemas on the current public plugin contract
   boundary.
+- Replaced ai-evaluation eval-suite YAML record predicate checks with explicit
+  Zod 4 parse helpers, and removed redundant `JSON.parse(... ) as unknown`
+  casts from shared/CLI JSON response helpers without changing response shapes.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -10,7 +10,7 @@ export async function readJsonBody(response: Response): Promise<unknown> {
   }
 
   try {
-    return JSON.parse(text) as unknown;
+    return JSON.parse(text);
   } catch {
     return text;
   }

@@ -171,8 +171,8 @@ function resolveEvalSuite(
   rawYaml: Record<string, unknown>,
   suiteName: string,
 ): EvalSelection {
-  const suites = rawYaml["suites"];
-  if (!isRecord(suites)) {
+  const suites = parseRawYamlRecord(rawYaml["suites"]);
+  if (!suites) {
     throw new Error(
       `Eval suite "${suiteName}" was requested, but brain.eval.yaml has no suites block.`,
     );
@@ -188,8 +188,8 @@ function resolveEvalSuite(
     const cached = resolved.get(name);
     if (cached) return cached;
 
-    const rawSuite = suites[name];
-    if (!isRecord(rawSuite)) {
+    const rawSuite = parseRawYamlRecord(suites[name]);
+    if (!rawSuite) {
       throw new Error(`Unknown eval suite "${name}".`);
     }
 
@@ -264,8 +264,11 @@ function parseSuiteTags(value: unknown, suiteName: string): string[] {
   );
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return rawYamlSchema.safeParse(value).success;
+function parseRawYamlRecord(
+  value: unknown,
+): z.output<typeof rawYamlSchema> | undefined {
+  const parsed = rawYamlSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function uniqueStrings(values: string[]): string[] {
