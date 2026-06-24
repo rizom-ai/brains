@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. The first extraction pass is implemented in `feat/chat-message-interface-shared-workflows`: confirmation routing/tracking, response render planning, tool/progress status display, upload continuity, artifact access decisions, and structured-card fallback formatting now live under `shell/plugins/src/message-interface/`. Remaining work is mostly Slack adapter integration and any follow-up cleanup discovered while building Slack.
+In progress. The shared workflow extraction is implemented in `feat/chat-message-interface-shared-workflows`: confirmation routing/tracking, response render planning, tool/progress status display, upload continuity, artifact access decisions, stored-card parsing, upload-ref redaction, and structured-card fallback formatting now live under `shell/plugins/src/message-interface/`. `interfaces/chat` and applicable `interfaces/web-chat` operator workflows consume those helpers. Remaining work is mostly Slack adapter integration and any follow-up cleanup discovered while building Slack.
 
 ## Goal
 
@@ -199,7 +199,16 @@ After shared extraction, `interfaces/chat` should keep only Chat SDK and Discord
 
 Everything else should call shared message-interface helpers.
 
-## Phase 7 — Slack adapter
+## Phase 7 — Web-chat shared helper cleanup
+
+Reuse the applicable shared helpers in `interfaces/web-chat` without changing its AI SDK streaming/upload mechanics:
+
+- progress and tool-status display data;
+- artifact access decisions for generated attachment routes;
+- stored structured card parsing for message history;
+- upload-ref redaction for streamed tool results and approval cards.
+
+## Phase 8 — Slack adapter
 
 Implement Slack against the slimmed shape:
 

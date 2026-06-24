@@ -166,6 +166,12 @@ export {
 } from "./upload-continuity";
 
 export {
+  redactUploadRefs,
+  redactUploadRefsInRecord,
+  redactUploadRefsInStructuredCard,
+} from "./upload-redaction";
+
+export {
   formatStructuredCardFallback,
   type StructuredCardFallbackOptions,
 } from "./structured-card-fallback";
@@ -189,6 +195,7 @@ export {
   collectUploadIdsFromStoredMessages,
   getStoredAttachmentCards,
   getStoredMessageAttachments,
+  getStoredMessageCards,
   parseStoredMessageMetadata,
   type StoredMessageAttachment,
 } from "./stored-message-metadata";

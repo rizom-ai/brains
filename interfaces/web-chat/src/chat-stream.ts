@@ -1,6 +1,7 @@
 import {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
+  redactUploadRefs,
   type AgentNamespace,
   type AgentResponse,
   type ChatAttachment,
@@ -8,11 +9,7 @@ import {
 } from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
-import {
-  redactUploadRefs,
-  writeStructuredCards,
-  writeTextPart,
-} from "./stream-writer";
+import { writeStructuredCards, writeTextPart } from "./stream-writer";
 
 export interface ActiveStream {
   writer: UIMessageStreamWriter<UIMessage>;

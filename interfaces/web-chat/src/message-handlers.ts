@@ -1,9 +1,7 @@
 import {
   getStoredMessageAttachments as getSharedStoredMessageAttachments,
-  parseStoredMessageMetadata,
-  StructuredChatCardSchema,
+  getStoredMessageCards,
   type InterfacePluginContext,
-  type StructuredChatCard,
 } from "@brains/plugins";
 import { stripInternalEntityMemoryNote } from "./display-content";
 
@@ -78,15 +76,4 @@ function getStoredMessageAttachments(
       createdAt,
       ...(attachment.source !== undefined && { source: attachment.source }),
     }));
-}
-
-function getStoredMessageCards(metadata: unknown): StructuredChatCard[] {
-  const parsedMetadata = parseStoredMessageMetadata(metadata);
-  const cards = parsedMetadata?.["cards"];
-  if (!Array.isArray(cards)) return [];
-
-  return cards
-    .map((card) => StructuredChatCardSchema.safeParse(card))
-    .filter((result) => result.success)
-    .map((result) => result.data);
 }

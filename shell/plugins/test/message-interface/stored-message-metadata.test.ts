@@ -4,6 +4,7 @@ import {
   collectUploadIdsFromStoredMessages,
   getStoredAttachmentCards,
   getStoredMessageAttachments,
+  getStoredMessageCards,
   parseStoredMessageMetadata,
 } from "../../src/message-interface/stored-message-metadata";
 
@@ -51,6 +52,53 @@ describe("getStoredMessageAttachments", () => {
         attachments: [{ kind: "text", filename: "missing-media-type" }],
       }),
     ).toEqual([]);
+  });
+});
+
+describe("getStoredMessageCards", () => {
+  it("returns valid structured cards across supported card kinds", () => {
+    const attachmentCard = {
+      kind: "attachment" as const,
+      id: "attachment:report-1",
+      title: "Report",
+      attachment: {
+        mediaType: "application/pdf",
+        url: "/api/report.pdf",
+      },
+    };
+    const sourcesCard = {
+      kind: "sources" as const,
+      id: "sources-1",
+      sources: [{ id: "source-1", source: "notes" }],
+    };
+
+    expect(
+      getStoredMessageCards({
+        cards: [attachmentCard, sourcesCard],
+      }),
+    ).toEqual([attachmentCard, sourcesCard]);
+  });
+
+  it("drops malformed structured card entries", () => {
+    const validCard = {
+      kind: "sources" as const,
+      id: "sources-1",
+      sources: [{ id: "source-1", source: "notes" }],
+    };
+
+    expect(
+      getStoredMessageCards({
+        cards: [
+          {
+            kind: "attachment",
+            id: "attachment:report-1",
+            title: "Report",
+            attachment: { url: "/api/report.pdf" },
+          },
+          validCard,
+        ],
+      }),
+    ).toEqual([validCard]);
   });
 });
 
