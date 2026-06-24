@@ -2,7 +2,7 @@ import {
   formatContentDispositionHeader,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
-  permissionToVisibilityScope,
+  resolveMessageArtifactAccess,
   type InterfacePluginContext,
   type UserPermissionLevel,
 } from "@brains/plugins";
@@ -11,6 +11,7 @@ type PermissionLevelResolver = (
   request: Request,
 ) => Promise<UserPermissionLevel>;
 type EntityService = InterfacePluginContext["entityService"];
+type ArtifactEntityType = "document" | "image";
 
 interface AttachmentHandlerDeps {
   resolvePermissionLevel: PermissionLevelResolver;
@@ -26,7 +27,6 @@ export async function handleDocumentAttachmentRequest(
   if (permissionLevel === "public") {
     return deps.createOperatorLoginRequiredResponse(request);
   }
-  const visibilityScope = permissionToVisibilityScope(permissionLevel);
 
   const url = new URL(request.url);
   const documentId = url.searchParams.get("id")?.trim();
@@ -34,13 +34,17 @@ export async function handleDocumentAttachmentRequest(
     return new Response("Missing document id", { status: 400 });
   }
 
-  const document = await deps.entityService.getEntity({
+  const document = await resolveVisibleArtifactEntity({
     entityType: "document",
     id: documentId,
-    visibilityScope,
+    permissionLevel,
+    entityService: deps.entityService,
   });
   if (!document) {
     return new Response("Document not found", { status: 404 });
+  }
+  if (typeof document.content !== "string") {
+    return new Response("Document content is not a PDF", { status: 415 });
   }
 
   const parsed = parseArtifactDataUrl("document", document.content);
@@ -70,7 +74,6 @@ export async function handleImageAttachmentRequest(
   if (permissionLevel === "public") {
     return deps.createOperatorLoginRequiredResponse(request);
   }
-  const visibilityScope = permissionToVisibilityScope(permissionLevel);
 
   const url = new URL(request.url);
   const imageId = url.searchParams.get("id")?.trim();
@@ -78,13 +81,17 @@ export async function handleImageAttachmentRequest(
     return new Response("Missing image id", { status: 400 });
   }
 
-  const image = await deps.entityService.getEntity({
+  const image = await resolveVisibleArtifactEntity({
     entityType: "image",
     id: imageId,
-    visibilityScope,
+    permissionLevel,
+    entityService: deps.entityService,
   });
   if (!image) {
     return new Response("Image not found", { status: 404 });
+  }
+  if (typeof image.content !== "string") {
+    return new Response("Image content is not an image", { status: 415 });
   }
 
   const parsed = parseArtifactDataUrl("image", image.content);
@@ -104,6 +111,30 @@ export async function handleImageAttachmentRequest(
     mediaType: parsed.mimeType,
     filename,
   });
+}
+
+async function resolveVisibleArtifactEntity(input: {
+  entityType: ArtifactEntityType;
+  id: string;
+  permissionLevel: UserPermissionLevel;
+  entityService: EntityService;
+}): Promise<
+  | {
+      content: unknown;
+      metadata: Record<string, unknown> | null | undefined;
+    }
+  | undefined
+> {
+  const entityRef = { entityType: input.entityType, id: input.id };
+  const access = await resolveMessageArtifactAccess({
+    entityRef,
+    userLevel: input.permissionLevel,
+    getEntity: (ref) => input.entityService.getEntity(ref),
+    getVisibleEntity: (ref, visibilityScope) =>
+      input.entityService.getEntity({ ...ref, visibilityScope }),
+  });
+
+  return access.status === "visible" ? access.entity : undefined;
 }
 
 function createBinaryAttachmentResponse(input: {
