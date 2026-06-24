@@ -57,11 +57,25 @@ function applyFieldUpdates(
     }
   }
 
-  return {
+  const nextEntity: BaseEntity & Record<string, unknown> = {
     ...withOgImage,
     visibility: nextVisibility,
     metadata: nextMetadata,
   };
+
+  // Keep metadata-backed top-level fields in sync before adapter serialization.
+  // DB metadata is the source of truth on read, but adapters serialize from the
+  // typed entity shape; without this, field updates can persist fresh metadata
+  // beside stale frontmatter content.
+  for (const [key, value] of Object.entries(metadataFields)) {
+    if (value === null) {
+      delete nextEntity[key];
+    } else {
+      nextEntity[key] = value;
+    }
+  }
+
+  return nextEntity;
 }
 
 function validateAnchorProfileUpdate(

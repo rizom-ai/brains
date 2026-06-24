@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
+import type { BaseEntity } from "@brains/entity-service";
 import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils";
 
@@ -382,6 +383,12 @@ describe("system_update tool", () => {
       .get("resilience-in-distributed-systems");
     expect(updated?.metadata["status"]).toBe("draft");
     expect(updated?.metadata).not.toHaveProperty("publishedAt");
+
+    const updateRequest = services.getLastUpdateRequest() as {
+      entity: BaseEntity & Record<string, unknown>;
+    };
+    expect(updateRequest.entity["status"]).toBe("draft");
+    expect(updateRequest.entity).not.toHaveProperty("publishedAt");
   });
 
   it("rejects coverImageId field updates for entity types without cover support", async () => {

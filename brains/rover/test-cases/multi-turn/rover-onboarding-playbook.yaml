@@ -139,7 +139,9 @@ turns:
       responseContains:
         - "resilient software"
         - "climate"
-        - "onboarding loop is complete"
+        - "saved a seed"
+        - "retrieved"
+        - "transformed"
       responseNotContains:
         - "I'll turn"
         - "I’ll turn"
