@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const GenerateOptionsSchema = z.object({
   routeId: z.string().optional().describe("Optional: specific route filter"),

@@ -1,7 +1,7 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type {
   DashboardWidgetRegistry,
   StoredRegisteredWidget,

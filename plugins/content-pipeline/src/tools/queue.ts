@@ -5,7 +5,7 @@ import type {
   ToolResult,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 
 /**

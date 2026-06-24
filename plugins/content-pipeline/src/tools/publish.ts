@@ -4,7 +4,7 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z as zConfig } from "@brains/utils";
+import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { ProviderRegistry } from "../provider-registry";
 import {

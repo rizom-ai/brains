@@ -1,4 +1,5 @@
-import { z, type ProgressCallback } from "@brains/utils";
+import type { ProgressCallback } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
 import { siteMetadataSchema } from "@brains/site-composition";
 
