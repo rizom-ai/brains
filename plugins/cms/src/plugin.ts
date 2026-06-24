@@ -9,7 +9,8 @@ import {
 } from "@brains/cms-config";
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
-import { toYaml, z as zConfig } from "@brains/utils";
+import { toYaml } from "@brains/utils";
+import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 

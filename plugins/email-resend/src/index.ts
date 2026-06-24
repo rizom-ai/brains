@@ -6,7 +6,8 @@ import {
 } from "@brains/email-contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { type FetchLike, z as zConfig } from "@brains/utils";
+import type { FetchLike } from "@brains/utils";
+import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 

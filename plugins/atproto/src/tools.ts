@@ -1,5 +1,5 @@
 import type { ServicePluginContext, Tool, ToolResponse } from "@brains/plugins";
-import { z as zConfig } from "@brains/utils";
+import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { AtprotoPlugin } from "./plugin";
 
