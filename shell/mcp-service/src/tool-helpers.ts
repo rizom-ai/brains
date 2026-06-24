@@ -1,5 +1,6 @@
 import type { Tool, Resource, ToolResponse, ToolContext } from "./types";
-import { getErrorMessage, z, Logger } from "@brains/utils";
+import { getErrorMessage, Logger } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Zod schema for tool result validation
