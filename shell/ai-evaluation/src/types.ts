@@ -49,6 +49,20 @@ export interface IEvalHandlerRegistry {
 /**
  * Options for running evaluations
  */
+export interface IndexReadinessGate {
+  awaitIndexReady(options: {
+    timeoutMs: number;
+    intervalMs?: number;
+  }): Promise<{
+    ready: boolean;
+    degraded: boolean;
+    activeEmbeddingJobs?: number;
+    missingEmbeddings?: number;
+    staleEmbeddings?: number;
+    failedEmbeddings?: number;
+  }>;
+}
+
 export interface EvaluationOptions {
   /** Specific test case IDs to run */
   testCaseIds?: string[];
@@ -64,6 +78,8 @@ export interface EvaluationOptions {
   parallel?: boolean;
   /** Maximum parallel tests */
   maxParallel?: number;
+  /** Timeout for semantic index readiness before running test cases */
+  indexReadinessTimeoutMs?: number;
 }
 
 /**

@@ -1,4 +1,25 @@
-import type { AgentContextItem, AgentContextRequest } from "@brains/contracts";
+import type {
+  AgentContextItem,
+  AgentContextRequest,
+  AgentResponse,
+} from "@brains/contracts";
+export type {
+  ActionsCard,
+  AgentResponse,
+  AttachmentCard,
+  AttachmentCardData,
+  AttachmentCardSource,
+  ChatAction,
+  EventChatAction,
+  PendingConfirmation,
+  PromptChatAction,
+  SourceCitation,
+  SourcesCard,
+  StructuredChatCard,
+  ToolApprovalCard,
+  ToolApprovalCardState,
+  ToolResultData,
+} from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
   ConversationMessageActor,
@@ -57,6 +78,10 @@ export type CanonicalIdentityResolver = Pick<
   "enrichActor"
 >;
 
+export interface AgentIndexReadiness {
+  isIndexReady(): boolean;
+}
+
 export type UploadAttachmentResolver = (
   source: ChatAttachmentSource,
 ) => Promise<ChatAttachment | null | undefined>;
@@ -72,6 +97,8 @@ export interface AgentConfig {
   assistantActorId?: string;
   /** Optional explicit actor -> canonical identity resolver */
   canonicalIdentityResolver?: CanonicalIdentityResolver;
+  /** Optional semantic-index readiness gate for retrieval-backed chat. */
+  indexReadiness?: AgentIndexReadiness;
   /** Optional provider for same-turn retrieved context, e.g. durable memory. */
   agentContextProvider?: (
     request: AgentContextRequest,
@@ -112,158 +139,11 @@ export type ChatAttachment = TextChatAttachment | FileChatAttachment;
 export interface ChatContext {
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
   interfaceType?: string; // e.g., "matrix", "cli", "mcp"
-  channelId?: string; // Channel/room identifier for conversation tracking
-  channelName?: string; // Human-readable name for the channel/room
+  channelId?: string; // Transport channel/room identifier when distinct from conversationId
+  channelName?: string; // Human-readable name for the transport channel/room
   actor?: ConversationMessageActor; // Stable speaker identity for the incoming message
   source?: ConversationMessageSource; // Platform-specific source provenance
   attachments?: ChatAttachment[] | undefined; // Native same-turn attachments supplied by the interface
-}
-
-/**
- * Pending confirmation for durable write operations or other approval-gated actions
- */
-export interface PendingConfirmation {
-  id: string;
-  toolCallId?: string;
-  toolName: string;
-  summary: string;
-  preview?: string;
-  args: unknown;
-}
-
-export type ToolApprovalCardState =
-  | "approval-requested"
-  | "approval-responded"
-  | "output-available"
-  | "output-denied"
-  | "output-error";
-
-export interface ToolApprovalCard {
-  kind: "tool-approval";
-  id: string;
-  toolCallId?: string;
-  toolName: string;
-  input?: Record<string, unknown>;
-  summary: string;
-  preview?: string;
-  state: ToolApprovalCardState;
-  output?: unknown;
-  error?: string;
-}
-
-// Optionals mirror the zod schema in @brains/plugins (`.optional()` widens to
-// `| undefined`) so the two card mirrors stay structurally interchangeable
-// under exactOptionalPropertyTypes.
-export interface AttachmentCardSource {
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  attachmentType?: string | undefined;
-}
-
-export interface AttachmentCardData {
-  mediaType: string;
-  url: string;
-  downloadUrl?: string | undefined;
-  previewUrl?: string | undefined;
-  filename?: string | undefined;
-  sizeBytes?: number | undefined;
-  source?: AttachmentCardSource | undefined;
-}
-
-export interface AttachmentCard {
-  kind: "attachment";
-  id: string;
-  jobId?: string | undefined;
-  title: string;
-  description?: string | undefined;
-  attachment: AttachmentCardData;
-}
-
-export interface SourceCitation {
-  id: string;
-  title?: string | undefined;
-  source: string;
-  url?: string | undefined;
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  excerpt?: string | undefined;
-  provenance?: Record<string, unknown> | undefined;
-}
-
-export interface SourcesCard {
-  kind: "sources";
-  id: string;
-  title?: string | undefined;
-  sources: SourceCitation[];
-}
-
-export interface PromptChatAction {
-  type: "prompt";
-  id: string;
-  label: string;
-  prompt: string;
-  description?: string | undefined;
-}
-
-export interface EventChatAction {
-  type: "event";
-  id: string;
-  label: string;
-  event: string;
-  description?: string | undefined;
-}
-
-export type ChatAction = PromptChatAction | EventChatAction;
-
-export interface ActionsCard {
-  kind: "actions";
-  id: string;
-  title?: string | undefined;
-  defaultOpen?: boolean | undefined;
-  actions: ChatAction[];
-}
-
-export type StructuredChatCard =
-  | ToolApprovalCard
-  | AttachmentCard
-  | SourcesCard
-  | ActionsCard;
-
-/**
- * Tool result data for tracking
- * Used for logging, evals, and job tracking
- */
-export interface ToolResultData {
-  toolName: string;
-  args?: Record<string, unknown>; // Input arguments passed to the tool
-  jobId?: string; // Job ID for async tools that queue background jobs
-  data?: unknown; // Tool result data (for logging/debugging)
-}
-
-/**
- * Response from the agent
- */
-export interface AgentResponse {
-  // Primary content (markdown)
-  text: string;
-
-  // Tool results for structured rendering
-  // Interfaces should render these directly to ensure data is shown
-  toolResults?: ToolResultData[];
-
-  // Structured chat cards for interface-specific rendering of approvals,
-  // tool outputs, artifacts, and future rich parts.
-  cards?: StructuredChatCard[];
-
-  // Pending confirmations for durable write operations or other approval-gated actions.
-  pendingConfirmations?: PendingConfirmation[];
-
-  // Token usage for tracking
-  usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
 }
 
 /**

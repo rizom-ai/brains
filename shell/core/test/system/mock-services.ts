@@ -28,6 +28,10 @@ export function createMockSystemServices(
   addEntities: (entities: SeedEntity[]) => void;
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
+  /** Get the last direct create request */
+  getLastCreateRequest: () => unknown;
+  /** Get the last update request */
+  getLastUpdateRequest: () => unknown;
   /** Get the last direct markdown create call */
   getLastMarkdownCreate: () =>
     | { entityType: string; id: string; markdown: string }
@@ -195,6 +199,8 @@ export function createMockSystemServices(
     id: string;
     markdown: string;
   }> = [];
+  let lastCreateRequest: unknown;
+  let lastUpdateRequest: unknown;
 
   const entityService = {
     search: async (request: EntitySearchRequest) => {
@@ -241,6 +247,7 @@ export function createMockSystemServices(
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
     createEntity: async (request: { entity: SeedEntity }) => {
+      lastCreateRequest = request;
       const entity = request.entity;
       const id = entity.id || `entity-${Date.now()}`;
       entities.set(id, {
@@ -254,6 +261,7 @@ export function createMockSystemServices(
     createEntityFromMarkdown: async (request: {
       input: { entityType: string; id: string; markdown: string };
     }) => {
+      lastCreateRequest = request;
       const input = request.input;
       markdownCreates.push(input);
       entities.set(input.id, {
@@ -270,6 +278,7 @@ export function createMockSystemServices(
       return { entityId: input.id, jobId: `job-${input.id}`, skipped: false };
     },
     updateEntity: async (request: { entity: BaseEntity }) => {
+      lastUpdateRequest = request;
       const entity = request.entity;
       entities.set(entity.id, entity);
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
@@ -385,6 +394,8 @@ export function createMockSystemServices(
     getEntities: () => entities,
     addEntities,
     getLastEnqueuedJob: () => enqueuedJobs[enqueuedJobs.length - 1],
+    getLastCreateRequest: () => lastCreateRequest,
+    getLastUpdateRequest: () => lastUpdateRequest,
     getLastMarkdownCreate: () => markdownCreates[markdownCreates.length - 1],
   };
 }

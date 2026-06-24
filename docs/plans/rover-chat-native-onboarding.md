@@ -2,14 +2,149 @@
 
 ## Status
 
-On `feature/rover-chat-native-onboarding`; not yet mergeable. A first
-playbook/entity/runtime/web-chat slice exists, and live smoke testing exposed
-correctness gaps (below). This plan is scoped to **shipping Rover onboarding** —
-not the general playbook platform. Anything an onboarding run does not exercise
-is listed under [Deferred](#deferred-not-built-here) and is explicitly out of
-build scope.
+On `feature/rover-chat-native-onboarding`; automated onboarding polish
+regressions pass, including the generic post-confirmation follow-up slice,
+structured playbook continuation action-card path, and the plan-required focused
+eval set. A clean full-app browser/API smoke passed through setup, profile,
+seed save, retrieval, `Do that as a post outline`, confirmation, and generation
+follow-up.
+This plan is scoped to **shipping Rover onboarding** — not the general playbook
+platform. Anything an onboarding run does not exercise is listed under
+[Deferred](#deferred-not-built-here) and is explicitly out of build scope.
 
 Related: the bundled web chat owns `/chat`; first-passkey bootstrap is shipped in `shell/auth-service` and no longer has a standing plan.
+
+## UX rethink: choices vs completion
+
+Live testing showed the action-card UX exposing state-machine advancement as buttons: an
+operator could click **Keep going** through completion steps (retrieval, transformation,
+wrap-up, complete) without Rover doing the work, because an ungated `NEXT` projects a
+button and advances for free. The markdown was also too implementation-shaped — authors
+faced raw `event`/`target`/`operatorAction`/`NEXT` transitions. The fix is a content-model
+change in the engine — see
+[Playbooks: steps and choices](./playbooks.md#steps-and-choices-the-authoring-surface).
+For onboarding specifically:
+
+- **Completion steps carry no button.** Identity, the first note, and the transformation
+  draft advance only when real evidence satisfies their `Done when`; Rover does the work
+  and narrates the next step. The operator's affordance is chatting, not a "continue"
+  button.
+- **Buttons appear only at genuine forks.** Welcome ("Set up Rover" / "Not now"),
+  "see it come back" ("Show me" / "I'll ask"), and the draft picker ("Outline" /
+  "Social" / "Newsletter") are the only places onboarding shows buttons; an authored
+  **Skip** is the only escape on a gated step.
+- **No free `NEXT`.** Every onboarding step is gated or forked, so nothing advances
+  unverified. The old ungated narration steps (`retrieval-demo`, `useful-next-prompts`)
+  are rewritten as a fork or folded into an adjacent step.
+
+This **supersedes** the earlier "project a structured **Keep going** action from the run
+state" item in the smoke-test list below: buttons are projected only from authored
+choices, never from a generic advance event. The author writes steps and choices; the
+adapter lowers them into the existing machine, so the XState runtime, gate guards, goal
+check, and evidence collection are unchanged.
+
+## Current smoke-test observations and next fixes
+
+Earlier live onboarding smoke tests completed end-to-end but exposed the polish
+issues below. The ordered fixes are implemented and the final clean full-app
+browser/API smoke passed.
+
+The final smoke covered the structured action-card/runtime path and the critical
+transformation continuation path:
+
+- Avoid the double "continue?" loop by projecting a structured **Keep going**
+  action from the active run state; the button routes through the playbook
+  runtime instead of relying on broad typed natural-language interception.
+- After saving the first seed, guide only to the retrieval demonstration; do not
+  offer another seed during onboarding.
+- Use operator-facing entity labels in confirmations: updating a base note should
+  complete as "Updated note," not "Updated base."
+- After note updates during onboarding, proactively give the retrieval/demo next
+  step so the operator does not need to ask "what is next?" Successful confirmed
+  actions now trigger a bounded, text-only follow-up model turn when active
+  context exists, instead of stopping at a terminal `Completed: ...` message.
+- After creating a transformed draft, show or offer to review the draft before
+  offering wrap-up.
+- Avoid state-machine-ish phrasing such as "transformation stage" in chat.
+
+1. **Manual encouragement needed** — after evidence-producing actions, Rover often
+   waits for "continue" instead of moving to the next state. The runtime already
+   knows the gated `NEXT` is valid; the run should auto-advance when a single
+   satisfied gated `NEXT` exists.
+2. **State drift and repetition** — Rover can repeat earlier state work, ask for
+   another first seed after one was saved, or linger in retrieval/seed phases after
+   the user asks for transformation/wrap-up. The generic playbooks plugin should
+   make the active run context the source of truth and tell the agent not to redo
+   completed state work or ask for evidence already captured.
+3. **Confusing confirmation completion labels** — confirmed updates report stale
+   labels such as `Completed: Update "Alex Chen"?` after changing the profile, or
+   generic labels such as `Completed: Update "Untitled"?` after note edits.
+4. **Internal state leakage** — Rover sometimes says things like
+   `retrieval-demo step` or `moved the onboarding run to wrap-up`. State IDs are
+   useful runtime context, not user-facing onboarding language.
+5. **Missing proactive next-step guidance** — after meaningful onboarding actions,
+   Rover can stop at "saved" or "done", making the operator ask "what is next?".
+   Active playbook turns should end with the next natural state question/action so
+   the onboarding flow carries itself forward.
+6. **Ambiguous continuation drift** — when the flow has already forced the operator
+   to ask "what is next?", a later `go ahead` can trigger unrelated operational work
+   such as topic extraction. Fixing proactive next-step guidance should reduce this;
+   remaining ambiguity should be clarified instead of inventing maintenance tasks.
+7. **Job-status disagreement handling** — when the operator says local logs show a
+   job succeeded, Rover should inspect runtime/job status if available instead of
+   arguing from the conversation transcript. Generic job-status tool guidance now
+   directs ready checks and status disputes to runtime status rather than
+   transcript-only reasoning. **Done.**
+8. **Entity terminology mismatch** — Rover says "note" while generic creation may
+   create a `base` entity. This may be acceptable as user-facing language, but the
+   product decision should be explicit.
+
+Ordered fix plan:
+
+1. **Generic playbooks auto-advance**: when runtime evidence satisfies the current
+   state's single gated `NEXT`, immediately transition to the target state. Keep it
+   conservative: only active runs, only current-state evidence, only one `NEXT`, and
+   only after the goal check returns met. **Done.**
+2. **Generic playbooks anti-repetition guidance**: strengthen plugin-level
+   instructions and active-run context so agents treat `playbook_status`/context as
+   source of truth, do not redo completed states, and ask only for the next missing
+   evidence in the current state. **Done.**
+3. **Anti-repetition/state drift eval**: add a focused onboarding regression where
+   a first seed is saved and the user asks for transformation; Rover must not ask
+   for another first seed and should progress toward transformation/wrap-up.
+   **Done.**
+4. **Confirmation labels**: improve update-confirmation completion summaries to use
+   action/object type labels that remain accurate after the mutation. **Done.**
+5. **Hide internal state IDs from operator-facing chat**: keep state IDs in agent
+   context/tool results, but instruct the agent to translate them into natural
+   language when speaking to the operator. **Done.**
+6. **Proactive next-step guidance**: after meaningful tool actions during an active
+   playbook, the agent should refresh/use current playbook status and end the turn
+   with the next state's immediate question or action. The operator should not need
+   to ask "what is next?". Prompt/context guidance is done, and successful
+   confirmed actions now use a bounded text-only follow-up turn when active context
+   exists. **Done.**
+7. **Ambiguous continuation handling**: avoid a broad natural-language router
+   between the operator and model. The shipped deterministic path is structured:
+   playbooks project valid runtime events as web-chat action cards, and event
+   buttons route through `agent:action:request` to the playbook runtime. Typed
+   ambiguous text remains model-mediated/clarified rather than intercepted by the
+   shell. **Structured action-card path done.**
+8. **Create confirmation policy decision**: keep routine durable entity creation
+   low-friction by default; require confirmation for publish/send/external effects,
+   deletes, updates, replace/overwrite, or public side-effectful creation. **Done.**
+9. **Terminology decision**: keep using the existing `base` note entity type and
+   use "note"/"durable note" as the operator-facing language for base knowledge
+   entries. **Done.**
+
+Validation for this polish slice:
+
+- `plugins/playbooks`: focused test first, then typecheck/tests/lint. **Done.**
+- `shell/ai-service` or `shell/core` checks if response assembly or confirmation
+  labels are touched. **Done for touched ai-service paths.**
+- `brains/rover`: typecheck/tests. **Done.**
+- Focused eval set in requested order:
+  `playbook-goal-check-met,playbook-goal-check-not-met,multi-turn-rover-onboarding-playbook`. **Done; 3/3 passed on 2026-06-16.**
 
 ## What this is
 
@@ -174,15 +309,24 @@ interface PlaybookBody {
     id: string;
     title: string;
     instructions: string[]; // teaching/guidance the agent follows (non-gating)
-    doneWhen?: string[]; // plain-prose gate; omitted/empty => NEXT ungated
-    transitions: Array<{ event: string; target: string; description?: string }>;
+    doneWhen?: string[]; // prose goal; present => this step's NEXT is gated
+    // compiler-derived from steps/choices, not hand-authored:
+    transitions: Array<{
+      event: string;
+      target: string;
+      operatorAction?: boolean; // button iff from a choice/skip
+      label?: string;
+      description?: string;
+    }>;
   }>;
   finalStates: string[];
   nextPrompts?: string[];
 }
 ```
 
-Seed at `brains/rover/seed-content/playbook/rover-onboarding.md`:
+Authors write [steps and choices](./playbooks.md#steps-and-choices-the-authoring-surface),
+not raw transitions; the adapter lowers them into `PlaybookBody`. Seed at
+`brains/rover/seed-content-full/playbook/rover-onboarding.md`:
 
 ```md
 ---
@@ -194,7 +338,7 @@ trigger: first-anchor-web-chat
 
 ## Purpose
 
-Teach the operator how Rover works by doing useful setup work.
+Teach the operator how Rover works by doing useful setup work — not by being an intake form.
 
 ## Operating Rules
 
@@ -202,69 +346,78 @@ Teach the operator how Rover works by doing useful setup work.
 - Teach by doing real actions; explain what just happened and why.
 - Do not publish anything unless the operator explicitly asks and confirms.
 
-## Initial State
+## Steps
 
-welcome
+### Welcome
 
-## States
+Say: Rover is your personal knowledge and publishing brain — it captures rough ideas,
+finds them later, and turns them into publishable work. Want to set it up together?
 
-### welcome
+Choices:
 
-Title: Welcome and orientation
+- Set up Rover → Identity
+- Not now → Done
 
-Instructions:
+### Identity
 
-- Explain Rover briefly as a personal knowledge and publishing brain.
-- Ask whether to continue.
+Say: Let's tune Rover to you. What name, role, and audience should it remember?
 
-Transitions:
+To do:
 
-- NEXT -> identity
-- SKIP -> complete
-
-### identity
-
-Title: Identity setup
-
-Instructions:
-
-- Ask one question at a time about name, role, audience, expertise, tone.
-- Summarize, then create or update the anchor profile with existing tools.
+- Ask one thing at a time: name, role, audience, expertise, tone.
+- Summarize, then update the anchor profile (the existing singleton).
 
 Done when:
 
-- The anchor profile has been created or updated.
+- Rover knows who the operator is.
 
-Transitions:
+Skip: Skip for now → First note
 
-- NEXT -> first-knowledge-seed
-- SKIP -> first-knowledge-seed
+### First note
 
-### first-knowledge-seed
+Say: Send me one rough idea, note, or link you want Rover to remember.
 
-Title: First knowledge seed
+To do:
 
-Instructions:
-
-- Ask for one rough idea, note, link, or fragment; save it as the right entity.
-- Explain how Rover can retrieve and repurpose it later.
+- Save it as the right entity (usually a note) and explain how Rover will reuse it.
 
 Done when:
 
-- A first knowledge seed has been saved.
+- A first note has been saved.
 
-Transitions:
+### See it come back
 
-- NEXT -> retrieval-demo
+Say: Want me to find that note now, or would you rather ask for it yourself?
 
-## Final States
+Choices:
 
-- complete
+- Show me → Make something
+- I'll ask → Make something
+
+### Make something
+
+Say: Let's turn a note into something useful — a post outline, a social draft, or a newsletter idea?
+
+To do:
+
+- Create the draft the operator picks, then show it before moving on.
+
+Done when:
+
+- A draft has been created from the operator's knowledge.
+
+### Done
+
+Say: You're set up. Save, retrieve, transform, or publish whenever you're ready.
 ```
 
-Authoring guidance (not a hard rule): phrase a Done When as an observable outcome
-the runtime can have evidence for ("a profile was created"), not an internal state
-("the operator understands retrieval"). Editing a Done When's text redefines that
+Note how the rewrite removes the two free-`NEXT` steps: retrieval is now the **fork**
+"See it come back" (the operator chooses to be shown or to ask), and the old wrap-up
+step folds into the terminal "Done" message. Identity's `Skip` is the single authored
+escape on a gated step. Authoring guidance (not a hard rule): phrase a Done When as an
+observable outcome the runtime can have evidence for ("a profile was created"), not an
+internal state ("the operator understands retrieval"). Editing a Done When's text
+redefines that
 gate and re-judges it — intended, since the words _are_ the meaning of "done."
 
 ## Playbooks plugin (`@brains/playbooks`)
@@ -285,18 +438,14 @@ durable content — that's the `playbook` entity.
 
 ### Run store
 
-Operational state ships in the existing JSON run store for this branch. This is a
-conscious MVP tradeoff, not the final storage architecture.
-
-Why JSON is acceptable now: onboarding has low run volume, single-process writes are
-the expected deployment shape, and this branch is still proving the playbook/gate
-runtime. The immediate fix is to make the JSON store safer, not to invent plugin-owned
-SQLite or a new shell runtime database under deadline.
+Operational state uses the shell-owned runtime-state service, scoped under the
+`playbooks.runs` namespace. Playbook runs are not durable content and should not be
+stored in content directories.
 
 Required now:
 
-- Keep the JSON file scoped to playbook runtime state (`runs.json`), not durable
-  content.
+- Store run records through `context.runtimeState`, not `runs.json` or plugin-private
+  SQLite.
 - Serialize writes through a store-level queue so overlapping tool/event handlers do
   not interleave read-modify-write cycles inside one process.
 - Preserve evidence and verdict arrays across run updates; appending evidence/verdicts
@@ -304,20 +453,16 @@ Required now:
 - Each run pins the playbook **version (content hash)** it started under; a
   transition against a changed definition fails loudly rather than drifting.
 
-Known JSON limits, accepted for this branch:
+Current runtime-state shape:
 
-- No cross-process write safety.
-- Evidence/verdict auditability is enforced by code conventions, not storage shape.
-- Queries scan the file.
-- Schema migration is Zod/default based.
+- Namespace: `playbooks.runs`
+- Key: playbook run id
+- Value: the validated `PlaybookRun` record
 
-Long-term storage is the shell-owned runtime-state service
-(`shell/runtime-state`); migrating `runs.json` onto it (as
-normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables) is
-deferred until that service exists — it is built first for chat subscriptions, then
-merged into this worktree as the second consumer. Do **not** add plugin-private SQLite,
-plugin-specific migration packaging, or a generic migration abstraction only for playbooks
-in the meantime.
+Future normalization into dedicated `playbook_runs` / `playbook_evidence` /
+`playbook_gate_verdicts` tables is optional and should happen only if query volume or
+audit requirements justify it. Do **not** add plugin-private SQLite, plugin-specific
+migration packaging, or a generic migration abstraction only for playbooks.
 
 ```ts
 interface PlaybookRun {
@@ -438,13 +583,13 @@ auto-send on load. Enabled only on presets with an anchor web-chat surface
 Run state in the UI (decision on invariant: surface a little, deliberately): a
 **resume affordance** for an interrupted/dismissed run, and a **structured "blocked"
 signal** (current step + what's missing + Keep going / Skip), rather than relying on
-the model to paraphrase it. Once web-chat `actions` cards are available, playbooks
-should use them for these continuation affordances. The cards must be projections of
-the active run state and route through playbook runtime actions/tools; they must not
-invent transitions, execute hidden tool calls, or skip XState guards. The agent may
-still request transitions by calling `playbook_send_event`; UI actions are a parallel
-operator-facing request path, and in both cases the runtime/XState machine remains
-authoritative.
+the model to paraphrase it. Web-chat `actions` cards now carry playbook
+continuation affordances. The cards are projections of the active run state and
+route through `agent:action:request` to playbook runtime actions/tools; they must
+not invent transitions, execute hidden tool calls, or skip XState guards. The
+agent may still request transitions by calling `playbook_send_event`; UI actions
+are a parallel operator-facing structured request path, and in both cases the
+runtime/XState machine remains authoritative.
 
 ## Phases
 

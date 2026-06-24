@@ -30,6 +30,7 @@ describe("ActionsPart", () => {
           ],
         },
         onPromptAction: () => {},
+        onEventAction: () => {},
       }),
     );
 
@@ -40,7 +41,8 @@ describe("ActionsPart", () => {
     expect(markup).toContain("Next steps");
     expect(markup).toContain("Review draft");
     expect(markup).toContain("Continue");
-    expect(markup).toContain("disabled");
+    expect(markup).not.toContain('disabled=""');
+    expect(markup).not.toContain('aria-disabled="true"');
   });
 
   it("falls back to generic data rendering for malformed action payloads", () => {
@@ -52,6 +54,7 @@ describe("ActionsPart", () => {
           actions: [],
         },
         onPromptAction: () => {},
+        onEventAction: () => {},
       }),
     );
 

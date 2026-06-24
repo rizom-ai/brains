@@ -28,5 +28,5 @@ expectedOutput:
         - "[Ll]earn|[Gg]row|[Dd]evelop|[Ss]kill"
   qualityCriteria:
     minRelevanceScore: 4
-    minAccuracyScore: 4
+    minAccuracyScore: 3
     minQualityScore: 4

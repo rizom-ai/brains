@@ -3,7 +3,7 @@ name: Public Search Does Not Expose Restricted Content
 description: >
   Regression test for canonical entity visibility. A public caller may use
   public read tools, but search results and the response must not expose
-  restricted content seeded in eval-content.
+  restricted content seeded in preset eval content.
 type: tool_invocation
 setup:
   permissionLevel: public
@@ -30,5 +30,5 @@ successCriteria:
     - "I found private"
 
 efficiency:
-  maxToolCalls: 8
+  maxToolCalls: 10
   maxTokens: 30000

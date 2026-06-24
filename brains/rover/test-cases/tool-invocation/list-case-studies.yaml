@@ -14,11 +14,15 @@ turns:
   - userMessage: "Show me my case studies"
 
 successCriteria:
-  expectedTools:
-    - toolName: system_list
-      shouldBeCalled: true
+  expectedAnyTool:
+    - toolNames:
+        - system_list
+        - system_search
       argsContain:
         entityType: "project"
+      shouldBeCalled: true
+  responseContains:
+    - "CityPulse"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

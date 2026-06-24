@@ -1,4 +1,7 @@
-import type { BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntityMutationEventContext,
+} from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type {
   EntityAction,
@@ -84,6 +87,20 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
   };
 }
 
+export function buildEntityMutationEventContext(
+  context: ToolContext,
+): EntityMutationEventContext | undefined {
+  const eventContext: EntityMutationEventContext = {
+    ...(context.conversationId
+      ? { conversationId: context.conversationId }
+      : {}),
+    ...(context.channelId ? { channelId: context.channelId } : {}),
+    ...(context.runId ? { runId: context.runId } : {}),
+    ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
+  };
+  return Object.keys(eventContext).length > 0 ? eventContext : undefined;
+}
+
 export function sanitizeEntity<T extends BaseEntity>(entity: T): T {
   if (entity.entityType === "image" && entity.content.startsWith("data:")) {
     return {
@@ -147,6 +164,16 @@ export function normalizeUpdateInput(input: {
   }
 
   return { content: input.content };
+}
+
+const ENTITY_TYPE_DISPLAY_NAMES: Record<string, string> = {
+  base: "note",
+};
+
+export function humanizeEntityType(entityType: string): string {
+  return (
+    ENTITY_TYPE_DISPLAY_NAMES[entityType] ?? entityType.replaceAll("-", " ")
+  );
 }
 
 export function getEntityDisplayLabel(entity: BaseEntity): string {

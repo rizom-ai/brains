@@ -28,6 +28,8 @@ import { dashboardPlugin } from "@brains/dashboard";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { notificationsPlugin } from "@brains/notifications";
+import { playbookPlugin } from "@brains/playbook";
+import { playbooksPlugin } from "@brains/playbooks";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
@@ -35,6 +37,7 @@ import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
+import { roverProfilePlugin } from "./profile-extension";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
 import { join } from "path";
@@ -47,7 +50,7 @@ import packageJson from "../package.json" with { type: "json" };
  * Manages blog posts, presentations, portfolio projects, social media,
  * newsletters, and a professional website.
  *
- * Identity is defined in seed-content/ (brain-character, site-info,
+ * Identity is defined in preset-scoped seed-content-* directories (brain-character, site-info,
  * anchor-profile) — editable at runtime, single source of truth.
  *
  * Instance-specific config (homeserver, userId, repo, domain,
@@ -56,6 +59,7 @@ import packageJson from "../package.json" with { type: "json" };
  */
 const core = [
   "prompt",
+  "rover-profile",
   "image",
   "document",
   "note",
@@ -68,6 +72,8 @@ const core = [
   "assessment",
   "auth-service",
   "notifications",
+  "playbook",
+  "playbooks",
   "email-resend",
   "cms",
   "dashboard-root",
@@ -136,6 +142,7 @@ export default defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
+    ["rover-profile", roverProfilePlugin, {}],
     ["image", imagePlugin, undefined],
     [
       "cms",
@@ -152,6 +159,8 @@ export default defineBrain({
     ],
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
+    ["playbook", playbookPlugin, {}],
+    ["playbooks", playbooksPlugin, {}],
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],
@@ -221,11 +230,11 @@ export default defineBrain({
     [
       "directory-sync",
       directorySync,
-      {
+      (): PluginConfig => ({
         seedContent: true,
-        seedContentPath: join(import.meta.dir, "..", "seed-content"),
+        seedContentPath: join(import.meta.dir, "..", "seed-content-core"),
         initialSync: true,
-      },
+      }),
     ],
     ["analytics", analyticsPlugin, {}],
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],

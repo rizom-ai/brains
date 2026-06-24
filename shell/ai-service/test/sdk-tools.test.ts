@@ -219,7 +219,7 @@ describe("convertToSDKTools", () => {
         interfaceType: "agent",
         userId: "agent-user",
         conversationId: "conversation-1",
-        channelId: "conversation-1",
+        toolCallId: "call-1",
         userPermissionLevel: "public",
       }),
     );

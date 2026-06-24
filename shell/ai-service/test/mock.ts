@@ -1,4 +1,9 @@
-import type { IAIService, AIModelConfig, ImageGenerationResult } from "../src";
+import type {
+  IAIService,
+  AIModelConfig,
+  ImageGenerationResult,
+  JudgeInput,
+} from "../src";
 import type { LanguageModel } from "ai";
 import type { z } from "@brains/utils";
 
@@ -95,6 +100,24 @@ export function createMockAIService(): IAIService {
           totalTokens: 150,
         },
       };
+    },
+
+    judge: async <T>(
+      input: JudgeInput<T>,
+    ): Promise<{
+      verdict: T;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    }> => {
+      const { object, usage } = await mockService.generateObject(
+        "Mock judge",
+        [input.instruction, input.material].join("\n\n"),
+        input.schema,
+      );
+      return { verdict: object, usage };
     },
 
     updateConfig: (_config: Partial<AIModelConfig>): void => {

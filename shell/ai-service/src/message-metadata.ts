@@ -8,6 +8,7 @@ import type {
   ChatAttachment,
   StructuredChatCard,
 } from "./agent-types";
+import type { EntityMemoryRef } from "./agent-results";
 
 /**
  * The metadata shape the agent writes onto conversation messages.
@@ -17,6 +18,8 @@ import type {
 export interface AgentMessageMetadata extends ConversationMessageMetadata {
   attachments?: Record<string, unknown>[];
   cards?: StructuredChatCard[];
+  entityMemoryRefs?: EntityMemoryRef[];
+  /** Legacy metadata key from older builds. Do not write new values. */
   entityMemoryNote?: string;
 }
 
@@ -44,7 +47,7 @@ export function buildMessageMetadata(params: {
   source: ConversationMessageSource | null;
   attachments?: ChatAttachment[];
   cards?: StructuredChatCard[];
-  entityMemoryNote?: string;
+  entityMemoryRefs?: EntityMemoryRef[];
   canonicalIdentityResolver?: CanonicalIdentityResolver;
 }): AgentMessageMetadata {
   const {
@@ -52,7 +55,7 @@ export function buildMessageMetadata(params: {
     source,
     attachments = [],
     cards = [],
-    entityMemoryNote = "",
+    entityMemoryRefs = [],
     canonicalIdentityResolver,
   } = params;
   const enrichedActor = actor
@@ -69,7 +72,7 @@ export function buildMessageMetadata(params: {
         }
       : {}),
     ...(cards.length > 0 ? { cards } : {}),
-    ...(entityMemoryNote.length > 0 ? { entityMemoryNote } : {}),
+    ...(entityMemoryRefs.length > 0 ? { entityMemoryRefs } : {}),
   };
 }
 

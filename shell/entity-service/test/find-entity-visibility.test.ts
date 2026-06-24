@@ -120,6 +120,42 @@ describe("findEntityByIdentifier scope propagation", () => {
     });
   });
 
+  it("resolves an entity when the identifier is a slugified title", async () => {
+    const captured = createCapturedService();
+    const entity: BaseEntity = {
+      id: "resilience-in-distributed-systems",
+      entityType: "doc",
+      content: "content",
+      created: new Date(0).toISOString(),
+      updated: new Date(0).toISOString(),
+      visibility: "public",
+      metadata: { title: "Resilience Is Not Redundancy" },
+      contentHash: "hash",
+    };
+    captured.service.listEntities = async <T extends BaseEntity>(
+      request: ListEntitiesRequest,
+    ): Promise<T[]> => {
+      captured.listEntitiesCalls.push(request);
+      const metadata = request.options?.filter?.metadata;
+      if (metadata !== undefined) return [];
+      return [entity as T];
+    };
+
+    const result = await findEntityByIdentifier(
+      captured.service,
+      "doc",
+      "resilience-is-not-redundancy",
+      undefined,
+      "public",
+    );
+
+    expect(result?.id).toBe("resilience-in-distributed-systems");
+    expect(captured.listEntitiesCalls.at(-1)).toEqual({
+      entityType: "doc",
+      options: { limit: 200, filter: { visibilityScope: "public" } },
+    });
+  });
+
   it("defaults to public scope when none is provided", async () => {
     const captured = createCapturedService();
     await findEntityByIdentifier(captured.service, "doc", "abc");

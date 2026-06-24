@@ -4,6 +4,8 @@ import { uiAssetPath } from "./chat-page";
 interface WebChatRouteHandlers {
   handleChatPage(request: Request): Promise<Response>;
   handleChatRequest(request: Request): Promise<Response>;
+  handleBootstrapRequest(request: Request): Promise<Response>;
+  handleActionRequest(request: Request): Promise<Response>;
   handleSessionsRequest(request: Request): Promise<Response>;
   handleDeleteSessionRequest(request: Request): Promise<Response>;
   handleRenameSessionRequest(request: Request): Promise<Response>;
@@ -41,6 +43,20 @@ export function createWebChatRoutes({
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleChatRequest(request),
+    },
+    {
+      path: "/api/chat/bootstrap",
+      method: "GET",
+      public: true,
+      handler: (request): Promise<Response> =>
+        handlers.handleBootstrapRequest(request),
+    },
+    {
+      path: "/api/chat/actions",
+      method: "POST",
+      public: true,
+      handler: (request): Promise<Response> =>
+        handlers.handleActionRequest(request),
     },
     {
       path: "/api/chat/sessions",

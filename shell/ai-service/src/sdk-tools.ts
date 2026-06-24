@@ -149,12 +149,13 @@ export function convertToSDKTools(
   for (const t of pluginTools) {
     const wrappedExecute = createToolExecuteWrapper(
       t.name,
-      async (args: unknown) => {
+      async (args: unknown, options?: { toolCallId?: string | undefined }) => {
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
           userId: "agent-user",
           conversationId: contextInfo.conversationId,
-          channelId: contextInfo.channelId ?? contextInfo.conversationId,
+          ...(contextInfo.channelId && { channelId: contextInfo.channelId }),
+          ...(options?.toolCallId && { toolCallId: options.toolCallId }),
           ...(contextInfo.channelName && {
             channelName: contextInfo.channelName,
           }),

@@ -38,7 +38,7 @@ successCriteria:
     - "Add it first"
     - "Confirmation required"
     - "Create a note"
-    - "Entity type: base"
+    - "Entity type: note"
 
 efficiency:
   maxToolCalls: 3

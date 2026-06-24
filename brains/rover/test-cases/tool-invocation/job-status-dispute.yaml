@@ -1,0 +1,27 @@
+id: tool-invocation-job-status-dispute
+name: Job status dispute checks runtime status
+description: Verifies Rover checks runtime job status when the operator says logs disagree with the conversation.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - jobs
+  - tool-invocation
+  - status
+
+turns:
+  - userMessage: "You said the background operation was still running, but my local logs show it succeeded. Check the runtime job status before answering."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_check-job-status
+      shouldBeCalled: true
+  responseNotContains:
+    - "based on our conversation"
+    - "I already told you"
+    - "must still be running"
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

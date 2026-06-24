@@ -1,0 +1,138 @@
+id: multi-turn-playbook-done-after-transformation
+name: Playbook Done After Transformation
+scope: rover
+category: multi-turn
+priority: high
+description: Verifies Rover finishes onboarding after the first note has been retrieved and transformed, instead of leaving the run in Make something.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: web-chat-eval-playbook-done-after-transform
+  channelName: Web Chat Eval
+tags:
+  - onboarding
+  - playbooks
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Start playbook rover-onboarding."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+
+  - userMessage: "Tune Rover's brain identity: Rover should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: brain-character
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "Approve saving that brain identity."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "brain"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Update my anchor profile now: my name is Ada Morgan. My role is advisor, my audience is climate-tech founders, my expertise is resilient software systems, and my desired tone is clear, practical, quietly confident."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: anchor-profile
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that profile update."
+    confirmPendingAction: true
+    successCriteria:
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Save this first idea: woodchucks are fake woodpeckers."
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "What should I call you"
+        - "what should I call you"
+        - "role"
+
+  - userMessage: "Approve saving that first seed."
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+      responseNotContains:
+        - "another note"
+        - "another seed"
+        - "another rough"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Find that saved note now."
+    successCriteria:
+      expectedAnyTool:
+        - toolNames:
+            - system_get
+            - system_search
+          shouldBeCalled: true
+      responseNotContains:
+        - "another note"
+        - "another seed"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Do that as an outline."
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "woodchucks"
+        - "saved a seed"
+        - "retrieved"
+        - "transformed"
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_start
+      shouldBeCalled: true
+    - toolName: system_update
+      shouldBeCalled: true
+    - toolName: system_create
+      shouldBeCalled: true
+  responseNotContains:
+    - "Want me to show"
+    - "show the saved note"
+    - "ask for it yourself"
+    - "another note"
+    - "another seed"
+    - "I cannot"
+    - "I don't have access"
+efficiency:
+  maxToolCalls: 22
+  maxTokens: 260000

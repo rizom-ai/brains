@@ -880,6 +880,129 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 .web-chat-empty-state p { margin: 0; max-width: 40ch; line-height: 1.7; }
 
+/* ─── Guided playbook starter — shown on an empty anchor chat when a
+   lifecycle starter is available. It should feel like an invitation,
+   not a raw form control. ─── */
+.web-chat-playbook-starter {
+  position: relative;
+  margin: auto;
+  width: min(100%, 42rem);
+  overflow: hidden;
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.35rem, 4vw, 2rem);
+  border: 1px solid var(--chat-border);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 14% 0%, rgb(from var(--chat-accent) r g b / 0.18), transparent 34%),
+    radial-gradient(circle at 92% 18%, rgb(from var(--chat-secondary) r g b / 0.16), transparent 32%),
+    linear-gradient(135deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.025));
+  box-shadow:
+    0 24px 70px rgb(0 0 0 / 0.28),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  color: var(--chat-text);
+}
+.web-chat-playbook-starter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, transparent 0 36%, rgb(255 255 255 / 0.08) 48%, transparent 62%),
+    repeating-linear-gradient(90deg, transparent 0 18px, rgb(255 255 255 / 0.035) 18px 19px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.web-chat-playbook-starter::after {
+  content: "";
+  position: absolute;
+  right: clamp(1rem, 4vw, 2rem);
+  top: clamp(1rem, 4vw, 2rem);
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.45);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, var(--chat-accent) 0 3px, transparent 4px),
+    conic-gradient(from 45deg, transparent, rgb(from var(--chat-accent) r g b / 0.45), transparent 38%);
+  box-shadow: 0 0 24px rgb(from var(--chat-accent) r g b / 0.22);
+  opacity: 0.82;
+  pointer-events: none;
+}
+.web-chat-playbook-starter > * {
+  position: relative;
+  z-index: 1;
+}
+.web-chat-playbook-starter-kicker {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-playbook-starter-kicker::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--chat-accent);
+  box-shadow: 0 0 12px rgb(from var(--chat-accent) r g b / 0.7);
+}
+.web-chat-playbook-starter h2 {
+  max-width: 12ch;
+  margin: 0;
+  font-family: var(--chat-font-display);
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  font-weight: 520;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+.web-chat-playbook-starter p {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--chat-text-muted);
+  font-size: clamp(0.95rem, 2vw, 1.08rem);
+  line-height: 1.7;
+}
+.web-chat-playbook-starter button {
+  justify-self: start;
+  min-height: 2.8rem;
+  margin-top: 0.35rem;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.58);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--chat-accent), var(--chat-accent-dark));
+  color: var(--chat-on-accent);
+  font-family: var(--chat-font-label);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 0 14px 30px var(--chat-glow-cta);
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease;
+}
+.web-chat-playbook-starter button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px var(--chat-glow-cta-strong);
+  filter: saturate(1.08);
+}
+.web-chat-playbook-starter button:focus-visible {
+  outline: 2px solid var(--chat-accent);
+  outline-offset: 3px;
+}
+.web-chat-playbook-starter button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 /* ─── Messages ─── */
 .web-chat-message {
   max-width: min(48rem, 100%);
@@ -2139,6 +2262,28 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   .web-chat-empty-state-glyph { width: 130px; height: 64px; }
   .web-chat-empty-state h2 { font-size: 1.4rem; }
   .web-chat-empty-state p { font-size: 14px; max-width: 26ch; }
+  .web-chat-playbook-starter {
+    border-radius: 22px;
+    padding: 1.2rem;
+  }
+  .web-chat-playbook-starter::after {
+    width: 2.4rem;
+    height: 2.4rem;
+    opacity: 0.55;
+  }
+  .web-chat-playbook-starter h2 {
+    max-width: 10ch;
+    font-size: 2rem;
+  }
+  .web-chat-playbook-starter p {
+    max-width: 28ch;
+    font-size: 14px;
+  }
+  .web-chat-playbook-starter button {
+    width: 100%;
+    justify-self: stretch;
+    min-height: 44px;
+  }
   .web-chat-session-dialog-actions { flex-direction: column-reverse; }
   .web-chat-session-dialog-actions button {
     width: 100%;

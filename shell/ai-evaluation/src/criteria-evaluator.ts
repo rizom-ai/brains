@@ -33,6 +33,7 @@ export function evaluateCriteria(
 ): CriteriaEvaluationResult[] {
   return [
     ...evaluateExpectedTools(criteria, toolCalls),
+    ...evaluateExpectedAnyTool(criteria, toolCalls),
     ...evaluateToolCountRange(criteria, toolCalls),
     ...evaluateResponseContains(criteria, response.text),
     ...evaluateResponseNotContains(criteria, response.text),
@@ -185,6 +186,85 @@ function evaluateExpectedTools(
   }
 
   return results;
+}
+
+function evaluateExpectedAnyTool(
+  criteria: SuccessCriteria,
+  toolCalls: ToolCallRecord[],
+): CriteriaEvaluationResult[] {
+  const results: CriteriaEvaluationResult[] = [];
+
+  if (!criteria.expectedAnyTool) return results;
+
+  for (const expected of criteria.expectedAnyTool) {
+    const matchingCalls = toolCalls.filter((toolCall) =>
+      expected.toolNames.includes(toolCall.toolName),
+    );
+    const matchingNames = matchingCalls.map((toolCall) => toolCall.toolName);
+    const argsMatchingCalls = expected.argsContain
+      ? matchingCalls.filter((toolCall) =>
+          argsContainMatches(toolCall.args, expected.argsContain ?? {}),
+        )
+      : matchingCalls;
+    const wasCalled = argsMatchingCalls.length > 0;
+    const toolList = expected.toolNames.join(", ");
+    const argsLabel = expected.argsContain
+      ? ` with args ${JSON.stringify(expected.argsContain)}`
+      : "";
+
+    if (expected.shouldBeCalled && !wasCalled) {
+      results.push({
+        criterion: "expectedAnyTool",
+        expected: `One of [${toolList}]${argsLabel} should be called`,
+        actual: expected.argsContain
+          ? `Called matching tools: ${formatToolCallsForArgs(matchingCalls)}`
+          : `Called tools: ${toolCalls.map((toolCall) => toolCall.toolName).join(", ") || "none"}`,
+        message: `Expected one of [${toolList}]${argsLabel} was not called`,
+        passed: false,
+      });
+      continue;
+    }
+
+    if (!expected.shouldBeCalled && wasCalled) {
+      results.push({
+        criterion: "expectedAnyTool",
+        expected: `None of [${toolList}]${argsLabel} should be called`,
+        actual: `Called matching tools: ${argsMatchingCalls.map((toolCall) => toolCall.toolName).join(", ")}`,
+        message: `One of [${toolList}]${argsLabel} should not have been called`,
+        passed: false,
+      });
+      continue;
+    }
+
+    results.push({
+      criterion: "expectedAnyTool",
+      expected: expected.shouldBeCalled ? "one called" : "none called",
+      actual: matchingNames.length > 0 ? "one called" : "none called",
+      passed: true,
+    });
+  }
+
+  return results;
+}
+
+function argsContainMatches(
+  args: Record<string, unknown> | undefined,
+  argsContain: Record<string, unknown>,
+): boolean {
+  if (!args) return false;
+  return Object.entries(argsContain).every(([key, expectedValue]) =>
+    Bun.deepEquals(resolveDottedPath(args, key), expectedValue),
+  );
+}
+
+function formatToolCallsForArgs(toolCalls: ToolCallRecord[]): string {
+  if (toolCalls.length === 0) return "none";
+  return JSON.stringify(
+    toolCalls.map((toolCall) => ({
+      toolName: toolCall.toolName,
+      args: toolCall.args ?? {},
+    })),
+  );
 }
 
 function evaluateExpectedToolPresence(

@@ -11,7 +11,7 @@ tags:
   - preset-default
 
 turns:
-  - userMessage: "Set the image 'hero-banner' as the cover for blog post 'resilience-in-distributed-systems'"
+  - userMessage: "Set the image 'og-post-resilience-in-distributed-systems' as the cover for blog post 'resilience-in-distributed-systems'"
 
 successCriteria:
   expectedTools:
@@ -20,7 +20,7 @@ successCriteria:
       argsContain:
         entityType: "post"
         id: "resilience-in-distributed-systems"
-        fields.coverImageId: "hero-banner"
+        fields.coverImageId: "og-post-resilience-in-distributed-systems"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

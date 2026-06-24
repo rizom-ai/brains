@@ -27,7 +27,7 @@ export interface AgentMachineContext {
   conversationId: string;
   message: string;
   interfaceType: string;
-  channelId: string;
+  channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
@@ -48,7 +48,7 @@ export type AgentMachineEvent =
       message: string;
       conversationId: string;
       interfaceType: string;
-      channelId: string;
+      channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
@@ -59,7 +59,7 @@ export type AgentMachineEvent =
       type: "CONFIRM";
       approvalId: string;
       interfaceType: string;
-      channelId: string;
+      channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
@@ -69,7 +69,7 @@ export type AgentMachineEvent =
       type: "CANCEL";
       approvalId: string;
       interfaceType: string;
-      channelId: string;
+      channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
@@ -83,7 +83,7 @@ export interface ProcessMessageInput {
   conversationId: string;
   message: string;
   interfaceType: string;
-  channelId: string;
+  channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
@@ -98,7 +98,7 @@ export interface ExecuteActionInput {
   conversationId: string;
   pendingConfirmation: PendingConfirmation;
   interfaceType: string;
-  channelId: string;
+  channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
 }
@@ -224,7 +224,7 @@ export const agentMachine = setup({
     conversationId: "",
     message: "",
     interfaceType: "agent",
-    channelId: "",
+    channelId: undefined,
     channelName: "",
     userPermissionLevel: "public" as UserPermissionLevel,
     actor: null,
@@ -393,11 +393,19 @@ export const agentMachine = setup({
         },
         onDone: [
           {
-            guard: ({ context }): boolean =>
-              context.pendingConfirmations.length > 0,
+            guard: ({ context, event }): boolean =>
+              context.pendingConfirmations.length > 0 ||
+              (event.output.pendingConfirmations ?? []).length > 0,
             target: "awaitingConfirmation",
-            actions: assign(({ event }) => ({
+            actions: assign(({ context, event }) => ({
               response: event.output,
+              pendingConfirmations: [
+                ...context.pendingConfirmations,
+                ...withRequester(
+                  event.output.pendingConfirmations ?? [],
+                  context,
+                ),
+              ],
               activeConfirmation: null,
             })),
           },

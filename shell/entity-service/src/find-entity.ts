@@ -3,7 +3,7 @@ import type {
   ContentVisibility,
   ICoreEntityService,
 } from "./types";
-import type { Logger } from "@brains/utils";
+import { slugify, type Logger } from "@brains/utils";
 
 export type ResolvedEntity =
   | { ok: true; entity: BaseEntity }
@@ -49,7 +49,27 @@ export async function findEntityByIdentifier(
     });
     if (byTitle[0]) return byTitle[0];
 
-    return null;
+    const bySlugifiedTitle = await entityService.listEntities({
+      entityType,
+      options: {
+        limit: 1,
+        filter: { metadata: { title: slugify(identifier) }, visibilityScope },
+      },
+    });
+    if (bySlugifiedTitle[0]) return bySlugifiedTitle[0];
+
+    const entities = await entityService.listEntities({
+      entityType,
+      options: { limit: 200, filter: { visibilityScope } },
+    });
+    const normalizedIdentifier = slugify(identifier);
+    return (
+      entities.find(
+        (entity) =>
+          typeof entity.metadata["title"] === "string" &&
+          slugify(entity.metadata["title"]) === normalizedIdentifier,
+      ) ?? null
+    );
   } catch (error) {
     if (logger) {
       logger.error(`Failed to find entity ${entityType}:${identifier}`, {

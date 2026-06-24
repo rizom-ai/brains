@@ -7,16 +7,31 @@ const rawYaml = {
     core: {
       preset: "core",
       tags: ["preset-core"],
+      plugins: {
+        "directory-sync": {
+          seedContentPath: "eval-content-core",
+        },
+      },
     },
     default: {
       extends: "core",
       preset: "default",
       tags: ["preset-default"],
+      plugins: {
+        "directory-sync": {
+          seedContentPath: "eval-content-default",
+        },
+      },
     },
     full: {
       extends: "default",
       preset: "full",
       tags: ["preset-full"],
+      plugins: {
+        "directory-sync": {
+          seedContentPath: "eval-content",
+        },
+      },
     },
   },
 };
@@ -26,6 +41,11 @@ describe("resolveEvalSelection", () => {
     expect(resolveEvalSelection(rawYaml, { suite: "full" })).toEqual({
       preset: "full",
       tags: ["preset-core", "preset-default", "preset-full"],
+      plugins: {
+        "directory-sync": {
+          seedContentPath: "eval-content",
+        },
+      },
     });
   });
 
@@ -39,6 +59,46 @@ describe("resolveEvalSelection", () => {
     ).toEqual({
       preset: "core",
       tags: ["smoke"],
+      plugins: {
+        "directory-sync": {
+          seedContentPath: "eval-content-default",
+        },
+      },
+    });
+  });
+
+  it("inherits and deep-merges suite plugin overrides", () => {
+    expect(
+      resolveEvalSelection(
+        {
+          suites: {
+            core: {
+              plugins: {
+                "directory-sync": {
+                  seedContentPath: "eval-content-core",
+                  git: { branch: "main" },
+                },
+              },
+            },
+            smoke: {
+              extends: "core",
+              plugins: {
+                "directory-sync": {
+                  git: { branch: "smoke" },
+                },
+              },
+            },
+          },
+        },
+        { suite: "smoke" },
+      ),
+    ).toEqual({
+      plugins: {
+        "directory-sync": {
+          seedContentPath: "eval-content-core",
+          git: { branch: "smoke" },
+        },
+      },
     });
   });
 

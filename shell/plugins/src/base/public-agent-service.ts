@@ -1,92 +1,16 @@
 import type {
-  AgentResponse as RuntimeAgentResponse,
   ChatContext as RuntimeChatContext,
   IAgentService as RuntimeAgentService,
-  PendingConfirmation as RuntimePendingConfirmation,
 } from "@brains/ai-service";
-import {
-  toPublicActionsCard,
-  toPublicAttachmentCard,
-  toPublicSourcesCard,
-  type AgentNamespace,
-  type AgentResponse,
-  type ChatContext,
-  type PendingConfirmation,
-  type StructuredChatCard,
-  type ToolResultData,
+import { parseAgentResponse } from "@brains/contracts";
+import type {
+  AgentNamespace,
+  AgentResponse,
+  ChatContext,
 } from "../contracts/agent";
 
-export function toPublicAgentResponse(
-  response: RuntimeAgentResponse,
-): AgentResponse {
-  return {
-    text: response.text,
-    ...(response.toolResults && {
-      toolResults: response.toolResults.map(
-        (result): ToolResultData => ({
-          toolName: result.toolName,
-          ...(result.args && { args: result.args }),
-          ...(result.jobId !== undefined && { jobId: result.jobId }),
-          ...(result.data !== undefined && { data: result.data }),
-        }),
-      ),
-    }),
-    ...(response.cards && {
-      cards: response.cards.map(toPublicStructuredChatCard),
-    }),
-    ...(response.pendingConfirmations && {
-      pendingConfirmations: response.pendingConfirmations.map((confirmation) =>
-        toPublicPendingConfirmation(confirmation),
-      ),
-    }),
-    usage: response.usage,
-  };
-}
-
-function toPublicStructuredChatCard(
-  card: NonNullable<RuntimeAgentResponse["cards"]>[number],
-): StructuredChatCard {
-  if (card.kind === "attachment") {
-    return toPublicAttachmentCard(card);
-  }
-
-  if (card.kind === "sources") {
-    return toPublicSourcesCard(card);
-  }
-
-  if (card.kind === "actions") {
-    return toPublicActionsCard(card);
-  }
-
-  return {
-    kind: card.kind,
-    id: card.id,
-    ...(card.toolCallId !== undefined && { toolCallId: card.toolCallId }),
-    toolName: card.toolName,
-    ...(card.input !== undefined && { input: card.input }),
-    summary: card.summary,
-    ...(card.preview !== undefined && { preview: card.preview }),
-    state: card.state,
-    ...(card.output !== undefined && { output: card.output }),
-    ...(card.error !== undefined && { error: card.error }),
-  };
-}
-
-function toPublicPendingConfirmation(
-  confirmation: RuntimePendingConfirmation,
-): PendingConfirmation {
-  return {
-    id: confirmation.id,
-    ...(confirmation.toolCallId !== undefined && {
-      toolCallId: confirmation.toolCallId,
-    }),
-    toolName: confirmation.toolName,
-    summary: confirmation.summary,
-    ...(confirmation.preview !== undefined && {
-      preview: confirmation.preview,
-    }),
-    args: confirmation.args,
-  };
+export function toPublicAgentResponse(response: unknown): AgentResponse {
+  return parseAgentResponse(response);
 }
 
 function toRuntimeChatContext(

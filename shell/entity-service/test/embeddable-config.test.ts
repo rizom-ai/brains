@@ -5,11 +5,13 @@ import {
   imageSchema,
   imageAdapter,
   type ImageEntity,
+  createNoteInput,
 } from "./helpers/test-schemas";
 import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
+import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
 describe("EntityTypeConfig embeddable flag", () => {
   let ctx: EntityServiceTestContext;
@@ -42,6 +44,31 @@ describe("EntityTypeConfig embeddable flag", () => {
     await ctx.entityService.createEntity({ entity: noteData });
 
     expect(ctx.jobQueueService.enqueue).toHaveBeenCalled();
+  });
+
+  test("embedding jobs use stable deduplication keys", async () => {
+    const noteData = {
+      id: "dedupe-note",
+      entityType: "note" as const,
+      title: "Test Note",
+      content: "Some text content",
+      tags: [],
+      metadata: {},
+    };
+
+    await ctx.entityService.createEntity({ entity: noteData });
+
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        options: expect.objectContaining({
+          deduplication: "coalesce",
+          deduplicationKey: expect.stringMatching(
+            /^embedding:note:dedupe-note:[a-f0-9]{64}$/,
+          ),
+        }),
+      }),
+    );
   });
 
   test("createEntity skips embedding job when embeddable is false", async () => {
@@ -104,5 +131,115 @@ describe("EntityTypeConfig embeddable flag", () => {
 
     expect(result.entityId).toBeDefined();
     expect(result.jobId).toBe("");
+  });
+
+  test("backfillMissingEmbeddings queues missing embeddable entity embeddings", async () => {
+    await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        {
+          title: "Missing Embedding Note",
+          content: "Needs an embedding",
+          tags: [],
+        },
+        "missing-embedding-note",
+      ),
+    });
+
+    const result = await ctx.entityService.backfillMissingEmbeddings();
+
+    expect(result.queued).toBe(1);
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledTimes(2);
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        data: expect.objectContaining({
+          id: "missing-embedding-note",
+          entityType: "note",
+          operation: "update",
+        }),
+        options: expect.objectContaining({
+          deduplication: "coalesce",
+          deduplicationKey: expect.stringMatching(
+            /^embedding:note:missing-embedding-note:[a-f0-9]{64}$/,
+          ),
+        }),
+      }),
+    );
+  });
+
+  test("backfillMissingEmbeddings queues stale embeddings and skips current ones", async () => {
+    await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        {
+          title: "Stale Embedding Note",
+          content: "Needs a fresh embedding",
+          tags: [],
+        },
+        "stale-embedding-note",
+      ),
+    });
+    const staleEntity = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "stale-embedding-note",
+    });
+    if (!staleEntity) throw new Error("Expected stale test entity");
+    await ctx.entityService.storeEmbedding({
+      entityId: "stale-embedding-note",
+      entityType: "note",
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+      contentHash: "stale-hash",
+    });
+
+    await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        {
+          title: "Current Embedding Note",
+          content: "Already has a current embedding",
+          tags: [],
+        },
+        "current-embedding-note",
+      ),
+    });
+    const currentEntity = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "current-embedding-note",
+    });
+    if (!currentEntity) throw new Error("Expected current test entity");
+    await ctx.entityService.storeEmbedding({
+      entityId: "current-embedding-note",
+      entityType: "note",
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+      contentHash: currentEntity.contentHash,
+    });
+
+    const result = await ctx.entityService.backfillMissingEmbeddings();
+
+    expect(result.queued).toBe(1);
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledTimes(3);
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: "stale-embedding-note",
+          operation: "update",
+        }),
+      }),
+    );
+  });
+
+  test("backfillMissingEmbeddings skips non-embeddable entity types", async () => {
+    await ctx.entityService.createEntity({
+      entity: {
+        id: "non-embeddable-image",
+        entityType: "image" as const,
+        content:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        metadata: {},
+      },
+    });
+
+    const result = await ctx.entityService.backfillMissingEmbeddings();
+
+    expect(result.queued).toBe(0);
+    expect(ctx.jobQueueService.enqueue).not.toHaveBeenCalled();
   });
 });

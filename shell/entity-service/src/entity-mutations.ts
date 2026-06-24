@@ -4,7 +4,11 @@ import type {
   BaseEntity,
   EmbeddingJobData,
   EntityJobOptions,
+  EntityMutationEventContext,
   EntityMutationResult,
+  EmbeddingBackfillResult,
+  EmbeddingIndexStats,
+  EmbeddingFailureReference,
   StoreEmbeddingData,
   EntityEventBus,
   DeleteEntityRequest,
@@ -15,9 +19,9 @@ import type {
 import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
-import type { IJobQueueService } from "@brains/job-queue";
+import type { IJobQueueService, JobInfo } from "@brains/job-queue";
 import type { Logger } from "@brains/utils";
-import { createId } from "@brains/utils";
+import { createId, z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
@@ -44,6 +48,43 @@ function toStableJsonValue(value: unknown): unknown {
 
 function stableJson(value: unknown): string {
   return JSON.stringify(toStableJsonValue(value));
+}
+
+const failedEmbeddingJobDataSchema = z.object({
+  id: z.string().min(1),
+  entityType: z.string().min(1),
+  contentHash: z.string().min(1),
+});
+
+function parseEmbeddingFailureReference(
+  job: JobInfo,
+): EmbeddingFailureReference | null {
+  try {
+    const data = failedEmbeddingJobDataSchema.parse(JSON.parse(job.data));
+    return {
+      entityId: data.id,
+      entityType: data.entityType,
+      contentHash: data.contentHash,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function embeddingReferenceKey(reference: EmbeddingFailureReference): string {
+  return `${reference.entityType}:${reference.entityId}:${reference.contentHash}`;
+}
+
+interface EmbeddingBackfillCandidate {
+  id: string;
+  entityType: string;
+  contentHash: string;
+}
+
+interface EmbeddingBackfillCandidates extends EmbeddingIndexStats {
+  tableMissing: boolean;
+  skipped: number;
+  rowsToBackfill: EmbeddingBackfillCandidate[];
 }
 
 export interface EntityMutationDeps {
@@ -165,6 +206,8 @@ export class EntityMutations {
         ...validatedEntity,
         id: finalId,
       },
+      undefined,
+      options?.eventContext,
     );
 
     return this.enqueueEmbeddingJob({
@@ -246,6 +289,16 @@ export class EntityMutations {
       this.logger.debug(
         `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
+      if (options?.eventContext) {
+        await this.emitEntityEvent(
+          "entity:updated",
+          validatedEntity.entityType,
+          validatedEntity.id,
+          validatedEntity,
+          existingEntity.metadata,
+          options.eventContext,
+        );
+      }
       return { entityId: validatedEntity.id, jobId: "", skipped: true };
     }
 
@@ -285,6 +338,7 @@ export class EntityMutations {
       // such as a changed `seriesName` without a full resync. Already loaded
       // above for the no-op check, so this adds no extra read.
       existingEntity?.metadata,
+      options?.eventContext,
     );
 
     return this.enqueueEmbeddingJob({
@@ -377,6 +431,158 @@ export class EntityMutations {
       });
   }
 
+  public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
+    const candidates = await this.getEmbeddingBackfillCandidates();
+
+    if (candidates.tableMissing) {
+      this.logger.debug("Skipping embedding backfill; entities table missing");
+      return { queued: 0, skipped: 0 };
+    }
+
+    let queued = 0;
+    let skipped = candidates.skipped;
+
+    for (const row of candidates.rowsToBackfill) {
+      const result = await this.enqueueEmbeddingJob({
+        entityId: row.id,
+        entityType: row.entityType,
+        contentHash: row.contentHash,
+        operation: "update",
+      });
+      if (result.jobId) {
+        queued++;
+      } else {
+        skipped++;
+      }
+    }
+
+    return { queued, skipped };
+  }
+
+  public async getEmbeddingIndexStats(): Promise<EmbeddingIndexStats> {
+    const candidates = await this.getEmbeddingBackfillCandidates();
+    return {
+      missingEmbeddings: candidates.missingEmbeddings,
+      staleEmbeddings: candidates.staleEmbeddings,
+      failedEmbeddings: candidates.failedEmbeddings,
+    };
+  }
+
+  private async getEmbeddingBackfillCandidates(): Promise<EmbeddingBackfillCandidates> {
+    if (!(await this.hasEntityTable())) {
+      return {
+        tableMissing: true,
+        skipped: 0,
+        rowsToBackfill: [],
+        missingEmbeddings: 0,
+        staleEmbeddings: 0,
+        failedEmbeddings: 0,
+      };
+    }
+
+    const failedEmbeddingKeys = await this.getFailedEmbeddingKeys();
+
+    const entityRows = await this.db
+      .select({
+        id: entities.id,
+        entityType: entities.entityType,
+        contentHash: entities.contentHash,
+      })
+      .from(entities);
+
+    const embeddingRows = await this.embeddingDb
+      .select({
+        entityId: embeddings.entityId,
+        entityType: embeddings.entityType,
+        contentHash: embeddings.contentHash,
+      })
+      .from(embeddings);
+
+    const embeddingHashes = new Map<string, string>();
+    for (const row of embeddingRows) {
+      embeddingHashes.set(`${row.entityType}:${row.entityId}`, row.contentHash);
+    }
+
+    const rowsToBackfill: EmbeddingBackfillCandidate[] = [];
+    let skipped = 0;
+    let missingEmbeddings = 0;
+    let staleEmbeddings = 0;
+    let failedEmbeddings = 0;
+
+    for (const row of entityRows) {
+      const entityConfig = this.entityRegistry.getEntityTypeConfig(
+        row.entityType,
+      );
+      if (entityConfig.embeddable === false) {
+        skipped++;
+        continue;
+      }
+
+      const failureKey = embeddingReferenceKey({
+        entityId: row.id,
+        entityType: row.entityType,
+        contentHash: row.contentHash,
+      });
+      const hasTerminalFailure = failedEmbeddingKeys.has(failureKey);
+      const embeddingHash = embeddingHashes.get(`${row.entityType}:${row.id}`);
+      if (embeddingHash === undefined) {
+        if (hasTerminalFailure) {
+          failedEmbeddings++;
+          skipped++;
+        } else {
+          missingEmbeddings++;
+          rowsToBackfill.push(row);
+        }
+        continue;
+      }
+
+      if (embeddingHash !== row.contentHash) {
+        if (hasTerminalFailure) {
+          failedEmbeddings++;
+          skipped++;
+        } else {
+          staleEmbeddings++;
+          rowsToBackfill.push(row);
+        }
+        continue;
+      }
+
+      skipped++;
+    }
+
+    return {
+      tableMissing: false,
+      skipped,
+      rowsToBackfill,
+      missingEmbeddings,
+      staleEmbeddings,
+      failedEmbeddings,
+    };
+  }
+
+  private async getFailedEmbeddingKeys(): Promise<Set<string>> {
+    const failedJobs = await this.jobQueueService.getFailedJobs([
+      "shell:embedding",
+    ]);
+    const failedEmbeddingKeys = new Set<string>();
+
+    for (const job of failedJobs) {
+      const reference = parseEmbeddingFailureReference(job);
+      if (reference) {
+        failedEmbeddingKeys.add(embeddingReferenceKey(reference));
+      }
+    }
+
+    return failedEmbeddingKeys;
+  }
+
+  private async hasEntityTable(): Promise<boolean> {
+    const rows = await this.db.all<{ name: string }>(
+      sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'entities'`,
+    );
+    return rows.length > 0;
+  }
+
   /**
    * Insert or replace FTS5 index entry for an entity.
    */
@@ -438,6 +644,7 @@ export class EntityMutations {
     entityId: string,
     entity?: BaseEntity,
     previousMetadata?: BaseEntity["metadata"],
+    eventContext?: EntityMutationEventContext,
   ): Promise<void> {
     if (!this.messageBus) {
       return;
@@ -445,7 +652,18 @@ export class EntityMutations {
 
     this.logger.debug(`Emitting ${event} for ${entityType}:${entityId}`);
 
-    const payload: Record<string, unknown> = { entityType, entityId };
+    const payload: Record<string, unknown> = {
+      entityType,
+      entityId,
+      ...(eventContext?.conversationId
+        ? { conversationId: eventContext.conversationId }
+        : {}),
+      ...(eventContext?.channelId ? { channelId: eventContext.channelId } : {}),
+      ...(eventContext?.runId ? { runId: eventContext.runId } : {}),
+      ...(eventContext?.toolCallId
+        ? { toolCallId: eventContext.toolCallId }
+        : {}),
+    };
     if (entity) {
       payload["entity"] = entity;
     }
@@ -501,6 +719,8 @@ export class EntityMutations {
         ...(maxRetries !== undefined && { maxRetries }),
         source: "entity-service",
         rootJobId,
+        deduplication: "coalesce",
+        deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
         metadata: {
           operationType: "data_processing" as const,
           operationTarget: entityId,

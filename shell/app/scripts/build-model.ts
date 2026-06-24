@@ -168,10 +168,13 @@ for (const { name, path } of migrationSources) {
 
 // ─── Copy seed content from brain model ───────────────────────────────────
 
-const seedContentPath = join(brainModelDir, "seed-content");
-if (existsSync(seedContentPath)) {
-  cpSync(seedContentPath, join(outdir, "seed-content"), { recursive: true });
-  console.log("Copied seed-content");
+for (const entry of readdirSync(brainModelDir)) {
+  if (!entry.startsWith("seed-content")) continue;
+  const seedContentPath = join(brainModelDir, entry);
+  if (existsSync(seedContentPath)) {
+    cpSync(seedContentPath, join(outdir, entry), { recursive: true });
+    console.log(`Copied ${entry}`);
+  }
 }
 
 // ─── Assemble Docker build context ───────────────────────────────────────
@@ -199,10 +202,13 @@ if (existsSync(caddyfilePath)) {
   cpSync(caddyfilePath, join(dockerCtx, "Caddyfile"));
 }
 
-// seed-content/ (already inside dist/, symlink or copy to context root)
-const distSeedContent = join(dockerCtx, "dist", "seed-content");
-if (existsSync(distSeedContent)) {
-  cpSync(distSeedContent, join(dockerCtx, "seed-content"), { recursive: true });
+// seed-content*/ (already inside dist/, copy to context root for compatibility)
+for (const entry of readdirSync(join(dockerCtx, "dist"))) {
+  if (!entry.startsWith("seed-content")) continue;
+  const distSeedContent = join(dockerCtx, "dist", entry);
+  if (existsSync(distSeedContent)) {
+    cpSync(distSeedContent, join(dockerCtx, entry), { recursive: true });
+  }
 }
 
 // public/ — static assets (empty dir is fine)

@@ -70,6 +70,7 @@ describe("JobProgressMonitor", () => {
       complete: mock(() => Promise.resolve()),
       fail: mock(() => Promise.resolve()),
       getActiveJobs: mock(() => Promise.resolve([])),
+      getFailedJobs: mock(() => Promise.resolve([])),
       registerHandler: mock(() => {}),
       unregisterHandler: mock(() => {}),
       unregisterPluginHandlers: mock(() => {}),

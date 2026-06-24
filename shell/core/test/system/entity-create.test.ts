@@ -13,6 +13,23 @@ import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { z, slugify } from "@brains/utils";
 
+const createEntityRequestSchema = z
+  .object({
+    options: z
+      .object({
+        eventContext: z
+          .object({
+            conversationId: z.string().optional(),
+            channelId: z.string().optional(),
+            runId: z.string().optional(),
+            toolCallId: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
+
 const enqueuedCreateJobSchema = z.object({
   targetEntityType: z.string(),
   targetEntityId: z.string(),
@@ -246,6 +263,8 @@ describe("system_create tool", () => {
     conversationId?: string;
     channelId?: string;
     channelName?: string;
+    runId?: string;
+    toolCallId?: string;
     userPermissionLevel?: UserPermissionLevel;
   }
 
@@ -258,6 +277,8 @@ describe("system_create tool", () => {
         : {}),
       ...(context?.channelId ? { channelId: context.channelId } : {}),
       ...(context?.channelName ? { channelName: context.channelName } : {}),
+      ...(context?.runId ? { runId: context.runId } : {}),
+      ...(context?.toolCallId ? { toolCallId: context.toolCallId } : {}),
       ...(context?.userPermissionLevel
         ? { userPermissionLevel: context.userPermissionLevel }
         : {}),
@@ -448,6 +469,33 @@ status: draft
       success: false,
       error:
         "No pending create confirmation found. Please request creation again and confirm the new approval.",
+    });
+  });
+
+  it("passes separate conversation, channel, run, and tool call provenance to entity creation", async () => {
+    const result = await exec(
+      {
+        entityType: "base",
+        title: "Provenance Note",
+        content: "remember this",
+      },
+      {
+        conversationId: "conversation-1",
+        channelId: "channel-1",
+        runId: "run-1",
+        toolCallId: "call-1",
+      },
+    );
+
+    expect("success" in result && result.success).toBe(true);
+    const request = createEntityRequestSchema.parse(
+      services.getLastCreateRequest(),
+    );
+    expect(request.options?.eventContext).toEqual({
+      conversationId: "conversation-1",
+      channelId: "channel-1",
+      runId: "run-1",
+      toolCallId: "call-1",
     });
   });
 
@@ -1370,6 +1418,75 @@ A saved research link.`;
     );
     expect(result).not.toHaveProperty("args.upload");
     expect(result).not.toHaveProperty("args.transform");
+  });
+
+  it("should canonicalize sourceAttachment sourceEntityId before confirmation and create interceptors", async () => {
+    services.addEntities([
+      {
+        id: "resilience-in-distributed-systems",
+        entityType: "post",
+        content: "Resilience post content",
+        metadata: {
+          title: "Resilience Is Not Redundancy",
+          slug: "resilience-in-distributed-systems",
+        },
+        created: new Date(0).toISOString(),
+        updated: new Date(0).toISOString(),
+        visibility: "public",
+        contentHash: "hash-resilience-post",
+      },
+    ]);
+    let capturedInput: CreateInput | undefined;
+    services.entityRegistry.registerCreateInterceptor(
+      "document",
+      async (input: CreateInput): Promise<CreateInterceptionResult> => {
+        capturedInput = input;
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: { entityId: "printable-post", status: "generated" },
+          },
+        };
+      },
+    );
+
+    const confirmation = await execRaw({
+      entityType: "document",
+      sourceAttachment: {
+        sourceEntityType: "post",
+        sourceEntityId: "Resilience Is Not Redundancy",
+        attachmentType: "printable",
+      },
+    });
+
+    expect(confirmation).toMatchObject({ needsConfirmation: true });
+    if (!("needsConfirmation" in confirmation)) {
+      throw new Error("Expected create confirmation");
+    }
+    expect(confirmation).toHaveProperty(
+      "args.sourceAttachment.sourceEntityId",
+      "resilience-in-distributed-systems",
+    );
+    const confirmationArgs = z
+      .record(z.string(), z.unknown())
+      .parse(confirmation.args);
+
+    const result = await execRaw(confirmationArgs);
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { entityId: "printable-post", status: "generated" },
+    });
+    expect(capturedInput).toMatchObject({
+      entityType: "document",
+      from: {
+        kind: "entity-attachment",
+        sourceEntityType: "post",
+        sourceEntityId: "resilience-in-distributed-systems",
+        attachmentType: "printable",
+      },
+    });
   });
 
   it("should let sourceAttachment take precedence over upload and forward normalized from plus replace to create interceptors", async () => {
