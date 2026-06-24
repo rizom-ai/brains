@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export type MessageValidationResult<T> =
   | { valid: true; data: T }

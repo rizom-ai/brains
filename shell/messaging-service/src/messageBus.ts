@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type {
   MessageHandler,
   IMessageBus,
