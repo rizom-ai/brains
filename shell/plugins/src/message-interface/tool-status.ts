@@ -17,6 +17,14 @@ export interface ToolStatusUpdate {
   error?: string;
 }
 
+export interface ToolStatusDisplay {
+  key: string;
+  label: string;
+  title: string;
+  fallbackPrefix: string;
+  fallback: string;
+}
+
 export function toToolStatusUpdate(
   event: ToolActivityEvent,
   state: ToolStatusState,
@@ -29,6 +37,57 @@ export function toToolStatusUpdate(
     ...(event.channelId !== undefined && { channelId: event.channelId }),
     ...(event.channelName !== undefined && { channelName: event.channelName }),
     ...(event.error !== undefined && { error: event.error }),
+  };
+}
+
+export function getToolStatusKey(update: ToolStatusUpdate): string {
+  return `${update.conversationId}:${update.toolName}`;
+}
+
+export function formatToolStatusLabel(toolName: string): string {
+  return toolName.replace(/[_-]+/g, " ");
+}
+
+export function getToolStatusTitle(state: ToolStatusState): string {
+  switch (state) {
+    case "running":
+      return "Tool running";
+    case "completed":
+      return "Tool completed";
+    case "awaiting-approval":
+      return "Approval required";
+    case "failed":
+      return "Tool failed";
+  }
+}
+
+export function getToolStatusFallbackPrefix(state: ToolStatusState): string {
+  switch (state) {
+    case "running":
+      return "Tool running";
+    case "completed":
+      return "Tool completed";
+    case "awaiting-approval":
+      return "Tool awaiting approval";
+    case "failed":
+      return "Tool failed";
+  }
+}
+
+export function getToolStatusDisplay(
+  update: ToolStatusUpdate,
+): ToolStatusDisplay {
+  const key = getToolStatusKey(update);
+  const label = formatToolStatusLabel(update.toolName);
+  const title = getToolStatusTitle(update.state);
+  const fallbackPrefix = getToolStatusFallbackPrefix(update.state);
+  const baseFallback = `${fallbackPrefix}: ${label}`;
+  return {
+    key,
+    label,
+    title,
+    fallbackPrefix,
+    fallback: update.error ? `${baseFallback}: ${update.error}` : baseFallback,
   };
 }
 

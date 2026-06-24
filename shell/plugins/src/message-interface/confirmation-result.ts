@@ -159,6 +159,19 @@ export function formatConfirmationResult(
   };
 }
 
+export function getConfirmationResultTitle(
+  variant: ConfirmationResultVariant,
+): string {
+  switch (variant) {
+    case "success":
+      return "Approval confirmed";
+    case "declined":
+      return "Approval declined";
+    case "error":
+      return "Action failed";
+  }
+}
+
 export function formatStructuredOutputSummary(
   output: unknown,
 ): string | undefined {

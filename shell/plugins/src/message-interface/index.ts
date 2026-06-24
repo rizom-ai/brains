@@ -16,13 +16,30 @@ export {
 } from "./progress-handler";
 
 export {
+  formatMessageProgressAmount,
+  formatMessageProgressDisplay,
+  formatMessageProgressLabel,
+  getMessageProgressTitle,
+  type MessageProgressDisplay,
+} from "./progress-display";
+
+export {
   setupToolActivityHandler,
   type ToolActivityEvent,
   type ToolActivityEventType,
   type ToolActivityHandlers,
 } from "./tool-event-handler";
 
-export type { ToolStatusState, ToolStatusUpdate } from "./tool-status";
+export {
+  formatToolStatusLabel,
+  getToolStatusDisplay,
+  getToolStatusFallbackPrefix,
+  getToolStatusKey,
+  getToolStatusTitle,
+  type ToolStatusDisplay,
+  type ToolStatusState,
+  type ToolStatusUpdate,
+} from "./tool-status";
 
 export {
   parseConfirmationResponse,
@@ -31,10 +48,49 @@ export {
 } from "./confirmation-handler";
 
 export {
+  containsApprovalIdToken,
+  extractApprovalId,
+  hasExplicitApprovalReference,
+  parseConfirmationIntent,
+  routeConfirmationResponse,
+  type ConfirmationRouteInput,
+  type ConfirmationRouteResult,
+} from "./confirmation-routing";
+
+export {
+  PendingApprovalTracker,
+  type PendingApprovalMessageLoader,
+  type PendingApprovalTrackerOptions,
+} from "./pending-approval-tracker";
+
+export {
+  buildAgentResponseTextParts,
+  buildConfirmationResponseParts,
+  formatPendingConfirmationHelp,
+  formatPendingConfirmationsFallback,
+  getDeniedAttachmentCards,
+  getDeliverableArtifactCards,
+  getMainResponseSummaryCards,
+  getResponseJobIds,
+  getSupplementalCards,
+  type AgentResponseTextPartsInput,
+  type ConfirmationResponseParts,
+  type ConfirmationResponsePartsInput,
+} from "./response-render-plan";
+
+export {
   formatContentDispositionHeader,
   type ContentDispositionInput,
   type ContentDispositionType,
 } from "./content-disposition";
+
+export {
+  canReceiveNativeArtifactFile,
+  resolveMessageArtifactAccess,
+  type MessageArtifactAccessInput,
+  type MessageArtifactAccessResult,
+  type MessageArtifactEntity,
+} from "./artifact-access";
 
 export {
   artifactStatusLabel,
@@ -60,6 +116,7 @@ export {
 export {
   formatConfirmationResult,
   formatStructuredOutputSummary,
+  getConfirmationResultTitle,
   type ConfirmationDecision,
   type ConfirmationResultDisplay,
   type ConfirmationResultInput,
@@ -99,6 +156,19 @@ export {
   selectReferencedAttachments,
   type NamedAttachmentReference,
 } from "./upload-selection";
+
+export {
+  MessageUploadContinuity,
+  type MessageUploadAttachmentRestorer,
+  type MessageUploadContinuityOptions,
+  type MessageUploadConversationLoader,
+  type SelectPriorUploadsInput,
+} from "./upload-continuity";
+
+export {
+  formatStructuredCardFallback,
+  type StructuredCardFallbackOptions,
+} from "./structured-card-fallback";
 
 export {
   buildMessageActorMetadata,
