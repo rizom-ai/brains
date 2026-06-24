@@ -134,6 +134,14 @@ export function toModelToolOutput(output: unknown): {
   };
 }
 
+function markCachedToolResult(result: unknown): unknown {
+  if (typeof result !== "object" || result === null || Array.isArray(result)) {
+    return result;
+  }
+  if ((result as { success?: unknown }).success !== true) return result;
+  return { ...(result as Record<string, unknown>), cached: true };
+}
+
 function toJsonValue(value: unknown): JsonValue {
   if (value === undefined) return null;
   return jsonValueSchema.parse(JSON.parse(JSON.stringify(value)));
@@ -145,6 +153,7 @@ export function convertToSDKTools(
   emitter: ToolEventEmitter,
 ): ToolSet {
   const sdkTools: ToolSet = {};
+  const readCache = new Map<string, unknown>();
 
   for (const t of pluginTools) {
     const wrappedExecute = createToolExecuteWrapper(
@@ -163,7 +172,20 @@ export function convertToSDKTools(
             userPermissionLevel: contextInfo.userPermissionLevel,
           }),
         };
-        return t.handler(args, context);
+        if (t.sideEffects !== "none") {
+          if (t.sideEffects === "writes" || t.sideEffects === "external") {
+            readCache.clear();
+          }
+          return t.handler(args, context);
+        }
+
+        const cacheKey = `${t.name}:${JSON.stringify(args)}`;
+        if (readCache.has(cacheKey)) {
+          return markCachedToolResult(readCache.get(cacheKey));
+        }
+        const result = await t.handler(args, context);
+        readCache.set(cacheKey, result);
+        return result;
       },
       contextInfo,
       emitter,

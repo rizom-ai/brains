@@ -289,6 +289,9 @@ describe("buildInstructions", () => {
     expect(instructions).toContain(
       "use the returned canonical entity `id` in `sourceAttachment.sourceEntityId` and continue to `system_create` in the same turn",
     );
+    expect(instructions).toContain(
+      "Once `system_get` succeeds for a named source artifact, do not add `system_search`",
+    );
   });
 
   it("should summarize listed items from retrieved content, not titles alone", () => {

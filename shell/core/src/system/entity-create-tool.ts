@@ -627,6 +627,6 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         };
       }
     },
-    { visibility: "trusted" },
+    { visibility: "trusted", sideEffects: "writes" },
   );
 }

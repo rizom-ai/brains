@@ -30,7 +30,12 @@ describe("buildConfirmedActionResult", () => {
       args: pending.args as Record<string, unknown>,
     });
     expect(result.entityMemoryRefs).toEqual([
-      { entityType: "note", entityId: "my-note", operation: "updated" },
+      {
+        entityType: "note",
+        entityId: "my-note",
+        operation: "created",
+        status: "updated",
+      },
     ]);
 
     const approvalCard = result.cards[0];

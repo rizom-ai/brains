@@ -87,6 +87,8 @@ export interface ToolConfirmation {
   message?: string;
 }
 
+export type ToolSideEffects = "none" | "writes" | "external";
+
 export interface Tool<TArgs = unknown, TResult = unknown> {
   name: string;
   description: string;
@@ -94,6 +96,7 @@ export interface Tool<TArgs = unknown, TResult = unknown> {
   handler: (args: TArgs, context: ToolContext) => Promise<TResult> | TResult;
   visibility?: ToolVisibility;
   confirmation?: ToolConfirmation;
+  sideEffects?: ToolSideEffects;
 }
 
 export interface Resource<TResult = unknown> {

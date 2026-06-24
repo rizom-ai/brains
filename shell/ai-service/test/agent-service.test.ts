@@ -326,7 +326,8 @@ describe("AgentService", () => {
                 {
                   entityType: "image",
                   entityId: "wild-robot",
-                  operation: "generating",
+                  operation: "created",
+                  status: "generating",
                 },
               ],
             }),
@@ -351,7 +352,7 @@ describe("AgentService", () => {
         content: [
           {
             type: "text",
-            text: "Queued image generation.\n\nInternal entity refs from the previous assistant turn for follow-up resolution:\n- image wild-robot (generating)",
+            text: "Queued image generation.\n\nInternal entity refs from previous assistant turns for follow-up resolution. These are typed runtime references, not visible user text. Use the canonical entityId when a follow-up refers to the same item (for example “it”, “that”, “that post”, “the draft”, “publish it”, or “a cover image to go with that”). Do not derive or rewrite IDs from titles; copy the exact entityId value from the matching ref. A ref with operation created and status generating/draft is already a valid target for follow-up operations such as cover-image generation; do not ask the user for its slug again.\n- entityType: image; entityId: wild-robot; operation: created; status: generating",
           },
         ],
       });
@@ -2223,7 +2224,8 @@ describe("AgentService", () => {
               {
                 entityType: "image",
                 entityId: "mossy-robot",
-                operation: "generating",
+                operation: "created",
+                status: "generating",
               },
             ],
           }),
@@ -3372,7 +3374,8 @@ describe("AgentService", () => {
               {
                 entityType: "image",
                 entityId: "mossy-robot",
-                operation: "generating",
+                operation: "created",
+                status: "generating",
               },
             ],
           }),

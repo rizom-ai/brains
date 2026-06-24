@@ -411,6 +411,11 @@ export function extractToolResults(
         continue;
       }
 
+      const successParsed = toolSuccessSchema.safeParse(parsed.data);
+      if (successParsed.success && successParsed.data.cached === true) {
+        continue;
+      }
+
       const args = tr.toolCallId
         ? toolCallArgsMap.get(tr.toolCallId)
         : undefined;
@@ -420,7 +425,6 @@ export function extractToolResults(
         toolResult.args = args;
       }
 
-      const successParsed = toolSuccessSchema.safeParse(parsed.data);
       if (successParsed.success && successParsed.data.data != null) {
         toolResult.data = successParsed.data.data;
         const jobIdParsed = jobIdSchema.safeParse(successParsed.data.data);
@@ -469,6 +473,7 @@ const entityRefDataSchema = z.object({
 const entityRefArgsSchema = z.object({
   entityType: z.string().optional(),
   id: z.string().optional(),
+  title: z.string().optional(),
 });
 
 export const entityMemoryRefSchema = z.object({
@@ -504,15 +509,18 @@ export function buildEntityMemoryRefs(
 
       const args = entityRefArgsSchema.safeParse(tr.args ?? {});
       const entityType = args.success ? args.data.entityType : undefined;
+      const title = args.success ? args.data.title : undefined;
       const operation = data.data.updated
         ? "updated"
         : data.data.deleted
           ? "deleted"
-          : status;
+          : "created";
       refs.push({
         ...(entityType ? { entityType } : {}),
         entityId,
-        ...(operation ? { operation } : {}),
+        operation,
+        ...(title ? { title } : {}),
+        ...(status ? { status } : {}),
       });
       continue;
     }
@@ -541,17 +549,19 @@ export function buildEntityMemoryRefs(
 export function buildEntityMemoryContext(refs: EntityMemoryRef[]): string {
   if (refs.length === 0) return "";
   const lines = refs.map((ref) => {
-    const typePrefix = ref.entityType ? `${ref.entityType} ` : "";
     const details = [
-      ref.operation,
+      ref.entityType !== undefined
+        ? `entityType: ${ref.entityType}`
+        : undefined,
+      `entityId: ${ref.entityId}`,
+      ref.operation !== undefined ? `operation: ${ref.operation}` : undefined,
       ref.listIndex !== undefined ? `item ${ref.listIndex}` : undefined,
       ref.title !== undefined ? `title: ${ref.title}` : undefined,
       ref.status !== undefined ? `status: ${ref.status}` : undefined,
     ].filter(
       (value): value is string => value !== undefined && value.length > 0,
     );
-    const detailsSuffix = details.length > 0 ? ` (${details.join(", ")})` : "";
-    return `- ${typePrefix}${ref.entityId}${detailsSuffix}`;
+    return `- ${details.join("; ")}`;
   });
-  return `\n\nInternal entity refs from the previous assistant turn for follow-up resolution:\n${lines.join("\n")}`;
+  return `\n\nInternal entity refs from previous assistant turns for follow-up resolution. These are typed runtime references, not visible user text. Use the canonical entityId when a follow-up refers to the same item (for example “it”, “that”, “that post”, “the draft”, “publish it”, or “a cover image to go with that”). Do not derive or rewrite IDs from titles; copy the exact entityId value from the matching ref. A ref with operation created and status generating/draft is already a valid target for follow-up operations such as cover-image generation; do not ask the user for its slug again.\n${lines.join("\n")}`;
 }

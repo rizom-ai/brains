@@ -62,9 +62,12 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
     input: z.infer<TSchema>,
     context: ToolContext,
   ) => Promise<ToolResponse>,
-  options: { visibility?: Tool["visibility"] } = {},
+  options: {
+    visibility?: Tool["visibility"];
+    sideEffects?: Tool["sideEffects"];
+  } = {},
 ): Tool {
-  const { visibility = "anchor" } = options;
+  const { visibility = "anchor", sideEffects } = options;
   return {
     name: `${PLUGIN_ID}_${name}`,
     description,
@@ -84,6 +87,7 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
       }
     },
     visibility,
+    ...(sideEffects ? { sideEffects } : {}),
   };
 }
 

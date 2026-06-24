@@ -7,6 +7,56 @@ import {
 } from "../src/agent-results";
 
 describe("extractToolResults", () => {
+  it("omits cached duplicate read results from extracted metrics records", () => {
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "tool-1",
+            toolName: "system_get",
+            input: { entityType: "deck", id: "deck-1" },
+          },
+          {
+            toolCallId: "tool-2",
+            toolName: "system_get",
+            input: { entityType: "deck", id: "deck-1" },
+          },
+        ],
+        toolResults: [
+          {
+            toolCallId: "tool-1",
+            toolName: "system_get",
+            output: {
+              success: true,
+              data: {
+                entity: { id: "deck-1", entityType: "deck", metadata: {} },
+              },
+            },
+          },
+          {
+            toolCallId: "tool-2",
+            toolName: "system_get",
+            output: {
+              success: true,
+              cached: true,
+              data: {
+                entity: { id: "deck-1", entityType: "deck", metadata: {} },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "system_get",
+        args: { entityType: "deck", id: "deck-1" },
+        data: { entity: { id: "deck-1", entityType: "deck", metadata: {} } },
+      },
+    ]);
+  });
+
   it("surfaces structured cards returned by successful tool data", () => {
     const results = extractToolResults([
       {
@@ -79,11 +129,11 @@ describe("buildEntityMemoryRefs", () => {
     ]);
   });
 
-  it("records created entity ids from confirmed create results", () => {
+  it("records created entity ids with stable operation, title, and status", () => {
     const refs = buildEntityMemoryRefs([
       {
         toolName: "system_create",
-        args: { entityType: "social-post" },
+        args: { entityType: "social-post", title: "LinkedIn draft" },
         data: { entityId: "linkedin-post", status: "generating" },
       },
     ]);
@@ -92,7 +142,9 @@ describe("buildEntityMemoryRefs", () => {
       {
         entityType: "social-post",
         entityId: "linkedin-post",
-        operation: "generating",
+        operation: "created",
+        title: "LinkedIn draft",
+        status: "generating",
       },
     ]);
   });
@@ -112,8 +164,18 @@ describe("buildEntityMemoryRefs", () => {
     ]);
 
     expect(refs).toEqual([
-      { entityType: "link", entityId: "page-one", operation: "pending" },
-      { entityType: "link", entityId: "page-two", operation: "pending" },
+      {
+        entityType: "link",
+        entityId: "page-one",
+        operation: "created",
+        status: "pending",
+      },
+      {
+        entityType: "link",
+        entityId: "page-two",
+        operation: "created",
+        status: "pending",
+      },
     ]);
   });
 
@@ -127,7 +189,12 @@ describe("buildEntityMemoryRefs", () => {
     ]);
 
     expect(refs).toEqual([
-      { entityType: "document", entityId: "draft-doc", operation: "pending" },
+      {
+        entityType: "document",
+        entityId: "draft-doc",
+        operation: "created",
+        status: "pending",
+      },
     ]);
   });
 
@@ -151,13 +218,26 @@ describe("buildEntityMemoryRefs", () => {
 });
 
 describe("buildEntityMemoryContext", () => {
-  it("builds model-only context without footer-shaped text", () => {
+  it("builds model-only context with follow-up target guidance", () => {
     const context = buildEntityMemoryContext([
       { entityType: "note", entityId: "rizom-note", operation: "updated" },
+      {
+        entityType: "social-post",
+        entityId: "linkedin-post",
+        operation: "created",
+        status: "generating",
+      },
     ]);
 
     expect(context).toContain("Internal entity refs");
-    expect(context).toContain("note rizom-note (updated)");
+    expect(context).toContain("canonical entityId");
+    expect(context).toContain("Do not derive or rewrite IDs from titles");
+    expect(context).toContain("cover-image generation");
+    expect(context).toContain("entityType: note; entityId: rizom-note");
+    expect(context).toContain(
+      "entityType: social-post; entityId: linkedin-post",
+    );
+    expect(context).toContain("status: generating");
     expect(context).not.toContain("Entities affected this turn");
     expect(context).not.toContain("Reference these IDs directly");
   });
@@ -208,10 +288,14 @@ describe("buildEntityMemoryContext", () => {
 
     const context = buildEntityMemoryContext(refs);
     expect(context).toContain("Internal entity refs");
-    expect(context).toContain("post knowledge-flow-systems");
+    expect(context).toContain(
+      "entityType: post; entityId: knowledge-flow-systems",
+    );
     expect(context).toContain("item 1");
     expect(context).toContain("Knowledge Flow Systems");
-    expect(context).toContain("post ai-and-knowledge-work");
+    expect(context).toContain(
+      "entityType: post; entityId: ai-and-knowledge-work",
+    );
     expect(context).not.toContain("Entities listed this turn");
   });
 });

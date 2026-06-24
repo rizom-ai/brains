@@ -168,6 +168,6 @@ export function createUploadSaveTool(services: SystemServices): Tool {
         executionContext,
       );
     },
-    { visibility: "trusted" },
+    { visibility: "trusted", sideEffects: "writes" },
   );
 }

@@ -58,6 +58,7 @@ export const toolSuccessSchema = z
     success: z.literal(true),
     data: z.unknown(),
     message: z.string().optional(),
+    cached: z.literal(true).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -111,6 +112,8 @@ export const toolResponseSchema = z.union([
 
 export type ToolResponse = z.infer<typeof toolResponseSchema>;
 
+export type ToolSideEffects = "none" | "writes" | "external";
+
 /**
  * Tool definition
  * @template TOutput - The output type, defaults to ToolResponse for backward compatibility
@@ -122,6 +125,8 @@ export interface Tool<TOutput = ToolResponse> {
   outputSchema?: ZodType<TOutput>; // Optional: Zod schema for type-safe outputs
   handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
+  /** Declares whether this tool is safe to repeat/cache within one model turn. Undefined defaults to not cacheable. */
+  sideEffects?: ToolSideEffects;
   /** Optional CLI metadata — makes this tool invocable as a brain CLI command */
   cli?: {
     /** CLI command name (e.g. "list", "sync", "build") */
