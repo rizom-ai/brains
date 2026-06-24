@@ -1,4 +1,5 @@
-import { z, parseYamlDocument, interpolateEnv } from "@brains/utils";
+import { parseYamlDocument, interpolateEnv } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 import { entityActionPolicyConfigSchema } from "@brains/templates";
 import { presetNameSchema, modeSchema } from "./brain-definition";

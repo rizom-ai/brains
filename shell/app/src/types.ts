@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
