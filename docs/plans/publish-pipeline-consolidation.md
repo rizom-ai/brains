@@ -2,30 +2,19 @@
 
 ## Status
 
-Proposed. Triggered by the direct publish confirmation loop observed on `yeehaa_content-pipeline_publish`: the returned UUID confirmation token was stored in a per-tool-instance in-memory map, so confirmed calls could hit a fresh tool instance and receive a new confirmation instead of publishing.
+Shipped in `fix/publish-pipeline-consolidation`. The single-executor architecture already existed; this work finished the remaining gaps around token expiry, error clarity, regression coverage, and dead-code removal.
 
-A tactical fix exists for the direct tool confirmation token, but the broader publish surface still has multiple entrypoints that must stay behaviorally identical.
+Triggered by the direct publish confirmation loop on `yeehaa_content-pipeline_publish`, where the returned UUID confirmation token was stored in a per-tool-instance in-memory map. That bug was fixed in `ac11ef539` by replacing the map with a deterministic SHA256 token bound to `contentHash`; this follow-up also binds tokens to an expiry and returns explicit invalid/expired-token errors instead of looping.
 
-## Goal
-
-Make publishing have one execution path and thin entrypoints, so direct publish, queued publish, and message-driven publish all validate and mutate entities the same way.
-
-## Non-goals
-
-- Redesign publish providers such as LinkedIn/Buttondown.
-- Change queue semantics or scheduling policy.
-- Add new publishing destinations.
-- Replace the confirmation UX across all tools.
-
-## Desired shape
+## Current shape
 
 ```txt
-publish tool
-queue scheduler
-message bus direct publish
+publish tool                     (src/tools/publish.ts)
+queue scheduler                  (src/scheduler-publish.ts)
+message bus direct publish       (src/lib/message-handlers.ts)
         │
         ▼
-PublishExecutor.resolveCandidate()
+PublishExecutor.resolveCandidate()   (src/publish-executor.ts)
         │
         ▼
 PublishExecutor.publish()
@@ -37,23 +26,23 @@ PublishExecutor.publish()
         └─ runs publish asset preflight
 ```
 
-Entry points should do only entrypoint-specific work:
+Entry points already do only entrypoint-specific work:
 
 - Direct publish tool: permission check, candidate resolution, confirmation, then `PublishExecutor.publish()`.
-- Queue tool/scheduler: queue management and scheduled execution, then `PublishExecutor.publish()`.
+- Queue scheduler: scheduled execution, then `PublishExecutor.publish()`.
 - Message bus direct publish: payload validation/permission boundary, then `PublishExecutor.publish()`.
+
+Slug lookup is canonicalized to entity id before the executor runs (`src/tools/publish.ts`, `src/publish-executor.ts`).
 
 ## Confirmation contract
 
-Direct publish confirmation should be stateless across tool recreation and process boundaries.
-
-Preferred token format:
+Extend the existing deterministic token to include expiry:
 
 ```txt
-token = HMAC(secret, toolName + entityType + entityId + contentHash + expiresAt)
+token = SHA256(toolName + entityType + entityId + contentHash + expiresAt)
 ```
 
-Returned confirmation args should be canonical:
+Returned confirmation args become:
 
 ```json
 {
@@ -66,57 +55,47 @@ Returned confirmation args should be canonical:
 }
 ```
 
-Confirmed calls should never silently issue a fresh confirmation for a bad token. They should return a clear error:
+HMAC-with-secret is intentionally out of scope. The threat is in-process, and `contentHash` already binds the token to the content being published. Introducing a signing secret requires secret-management infrastructure that doesn't exist in this codebase yet; revisit only if cross-process verification becomes a requirement.
+
+Confirmed calls with a bad token should return a clear error rather than issuing a fresh `needsConfirmation`:
 
 - invalid token;
 - expired token;
 - content changed after confirmation.
 
-## Implementation phases
+## Shipped work
 
-### Phase 1 — Direct publish confirmation hardening
+- Added `expiresAt` to the token hash input and returned confirmation args.
+- Replaced the silent re-prompt on bad/missing token with explicit invalid/expired errors.
+- Deleted unused `scheduler.publishDirect()`, which bypassed the executor.
+- Added regression tests for:
+  - invalid confirmation token returns an error, not a new confirmation;
+  - expired confirmation token returns an error;
+  - confirmation succeeds after tool recreation;
+  - content changed after confirmation rejects publish.
+- Kept existing entrypoint coverage showing:
+  - queue execution uses the publish executor;
+  - direct publish messages use registered providers through the executor-backed path;
+  - already-published, no-provider, and non-public visibility failures are rejected before publishing.
 
-- Replace in-memory UUID token validation with stateless verification.
-- Include expiry in the confirmation args.
-- Return explicit errors for invalid/expired tokens instead of a new `needsConfirmation` loop.
-- Preserve content-change protection via `contentHash`.
+## Non-goals
 
-### Phase 2 — Entrypoint audit
-
-- Trace all publish entrypoints:
-  - direct publish tool;
-  - queue scheduler;
-  - message bus direct publish;
-  - any provider-specific legacy handler.
-- Document whether each path calls `PublishExecutor.publish()` or duplicates validation/mutation.
-
-### Phase 3 — Remove duplicated publish logic
-
-- Move shared validation into `PublishExecutor.resolveCandidate()` / `PublishExecutor.publish()`.
-- Delete or narrow provider/status/frontmatter mutation logic outside the executor.
-- Ensure slug lookup is canonicalized to entity id before execution.
-
-### Phase 4 — Regression coverage
-
-Add focused tests for:
-
-- confirmation succeeds after tool recreation;
-- invalid confirmation token returns an error, not a new confirmation;
-- expired confirmation token returns an error;
-- content changed after confirmation rejects publish;
-- direct publish and queue execution both use the executor path;
-- slug-based direct publish returns canonical id confirmation args;
-- already-published, no-provider, and non-public visibility failures are consistent across direct and queued execution.
+- Redesign publish providers such as LinkedIn/Buttondown.
+- Change queue semantics or scheduling policy.
+- Add new publishing destinations.
+- Introduce HMAC/secret-based token signing.
+- Replace the confirmation UX across all tools.
 
 ## Validation
 
-- Run targeted content-pipeline publish tests.
-- Run content-pipeline lint/typecheck.
-- Run broader workspace checks only if shared contracts change.
+Passed:
+
+- `bun test test/tools/publish.test.ts test/scheduler.test.ts`
+- `bun run typecheck`
+- `bun run lint`
 
 ## Completion criteria
 
-- There is exactly one code path that calls publish providers and updates durable publish state.
-- Confirmation tokens survive tool recreation without relying on in-memory maps.
-- Invalid or expired confirmations fail clearly instead of looping.
-- Queue, direct, and message-driven publish behavior are covered by regression tests.
+- Confirmation tokens carry an expiry and fail explicitly when invalid or expired.
+- `scheduler.publishDirect()` is removed.
+- Regression tests cover invalid/expired tokens and preserve entrypoint parity coverage.

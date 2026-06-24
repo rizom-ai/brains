@@ -24,6 +24,7 @@ export const publishInputSchema = z.object({
   confirmed: z.boolean().optional(),
   confirmationToken: z.string().optional(),
   contentHash: z.string().optional(),
+  expiresAt: z.string().datetime().optional(),
 });
 
 export type PublishInput = z.infer<typeof publishInputSchema>;
@@ -67,6 +68,8 @@ export const publishOutputSchema = z.union([
 ]);
 
 export type PublishOutput = z.infer<typeof publishOutputSchema>;
+
+const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 
 /**
  * Create the publish-pipeline:publish tool
@@ -134,17 +137,12 @@ export function createPublishTool(
 
       const { entity } = validation;
       if (input.confirmed) {
-        const token = input.confirmationToken;
-        if (!token || token !== createConfirmationToken(toolName, entity)) {
-          return createPublishConfirmation(toolName, input, entity);
-        }
-
-        if (input.contentHash && input.contentHash !== entity.contentHash) {
-          return {
-            success: false,
-            error: `Cannot publish ${entityType}:${entity.id} because it changed after confirmation. Review it and try again.`,
-          };
-        }
+        const tokenValidation = validateConfirmationToken(
+          toolName,
+          input,
+          entity,
+        );
+        if (tokenValidation !== null) return tokenValidation;
 
         let publishResult: Awaited<
           ReturnType<PublishEntityExecutor["publish"]>
@@ -190,7 +188,12 @@ function createPublishConfirmation(
   input: PublishInput,
   entity: BaseEntity,
 ): ToolResponse {
-  const confirmationToken = createConfirmationToken(toolName, entity);
+  const expiresAt = new Date(Date.now() + CONFIRMATION_TTL_MS).toISOString();
+  const confirmationToken = createConfirmationToken(
+    toolName,
+    entity,
+    expiresAt,
+  );
   const label = getEntityLabel(entity);
 
   return {
@@ -205,11 +208,71 @@ function createPublishConfirmation(
       confirmed: true,
       confirmationToken,
       contentHash: entity.contentHash,
+      expiresAt,
     },
   };
 }
 
-function createConfirmationToken(toolName: string, entity: BaseEntity): string {
+function validateConfirmationToken(
+  toolName: string,
+  input: PublishInput,
+  entity: BaseEntity,
+): ToolResponse | null {
+  const { confirmationToken, contentHash, expiresAt } = input;
+  if (!confirmationToken || !expiresAt) {
+    return {
+      success: false,
+      error:
+        "Invalid publish confirmation token. Request confirmation again and retry with the returned confirmation args.",
+      code: "INVALID_CONFIRMATION_TOKEN",
+    };
+  }
+
+  const expiresAtMs = Date.parse(expiresAt);
+  if (Number.isNaN(expiresAtMs)) {
+    return {
+      success: false,
+      error:
+        "Invalid publish confirmation expiry. Request confirmation again and retry with the returned confirmation args.",
+      code: "INVALID_CONFIRMATION_TOKEN",
+    };
+  }
+
+  if (expiresAtMs <= Date.now()) {
+    return {
+      success: false,
+      error:
+        "Publish confirmation expired. Request confirmation again before publishing.",
+      code: "EXPIRED_CONFIRMATION_TOKEN",
+    };
+  }
+
+  if (contentHash && contentHash !== entity.contentHash) {
+    return {
+      success: false,
+      error: `Cannot publish ${entity.entityType}:${entity.id} because it changed after confirmation. Review it and try again.`,
+    };
+  }
+
+  if (
+    confirmationToken !== createConfirmationToken(toolName, entity, expiresAt)
+  ) {
+    return {
+      success: false,
+      error:
+        "Invalid publish confirmation token. Request confirmation again and retry with the returned confirmation args.",
+      code: "INVALID_CONFIRMATION_TOKEN",
+    };
+  }
+
+  return null;
+}
+
+function createConfirmationToken(
+  toolName: string,
+  entity: BaseEntity,
+  expiresAt: string,
+): string {
   return createHash("sha256")
     .update(toolName)
     .update("\0")
@@ -218,6 +281,8 @@ function createConfirmationToken(toolName: string, entity: BaseEntity): string {
     .update(entity.id)
     .update("\0")
     .update(entity.contentHash)
+    .update("\0")
+    .update(expiresAt)
     .digest("hex");
 }
 
