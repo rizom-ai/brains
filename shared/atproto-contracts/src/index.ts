@@ -1,5 +1,5 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import cardLexiconJson from "./lexicons/ai.rizom.brain.card.json";
 import deckLexiconJson from "./lexicons/ai.rizom.brain.deck.json";
 import linkLexiconJson from "./lexicons/ai.rizom.brain.link.json";
@@ -47,7 +47,7 @@ const atprotoLexiconSchema = z.object({
       record: z.object({
         type: z.literal("object"),
         required: z.array(z.string()).optional(),
-        properties: z.record(atprotoLexiconPropertySchema),
+        properties: z.record(z.string(), atprotoLexiconPropertySchema),
       }),
     }),
   }),
@@ -159,7 +159,7 @@ interface AtprotoSchemaProperty extends AtprotoLexiconProperty {
 
 export type AtprotoRecordSchema = z.ZodType<Record<string, unknown>>;
 
-const atprotoRecordValueSchema = z.record(z.unknown());
+const atprotoRecordValueSchema = z.record(z.string(), z.unknown());
 
 function parseAtprotoRecordValue(
   value: unknown,
@@ -240,24 +240,23 @@ function buildAtprotoFieldSchema(
 
 function buildAtprotoObjectShape(
   property: AtprotoSchemaProperty,
-): z.ZodRawShape {
+): Record<string, z.ZodType<unknown>> {
   const requiredFields = new Set(property.required ?? []);
-  const shape: z.ZodRawShape = {};
-  for (const [field, fieldProperty] of Object.entries(
-    property.properties ?? {},
-  )) {
-    const fieldSchema = buildAtprotoFieldSchema(fieldProperty);
-    shape[field] = requiredFields.has(field)
-      ? fieldSchema
-      : fieldSchema.optional();
-  }
-  return shape;
+  return Object.fromEntries(
+    Object.entries(property.properties ?? {}).map(([field, fieldProperty]) => {
+      const fieldSchema = buildAtprotoFieldSchema(fieldProperty);
+      return [
+        field,
+        requiredFields.has(field) ? fieldSchema : fieldSchema.optional(),
+      ];
+    }),
+  );
 }
 
 function buildAtprotoObjectSchema(
   property: AtprotoSchemaProperty,
 ): AtprotoRecordSchema {
-  return z.object(buildAtprotoObjectShape(property)).passthrough();
+  return z.looseObject(buildAtprotoObjectShape(property));
 }
 
 function reportUnexpectedFields(
@@ -565,7 +564,7 @@ function formatAtprotoSchemaIssue(
       record["$type"],
     )} !== ${lexicon.id}`;
   }
-  if (issue.code === "invalid_type" && issue.received === "undefined") {
+  if (issue.code === "invalid_type" && issue.message.includes("undefined")) {
     return `Missing required AT Protocol record field: ${path}`;
   }
   if (issue.code === "invalid_type") {
@@ -598,37 +597,38 @@ export const ATPROTO_BRAIN_CARD_DISCOVERED = "atproto:brain-card-discovered";
 export const ATPROTO_BRAIN_DISCOVERED = "atproto:brain-discovered";
 export const ATPROTO_BRAIN_CARD_REFRESHED = "atproto:brain-card-refreshed";
 
-export const atprotoBrainCardDiscoveredPayloadSchema = z
-  .object({
-    repoDid: z.string().min(1),
-    uri: z.string().min(1),
-    cid: z.string().min(1),
-    // The card schema validates the full nested card shape, so the parsed
-    // record can be consumed as a typed AtprotoBrainCardRecord rather than an
-    // untyped property bag.
-    record: canonicalAtprotoRecordSchemas[
-      "ai.rizom.brain.card"
-    ] as unknown as z.ZodType<AtprotoBrainCardRecord>,
-  })
-  .strict();
+const atprotoBrainCardRecordSchema = z.custom<AtprotoBrainCardRecord>(
+  (value) =>
+    canonicalAtprotoRecordSchemas["ai.rizom.brain.card"].safeParse(value)
+      .success,
+  "expected ai.rizom.brain.card record",
+);
+
+export const atprotoBrainCardDiscoveredPayloadSchema = z.strictObject({
+  repoDid: z.string().min(1),
+  uri: z.string().min(1),
+  cid: z.string().min(1),
+  // The card schema validates the full nested card shape, so the parsed
+  // record can be consumed as a typed AtprotoBrainCardRecord rather than an
+  // untyped property bag.
+  record: atprotoBrainCardRecordSchema,
+});
 
 export type AtprotoBrainCardDiscoveredPayload = z.infer<
   typeof atprotoBrainCardDiscoveredPayloadSchema
 >;
 
-export const atprotoBrainDiscoveryEventPayloadSchema = z
-  .object({
-    agentId: z.string().min(1),
-    name: z.string().min(1),
-    url: z.string().url(),
-    status: z.enum(["discovered", "approved"]),
-    repoDid: z.string().min(1).optional(),
-    brainDid: z.string().min(1).optional(),
-    anchorDid: z.string().min(1).optional(),
-    cardUri: z.string().min(1).optional(),
-    cardCid: z.string().min(1).optional(),
-  })
-  .strict();
+export const atprotoBrainDiscoveryEventPayloadSchema = z.strictObject({
+  agentId: z.string().min(1),
+  name: z.string().min(1),
+  url: z.url(),
+  status: z.enum(["discovered", "approved"]),
+  repoDid: z.string().min(1).optional(),
+  brainDid: z.string().min(1).optional(),
+  anchorDid: z.string().min(1).optional(),
+  cardUri: z.string().min(1).optional(),
+  cardCid: z.string().min(1).optional(),
+});
 
 export type AtprotoBrainDiscoveryEventPayload = z.infer<
   typeof atprotoBrainDiscoveryEventPayloadSchema

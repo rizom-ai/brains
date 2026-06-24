@@ -747,6 +747,11 @@ Incremental migration progress:
 - Cleaned direct Zod package metadata after public contract centralization:
   shared contracts now depend on `@brains/utils`, and plugins no longer declare
   an unused direct `zod` dependency.
+- Started Phase 2 boundary migration with `shared/atproto-contracts`: the whole
+  package now authors its generated ATProto lexicon/record/event schemas on
+  explicit `@brains/utils/zod-v4`, uses Zod 4 record/loose/strict/url helpers,
+  removes the prior typed record-schema cast, and validates its only direct
+  runtime consumer (`agent-discovery`) without mixing schema trees.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
