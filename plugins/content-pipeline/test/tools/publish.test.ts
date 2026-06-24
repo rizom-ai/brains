@@ -259,6 +259,40 @@ describe("Publish Pipeline - Publish Tool", () => {
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
+    it("accepts confirmation after tool recreation", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      const initialTool = createPublishTool(
+        context,
+        pluginId,
+        providerRegistry,
+      );
+      const confirmation = await initialTool.handler(
+        { entityType: "social-post", slug: "draft-post" },
+        createMockToolContext(),
+      );
+
+      expect(confirmation).toHaveProperty("needsConfirmation", true);
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
+      if (!("needsConfirmation" in confirmation)) {
+        throw new Error("Expected publish confirmation");
+      }
+
+      const recreatedTool = createPublishTool(
+        context,
+        pluginId,
+        providerRegistry,
+      );
+      const result = await recreatedTool.handler(
+        confirmation.args,
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
+    });
+
     it("should return error when no provider registered", async () => {
       // No provider registered - should return error
       const tool = createPublishTool(context, pluginId, providerRegistry);
