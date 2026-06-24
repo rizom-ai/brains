@@ -47,8 +47,9 @@ import packageJson from "../package.json" with { type: "json" };
  * Instance-specific config (homeserver, userId, repo, domain) goes
  * in brain.yaml. Only secrets (tokens, API keys) come from .env.
  *
- * See docs/plans/relay-presets.md for the preset philosophy and the
- * plugins deferred for future work.
+ * See docs/plans/brain-model-unification.md for the bundle model that
+ * supersedes these presets, and docs/plans/team-posture-capabilities.md
+ * for the team-native plugins deferred for future work.
  */
 
 // Core preset — a team brain with no public website.

@@ -17,20 +17,20 @@ What already exists today:
 - MCP-native tools and resources
 - built-in webserver, A2A, Discord, and chat REPL interfaces
 - static-site generation with reusable site + theme packages
-- rover as the public reference brain model
+- the personal-publishing posture as the public reference brain
 - Kamal-based self-hosted deploy scaffolding, including app-local deploy artifacts, env-schema generation, and Cloudflare Origin CA bootstrap support
 - published-path support for standalone brain authoring
 
 ### What stable `v0.2.0` means
 
-`v0.2.0` is a packaging and stability milestone, not a feature gate against Relay validation. It ships when:
+`v0.2.0` is a packaging and stability milestone, not a feature gate against any one posture. It ships when:
 
 - the runtime APIs surfaced through `@rizom/brain/{plugins,entities,services,interfaces,templates}` are treated as the supported authoring surface;
 - the `public` / `shared` / `restricted` visibility model is considered the baseline contract;
-- Rover eval coverage stays green across alpha releases;
+- personal-publishing eval coverage stays green across alpha releases;
 - documented deploy and init flows continue to reconcile against the extracted production paths.
 
-Relay POC validation (§2) and shared-Relay trust hardening (§3) proceed in parallel and do **not** gate `v0.2.0`.
+Collective-posture validation (§2), the trust/identity frontier (§3), and the brain-model unification (§1) proceed in parallel and do **not** gate `v0.2.0`.
 
 ## Recently completed
 
@@ -86,41 +86,45 @@ These areas are effectively landed:
 
 The central product bet is now explicit:
 
-> **Rover remains a standalone personal/professional brain. Relay proves the team/collective brain: one shared Relay per team or collective, not one bot per person.**
+> **One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.**
 
-The roadmap keeps that bet front and center: **§1–§2 are the two product tracks** (Rover, Relay). **§3–§7 are shared capabilities and framework work** that both products depend on — grouped by capability, not attributed to one product. Relay often forces a capability first, but that does not make the capability Relay-specific. Implementation plans remain in [docs/plans](./plans/README.md), but the roadmap should answer what the work supports.
+This is a deliberate change from the previous "two product tracks" framing. There is one product. **Posture is configuration, not a separate product:** `core` + `publishing` is the personal-publishing setting; `core` + `team` is the collective setting; both are the same brain. So the roadmap is organized as: **§1 the brain and its bundles** (what the product is), **§2 the postures we have proven** (the personal→collective validation arc), and **§3–§7 the shared substrate** every brain runs on — grouped by capability, never attributed to one posture.
 
-### 1. Keep Rover sharp as the public reference
+The frontier moved with the framing. Once posture is just configuration, the open problem is no longer "prove the team product" — it is **multi-user** (§3), the one thing posture-as-config cannot fake. Implementation plans remain in [docs/plans](./plans/README.md); the roadmap should answer what the work supports.
 
-Rover is the public reference brain and should keep working without Relay. The posture has shifted from "maintain Rover" to "actively harden Rover alongside the Relay POC" — both produce signal worth acting on, and both feed the same weekly review cadence.
+### 1. The brain and its bundles
 
-Three parallel sub-tracks:
+The product is one brain, composed from **capability bundles** — named, posture-carrying groups of plugins (plugins + their config defaults + permission posture). A brain is `core` plus whichever bundles its posture needs:
 
-**Completed: bundled web chat UI.** Rover (and every brain) now ships a bundled in-browser chat surface at `/chat`, including sessions, confirmations, uploads, progress/status parts, generated attachments, sources, and suggested actions. Keep hardening it through normal bug reports and release verification rather than a standing plan.
+- **`core`** — the posture-independent foundation every brain wants: infra (prompt, directory-sync, auth, notifications, mcp, webserver, a2a, dashboard, cms, email) + universal capture (note, link, topics, image, document, wishlist, decks) + peer discovery (`agents`, `assessment`, atproto discovery).
+- **`site`** — a public web presence (site-info, site-builder, site-content, themes, web analytics, OG).
+- **`publishing`** — content production and distribution (post/blog, series, content-pipeline, social-media, newsletter, stock-photo, portfolio, outbound atproto).
+- **`team`** — shared team memory (conversation-memory `shared`, docs) plus the trusted-collaborator permission posture.
 
-**Completed: media/OG follow-through.** PDF carousels, printable PDFs, generated OG images, and content-pipeline publish assets landed in this cycle. Future media tweaks should be handled as normal bugs/enhancements rather than a standing plan.
+Posture is then `brain.yaml` configuration: personal publishing is `core + site + publishing`; a collective is `core + site + team`; both are the same brain. `site` and `publishing` are independent (publishing can target external channels with no website), and instances tune at the edges with `add`/`remove` rather than configurable bundles.
 
-**Reactive: user-testing friction.** Real users on `yeehaa.io`, `mylittlephoney.com`, and the Rizom variants surface friction the Relay POC won't. Operating model:
+**The structural bet that makes this true** is collapsing the three model packages into one and introducing the bundle primitive. Until it lands, the three `defineBrain` packages still exist; the work is sequenced as thin vertical slices that keep every posture eval-green.
 
-- one capture channel (Discord, issues, wherever) so reported friction does not get lost in scattered conversations;
+The personal-publishing posture is the public reference and must stay sharp without the team posture. The operating model for it is reactive: real users on `yeehaa.io`, `mylittlephoney.com`, and the Rizom variants surface friction a POC won't —
+
+- one capture channel so reported friction does not get lost;
 - prioritize by frequency × severity, not by what looks interesting to fix;
-- bias toward small ships that propagate via the next deploy rather than coordinated rollouts;
+- bias toward small ships that propagate via the next deploy;
 - give setup/first-run friction disproportionate weight — current users are past the onboarding wall, so it is invisible from inside the project but lethal for anyone new;
-- keep the friction queue visible somewhere durable so the same papercut does not get re-reported and re-deferred silently.
+- keep the friction queue durable so the same papercut is not re-reported and re-deferred silently.
 
-Both tracks share the same weekly review with Relay POC observations: what hit us this week, what is the smallest fix, what gets shipped.
+The bundled web chat UI (`/chat` — sessions, confirmations, uploads, progress, attachments, sources, suggested actions) and the media/OG pipeline (PDF carousels, printable PDFs, OG images, publish assets) both landed and are now maintained through normal bug/release work rather than standing plans.
 
 Plans:
 
-- [rover-core-preset-evals.md](./plans/rover-core-preset-evals.md) — preset-aware eval harness merged; remaining work fills behavioral coverage so the core suite stays exhaustive as new behavior lands.
+- [brain-model-unification.md](./plans/brain-model-unification.md) — **the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + `brain init` recipes. Supersedes the three-reference-model framing.
+- [rover-core-preset-evals.md](./plans/rover-core-preset-evals.md) — preset-aware eval harness merged; remaining work fills behavioral coverage and re-tags toward bundle combinations as unification lands.
 - [rover-chat-native-onboarding.md](./plans/rover-chat-native-onboarding.md) — in-chat guided first-run onboarding (playbook-driven); on a feature branch with correctness gaps from live smoke still to close.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 
-### 2. Prove shared Relay as team knowledge infrastructure
+### 2. The collective posture (active POC)
 
-This is the active product story. Relay should behave like one shared team/collective brain in the places where collaboration already happens, starting with Discord/shared spaces.
-
-The proof is not “many personal bots in one room.” The proof is one Relay that can:
+`core + site + team` is the one posture still being validated — the personal-publishing posture already runs in production (§1). The proof is not "many personal bots in one room"; it is one shared brain that can:
 
 - listen in configured shared spaces;
 - preserve who said what without collapsing everyone into one anonymous source;
@@ -128,30 +132,34 @@ The proof is not “many personal bots in one room.” The proof is one Relay th
 - retrieve team memory in context;
 - help a collective become more legible to itself.
 
-Current state:
+Current state of the collective posture:
 
-- Relay POC scaffolding exists: presets, prompts, eval scaffold, and assessment coverage.
-- Conversation-memory has scoped projection, summaries, decisions, action items, dashboard widgets, and retrieval.
-- Speaker attribution first pass is implemented: messages preserve actor/source metadata, summaries track participants, and identity-link follow-ups are covered by the runtime-user/auth DB plans; deeper identity-link management remains deferred.
-- Shared-space trust first slice is implemented: configured spaces can grant collaborator/trusted access, with Discord channel context and bot/guest exclusions.
-- Multi-user turn context and permission boundaries are now under eval: the core-preset suite replays anchor/trusted/public conversations in one thread and guards approval-hijack and shared-thread write denials.
+- the `team` capabilities exist as the POC packaged today (prompts, eval scaffold, assessment coverage);
+- conversation-memory has scoped projection, summaries, decisions, action items, dashboard widgets, and retrieval;
+- speaker attribution first pass is implemented: messages preserve actor/source metadata and summaries track participants; deeper identity-link management remains deferred to §3;
+- the shared-space trust first slice is implemented: configured spaces grant collaborator/trusted access, with Discord channel context and bot/guest exclusions;
+- multi-user turn context and permission boundaries are under eval: the core suite replays anchor/trusted/public conversations in one thread and guards approval-hijack and shared-thread write denials.
 
-The POC validates when:
+The collective posture validates when:
 
-- at least one team or collective runs Relay against a real shared space for a sustained cycle (weeks, not days);
-- conversation summaries, decisions, and action items are referenced back by participants as the canonical record;
+- at least one team or collective runs it against a real shared space for a sustained cycle (weeks, not days);
+- summaries, decisions, and action items are referenced back by participants as the canonical record;
 - the rough edges in trust and identity are visible enough to drive §3 prioritization rather than blocking adoption.
 
-Until then, Relay remains an internal experiment owned by `rizom-foundation`.
+Until then it remains an internal experiment owned by `rizom-foundation`. Note the hard line: the `team` posture ships a _permission posture_ (trusted-collaborator writes), which is collaboration on the single-anchor model — **not** true multi-user. That substrate is §3.
+
+To differentiate as more than "the personal posture minus publishing," the collective posture needs team-native capabilities that don't exist yet — meeting notes, decision records, conversational Q&A over the brain ("ask the team"), and a scheduled team digest — built as dedicated plugins rather than reused publishing stack.
 
 Plans:
 
-- [relay-presets.md](./plans/relay-presets.md) — Relay preset philosophy, current POC readiness, and deferred scope.
+- [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — the prioritized roadmap of team-native capabilities that make the collective posture distinctive (parked, demand-gated).
 - [message-interface-tool-status.md](./plans/message-interface-tool-status.md) — shared lifecycle model for tool-status updates rendered per interface (web-chat, Discord, future adapters), so shared-space participants can see what the brain is doing.
 
-### 3. Trust & identity
+### 3. Trust & identity — the frontier
 
-The shared identity, permissions, and provenance substrate. Relay forces it first — a shared team brain cannot keep trust hand-wavy — but this is **not Relay-specific**: every brain, Rover included, runs on the same auth, runtime-user, and signing layer. The bar is enough identity and provenance to support real collaboration without prematurely becoming a full SaaS account system.
+This is now **the** open problem. Once posture is configuration (§1), the only thing that setting cannot fake is real multi-user: distinct people, each a first-class runtime identity with their own auth, roles, per-user state, and cross-interface identity linking. The `team` posture ships a permission _tier_ (trusted-collaborator) on the single-anchor model; turning that tier into an actual roster of people is the substrate work here.
+
+It carries a genuine architectural puzzle: content is markdown/git-synced and shareable, but user identity and auth **must not** be git-synced — so multi-user needs a second data plane (a runtime DB) beside the content plane. This is **not posture-specific**: every brain runs on the same auth, runtime-user, and signing layer. The bar is enough identity and provenance to support real collaboration without prematurely becoming a full SaaS account system.
 
 This includes:
 
@@ -170,7 +178,7 @@ Plans:
 
 ### 4. Hosting & operations
 
-Making brains installable, maintainable, and recoverable by operators: fleet/hosting shape, onboarding, and safe offboarding. Driven today by the **hosted Rover pilot** (most plans here are Rover-pilot ops), but the same machinery hosts Relay later. The multi-user admin surfaces depend on the runtime-user model from §3 and cannot land before it; first-passkey bootstrap, anchor-visible setup URL retrieval, auth-service plugin bridging, and setup-email delivery have already shipped, so operator onboarding is no longer a standing plan.
+Making brains installable, maintainable, and recoverable by operators: fleet/hosting shape, onboarding, and safe offboarding. Driven today by the **hosted personal-brain pilot** (most plans here are pilot ops), but the same machinery hosts the collective posture later. The multi-user admin surfaces depend on the runtime-user model from §3 and cannot land before it; first-passkey bootstrap, anchor-visible setup URL retrieval, auth-service plugin bridging, and setup-email delivery have already shipped, so operator onboarding is no longer a standing plan.
 
 This includes:
 
@@ -216,7 +224,7 @@ Plans:
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
 - [mcp-external-redesign.md](./plans/mcp-external-redesign.md) — CQRS split for external MCP: raw read tools stay composable (`readOnlyHint`), all mutations route through a single agent-gated `chat` command; `debug` mode keeps raw write tools local-only.
 - [okf-interop.md](./plans/okf-interop.md) — export/import the entity store as Google Open Knowledge Format bundles via `directory-sync`, for interchange with external OKF producers/consumers.
-- [bd-priority-engine.md](./plans/bd-priority-engine.md) — proposed standalone `@brains/bd` package: a conversational project/lead prioritization engine (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for its own BD; brain-agnostic, not in the public Rover preset.
+- [bd-priority-engine.md](./plans/bd-priority-engine.md) — Opportunity Priority Engine: proposed standalone `@brains/opportunity` package for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for opportunity prioritization; brain-agnostic, not in any default bundle.
 - [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
 
 ### 7. Keep the framework sustainable
@@ -249,23 +257,25 @@ The project is intentionally opinionated.
 - self-hosted AI knowledge agents
 - markdown as durable source of truth
 - MCP as the default assistant integration layer
-- one-brain-per-instance deployment
+- one brain per instance, composed from capability bundles (posture is configuration, not a separate product)
 - strong plugin boundaries instead of ad hoc app code
 - site publishing from the same content graph that powers the agent
 
 It is **not** currently targeting:
 
-- multi-tenant SaaS hosting
+- multi-tenant SaaS hosting (one instance can serve multiple _users_ — §3 — but not multiple isolated tenants)
 - generic autonomous-agent orchestration
 - a fully stable plugin SDK before `1.0`
 
-## Reference models
+## Reference postures
 
-- **`rover`** — the public reference model (personal brain)
-- **`ranger`** — internal-use source model for `rizom-ai`
-- **`relay`** — internal-use source model for `rizom-foundation`, currently in POC with brain prompts, preset split, and SWOT eval coverage
+There is one brain; "reference models" are now bundle combinations, not packages:
 
-External examples and docs should treat **`rover`** as the main reference.
+- **personal publishing** — `core + site + publishing`; the public reference, live in production (formerly the `rover` model).
+- **collective / team** — `core + site + team`; the active POC (formerly the `relay` model).
+- **commerce** — `core + site` plus the opt-in `products` capability (absorbs what the `ranger` model carried).
+
+External examples and docs should treat the **personal-publishing** posture as the main reference. The `rover`/`relay`/`ranger` model packages are being retired in [brain-model-unification.md](./plans/brain-model-unification.md).
 
 ## Stability
 

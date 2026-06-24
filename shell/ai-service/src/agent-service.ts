@@ -34,6 +34,7 @@ import {
   buildMessageWithAttachments,
   buildModelMessages,
   resolveConversationUploadContinuity,
+  shouldHydrateUploadAttachmentsForMessage,
   type ConversationUploadRef,
 } from "./conversation-messages";
 import {
@@ -603,6 +604,7 @@ export class AgentService implements IAgentService {
 
     const effectiveMessage = uploadContinuity.message;
     const effectiveAttachments = await this.hydrateUploadAttachments({
+      message: effectiveMessage,
       currentAttachments: uploadContinuity.attachments,
       uploadRefs: liveUploadRefs,
     });
@@ -750,12 +752,16 @@ export class AgentService implements IAgentService {
   }
 
   private async hydrateUploadAttachments(params: {
+    message: string;
     currentAttachments: ChatAttachment[];
     uploadRefs: { source: NonNullable<ChatAttachment["source"]> }[];
   }): Promise<ChatAttachment[]> {
     if (params.currentAttachments.length > 0) return params.currentAttachments;
     if (!this.uploadAttachmentResolver) return params.currentAttachments;
-    if (params.uploadRefs.length === 0) return params.currentAttachments;
+    if (params.uploadRefs.length !== 1) return params.currentAttachments;
+    if (!shouldHydrateUploadAttachmentsForMessage(params.message)) {
+      return params.currentAttachments;
+    }
 
     const hydrated: ChatAttachment[] = [];
     for (const ref of params.uploadRefs.slice().reverse()) {

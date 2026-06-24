@@ -495,6 +495,93 @@ describe("AgentService", () => {
       );
     });
 
+    it("keeps multiple pending prior upload refs model-visible without hydrating bytes", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "alpha.pdf",
+                  mediaType: "application/pdf",
+                  source: { kind: "upload", id: "upload-alpha" },
+                },
+                {
+                  kind: "file",
+                  filename: "beta.png",
+                  mediaType: "image/png",
+                  source: { kind: "upload", id: "upload-beta" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-upload-intent",
+            conversationId: "test-conversation",
+            role: "assistant",
+            content:
+              "I got `alpha.pdf`, `beta.png`. What would you like me to do with these files?",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              cards: [
+                {
+                  kind: "actions",
+                  id: "actions:upload-intent",
+                  title: "Try next",
+                  actions: [],
+                },
+              ],
+            }),
+          },
+        ]),
+      );
+      const uploadAttachmentResolver = createUploadAttachmentResolver({
+        "upload-alpha": {
+          filename: "alpha.pdf",
+          mediaType: "application/pdf",
+        },
+        "upload-beta": {
+          filename: "beta.png",
+          mediaType: "image/png",
+        },
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, uploadAttachmentResolver },
+      );
+
+      await service.chat(
+        "Can you generate a preview of the carousel for deck 'distributed-systems-primer'? Use the deck, not the uploaded files.",
+        "test-conversation",
+      );
+
+      expect(uploadAttachmentResolver).toHaveBeenCalledTimes(2);
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const lastMessage = callArgs?.messages.at(-1);
+      expect(lastMessage?.content).toContain("Available upload refs");
+      expect(lastMessage?.content).toContain("upload-alpha");
+      expect(lastMessage?.content).toContain("upload-beta");
+      expect(Array.isArray(lastMessage?.content)).toBe(false);
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.not.objectContaining({
+          metadata: expect.objectContaining({
+            attachments: expect.any(Array),
+          }),
+        }),
+      );
+    });
+
     it("hides stale prior upload refs when runtime upload content is unavailable", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([

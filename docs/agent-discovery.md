@@ -184,6 +184,6 @@ grant it call access.
   exposed and permission-filtered for composability, while writes funnel through
   a single `chat` tool. Refines the in-brain capability layer for outside
   callers.
-- **Agents in the core preset** — `docs/plans/relay-presets.md`. The `agents`
-  plugin is registered in the `core` preset; "agents phase 2 (ATProto
-  firehose) — auto-discover peer brains" is the next named capability.
+- **Agents in the core bundle** — `docs/plans/brain-model-unification.md`. The
+  `agents` plugin lives in the posture-independent `core` bundle; "agents phase
+  2 (ATProto firehose) — auto-discover peer brains" is the next named capability.

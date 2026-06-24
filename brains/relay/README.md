@@ -175,6 +175,7 @@ bunx brain start
 
 See also:
 
-- [Relay preset plan](../../docs/plans/relay-presets.md)
+- [Brain model unification (collapses relay into the `team` bundle)](../../docs/plans/brain-model-unification.md)
+- [Team-posture capabilities](../../docs/plans/team-posture-capabilities.md)
 - [Brain model architecture](../../docs/brain-model.md)
 - [Repository README](../../README.md)
