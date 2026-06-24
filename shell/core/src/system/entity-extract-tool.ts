@@ -3,7 +3,7 @@ import type { Tool } from "@brains/mcp-service";
 import { extractInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
-import { createSystemTool } from "./tool-helpers";
+import { assertEntityTypeRegistered, createSystemTool } from "./tool-helpers";
 
 export function createEntityExtractTool(services: SystemServices): Tool {
   const { entityService, jobs } = services;
@@ -20,12 +20,11 @@ export function createEntityExtractTool(services: SystemServices): Tool {
       const appliedMode =
         rebuildRequested && rebuildSupported ? "rebuild" : "derive";
 
-      if (!entityService.getEntityTypes().includes(entityType)) {
-        return {
-          success: false,
-          error: `Unknown entity type: ${entityType}. Available types: ${entityService.getEntityTypes().join(", ")}`,
-        };
-      }
+      const unregisteredError = assertEntityTypeRegistered(
+        services,
+        entityType,
+      );
+      if (unregisteredError) return unregisteredError;
 
       // Policy is checked before mode (derive/rebuild/source) is finalized.
       // Assumes all extraction modes share the same required level for a

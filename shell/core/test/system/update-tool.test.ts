@@ -239,6 +239,21 @@ describe("system_update tool", () => {
     });
   });
 
+  it("rejects delete for an unregistered entity type without leaking registry internals", async () => {
+    const result = await execDelete({
+      entityType: "blog-post",
+      id: "queens-are-not-invincible",
+    });
+
+    expect(result).toMatchObject({ success: false });
+    const error = (result as { error: string }).error;
+    expect(error).toContain(
+      'Entity type "blog-post" is not available in this brain.',
+    );
+    // The internal registry string must never reach the operator.
+    expect(error).not.toContain("No adapter registered");
+  });
+
   it("does not delete when confirmed is passed without a pending confirmation token", async () => {
     const result = await execDelete({
       entityType: "newsletter",

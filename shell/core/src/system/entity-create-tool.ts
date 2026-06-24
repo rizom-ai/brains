@@ -1,3 +1,7 @@
+import {
+  isSavableAssistantMessage,
+  parseConversationMessageMetadata,
+} from "@brains/conversation-service";
 import type {
   CreateCoverImageInput,
   CreateExecutionContext,
@@ -17,6 +21,7 @@ import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
+  assertEntityTypeRegistered,
   buildEntityMutationEventContext,
   createSystemTool,
   hasStructuredFrontmatter,
@@ -145,20 +150,6 @@ async function resolveSourceAttachment(
   return { ...input, sourceEntityId: result.entity.id };
 }
 
-function parseMessageMetadata(
-  metadata: unknown,
-): Record<string, unknown> | null {
-  if (typeof metadata === "string") {
-    try {
-      const parsed = JSON.parse(metadata) as unknown;
-      return isRecord(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
-  }
-  return isRecord(metadata) ? metadata : null;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -174,7 +165,7 @@ async function isUploadRefInConversation(
     { limit: 100 },
   );
   for (const message of messages) {
-    const metadata = parseMessageMetadata(message.metadata);
+    const metadata = parseConversationMessageMetadata(message.metadata);
     const attachments = metadata?.["attachments"];
     if (!Array.isArray(attachments)) continue;
     for (const attachment of attachments) {
@@ -189,13 +180,76 @@ async function isUploadRefInConversation(
   return false;
 }
 
+async function resolveConversationMessageContent(
+  services: SystemServices,
+  input: Extract<CreateInput["from"], { kind: "conversation-message" }>,
+  conversationId: string | undefined,
+): Promise<
+  { success: true; content: string } | { success: false; error: string }
+> {
+  if (!conversationId) {
+    return {
+      success: false,
+      error:
+        "Conversation message is not accessible in this conversation or does not exist.",
+    };
+  }
+
+  const messages = await services.conversationService.getMessages(
+    conversationId,
+    { limit: 100 },
+  );
+  const message = input.messageId
+    ? messages.find(
+        (candidate) =>
+          candidate.id === input.messageId && candidate.role === "assistant",
+      )
+    : [...messages].reverse().find(isSavableAssistantMessage);
+
+  if (!message || !isSavableAssistantMessage(message)) {
+    return {
+      success: false,
+      error:
+        "Conversation message is not accessible in this conversation or does not exist.",
+    };
+  }
+
+  return { success: true, content: message.content };
+}
+
 interface NormalizedCreateSource {
   prompt?: string;
   content?: string;
   url?: string;
-  from?: CreateInput["from"];
+  from?: Exclude<CreateInput["from"], { kind: "conversation-message" }>;
   uploadRef?: { kind: "upload"; id: string };
+  conversationMessageRef?: Extract<
+    CreateInput["from"],
+    { kind: "conversation-message" }
+  >;
   transform?: CreateInput["transform"];
+}
+
+function normalizeConversationMessageRef(
+  input:
+    | Extract<CreateInput["from"], { kind: "conversation-message" }>
+    | undefined,
+): Extract<CreateInput["from"], { kind: "conversation-message" }> | undefined {
+  if (!input) return undefined;
+  const rawMessageId = normalizeOptionalString(input.messageId);
+  const messageId = rawMessageId?.toLowerCase();
+  if (
+    !messageId ||
+    messageId === "latest" ||
+    messageId === ":latest" ||
+    messageId === "current" ||
+    messageId === ":current" ||
+    messageId.includes("/latest") ||
+    messageId.includes("/current")
+  ) {
+    return { kind: "conversation-message" };
+  }
+  return { kind: "conversation-message", messageId: rawMessageId };
 }
 
 function normalizeCreateSource(input: {
@@ -203,6 +257,9 @@ function normalizeCreateSource(input: {
   content?: string | undefined;
   url?: string | undefined;
   upload?: { kind: "upload"; id: string } | undefined;
+  from?:
+    | Extract<CreateInput["from"], { kind: "conversation-message" }>
+    | undefined;
   sourceAttachment?:
     | {
         sourceEntityType: string;
@@ -217,14 +274,25 @@ function normalizeCreateSource(input: {
   const prompt = normalizeOptionalString(input.prompt);
   const content = normalizeOptionalString(input.content);
   const url = normalizeOptionalString(input.url);
-  const hasDirectSource = Boolean(content ?? prompt ?? url);
+  const conversationMessageRef = normalizeConversationMessageRef(input.from);
+  const promptForDirectSource = conversationMessageRef ? undefined : prompt;
+  const urlForDirectSource = conversationMessageRef ? undefined : url;
+  const contentForDirectSource = conversationMessageRef ? undefined : content;
+  const hasDirectSource = Boolean(
+    contentForDirectSource ?? promptForDirectSource ?? urlForDirectSource,
+  );
   const uploadRef =
-    input.sourceAttachment || hasDirectSource ? undefined : input.upload;
-  const from: CreateInput["from"] = input.sourceAttachment
+    input.sourceAttachment || hasDirectSource || conversationMessageRef
+      ? undefined
+      : input.upload;
+  const from: NormalizedCreateSource["from"] = input.sourceAttachment
     ? { kind: "entity-attachment", ...input.sourceAttachment }
     : uploadRef;
   const rawTransform = normalizeOptionalString(input.transform);
-  const transform = hasDirectSource && input.upload ? undefined : rawTransform;
+  const transform =
+    conversationMessageRef || (hasDirectSource && input.upload)
+      ? undefined
+      : rawTransform;
 
   if (transform !== undefined && transform !== "extract-markdown") {
     return {
@@ -237,11 +305,12 @@ function normalizeCreateSource(input: {
   return {
     success: true,
     source: {
-      ...(prompt && { prompt }),
-      ...(content && { content }),
-      ...(url && { url }),
+      ...(promptForDirectSource && { prompt: promptForDirectSource }),
+      ...(contentForDirectSource && { content: contentForDirectSource }),
+      ...(urlForDirectSource && { url: urlForDirectSource }),
       ...(from && { from }),
       ...(uploadRef && { uploadRef }),
+      ...(conversationMessageRef && { conversationMessageRef }),
       ...(transform && { transform }),
     },
   };
@@ -253,7 +322,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload only for upload-to-note extraction, or sourceAttachment for source attachment saves. For uploaded PDF/text/markdown/JSON note imports, use entityType note with upload and transform extract-markdown; do not copy uploaded file bytes into content. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity. Requires confirmation. Provide content for direct creation from current user-provided text, a prompt for AI generation, a url for URL-first flows, from { kind: 'conversation-message' } only for saving a previous assistant response, upload only for upload-to-note extraction, or sourceAttachment for source attachment saves. Never use from: conversation-message for text the user just provided in the current message; put that text in content and omit from. For uploaded PDF/text/markdown/JSON note imports, use entityType note with upload and transform extract-markdown; do not copy uploaded file bytes into content. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const visibilityScope = permissionToVisibilityScope(
@@ -269,8 +338,36 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         sourceAttachment,
       });
       if (!normalizedSource.success) return normalizedSource;
-      const { prompt, content, url, from, uploadRef, transform } =
-        normalizedSource.source;
+
+      const unregisteredError = assertEntityTypeRegistered(
+        services,
+        input.entityType,
+      );
+      if (unregisteredError) return unregisteredError;
+
+      const {
+        prompt,
+        content,
+        url,
+        from,
+        uploadRef,
+        conversationMessageRef,
+        transform,
+      } = normalizedSource.source;
+      const resolvedConversationMessage = conversationMessageRef
+        ? await resolveConversationMessageContent(
+            services,
+            conversationMessageRef,
+            toolContext.conversationId ?? toolContext.channelId,
+          )
+        : undefined;
+      if (resolvedConversationMessage && !resolvedConversationMessage.success) {
+        return resolvedConversationMessage;
+      }
+      const resolvedContent =
+        resolvedConversationMessage?.success === true
+          ? resolvedConversationMessage.content
+          : content;
       const title = normalizeOptionalString(input.title);
       if (
         transform === "extract-markdown" &&
@@ -294,11 +391,11 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
         };
 
-      if (!content && !prompt && !url && !from)
+      if (!resolvedContent && !prompt && !url && !from)
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' with transform (upload-to-note extraction), or 'sourceAttachment' (source attachment create), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'from' with kind conversation-message (save prior assistant response), 'upload' with transform (upload-to-note extraction), or 'sourceAttachment' (source attachment create), or a supported combination.",
         };
 
       if (uploadRef) {
@@ -316,8 +413,9 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         }
       }
 
-      if (content && hasVisibilityFrontmatter(content)) {
-        const requestedVisibility = extractVisibilityFromMarkdown(content);
+      if (resolvedContent && hasVisibilityFrontmatter(resolvedContent)) {
+        const requestedVisibility =
+          extractVisibilityFromMarkdown(resolvedContent);
         if (
           !canWriteVisibility(
             toolContext.userPermissionLevel,
@@ -337,7 +435,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         entityType: input.entityType,
         ...(prompt && { prompt }),
         ...(title && { title }),
-        ...(content && { content }),
+        ...(resolvedContent && { content: resolvedContent }),
         ...(url && { url }),
         ...(from && { from }),
         ...(transform && { transform }),
@@ -392,7 +490,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           entityType: input.entityType,
           ...(title && { title }),
           ...(prompt && { prompt }),
-          ...(content && { content }),
+          ...(resolvedContent && { content: resolvedContent }),
           ...(url && { url }),
           ...(uploadRef && { upload: uploadRef }),
           ...(sourceAttachment && {

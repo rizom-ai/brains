@@ -133,7 +133,7 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
       return this.promoteUpload(input, context);
     }
 
-    if (!input.from) {
+    if (!input.from || input.from.kind !== "entity-attachment") {
       return { kind: "continue", input };
     }
 

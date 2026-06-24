@@ -6,7 +6,11 @@ import type { Tool } from "@brains/mcp-service";
 import { deleteInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
-import { createSystemTool, getEntityDisplayLabel } from "./tool-helpers";
+import {
+  assertEntityTypeRegistered,
+  createSystemTool,
+  getEntityDisplayLabel,
+} from "./tool-helpers";
 
 export function createEntityDeleteTool(services: SystemServices): Tool {
   const { entityService, entityRegistry, logger } = services;
@@ -32,6 +36,14 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         context,
       );
       if (policyError) return policyError;
+
+      // Guard before getAdapter below, which would otherwise throw the raw
+      // "No adapter registered" registry string for an unregistered type.
+      const unregisteredError = assertEntityTypeRegistered(
+        services,
+        input.entityType,
+      );
+      if (unregisteredError) return unregisteredError;
 
       if (entityRegistry.getAdapter(input.entityType).isSingleton === true) {
         return {

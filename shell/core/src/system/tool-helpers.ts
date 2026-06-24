@@ -91,6 +91,31 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
   };
 }
 
+/**
+ * Reject an operation on an entity type that no plugin has registered.
+ *
+ * Without this guard the create tool confirms and (for `prompt` creates) runs a
+ * full generation pass before `EntityRegistry.getAdapter` finally throws
+ * "No adapter registered for entity type", leaking that internal string to the
+ * operator. Validating up front turns a late, cryptic failure into a clean
+ * early rejection, and listing the available types lets the model recover by
+ * choosing a type that actually exists in this brain.
+ */
+export function assertEntityTypeRegistered(
+  services: {
+    entityRegistry: { hasEntityType(type: string): boolean };
+    entityService: { getEntityTypes(): string[] };
+  },
+  entityType: string,
+): ToolResponse | undefined {
+  if (services.entityRegistry.hasEntityType(entityType)) return undefined;
+  const available = services.entityService.getEntityTypes();
+  return {
+    success: false,
+    error: `Entity type "${entityType}" is not available in this brain. Available types: ${available.join(", ")}.`,
+  };
+}
+
 export function buildEntityMutationEventContext(
   context: ToolContext,
 ): EntityMutationEventContext | undefined {

@@ -162,7 +162,15 @@ export interface CreateFromUploadInput {
   id: string;
 }
 
-export type CreateFromInput = CreateFromAttachmentInput | CreateFromUploadInput;
+export interface CreateFromConversationMessageInput {
+  kind: "conversation-message";
+  messageId?: string | undefined;
+}
+
+export type CreateFromInput =
+  | CreateFromAttachmentInput
+  | CreateFromUploadInput
+  | CreateFromConversationMessageInput;
 
 export type CreateTransform = "extract-markdown";
 

@@ -28,6 +28,7 @@ export type {
   BaseEntity,
   CreateCoverImageInput,
   CreateFromAttachmentInput,
+  CreateFromConversationMessageInput,
   CreateFromInput,
   CreateFromUploadInput,
   CreateInput,

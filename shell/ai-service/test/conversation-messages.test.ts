@@ -7,7 +7,7 @@ import {
 } from "../src/conversation-messages";
 
 describe("toModelMessages", () => {
-  it("adds a structural assistant-content referent without footer-shaped entity memory", () => {
+  it("does not stamp assistant-content referents onto assistant message text", () => {
     const messages = toModelMessages([
       {
         id: "message-1",
@@ -22,10 +22,10 @@ describe("toModelMessages", () => {
       },
     ]);
 
-    expect(JSON.stringify(messages)).toContain(
+    expect(JSON.stringify(messages)).not.toContain(
       "Internal conversation content ref",
     );
-    expect(JSON.stringify(messages)).toContain('entityType \\"note\\"');
+    expect(JSON.stringify(messages)).not.toContain('entityType \\"note\\"');
     expect(JSON.stringify(messages)).not.toContain(
       "Entities affected this turn",
     );

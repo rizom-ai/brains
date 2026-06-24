@@ -243,10 +243,10 @@ describe("buildInstructions", () => {
   it("should keep discussion and summary notes off upload import paths", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, create a `note` entity with `content` from the conversation; do not call `system_upload_save`, do not import the image/PDF/file upload, and do not pass `upload` or `transform`.",
+      'If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, call `system_create` with `entityType: "note"` and `from: { kind: "conversation-message" }`',
     );
     expect(instructions).toContain(
-      "After you summarize/read/describe/analyze an uploaded file, follow-ups like “save it”, “save that”, “save the note”, or “save the summary” refer to the visible summary/notes you just wrote unless the user explicitly says to save/import/promote the uploaded PDF/file/document itself.",
+      "For follow-ups after you summarized/read/described/analyzed an upload, bare “save it”, “save that”, “save the note”, or “save the summary” means save your visible summary/description/discussion as a note",
     );
     expect(instructions).toContain(
       '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "note"`; never use `transform` for image uploads.',

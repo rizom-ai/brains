@@ -59,6 +59,30 @@ const enqueuedLinkJobSchema = z.object({
 const URL_PATTERN = /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i;
 type MockServices = ReturnType<typeof createMockSystemServices>;
 
+// Entity types these tests treat as registered by an installed plugin. The
+// create tool now rejects unregistered types up front, so every mock must
+// register the types it exercises (mirrors real plugin registration).
+const STANDARD_ENTITY_TYPES = [
+  "base",
+  "note",
+  "post",
+  "deck",
+  "document",
+  "image",
+  "link",
+  "agent",
+  "social-post",
+  "summary",
+];
+
+function createSeededSystemServices(
+  overrides?: Partial<Parameters<typeof createMockSystemServices>[0]>,
+): MockServices {
+  const services = createMockSystemServices(overrides);
+  services.registerEntityTypes(STANDARD_ENTITY_TYPES);
+  return services;
+}
+
 function extractFirstUrl(
   ...values: Array<string | undefined>
 ): string | undefined {
@@ -251,7 +275,7 @@ describe("system_create tool", () => {
   let services: ReturnType<typeof createMockSystemServices>;
 
   beforeEach(() => {
-    services = createMockSystemServices();
+    services = createSeededSystemServices();
     registerLinkCreateInterceptor(services);
     registerImageCreateInterceptor(services);
     tools = createSystemTools(services);
@@ -303,6 +327,31 @@ describe("system_create tool", () => {
     return execRaw(result.args as Record<string, unknown>, context);
   }
 
+  it("rejects unregistered entity types before confirming or generating", async () => {
+    const result = await execRaw({
+      entityType: "post",
+      title: "Queens Are Not Invincible",
+      prompt: "Write a fuller article from the outline.",
+    });
+
+    // Sanity: "post" is registered in this suite, so it must NOT be rejected.
+    expect(result).not.toMatchObject({ success: false });
+
+    const unregistered = await execRaw({
+      entityType: "blog-post",
+      title: "Queens Are Not Invincible",
+      prompt: "Write a fuller article from the outline.",
+    });
+
+    expect(unregistered).toMatchObject({ success: false });
+    expect((unregistered as { error: string }).error).toContain(
+      'Entity type "blog-post" is not available in this brain.',
+    );
+    // No confirmation card and no generation job for an unregistered type.
+    expect(unregistered).not.toHaveProperty("needsConfirmation");
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
   it("should require confirmation before creating durable entities", async () => {
     const result = await execRaw({
       entityType: "note",
@@ -350,7 +399,7 @@ describe("system_create tool", () => {
       searchConversations: async () => [],
       close: () => undefined,
     };
-    services = createMockSystemServices({ conversationService });
+    services = createSeededSystemServices({ conversationService });
     tools = createSystemTools(services);
 
     const result = await execRaw(
@@ -553,7 +602,7 @@ status: draft
 
   it("should pass accessible upload refs to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
-    services = createMockSystemServices({
+    services = createSeededSystemServices({
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -621,7 +670,7 @@ status: draft
 
   it("should pass upload markdown transforms to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
-    services = createMockSystemServices({
+    services = createSeededSystemServices({
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -701,7 +750,7 @@ status: draft
   });
 
   it("should reject extract-markdown transform for raw document upload promotion", async () => {
-    services = createMockSystemServices({
+    services = createSeededSystemServices({
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -794,7 +843,7 @@ status: draft
 
   it("should use conversationId for upload access when channelId is not the conversation id", async () => {
     let capturedInput: CreateInput | undefined;
-    services = createMockSystemServices({
+    services = createSeededSystemServices({
       conversationService: {
         ...services.conversationService,
         getMessages: async (conversationId: string) =>
@@ -1351,12 +1400,12 @@ A saved research link.`;
     );
   });
 
-  it("should expose top-level url, upload, transform, sourceAttachment, replace, and coverImage, and not include options/from fields in schema", () => {
+  it("should expose top-level url, from, upload, transform, sourceAttachment, replace, and coverImage, and not include options fields in schema", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
     expect(tool.inputSchema).toHaveProperty("url");
-    expect(tool.inputSchema).not.toHaveProperty("from");
+    expect(tool.inputSchema).toHaveProperty("from");
     expect(tool.inputSchema).toHaveProperty("upload");
     expect(tool.inputSchema).toHaveProperty("transform");
     expect(tool.inputSchema).toHaveProperty("sourceAttachment");

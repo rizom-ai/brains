@@ -17,34 +17,11 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
           content: [
             {
               type: "text",
-              text:
-                msg.content +
-                getAssistantContentReferentNote(msg) +
-                getEntityMemoryNote(msg.metadata),
+              text: msg.content + getEntityMemoryNote(msg.metadata),
             },
           ],
         },
   );
-}
-
-function getAssistantContentReferentNote(message: Message): string {
-  if (message.content.trim().length === 0) return "";
-  if (!isSavableAssistantContent(message.metadata)) return "";
-  return '\n\nInternal conversation content ref: this assistant response is assistant-written conversation content and is the current savable conversation artifact. Supported durable save operation for this response: call system_create with entityType "note" and content copied from this assistant response. No extra clarification is needed when the operator asks to save this assistant-written content. Do not save this assistant-written response as a document, and do not use upload or transform unless the operator explicitly asks to save/import the raw uploaded file itself.';
-}
-
-function isSavableAssistantContent(metadata: Message["metadata"]): boolean {
-  const parsedMetadata = parseMessageMetadata(metadata);
-  if (parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]).length > 0) {
-    return false;
-  }
-  const cards = parsedMetadata?.["cards"];
-  if (!Array.isArray(cards)) return true;
-  return !cards.some((card) => {
-    if (!isRecord(card)) return false;
-    if (card["kind"] === "tool-approval") return true;
-    return card["kind"] === "actions" && card["id"] === "actions:upload-intent";
-  });
 }
 
 function getEntityMemoryNote(metadata: Message["metadata"]): string {

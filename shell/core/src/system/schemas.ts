@@ -54,6 +54,19 @@ const createUploadInputSchema = z.object({
   id: z.string().min(1).describe("Upload ID"),
 });
 
+const createConversationMessageInputSchema = z.object({
+  kind: z
+    .literal("conversation-message")
+    .describe("Conversation message ref kind"),
+  messageId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Stored assistant message ID to save. Do not invent placeholder IDs such as latest/current; omit messageId unless an exact stored assistant message ID is available. When omitted, the runtime saves the latest savable assistant response in this conversation.",
+    ),
+});
+
 export const uploadSaveInputSchema = z.object({
   upload: createUploadInputSchema.describe(
     'Exact upload ref to save, copied from the current message or conversation upload refs hint, e.g. { kind: "upload", id: "upload-..." }.',
@@ -111,6 +124,11 @@ export const createInputSchema = z.object({
     .optional()
     .describe(
       "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Use this instead of upload when the requested source is an existing entity artifact. Omit upload when using sourceAttachment. Omit for ordinary direct creates that use content, prompt, or url.",
+    ),
+  from: createConversationMessageInputSchema
+    .optional()
+    .describe(
+      'Use only when the user asks to save a previous assistant response, e.g. "save your last answer", "save that response", or "save it/that/this as a note" after your summary/description/discussion. Use entityType "note" for saving prior assistant summaries/descriptions/discussions as notes. Never use for text the user provided in the current message; put current user text in content and omit from. The runtime copies stored assistant message content; do not also copy that text into content or prompt. Omit messageId unless an exact stored assistant message ID is available.',
     ),
   replace: z
     .boolean()

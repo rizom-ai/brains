@@ -25,6 +25,8 @@ export {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
   conversationMessageMetadataSchema,
+  isSavableAssistantMessage,
+  parseConversationMessageMetadata,
 } from "./types";
 
 // Schema types for compatibility - consider importing from /service if you need these
