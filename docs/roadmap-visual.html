@@ -107,6 +107,14 @@
           <div class="card-desc">provider-neutral <code>web_search</code> capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead <code>webSearch</code> config flag.</div>
           <div class="card-file">web-search-tool.md</div>
         </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Publish pipeline consolidation</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">consolidate direct, queued, and message-driven publishing behind one executor path and harden direct-publish confirmations so invalid/expired tokens fail clearly instead of looping.</div>
+          <div class="card-file">publish-pipeline-consolidation.md</div>
+        </div>
         </div>
       </details>
       <details class="group" open>
