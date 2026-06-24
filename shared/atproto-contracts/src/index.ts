@@ -159,8 +159,13 @@ interface AtprotoSchemaProperty extends AtprotoLexiconProperty {
 
 export type AtprotoRecordSchema = z.ZodType<Record<string, unknown>>;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+const atprotoRecordValueSchema = z.record(z.unknown());
+
+function parseAtprotoRecordValue(
+  value: unknown,
+): z.infer<typeof atprotoRecordValueSchema> | undefined {
+  const parsed = atprotoRecordValueSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }
 
 // RFC 3339 date-time with required offset (Z or ±hh:mm), matching the AT
@@ -227,9 +232,7 @@ function buildAtprotoFieldSchema(
     case "object":
       return buildAtprotoObjectSchema(property);
     case "blob":
-      return z.custom<Record<string, unknown>>(isRecord, {
-        message: "expected blob",
-      });
+      return atprotoRecordValueSchema;
     default:
       return z.unknown();
   }
@@ -293,21 +296,20 @@ function refineBrainCardRecord(
     ]),
     ctx,
   );
-  if (isRecord(value["brain"])) {
+  const brain = parseAtprotoRecordValue(value["brain"]);
+  if (brain) {
     reportUnexpectedFields(
-      value["brain"],
+      brain,
       new Set(["did", "name", "role", "purpose", "values"]),
       ctx,
       ["brain"],
     );
   }
-  if (isRecord(value["anchor"])) {
-    reportUnexpectedFields(
-      value["anchor"],
-      new Set(["did", "name", "kind"]),
-      ctx,
-      ["anchor"],
-    );
+  const anchor = parseAtprotoRecordValue(value["anchor"]);
+  if (anchor) {
+    reportUnexpectedFields(anchor, new Set(["did", "name", "kind"]), ctx, [
+      "anchor",
+    ]);
   }
 }
 

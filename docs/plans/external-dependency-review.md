@@ -714,6 +714,9 @@ Incremental migration progress:
 - Replaced ai-evaluation eval-suite YAML record predicate checks with explicit
   Zod 4 parse helpers, and removed redundant `JSON.parse(... ) as unknown`
   casts from shared/CLI JSON response helpers without changing response shapes.
+- Replaced the remaining shared ATProto contract record predicate helper with
+  an explicit schema parser while keeping the contract schemas on the current
+  main-Zod public boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
