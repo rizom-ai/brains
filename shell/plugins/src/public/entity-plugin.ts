@@ -14,7 +14,7 @@ import type {
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { EntityPluginContext, Plugin } from "./types";
 
 interface EntityPluginHooks<TEntity extends BaseEntity> {

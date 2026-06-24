@@ -7,7 +7,7 @@ import type {
   EntityTypeConfig,
   IEntityService,
 } from "@brains/entity-service";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { IShell } from "../interfaces";
 import { resolvePrompt } from "./prompt-resolver";
 import type { IEntitiesNamespace, IPromptsNamespace } from "./context";

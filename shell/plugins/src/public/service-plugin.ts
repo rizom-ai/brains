@@ -5,7 +5,7 @@ import type {
   PluginCapabilities,
   PluginRegistrationContext,
 } from "../interfaces";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { Plugin, Resource, ServicePluginContext, Tool } from "./types";
 
 interface ServicePluginHooks {

@@ -17,7 +17,7 @@ import type {
 } from "@brains/job-queue";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { ApiRouteDefinition } from "../types/api-routes";
 import type { WebRouteDefinition } from "../types/web-routes";
 
