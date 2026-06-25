@@ -7,7 +7,7 @@ import {
 } from "@brains/plugins";
 import type { ProgressReporter, Logger } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
   createDataUrl,
@@ -29,7 +29,7 @@ export const sourceImageRenderJobDataSchema = z.object({
   targetImageField: z.enum(["coverImageId", "ogImageId"]).optional(),
 });
 
-export type SourceImageRenderJobData = z.infer<
+export type SourceImageRenderJobData = z.output<
   typeof sourceImageRenderJobDataSchema
 >;
 

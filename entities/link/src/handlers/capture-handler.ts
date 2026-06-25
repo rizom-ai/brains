@@ -1,6 +1,6 @@
 import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { LinkAdapter } from "../adapters/link-adapter";
@@ -13,7 +13,7 @@ import type { LinkExtractionResult } from "../templates/extraction-template";
  * Input schema for link capture job
  */
 export const linkCaptureJobSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   metadata: z
     .object({
       interfaceId: z.string().optional(),
@@ -25,7 +25,7 @@ export const linkCaptureJobSchema = z.object({
     .optional(),
 });
 
-export type LinkCaptureJobData = z.infer<typeof linkCaptureJobSchema>;
+export type LinkCaptureJobData = z.output<typeof linkCaptureJobSchema>;
 
 /**
  * Result schema for link capture job
@@ -39,7 +39,7 @@ export const linkCaptureResultSchema = z.object({
   error: z.string().optional(),
 });
 
-export type LinkCaptureResult = z.infer<typeof linkCaptureResultSchema>;
+export type LinkCaptureResult = z.output<typeof linkCaptureResultSchema>;
 
 export interface LinkCaptureJobHandlerOptions {
   jinaApiKey?: string;

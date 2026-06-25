@@ -1,24 +1,24 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { IEntityService } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { imageAdapter } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 
 export const selectPhotoJobSchema = z.object({
   photoId: z.string(),
-  downloadLocation: z.string().url(),
+  downloadLocation: z.url(),
   photographerName: z.string(),
-  photographerUrl: z.string().url(),
-  sourceUrl: z.string().url(),
-  imageUrl: z.string().url(),
+  photographerUrl: z.url(),
+  sourceUrl: z.url(),
+  imageUrl: z.url(),
   title: z.string().optional(),
   alt: z.string().optional(),
   targetEntityType: z.string().optional(),
   targetEntityId: z.string().optional(),
 });
 
-export type SelectPhotoJobData = z.infer<typeof selectPhotoJobSchema>;
+export type SelectPhotoJobData = z.output<typeof selectPhotoJobSchema>;
 
 export interface SelectPhotoJobResult {
   imageEntityId: string;

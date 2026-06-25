@@ -6,7 +6,7 @@ import {
 import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { JobResult } from "@brains/contracts";
 import { imageAdapter } from "@brains/image";
 import {
@@ -22,7 +22,7 @@ export const uploadPromotionJobSchema = z.object({
   title: z.string().optional(),
 });
 
-export type UploadPromotionJobData = z.infer<typeof uploadPromotionJobSchema>;
+export type UploadPromotionJobData = z.output<typeof uploadPromotionJobSchema>;
 
 export type UploadPromotionJobResult =
   | {

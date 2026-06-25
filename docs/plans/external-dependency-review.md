@@ -809,6 +809,11 @@ Incremental migration progress:
   the generation job handler config now take a structural `.parse()` parser, so
   job input schemas can remain on either Zod generation without mixed schema
   composition.
+- Migrated the first downstream `BaseJobHandler` job-input schemas to
+  `@brains/utils/zod-v4` now that the handler boundary is structural: stock
+  photo selection, link capture, note upload import, image generation/source
+  render/upload promotion, and directory cleanup. Tool/config and AI-generation
+  schemas that still sit on main-Zod framework boundaries were left there.
 - Migrated `@brains/dashboard` widget registry/data-source output schemas to
   `@brains/utils/zod-v4` while leaving the plugin config and message payload
   schemas on the current main-Zod plugin/tool boundary. Dashboard data continues
