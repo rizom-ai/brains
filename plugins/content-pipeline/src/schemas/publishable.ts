@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Publish status states
@@ -14,7 +14,7 @@ export const publishStatusSchema = z.enum([
   "failed",
 ]);
 
-export type PublishStatus = z.infer<typeof publishStatusSchema>;
+export type PublishStatus = z.output<typeof publishStatusSchema>;
 
 /**
  * Publishable metadata fields that plugins should include in their entity metadata.
@@ -29,4 +29,4 @@ export const publishableMetadataSchema = z.object({
   publishedAt: z.string().datetime().optional(),
 });
 
-export type PublishableMetadata = z.infer<typeof publishableMetadataSchema>;
+export type PublishableMetadata = z.output<typeof publishableMetadataSchema>;
