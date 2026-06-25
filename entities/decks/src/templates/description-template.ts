@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 
 /**
@@ -12,7 +12,7 @@ export const deckDescriptionSchema = z.object({
     ),
 });
 
-export type DeckDescription = z.infer<typeof deckDescriptionSchema>;
+export type DeckDescription = z.output<typeof deckDescriptionSchema>;
 
 /**
  * Template for AI-powered description generation

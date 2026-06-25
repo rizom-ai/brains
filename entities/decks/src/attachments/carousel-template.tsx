@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { splitWordmark, useMarkdownToHtml } from "@brains/ui-library";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const DECK_CAROUSEL_ATTACHMENT_TYPE = "carousel";
@@ -17,7 +17,7 @@ export const deckCarouselTemplateSchema = z.object({
   slides: z.array(deckCarouselSlideSchema).min(1),
 });
 
-export type DeckCarouselTemplateData = z.infer<
+export type DeckCarouselTemplateData = z.output<
   typeof deckCarouselTemplateSchema
 >;
 

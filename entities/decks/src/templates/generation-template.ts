@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 
 /**
@@ -23,7 +23,7 @@ export const deckGenerationSchema = z.object({
     ),
 });
 
-export type DeckGeneration = z.infer<typeof deckGenerationSchema>;
+export type DeckGeneration = z.output<typeof deckGenerationSchema>;
 
 /**
  * Template for AI-powered slide deck generation
