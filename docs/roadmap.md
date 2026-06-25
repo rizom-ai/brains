@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-06-23
+Last updated: 2026-06-25
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -233,6 +233,7 @@ Cleanup:
 - [external-dependency-review.md](./plans/external-dependency-review.md) — dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [codebase-cleanup-backlog.md](./plans/codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package-script drift).
+- [agent-instruction-surface.md](./plans/agent-instruction-surface.md) — shrink and govern the agent instruction surface: move dynamic memory out of the system prompt, replace duplicated NL guards with runtime/schema contracts, and convert brittle prompt substring locks into behavior coverage.
 
 Research probes (parked):
 

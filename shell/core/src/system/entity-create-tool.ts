@@ -244,12 +244,41 @@ function normalizeConversationMessageRef(
     messageId === ":latest" ||
     messageId === "current" ||
     messageId === ":current" ||
+    messageId === "auto" ||
+    messageId === ":auto" ||
     messageId.includes("/latest") ||
-    messageId.includes("/current")
+    messageId.includes("/current") ||
+    messageId.endsWith("/messages/auto")
   ) {
     return { kind: "conversation-message" };
   }
   return { kind: "conversation-message", messageId: rawMessageId };
+}
+
+function getConversationMessageSourceConflicts(input: {
+  prompt?: string | undefined;
+  content?: string | undefined;
+  url?: string | undefined;
+  upload?: { kind: "upload"; id: string } | undefined;
+  from?:
+    | Extract<CreateInput["from"], { kind: "conversation-message" }>
+    | undefined;
+  sourceAttachment?:
+    | {
+        sourceEntityType: string;
+        sourceEntityId: string;
+        attachmentType: string;
+      }
+    | undefined;
+}): string[] {
+  if (!input.from) return [];
+  return [
+    normalizeOptionalString(input.content) ? "content" : undefined,
+    normalizeOptionalString(input.prompt) ? "prompt" : undefined,
+    normalizeOptionalString(input.url) ? "url" : undefined,
+    input.upload ? "upload" : undefined,
+    input.sourceAttachment ? "sourceAttachment" : undefined,
+  ].filter((field): field is string => field !== undefined);
 }
 
 function normalizeCreateSource(input: {
@@ -325,6 +354,15 @@ export function createEntityCreateTool(services: SystemServices): Tool {
     "Create a new entity. Requires confirmation. Provide content for direct creation from current user-provided text, a prompt for AI generation, a url for URL-first flows, from { kind: 'conversation-message' } only for saving a previous assistant response, upload only for upload-to-note extraction, or sourceAttachment for source attachment saves. Never use from: conversation-message for text the user just provided in the current message; put that text in content and omit from. For uploaded PDF/text/markdown/JSON note imports, use entityType note with upload and transform extract-markdown; do not copy uploaded file bytes into content. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
+      const conversationMessageSourceConflicts =
+        getConversationMessageSourceConflicts(input);
+      if (conversationMessageSourceConflicts.length > 0) {
+        return {
+          success: false,
+          error: `A conversation-message source cannot be combined with other source fields: ${conversationMessageSourceConflicts.join(", ")}. Use either from to save a prior assistant response, or one of content, prompt, url, upload, or sourceAttachment.`,
+        };
+      }
+
       const visibilityScope = permissionToVisibilityScope(
         toolContext.userPermissionLevel,
       );

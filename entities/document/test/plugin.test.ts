@@ -23,6 +23,17 @@ describe("DocumentPlugin", () => {
     ]);
   });
 
+  it("describes durable source-derived saves with sourceAttachment", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    const capabilities = await harness.installPlugin(new DocumentPlugin());
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "document_generate",
+    );
+
+    expect(tool?.description).toContain("sourceAttachment");
+    expect(tool?.description).not.toContain("and from");
+  });
+
   it("registers a system_create interceptor for attachment-derived documents", async () => {
     const harness = createPluginHarness<DocumentPlugin>();
     await harness.installPlugin(new DocumentPlugin());

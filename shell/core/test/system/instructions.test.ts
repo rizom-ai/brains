@@ -37,6 +37,20 @@ describe("system instructions", () => {
     expect(instructions).toContain("call `system_update`");
   });
 
+  it("describes source-derived artifacts with sourceAttachment, not from", () => {
+    const services = createMockSystemServices();
+    const instructions = createSystemInstructions(services);
+
+    expect(instructions).toContain("`sourceAttachment`");
+    expect(instructions).toContain("source-derived artifact saves");
+    expect(instructions).toContain(
+      "Use `from` only for prior assistant response saves",
+    );
+    expect(instructions).not.toContain(
+      "`from` for source-derived artifact saves",
+    );
+  });
+
   it("should list available entity types", () => {
     const services = createMockSystemServices();
     services.addEntities([

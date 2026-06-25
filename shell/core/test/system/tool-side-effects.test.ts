@@ -37,7 +37,9 @@ function message(
   };
 }
 
-function servicesWithMessages(messages: Message[]) {
+function servicesWithMessages(
+  messages: Message[],
+): ReturnType<typeof createMockSystemServices> {
   const services = createMockSystemServices({
     conversationService: {
       getMessages: async (conversationId: string) =>
@@ -192,35 +194,111 @@ describe("system_create conversation-message sources", () => {
     });
   });
 
-  it("normalizes placeholder message ids and uses stored content instead of prompt", async () => {
-    const services = servicesWithMessages([
-      message("assistant-1", "assistant", "Stored summary to save."),
+  it("normalizes placeholder message ids and uses latest savable stored content", async () => {
+    const placeholderIds = [":latest", "auto", "/messages/auto"];
+
+    for (const messageId of placeholderIds) {
+      const services = servicesWithMessages([
+        message("assistant-1", "assistant", "Stored summary to save."),
+      ]);
+      const tool = createEntityCreateTool(services);
+
+      const initial = await tool.handler(
+        {
+          entityType: "note",
+          title: "Saved summary",
+          from: { kind: "conversation-message", messageId },
+        },
+        toolContext,
+      );
+
+      const confirmation = expectConfirmation(initial);
+      expect(confirmation.summary).toBe('Create "Saved summary"?');
+      expect(confirmation.args).toMatchObject({
+        entityType: "note",
+        title: "Saved summary",
+        content: "Stored summary to save.",
+        confirmed: true,
+      });
+      expect(confirmation.args).not.toHaveProperty("from");
+    }
+  });
+
+  it("rejects conversation-message refs combined with any other source", async () => {
+    const cases: Array<Record<string, unknown>> = [
+      { content: "Model supplied paraphrase." },
+      { prompt: "Save the previous summary as a note." },
+      { url: "https://example.com/source" },
+      { upload: { kind: "upload", id: "upload-1" } },
+      {
+        sourceAttachment: {
+          sourceEntityType: "post",
+          sourceEntityId: "missing-post",
+          attachmentType: "printable",
+        },
+      },
+    ];
+
+    for (const source of cases) {
+      const services = servicesWithMessages([
+        message("assistant-1", "assistant", "Stored summary to save."),
+      ]);
+      const tool = createEntityCreateTool(services);
+
+      const response = await tool.handler(
+        {
+          entityType: "note",
+          title: "Ambiguous source",
+          from: { kind: "conversation-message" },
+          ...source,
+        },
+        toolContext,
+      );
+
+      expect(response).toMatchObject({ success: false });
+      expect((response as { error: string }).error).toContain(
+        "conversation-message source cannot be combined",
+      );
+    }
+  });
+
+  it("does not inspect conversation messages for direct content creates", async () => {
+    let getMessagesCalls = 0;
+    const services = createMockSystemServices({
+      conversationService: {
+        getMessages: async () => {
+          getMessagesCalls += 1;
+          return [];
+        },
+      } as never,
+    });
+    services.addEntities([
+      {
+        id: "existing-note",
+        entityType: "note",
+        content: "Existing note",
+        contentHash: "",
+        metadata: { title: "Existing note" },
+        created: now,
+        updated: now,
+      },
     ]);
     const tool = createEntityCreateTool(services);
 
-    const initial = await tool.handler(
+    const response = await tool.handler(
       {
         entityType: "note",
-        title: "Saved summary",
-        prompt: "Save the previous summary as a note.",
-        from: { kind: "conversation-message", messageId: ":latest" },
+        title: "Direct note",
+        content: "Direct current-user text.",
       },
       toolContext,
     );
 
-    const confirmation = expectConfirmation(initial);
-    expect(confirmation.summary).toBe('Create "Saved summary"?');
-    expect(confirmation.args).toMatchObject({
-      entityType: "note",
-      title: "Saved summary",
-      content: "Stored summary to save.",
-      confirmed: true,
-    });
-    expect(confirmation.args).not.toHaveProperty("prompt");
-    expect(confirmation.args).not.toHaveProperty("from");
+    expect(response).toMatchObject({ needsConfirmation: true });
+    expect(getMessagesCalls).toBe(0);
   });
 
-  it("uses stored message content instead of model-supplied content and freezes it for confirmation", async () => {
+  it("freezes stored message content for confirmation", async () => {
     const messages = [
       message("assistant-1", "assistant", "Original stored answer."),
     ];
@@ -231,7 +309,6 @@ describe("system_create conversation-message sources", () => {
       {
         entityType: "note",
         title: "Frozen answer",
-        content: "Model supplied paraphrase.",
         from: { kind: "conversation-message" },
       },
       toolContext,
