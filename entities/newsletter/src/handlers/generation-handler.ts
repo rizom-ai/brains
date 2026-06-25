@@ -6,7 +6,7 @@ import {
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { slugify } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { type GenerationResult } from "@brains/contracts";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { NewsletterMetadata } from "../schemas/newsletter";
@@ -43,7 +43,7 @@ export const generationJobSchema = z.object({
     .describe("Create as queued (true) or draft (false)"),
 });
 
-export type GenerationJobData = z.infer<typeof generationJobSchema>;
+export type GenerationJobData = z.output<typeof generationJobSchema>;
 
 /**
  * Job handler for newsletter generation

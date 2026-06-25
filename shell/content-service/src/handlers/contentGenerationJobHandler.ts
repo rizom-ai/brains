@@ -1,6 +1,6 @@
 // Remove ContentGenerationRequest import - we'll define our own schema
 import { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { ContentService, GenerationContext } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
@@ -22,7 +22,7 @@ export const contentGenerationJobDataSchema = z.object({
   entityType: z.string(),
 });
 
-export type ContentGenerationJobData = z.infer<
+export type ContentGenerationJobData = z.output<
   typeof contentGenerationJobDataSchema
 >;
 

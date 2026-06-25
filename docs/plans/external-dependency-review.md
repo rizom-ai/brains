@@ -775,6 +775,12 @@ Incremental migration progress:
   social-media to `@brains/utils/zod-v4` where their handler boundary is
   structural. Agent-discovery keeps its status-bearing job input on main Zod to
   avoid composing with the still-main entity status schema.
+- Migrated additional internal job-input parser boundaries to
+  `@brains/utils/zod-v4`: newsletter generation, content generation,
+  conversation summary projection, topics projection, and the remaining
+  directory-sync job schemas. These handlers validate through structural
+  `.parse()`/`.safeParse()` contracts rather than composing with framework/tool
+  schemas.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

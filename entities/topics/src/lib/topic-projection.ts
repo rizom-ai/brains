@@ -5,7 +5,7 @@ import {
   type JobHandler,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { TopicsPluginConfig } from "../schemas/config";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TopicService } from "./topic-service";
@@ -64,7 +64,7 @@ export class TopicSourceBatchBuffer implements TopicSourceBatchStore {
   }
 }
 
-export type TopicProjectionJobData = z.infer<
+export type TopicProjectionJobData = z.output<
   typeof topicProjectionJobDataSchema
 >;
 

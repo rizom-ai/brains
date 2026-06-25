@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Schema for directory sync job data
@@ -10,7 +10,7 @@ export const directorySyncJobSchema = z.object({
   syncDirection: z.enum(["import", "export", "both"]).optional(),
 });
 
-export type DirectorySyncJobData = z.infer<typeof directorySyncJobSchema>;
+export type DirectorySyncJobData = z.output<typeof directorySyncJobSchema>;
 
 /**
  * Schema for a tool-initiated git pull + sync batch request.
@@ -21,7 +21,7 @@ export const directorySyncRequestJobSchema = z.object({
   channelId: z.string().optional(),
 });
 
-export type DirectorySyncRequestJobData = z.infer<
+export type DirectorySyncRequestJobData = z.output<
   typeof directorySyncRequestJobSchema
 >;
 
@@ -34,7 +34,7 @@ export const directoryImportJobSchema = z.object({
   batchIndex: z.number().optional(),
 });
 
-export type DirectoryImportJobData = z.infer<typeof directoryImportJobSchema>;
+export type DirectoryImportJobData = z.output<typeof directoryImportJobSchema>;
 
 /**
  * Schema for directory export job data
@@ -44,7 +44,7 @@ export const directoryExportJobSchema = z.object({
   batchSize: z.number().min(1).optional(),
 });
 
-export type DirectoryExportJobData = z.infer<typeof directoryExportJobSchema>;
+export type DirectoryExportJobData = z.output<typeof directoryExportJobSchema>;
 
 /**
  * Schema for directory delete job data
@@ -55,20 +55,20 @@ export const directoryDeleteJobSchema = z.object({
   filePath: z.string(),
 });
 
-export type DirectoryDeleteJobData = z.infer<typeof directoryDeleteJobSchema>;
+export type DirectoryDeleteJobData = z.output<typeof directoryDeleteJobSchema>;
 
 /**
  * Schema for cover image conversion job data
  */
 export const coverImageConversionJobSchema = z.object({
   filePath: z.string(),
-  sourceUrl: z.string().url(),
+  sourceUrl: z.url(),
   postTitle: z.string(),
   postSlug: z.string(),
   customAlt: z.string().optional(),
 });
 
-export type CoverImageConversionJobData = z.infer<
+export type CoverImageConversionJobData = z.output<
   typeof coverImageConversionJobSchema
 >;
 
@@ -82,7 +82,7 @@ export const inlineImageConversionJobSchema = z.object({
   postSlug: z.string(),
 });
 
-export type InlineImageConversionJobData = z.infer<
+export type InlineImageConversionJobData = z.output<
   typeof inlineImageConversionJobSchema
 >;
 

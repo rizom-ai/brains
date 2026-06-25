@@ -1,7 +1,7 @@
 import type { EntityPluginContext, JobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { SummaryConfig } from "../schemas/summary";
 import {
   SummaryProjector,
@@ -21,7 +21,7 @@ export const summaryProjectionJobDataSchema = z.discriminatedUnion("mode", [
   }),
 ]);
 
-export type SummaryProjectionJobData = z.infer<
+export type SummaryProjectionJobData = z.output<
   typeof summaryProjectionJobDataSchema
 >;
 

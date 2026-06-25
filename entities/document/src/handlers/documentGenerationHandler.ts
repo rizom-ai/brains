@@ -12,8 +12,8 @@ import {
   parseMarkdown,
   slugify,
   updateFrontmatterField,
-  z,
 } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   countPdfPages,
   createPdfDataUrl,
@@ -63,7 +63,7 @@ export const documentGenerationJobSchema =
     },
   );
 
-export type DocumentGenerationJobData = z.infer<
+export type DocumentGenerationJobData = z.output<
   typeof documentGenerationJobSchema
 >;
 
