@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 // Import JobContextSchema from types file (no Drizzle dependencies)
 import { JobContextSchema } from "./schema/types";
 
@@ -11,13 +11,13 @@ export const JobStatusEnum = z.enum([
   "completed",
   "failed",
 ]);
-export type JobStatusType = z.infer<typeof JobStatusEnum>;
+export type JobStatusType = z.output<typeof JobStatusEnum>;
 
 /**
  * Job result status enum - only final states
  */
 export const JobResultStatusEnum = z.enum(["completed", "failed"]);
-export type JobResultStatusType = z.infer<typeof JobResultStatusEnum>;
+export type JobResultStatusType = z.output<typeof JobResultStatusEnum>;
 
 /**
  * Job status constants for easier usage
@@ -69,9 +69,9 @@ export const HandlerFailureSchema = z.object({
   error: z.string().optional(),
 });
 
-export type JobStatus = z.infer<typeof JobStatusSchema>;
-export type JobResult = z.infer<typeof JobResultSchema>;
-export type HandlerFailure = z.infer<typeof HandlerFailureSchema>;
+export type JobStatus = z.output<typeof JobStatusSchema>;
+export type JobResult = z.output<typeof JobResultSchema>;
+export type HandlerFailure = z.output<typeof HandlerFailureSchema>;
 
 /**
  * Schema for job progress events
@@ -119,4 +119,4 @@ export const JobProgressEventSchema = z.object({
   metadata: JobContextSchema,
 });
 
-export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;
+export type JobProgressEvent = z.output<typeof JobProgressEventSchema>;

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Operation type enum for structured progress tracking and aggregation
@@ -11,7 +11,7 @@ export const OperationTypeEnum = z.enum([
   "batch_processing", // batch operations
 ]);
 
-export type OperationType = z.infer<typeof OperationTypeEnum>;
+export type OperationType = z.output<typeof OperationTypeEnum>;
 
 /**
  * Job context input schema - what callers provide when creating jobs
@@ -29,7 +29,7 @@ export const JobContextInputSchema = z.object({
   channelId: z.string().optional(), // Transport channel/room to route progress messages to
 });
 
-export type JobContextInput = z.infer<typeof JobContextInputSchema>;
+export type JobContextInput = z.output<typeof JobContextInputSchema>;
 
 /**
  * Full job context schema - includes rootJobId for stored/transmitted metadata
@@ -39,7 +39,7 @@ export const JobContextSchema = JobContextInputSchema.extend({
   rootJobId: z.string(), // Added by job queue service when job is created
 });
 
-export type JobContext = z.infer<typeof JobContextSchema>;
+export type JobContext = z.output<typeof JobContextSchema>;
 
 /**
  * Deduplication strategy for job queue
@@ -51,7 +51,7 @@ export const DeduplicationStrategyEnum = z.enum([
   "coalesce", // Update existing job's timestamp
 ]);
 
-export type DeduplicationStrategy = z.infer<typeof DeduplicationStrategyEnum>;
+export type DeduplicationStrategy = z.output<typeof DeduplicationStrategyEnum>;
 
 /**
  * Job options for job creation

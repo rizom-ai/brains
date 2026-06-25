@@ -1,9 +1,12 @@
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod";
-import { z as z4 } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import type { JobHandler } from "./types";
 
-const logDataSchema = z4.record(z4.string(), z4.unknown());
+const logDataSchema = z.record(z.string(), z.unknown());
+
+export interface JobDataSchema<T> {
+  parse(input: unknown): T;
+}
 
 /**
  * Configuration options for BaseJobHandler
@@ -13,7 +16,7 @@ export interface BaseJobHandlerConfig<TInput> {
    * The Zod schema used to validate job input data.
    * Optional if you override validateAndParse().
    */
-  schema?: z.ZodSchema<TInput>;
+  schema?: JobDataSchema<TInput>;
   /** The name of the job type (used in log messages) */
   jobTypeName: string;
 }
@@ -63,7 +66,7 @@ export abstract class BaseJobHandler<
   TOutput = unknown,
 > implements JobHandler<TJobType, TInput, TOutput> {
   protected readonly logger: Logger;
-  protected readonly schema: z.ZodSchema<TInput> | undefined;
+  protected readonly schema: JobDataSchema<TInput> | undefined;
   protected readonly jobTypeName: string;
 
   /**

@@ -2,7 +2,7 @@
  * Batch-related Zod schemas
  * Separated to avoid pulling in all job queue schemas for external consumers
  */
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { JobContextSchema } from "./schema/types";
 
 /**
@@ -57,7 +57,7 @@ export const BatchJobDataSchema = z.object({
 });
 
 // Schema-first: derive types from schemas
-export type BatchOperation = z.infer<typeof BatchOperationSchema>;
-export type BatchJobStatus = z.infer<typeof BatchJobStatusSchema>;
-export type Batch = z.infer<typeof BatchSchema>;
-export type BatchJobData = z.infer<typeof BatchJobDataSchema>;
+export type BatchOperation = z.output<typeof BatchOperationSchema>;
+export type BatchJobStatus = z.output<typeof BatchJobStatusSchema>;
+export type Batch = z.output<typeof BatchSchema>;
+export type BatchJobData = z.output<typeof BatchJobDataSchema>;

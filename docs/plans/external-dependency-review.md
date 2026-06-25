@@ -804,6 +804,11 @@ Incremental migration progress:
   and internal response schemas to `@brains/utils/zod-v4`. The message
   validation helper now accepts a structural parser so callers can validate with
   either Zod generation without composing mixed schema trees.
+- Migrated `@brains/job-queue`'s job context/status/result/progress, batch,
+  job info, and test schemas to `@brains/utils/zod-v4`. `BaseJobHandler` and
+  the generation job handler config now take a structural `.parse()` parser, so
+  job input schemas can remain on either Zod generation without mixed schema
+  composition.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

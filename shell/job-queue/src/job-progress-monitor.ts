@@ -1,5 +1,5 @@
 import { ProgressReporter } from "@brains/utils";
-import { z as z4 } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import type {
   Logger,
   IJobProgressMonitor,
@@ -13,21 +13,20 @@ import type {
   JobInfo,
 } from "./types";
 import type { BatchJobStatus } from "./batch-schemas";
-import type { z } from "@brains/utils/zod";
 import type { JobProgressEventSchema } from "./schemas";
 
-const jobResultRecordSchema = z4.preprocess(
+const jobResultRecordSchema = z.preprocess(
   (value) => {
     if (typeof value !== "string") return value;
     return JSON.parse(value);
   },
-  z4.record(z4.string(), z4.unknown()),
+  z.record(z.string(), z.unknown()),
 );
 
 /**
  * Progress event emitted by the monitor
  */
-export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;
+export type JobProgressEvent = z.output<typeof JobProgressEventSchema>;
 
 /**
  * Simplified service that emits job and batch progress events

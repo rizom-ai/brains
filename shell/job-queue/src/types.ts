@@ -3,7 +3,7 @@ import type { JobOptions, JobContext } from "./schema/types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import type { DbConfig } from "@brains/contracts";
 import type { ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 // Re-export types that are used internally
 export type { JobOptions, JobContext, BatchOperation };
@@ -42,7 +42,7 @@ export const JobInfoSchema = z.object({
   result: z.unknown().nullable().optional(), // Job result (type varies by job type)
 });
 
-export type JobInfo = z.infer<typeof JobInfoSchema>;
+export type JobInfo = z.output<typeof JobInfoSchema>;
 
 /**
  * Job handler interface for processing specific job types
