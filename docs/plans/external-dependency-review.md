@@ -776,6 +776,10 @@ Incremental migration progress:
   formatter package's owned schemas/tests now use `@brains/utils/zod-v4`, while
   callers may still pass existing main-Zod schemas without composing schema
   trees.
+- Migrated the Discord thread subscription runtime-state boundary in
+  `@brains/chat` to `@brains/utils/zod-v4`. The interface package's remaining
+  main-Zod import is now its plugin config schema; subscription persistence and
+  related tests use the runtime-state structural parser contract.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

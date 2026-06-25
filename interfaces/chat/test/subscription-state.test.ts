@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createMockShell } from "@brains/test-utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 import {
   createDiscordSubscriptionStateAdapter,
