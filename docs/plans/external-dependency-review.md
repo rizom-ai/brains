@@ -770,6 +770,12 @@ Incremental migration progress:
   contract. Runtime-state tests now use `@brains/utils/zod-v4`; existing
   callers that pass main-Zod schemas remain compatible because runtime-state
   only invokes `.parse()` at the persistence boundary.
+- Decoupled `@brains/content-formatters` structured body formatting from
+  main-Zod type imports by replacing `StructuredContentFormatter`'s constructor
+  schema type with a structural `parse(input: unknown): T` contract. The
+  formatter package's owned schemas/tests now use `@brains/utils/zod-v4`, while
+  callers may still pass existing main-Zod schemas without composing schema
+  trees.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

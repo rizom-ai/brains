@@ -2,20 +2,14 @@
  * Reusable formatters for common entity field types
  */
 
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Source reference schema
  * type can be any entity type (post, link, summary, conversation, etc.)
  * entityId and contentHash enable tracking which entities have been processed
  */
-export const sourceReferenceSchema: z.ZodObject<{
-  slug: z.ZodString;
-  title: z.ZodString;
-  type: z.ZodString;
-  entityId: z.ZodString;
-  contentHash: z.ZodString;
-}> = z.object({
+export const sourceReferenceSchema = z.object({
   slug: z.string(),
   title: z.string(),
   type: z.string(),

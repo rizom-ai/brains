@@ -1,5 +1,4 @@
 import type { ContentFormatter } from "../types";
-import type { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { remark } from "remark";
 import type {
@@ -13,6 +12,10 @@ import type {
 } from "mdast";
 
 const recordSchema = z.record(z.string(), z.unknown());
+
+export interface StructuredContentSchema<T> {
+  parse(input: unknown): T;
+}
 
 /**
  * Field mapping configuration for structured content formatting
@@ -51,14 +54,11 @@ export interface FormatterConfig {
  * to convert between structured data and human-readable markdown.
  */
 export class StructuredContentFormatter<T> implements ContentFormatter<T> {
-  private schema: frameworkZod.ZodType<T, frameworkZod.ZodTypeDef, unknown>;
+  private schema: StructuredContentSchema<T>;
   private config: FormatterConfig;
   private processor = remark();
 
-  constructor(
-    schema: frameworkZod.ZodType<T, frameworkZod.ZodTypeDef, unknown>,
-    config: FormatterConfig,
-  ) {
+  constructor(schema: StructuredContentSchema<T>, config: FormatterConfig) {
     this.schema = schema;
     this.config = config;
   }
