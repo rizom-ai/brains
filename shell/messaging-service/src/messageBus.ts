@@ -1,5 +1,4 @@
 import type { Logger } from "@brains/utils";
-import type { z } from "@brains/utils/zod";
 import type {
   MessageHandler,
   IMessageBus,
@@ -13,6 +12,7 @@ import { MessagePublisher } from "./message-publisher";
 import {
   validateMessage as validateWithSchema,
   type MessageValidationResult,
+  type MessageValidationSchema,
 } from "./message-validator";
 
 /**
@@ -94,7 +94,7 @@ export class MessageBus implements IMessageBus {
    */
   validateMessage<T>(
     message: unknown,
-    schema: z.ZodSchema<T>,
+    schema: MessageValidationSchema<T>,
   ): MessageValidationResult<T> {
     return validateWithSchema(message, schema);
   }

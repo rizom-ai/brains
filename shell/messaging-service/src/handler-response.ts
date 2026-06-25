@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { messageResponseSchema } from "./base-types";
 
 const handlerResponseSchema = z.union([
@@ -6,7 +6,7 @@ const handlerResponseSchema = z.union([
   messageResponseSchema,
 ]);
 
-export type HandlerResponse = z.infer<typeof handlerResponseSchema>;
+export type HandlerResponse = z.output<typeof handlerResponseSchema>;
 
 /**
  * Validate unknown handler output before the bus converts it to an internal

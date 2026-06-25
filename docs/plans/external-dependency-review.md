@@ -796,6 +796,10 @@ Incremental migration progress:
   self-contained `@brains/product-site-content` landing-section schemas to move
   to `@brains/utils/zod-v4` while template config/permission schemas remain on
   the current main-Zod boundary.
+- Migrated `@brains/messaging-service`'s owned base message, handler response,
+  and internal response schemas to `@brains/utils/zod-v4`. The message
+  validation helper now accepts a structural parser so callers can validate with
+  either Zod generation without composing mixed schema trees.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

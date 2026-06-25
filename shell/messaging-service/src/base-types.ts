@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Simple response schema for message handlers
@@ -33,10 +33,10 @@ export const messageWithPayloadSchema = <T extends z.ZodType>(
 
 // Derive types from schemas
 export type MessageResponse<T = unknown> =
-  | (Omit<z.infer<typeof messageResponseSchema>, "data"> & { data?: T })
+  | (Omit<z.output<typeof messageResponseSchema>, "data"> & { data?: T })
   | { noop: true };
 
-export type BaseMessage = z.infer<typeof baseMessageSchema>;
+export type BaseMessage = z.output<typeof baseMessageSchema>;
 
 export type MessageWithPayload<T = unknown> = BaseMessage & {
   payload: T;

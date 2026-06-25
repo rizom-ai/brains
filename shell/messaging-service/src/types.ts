@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
   MessageResponse,
@@ -41,7 +41,7 @@ export const internalMessageResponseSchema = z.object({
 });
 
 // Derive types from schemas
-export type InternalMessageResponse = z.infer<
+export type InternalMessageResponse = z.output<
   typeof internalMessageResponseSchema
 >;
 
