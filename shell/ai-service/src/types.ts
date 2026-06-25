@@ -1,5 +1,6 @@
-import type { z } from "@brains/utils/zod";
 import type { LanguageModel } from "ai";
+import type { z } from "@brains/utils/zod";
+import type { ZodType as ZodV4Type } from "@brains/utils/zod-v4";
 
 /**
  * AI model configuration
@@ -20,13 +21,17 @@ export interface AIModelConfig {
 
 export type AIModelConfigUpdate = Partial<AIModelConfig>;
 
+export type AIGenerationSchema<T> =
+  | z.ZodType<T, z.ZodTypeDef, unknown>
+  | ZodV4Type<T, unknown>;
+
 /**
  * AI Service interface for generating text and structured objects
  */
 export interface JudgeInput<T> {
   instruction: string;
   material: string;
-  schema: z.ZodType<T>;
+  schema: AIGenerationSchema<T>;
 }
 
 export interface IAIService {
@@ -45,7 +50,7 @@ export interface IAIService {
   generateObject<T>(
     systemPrompt: string,
     userPrompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ): Promise<{
     object: T;
     usage: {

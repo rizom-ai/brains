@@ -60,6 +60,7 @@ import type { IAttachmentsNamespace } from "./service/attachment-registry";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type {
+  AIGenerationSchema,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
@@ -197,7 +198,7 @@ export interface QueryContext {
 export interface JudgeInput<T> {
   instruction: string;
   material: string;
-  schema: z.ZodType<T>;
+  schema: AIGenerationSchema<T>;
 }
 
 /**
@@ -277,7 +278,7 @@ export interface IShell {
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
   generateObject<T>(
     prompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ): Promise<{ object: T }>;
   judge<T>(input: JudgeInput<T>): Promise<{
     verdict: T;

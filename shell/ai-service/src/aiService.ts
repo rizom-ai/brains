@@ -1,8 +1,8 @@
 import { generateText, generateObject } from "ai";
 import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils";
-import type { z } from "@brains/utils/zod";
 import type {
+  AIGenerationSchema,
   AIModelConfig,
   AIModelConfigUpdate,
   IAIService,
@@ -124,7 +124,7 @@ export class AIService implements IAIService {
   public async generateObject<T>(
     systemPrompt: string,
     userPrompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ): Promise<{
     object: T;
     usage: TokenUsage;

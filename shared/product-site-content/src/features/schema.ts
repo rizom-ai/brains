@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Schema for feature card
@@ -9,7 +9,7 @@ export const featureCardSchema = z.object({
   description: z.string(),
 });
 
-export type FeatureCard = z.infer<typeof featureCardSchema>;
+export type FeatureCard = z.output<typeof featureCardSchema>;
 
 /**
  * Schema for features section
@@ -21,4 +21,4 @@ export const featuresSectionSchema = z.object({
   features: z.array(featureCardSchema).min(1).max(4), // Reduced max to match prompt
 });
 
-export type FeaturesSection = z.infer<typeof featuresSectionSchema>;
+export type FeaturesSection = z.output<typeof featuresSectionSchema>;

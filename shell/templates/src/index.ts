@@ -3,6 +3,7 @@ export type {
   TemplateInput,
   ComponentType,
   RuntimeScript,
+  TemplateSchemaParser,
 } from "./types";
 export { TemplateSchema, createTypedComponent, createTemplate } from "./types";
 export { TemplateRegistry } from "./registry";

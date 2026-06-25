@@ -4,9 +4,9 @@ import type {
   AIModelConfigUpdate,
   ImageGenerationResult,
   JudgeInput,
+  AIGenerationSchema,
 } from "../src";
 import type { LanguageModel } from "ai";
-import type { z } from "@brains/utils/zod";
 
 /**
  * Mock AI Service for testing
@@ -37,7 +37,7 @@ export function createMockAIService(): IAIService {
     generateObject: async <T>(
       _systemPrompt: string,
       userPrompt: string,
-      schema: z.ZodType<T>,
+      schema: AIGenerationSchema<T>,
     ): Promise<{
       object: T;
       usage: {

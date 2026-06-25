@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 const NavigationItemSchema = z.object({
   label: z.string(),
@@ -10,5 +10,5 @@ export const FooterSchema = z.object({
   copyright: z.string().optional(),
 });
 
-export type NavigationItem = z.infer<typeof NavigationItemSchema>;
-export type FooterData = z.infer<typeof FooterSchema>;
+export type NavigationItem = z.output<typeof NavigationItemSchema>;
+export type FooterData = z.output<typeof FooterSchema>;

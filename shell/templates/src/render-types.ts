@@ -1,7 +1,11 @@
 import type { ProgressCallback } from "@brains/utils";
 import { z } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
-import type { ComponentType, RuntimeScript } from "./types";
+import type {
+  ComponentType,
+  RuntimeScript,
+  TemplateSchemaParser,
+} from "./types";
 
 /**
  * Site content entity types
@@ -47,7 +51,7 @@ export type Renderer<T = unknown> = WebRenderer<T> | MediaRenderer<T>;
  */
 export interface ViewTemplate<T = unknown> {
   name: string;
-  schema: z.ZodType<T>;
+  schema: TemplateSchemaParser<T>;
   description?: string;
   pluginId: string; // ID of the plugin that registered this template
 

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Schema for CTA section
@@ -18,4 +18,4 @@ export const ctaSectionSchema = z.object({
     .optional(),
 });
 
-export type CTASection = z.infer<typeof ctaSectionSchema>;
+export type CTASection = z.output<typeof ctaSectionSchema>;

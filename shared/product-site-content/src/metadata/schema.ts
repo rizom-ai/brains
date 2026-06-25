@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Schema for landing page metadata (title and tagline)
@@ -8,4 +8,4 @@ export const landingMetadataSchema = z.object({
   tagline: z.string(),
 });
 
-export type LandingMetadata = z.infer<typeof landingMetadataSchema>;
+export type LandingMetadata = z.output<typeof landingMetadataSchema>;

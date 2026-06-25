@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const productSchema = z.object({
   id: z.string().describe("Unique identifier"),
@@ -23,5 +23,5 @@ export const productsSectionSchema = z.object({
     .describe("Product showcase items"),
 });
 
-export type Product = z.infer<typeof productSchema>;
-export type ProductsSection = z.infer<typeof productsSectionSchema>;
+export type Product = z.output<typeof productSchema>;
+export type ProductsSection = z.output<typeof productsSectionSchema>;

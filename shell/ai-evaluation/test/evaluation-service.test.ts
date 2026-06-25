@@ -8,10 +8,10 @@ import type {
   IAIService,
   AgentResponse,
   AIModelConfig,
+  AIGenerationSchema,
   JudgeInput,
 } from "@brains/ai-service";
 import { RuntimeUploadRegistry } from "@brains/plugins";
-import type { z } from "@brains/utils";
 import type { LanguageModel } from "ai";
 
 import { EvaluationService } from "../src/evaluation-service";
@@ -31,7 +31,7 @@ const createAIService = (): IAIService => ({
   generateObject: async <T>(
     _systemPrompt: string,
     _userPrompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ) => ({
     object: schema.parse({}),
     usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },

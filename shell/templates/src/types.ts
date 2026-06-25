@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import type { ZodType as ZodV4Type } from "@brains/utils/zod-v4";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { VNode } from "preact";
 import { UserPermissionLevelSchema } from "./permission-service";
@@ -8,6 +9,10 @@ import { UserPermissionLevelSchema } from "./permission-service";
  * Returns a Preact VNode
  */
 export type ComponentType<P = unknown> = (props: P) => VNode;
+
+export type TemplateSchemaParser<T> =
+  | z.ZodType<T, z.ZodTypeDef, unknown>
+  | ZodV4Type<T, unknown>;
 
 /**
  * A runtime script that a template depends on. Site-builder collects
@@ -34,7 +39,7 @@ export interface RuntimeScript {
  * @param TComponent - Type expected by component (e.g., with required url/typeLabel)
  */
 export function createTypedComponent<TSchema, TComponent = TSchema>(
-  schema: z.ZodType<TSchema, z.ZodTypeDef, unknown>,
+  schema: TemplateSchemaParser<TSchema>,
   component: ComponentType<TComponent>,
 ): ComponentType<unknown> {
   return (props: unknown) => {
@@ -52,7 +57,7 @@ export interface Template extends Omit<
   z.infer<typeof TemplateSchema>,
   "schema" | "layout" | "formatter"
 > {
-  schema: z.ZodType<unknown, z.ZodTypeDef, unknown>;
+  schema: TemplateSchemaParser<unknown>;
 
   // View rendering capability (optional)
   layout?: {
@@ -87,7 +92,7 @@ export interface Template extends Omit<
  */
 export function createTemplate<TSchema = unknown, TComponent = TSchema>(
   template: Omit<Template, "layout" | "schema"> & {
-    schema: z.ZodType<TSchema, z.ZodTypeDef, unknown>;
+    schema: TemplateSchemaParser<TSchema>;
     layout?: {
       component?: ComponentType<TComponent>;
       fullscreen?: boolean;

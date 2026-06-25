@@ -790,6 +790,12 @@ Incremental migration progress:
   `parse(input: unknown): T` contract. Existing main-Zod data source callers
   remain compatible, and downstream query parser schemas can continue migrating
   to `@brains/utils/zod-v4` without composing mixed schema trees.
+- Decoupled template/content-service schema slots from main-Zod-only nominal
+  types by accepting either current main-Zod schemas or `@brains/utils/zod-v4`
+  schemas at template/AI-generation/view-render boundaries. This enabled the
+  self-contained `@brains/product-site-content` landing-section schemas to move
+  to `@brains/utils/zod-v4` while template config/permission schemas remain on
+  the current main-Zod boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

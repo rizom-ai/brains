@@ -46,6 +46,7 @@ import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type {
   IAIService,
   IAgentService,
+  AIGenerationSchema,
   ImageGenerationOptions,
   ImageGenerationResult,
   JudgeInput,
@@ -65,7 +66,6 @@ import type {
 import type { IMCPService, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
 import { Logger } from "@brains/utils";
-import type { z } from "@brains/utils/zod";
 import type { DefaultQueryResponse } from "@brains/contracts";
 
 import { getRuntimeAppInfo } from "./app-info";
@@ -277,7 +277,7 @@ export class Shell implements IShell {
 
   public async generateObject<T>(
     prompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ): Promise<{ object: T }> {
     this.requireInitialized("Shell generateObject");
     const { object } = await this.services.aiService.generateObject(
