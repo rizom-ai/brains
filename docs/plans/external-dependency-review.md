@@ -752,6 +752,13 @@ Incremental migration progress:
   explicit `@brains/utils/zod-v4`, uses Zod 4 record/loose/strict/url helpers,
   removes the prior typed record-schema cast, and validates its only direct
   runtime consumer (`agent-discovery`) without mixing schema trees.
+- Migrated the shared agent action/response contract boundary to explicit
+  `@brains/utils/zod-v4` after the local-main merge introduced new direct
+  `zod` imports. The slice keeps unrelated shared-contract config/template
+  schemas on the current main Zod boundary, switches contract parsed types to
+  `z.output<typeof schema>`, updates Zod 4 records to two-argument form, and
+  moves stored message metadata card parsing to the same Zod 4 tree to avoid
+  mixed schemas.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

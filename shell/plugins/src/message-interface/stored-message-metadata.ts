@@ -1,5 +1,4 @@
-import { z } from "@brains/utils/zod";
-import { z as zLocal } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import {
   AttachmentCardSchema,
   ToolApprovalCardSchema,
@@ -22,10 +21,7 @@ const storedMessageAttachmentSchema = z.object({
 const storedMessageAttachmentsSchema = z.array(storedMessageAttachmentSchema);
 const storedAttachmentCardsSchema = z.array(AttachmentCardSchema);
 const storedToolApprovalCardsSchema = z.array(ToolApprovalCardSchema);
-const storedMessageMetadataRecordSchema = zLocal.record(
-  zLocal.string(),
-  zLocal.unknown(),
-);
+const storedMessageMetadataRecordSchema = z.record(z.string(), z.unknown());
 
 export type StoredMessageAttachment = z.infer<
   typeof storedMessageAttachmentSchema

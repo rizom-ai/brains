@@ -1,5 +1,5 @@
 import { stripUndefinedDeep } from "@brains/utils";
-import { z } from "zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const PendingConfirmationSchema = z.object({
   id: z.string(),
@@ -11,7 +11,7 @@ export const PendingConfirmationSchema = z.object({
   args: z.unknown(),
 });
 
-export type PendingConfirmation = z.infer<typeof PendingConfirmationSchema>;
+export type PendingConfirmation = z.output<typeof PendingConfirmationSchema>;
 
 export const ToolApprovalCardStateSchema = z.enum([
   "approval-requested",
@@ -26,7 +26,7 @@ export const ToolApprovalCardSchema = z.object({
   id: z.string(),
   toolCallId: z.string().optional(),
   toolName: z.string(),
-  input: z.record(z.unknown()).optional(),
+  input: z.record(z.string(), z.unknown()).optional(),
   summary: z.string(),
   completionSummary: z.string().optional(),
   preview: z.string().optional(),
@@ -35,8 +35,10 @@ export const ToolApprovalCardSchema = z.object({
   error: z.string().optional(),
 });
 
-export type ToolApprovalCardState = z.infer<typeof ToolApprovalCardStateSchema>;
-export type ToolApprovalCard = z.infer<typeof ToolApprovalCardSchema>;
+export type ToolApprovalCardState = z.output<
+  typeof ToolApprovalCardStateSchema
+>;
+export type ToolApprovalCard = z.output<typeof ToolApprovalCardSchema>;
 
 export const AttachmentCardSourceSchema = z.object({
   entityType: z.string().optional(),
@@ -63,9 +65,9 @@ export const AttachmentCardSchema = z.object({
   attachment: AttachmentCardDataSchema,
 });
 
-export type AttachmentCardSource = z.infer<typeof AttachmentCardSourceSchema>;
-export type AttachmentCardData = z.infer<typeof AttachmentCardDataSchema>;
-export type AttachmentCard = z.infer<typeof AttachmentCardSchema>;
+export type AttachmentCardSource = z.output<typeof AttachmentCardSourceSchema>;
+export type AttachmentCardData = z.output<typeof AttachmentCardDataSchema>;
+export type AttachmentCard = z.output<typeof AttachmentCardSchema>;
 
 export const SourceCitationSchema = z.object({
   id: z.string().min(1),
@@ -75,10 +77,10 @@ export const SourceCitationSchema = z.object({
   entityType: z.string().min(1).optional(),
   entityId: z.string().min(1).optional(),
   excerpt: z.string().min(1).optional(),
-  provenance: z.record(z.unknown()).optional(),
+  provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type SourceCitation = z.infer<typeof SourceCitationSchema>;
+export type SourceCitation = z.output<typeof SourceCitationSchema>;
 
 export const SourcesCardSchema = z.object({
   kind: z.literal("sources"),
@@ -87,7 +89,7 @@ export const SourcesCardSchema = z.object({
   sources: z.array(SourceCitationSchema).min(1),
 });
 
-export type SourcesCard = z.infer<typeof SourcesCardSchema>;
+export type SourcesCard = z.output<typeof SourcesCardSchema>;
 
 export const PromptChatActionSchema = z.object({
   type: z.literal("prompt"),
@@ -97,7 +99,7 @@ export const PromptChatActionSchema = z.object({
   description: z.string().min(1).optional(),
 });
 
-export type PromptChatAction = z.infer<typeof PromptChatActionSchema>;
+export type PromptChatAction = z.output<typeof PromptChatActionSchema>;
 
 export const EventChatActionSchema = z.object({
   type: z.literal("event"),
@@ -107,14 +109,14 @@ export const EventChatActionSchema = z.object({
   description: z.string().min(1).optional(),
 });
 
-export type EventChatAction = z.infer<typeof EventChatActionSchema>;
+export type EventChatAction = z.output<typeof EventChatActionSchema>;
 
 export const ChatActionSchema = z.discriminatedUnion("type", [
   PromptChatActionSchema,
   EventChatActionSchema,
 ]);
 
-export type ChatAction = z.infer<typeof ChatActionSchema>;
+export type ChatAction = z.output<typeof ChatActionSchema>;
 
 export const ActionsCardSchema = z.object({
   kind: z.literal("actions"),
@@ -124,7 +126,7 @@ export const ActionsCardSchema = z.object({
   actions: z.array(ChatActionSchema).min(1),
 });
 
-export type ActionsCard = z.infer<typeof ActionsCardSchema>;
+export type ActionsCard = z.output<typeof ActionsCardSchema>;
 
 export const StructuredChatCardSchema = z.discriminatedUnion("kind", [
   ToolApprovalCardSchema,
@@ -133,16 +135,16 @@ export const StructuredChatCardSchema = z.discriminatedUnion("kind", [
   ActionsCardSchema,
 ]);
 
-export type StructuredChatCard = z.infer<typeof StructuredChatCardSchema>;
+export type StructuredChatCard = z.output<typeof StructuredChatCardSchema>;
 
 export const ToolResultDataSchema = z.object({
   toolName: z.string(),
-  args: z.record(z.unknown()).optional(),
+  args: z.record(z.string(), z.unknown()).optional(),
   jobId: z.string().optional(),
   data: z.unknown().optional(),
 });
 
-export type ToolResultData = z.infer<typeof ToolResultDataSchema>;
+export type ToolResultData = z.output<typeof ToolResultDataSchema>;
 
 export const AgentResponseSchema = z.object({
   text: z.string(),
@@ -156,7 +158,7 @@ export const AgentResponseSchema = z.object({
   }),
 });
 
-export type AgentResponse = z.infer<typeof AgentResponseSchema>;
+export type AgentResponse = z.output<typeof AgentResponseSchema>;
 
 export function parseAgentResponse(value: unknown): AgentResponse {
   return AgentResponseSchema.parse(stripUndefinedDeep(value));

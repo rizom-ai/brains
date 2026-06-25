@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const AGENT_ACTION_REQUEST_CHANNEL = "agent:action:request";
 
@@ -16,5 +16,5 @@ export const agentActionRequestSchema = z.object({
   action: agentEventActionSchema,
 });
 
-export type AgentEventAction = z.infer<typeof agentEventActionSchema>;
-export type AgentActionRequest = z.infer<typeof agentActionRequestSchema>;
+export type AgentEventAction = z.output<typeof agentEventActionSchema>;
+export type AgentActionRequest = z.output<typeof agentActionRequestSchema>;
