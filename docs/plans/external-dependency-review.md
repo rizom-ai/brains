@@ -763,6 +763,10 @@ Incremental migration progress:
   to `@brains/utils/zod-v4`. These response schemas are passed through parse or
   template structural boundaries and are not composed into main-Zod schema
   trees.
+- Migrated the shared agent-context request/response parser boundary to
+  `@brains/utils/zod-v4`. Consumers only parse message payloads or coerce agent
+  context items, so the schemas are not composed into the remaining main-Zod
+  contract/config trees.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

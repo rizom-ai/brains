@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const AGENT_CONTEXT_REQUEST_CHANNEL = "agent:context:request";
 
@@ -25,20 +25,22 @@ export interface AgentContextResponse {
   items: AgentContextItem[];
 }
 
-export const agentContextPermissionLevelSchema: z.ZodType<AgentContextPermissionLevel> =
-  z.enum(["anchor", "trusted", "public"]);
+export const agentContextPermissionLevelSchema = z.enum([
+  "anchor",
+  "trusted",
+  "public",
+]);
 
-export const agentContextRequestSchema: z.ZodType<AgentContextRequest> =
-  z.object({
-    conversationId: z.string().min(1),
-    message: z.string(),
-    interfaceType: z.string().min(1),
-    channelId: z.string().optional(),
-    channelName: z.string().optional(),
-    userPermissionLevel: agentContextPermissionLevelSchema,
-  });
+export const agentContextRequestSchema = z.object({
+  conversationId: z.string().min(1),
+  message: z.string(),
+  interfaceType: z.string().min(1),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  userPermissionLevel: agentContextPermissionLevelSchema,
+});
 
-export const agentContextItemSchema: z.ZodType<AgentContextItem> = z.object({
+export const agentContextItemSchema = z.object({
   id: z.string().min(1),
   source: z.string().min(1),
   title: z.string().optional(),
@@ -46,11 +48,7 @@ export const agentContextItemSchema: z.ZodType<AgentContextItem> = z.object({
   provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
-export const agentContextResponseSchema: z.ZodType<
-  AgentContextResponse,
-  z.ZodTypeDef,
-  { items?: AgentContextItem[] | undefined }
-> = z.object({
+export const agentContextResponseSchema = z.object({
   items: z.array(agentContextItemSchema).default([]),
 });
 
