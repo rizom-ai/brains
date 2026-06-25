@@ -15,10 +15,11 @@ Implementation progress in this branch:
 
 - Phase 0 is implemented: current guidance now routes source-derived artifact saves through `sourceAttachment`, not `from`.
 - Phase 1 is implemented: `system_create` rejects `from: { kind: "conversation-message" }` when combined with another source field, and direct `content` creates do not inspect conversation messages.
+- Phase 2 is implemented: upload-ref hints now distinguish raw-upload saves from prior-assistant-response note saves and name `from: { kind: "conversation-message" }` instead of copied conversation content.
 
 Known remaining issue:
 
-- The eval `multi-turn-web-chat-pdf-summary-save-it-note` can still fail because the model sometimes asks for an upload ref instead of calling `system_create` to save the visible prior assistant summary. Phase 2+ address this remaining routing pressure.
+- The eval `multi-turn-web-chat-pdf-summary-save-it-note` should be rerun to verify the Phase 2 routing-hint cleanup is sufficient. If it remains flaky, continue to Phase 3 before considering the Phase 4 runtime shortcut.
 
 ## Problem
 

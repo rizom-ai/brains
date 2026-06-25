@@ -405,9 +405,11 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toContain(
       "use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself",
     );
-    expect(content).toContain(
-      'If the previous assistant turn summarized, described, read, or analyzed an uploaded file and the user now says "save it", "save that", "save the note", or "save the summary" without saying upload/file/PDF/document, save the visible assistant summary/notes as a note with content from the conversation; do not use upload or transform.',
-    );
+    expect(content).toContain("Raw uploaded file path:");
+    expect(content).toContain("call system_upload_save");
+    expect(content).toContain("Prior assistant response path:");
+    expect(content).toContain('from: { kind: "conversation-message" }');
+    expect(content).not.toContain("content from the conversation");
     expect(content).toContain(
       "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
     );
@@ -449,7 +451,12 @@ describe("buildMessageWithAttachments", () => {
     expect(textPart?.type === "text" ? textPart.text : "").toContain(
       "use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself",
     );
-    expect(textPart?.type === "text" ? textPart.text : "").toContain(
+    const text = textPart?.type === "text" ? textPart.text : "";
+    expect(text).toContain("Raw uploaded file path:");
+    expect(text).toContain("Prior assistant response path:");
+    expect(text).toContain('from: { kind: "conversation-message" }');
+    expect(text).not.toContain("content from the conversation");
+    expect(text).toContain(
       "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
     );
   });

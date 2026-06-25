@@ -58,9 +58,11 @@ describe("ImagePlugin", () => {
     const instructions =
       await new InstructionTestImagePlugin().getInstructionsForTest();
 
+    expect(instructions).toContain('from: { kind: "conversation-message" }');
     expect(instructions).toContain(
-      "Saving an image description, discussion, interpretation, or caption as a note should create a note entity with content from the conversation, not system_upload_save or upload/transform.",
+      "not system_upload_save or upload/transform",
     );
+    expect(instructions).not.toContain("content from the conversation");
   });
 
   it("should return zero tools", async () => {
