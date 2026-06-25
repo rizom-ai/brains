@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { RuntimeStateService } from "../src";
 import { migrateRuntimeState } from "../src/migrate";
 

@@ -765,6 +765,11 @@ Incremental migration progress:
   schemas with `@brains/utils/zod-v4`, while existing main-Zod template
   providers remain structurally compatible because the package only calls
   `.parse()` and does not compose schema trees.
+- Decoupled `@brains/runtime-state` from main-Zod type imports by replacing its
+  scoped store schema type with a structural `parse(input: unknown): T`
+  contract. Runtime-state tests now use `@brains/utils/zod-v4`; existing
+  callers that pass main-Zod schemas remain compatible because runtime-state
+  only invokes `.parse()` at the persistence boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
