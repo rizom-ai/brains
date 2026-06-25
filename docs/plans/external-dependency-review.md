@@ -759,6 +759,10 @@ Incremental migration progress:
   `z.output<typeof schema>`, updates Zod 4 records to two-argument form, and
   moves stored message metadata card parsing to the same Zod 4 tree to avoid
   mixed schemas.
+- Migrated the shared default query/simple text/create/update response schemas
+  to `@brains/utils/zod-v4`. These response schemas are passed through parse or
+  template structural boundaries and are not composed into main-Zod schema
+  trees.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

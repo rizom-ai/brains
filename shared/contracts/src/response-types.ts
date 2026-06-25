@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Query response schemas used throughout the system
@@ -35,7 +35,7 @@ export interface UpdateEntityResponse {
   message: string;
 }
 
-export const defaultQueryResponseSchema: z.ZodType<DefaultQueryResponse> = z
+export const defaultQueryResponseSchema = z
   .object({
     message: z.string().describe("Natural language response to the query"),
     summary: z.string().optional().describe("Brief summary if applicable"),
@@ -55,13 +55,13 @@ export const defaultQueryResponseSchema: z.ZodType<DefaultQueryResponse> = z
   })
   .describe("defaultQueryResponse");
 
-export const simpleTextResponseSchema: z.ZodType<SimpleTextResponse> = z
+export const simpleTextResponseSchema = z
   .object({
     message: z.string(),
   })
   .describe("simpleTextResponse");
 
-export const createEntityResponseSchema: z.ZodType<CreateEntityResponse> = z
+export const createEntityResponseSchema = z
   .object({
     success: z.boolean(),
     entityId: z.string().optional(),
@@ -69,7 +69,7 @@ export const createEntityResponseSchema: z.ZodType<CreateEntityResponse> = z
   })
   .describe("createEntityResponse");
 
-export const updateEntityResponseSchema: z.ZodType<UpdateEntityResponse> = z
+export const updateEntityResponseSchema = z
   .object({
     success: z.boolean(),
     entityId: z.string(),
