@@ -2,7 +2,6 @@ import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { slugify } from "@brains/utils";
-import { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
@@ -13,26 +12,26 @@ import { getTemplateName } from "../templates";
 /**
  * Input schema for social post generation job
  */
-const coverImageJobSchema = frameworkZod.union([
-  frameworkZod.boolean(),
-  frameworkZod.object({
-    generate: frameworkZod.boolean().optional(),
-    prompt: frameworkZod.string().optional(),
+const coverImageJobSchema = z.union([
+  z.boolean(),
+  z.object({
+    generate: z.boolean().optional(),
+    prompt: z.string().optional(),
   }),
 ]);
 
-export const generationJobSchema = frameworkZod.object({
-  prompt: frameworkZod.string().optional(),
-  platform: frameworkZod.enum(["linkedin"]).optional(),
-  sourceEntityType: frameworkZod.enum(["post", "deck"]).optional(),
-  sourceEntityId: frameworkZod.string().optional(),
-  title: frameworkZod
+export const generationJobSchema = z.object({
+  prompt: z.string().optional(),
+  platform: z.enum(["linkedin"]).optional(),
+  sourceEntityType: z.enum(["post", "deck"]).optional(),
+  sourceEntityId: z.string().optional(),
+  title: z
     .string()
     .optional()
     .describe("Required when content is provided directly"),
-  content: frameworkZod.string().optional(),
-  addToQueue: frameworkZod.boolean().optional(),
-  generateImage: frameworkZod
+  content: z.string().optional(),
+  addToQueue: z.boolean().optional(),
+  generateImage: z
     .boolean()
     .optional()
     .describe("Auto-generate cover image for post"),
@@ -41,13 +40,13 @@ export const generationJobSchema = frameworkZod.object({
     .describe("Generic cover image generation request"),
 });
 
-export type GenerationJobData = frameworkZod.infer<typeof generationJobSchema>;
+export type GenerationJobData = z.output<typeof generationJobSchema>;
 
 export const socialMediaGenerationResultSchema = generationResultSchema.extend({
-  slug: frameworkZod.string().optional(),
+  slug: z.string().optional(),
 });
 
-export type GenerationResult = frameworkZod.infer<
+export type GenerationResult = z.output<
   typeof socialMediaGenerationResultSchema
 >;
 

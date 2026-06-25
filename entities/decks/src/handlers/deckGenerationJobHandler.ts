@@ -7,7 +7,7 @@ import type { GeneratedContent } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { slugify } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { generationResultSchema } from "@brains/contracts";
 
 /**
@@ -23,14 +23,14 @@ export const deckGenerationJobSchema = z.object({
   skipAi: z.boolean().optional(),
 });
 
-export type DeckGenerationJobData = z.infer<typeof deckGenerationJobSchema>;
+export type DeckGenerationJobData = z.output<typeof deckGenerationJobSchema>;
 
 export const deckGenerationResultSchema = generationResultSchema.extend({
   title: z.string().optional(),
   slug: z.string().optional(),
 });
 
-export type DeckGenerationResult = z.infer<typeof deckGenerationResultSchema>;
+export type DeckGenerationResult = z.output<typeof deckGenerationResultSchema>;
 
 /**
  * Job handler for deck generation

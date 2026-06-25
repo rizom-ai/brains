@@ -2,7 +2,7 @@ import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { slugify } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
@@ -21,14 +21,14 @@ export const blogGenerationJobSchema = z.object({
   skipAi: z.boolean().optional(),
 });
 
-export type BlogGenerationJobData = z.infer<typeof blogGenerationJobSchema>;
+export type BlogGenerationJobData = z.output<typeof blogGenerationJobSchema>;
 
 export const blogGenerationResultSchema = generationResultSchema.extend({
   title: z.string().optional(),
   slug: z.string().optional(),
 });
 
-export type BlogGenerationResult = z.infer<typeof blogGenerationResultSchema>;
+export type BlogGenerationResult = z.output<typeof blogGenerationResultSchema>;
 
 /**
  * Job handler for blog post generation

@@ -1,7 +1,7 @@
 import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { noteAdapter } from "../adapters/note-adapter";
@@ -14,13 +14,13 @@ export const noteGenerationJobSchema = z.object({
   title: z.string().optional(),
 });
 
-export type NoteGenerationJobData = z.infer<typeof noteGenerationJobSchema>;
+export type NoteGenerationJobData = z.output<typeof noteGenerationJobSchema>;
 
 export const noteGenerationResultSchema = generationResultSchema.extend({
   title: z.string().optional(),
 });
 
-export type NoteGenerationResult = z.infer<typeof noteGenerationResultSchema>;
+export type NoteGenerationResult = z.output<typeof noteGenerationResultSchema>;
 
 /**
  * Job handler for note generation

@@ -1,7 +1,8 @@
 import type { EntityPluginContext, GeneratedContent } from "@brains/plugins";
 import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z as frameworkZod } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { generationResultSchema } from "@brains/contracts";
 import { fetchAgentCard, extractDomain } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";
@@ -11,22 +12,26 @@ import { agentStatusSchema } from "../schemas/agent";
 /**
  * Input schema for agent generation — just needs a URL/domain.
  */
-export const agentGenerationJobSchema = z.object({
-  prompt: z.string().optional(),
-  url: z.string().optional(),
-  content: z.string().optional(),
-  skipAi: z.boolean().optional(),
+export const agentGenerationJobSchema = frameworkZod.object({
+  prompt: frameworkZod.string().optional(),
+  url: frameworkZod.string().optional(),
+  content: frameworkZod.string().optional(),
+  skipAi: frameworkZod.boolean().optional(),
   status: agentStatusSchema.optional(),
 });
 
-export type AgentGenerationJobData = z.infer<typeof agentGenerationJobSchema>;
+export type AgentGenerationJobData = frameworkZod.output<
+  typeof agentGenerationJobSchema
+>;
 
 export const agentGenerationResultSchema = generationResultSchema.extend({
   name: z.string().optional(),
   domain: z.string().optional(),
 });
 
-export type AgentGenerationResult = z.infer<typeof agentGenerationResultSchema>;
+export type AgentGenerationResult = z.output<
+  typeof agentGenerationResultSchema
+>;
 
 /**
  * Generation handler for agent entities.
