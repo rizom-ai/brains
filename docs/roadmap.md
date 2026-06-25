@@ -233,7 +233,7 @@ Cleanup:
 - [external-dependency-review.md](./plans/external-dependency-review.md) — dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [codebase-cleanup-backlog.md](./plans/codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package-script drift).
-- [agent-instruction-surface.md](./plans/agent-instruction-surface.md) — shrink and govern the agent instruction surface: move dynamic memory out of the system prompt, replace duplicated NL guards with runtime/schema contracts, and convert brittle prompt substring locks into behavior coverage.
+- [system-create-source-architecture.md](./plans/system-create-source-architecture.md) — deterministic source routing for `system_create`: a typed `source` union plus a tested intent-router at the shared agent chokepoint, with the model as fallback and the prose/regex routing layer deleted. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.
 
 Research probes (parked):
 
