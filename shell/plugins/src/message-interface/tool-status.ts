@@ -45,7 +45,15 @@ export function getToolStatusKey(update: ToolStatusUpdate): string {
 }
 
 export function formatToolStatusLabel(toolName: string): string {
-  return toolName.replace(/[_-]+/g, " ");
+  if (toolName.startsWith("playbook_")) return "playbook";
+  const withoutSystemPrefix = toolName.startsWith("system_")
+    ? toolName.slice("system_".length)
+    : toolName;
+  return withoutSystemPrefix
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 export function getToolStatusTitle(state: ToolStatusState): string {

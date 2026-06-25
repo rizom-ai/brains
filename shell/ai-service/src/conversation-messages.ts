@@ -2,6 +2,11 @@ import type { AgentContextItem } from "@brains/contracts";
 import type { Message } from "@brains/conversation-service";
 import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
+import {
+  buildEntityMemoryContext,
+  entityMemoryRefSchema,
+  type EntityMemoryRef,
+} from "./agent-results";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -21,8 +26,16 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
 
 function getEntityMemoryNote(metadata: Message["metadata"]): string {
   const parsedMetadata = parseMessageMetadata(metadata);
-  const value = parsedMetadata?.["entityMemoryNote"];
-  return typeof value === "string" ? value : "";
+  const refs = parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]);
+  return buildEntityMemoryContext(refs);
+}
+
+function parseEntityMemoryRefs(value: unknown): EntityMemoryRef[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): EntityMemoryRef[] => {
+    const parsed = entityMemoryRefSchema.safeParse(item);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 function parseMessageMetadata(
@@ -281,8 +294,9 @@ function formatUploadRefs(
     if (seen.has(key)) return [];
     seen.add(key);
     const rawSaveEntityType = getRawSaveEntityType(ref.mediaType);
+    const noteExtractHint = getNoteExtractHint(ref);
     return [
-      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }; mediaType: ${ref.mediaType}${rawSaveEntityType ? `; raw-save entityType: "${rawSaveEntityType}"` : ""}`,
+      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }; mediaType: ${ref.mediaType}${rawSaveEntityType ? `; raw-save entityType: "${rawSaveEntityType}"` : ""}${noteExtractHint ? `; note-extract operation: call system_create with entityType "note", upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }, transform "extract-markdown". This is the only valid durable note-import operation for this upload; do not copy attachment bytes into content for note import.` : ""}`,
     ];
   });
   return lines.length > 0
@@ -294,6 +308,13 @@ function getRawSaveEntityType(mediaType: string): string | undefined {
   if (mediaType.startsWith("image/")) return "image";
   if (mediaType === "application/pdf") return "document";
   return undefined;
+}
+
+function getNoteExtractHint(ref: ConversationUploadRef): boolean {
+  if (ref.mediaType === "application/pdf") return true;
+  if (ref.mediaType.startsWith("text/")) return true;
+  const filename = ref.filename.toLowerCase();
+  return /\.(md|markdown|txt|json)$/u.test(filename);
 }
 
 export function buildAgentContextInstructions(

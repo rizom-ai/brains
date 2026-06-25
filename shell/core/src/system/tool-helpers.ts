@@ -1,4 +1,7 @@
-import type { BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntityMutationEventContext,
+} from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type {
   EntityAction,
@@ -59,9 +62,12 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
     input: z.infer<TSchema>,
     context: ToolContext,
   ) => Promise<ToolResponse>,
-  options: { visibility?: Tool["visibility"] } = {},
+  options: {
+    visibility?: Tool["visibility"];
+    sideEffects?: Tool["sideEffects"];
+  } = {},
 ): Tool {
-  const { visibility = "anchor" } = options;
+  const { visibility = "anchor", sideEffects } = options;
   return {
     name: `${PLUGIN_ID}_${name}`,
     description,
@@ -81,7 +87,47 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
       }
     },
     visibility,
+    ...(sideEffects ? { sideEffects } : {}),
   };
+}
+
+/**
+ * Reject an operation on an entity type that no plugin has registered.
+ *
+ * Without this guard the create tool confirms and (for `prompt` creates) runs a
+ * full generation pass before `EntityRegistry.getAdapter` finally throws
+ * "No adapter registered for entity type", leaking that internal string to the
+ * operator. Validating up front turns a late, cryptic failure into a clean
+ * early rejection, and listing the available types lets the model recover by
+ * choosing a type that actually exists in this brain.
+ */
+export function assertEntityTypeRegistered(
+  services: {
+    entityRegistry: { hasEntityType(type: string): boolean };
+    entityService: { getEntityTypes(): string[] };
+  },
+  entityType: string,
+): ToolResponse | undefined {
+  if (services.entityRegistry.hasEntityType(entityType)) return undefined;
+  const available = services.entityService.getEntityTypes();
+  return {
+    success: false,
+    error: `Entity type "${entityType}" is not available in this brain. Available types: ${available.join(", ")}.`,
+  };
+}
+
+export function buildEntityMutationEventContext(
+  context: ToolContext,
+): EntityMutationEventContext | undefined {
+  const eventContext: EntityMutationEventContext = {
+    ...(context.conversationId
+      ? { conversationId: context.conversationId }
+      : {}),
+    ...(context.channelId ? { channelId: context.channelId } : {}),
+    ...(context.runId ? { runId: context.runId } : {}),
+    ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
+  };
+  return Object.keys(eventContext).length > 0 ? eventContext : undefined;
 }
 
 export function sanitizeEntity<T extends BaseEntity>(entity: T): T {
@@ -147,6 +193,16 @@ export function normalizeUpdateInput(input: {
   }
 
   return { content: input.content };
+}
+
+const ENTITY_TYPE_DISPLAY_NAMES: Record<string, string> = {
+  base: "note",
+};
+
+export function humanizeEntityType(entityType: string): string {
+  return (
+    ENTITY_TYPE_DISPLAY_NAMES[entityType] ?? entityType.replaceAll("-", " ")
+  );
 }
 
 export function getEntityDisplayLabel(entity: BaseEntity): string {

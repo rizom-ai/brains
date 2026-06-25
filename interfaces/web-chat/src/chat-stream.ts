@@ -9,6 +9,7 @@ import {
 } from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
+import { stripInternalEntityMemoryNote } from "./display-content";
 import { writeStructuredCards, writeTextPart } from "./stream-writer";
 
 export interface ActiveStream {
@@ -162,6 +163,6 @@ export function writeText(
   createId: (prefix: string) => string,
 ): string {
   const id = createId(prefix);
-  writeTextPart(writer, id, text);
+  writeTextPart(writer, id, stripInternalEntityMemoryNote(text));
   return id;
 }

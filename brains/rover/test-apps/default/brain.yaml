@@ -8,8 +8,11 @@ site:
   package: "@brains/site-personal"
 
 plugins:
+  playbooks:
+    triggers:
+      first-anchor-web-chat: true
   directory-sync:
-    seedContentPath: ../../eval-content
+    seedContentPath: ../../eval-content-default
     autoSync: true
     initialSync: true
     git:

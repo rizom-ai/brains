@@ -416,4 +416,3 @@ All items previously open are resolved (each verified against the code):
   data layer CQRS in the first place.
 - `docs/plans/a2a-request-signing.md` — A2A is the brain↔brain skin over the same
   agent entrypoint; ACP would be the (deferred) editor skin.
-- `docs/plans/message-interface-tool-status.md` — related message-interface work.

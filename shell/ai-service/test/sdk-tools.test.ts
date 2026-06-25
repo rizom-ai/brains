@@ -166,6 +166,140 @@ describe("convertToSDKTools", () => {
     });
   });
 
+  it("deduplicates identical pure read tool calls within one converted tool set", async () => {
+    const handler = mock(async (_args: unknown) => ({
+      success: true as const,
+      data: { entity: { id: "deck-1", entityType: "deck", metadata: {} } },
+    }));
+    const tool: Tool = {
+      name: "system_get",
+      description: "Get entity",
+      inputSchema: { entityType: z.string(), id: z.string() },
+      visibility: "public",
+      sideEffects: "none",
+      handler,
+    };
+
+    const sdkTool = convertToSDKTools(
+      [tool],
+      { conversationId: "conversation-1", interfaceType: "agent" },
+      { emit: mock(() => {}) },
+    )["system_get"];
+    if (!sdkTool?.execute) throw new Error("Expected system_get to execute");
+
+    const first = await sdkTool.execute(
+      { entityType: "deck", id: "deck-1" },
+      { toolCallId: "call-1", messages: [] },
+    );
+    const second = await sdkTool.execute(
+      { entityType: "deck", id: "deck-1" },
+      { toolCallId: "call-2", messages: [] },
+    );
+
+    expect(first).toEqual({
+      success: true,
+      data: { entity: { id: "deck-1", entityType: "deck", metadata: {} } },
+    });
+    expect(second).toEqual({
+      success: true,
+      data: { entity: { id: "deck-1", entityType: "deck", metadata: {} } },
+      cached: true,
+    });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not deduplicate write tool calls", async () => {
+    const handler = mock(async () => ({ success: true as const }));
+    const tool: Tool = {
+      name: "system_create",
+      description: "Create entity",
+      inputSchema: { entityType: z.string(), title: z.string() },
+      visibility: "public",
+      sideEffects: "writes",
+      handler,
+    };
+
+    const sdkTool = convertToSDKTools(
+      [tool],
+      { conversationId: "conversation-1", interfaceType: "agent" },
+      { emit: mock(() => {}) },
+    )["system_create"];
+    if (!sdkTool?.execute) throw new Error("Expected system_create to execute");
+
+    await sdkTool.execute(
+      { entityType: "note", title: "A" },
+      { toolCallId: "call-1", messages: [] },
+    );
+    await sdkTool.execute(
+      { entityType: "note", title: "A" },
+      { toolCallId: "call-2", messages: [] },
+    );
+
+    expect(handler).toHaveBeenCalledTimes(2);
+  });
+
+  it("invalidates turn read cache after write tools execute", async () => {
+    let version = 1;
+    const getHandler = mock(async () => ({
+      success: true as const,
+      data: {
+        entity: {
+          id: "note-1",
+          entityType: "note",
+          metadata: { version: String(version) },
+        },
+      },
+    }));
+    const updateHandler = mock(async () => {
+      version = 2;
+      return { success: true as const, data: { updated: "note-1" } };
+    });
+    const getTool: Tool = {
+      name: "system_get",
+      description: "Get entity",
+      inputSchema: { entityType: z.string(), id: z.string() },
+      visibility: "public",
+      sideEffects: "none",
+      handler: getHandler,
+    };
+    const updateTool: Tool = {
+      name: "system_update",
+      description: "Update entity",
+      inputSchema: { entityType: z.string(), id: z.string() },
+      visibility: "public",
+      sideEffects: "writes",
+      handler: updateHandler,
+    };
+
+    const sdkTools = convertToSDKTools(
+      [getTool, updateTool],
+      { conversationId: "conversation-1", interfaceType: "agent" },
+      { emit: mock(() => {}) },
+    );
+    const getSdkTool = sdkTools["system_get"];
+    const updateSdkTool = sdkTools["system_update"];
+    if (!getSdkTool?.execute || !updateSdkTool?.execute) {
+      throw new Error("Expected tools to execute");
+    }
+
+    const first = await getSdkTool.execute(
+      { entityType: "note", id: "note-1" },
+      { toolCallId: "call-1", messages: [] },
+    );
+    await updateSdkTool.execute(
+      { entityType: "note", id: "note-1" },
+      { toolCallId: "call-2", messages: [] },
+    );
+    const second = await getSdkTool.execute(
+      { entityType: "note", id: "note-1" },
+      { toolCallId: "call-3", messages: [] },
+    );
+
+    expect(first).not.toEqual(second);
+    expect(JSON.stringify(second)).toContain('"version":"2"');
+    expect(getHandler).toHaveBeenCalledTimes(2);
+  });
+
   it("passes coerced invalid registered tool responses through normal agent tool execution", async () => {
     const unsubscribeFn = mock(() => {});
     const mcpService = MCPService.createFresh(
@@ -219,7 +353,7 @@ describe("convertToSDKTools", () => {
         interfaceType: "agent",
         userId: "agent-user",
         conversationId: "conversation-1",
-        channelId: "conversation-1",
+        toolCallId: "call-1",
         userPermissionLevel: "public",
       }),
     );

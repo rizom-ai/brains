@@ -259,6 +259,145 @@ describe("Publish Pipeline - Publish Tool", () => {
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
+    it("accepts confirmation after tool recreation", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      const initialTool = createPublishTool(
+        context,
+        pluginId,
+        providerRegistry,
+      );
+      const confirmation = await initialTool.handler(
+        { entityType: "social-post", slug: "draft-post" },
+        createMockToolContext(),
+      );
+
+      expect(confirmation).toHaveProperty("needsConfirmation", true);
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
+      if (!("needsConfirmation" in confirmation)) {
+        throw new Error("Expected publish confirmation");
+      }
+      expect(confirmation.args).toHaveProperty("expiresAt");
+
+      const recreatedTool = createPublishTool(
+        context,
+        pluginId,
+        providerRegistry,
+      );
+      const result = await recreatedTool.handler(
+        confirmation.args,
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns an error instead of re-confirming for invalid tokens", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const confirmation = await tool.handler(
+        { entityType: "social-post", id: "draft-post" },
+        createMockToolContext(),
+      );
+
+      expect(confirmation).toHaveProperty("needsConfirmation", true);
+      if (!("needsConfirmation" in confirmation)) {
+        throw new Error("Expected publish confirmation");
+      }
+
+      const result = await tool.handler(
+        {
+          ...(confirmation.args as Record<string, unknown>),
+          confirmationToken: "invalid-token",
+        },
+        createMockToolContext(),
+      );
+
+      expect(result).not.toHaveProperty("needsConfirmation");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Invalid publish confirmation token");
+      }
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
+    });
+
+    it("returns an error for expired confirmation tokens", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const confirmation = await tool.handler(
+        { entityType: "social-post", id: "draft-post" },
+        createMockToolContext(),
+      );
+
+      expect(confirmation).toHaveProperty("needsConfirmation", true);
+      if (!("needsConfirmation" in confirmation)) {
+        throw new Error("Expected publish confirmation");
+      }
+
+      const originalDateNow = Date.now;
+      try {
+        Date.now = (): number => originalDateNow() + 16 * 60 * 1000;
+        const result = await tool.handler(
+          confirmation.args,
+          createMockToolContext(),
+        );
+
+        expect(result).not.toHaveProperty("needsConfirmation");
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toContain("Publish confirmation expired");
+        }
+        expect(linkedinProvider.publish).not.toHaveBeenCalled();
+      } finally {
+        Date.now = originalDateNow;
+      }
+    });
+
+    it("rejects publish when content changed after confirmation", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const confirmation = await tool.handler(
+        { entityType: "social-post", id: "draft-post" },
+        createMockToolContext(),
+      );
+
+      expect(confirmation).toHaveProperty("needsConfirmation", true);
+      if (!("needsConfirmation" in confirmation)) {
+        throw new Error("Expected publish confirmation");
+      }
+
+      const entity = await context.entityService.getEntity({
+        entityType: "social-post",
+        id: "draft-post",
+      });
+      if (!entity) throw new Error("Expected draft entity");
+      await context.entityService.updateEntity({
+        entity: {
+          ...entity,
+          content: "Changed content after confirmation",
+        },
+      });
+
+      const result = await tool.handler(
+        confirmation.args,
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("changed after confirmation");
+      }
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
+    });
+
     it("should return error when no provider registered", async () => {
       // No provider registered - should return error
       const tool = createPublishTool(context, pluginId, providerRegistry);

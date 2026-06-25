@@ -1,6 +1,6 @@
 id: social-media-publish-agent
-name: Handle publish request with no posts
-description: Tests that the agent checks the latest LinkedIn draft/post state and responds clearly
+name: Handle publish request with no eligible publish target
+description: Tests that the agent checks the latest LinkedIn/social-post state and responds clearly when nothing is currently publishable, such as no eligible draft or no configured publish provider
 type: response_quality
 setup:
   permissionLevel: anchor
@@ -15,10 +15,17 @@ turns:
   - userMessage: "Publish my latest LinkedIn post now"
 
 successCriteria:
-  # Agent should check for existing posts
-  expectedTools:
-    - toolName: system_list
+  # Agent should check existing social-post state before deciding publish eligibility.
+  expectedAnyTool:
+    - toolNames:
+        - system_list
+        - system_search
       shouldBeCalled: true
-  # Agent should describe the latest LinkedIn item clearly
+      argsContain:
+        entityType: social-post
+  # Agent should describe the LinkedIn/social publish situation clearly and not hallucinate success.
   responseContains:
     - "LinkedIn"
+  responseNotContains:
+    - "Published successfully"
+    - "Your LinkedIn post is live"

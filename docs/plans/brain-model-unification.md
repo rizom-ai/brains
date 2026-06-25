@@ -4,7 +4,7 @@ Last updated: 2026-06-23
 
 ## Status
 
-Proposed. Design settled through a decision walk (June 2026); no implementation started. Supersedes the preset/three-reference-model framing of the retired `relay-presets.md` (its team-native capability roadmap moved to [team-posture-capabilities.md](./team-posture-capabilities.md)); overlaps the parked composition escape hatch in [custom-brain-definitions.md](./custom-brain-definitions.md), which should be reconciled against this plan once Phase 0 lands.
+Proposed. Design settled through a decision walk (June 2026); no implementation started. Supersedes the preset/three-reference-model framing of the retired `relay-presets.md` (its team-native capability roadmap moved to [team-posture-capabilities.md](./team-posture-capabilities.md)) and the retired `custom-brain-definitions.md` (its programmatic composition escape hatch is subsumed by `bundles:` composition here — see Decisions 5–6).
 
 ## Context
 
@@ -99,7 +99,7 @@ Move the canonical capability set + bundle definitions behind `@rizom/brain`'s a
 
 ### Phase 6 — Docs & roadmap rewrite
 
-`docs/brain-model.md` (remove the three-reference-models section; document bundles + model/instance), roadmap §1/§2 collapse into one product track with the personal→collective arc, plus `README`/`AGENTS.md`/`architecture-overview`/`theming-guide` references and a changeset. (`relay-presets.md` already retired; reconcile `custom-brain-definitions.md`.)
+`docs/brain-model.md` (remove the three-reference-models section; document bundles + model/instance), roadmap §1/§2 collapse into one product track with the personal→collective arc, plus `README`/`AGENTS.md`/`architecture-overview`/`theming-guide` references and a changeset. (`relay-presets.md` and `custom-brain-definitions.md` already retired into this plan.)
 
 ## Checkpoints
 

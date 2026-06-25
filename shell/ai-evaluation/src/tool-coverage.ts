@@ -25,6 +25,7 @@ export async function runToolCoverageReport(
 ): Promise<ToolCoverageReport> {
   const evalDbBase = prepareEvalEnvironment({
     brainModelPath: options.brainModelPath,
+    config: options.config,
     cloneData: options.cloneData,
     suffix: "tool-coverage",
   });

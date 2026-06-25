@@ -10,7 +10,7 @@ GitHub from the browser.
 
 The current CMS (`plugins/cms`) is a thin wrapper around Sveltia CMS, loaded from a CDN.
 Sveltia commits content **directly to GitHub from the browser** using a write token
-(GitHub OAuth, or a passkey-gated PAT — see `cms-github-app-hosted.md`). This has four
+(GitHub OAuth, or a passkey-gated PAT). This has four
 structural problems, all of which stem from the editor living outside the brain:
 
 - **Data path** — edits go browser → GitHub → git-sync, _bypassing_ the entity service.
@@ -221,8 +221,9 @@ frontmatter-only entity type. No create, no delete, no body, no media.
   is gone). Keep only the operator-session guard.
 - Narrow `@brains/cms-config` to the descriptor output the React renderer consumes; drop the
   Sveltia YAML generation if no longer used.
-- Update docs; delete `cms-github-app-hosted.md` (its problem — short-lived browser tokens —
-  no longer exists) and this plan once shipped.
+- Update docs and delete this plan once shipped. (The predecessor `cms-github-app-hosted.md`
+  token-hardening plan is already retired — its problem, short-lived browser tokens, disappears
+  with this editor.)
 
 ### Phase 6 (optional, later) — AI-assisted authoring
 
@@ -263,5 +264,4 @@ frontmatter-only entity type. No create, no delete, no body, no media.
   echo-loop prevention.
 - `interfaces/web-chat` — React 19 + Vite SPA precedent and component stack to reuse.
 - `shell/auth-service` — operator-session guard (`getOperatorSession`).
-- `cms-github-app-hosted.md` — predecessor token-hardening plan, superseded and removable.
 - `template-renderer-contracts.md` — Astro static-renderer spike; deliberately _not_ coupled.

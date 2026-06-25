@@ -1,0 +1,58 @@
+id: multi-turn-playbook-blocks-unsatisfied-identity-next
+name: Playbook Blocks Unsatisfied Identity Next
+description: Verifies that Rover does not advance from Brain identity on a generic continue request before brain identity is saved.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: web-chat-eval-playbook-identity-gate
+  channelName: Web Chat Eval
+tags:
+  - onboarding
+  - playbooks
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Start playbook rover-onboarding."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-onboarding
+      responseContains:
+        - Rover
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Continue. I have not provided brain identity details."
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: false
+        - toolName: system_update
+          shouldBeCalled: false
+      responseNotContains:
+        - "Alex Chen"
+        - "seed"
+        - "fragment"
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_start
+      shouldBeCalled: true
+  toolCountRange:
+    max: 10
+  responseNotContains:
+    - "Confirmation required"
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 10
+  maxTokens: 150000

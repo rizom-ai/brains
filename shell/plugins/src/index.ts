@@ -136,6 +136,7 @@ export type {
   IInsightsRegistry,
   InsightHandler,
   QueryContext,
+  JudgeInput,
   IMCPTransport,
   ToolInfo,
   EvalHandler,
@@ -282,9 +283,6 @@ export {
   ToolApprovalCardSchema,
   ToolApprovalCardStateSchema,
   ToolResultDataSchema,
-  toPublicActionsCard,
-  toPublicAttachmentCard,
-  toPublicSourcesCard,
   type AgentResponse,
   type ChatAttachment,
   type ChatContext,
@@ -535,6 +533,7 @@ export {
   anchorProfileBodySchema,
   brainCharacterBodySchema,
   baseProfileExtension,
+  professionalProfileExtension,
   fetchAnchorProfile,
 } from "@brains/identity-service";
 

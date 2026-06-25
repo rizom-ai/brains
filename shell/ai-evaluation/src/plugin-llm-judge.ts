@@ -102,9 +102,7 @@ export class PluginLLMJudge implements IPluginLLMJudge {
     const customEvalPrompt =
       testCase.expectedOutput.qualityCriteria?.evaluationPrompt;
 
-    const userPrompt = `Please evaluate the following plugin output:
-
-## Plugin Test Case
+    const material = `## Plugin Test Case
 Name: ${testCase.name}
 Description: ${testCase.description ?? "No description"}
 Plugin: ${testCase.plugin}
@@ -115,24 +113,22 @@ ${inputText}
 
 ## Output
 ${outputText}
-${customEvalPrompt ? `\n## Additional Evaluation Criteria\n${customEvalPrompt}` : ""}
-
-Provide your evaluation scores and reasoning.`;
+${customEvalPrompt ? `\n## Additional Evaluation Criteria\n${customEvalPrompt}` : ""}`;
 
     try {
-      const { object } = await this.aiService.generateObject(
-        PLUGIN_JUDGE_SYSTEM_PROMPT,
-        userPrompt,
-        pluginQualityEvaluationSchema,
-      );
+      const { verdict } = await this.aiService.judge({
+        instruction: `${PLUGIN_JUDGE_SYSTEM_PROMPT}\n\nEvaluate the supplied plugin output and provide quality scores and reasoning.`,
+        material,
+        schema: pluginQualityEvaluationSchema,
+      });
 
       // Map plugin quality scores to standard QualityScores format
       return {
-        helpfulness: object.coverage, // Coverage maps to helpfulness
-        accuracy: object.accuracy,
-        instructionFollowing: object.relevance, // Relevance maps to instruction following
-        appropriateToolUse: object.quality, // Quality maps to tool use (output quality)
-        reasoning: object.reasoning,
+        helpfulness: verdict.coverage, // Coverage maps to helpfulness
+        accuracy: verdict.accuracy,
+        instructionFollowing: verdict.relevance, // Relevance maps to instruction following
+        appropriateToolUse: verdict.quality, // Quality maps to tool use (output quality)
+        reasoning: verdict.reasoning,
       };
     } catch (error) {
       Logger.getInstance().error("Plugin LLM Judge failed:", error);

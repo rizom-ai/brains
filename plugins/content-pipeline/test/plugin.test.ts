@@ -34,6 +34,7 @@ const createMockJobQueueService = (
     getHandler: () => undefined,
     update: async () => {},
     getActiveJobs: async () => [],
+    getFailedJobs: async () => [],
     getStatusByEntityId: async () => null,
   }) as never;
 

@@ -26,6 +26,17 @@ describe("getAgentDiscoveryInstructions", () => {
     );
   });
 
+  it("does not apply agent save-first refusal to explicit link/bookmark saves", () => {
+    const instructions = getAgentDiscoveryInstructions();
+
+    expect(instructions).toContain(
+      "Explicit link or bookmark saves like `save this link: https://example.com/page` are not agent-contact requests",
+    );
+    expect(instructions).toContain(
+      'use `system_create({ entityType: "link", url: "https://example.com/page" })`',
+    );
+  });
+
   it("treats bare affirmative follow-ups after save-first refusal as consent to save", () => {
     const instructions = getAgentDiscoveryInstructions();
 

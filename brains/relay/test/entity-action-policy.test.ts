@@ -43,7 +43,10 @@ describe("Relay entity action policy", () => {
       "brain-character",
       "anchor-profile",
     ]) {
-      expect(policy?.[entityType]).toBeUndefined();
+      const resolvedPolicy = policy?.[entityType] ?? policy?.["*"];
+      expect(resolvedPolicy?.create).not.toBe("trusted");
+      expect(resolvedPolicy?.update).not.toBe("trusted");
+      expect(resolvedPolicy?.delete).not.toBe("trusted");
     }
   });
 });

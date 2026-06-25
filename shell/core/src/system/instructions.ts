@@ -1,7 +1,39 @@
 import type { SystemServices } from "./types";
 
+const ENTITY_TYPE_EXAMPLES: { entityType: string; example: string }[] = [
+  { entityType: "post", example: '- "Write a blog post" → entityType: "post"' },
+  {
+    entityType: "deck",
+    example: '- "Create a presentation/deck" → entityType: "deck"',
+  },
+  {
+    entityType: "note",
+    example: '- "Save this as a note" → entityType: "note"',
+  },
+  {
+    entityType: "social-post",
+    example: '- "Draft a LinkedIn post" → entityType: "social-post"',
+  },
+  {
+    entityType: "newsletter",
+    example: '- "Create a newsletter" → entityType: "newsletter"',
+  },
+  {
+    entityType: "project",
+    example: '- "Add a project" → entityType: "project"',
+  },
+  {
+    entityType: "agent",
+    example: '- "List my contacts/agents" → entityType: "agent"',
+  },
+];
+
 export function createSystemInstructions(services: SystemServices): string {
   const types = services.entityService.getEntityTypes();
+  const registered = new Set(types);
+  const typeExamples = ENTITY_TYPE_EXAMPLES.filter((entry) =>
+    registered.has(entry.entityType),
+  ).map((entry) => entry.example);
 
   return [
     "## Entity CRUD",
@@ -25,14 +57,6 @@ export function createSystemInstructions(services: SystemServices): string {
     "- **system_search**: Semantic search across all entities.",
     "",
     "When a user asks to create content, determine the entity type from context:",
-    '- "Write a blog post" → entityType: "post"',
-    '- "Create a presentation/deck" → entityType: "deck"',
-    '- "Save this as a note" → entityType: "note"',
-    '- "Draft a LinkedIn post" → entityType: "social-post"',
-    '- "Create a newsletter" → entityType: "newsletter"',
-    '- "Add a project" → entityType: "project"',
-    '- "List my contacts/agents" → entityType: "agent"',
-    "",
-    "Never use old tool names like blog_generate, note_create, or deck_generate.",
+    ...typeExamples,
   ].join("\n");
 }

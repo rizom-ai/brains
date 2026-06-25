@@ -536,9 +536,11 @@ export function SourcesPart({ data }: { data: unknown }): React.ReactElement {
 export function ActionsPart({
   data,
   onPromptAction,
+  onEventAction,
 }: {
   data: unknown;
   onPromptAction: (prompt: string) => void;
+  onEventAction: (event: string) => void;
 }): React.ReactElement {
   const parsed = actionsCardSchema.safeParse(data);
   if (!parsed.success) {
@@ -566,15 +568,10 @@ export function ActionsPart({
             <div className="web-chat-action-item" key={action.id}>
               <button
                 type="button"
-                disabled={action.type === "event"}
-                aria-disabled={action.type === "event"}
-                title={
-                  action.type === "event"
-                    ? "Runtime event actions need a dedicated handler before they can be clicked."
-                    : undefined
-                }
+                aria-disabled={false}
                 onClick={() => {
                   if (action.type === "prompt") onPromptAction(action.prompt);
+                  else onEventAction(action.event);
                 }}
               >
                 {action.label}

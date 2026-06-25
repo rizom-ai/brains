@@ -1,0 +1,187 @@
+id: multi-turn-rover-onboarding-playbook
+name: Rover Onboarding Playbook Conversation
+description: Verifies that Rover starts onboarding, saves identity/profile information through confirmation, saves a first durable knowledge seed, retrieves it through normal tools, and transforms it without scripted non-exit playbook actions.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: web-chat-eval-onboarding
+  channelName: Web Chat Eval
+tags:
+  - onboarding
+  - playbooks
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Start playbook rover-onboarding."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-onboarding
+      responseContains:
+        - Rover
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Tune Rover's brain identity: Rover should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: brain-character
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that brain identity."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "brain"
+      responseNotContains:
+        - "Completed: Update \""
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Update my anchor profile now: my name is Ada Morgan. My role is advisor, my audience is climate-tech founders, my expertise is resilient software systems, and my desired tone is clear, practical, quietly confident."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: anchor-profile
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that profile update."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Updated anchor profile"
+      responseNotContains:
+        - "Completed: Update \""
+        - "What should I call you"
+        - "what should I call you"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Save this first idea: resilient software is a climate strategy because systems that fail less waste less energy and operator attention."
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "what is next"
+        - "What should I call you"
+        - "what should I call you"
+        - "role"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that first seed."
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+      responseNotContains:
+        - "what is next"
+        - "What should I call you"
+        - "what should I call you"
+        - "role"
+        - "I found it"
+        - "Found it"
+        - "another rough idea"
+        - "another rough"
+        - "another note"
+        - "I cannot"
+        - "I don't have access"
+        - "playbook_status"
+        - "playbook_send_event"
+
+  - userMessage: "Find that saved note now."
+    successCriteria:
+      expectedTools:
+        - toolName: system_extract
+          shouldBeCalled: false
+      expectedAnyTool:
+        - toolNames:
+            - system_get
+            - system_search
+          shouldBeCalled: true
+      responseNotContains:
+        - "another first"
+        - "share a first"
+        - "save a first idea"
+        - "another seed"
+        - "retrieval-demo"
+        - "transformation-demo"
+        - "see-it-come-back"
+        - "make-something"
+        - "wrap-up"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Do that as an outline."
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "resilient software"
+        - "climate"
+        - "saved a seed"
+        - "retrieved"
+        - "transformed"
+      responseNotContains:
+        - "I'll turn"
+        - "I’ll turn"
+        - "Confirmation required"
+        - "wrap-up"
+        - "transformation stage"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Thanks."
+    successCriteria:
+      responseNotContains:
+        - "Confirmation required"
+        - "transformation stage"
+        - "What should I call you"
+        - "what should I call you"
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_start
+      shouldBeCalled: true
+    - toolName: system_update
+      shouldBeCalled: true
+    - toolName: system_create
+      shouldBeCalled: true
+  toolCountRange:
+    min: 5
+  responseNotContains:
+    - "retrieval-demo"
+    - "transformation-demo"
+    - "see-it-come-back"
+    - "make-something"
+    - "wrap-up"
+    - "playbook_status"
+    - "playbook_send_event"
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 20
+  maxTokens: 260000

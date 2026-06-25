@@ -50,7 +50,9 @@ describe("buildMessageMetadata", () => {
         },
       ],
       cards: [],
-      entityMemoryNote: "note",
+      entityMemoryRefs: [
+        { entityType: "note", entityId: "note-1", operation: "updated" },
+      ],
     });
 
     expect(metadata.actor).toEqual(actor);
@@ -67,7 +69,9 @@ describe("buildMessageMetadata", () => {
         source: { kind: "upload", id: "upload-1" },
       },
     ]);
-    expect(metadata.entityMemoryNote).toBe("note");
+    expect(metadata.entityMemoryRefs).toEqual([
+      { entityType: "note", entityId: "note-1", operation: "updated" },
+    ]);
     expect(metadata).not.toHaveProperty("cards");
   });
 });
@@ -75,8 +79,18 @@ describe("buildMessageMetadata", () => {
 describe("withMessageMetadata", () => {
   test("wraps non-empty metadata and drops empty metadata", () => {
     expect(withMessageMetadata({})).toEqual({});
-    expect(withMessageMetadata({ entityMemoryNote: "note" })).toEqual({
-      metadata: { entityMemoryNote: "note" },
+    expect(
+      withMessageMetadata({
+        entityMemoryRefs: [
+          { entityType: "note", entityId: "note-1", operation: "updated" },
+        ],
+      }),
+    ).toEqual({
+      metadata: {
+        entityMemoryRefs: [
+          { entityType: "note", entityId: "note-1", operation: "updated" },
+        ],
+      },
     });
   });
 });

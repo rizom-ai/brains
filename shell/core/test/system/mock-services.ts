@@ -26,21 +26,41 @@ export function createMockSystemServices(
   getEntities: () => Map<string, BaseEntity>;
   /** Seed entities for testing */
   addEntities: (entities: SeedEntity[]) => void;
+  /** Register entity types without seeding entities (mirrors plugin registration) */
+  registerEntityTypes: (types: string[]) => void;
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
+  /** Get the last direct create request */
+  getLastCreateRequest: () => unknown;
+  /** Get the last update request */
+  getLastUpdateRequest: () => unknown;
   /** Get the last direct markdown create call */
   getLastMarkdownCreate: () =>
     | { entityType: string; id: string; markdown: string }
     | undefined;
 } {
   const entities = new Map<string, BaseEntity>();
+  // Types that have seeded entity data. Drives data-presence behavior such as
+  // getEffectiveFrontmatterSchema (a type only has a frontmatter schema once
+  // it actually carries structured data in these tests).
   const entityTypes = new Set<string>();
+  // Types a plugin has registered. Drives registration semantics
+  // (hasEntityType / getEntityTypes), independent of whether data exists.
+  // Seeding data implies registration, but registration can exist without data.
+  const registeredTypes = new Set<string>();
 
   const addEntities = (ents: SeedEntity[]): void => {
     for (const e of ents) {
       const entity: BaseEntity = { ...e, visibility: e.visibility ?? "public" };
       entities.set(entity.id, entity);
       entityTypes.add(entity.entityType);
+      registeredTypes.add(entity.entityType);
+    }
+  };
+
+  const registerEntityTypes = (types: string[]): void => {
+    for (const type of types) {
+      registeredTypes.add(type);
     }
   };
 
@@ -158,8 +178,8 @@ export function createMockSystemServices(
         fromMarkdown: (): unknown => ({}),
       };
     },
-    hasEntityType: (type: string) => entityTypes.has(type),
-    getAllEntityTypes: () => Array.from(entityTypes),
+    hasEntityType: (type: string) => registeredTypes.has(type),
+    getAllEntityTypes: () => Array.from(registeredTypes),
     getEntityTypeConfig: (type: string) =>
       type === "social-post"
         ? { publish: { publishStatuses: ["queued", "published", "failed"] } }
@@ -195,6 +215,8 @@ export function createMockSystemServices(
     id: string;
     markdown: string;
   }> = [];
+  let lastCreateRequest: unknown;
+  let lastUpdateRequest: unknown;
 
   const entityService = {
     search: async (request: EntitySearchRequest) => {
@@ -238,9 +260,10 @@ export function createMockSystemServices(
         );
       });
     },
-    getEntityTypes: () => Array.from(entityTypes),
-    hasEntityType: (type: string) => entityTypes.has(type),
+    getEntityTypes: () => Array.from(registeredTypes),
+    hasEntityType: (type: string) => registeredTypes.has(type),
     createEntity: async (request: { entity: SeedEntity }) => {
+      lastCreateRequest = request;
       const entity = request.entity;
       const id = entity.id || `entity-${Date.now()}`;
       entities.set(id, {
@@ -249,11 +272,13 @@ export function createMockSystemServices(
         visibility: entity.visibility ?? "public",
       });
       entityTypes.add(entity.entityType);
+      registeredTypes.add(entity.entityType);
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
     createEntityFromMarkdown: async (request: {
       input: { entityType: string; id: string; markdown: string };
     }) => {
+      lastCreateRequest = request;
       const input = request.input;
       markdownCreates.push(input);
       entities.set(input.id, {
@@ -267,9 +292,11 @@ export function createMockSystemServices(
         updated: new Date().toISOString(),
       });
       entityTypes.add(input.entityType);
+      registeredTypes.add(input.entityType);
       return { entityId: input.id, jobId: `job-${input.id}`, skipped: false };
     },
     updateEntity: async (request: { entity: BaseEntity }) => {
+      lastUpdateRequest = request;
       const entity = request.entity;
       entities.set(entity.id, entity);
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
@@ -384,7 +411,10 @@ export function createMockSystemServices(
     // Test helpers
     getEntities: () => entities,
     addEntities,
+    registerEntityTypes,
     getLastEnqueuedJob: () => enqueuedJobs[enqueuedJobs.length - 1],
+    getLastCreateRequest: () => lastCreateRequest,
+    getLastUpdateRequest: () => lastUpdateRequest,
     getLastMarkdownCreate: () => markdownCreates[markdownCreates.length - 1],
   };
 }

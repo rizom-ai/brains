@@ -40,13 +40,31 @@ const coverImageInputSchema = z.union([
 
 const createSourceAttachmentInputSchema = z.object({
   sourceEntityType: z.string().min(1).describe("Source entity type"),
-  sourceEntityId: z.string().min(1).describe("Source entity ID"),
+  sourceEntityId: z
+    .string()
+    .min(1)
+    .describe(
+      "Canonical source entity ID. If system_get/system_search resolved the source, copy entity.id from that tool result; do not use the title.",
+    ),
   attachmentType: z.string().min(1).describe("Source attachment type"),
 });
 
 const createUploadInputSchema = z.object({
   kind: z.literal("upload").describe("Upload ref kind"),
   id: z.string().min(1).describe("Upload ID"),
+});
+
+const createConversationMessageInputSchema = z.object({
+  kind: z
+    .literal("conversation-message")
+    .describe("Conversation message ref kind"),
+  messageId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Stored assistant message ID to save. Do not invent placeholder IDs such as latest/current; omit messageId unless an exact stored assistant message ID is available. When omitted, the runtime saves the latest savable assistant response in this conversation.",
+    ),
 });
 
 export const uploadSaveInputSchema = z.object({
@@ -107,6 +125,11 @@ export const createInputSchema = z.object({
     .describe(
       "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Use this instead of upload when the requested source is an existing entity artifact. Omit upload when using sourceAttachment. Omit for ordinary direct creates that use content, prompt, or url.",
     ),
+  from: createConversationMessageInputSchema
+    .optional()
+    .describe(
+      'Use only when the user asks to save a previous assistant response, e.g. "save your last answer", "save that response", or "save it/that/this as a note" after your summary/description/discussion. Use entityType "note" for saving prior assistant summaries/descriptions/discussions as notes. Never use for text the user provided in the current message; put current user text in content and omit from. The runtime copies stored assistant message content; do not also copy that text into content or prompt. Omit messageId unless an exact stored assistant message ID is available.',
+    ),
   replace: z
     .boolean()
     .optional()
@@ -142,7 +165,7 @@ export const updateInputSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe(
-      "Partial frontmatter fields to update. Use this for status, title, and metadata changes such as approving an agent.",
+      "Partial frontmatter fields to update. Use this for status, title, and metadata changes such as approving an agent. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
     ),
   content: z
     .string()

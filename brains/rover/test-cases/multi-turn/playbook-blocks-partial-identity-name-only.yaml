@@ -1,0 +1,73 @@
+id: multi-turn-playbook-blocks-partial-identity-name-only
+name: Playbook Blocks Partial Identity Name Only
+description: Verifies that Rover does not update the anchor profile or advance onboarding after receiving only the operator name during Anchor profile.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: web-chat-eval-playbook-partial-identity
+  channelName: Web Chat Eval
+tags:
+  - onboarding
+  - playbooks
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Start playbook rover-onboarding."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-onboarding
+      responseContains:
+        - Rover
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Tune Rover's brain identity: Rover should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: brain-character
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "Approve saving that brain identity."
+    confirmPendingAction: true
+    successCriteria:
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Yeehaa"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "Confirmation required"
+        - "Updated anchor profile"
+        - "rough idea"
+        - "seed"
+        - "fragment"
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_start
+      shouldBeCalled: true
+  toolCountRange:
+    max: 10
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 10
+  maxTokens: 120000

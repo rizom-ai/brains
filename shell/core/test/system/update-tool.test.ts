@@ -2,8 +2,26 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
+import type { BaseEntity } from "@brains/entity-service";
 import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils";
+
+const updateEntityRequestSchema = z
+  .object({
+    options: z
+      .object({
+        eventContext: z
+          .object({
+            conversationId: z.string().optional(),
+            channelId: z.string().optional(),
+            runId: z.string().optional(),
+            toolCallId: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
 
 describe("system_update tool", () => {
   let tools: Tool[];
@@ -56,6 +74,16 @@ describe("system_update tool", () => {
         },
         created: new Date("2026-03-11T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-11T10:00:00.000Z").toISOString(),
+      },
+      {
+        id: "woodchuck-note",
+        entityType: "base",
+        content: "Woodchucks and woodpeckers are different animals.",
+        contentHash: "hash-base-note",
+        visibility: "public",
+        metadata: { title: "Woodchuck note" },
+        created: new Date("2026-03-12T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-12T10:00:00.000Z").toISOString(),
       },
       {
         id: "newsletter-1",
@@ -132,6 +160,41 @@ describe("system_update tool", () => {
     });
   }
 
+  it("passes separate conversation, channel, run, and tool call provenance to confirmed entity updates", async () => {
+    const tool = tools.find((candidate) => candidate.name === "system_update");
+    if (!tool) throw new Error("system_update not found");
+
+    const result = await tool.handler(
+      {
+        entityType: "agent",
+        id: "old-agent.io",
+        fields: { status: "approved" },
+        confirmed: true,
+        contentHash: "hash-1",
+      },
+      {
+        interfaceType: "test",
+        userId: "test",
+        conversationId: "conversation-1",
+        channelId: "channel-1",
+        runId: "run-1",
+        toolCallId: "call-1",
+        userPermissionLevel: "anchor",
+      },
+    );
+
+    expect("success" in result && result.success).toBe(true);
+    const request = updateEntityRequestSchema.parse(
+      services.getLastUpdateRequest(),
+    );
+    expect(request.options?.eventContext).toEqual({
+      conversationId: "conversation-1",
+      channelId: "channel-1",
+      runId: "run-1",
+      toolCallId: "call-1",
+    });
+  });
+
   it("uses non-title metadata as the display label in update confirmations", async () => {
     const result = await exec({
       entityType: "newsletter",
@@ -143,6 +206,23 @@ describe("system_update tool", () => {
       needsConfirmation: true,
       toolName: "system_update",
       summary: expect.stringContaining('Update "Notes on Living Systems"?'),
+      completionSummary: "Updated newsletter.",
+    });
+  });
+
+  it("uses note as the completion label for base entity updates", async () => {
+    const result = await exec({
+      entityType: "base",
+      id: "woodchuck-note",
+      content:
+        "Woodchucks and woodpeckers are different animals. The distinction is useful.",
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_update",
+      summary: expect.stringContaining('Update "Woodchuck note"?'),
+      completionSummary: "Updated note.",
     });
   });
 
@@ -157,6 +237,21 @@ describe("system_update tool", () => {
       toolName: "system_delete",
       summary: expect.stringContaining('Delete "Notes on Living Systems"?'),
     });
+  });
+
+  it("rejects delete for an unregistered entity type without leaking registry internals", async () => {
+    const result = await execDelete({
+      entityType: "blog-post",
+      id: "queens-are-not-invincible",
+    });
+
+    expect(result).toMatchObject({ success: false });
+    const error = (result as { error: string }).error;
+    expect(error).toContain(
+      'Entity type "blog-post" is not available in this brain.',
+    );
+    // The internal registry string must never reach the operator.
+    expect(error).not.toContain("No adapter registered");
   });
 
   it("does not delete when confirmed is passed without a pending confirmation token", async () => {
@@ -303,6 +398,12 @@ describe("system_update tool", () => {
       .get("resilience-in-distributed-systems");
     expect(updated?.metadata["status"]).toBe("draft");
     expect(updated?.metadata).not.toHaveProperty("publishedAt");
+
+    const updateRequest = services.getLastUpdateRequest() as {
+      entity: BaseEntity & Record<string, unknown>;
+    };
+    expect(updateRequest.entity["status"]).toBe("draft");
+    expect(updateRequest.entity).not.toHaveProperty("publishedAt");
   });
 
   it("rejects coverImageId field updates for entity types without cover support", async () => {

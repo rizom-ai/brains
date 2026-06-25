@@ -1,0 +1,59 @@
+id: multi-turn-playbook-blocks-early-next
+name: Playbook Blocks Early Next Without Identity Details
+description: Verifies that Rover does not advance from Brain identity on a generic Next/continue request before brain identity is saved.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: web-chat-eval-playbook-gate
+  channelName: Web Chat Eval
+tags:
+  - onboarding
+  - playbooks
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Start playbook rover-onboarding."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-onboarding
+      responseContains:
+        - Rover
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Next. I have not provided brain identity details yet."
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: false
+        - toolName: system_update
+          shouldBeCalled: false
+        - toolName: playbook_send_event
+          shouldBeCalled: false
+      responseNotContains:
+        - "What should I call you"
+        - "what should I call you"
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_start
+      shouldBeCalled: true
+  toolCountRange:
+    max: 5
+  responseNotContains:
+    - "Confirmation required"
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 120000

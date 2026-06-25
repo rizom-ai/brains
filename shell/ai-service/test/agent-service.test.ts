@@ -221,6 +221,29 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalled();
     });
 
+    it("should return a warming response without calling the model when the semantic index is not ready", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          indexReadiness: { isIndexReady: () => false },
+        },
+      );
+
+      const response = await service.chat(
+        "What do you know about me?",
+        "test-conversation",
+      );
+
+      expect(response.text).toContain("knowledge base ready");
+      expect(response.usage.totalTokens).toBe(0);
+      expect(mockGenerate).not.toHaveBeenCalled();
+    });
+
     it("should include user message in messages array", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
@@ -290,8 +313,6 @@ describe("AgentService", () => {
     });
 
     it("injects stored entity memory metadata into the model turn without polluting visible history text", async () => {
-      const entityMemoryNote =
-        '\n\n[Entities affected this turn: image "wild-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]';
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
           {
@@ -300,7 +321,16 @@ describe("AgentService", () => {
             role: "assistant",
             content: "Queued image generation.",
             timestamp: new Date().toISOString(),
-            metadata: JSON.stringify({ entityMemoryNote }),
+            metadata: JSON.stringify({
+              entityMemoryRefs: [
+                {
+                  entityType: "image",
+                  entityId: "wild-robot",
+                  operation: "created",
+                  status: "generating",
+                },
+              ],
+            }),
           },
         ]),
       );
@@ -322,10 +352,13 @@ describe("AgentService", () => {
         content: [
           {
             type: "text",
-            text: `Queued image generation.${entityMemoryNote}`,
+            text: "Queued image generation.\n\nInternal entity refs from previous assistant turns for follow-up resolution. These are typed runtime references, not visible user text. Use the canonical entityId when a follow-up refers to the same item (for example “it”, “that”, “that post”, “the draft”, “publish it”, or “a cover image to go with that”). Do not derive or rewrite IDs from titles; copy the exact entityId value from the matching ref. A ref with operation created and status generating/draft is already a valid target for follow-up operations such as cover-image generation; do not ask the user for its slug again.\n- entityType: image; entityId: wild-robot; operation: created; status: generating",
           },
         ],
       });
+      expect(JSON.stringify(callArgs?.messages[0])).not.toContain(
+        "Entities affected this turn",
+      );
     });
 
     it("adds native file attachments to the current model turn without mutating stored user text", async () => {
@@ -1899,6 +1932,7 @@ describe("AgentService", () => {
         },
       ]);
       expect(response.text).toBe("Confirmation required.");
+      expect(response.toolResults).toEqual([]);
       expect(response.text).not.toBe("Deleted.");
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         2,
@@ -2054,9 +2088,13 @@ describe("AgentService", () => {
           role: "assistant",
           content: response.text,
           metadata: expect.objectContaining({
-            entityMemoryNote: expect.stringContaining(
-              'note "rizom-brains-provenance-token-concept-note" (updated)',
-            ),
+            entityMemoryRefs: [
+              {
+                entityType: "note",
+                entityId: "rizom-brains-provenance-token-concept-note",
+                operation: "updated",
+              },
+            ],
           }),
         }),
       );
@@ -2182,10 +2220,94 @@ describe("AgentService", () => {
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
-            entityMemoryNote: expect.stringContaining('image "mossy-robot"'),
+            entityMemoryRefs: [
+              {
+                entityType: "image",
+                entityId: "mossy-robot",
+                operation: "created",
+                status: "generating",
+              },
+            ],
           }),
         }),
       );
+    });
+
+    it("adds a fallback follow-up for confirmed async generation when no agent context is available", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm post generation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-generate-post",
+                toolName: "system_create",
+                input: {
+                  entityType: "post",
+                  prompt: "Generate a post outline",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-generate-post",
+                toolName: "system_create",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_create",
+                  summary: "Generate post outline?",
+                  args: {
+                    entityType: "post",
+                    prompt: "Generate a post outline",
+                    confirmed: true,
+                    confirmationToken: "token-1",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const createHandler = mock(async () => ({
+        success: true as const,
+        data: {
+          entityId: "post-outline",
+          status: "generating",
+          jobId: "job-1",
+        },
+      }));
+      const createTool: Tool = {
+        name: "system_create",
+        description: "Create entity",
+        inputSchema: { entityType: z.string() },
+        visibility: "trusted",
+        handler: createHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "system", tool: createTool },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("generate a post outline", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-generate-post",
+        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
+      );
+
+      expect(response.text).toContain("Completed: Generate post outline");
+      expect(response.text).toContain("generating");
+      expect(response.text).toContain("ready");
     });
 
     it("removes confirmation punctuation from completed action text", async () => {
@@ -2272,6 +2394,131 @@ describe("AgentService", () => {
       }
       expect(resolvedCard.summary).toBe("Delete note 'Meeting Notes'?");
       expect(resolvedCard.preview).toBeUndefined();
+    });
+
+    it("runs a follow-up assistant turn after a successful confirmed action", async () => {
+      mockGenerate.mockImplementationOnce(
+        async (_params: {
+          messages: ModelMessage[];
+          options: BrainCallOptions;
+        }) => ({
+          text: "Confirmation required.",
+          steps: [
+            {
+              toolCalls: [
+                {
+                  toolCallId: "call-update-note",
+                  toolName: "update_note",
+                  input: { noteId: "123", title: "New title" },
+                },
+              ],
+              toolResults: [
+                {
+                  toolCallId: "call-update-note",
+                  toolName: "update_note",
+                  output: {
+                    needsConfirmation: true,
+                    toolName: "update_note",
+                    summary: "Update note 'Roadmap'?",
+                    completionSummary: "Updated note.",
+                    args: { noteId: "123", title: "New title" },
+                  },
+                },
+              ],
+            },
+          ],
+          usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+        }),
+      );
+      mockGenerate.mockImplementationOnce(
+        async (params: {
+          messages: ModelMessage[];
+          options: BrainCallOptions;
+        }) => {
+          expect(params.options.disableTools).toBe(true);
+          expect(params.messages.at(-1)).toEqual({
+            role: "user",
+            content:
+              "The operator approved the pending action. The system executed it successfully: Completed: Updated note. Continue the conversation naturally. If an active playbook is underway, use the current playbook context as the source of truth, ask only for what is missing in the current playbook state, and give the next immediate action or question. Do not skip ahead or imply uncompleted playbook steps are done. Do not ask for the same confirmation again. Do not suggest repeating the same collection, save, or create task unless the current playbook context explicitly asks for another item. If the approved action saved, created, or updated an item for a completed playbook collection step, do not ask for another item; follow the refreshed current state instead. Do not offer a completed prior-state task as an alternative to the current playbook task. Do not say you found, retrieved, or showed an entity unless the approved action or latest tool result actually performed retrieval or display; after a save or update, say it was saved or updated.",
+          });
+          return {
+            text: "Updated. Next, I can show you how I retrieve that note when you need it.",
+            steps: [],
+            usage: { inputTokens: 20, outputTokens: 30, totalTokens: 50 },
+          };
+        },
+      );
+
+      const updateHandler = mock(async () => ({ success: true as const }));
+      const updateTool: Tool = {
+        name: "update_note",
+        description: "Update note",
+        inputSchema: { noteId: z.string(), title: z.string() },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          agentContextProvider: mock(async () => [
+            {
+              id: "active-playbook",
+              source: "playbooks",
+              title: "Active playbook",
+              content:
+                "An active playbook is underway. Current state title: Retrieval demonstration.",
+            },
+          ]),
+        },
+      );
+
+      await service.chat("update my note", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-update-note",
+        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
+      );
+
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+      expect(response.text).toBe(
+        "Completed: Updated note.\n\nUpdated. Next, I can show you how I retrieve that note when you need it.",
+      );
+      expect(response.toolResults).toEqual([
+        {
+          toolName: "update_note",
+          args: { noteId: "123", title: "New title" },
+          data: { success: true },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-update-note",
+          toolCallId: "call-update-note",
+          toolName: "update_note",
+          input: { noteId: "123", title: "New title" },
+          summary: "Update note 'Roadmap'?",
+          completionSummary: "Updated note.",
+          state: "output-available",
+          output: { success: true },
+        },
+      ]);
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: response.text,
+        }),
+      );
     });
 
     it("surfaces and saves the confirmed action failure result", async () => {
@@ -2431,6 +2678,113 @@ describe("AgentService", () => {
       );
 
       expect(response.text).toBeDefined();
+    });
+
+    it("uses stable action labels after confirmed system updates", async () => {
+      mockAgentGenerateResult = {
+        text: "Confirmation required.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-update-profile",
+                toolName: "system_update",
+                input: {
+                  entityType: "anchor-profile",
+                  id: "anchor-profile",
+                  fields: { name: "Tess Tickel" },
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-update-profile",
+                toolName: "system_update",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_update",
+                  summary: 'Update "Alex Chen"?',
+                  completionSummary: "Updated anchor profile.",
+                  args: {
+                    entityType: "anchor-profile",
+                    id: "anchor-profile",
+                    fields: { name: "Tess Tickel" },
+                    confirmed: true,
+                    contentHash: "old-profile-hash",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const updateHandler = mock(async () => ({
+        success: true as const,
+        data: { updated: "anchor-profile" },
+      }));
+      const updateTool: Tool = {
+        name: "system_update",
+        description: "Update entity",
+        inputSchema: {
+          entityType: z.string(),
+          id: z.string(),
+          fields: z.record(z.unknown()).optional(),
+          confirmed: z.boolean(),
+          contentHash: z.string(),
+        },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "core", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("update my profile", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-update-profile",
+        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
+      );
+
+      expect(response.text).toBe("Completed: Updated anchor profile.");
+      expect(response.text).not.toContain("Entities affected this turn");
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: "Completed: Updated anchor profile.",
+          metadata: expect.objectContaining({
+            entityMemoryRefs: [
+              {
+                entityType: "anchor-profile",
+                entityId: "anchor-profile",
+                operation: "updated",
+              },
+            ],
+          }),
+        }),
+      );
+      expect(updateHandler).toHaveBeenCalledWith(
+        {
+          entityType: "anchor-profile",
+          id: "anchor-profile",
+          fields: { name: "Tess Tickel" },
+          confirmed: true,
+          contentHash: "old-profile-hash",
+        },
+        expect.any(Object),
+      );
     });
 
     it("keeps multiple pending approvals distinct by approval id", async () => {
@@ -2714,6 +3068,85 @@ describe("AgentService", () => {
   });
 
   describe("toolResults in response", () => {
+    it("uses a tool-result state prompt when a terminal tool call returns no model text", async () => {
+      mockAgentGenerateResult = {
+        text: "",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "playbook_start",
+                toolCallId: "call1",
+                input: {
+                  playbookId: "rover-onboarding",
+                  lifecycle: "first-anchor-web-chat",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "playbook_start",
+                toolCallId: "call1",
+                output: {
+                  success: true,
+                  data: {
+                    currentState: {
+                      prompt:
+                        "Rover is your personal knowledge and publishing brain. Want to continue?",
+                    },
+                    cards: [
+                      {
+                        kind: "actions",
+                        id: "actions:playbook:run-1",
+                        title: "Continue Rover Onboarding",
+                        actions: [
+                          {
+                            type: "event",
+                            id: "playbook:run-1:NEXT",
+                            label: "Keep going",
+                            event: "NEXT",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 0, totalTokens: 50 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Start the Rover onboarding playbook.",
+        "test-conversation",
+      );
+
+      expect(response.text).toBe(
+        "Rover is your personal knowledge and publishing brain. Want to continue?",
+      );
+      expect(response.cards).toEqual([
+        expect.objectContaining({ id: "actions:playbook:run-1" }),
+      ]);
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content:
+            "Rover is your personal knowledge and publishing brain. Want to continue?",
+        }),
+      );
+    });
+
     it("should include tool results in response when agent calls tools", async () => {
       // Mock agent to return tool calls with data output
       mockAgentGenerateResult = {
@@ -2931,15 +3364,20 @@ describe("AgentService", () => {
         },
       ];
       expect(response.cards).toEqual(expectedCards);
-      const entityMemoryNote =
-        '\n\n[Entities affected this turn: image "mossy-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]';
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",
           content: "Queued image generation.",
           metadata: expect.objectContaining({
             cards: expectedCards,
-            entityMemoryNote,
+            entityMemoryRefs: [
+              {
+                entityType: "image",
+                entityId: "mossy-robot",
+                operation: "created",
+                status: "generating",
+              },
+            ],
           }),
         }),
       );

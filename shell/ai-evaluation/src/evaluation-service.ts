@@ -8,6 +8,7 @@ import type {
   IReporter,
   EvaluationOptions,
   TestRunnerOptions,
+  IndexReadinessGate,
 } from "./types";
 import type {
   TestCase,
@@ -25,6 +26,7 @@ import { PluginRunner } from "./plugin-runner";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 
 const DEFAULT_MAX_PARALLEL = 3;
+const DEFAULT_INDEX_READINESS_TIMEOUT_MS = 60_000;
 const PERMISSION_MATRIX_LEVELS: UserPermissionLevel[] = [
   "public",
   "trusted",
@@ -81,6 +83,7 @@ export interface EvaluationServiceConfig {
   testCasesDirectory: string | string[];
   reporters?: IReporter[];
   evalHandlerRegistry: EvalHandlerRegistry;
+  indexReadiness?: IndexReadinessGate;
   runtimeUploads?: IRuntimeUploadsNamespace;
 }
 
@@ -93,6 +96,7 @@ export class EvaluationService implements IEvaluationService {
   private readonly loader: ITestCaseLoader;
   private readonly reporters: IReporter[];
   private readonly evalHandlerRegistry: EvalHandlerRegistry;
+  private readonly indexReadiness: IndexReadinessGate | undefined;
   private readonly runtimeUploads: IRuntimeUploadsNamespace | undefined;
 
   constructor(config: EvaluationServiceConfig) {
@@ -104,6 +108,7 @@ export class EvaluationService implements IEvaluationService {
     });
     this.reporters = config.reporters ?? [];
     this.evalHandlerRegistry = config.evalHandlerRegistry;
+    this.indexReadiness = config.indexReadiness;
     this.runtimeUploads = config.runtimeUploads;
   }
 
@@ -114,19 +119,17 @@ export class EvaluationService implements IEvaluationService {
     options: EvaluationOptions = {},
   ): Promise<EvaluationSummary> {
     const testCases = await this.getTaggedTestCases(options);
-    const agentTestCases = this.filterByIds(
-      this.getAgentTestCases(testCases, options),
+    const runnableTestCases = this.filterByIds(
+      [
+        ...this.getAgentTestCases(testCases, options),
+        ...this.getPluginTestCases(testCases, options),
+      ],
       options.testCaseIds,
     );
-    const pluginTestCases = this.filterByIds(
-      this.getPluginTestCases(testCases, options),
-      options.testCaseIds,
-    );
-
-    const results = [
-      ...(await this.runAgentTests(agentTestCases, options)),
-      ...(await this.runPluginTests(pluginTestCases, options)),
-    ];
+    await this.awaitIndexReadiness(runnableTestCases, options);
+    const results = options.parallel
+      ? await this.runParallelTests(runnableTestCases, options)
+      : await this.runTestsInOrder(runnableTestCases, options);
 
     const summary = this.generateSummary(results);
     await this.report(summary);
@@ -157,16 +160,59 @@ export class EvaluationService implements IEvaluationService {
     return this.filterByTags(await this.loader.loadTestCases(), options.tags);
   }
 
+  private async awaitIndexReadiness(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): Promise<void> {
+    if (testCases.length === 0 || !this.indexReadiness) return;
+
+    const status = await this.indexReadiness.awaitIndexReady({
+      timeoutMs:
+        options.indexReadinessTimeoutMs ?? DEFAULT_INDEX_READINESS_TIMEOUT_MS,
+    });
+
+    if (!status.ready) {
+      throw new Error(
+        `Semantic index was not ready before evaluations: ${this.formatIndexReadinessStatus(status)}`,
+      );
+    }
+
+    if (status.degraded) {
+      console.warn(
+        `Semantic index is ready with degraded embeddings: ${this.formatIndexReadinessStatus(status)}`,
+      );
+    }
+  }
+
+  private formatIndexReadinessStatus(
+    status: Awaited<ReturnType<IndexReadinessGate["awaitIndexReady"]>>,
+  ): string {
+    return JSON.stringify({
+      activeEmbeddingJobs: status.activeEmbeddingJobs ?? 0,
+      missingEmbeddings: status.missingEmbeddings ?? 0,
+      staleEmbeddings: status.staleEmbeddings ?? 0,
+      failedEmbeddings: status.failedEmbeddings ?? 0,
+      degraded: status.degraded,
+    });
+  }
+
   private filterByIds<TTestCase extends TestCase>(
     testCases: TTestCase[],
     ids: string[] | undefined,
   ): TTestCase[] {
     if (!ids?.length) return testCases;
 
-    const idSet = new Set(ids);
-    return testCases.filter(
-      (testCase) => idSet.has(testCase.id) || idSet.has(baseId(testCase.id)),
-    );
+    const selected: TTestCase[] = [];
+    const selectedIds = new Set<string>();
+    for (const id of ids) {
+      for (const testCase of testCases) {
+        if (selectedIds.has(testCase.id)) continue;
+        if (testCase.id !== id && baseId(testCase.id) !== id) continue;
+        selected.push(testCase);
+        selectedIds.add(testCase.id);
+      }
+    }
+    return selected;
   }
 
   private filterByTags(
@@ -197,6 +243,57 @@ export class EvaluationService implements IEvaluationService {
     return options.testType === "agent"
       ? []
       : testCases.filter(isPluginTestCase);
+  }
+
+  private getRunnableTestCases(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): TestCase[] {
+    if (options.testType === "agent") return testCases.filter(isAgentTestCase);
+    if (options.testType === "plugin") {
+      return testCases.filter(isPluginTestCase);
+    }
+    return testCases;
+  }
+
+  private async runTestsInOrder(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): Promise<EvaluationResult[]> {
+    const testRunner = TestRunner.createFresh(
+      this.agentService,
+      this.createLLMJudge(options),
+      this.runtimeUploads,
+    );
+    const pluginRunner = PluginRunner.createFresh(
+      this.evalHandlerRegistry,
+      this.createPluginLLMJudge(options),
+    );
+    const runnerOptions = this.getRunnerOptions(options);
+    const results: EvaluationResult[] = [];
+
+    for (const testCase of this.getRunnableTestCases(testCases, options)) {
+      results.push(
+        isAgentTestCase(testCase)
+          ? await testRunner.runTest(testCase, runnerOptions)
+          : await pluginRunner.runTest(testCase, runnerOptions),
+      );
+    }
+
+    return results;
+  }
+
+  private async runParallelTests(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): Promise<EvaluationResult[]> {
+    const agentTestCases = this.getAgentTestCases(testCases, options);
+    const pluginTestCases = this.getPluginTestCases(testCases, options);
+
+    return [
+      ...(await this.runAgentTests(agentTestCases, options)),
+      ...(await this.runPluginTests(pluginTestCases, options)),
+    ];
   }
 
   /**

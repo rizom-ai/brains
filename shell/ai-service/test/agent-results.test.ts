@@ -1,10 +1,122 @@
 import { describe, expect, it } from "bun:test";
 
-import { buildEntityMemoryNote } from "../src/agent-results";
+import {
+  buildEntityMemoryContext,
+  buildEntityMemoryRefs,
+  extractToolResults,
+} from "../src/agent-results";
 
-describe("buildEntityMemoryNote", () => {
+describe("extractToolResults", () => {
+  it("omits cached duplicate read results from extracted metrics records", () => {
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "tool-1",
+            toolName: "system_get",
+            input: { entityType: "deck", id: "deck-1" },
+          },
+          {
+            toolCallId: "tool-2",
+            toolName: "system_get",
+            input: { entityType: "deck", id: "deck-1" },
+          },
+        ],
+        toolResults: [
+          {
+            toolCallId: "tool-1",
+            toolName: "system_get",
+            output: {
+              success: true,
+              data: {
+                entity: { id: "deck-1", entityType: "deck", metadata: {} },
+              },
+            },
+          },
+          {
+            toolCallId: "tool-2",
+            toolName: "system_get",
+            output: {
+              success: true,
+              cached: true,
+              data: {
+                entity: { id: "deck-1", entityType: "deck", metadata: {} },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "system_get",
+        args: { entityType: "deck", id: "deck-1" },
+        data: { entity: { id: "deck-1", entityType: "deck", metadata: {} } },
+      },
+    ]);
+  });
+
+  it("surfaces structured cards returned by successful tool data", () => {
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "tool-1",
+            toolName: "playbook_start",
+            input: { playbookId: "rover-onboarding" },
+          },
+        ],
+        toolResults: [
+          {
+            toolCallId: "tool-1",
+            toolName: "playbook_start",
+            output: {
+              success: true,
+              data: {
+                cards: [
+                  {
+                    kind: "actions",
+                    id: "actions:playbook:run-1",
+                    title: "Continue onboarding",
+                    actions: [
+                      {
+                        type: "event",
+                        id: "playbook:run-1:NEXT",
+                        label: "Keep going",
+                        event: "NEXT",
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(results.cards).toEqual([
+      {
+        kind: "actions",
+        id: "actions:playbook:run-1",
+        title: "Continue onboarding",
+        actions: [
+          {
+            type: "event",
+            id: "playbook:run-1:NEXT",
+            label: "Keep going",
+            event: "NEXT",
+          },
+        ],
+      },
+    ]);
+  });
+});
+
+describe("buildEntityMemoryRefs", () => {
   it("records updated entity ids from confirmed update results", () => {
-    const note = buildEntityMemoryNote([
+    const refs = buildEntityMemoryRefs([
       {
         toolName: "system_update",
         args: { entityType: "note", id: "rizom-note" },
@@ -12,27 +124,33 @@ describe("buildEntityMemoryNote", () => {
       },
     ]);
 
-    expect(note).toContain('note "rizom-note" (updated)');
-    expect(note).toContain("Reference these IDs directly in follow-ups");
+    expect(refs).toEqual([
+      { entityType: "note", entityId: "rizom-note", operation: "updated" },
+    ]);
   });
 
-  it("records created entity ids from confirmed create results", () => {
-    const note = buildEntityMemoryNote([
+  it("records created entity ids with stable operation, title, and status", () => {
+    const refs = buildEntityMemoryRefs([
       {
         toolName: "system_create",
-        args: { entityType: "social-post" },
+        args: { entityType: "social-post", title: "LinkedIn draft" },
         data: { entityId: "linkedin-post", status: "generating" },
       },
     ]);
 
-    expect(note).toContain('social-post "linkedin-post" (generating)');
+    expect(refs).toEqual([
+      {
+        entityType: "social-post",
+        entityId: "linkedin-post",
+        operation: "created",
+        title: "LinkedIn draft",
+        status: "generating",
+      },
+    ]);
   });
 
-  it("lists every entity created in a turn in a single note", () => {
-    // The "save two links" case: two synchronous creates in one turn must both
-    // stay addressable so a follow-up like "summarize both pages" can reference
-    // them by id instead of searching.
-    const note = buildEntityMemoryNote([
+  it("lists every entity created in a turn as structured refs", () => {
+    const refs = buildEntityMemoryRefs([
       {
         toolName: "system_create",
         args: { entityType: "link" },
@@ -45,14 +163,24 @@ describe("buildEntityMemoryNote", () => {
       },
     ]);
 
-    expect(note).toContain('link "page-one" (pending)');
-    expect(note).toContain('link "page-two" (pending)');
-    // Both refs belong to one note, not two separate ones.
-    expect(note.match(/Entities affected this turn/g)).toHaveLength(1);
+    expect(refs).toEqual([
+      {
+        entityType: "link",
+        entityId: "page-one",
+        operation: "created",
+        status: "pending",
+      },
+      {
+        entityType: "link",
+        entityId: "page-two",
+        operation: "created",
+        status: "pending",
+      },
+    ]);
   });
 
   it("surfaces pending placeholders so they are addressable before enrichment", () => {
-    const note = buildEntityMemoryNote([
+    const refs = buildEntityMemoryRefs([
       {
         toolName: "system_create",
         args: { entityType: "document" },
@@ -60,11 +188,18 @@ describe("buildEntityMemoryNote", () => {
       },
     ]);
 
-    expect(note).toContain('document "draft-doc" (pending)');
+    expect(refs).toEqual([
+      {
+        entityType: "document",
+        entityId: "draft-doc",
+        operation: "created",
+        status: "pending",
+      },
+    ]);
   });
 
   it("does not repeat an entity id touched more than once in a turn", () => {
-    const note = buildEntityMemoryNote([
+    const refs = buildEntityMemoryRefs([
       {
         toolName: "system_create",
         args: { entityType: "link" },
@@ -77,11 +212,38 @@ describe("buildEntityMemoryNote", () => {
       },
     ]);
 
-    expect(note.match(/page-one/g)).toHaveLength(1);
+    expect(refs).toHaveLength(1);
+    expect(refs[0]?.entityId).toBe("page-one");
+  });
+});
+
+describe("buildEntityMemoryContext", () => {
+  it("builds model-only context with follow-up target guidance", () => {
+    const context = buildEntityMemoryContext([
+      { entityType: "note", entityId: "rizom-note", operation: "updated" },
+      {
+        entityType: "social-post",
+        entityId: "linkedin-post",
+        operation: "created",
+        status: "generating",
+      },
+    ]);
+
+    expect(context).toContain("Internal entity refs");
+    expect(context).toContain("canonical entityId");
+    expect(context).toContain("Do not derive or rewrite IDs from titles");
+    expect(context).toContain("cover-image generation");
+    expect(context).toContain("entityType: note; entityId: rizom-note");
+    expect(context).toContain(
+      "entityType: social-post; entityId: linkedin-post",
+    );
+    expect(context).toContain("status: generating");
+    expect(context).not.toContain("Entities affected this turn");
+    expect(context).not.toContain("Reference these IDs directly");
   });
 
   it("records listed entity ids for list-detail follow-ups", () => {
-    const note = buildEntityMemoryNote([
+    const refs = buildEntityMemoryRefs([
       {
         toolName: "system_list",
         args: { entityType: "post" },
@@ -106,10 +268,34 @@ describe("buildEntityMemoryNote", () => {
       },
     ]);
 
-    expect(note).toContain("Entities listed this turn");
-    expect(note).toContain('1. post "knowledge-flow-systems"');
-    expect(note).toContain("Knowledge Flow Systems");
-    expect(note).toContain('2. post "ai-and-knowledge-work"');
-    expect(note).toContain("For follow-ups like first one");
+    expect(refs).toEqual([
+      {
+        entityType: "post",
+        entityId: "knowledge-flow-systems",
+        operation: "listed",
+        listIndex: 1,
+        title: "Knowledge Flow Systems",
+        status: "published",
+      },
+      {
+        entityType: "post",
+        entityId: "ai-and-knowledge-work",
+        operation: "listed",
+        listIndex: 2,
+        title: "AI and Knowledge Work",
+      },
+    ]);
+
+    const context = buildEntityMemoryContext(refs);
+    expect(context).toContain("Internal entity refs");
+    expect(context).toContain(
+      "entityType: post; entityId: knowledge-flow-systems",
+    );
+    expect(context).toContain("item 1");
+    expect(context).toContain("Knowledge Flow Systems");
+    expect(context).toContain(
+      "entityType: post; entityId: ai-and-knowledge-work",
+    );
+    expect(context).not.toContain("Entities listed this turn");
   });
 });

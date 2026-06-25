@@ -22,9 +22,9 @@ describe("tool status helpers", () => {
   });
 
   it("formats tool labels", () => {
-    expect(formatToolStatusLabel("system_create-note")).toBe(
-      "system create note",
-    );
+    expect(formatToolStatusLabel("system_create-note")).toBe("create note");
+    expect(formatToolStatusLabel("playbook_send_event")).toBe("playbook");
+    expect(formatToolStatusLabel("customToolName")).toBe("custom tool name");
   });
 
   it("maps statuses to titles and fallback prefixes", () => {
@@ -49,10 +49,10 @@ describe("tool status helpers", () => {
       }),
     ).toEqual({
       key: "conv-1:system_create",
-      label: "system create",
+      label: "create",
       title: "Tool failed",
       fallbackPrefix: "Tool failed",
-      fallback: "Tool failed: system create: Denied",
+      fallback: "Tool failed: create: Denied",
     });
   });
 

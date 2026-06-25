@@ -31,13 +31,18 @@ export type PluginConfig = Record<string, unknown>;
  *
  * Config can be:
  * - A static value (passed directly to the factory)
- * - A function `(env) => config` that receives the deployment environment
- *   (use this when the plugin needs credentials or env-specific settings)
+ * - A function `(env, context) => config` that receives the deployment environment
+ *   and active preset context (use this when the plugin needs credentials,
+ *   preset-specific paths, or other env-specific settings)
  * - undefined (plugin uses its own defaults)
  */
+export interface CapabilityContext {
+  preset?: PresetName;
+}
+
 export type CapabilityConfig =
   | PluginConfig
-  | ((env: BrainEnvironment) => PluginConfig)
+  | ((env: BrainEnvironment, context: CapabilityContext) => PluginConfig)
   | undefined;
 
 /**

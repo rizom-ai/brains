@@ -183,6 +183,7 @@ describe("EntityPlugin", () => {
           enqueue,
           registerHandler,
           getActiveJobs: async () => [],
+          getFailedJobs: async () => [],
           getActiveBatches: async () => [],
           getBatchStatus: async () => null,
           getStatus: async () => null,

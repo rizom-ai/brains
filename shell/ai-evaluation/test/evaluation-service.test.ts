@@ -7,7 +7,12 @@ import type {
   IAgentService,
   IAIService,
   AgentResponse,
+  AIModelConfig,
+  JudgeInput,
 } from "@brains/ai-service";
+import { RuntimeUploadRegistry } from "@brains/plugins";
+import type { z } from "@brains/utils";
+import type { LanguageModel } from "ai";
 
 import { EvaluationService } from "../src/evaluation-service";
 import { EvalHandlerRegistry } from "../src/eval-handler-registry";
@@ -16,6 +21,35 @@ const createResponse = (text: string): AgentResponse => ({
   text,
   usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
   toolResults: [],
+});
+
+const createAIService = (): IAIService => ({
+  generateText: async () => ({
+    text: "ok",
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  }),
+  generateObject: async <T>(
+    _systemPrompt: string,
+    _userPrompt: string,
+    schema: z.ZodType<T>,
+  ) => ({
+    object: schema.parse({}),
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  }),
+  judge: async <T>(input: JudgeInput<T>) => ({
+    verdict: input.schema.parse({}),
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  }),
+  updateConfig: (_config: Partial<AIModelConfig>): void => {},
+  getConfig: (): AIModelConfig => ({}),
+  getModel: (): LanguageModel => {
+    throw new Error("getModel is not used by these tests");
+  },
+  generateImage: async () => ({
+    base64: "",
+    dataUrl: "data:image/png;base64,",
+  }),
+  canGenerateImages: () => false,
 });
 
 const writeAgentTestCase = async (
@@ -32,6 +66,27 @@ turns:
 successCriteria:
   responseContains:
     - ok
+`,
+  );
+};
+
+const writePluginTestCase = async (
+  directory: string,
+  index: number,
+): Promise<void> => {
+  await writeFile(
+    join(directory, `plugin-${index}.yaml`),
+    `id: plugin-${index}
+name: Plugin ${index}
+type: plugin
+plugin: test
+handler: echo
+input:
+  index: ${index}
+expectedOutput:
+  validateEach:
+    - path: ok
+      equals: true
 `,
   );
 };
@@ -154,6 +209,72 @@ permissions:
     }
   });
 
+  it("seeds runtime uploads for sequential agent runs", async () => {
+    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+
+    try {
+      await writeFile(
+        join(testCaseDirectory, "upload-follow-up.yaml"),
+        `id: upload-follow-up
+name: Upload Follow Up
+type: multi_turn
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: text
+        filename: notes.md
+        mediaType: text/markdown
+        content: "# Notes"
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000123
+    successCriteria:
+      responseContains:
+        - ok
+  - userMessage: save it
+    successCriteria:
+      responseContains:
+        - ok
+successCriteria:
+  responseContains:
+    - ok
+`,
+      );
+
+      const uploadDataDir = await mkdtemp(join(tmpdir(), "ai-eval-uploads-"));
+      const runtimeUploads = RuntimeUploadRegistry.createFresh({
+        dataDir: uploadDataDir,
+      });
+      const agentService: IAgentService = {
+        chat: mock(async () => createResponse("ok")),
+        confirmPendingAction: mock(async () => createResponse("ok")),
+        invalidateAgent: (): void => {},
+      };
+
+      const service = EvaluationService.createFresh({
+        agentService,
+        aiService: createAIService(),
+        testCasesDirectory: testCaseDirectory,
+        evalHandlerRegistry: EvalHandlerRegistry.createFresh(),
+        runtimeUploads,
+      });
+
+      const summary = await service.runEvaluations({
+        skipLLMJudge: true,
+        parallel: false,
+      });
+
+      expect(summary.passedTests).toBe(1);
+      const seededUpload = await runtimeUploads
+        .scoped({ namespace: "upload", refKind: "upload", routePath: "" })
+        .readRecord("upload-00000000-0000-4000-8000-000000000123");
+      expect(seededUpload.filename).toBe("notes.md");
+      expect(seededUpload.mediaType).toBe("text/markdown");
+    } finally {
+      await rm(testCaseDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("runs agent tests with a concurrency limit while preserving result order", async () => {
     const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
 
@@ -184,7 +305,7 @@ permissions:
 
       const service = EvaluationService.createFresh({
         agentService,
-        aiService: {} as IAIService,
+        aiService: createAIService(),
         testCasesDirectory: testCaseDirectory,
         evalHandlerRegistry: EvalHandlerRegistry.createFresh(),
       });
@@ -204,6 +325,79 @@ permissions:
       expect(summary.results.map((result) => result.testCaseId)).toEqual(
         expectedOrder,
       );
+    } finally {
+      await rm(testCaseDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves mixed agent and plugin test order", async () => {
+    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+
+    try {
+      await writeAgentTestCase(testCaseDirectory, 0);
+      await writePluginTestCase(testCaseDirectory, 1);
+
+      const agentService: IAgentService = {
+        chat: mock(async () => createResponse("ok")),
+        confirmPendingAction: mock(async () => createResponse("ok")),
+        invalidateAgent: (): void => {},
+      };
+      const registry = EvalHandlerRegistry.createFresh();
+      registry.register("test", "echo", async () => ({ ok: true }));
+
+      const service = EvaluationService.createFresh({
+        agentService,
+        aiService: createAIService(),
+        testCasesDirectory: testCaseDirectory,
+        evalHandlerRegistry: registry,
+      });
+
+      const requestedOrder = ["plugin-1", "parallel-0"];
+      const summary = await service.runEvaluations({
+        skipLLMJudge: true,
+        testCaseIds: requestedOrder,
+      });
+
+      expect(summary.results.map((result) => result.testCaseId)).toEqual(
+        requestedOrder,
+      );
+    } finally {
+      await rm(testCaseDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("waits for the semantic index before running agent tests", async () => {
+    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+
+    try {
+      await writeAgentTestCase(testCaseDirectory, 0);
+
+      const events: string[] = [];
+      const agentService: IAgentService = {
+        chat: mock(async () => {
+          events.push("chat");
+          return createResponse("ok");
+        }),
+        confirmPendingAction: mock(async () => createResponse("ok")),
+        invalidateAgent: (): void => {},
+      };
+
+      const service = EvaluationService.createFresh({
+        agentService,
+        aiService: createAIService(),
+        testCasesDirectory: testCaseDirectory,
+        evalHandlerRegistry: EvalHandlerRegistry.createFresh(),
+        indexReadiness: {
+          awaitIndexReady: mock(async () => {
+            events.push("ready");
+            return { ready: true, degraded: false };
+          }),
+        },
+      });
+
+      await service.runEvaluations({ skipLLMJudge: true });
+
+      expect(events).toEqual(["ready", "chat"]);
     } finally {
       await rm(testCaseDirectory, { recursive: true, force: true });
     }

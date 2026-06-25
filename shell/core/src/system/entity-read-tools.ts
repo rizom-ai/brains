@@ -42,6 +42,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       },
       {
         visibility: "public",
+        sideEffects: "none",
         cli: {
           name: "search",
         },
@@ -81,6 +82,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       },
       {
         visibility: "public",
+        sideEffects: "none",
         cli: {
           name: "get",
         },
@@ -125,6 +127,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       },
       {
         visibility: "public",
+        sideEffects: "none",
         cli: {
           name: "list",
         },

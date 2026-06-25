@@ -31,7 +31,7 @@ export function generateNpmPackageJson(
     exports: {
       ".": "./dist/.model-entrypoint.js",
     },
-    files: ["dist", "migrations", "seed-content"],
+    files: ["dist", "migrations", "seed-content*"],
     optionalDependencies: {
       sharp: "^0.34.5",
       "@libsql/client": "^0.14.0",

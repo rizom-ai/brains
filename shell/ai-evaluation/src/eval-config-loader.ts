@@ -148,6 +148,7 @@ async function loadBrainEvalConfigIfPresent(
 export interface EvalSelection {
   preset?: PresetName;
   tags?: string[];
+  plugins?: Record<string, Record<string, unknown>>;
 }
 
 export function resolveEvalSelection(
@@ -163,6 +164,7 @@ export function resolveEvalSelection(
   return {
     ...(preset ? { preset } : {}),
     ...(tags?.length ? { tags } : {}),
+    ...(suiteSelection?.plugins ? { plugins: suiteSelection.plugins } : {}),
   };
 }
 
@@ -199,6 +201,7 @@ function resolveEvalSuite(
 
     const ownPreset = parseSuitePreset(rawSuite["preset"], name);
     const ownTags = parseSuiteTags(rawSuite["tags"], name);
+    const ownPlugins = parseSuitePlugins(rawSuite["plugins"], name);
     const parentTags = parentSelections.flatMap(
       (selection) => selection.tags ?? [],
     );
@@ -206,10 +209,25 @@ function resolveEvalSuite(
       .reverse()
       .find((selection) => selection.preset)?.preset;
     const preset = ownPreset ?? inheritedPreset;
+    const parentPlugins = parentSelections.reduce<
+      Record<string, Record<string, unknown>>
+    >(
+      (merged, selection) =>
+        mergeRecords(merged, selection.plugins ?? {}) as Record<
+          string,
+          Record<string, unknown>
+        >,
+      {},
+    );
+    const plugins = mergeRecords(parentPlugins, ownPlugins) as Record<
+      string,
+      Record<string, unknown>
+    >;
 
     const selection: EvalSelection = {
       ...(preset ? { preset } : {}),
       tags: uniqueStrings([...parentTags, ...ownTags]),
+      ...(Object.keys(plugins).length ? { plugins } : {}),
     };
     resolved.set(name, selection);
     return selection;
@@ -220,12 +238,20 @@ function resolveEvalSuite(
 
 function applyCliOverrides(
   overrides: InstanceOverrides,
-  options: Pick<LoadEvalConfigOptions, "preset">,
+  options: Pick<EvalSelection, "preset" | "plugins">,
 ): InstanceOverrides {
-  if (!options.preset) return overrides;
+  if (!options.preset && !options.plugins) return overrides;
   return {
     ...overrides,
-    preset: options.preset,
+    ...(options.preset ? { preset: options.preset } : {}),
+    ...(options.plugins
+      ? {
+          plugins: mergeRecords(
+            overrides.plugins ?? {},
+            options.plugins,
+          ) as Record<string, Record<string, unknown>>,
+        }
+      : {}),
   };
 }
 
@@ -261,6 +287,44 @@ function parseSuiteTags(value: unknown, suiteName: string): string[] {
   throw new Error(
     `Eval suite "${suiteName}" has invalid tags; expected a string array.`,
   );
+}
+
+function parseSuitePlugins(
+  value: unknown,
+  suiteName: string,
+): Record<string, Record<string, unknown>> {
+  if (value === undefined) return {};
+  if (!isRecord(value)) {
+    throw new Error(
+      `Eval suite "${suiteName}" has invalid plugins; expected a plugin config map.`,
+    );
+  }
+
+  const plugins: Record<string, Record<string, unknown>> = {};
+  for (const [pluginId, config] of Object.entries(value)) {
+    if (!isRecord(config)) {
+      throw new Error(
+        `Eval suite "${suiteName}" has invalid plugins.${pluginId}; expected an object.`,
+      );
+    }
+    plugins[pluginId] = config;
+  }
+  return plugins;
+}
+
+function mergeRecords(
+  base: Record<string, unknown>,
+  override: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    const existing = merged[key];
+    merged[key] =
+      isRecord(existing) && isRecord(value)
+        ? mergeRecords(existing, value)
+        : value;
+  }
+  return merged;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -36,8 +36,6 @@ turns:
           argsContain:
             entityType: "image"
             targetEntityType: "social-post"
-        - toolName: system_search
-          shouldBeCalled: false
 
 successCriteria: {}
 

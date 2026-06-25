@@ -64,4 +64,28 @@ describe("system instructions", () => {
     expect(instructions).toContain("post");
     expect(instructions).toContain("note");
   });
+
+  it("does not advertise example entity types that are not registered", () => {
+    const services = createMockSystemServices();
+    services.registerEntityTypes(["note"]);
+
+    const instructions = createSystemInstructions(services);
+
+    // The blog plugin is not installed, so "post" must never be offered as a
+    // mappable entity type — otherwise the model generates an unregistered type.
+    expect(instructions).not.toContain('entityType: "post"');
+    expect(instructions).not.toContain('entityType: "deck"');
+    expect(instructions).toContain('entityType: "note"');
+  });
+
+  it("advertises example mappings only for registered entity types", () => {
+    const services = createMockSystemServices();
+    services.registerEntityTypes(["note", "post"]);
+
+    const instructions = createSystemInstructions(services);
+
+    expect(instructions).toContain('entityType: "post"');
+    expect(instructions).toContain('entityType: "note"');
+    expect(instructions).not.toContain('entityType: "deck"');
+  });
 });

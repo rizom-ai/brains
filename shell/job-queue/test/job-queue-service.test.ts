@@ -608,6 +608,41 @@ describe("JobQueueService", () => {
       expect(activeJobs[2]?.id).toBe(job1);
     });
   });
+
+  describe("getFailedJobs", () => {
+    beforeEach(() => {
+      service.registerHandler("shell:embedding", testHandler);
+      service.registerHandler("site-build", testHandler);
+    });
+
+    it("should return failed jobs filtered by type", async () => {
+      const embeddingId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: enqueueOpts({ maxRetries: 0 }),
+      });
+      const siteBuildId = await service.enqueue({
+        type: "site-build",
+        data: { ...testEntity, id: "site-build-1" },
+        options: enqueueOpts({ maxRetries: 0 }),
+      });
+      const activeId = await service.enqueue({
+        type: "shell:embedding",
+        data: { ...testEntity, id: "active-1" },
+        options: defaultEnqueueOptions,
+      });
+
+      await service.fail(embeddingId, new Error("embedding failed"));
+      await service.fail(siteBuildId, new Error("site build failed"));
+
+      const failedEmbeddings = await service.getFailedJobs(["shell:embedding"]);
+
+      expect(failedEmbeddings.map((job) => job.id)).toEqual([embeddingId]);
+      expect(failedEmbeddings[0]?.lastError).toBe("embedding failed");
+      expect(failedEmbeddings.some((job) => job.id === activeId)).toBe(false);
+    });
+  });
+
   describe("Job deduplication", () => {
     beforeEach(() => {
       service.registerHandler("shell:embedding", testHandler);

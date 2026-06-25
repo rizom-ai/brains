@@ -73,29 +73,35 @@ export function toToolStatusData(
         ...sharedData,
         status: "tool-running",
         toolName: update.toolName,
-        message: `Using ${update.toolName}…`,
+        message: `Using ${display.label}…`,
       };
     case "completed":
       return {
         ...sharedData,
         status: "tool-completed",
         toolName: update.toolName,
-        message: `Finished ${update.toolName}.`,
+        message: `Finished ${display.label}.`,
       };
     case "awaiting-approval":
       return {
         ...sharedData,
         status: "tool-awaiting-approval",
         toolName: update.toolName,
-        message: `${update.toolName} is awaiting approval.`,
+        message: `${capitalize(display.label)} is awaiting approval.`,
       };
     case "failed":
       return {
         ...sharedData,
         status: "tool-failed",
         toolName: update.toolName,
-        message: `${update.toolName} failed.`,
+        message: `${capitalize(display.label)} failed.`,
         ...(update.error !== undefined && { error: update.error }),
       };
   }
+}
+
+function capitalize(value: string): string {
+  return value.length > 0
+    ? `${value[0]?.toUpperCase()}${value.slice(1)}`
+    : value;
 }

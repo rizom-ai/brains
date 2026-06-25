@@ -55,6 +55,16 @@ describe("system_extract tool", () => {
     });
   }
 
+  it("warns agents not to use extraction for vague continuation", () => {
+    const tool = tools.find((candidate) => candidate.name === "system_extract");
+    if (!tool) throw new Error("system_extract not found");
+
+    expect(tool.description).toContain(
+      "Do not call this for vague continuations",
+    );
+    expect(tool.description).toContain("go ahead");
+  });
+
   it("requires confirmation for topic rebuild", async () => {
     const result = await exec({ entityType: "topic", mode: "rebuild" });
 

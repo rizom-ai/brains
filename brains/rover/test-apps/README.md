@@ -18,7 +18,7 @@ bun start:default
 bun start:full
 ```
 
-Each command runs the matching test app via the in-repo `@rizom/brain` workspace package. `directory-sync` bootstraps the preset-specific local content remote from `../../eval-content` when the remote is missing or empty.
+Each command runs the matching test app via the in-repo `@rizom/brain` workspace package. `directory-sync` bootstraps the preset-specific local content remote from `../../eval-content-core`, `../../eval-content-default`, or `../../eval-content-full` when the remote is missing or empty.
 
 ## Minimum local env
 
@@ -62,4 +62,4 @@ rm -rf brains/rover/test-apps/default/brain-data brains/rover/test-apps/default/
 rm -rf brains/rover/test-apps/full/brain-data brains/rover/test-apps/full/data brains/rover/test-apps/full/dist /tmp/rover-full-test-content.git
 ```
 
-The next `bun start:*` recreates and seeds that preset's local content remote from `brains/rover/eval-content/`.
+The next `bun start:*` recreates and seeds that preset's local content remote from the matching `brains/rover/eval-content-*` directory.

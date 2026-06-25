@@ -331,4 +331,11 @@ export class JobQueueService implements IJobQueueService {
   public async getActiveJobs(types?: string[]): Promise<JobInfo[]> {
     return this.repository.getActiveJobs(types);
   }
+
+  /**
+   * Get failed jobs
+   */
+  public async getFailedJobs(types?: string[]): Promise<JobInfo[]> {
+    return this.repository.getFailedJobs(types);
+  }
 }

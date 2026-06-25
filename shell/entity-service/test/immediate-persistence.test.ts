@@ -248,6 +248,98 @@ describe("Immediate Entity Persistence", () => {
     });
   });
 
+  describe("entity mutation event context", () => {
+    test("created and updated events carry supplied run correlation context", async () => {
+      const { eventBus, events } = createCapturingEventBus();
+      const eventCtx = await setupEntityService(
+        [{ name: "note", schema: noteSchema, adapter: noteAdapter }],
+        { messageBus: eventBus },
+      );
+
+      try {
+        const noteInput = createNoteInput({
+          title: "Context Note",
+          content: "Body",
+          tags: [],
+        });
+        const eventContext = {
+          conversationId: "conversation-1",
+          channelId: "channel-1",
+          runId: "playbook_run_123",
+          toolCallId: "tool-call-1",
+        };
+        const { entityId } = await eventCtx.entityService.createEntity({
+          entity: noteInput,
+          options: { eventContext },
+        });
+
+        const original = await eventCtx.entityService.getEntity<Note>({
+          entityType: "note",
+          id: entityId,
+        });
+        if (!original) throw new Error("Entity should exist");
+
+        await eventCtx.entityService.updateEntity({
+          entity: { ...original, content: "Updated body" },
+          options: { eventContext },
+        });
+
+        const created = events.find((event) => event.type === "entity:created");
+        const updated = events.find((event) => event.type === "entity:updated");
+        expect(created?.payload).toMatchObject(eventContext);
+        expect(updated?.payload).toMatchObject(eventContext);
+      } finally {
+        await eventCtx.cleanup();
+      }
+    });
+
+    test("no-op updates still emit correlation events when context is supplied", async () => {
+      const { eventBus, events } = createCapturingEventBus();
+      const eventCtx = await setupEntityService(
+        [{ name: "note", schema: noteSchema, adapter: noteAdapter }],
+        { messageBus: eventBus },
+      );
+
+      try {
+        const noteInput = createNoteInput({
+          title: "No Op Context Note",
+          content: "Body",
+          tags: [],
+        });
+        const { entityId } = await eventCtx.entityService.createEntity({
+          entity: noteInput,
+        });
+
+        const original = await eventCtx.entityService.getEntity<Note>({
+          entityType: "note",
+          id: entityId,
+        });
+        if (!original) throw new Error("Entity should exist");
+
+        const eventContext = {
+          conversationId: "conversation-no-op",
+          runId: "playbook_run_no_op",
+        };
+        await eventCtx.entityService.updateEntity({
+          entity: original,
+          options: { eventContext },
+        });
+
+        const updatedEvents = events.filter(
+          (event) => event.type === "entity:updated",
+        );
+        expect(updatedEvents).toHaveLength(1);
+        expect(updatedEvents[0]?.payload).toMatchObject({
+          entityType: "note",
+          entityId,
+          ...eventContext,
+        });
+      } finally {
+        await eventCtx.cleanup();
+      }
+    });
+  });
+
   describe("deleteEntity - prior entity in event payload", () => {
     test("entity:deleted event carries the deleted entity so subscribers can gate on its metadata", async () => {
       const { eventBus, events } = createCapturingEventBus();

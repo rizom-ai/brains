@@ -100,7 +100,7 @@ export function buildBrainCallOptions(params: {
   hasAccessibleUploads: boolean;
   userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
   conversationId: string;
-  channelId: string;
+  channelId: string | undefined;
   channelName: string;
   interfaceType: string;
   agentContextInstructions?: string;
@@ -119,7 +119,7 @@ export function buildBrainCallOptions(params: {
   return {
     userPermissionLevel: params.userPermissionLevel,
     conversationId: params.conversationId,
-    channelId: params.channelId,
+    ...(params.channelId ? { channelId: params.channelId } : {}),
     channelName: params.channelName,
     interfaceType: params.interfaceType,
     ...(params.hasAccessibleUploads

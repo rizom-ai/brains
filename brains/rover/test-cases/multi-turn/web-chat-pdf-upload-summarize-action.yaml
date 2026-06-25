@@ -33,6 +33,7 @@ turns:
         max: 0
 
   - userMessage: "Summarize the uploaded PDF."
+    reusePreviousAttachments: true
     successCriteria:
       toolCountRange:
         max: 0
