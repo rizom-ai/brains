@@ -74,13 +74,14 @@ The model must choose which source to use. Two save-note cases are easy to confl
    - If a prior assistant message cannot be resolved, do not substitute uploads, retrieved entities, or generated text.
    - Unknown concrete `messageId`s should fail. Only known placeholder IDs should normalize to omitted/latest.
 
-3. **Preserve compatibility.**
-   - Do not break external callers that already use flat `system_create` args (`content`, `prompt`, `url`, etc.).
-   - Prefer adding a clearer `source` shape for model-visible use while continuing to accept legacy flat input.
+3. **Converge on one source contract before stable.**
+   - The `source` discriminated union is the target canonical `system_create` source contract.
+   - Flat source fields (`content`, `prompt`, `url`, `upload`, `sourceAttachment`, `from`) are transitional implementation/API debt, not a stable compatibility promise.
+   - During the transition, the handler may accept flat fields only as a migration bridge while callers, tests, docs, and confirmations move to `source`.
 
 4. **Confirmation flow stays authoritative.**
    - Initial write calls still return confirmation.
-   - Confirmation args must contain frozen concrete `content`, not a live `from` reference.
+   - Confirmation args must freeze the exact resolved source. For prior-response saves, freeze to `source: { kind: "text", content: ... }` rather than retaining a live `prior-response` reference.
 
 5. **No new tool.**
    - All changes remain within `system_create` / agent routing.
@@ -169,9 +170,9 @@ This is still routing guidance, not a deterministic guarantee, but it addresses 
 
 Exit criterion: `multi-turn-web-chat-pdf-summary-save-it-note` and `multi-turn-web-chat-image-discussion-save-note` should improve and ideally pass. If they remain flaky after Phase 3 makes the model-visible schema source-only, escalate to Phase 4.
 
-### Phase 3 — add a preferred `source` discriminated union without breaking flat input
+### Phase 3 — make `source` the canonical create-source contract
 
-Goal: make source selection clearer for the model and make illegal combinations unrepresentable in the preferred shape.
+Goal: make source selection clear and make illegal combinations unrepresentable in the public/model-facing shape.
 
 Preferred model-visible shape:
 
@@ -185,22 +186,25 @@ source:
   | { kind: "prior-response"; messageId?: string }
 ```
 
-Compatibility rule — split the layers:
+Contract rule — split public shape from internal normalization:
 
-- **Handler/contract layer** continues to _accept_ flat args (`content`, `prompt`, `url`, `upload`, `sourceAttachment`, `from`) for MCP/CLI/external callers. Legacy compatibility lives here.
-- **Model-visible SDK schema exposes `source` only** — this is part of Phase 3's definition of done, not a deferred "consider later." Showing the model both `content` _and_ `source:{kind:"text",content}` would add a second way to express the same intent and _increase_ the conflation Phase 3 exists to remove. The model picks one labeled `source` branch; the flat fields are an inbound-compatibility detail it never sees.
-- Handler translates `source` → the existing internal flat `CreateInput` before interceptors run, so plugin contracts are untouched.
+- **Canonical tool input is `source`**. This is the target contract for model callers, MCP callers, CLI callers, docs, tests, and future stable API expectations.
+- **Model-visible SDK schema exposes `source` only** — this is part of Phase 3's definition of done, not a deferred "consider later." Showing the model both `content` _and_ `source:{kind:"text",content}` would add a second way to express the same intent and _increase_ the conflation Phase 3 exists to remove.
+- **Flat fields are transitional only**. The handler may keep accepting flat args (`content`, `prompt`, `url`, `upload`, `sourceAttachment`, `from`) for one migration window so existing tests/callers can be moved deliberately, but this is not a compatibility promise. Prefer updating call sites instead of adding new flat-field usage.
+- Handler may translate `source` to the current internal flat `CreateInput` before interceptors run. That internal bridge is allowed temporarily so plugin contracts do not all move in the same patch, but it should not leak back into user/model-facing guidance.
 
 Tests first:
 
 - Schema accepts each `source` branch.
 - Schema rejects cross-branch combinations inside `source`.
-- Model-visible SDK schema (`toModelVisibleInputSchema`) exposes `source` and does **not** expose the legacy flat source fields.
-- Handler still _accepts_ legacy flat args (non-model callers): a flat `{ content }` and a flat `{ from }` both succeed.
-- If both `source` and legacy source fields are present, reject (no implicit precedence) to avoid ambiguity.
-- Interceptors still receive the same flat `CreateInput` shape as today.
+- Model-visible SDK schema (`toModelVisibleInputSchema`) exposes `source` and does **not** expose transitional flat source fields.
+- Update first-party tests/callers to use `source` for new create-source cases.
+- If both `source` and transitional flat source fields are present, reject (no implicit precedence) to avoid ambiguity.
+- Handler can still accept flat args only for the migration window, with clear tests marking that path transitional.
+- Interceptors still receive the same flat `CreateInput` shape as today unless moving the plugin boundary is explicitly included in a later phase.
+- Confirmation args use canonical `source`; prior-response confirmation freezes to `source: { kind: "text", content: resolvedStoredContent }`.
 
-Exit criterion: model-visible schema is source-only; all legacy-flat handler tests still pass; the two save-it evals pass without invoking Phase 4.
+Exit criterion: model-visible schema is source-only; first-party create-source tests/callers prefer `source`; transitional flat-field acceptance is isolated and marked temporary; the two save-it evals pass without invoking Phase 4.
 
 ### Phase 4 — decide whether a deterministic runtime shortcut is needed
 
@@ -222,12 +226,12 @@ Firing conditions (all must hold):
 
 Action:
 
-- Invoke the existing `system_create` handler with:
+- Invoke the existing `system_create` handler with the canonical source shape:
 
   ```json
   {
     "entityType": "note",
-    "from": { "kind": "conversation-message" }
+    "source": { "kind": "prior-response" }
   }
   ```
 
@@ -247,13 +251,13 @@ Caution:
 - `multi-turn-web-chat-image-discussion-save-note`
   - Image discussion save should save prior assistant discussion as note and preserve confirmation flow.
 - `tool-invocation-system-create-note`
-  - Direct note creation remains compatible across permission levels.
+  - Direct note creation uses the canonical `source` shape and remains valid across permission levels.
 
 ## Compatibility risks
 
 - Rejecting mixed source fields can turn previously “best effort” bad calls into explicit errors. This is acceptable for safety but may require model-routing eval updates.
-- The `source` union does not increase model-visible schema size, because Phase 3 makes the model-visible schema source-only; legacy flat fields remain accepted at the handler layer but are hidden from the model. The transition window (Phase 1–2 ship before Phase 3) is the only time both are model-visible.
-- Existing plugin interceptors must continue receiving flat `CreateInput`; do not push the union into entity-service/plugin contracts yet.
+- The `source` union does not increase model-visible schema size, because Phase 3 makes the model-visible schema source-only; transitional flat fields are hidden from the model and should be removed from first-party call sites over the migration window.
+- Existing plugin interceptors may continue receiving flat `CreateInput` during Phase 3; do not push the union into entity-service/plugin contracts unless that migration is explicitly scoped.
 - Unknown concrete message IDs must not silently resolve to latest; this may expose prior model mistakes as errors, which is preferable to saving the wrong content.
 
 ## Out of scope

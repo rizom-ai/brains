@@ -174,7 +174,7 @@ Dependencies:
 Implementation:
 
 - Keep hiding internal confirmation fields (`confirmed`, `confirmationToken`, `contentHash`).
-- After the preferred `source` union is model-visible, hide legacy flat source fields from the model and remove special-case per-source field toggles where possible.
+- After the canonical `source` union is model-visible, hide transitional flat source fields from the model and remove special-case per-source field toggles where possible.
 - Revisit `shouldDisableSystemCreateForUploadRead` and similar regex guards:
   - keep only cases with clear safety value;
   - prefer allowing the tool to validate and return a clear error over making the correct field unavailable.
