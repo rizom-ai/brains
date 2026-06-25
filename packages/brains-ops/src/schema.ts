@@ -62,6 +62,12 @@ const atprotoSchema = z
   })
   .strict();
 
+const playbooksSchema = z
+  .object({
+    onboarding: z.boolean().optional(),
+  })
+  .strict();
+
 export const userSchema = z
   .object({
     handle: handleSchema,
@@ -75,6 +81,7 @@ export const userSchema = z
     gitSyncTokenOverride: secretNameSchema.optional(),
     setup: setupDeliverySchema.optional(),
     atproto: atprotoSchema.optional(),
+    playbooks: playbooksSchema.optional(),
     anchorProfile: anchorProfileSchema.optional(),
   })
   .strict();
