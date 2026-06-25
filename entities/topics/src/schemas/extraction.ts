@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Schema for AI-extracted topic data
@@ -9,13 +9,13 @@ export const extractedTopicSchema = z.object({
   relevanceScore: z.number().min(0).max(1),
 });
 
-export type ExtractedTopicData = z.infer<typeof extractedTopicSchema>;
+export type ExtractedTopicData = z.output<typeof extractedTopicSchema>;
 
 /**
  * Schema for AI extraction response
  */
 export const topicExtractionResponseSchema = z.array(extractedTopicSchema);
 
-export type TopicExtractionResponse = z.infer<
+export type TopicExtractionResponse = z.output<
   typeof topicExtractionResponseSchema
 >;

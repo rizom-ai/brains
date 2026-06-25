@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { OgCard } from "@brains/ui-library";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
@@ -13,7 +13,7 @@ export const productOgImageTemplateSchema = z.object({
   brandLabel: z.string().optional(),
 });
 
-export type ProductOgImageTemplateData = z.infer<
+export type ProductOgImageTemplateData = z.output<
   typeof productOgImageTemplateSchema
 >;
 

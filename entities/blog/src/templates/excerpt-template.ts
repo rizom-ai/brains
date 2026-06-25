@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 
 /**
@@ -12,7 +12,7 @@ export const blogExcerptSchema = z.object({
     ),
 });
 
-export type BlogExcerpt = z.infer<typeof blogExcerptSchema>;
+export type BlogExcerpt = z.output<typeof blogExcerptSchema>;
 
 /**
  * Template for AI-powered excerpt generation

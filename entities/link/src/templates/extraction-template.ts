@@ -1,5 +1,5 @@
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 // Schema for the AI response
 const linkExtractionSchema = z.object({
@@ -31,7 +31,7 @@ const linkExtractionSchema = z.object({
     ),
 });
 
-export type LinkExtractionResult = z.infer<typeof linkExtractionSchema>;
+export type LinkExtractionResult = z.output<typeof linkExtractionSchema>;
 
 export const linkExtractionTemplate = createTemplate<LinkExtractionResult>({
   name: "link:extraction",

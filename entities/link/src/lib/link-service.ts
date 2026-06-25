@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlUtils } from "./url-utils";
 import { UrlFetcher } from "./url-fetcher";
@@ -22,7 +22,7 @@ export const linkCaptureOptionsSchema = z.object({
     .optional(),
 });
 
-export type LinkCaptureOptions = z.infer<typeof linkCaptureOptionsSchema>;
+export type LinkCaptureOptions = z.output<typeof linkCaptureOptionsSchema>;
 
 export interface LinkServiceOptions {
   /** Jina Reader API key for higher rate limits */

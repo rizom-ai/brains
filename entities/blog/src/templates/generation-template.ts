@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 
 /**
@@ -29,7 +29,7 @@ export const blogGenerationSchema = z.object({
     ),
 });
 
-export type BlogGeneration = z.infer<typeof blogGenerationSchema>;
+export type BlogGeneration = z.output<typeof blogGenerationSchema>;
 
 /**
  * Template for AI-powered blog post generation

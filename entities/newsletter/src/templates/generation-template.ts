@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 
 /**
@@ -17,7 +17,7 @@ export const newsletterGenerationSchema = z.object({
     ),
 });
 
-export type NewsletterGeneration = z.infer<typeof newsletterGenerationSchema>;
+export type NewsletterGeneration = z.output<typeof newsletterGenerationSchema>;
 
 /**
  * Template for AI-powered newsletter generation

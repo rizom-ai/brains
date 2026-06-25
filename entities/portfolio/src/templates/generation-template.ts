@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 
 /**
@@ -38,7 +38,7 @@ export const projectGenerationSchema = z.object({
     ),
 });
 
-export type ProjectGeneration = z.infer<typeof projectGenerationSchema>;
+export type ProjectGeneration = z.output<typeof projectGenerationSchema>;
 
 /**
  * Template for AI-powered project case study generation

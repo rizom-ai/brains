@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { OgCard } from "@brains/ui-library";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
@@ -15,7 +15,9 @@ export const blogOgImageTemplateSchema = z.object({
   coverImageUrl: z.string().optional(),
 });
 
-export type BlogOgImageTemplateData = z.infer<typeof blogOgImageTemplateSchema>;
+export type BlogOgImageTemplateData = z.output<
+  typeof blogOgImageTemplateSchema
+>;
 
 export const blogOgImageTemplate: MediaPageTemplate = {
   name: BLOG_OG_IMAGE_TEMPLATE_NAME,

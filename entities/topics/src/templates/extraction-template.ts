@@ -1,5 +1,5 @@
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { topicExtractionResponseSchema } from "../schemas/extraction";
 
 // Schema for the AI response
@@ -7,7 +7,7 @@ const extractionResultSchema = z.object({
   topics: topicExtractionResponseSchema,
 });
 
-export type ExtractionResult = z.infer<typeof extractionResultSchema>;
+export type ExtractionResult = z.output<typeof extractionResultSchema>;
 
 export const topicExtractionTemplate = createTemplate<ExtractionResult>({
   name: "topics:extraction",

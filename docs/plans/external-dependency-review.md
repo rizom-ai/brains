@@ -786,9 +786,10 @@ Incremental migration progress:
   query-response template schema, AI-evaluation judge output schemas, and the
   AI-service async-generation tool-result guard. Plugin config/tool schemas in
   those packages remain on the current main-Zod boundary.
-- Migrated standalone deck generation/description and media attachment template
-  schemas to `@brains/utils/zod-v4`; deck entity and route/data templates that
-  compose entity schemas remain on the current main-Zod boundary.
+- Migrated standalone deck, blog, portfolio, products, newsletter,
+  social-media, link, and topics AI/media parser schemas to
+  `@brains/utils/zod-v4`; entity, config, and route/data template schemas that
+  compose remaining main-Zod entity/template trees stay on the current boundary.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 
 /**
@@ -18,7 +18,7 @@ export const linkedinPostSchema = z.object({
     ),
 });
 
-export type LinkedInPost = z.infer<typeof linkedinPostSchema>;
+export type LinkedInPost = z.output<typeof linkedinPostSchema>;
 
 /**
  * Unified template for AI-powered LinkedIn post generation

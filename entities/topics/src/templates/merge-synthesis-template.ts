@@ -1,12 +1,12 @@
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const topicMergeSynthesisSchema = z.object({
   title: z.string().max(100),
   content: z.string(),
 });
 
-export type TopicMergeSynthesisResult = z.infer<
+export type TopicMergeSynthesisResult = z.output<
   typeof topicMergeSynthesisSchema
 >;
 

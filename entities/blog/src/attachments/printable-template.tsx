@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { MarkdownContent } from "@brains/ui-library";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const BLOG_PRINTABLE_ATTACHMENT_TYPE = "printable";
@@ -17,7 +17,7 @@ export const blogPrintableTemplateSchema = z.object({
   brandLabel: z.string().optional(),
 });
 
-export type BlogPrintableTemplateData = z.infer<
+export type BlogPrintableTemplateData = z.output<
   typeof blogPrintableTemplateSchema
 >;
 
