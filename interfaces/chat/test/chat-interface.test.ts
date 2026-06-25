@@ -4132,7 +4132,7 @@ describe("ChatInterface", () => {
         });
         expect(statusMessage.edit).not.toHaveBeenCalledWith(
           expect.objectContaining({
-            fallbackText: "Tool completed: system publish",
+            fallbackText: "Tool completed: publish",
           }),
         );
         return {
@@ -4146,13 +4146,13 @@ describe("ChatInterface", () => {
 
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool running: system publish",
+        fallbackText: "Tool running: publish",
         card: expect.objectContaining({ title: "Tool running" }),
       }),
     );
     expect(statusMessage.edit).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool completed: system publish",
+        fallbackText: "Tool completed: publish",
         card: expect.objectContaining({ title: "Tool completed" }),
       }),
     );
@@ -4209,12 +4209,12 @@ describe("ChatInterface", () => {
 
     expect(statusMessage.edit).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool completed: system create",
+        fallbackText: "Tool completed: create",
       }),
     );
     expect(statusMessage.edit).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool awaiting approval: system create",
+        fallbackText: "Tool awaiting approval: create",
         card: expect.objectContaining({ title: "Approval required" }),
       }),
     );
@@ -4264,7 +4264,7 @@ describe("ChatInterface", () => {
 
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool failed: system publish: Publish failed",
+        fallbackText: "Tool failed: publish: Publish failed",
         card: expect.objectContaining({ title: "Tool failed" }),
       }),
     );
