@@ -759,6 +759,12 @@ Incremental migration progress:
   `z.output<typeof schema>`, updates Zod 4 records to two-argument form, and
   moves stored message metadata card parsing to the same Zod 4 tree to avoid
   mixed schemas.
+- Decoupled `@brains/media-page-composer`'s template contract from main-Zod
+  type imports by replacing the public template schema field with a structural
+  `parse(input: unknown): unknown` interface. Its tests now author template
+  schemas with `@brains/utils/zod-v4`, while existing main-Zod template
+  providers remain structurally compatible because the package only calls
+  `.parse()` and does not compose schema trees.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
