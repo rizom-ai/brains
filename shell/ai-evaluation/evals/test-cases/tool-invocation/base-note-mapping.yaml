@@ -21,6 +21,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
+            source.kind: text
 
   - userMessage: "Save this memo about the launch timeline"
     successCriteria:
@@ -29,6 +30,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
+            source.kind: text
 
   - userMessage: |
       save this file
@@ -44,6 +46,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
+            source.kind: text
 
 successCriteria: {}
 

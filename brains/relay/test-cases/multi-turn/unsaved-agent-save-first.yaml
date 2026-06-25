@@ -41,7 +41,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "agent"
-            url: "https://field-agent.example/a2a"
+            source.kind: "url"
+            source.url: "https://field-agent.example/a2a"
         - toolName: a2a_call
           shouldBeCalled: false
       responseContains:
@@ -65,7 +66,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "agent"
-        url: "https://field-agent.example/a2a"
+        source.kind: "url"
+        source.url: "https://field-agent.example/a2a"
     - toolName: a2a_call
       shouldBeCalled: false
   responseNotContains:

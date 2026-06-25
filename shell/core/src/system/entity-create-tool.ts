@@ -17,6 +17,7 @@ import {
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { slugify } from "@brains/utils";
+import type { z } from "@brains/utils";
 import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
@@ -217,6 +218,10 @@ async function resolveConversationMessageContent(
   return { success: true, content: message.content };
 }
 
+type CreateToolInput = z.infer<typeof createInputSchema>;
+
+type PreferredCreateSource = NonNullable<CreateToolInput["source"]>;
+
 interface NormalizedCreateSource {
   prompt?: string;
   content?: string;
@@ -253,6 +258,76 @@ function normalizeConversationMessageRef(
     return { kind: "conversation-message" };
   }
   return { kind: "conversation-message", messageId: rawMessageId };
+}
+
+function getPreferredSourceConflicts(input: CreateToolInput): string[] {
+  if (!input.source) return [];
+  return [
+    normalizeOptionalString(input.content) ? "content" : undefined,
+    normalizeOptionalString(input.prompt) ? "prompt" : undefined,
+    normalizeOptionalString(input.url) ? "url" : undefined,
+    input.from ? "from" : undefined,
+    input.upload ? "upload" : undefined,
+    normalizeOptionalString(input.transform) ? "transform" : undefined,
+    input.sourceAttachment ? "sourceAttachment" : undefined,
+  ].filter((field): field is string => field !== undefined);
+}
+
+function expandPreferredSource(input: CreateToolInput): CreateToolInput {
+  if (!input.source) return input;
+  const { source, ...rest } = input;
+  switch (source.kind) {
+    case "text":
+      return { ...rest, content: source.content };
+    case "generate":
+      return { ...rest, prompt: source.prompt };
+    case "url":
+      return { ...rest, url: source.url };
+    case "upload":
+      return { ...rest, upload: source.upload, transform: source.transform };
+    case "attachment":
+      return {
+        ...rest,
+        sourceAttachment: {
+          sourceEntityType: source.sourceEntityType,
+          sourceEntityId: source.sourceEntityId,
+          attachmentType: source.attachmentType,
+        },
+      };
+    case "prior-response":
+      return {
+        ...rest,
+        from: {
+          kind: "conversation-message",
+          ...(source.messageId ? { messageId: source.messageId } : {}),
+        },
+      };
+  }
+}
+
+function toPreferredSource(
+  input: CreateInput,
+): PreferredCreateSource | undefined {
+  if (input.content) return { kind: "text", content: input.content };
+  if (input.prompt) return { kind: "generate", prompt: input.prompt };
+  if (input.url) return { kind: "url", url: input.url };
+  if (!input.from) return undefined;
+  if (input.from.kind === "upload" && input.transform === "extract-markdown") {
+    return {
+      kind: "upload",
+      upload: input.from,
+      transform: "extract-markdown",
+    };
+  }
+  if (input.from.kind === "entity-attachment") {
+    return {
+      kind: "attachment",
+      sourceEntityType: input.from.sourceEntityType,
+      sourceEntityId: input.from.sourceEntityId,
+      attachmentType: input.from.attachmentType,
+    };
+  }
+  return undefined;
 }
 
 function getConversationMessageSourceConflicts(input: {
@@ -351,9 +426,18 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Requires confirmation. Provide content for direct creation from current user-provided text, a prompt for AI generation, a url for URL-first flows, from { kind: 'conversation-message' } only for saving a previous assistant response, upload only for upload-to-note extraction, or sourceAttachment for source attachment saves. Never use from: conversation-message for text the user just provided in the current message; put that text in content and omit from. For uploaded PDF/text/markdown/JSON note imports, use entityType note with upload and transform extract-markdown; do not copy uploaded file bytes into content. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity. Requires confirmation. Use source to choose exactly one source: text for exact user-provided content, generate for AI generation, url for URL-first flows, prior-response for saving a previous assistant response, upload with transform extract-markdown for uploaded PDF/text/markdown/JSON note imports, or attachment for source-derived entity artifacts. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
-    async (input, toolContext) => {
+    async (rawInput, toolContext) => {
+      const preferredSourceConflicts = getPreferredSourceConflicts(rawInput);
+      if (preferredSourceConflicts.length > 0) {
+        return {
+          success: false,
+          error: `source cannot be combined with transitional flat source fields: ${preferredSourceConflicts.join(", ")}. Use source or flat source fields, not both.`,
+        };
+      }
+
+      const input = expandPreferredSource(rawInput);
       const conversationMessageSourceConflicts =
         getConversationMessageSourceConflicts(input);
       if (conversationMessageSourceConflicts.length > 0) {
@@ -433,7 +517,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'from' with kind conversation-message (save prior assistant response), 'upload' with transform (upload-to-note extraction), or 'sourceAttachment' (source attachment create), or a supported combination.",
+            'Provide `source` with kind "text", "generate", "url", "prior-response", "upload", or "attachment".',
         };
 
       if (uploadRef) {
@@ -507,7 +591,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+            'URL, upload, or attachment source creation is supported only for entity types that explicitly handle it. Provide source kind "text" or "generate" for this entity type.',
         };
       }
 
@@ -535,17 +619,25 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             sourceAttachment,
           }),
         });
+        const confirmationSource = toPreferredSource(createInput);
+        const transitionalFlatSourceFallback = confirmationSource
+          ? {}
+          : {
+              ...(createInput.prompt && { prompt: createInput.prompt }),
+              ...(createInput.content && { content: createInput.content }),
+              ...(createInput.url && { url: createInput.url }),
+              ...(uploadRef && { upload: uploadRef }),
+              ...(sourceAttachment && { sourceAttachment }),
+              ...(createInput.transform && {
+                transform: createInput.transform,
+              }),
+            };
         const confirmationArgs = {
           entityType: createInput.entityType,
           ...(createInput.title && { title: createInput.title }),
-          ...(createInput.prompt && { prompt: createInput.prompt }),
-          ...(createInput.content && { content: createInput.content }),
-          ...(createInput.url && { url: createInput.url }),
-          ...(uploadRef && { upload: uploadRef }),
-          ...(sourceAttachment && {
-            sourceAttachment,
-          }),
-          ...(createInput.transform && { transform: createInput.transform }),
+          ...(confirmationSource
+            ? { source: confirmationSource }
+            : transitionalFlatSourceFallback),
           ...(createInput.replace && { replace: createInput.replace }),
           ...(createInput.targetEntityType && {
             targetEntityType: createInput.targetEntityType,
@@ -620,7 +712,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+            'URL, upload, or attachment source creation is supported only for entity types that explicitly handle it. Provide source kind "text" or "generate" for this entity type.',
         };
       }
 
@@ -644,7 +736,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         if (!stub) {
           return {
             success: false,
-            error: `Entity type '${createInput.entityType}' does not support queued (prompt-based) creation. Provide 'content' instead.`,
+            error: `Entity type '${createInput.entityType}' does not support queued generate-source creation. Provide source kind "text" instead.`,
           };
         }
 

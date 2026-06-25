@@ -38,17 +38,21 @@ describe("link evaluation test cases", () => {
       if (file === "tool-capture-basic.yaml") {
         expect(expectedTool?.argsContain).toEqual({
           entityType: "link",
-          url: "https://anthropic.com/research",
+          "source.kind": "url",
+          "source.url": "https://anthropic.com/research",
         });
       } else if (file === "tool-capture-bookmark.yaml") {
         expect(expectedTool?.argsContain).toEqual({
           entityType: "link",
-          url: "https://github.com/anthropics/claude-code",
+          "source.kind": "url",
+          "source.url": "https://github.com/anthropics/claude-code",
         });
       } else if (file === "tool-capture-unreachable.yaml") {
         expect(expectedTool?.argsContain).toEqual({
           entityType: "link",
-          url: "https://this-domain-definitely-does-not-exist-12345.com/page",
+          "source.kind": "url",
+          "source.url":
+            "https://this-domain-definitely-does-not-exist-12345.com/page",
         });
       } else {
         expect(expectedTool?.argsContain).toEqual({ entityType: "link" });

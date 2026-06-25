@@ -16,7 +16,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
-        url: "https://anthropic.com/research"
+        source.kind: "url"
+        source.url: "https://anthropic.com/research"
   toolCountRange:
     min: 1
   responseNotContains:

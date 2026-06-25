@@ -46,9 +46,10 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
-            upload.kind: upload
-            upload.id: upload-00000000-0000-4000-8000-000000000921
-            transform: extract-markdown
+            source.kind: upload
+            source.upload.kind: upload
+            source.upload.id: upload-00000000-0000-4000-8000-000000000921
+            source.transform: extract-markdown
           argsAbsent:
             - from
             - fromUpload
@@ -64,9 +65,10 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: note
-        upload.kind: upload
-        upload.id: upload-00000000-0000-4000-8000-000000000921
-        transform: extract-markdown
+        source.kind: upload
+        source.upload.kind: upload
+        source.upload.id: upload-00000000-0000-4000-8000-000000000921
+        source.transform: extract-markdown
       argsAbsent:
         - from
         - fromUpload

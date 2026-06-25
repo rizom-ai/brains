@@ -25,7 +25,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "link"
-            url: "https://www.planetir.org/welcome"
+            source.kind: "url"
+            source.url: "https://www.planetir.org/welcome"
 
   - userMessage: "yes"
     confirmPendingAction: true
@@ -41,7 +42,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "link"
-            url: "https://kaphera.com/"
+            source.kind: "url"
+            source.url: "https://kaphera.com/"
 
   - userMessage: "yes"
     confirmPendingAction: true

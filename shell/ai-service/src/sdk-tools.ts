@@ -21,7 +21,11 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
   "contentHash",
 ]);
 
-const CREATE_SOURCE_FIELDS = new Set([
+const MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS = new Set([
+  "content",
+  "prompt",
+  "url",
+  "from",
   "upload",
   "transform",
   "sourceAttachment",
@@ -88,10 +92,7 @@ export function toModelVisibleInputSchema(
     Object.entries(inputSchema).filter(([key]) => {
       if (INTERNAL_CONFIRMATION_FIELDS.has(key)) return false;
       if (options.toolName !== "system_create") return true;
-      if (!CREATE_SOURCE_FIELDS.has(key)) return true;
-      if (key === "upload") return options.enableCreateUpload === true;
-      if (key === "transform") return options.enableCreateTransform === true;
-      return options.enableCreateSourceAttachment === true;
+      return !MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS.has(key);
     }),
   );
 }

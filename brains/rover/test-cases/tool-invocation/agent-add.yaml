@@ -28,7 +28,8 @@ permissions:
         shouldBeCalled: true
         argsContain:
           entityType: "agent"
-          url: "yeehaa.io"
+          source.kind: "url"
+          source.url: "yeehaa.io"
     responseNotContains:
       - "created"
   anchor:
@@ -37,7 +38,8 @@ permissions:
         shouldBeCalled: true
         argsContain:
           entityType: "agent"
-          url: "yeehaa.io"
+          source.kind: "url"
+          source.url: "yeehaa.io"
     responseNotContains:
       - "I cannot"
       - "I don't have access"

@@ -133,10 +133,11 @@ describe("system_create conversation-message sources", () => {
     expect(confirmation.args).toMatchObject({
       entityType: "note",
       title: "Saved answer",
-      content: "Stored assistant answer.",
+      source: { kind: "text", content: "Stored assistant answer." },
       confirmed: true,
     });
     expect(confirmation.args).not.toHaveProperty("from");
+    expect(confirmation.args).not.toHaveProperty("content");
 
     const confirmed = await tool.handler(confirmation.args, toolContext);
     expect(confirmed).toMatchObject({ success: true });
@@ -162,7 +163,7 @@ describe("system_create conversation-message sources", () => {
     );
 
     expect(expectConfirmation(initial).args).toMatchObject({
-      content: "First answer.",
+      source: { kind: "text", content: "First answer." },
     });
   });
 
@@ -217,10 +218,11 @@ describe("system_create conversation-message sources", () => {
       expect(confirmation.args).toMatchObject({
         entityType: "note",
         title: "Saved summary",
-        content: "Stored summary to save.",
+        source: { kind: "text", content: "Stored summary to save." },
         confirmed: true,
       });
       expect(confirmation.args).not.toHaveProperty("from");
+      expect(confirmation.args).not.toHaveProperty("content");
     }
   });
 
@@ -260,6 +262,54 @@ describe("system_create conversation-message sources", () => {
         "conversation-message source cannot be combined",
       );
     }
+  });
+
+  it("resolves canonical prior-response source refs", async () => {
+    const services = servicesWithMessages([
+      message("assistant-1", "assistant", "Stored preferred source answer."),
+    ]);
+    const tool = createEntityCreateTool(services);
+
+    const response = await tool.handler(
+      {
+        entityType: "note",
+        title: "Preferred prior response",
+        source: { kind: "prior-response" },
+      },
+      toolContext,
+    );
+
+    const confirmation = expectConfirmation(response);
+    expect(confirmation.args).toMatchObject({
+      entityType: "note",
+      title: "Preferred prior response",
+      source: { kind: "text", content: "Stored preferred source answer." },
+      confirmed: true,
+    });
+    expect(confirmation.args).not.toHaveProperty("from");
+    expect(confirmation.args).not.toHaveProperty("content");
+  });
+
+  it("rejects canonical source combined with transitional flat source fields", async () => {
+    const services = servicesWithMessages([
+      message("assistant-1", "assistant", "Stored answer."),
+    ]);
+    const tool = createEntityCreateTool(services);
+
+    const response = await tool.handler(
+      {
+        entityType: "note",
+        title: "Ambiguous source",
+        source: { kind: "prior-response" },
+        content: "Conflicting content.",
+      },
+      toolContext,
+    );
+
+    expect(response).toMatchObject({ success: false });
+    expect((response as { error: string }).error).toContain(
+      "source cannot be combined with transitional flat source fields",
+    );
   });
 
   it("does not inspect conversation messages for direct content creates", async () => {
@@ -315,9 +365,10 @@ describe("system_create conversation-message sources", () => {
     );
     const confirmation = expectConfirmation(initial);
     expect(confirmation.args).toMatchObject({
-      content: "Original stored answer.",
+      source: { kind: "text", content: "Original stored answer." },
     });
     expect(confirmation.args).not.toHaveProperty("from");
+    expect(confirmation.args).not.toHaveProperty("content");
 
     messages.push(
       message("assistant-2", "assistant", "Newer drifting answer."),

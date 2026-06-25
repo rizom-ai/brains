@@ -67,6 +67,58 @@ const createConversationMessageInputSchema = z.object({
     ),
 });
 
+export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("text").describe("Store exact text content"),
+      content: z.string().min(1).describe("Direct content to store"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("generate").describe("Generate content from a prompt"),
+      prompt: z.string().min(1).describe("Prompt for AI generation"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("url").describe("Create from a URL or domain"),
+      url: z.string().min(1).describe("URL or domain to create from"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("upload").describe("Extract markdown/text from upload"),
+      upload: createUploadInputSchema.describe("Upload ref to extract from"),
+      transform: z
+        .literal("extract-markdown")
+        .describe("Required transform for upload-to-note extraction"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z
+        .literal("attachment")
+        .describe("Create from an existing entity artifact"),
+      sourceEntityType: z.string().min(1).describe("Source entity type"),
+      sourceEntityId: z.string().min(1).describe("Canonical source entity ID"),
+      attachmentType: z.string().min(1).describe("Source attachment type"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z
+        .literal("prior-response")
+        .describe("Save a prior assistant response"),
+      messageId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Stored assistant message ID; omit for latest savable"),
+    })
+    .strict(),
+]);
+
 export const uploadSaveInputSchema = z.object({
   upload: createUploadInputSchema.describe(
     'Exact upload ref to save, copied from the current message or conversation upload refs hint, e.g. { kind: "upload", id: "upload-..." }.',
@@ -91,6 +143,9 @@ export const createInputSchema = z.object({
     .describe(
       "Title for a new entity. Do not invent placeholder titles like 'Draft Post' unless the user explicitly asked to create a new post.",
     ),
+  source: createPreferredSourceInputSchema
+    .optional()
+    .describe("Canonical source selector. Use exactly one source branch."),
   prompt: z
     .string()
     .optional()

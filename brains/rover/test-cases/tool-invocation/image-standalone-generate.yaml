@@ -19,6 +19,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "image"
+        source.kind: "generate"
       argsAbsent:
         - targetEntityType
         - targetEntityId

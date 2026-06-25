@@ -37,14 +37,18 @@ describe("system instructions", () => {
     expect(instructions).toContain("call `system_update`");
   });
 
-  it("describes source-derived artifacts with sourceAttachment, not from", () => {
+  it("describes source-derived artifacts with the canonical source attachment branch", () => {
     const services = createMockSystemServices();
     const instructions = createSystemInstructions(services);
 
-    expect(instructions).toContain("`sourceAttachment`");
-    expect(instructions).toContain("source-derived artifact saves");
     expect(instructions).toContain(
-      "Use `from` only for prior assistant response saves",
+      'Pass `source`: `{ kind: "text", content }`',
+    );
+    expect(instructions).toContain(
+      '`{ kind: "prior-response" }` for prior assistant response saves',
+    );
+    expect(instructions).toContain(
+      '`{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }` for source-derived artifact saves',
     );
     expect(instructions).not.toContain(
       "`from` for source-derived artifact saves",

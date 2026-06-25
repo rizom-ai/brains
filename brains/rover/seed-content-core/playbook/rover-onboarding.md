@@ -93,7 +93,7 @@ To do:
 
 - Ask for one rough idea, note, link, or fragment the operator wants Rover to remember.
 - Save it as the appropriate durable entity, usually a note or link.
-- For a rough idea or fragment saved as the first note, call system_create with direct note content; do not include a generation prompt and do not turn the seed into an async generated draft.
+- For a rough idea or fragment saved as the first note, call system_create with `source: { kind: "text", content }`; do not use a generate source and do not turn the seed into an async generated draft.
 - Use "note" as the operator-facing term for note knowledge entries.
 - Do not offer to collect another seed during onboarding; guide to the retrieval and transformation demonstration next.
 - After saving the first seed, say it was saved or captured, then ask the operator to find/show that saved note next; do not say you found it before the operator asks for retrieval, and do not ask for another rough idea, link, note, or fragment during onboarding.

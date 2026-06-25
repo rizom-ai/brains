@@ -19,6 +19,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "social-post"
+            source.kind: "generate"
       responseContains:
         - "Confirmation required"
 
@@ -35,6 +36,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "image"
+            source.kind: "generate"
             targetEntityType: "social-post"
 
 successCriteria: {}
