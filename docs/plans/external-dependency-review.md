@@ -781,6 +781,11 @@ Incremental migration progress:
   directory-sync job schemas. These handlers validate through structural
   `.parse()`/`.safeParse()` contracts rather than composing with framework/tool
   schemas.
+- Migrated additional standalone parser/generation-output boundaries to
+  `@brains/utils/zod-v4`: directory-sync status/result schemas, content-service
+  query-response template schema, AI-evaluation judge output schemas, and the
+  AI-service async-generation tool-result guard. Plugin config/tool schemas in
+  those packages remain on the current main-Zod boundary.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

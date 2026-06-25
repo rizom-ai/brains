@@ -1,5 +1,5 @@
 import type { Template } from "@brains/templates";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Schema for public query responses
@@ -27,7 +27,7 @@ export const queryResponseSchema = z.object({
     .describe("Related topics or follow-up questions"),
 });
 
-export type QueryResponse = z.infer<typeof queryResponseSchema>;
+export type QueryResponse = z.output<typeof queryResponseSchema>;
 
 /**
  * Template for public query responses

@@ -1,6 +1,6 @@
 import type { AgentContextItem } from "@brains/contracts";
 import { type Logger, getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
 import type {
@@ -56,18 +56,14 @@ import { toTokenUsage } from "./generation-options";
  */
 const DEFAULT_STEP_LIMIT = 10;
 
-const asyncGeneratingToolResultSchema = z
-  .object({
-    success: z.literal(true),
-    data: z
-      .object({
-        status: z.literal("generating"),
-        entityId: z.string().min(1).optional(),
-        jobId: z.string().min(1).optional(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
+const asyncGeneratingToolResultSchema = z.looseObject({
+  success: z.literal(true),
+  data: z.looseObject({
+    status: z.literal("generating"),
+    entityId: z.string().min(1).optional(),
+    jobId: z.string().min(1).optional(),
+  }),
+});
 
 function buildAsyncGenerationFallback(data: unknown): string | undefined {
   const parsed = asyncGeneratingToolResultSchema.safeParse(data);
