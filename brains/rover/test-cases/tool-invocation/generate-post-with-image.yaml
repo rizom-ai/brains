@@ -20,6 +20,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "social-post"
+        source.kind: "generate"
         coverImage.generate: true
       argsAbsent:
         - upload

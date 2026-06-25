@@ -33,7 +33,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "agent"
-            url: "save-first-followup.example"
+            source.kind: "url"
+            source.url: "save-first-followup.example"
       responseNotContains:
         - "No URL or domain provided"
         - "needs either content or a prompt"

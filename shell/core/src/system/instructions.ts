@@ -42,7 +42,7 @@ export function createSystemInstructions(services: SystemServices): string {
     "",
     "- **system_create**: Create or generate any entity. " +
       "Requires confirmation before persisting or queueing creation; never pass `confirmed: true` on the initial user request. " +
-      "Pass `content` for direct creation, `prompt` for AI generation, `url` for URL-first flows like saving links or remote agents, or `sourceAttachment` for source-derived artifact saves such as deck carousel PDFs, rendered OG images, and printable post/project/product PDFs. Use `from` only for prior assistant response saves. Use `system_upload_save` instead for raw uploaded file preservation. " +
+      'Pass `source`: `{ kind: "text", content }` for direct creation, `{ kind: "generate", prompt }` for AI generation, `{ kind: "url", url }` for URL-first flows, `{ kind: "prior-response" }` for prior assistant response saves, or `{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }` for source-derived artifact saves such as deck carousel PDFs, rendered OG images, and printable post/project/product PDFs. Use `system_upload_save` instead for raw uploaded file preservation. ' +
       "When creating an entity with a cover image, pass `coverImage: true` or `coverImage: { generate: true, prompt }`; do not guess a future entity ID. " +
       `Available entity types: ${types.join(", ")}.`,
     "- **system_upload_save**: Save a live raw uploaded file as a durable document/image/etc. Requires confirmation before persisting; never pass `confirmed: true` on the initial user request. ",

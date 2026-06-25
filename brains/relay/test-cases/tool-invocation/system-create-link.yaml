@@ -20,7 +20,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
-        url: "https://www.w3.org/TR/activitypub/"
+        source.kind: "url"
+        source.url: "https://www.w3.org/TR/activitypub/"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

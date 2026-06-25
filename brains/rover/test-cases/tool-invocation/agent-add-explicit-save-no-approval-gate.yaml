@@ -20,7 +20,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "agent"
-        url: "mylittlephoney.com"
+        source.kind: "url"
+        source.url: "mylittlephoney.com"
   responseNotContains:
     - "approve it first"
     - "not approved yet"

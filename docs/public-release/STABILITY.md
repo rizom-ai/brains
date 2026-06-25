@@ -34,7 +34,7 @@ Plugin-specific config schemas under `plugins.*` are owned by each plugin and st
 
 The system-level tools registered by `shell/core/src/system/` form the canonical entity API. The tool names and their input/output shapes are stable:
 
-- `system_create` — create or AI-generate any entity (`content`, `prompt`, or for URL-first flows `url`), with confirmation flow
+- `system_create` — create or AI-generate any entity using a canonical `source` selector (`text`, `generate`, `url`, `upload`, `attachment`, or `prior-response`), with confirmation flow
 - `system_update` — modify entity fields, with confirmation flow
 - `system_delete` — remove an entity, with confirmation flow
 - `system_get` — retrieve by type and ID/slug/title

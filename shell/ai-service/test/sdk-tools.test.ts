@@ -5,12 +5,20 @@ import { z } from "@brains/utils";
 import { convertToSDKTools, toModelVisibleInputSchema } from "../src/sdk-tools";
 
 describe("convertToSDKTools", () => {
-  it("exposes create source fields only when enabled for the current turn", () => {
+  it("exposes source only for model-visible system_create source selection", () => {
     const tool: Tool = {
       name: "system_create",
       description: "Create",
       inputSchema: {
         entityType: z.string(),
+        title: z.string().optional(),
+        source: z
+          .object({ kind: z.literal("text"), content: z.string() })
+          .optional(),
+        content: z.string().optional(),
+        prompt: z.string().optional(),
+        url: z.string().optional(),
+        from: z.object({ kind: z.literal("conversation-message") }).optional(),
         upload: z
           .object({ kind: z.literal("upload"), id: z.string() })
           .optional(),
@@ -27,64 +35,15 @@ describe("convertToSDKTools", () => {
       handler: mock(async () => ({ success: true as const })),
     };
 
-    const withoutSources = convertToSDKTools(
-      [tool],
-      { conversationId: "conversation-1", interfaceType: "agent" },
-      { emit: mock(() => {}) },
-    )["system_create"]?.inputSchema;
-    const withUpload = convertToSDKTools(
-      [tool],
-      {
-        conversationId: "conversation-1",
-        interfaceType: "agent",
-        enableCreateUpload: true,
-      },
-      { emit: mock(() => {}) },
-    )["system_create"]?.inputSchema;
-    const withTransform = convertToSDKTools(
-      [tool],
-      {
-        conversationId: "conversation-1",
-        interfaceType: "agent",
-        enableCreateTransform: true,
-      },
-      { emit: mock(() => {}) },
-    )["system_create"]?.inputSchema;
-    const withSourceAttachment = convertToSDKTools(
-      [tool],
-      {
-        conversationId: "conversation-1",
-        interfaceType: "agent",
-        enableCreateSourceAttachment: true,
-      },
-      { emit: mock(() => {}) },
-    )["system_create"]?.inputSchema;
+    const modelVisibleInputSchema = toModelVisibleInputSchema(
+      tool.inputSchema,
+      { toolName: "system_create" },
+    );
 
-    if (
-      !withoutSources ||
-      !withUpload ||
-      !withTransform ||
-      !withSourceAttachment
-    ) {
-      throw new Error("Expected system_create schemas");
-    }
-    const withoutSourcesShape = (withoutSources as z.ZodObject<z.ZodRawShape>)
-      .shape;
-    const withUploadShape = (withUpload as z.ZodObject<z.ZodRawShape>).shape;
-    const withTransformShape = (withTransform as z.ZodObject<z.ZodRawShape>)
-      .shape;
-    const withSourceAttachmentShape = (
-      withSourceAttachment as z.ZodObject<z.ZodRawShape>
-    ).shape;
-    expect(Object.keys(withoutSourcesShape)).toEqual(["entityType"]);
-    expect(Object.keys(withUploadShape)).toEqual(["entityType", "upload"]);
-    expect(Object.keys(withTransformShape)).toEqual([
+    expect(Object.keys(modelVisibleInputSchema)).toEqual([
       "entityType",
-      "transform",
-    ]);
-    expect(Object.keys(withSourceAttachmentShape)).toEqual([
-      "entityType",
-      "sourceAttachment",
+      "title",
+      "source",
     ]);
   });
 

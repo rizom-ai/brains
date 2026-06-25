@@ -293,11 +293,7 @@ function formatUploadRefs(
     const key = `${ref.source.kind}:${ref.source.id}`;
     if (seen.has(key)) return [];
     seen.add(key);
-    const rawSaveEntityType = getRawSaveEntityType(ref.mediaType);
-    const noteExtractHint = getNoteExtractHint(ref);
-    return [
-      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }; mediaType: ${ref.mediaType}${rawSaveEntityType ? `; raw-save entityType: "${rawSaveEntityType}"` : ""}${noteExtractHint ? `; note-extract operation: call system_create with entityType "note", upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }, transform "extract-markdown". This is the only valid durable note-import operation for this upload; do not copy attachment bytes into content for note import.` : ""}`,
-    ];
+    return [formatUploadRefLine(ref)];
   });
   if (lines.length === 0) return "";
 
@@ -305,14 +301,36 @@ function formatUploadRefs(
     "Available upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles.",
     'If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear.',
     "Raw uploaded file path: when the user explicitly asks to save/import/promote/attach/preserve the uploaded file, PDF, document, image, or attachment itself, call system_upload_save with the selected upload ref. Do not inspect PDF/image bytes before raw file saves; call system_upload_save even when file content is not human-readable in the prompt.",
-    'Prior assistant response path: if the previous assistant turn summarized, described, read, or analyzed an uploaded file and the user now says "save it", "save that", "save the note", "save the summary", or asks to save the prior answer without saying upload/file/PDF/document/image/attachment, call system_create with entityType "note" and from: { kind: "conversation-message" }. Omit upload and transform.',
-    "If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with sourceAttachment.",
+    'Prior assistant response path: if the previous assistant turn summarized, described, read, or analyzed an uploaded file and the user now says "save it", "save that", "save the note", "save the summary", or asks to save the prior answer without saying upload/file/PDF/document/image/attachment, call system_create with entityType "note" and source: { kind: "prior-response" }. Omit upload sources.',
+    'If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with source: { kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }.',
     "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create or system_upload_save unless the user explicitly asks to save/store/create/capture/import/promote/attach the upload or summary.",
-    'For markdown/note extraction, call system_create with entityType: "note", upload, and transform: "extract-markdown" only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text.',
-    "Never use upload or transform to save an image discussion, image description, caption, interpretation, summary, study notes, or prior assistant answer as a note; use the prior assistant response path instead. For cover-image or generated-image requests, always omit upload and use prompt plus target fields when relevant.",
+    'For markdown/note extraction, call system_create with entityType: "note" and source: { kind: "upload", upload, transform: "extract-markdown" } only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text.',
+    'Never use an upload source to save an image discussion, image description, caption, interpretation, summary, study notes, or prior assistant answer as a note; use the prior assistant response path instead. For cover-image or generated-image requests, always omit upload and use source: { kind: "generate", prompt } plus target fields when relevant.',
   ].join(" ");
 
   return `${guidance}\n${lines.join("\n")}`;
+}
+
+function formatUploadRefLine(ref: ConversationUploadRef): string {
+  const rawSaveEntityType = getRawSaveEntityType(ref.mediaType);
+  const parts = [
+    `- ${ref.filename}: upload.kind="${ref.source.kind}"`,
+    `upload.id="${ref.source.id}"`,
+    `mediaType: ${ref.mediaType}`,
+  ];
+
+  if (rawSaveEntityType) {
+    parts.push(`raw-save entityType="${rawSaveEntityType}"`);
+  }
+
+  if (getNoteExtractHint(ref)) {
+    parts.push(
+      `note-extract args: entityType="note", source.kind="upload", source.upload.kind="${ref.source.kind}", source.upload.id="${ref.source.id}", source.transform="extract-markdown"`,
+      "This is the only valid durable note-import operation for this upload; do not copy attachment bytes into a text source for note import.",
+    );
+  }
+
+  return parts.join("; ");
 }
 
 function getRawSaveEntityType(mediaType: string): string | undefined {

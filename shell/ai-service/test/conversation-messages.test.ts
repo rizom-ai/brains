@@ -408,13 +408,16 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toContain("Raw uploaded file path:");
     expect(content).toContain("call system_upload_save");
     expect(content).toContain("Prior assistant response path:");
-    expect(content).toContain('from: { kind: "conversation-message" }');
+    expect(content).toContain('source: { kind: "prior-response" }');
     expect(content).not.toContain("content from the conversation");
     expect(content).toContain(
       "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
     );
     expect(content).toContain(
-      '- distributed-systems-primer.pdf: upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf; raw-save entityType: "document"; note-extract operation: call system_create with entityType "note", upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }, transform "extract-markdown". This is the only valid durable note-import operation for this upload; do not copy attachment bytes into content for note import.',
+      '- distributed-systems-primer.pdf: upload.kind="upload"; upload.id="upload-00000000-0000-4000-8000-000000000401"; mediaType: application/pdf; raw-save entityType="document"; note-extract args: entityType="note", source.kind="upload", source.upload.kind="upload", source.upload.id="upload-00000000-0000-4000-8000-000000000401", source.transform="extract-markdown"',
+    );
+    expect(content).toContain(
+      "This is the only valid durable note-import operation for this upload; do not copy attachment bytes into a text source for note import.",
     );
   });
 
@@ -437,7 +440,7 @@ describe("buildMessageWithAttachments", () => {
       {
         type: "text",
         text: expect.stringContaining(
-          '- brief.pdf: upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf; raw-save entityType: "document"',
+          '- brief.pdf: upload.kind="upload"; upload.id="upload-00000000-0000-4000-8000-000000000401"; mediaType: application/pdf; raw-save entityType="document"',
         ),
       },
       {
@@ -454,7 +457,7 @@ describe("buildMessageWithAttachments", () => {
     const text = textPart?.type === "text" ? textPart.text : "";
     expect(text).toContain("Raw uploaded file path:");
     expect(text).toContain("Prior assistant response path:");
-    expect(text).toContain('from: { kind: "conversation-message" }');
+    expect(text).toContain('source: { kind: "prior-response" }');
     expect(text).not.toContain("content from the conversation");
     expect(text).toContain(
       "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",

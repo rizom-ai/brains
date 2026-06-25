@@ -58,9 +58,9 @@ describe("ImagePlugin", () => {
     const instructions =
       await new InstructionTestImagePlugin().getInstructionsForTest();
 
-    expect(instructions).toContain('from: { kind: "conversation-message" }');
+    expect(instructions).toContain('source: { kind: "prior-response" }');
     expect(instructions).toContain(
-      "not system_upload_save or upload/transform",
+      "not system_upload_save or an upload source",
     );
     expect(instructions).not.toContain("content from the conversation");
   });

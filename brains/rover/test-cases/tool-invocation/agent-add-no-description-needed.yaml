@@ -20,7 +20,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "agent"
-        url: "mylittlephoney.com"
+        source.kind: "url"
+        source.url: "mylittlephoney.com"
   responseNotContains:
     - "No URL or domain provided"
     - "needs either content or a prompt"

@@ -9,17 +9,18 @@ Planning doc. Current `main` already includes the first core implementation:
 - Resolved content is frozen into confirmation args so confirmation cannot drift.
 - `isSavableAssistantMessage` lives in `conversation-service` and filters out approval cards, upload-intent cards, entity-memory turns, empty messages, and non-assistant messages.
 - Fake placeholder IDs such as `latest`, `:latest`, `current`, `:current`, and path-like `.../latest` / `.../current` are normalized to omitted, meaning “latest savable assistant message”.
-- The previous call-options experiment (`enableCreateConversationMessageSource` / per-turn NL guidance) has been reverted; `from` is currently part of the normal model-visible `system_create` schema.
+- The previous call-options experiment (`enableCreateConversationMessageSource` / per-turn NL guidance) has been replaced by the canonical `source` selector. `from` remains accepted only as a transitional flat input and is hidden from the model-visible `system_create` schema.
 
 Implementation progress in this branch:
 
-- Phase 0 is implemented: current guidance now routes source-derived artifact saves through `sourceAttachment`, not `from`.
+- Phase 0 is implemented: guidance first routed source-derived artifact saves through `sourceAttachment`, not `from`; Phase 3 now supersedes that model-facing shape with `source: { kind: "attachment", ... }`.
 - Phase 1 is implemented: `system_create` rejects `from: { kind: "conversation-message" }` when combined with another source field, and direct `content` creates do not inspect conversation messages.
-- Phase 2 is implemented: upload-ref hints now distinguish raw-upload saves from prior-assistant-response note saves and name `from: { kind: "conversation-message" }` instead of copied conversation content.
+- Phase 2 is implemented: upload-ref hints now distinguish raw-upload saves from prior-assistant-response note saves.
+- Phase 3 is implemented in this branch: model-visible `system_create` exposes canonical `source` only, the handler accepts and normalizes each `source` branch, rejects `source` combined with transitional flat source fields, and confirmation args freeze back to canonical `source`.
 
 Known remaining issue:
 
-- The eval `multi-turn-web-chat-pdf-summary-save-it-note` should be rerun to verify the Phase 2 routing-hint cleanup is sufficient. If it remains flaky, continue to Phase 3 before considering the Phase 4 runtime shortcut.
+- The eval `multi-turn-web-chat-pdf-summary-save-it-note` should be rerun after merging Phase 3 to verify the source-only schema and prior-response guidance are sufficient before considering the Phase 4 runtime shortcut.
 
 ## Problem
 
@@ -60,7 +61,7 @@ The model must choose which source to use. Two save-note cases are easy to confl
 
    > can you save it
 
-   Correct source: `from: { kind: "conversation-message" }`, resolved by core to the latest savable assistant message.
+   Correct source: `source: { kind: "prior-response" }`, resolved by core to the latest savable assistant message.
 
    Incorrect model behavior observed: asks for an upload ref or tries to save the raw upload instead of saving the visible assistant summary as a note.
 
@@ -157,8 +158,8 @@ Tests first (assert structure, not verbatim prose — exact hint strings are bri
 
 - In `conversation-messages.test.ts`, when prior upload refs are visible and the previous assistant turn summarized/described/analyzed the upload, the upload-ref hint must contain **both** routing paths, structurally keyed:
   - a raw-upload path (“save the PDF/file/upload” → raw upload save)
-  - a prior-response path (“save it/that/the summary/the note”) that names `from: { kind: "conversation-message" }`
-- Assert the prior-response path references `from: { kind: "conversation-message" }` and does **not** tell the model to copy “content from the conversation”. Match on the structural token, not the surrounding sentence.
+  - a prior-response path (“save it/that/the summary/the note”) that names `source: { kind: "prior-response" }`
+- Assert the prior-response path references `source: { kind: "prior-response" }` and does **not** tell the model to copy content from the conversation. Match on the structural token, not the surrounding sentence.
 
 Implementation:
 

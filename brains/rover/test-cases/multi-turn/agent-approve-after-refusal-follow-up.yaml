@@ -30,7 +30,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "agent"
-            url: "refusal-followup.example"
+            source.kind: "url"
+            source.url: "refusal-followup.example"
       responseNotContains:
         - "approve it first"
         - "not approved yet"

@@ -1,6 +1,9 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
-import { createOutputSchema } from "../../src/system/schemas";
+import {
+  createInputSchema,
+  createOutputSchema,
+} from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 import type {
   BaseEntity,
@@ -1147,24 +1150,27 @@ status: draft
     expect(stub?.metadata["status"]).toBe("generating");
   });
 
-  it("should require content, prompt, url, upload, or sourceAttachment", async () => {
+  it("should require a create source", async () => {
     const result = await exec({
       entityType: "note",
       title: "Nothing else",
     });
 
     expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain(
+      'Provide `source` with kind "text", "generate", "url", "prior-response", "upload", or "attachment".',
+    );
   });
 
   it("should reject url-only create for unsupported entity types", async () => {
     const result = await exec({
       entityType: "note",
-      url: "https://example.com/test",
+      source: { kind: "url", url: "https://example.com/test" },
     });
 
     expect(result).toHaveProperty("success", false);
     expect((result as { error: string }).error).toContain(
-      "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it",
+      "URL, upload, or attachment source creation is supported only for entity types that explicitly handle it",
     );
   });
 
@@ -1400,10 +1406,13 @@ A saved research link.`;
     );
   });
 
-  it("should expose top-level url, from, upload, transform, sourceAttachment, replace, and coverImage, and not include options fields in schema", () => {
+  it("should expose canonical source plus transitional flat source fields", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
+    expect(tool.inputSchema).toHaveProperty("source");
+    expect(tool.inputSchema).toHaveProperty("content");
+    expect(tool.inputSchema).toHaveProperty("prompt");
     expect(tool.inputSchema).toHaveProperty("url");
     expect(tool.inputSchema).toHaveProperty("from");
     expect(tool.inputSchema).toHaveProperty("upload");
@@ -1413,6 +1422,46 @@ A saved research link.`;
     expect(tool.inputSchema).toHaveProperty("replace");
     expect(tool.inputSchema).toHaveProperty("coverImage");
     expect(tool.inputSchema).not.toHaveProperty("options");
+  });
+
+  it("should accept every canonical source branch and reject cross-branch fields", () => {
+    const validInputs = [
+      { entityType: "note", source: { kind: "text", content: "Body" } },
+      { entityType: "note", source: { kind: "generate", prompt: "Draft" } },
+      {
+        entityType: "link",
+        source: { kind: "url", url: "https://example.com" },
+      },
+      {
+        entityType: "note",
+        source: {
+          kind: "upload",
+          upload: { kind: "upload", id: "upload-1" },
+          transform: "extract-markdown",
+        },
+      },
+      {
+        entityType: "document",
+        source: {
+          kind: "attachment",
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+        },
+      },
+      { entityType: "note", source: { kind: "prior-response" } },
+    ];
+
+    for (const input of validInputs) {
+      expect(createInputSchema.safeParse(input).success).toBe(true);
+    }
+
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: { kind: "text", content: "Body", prompt: "Nope" },
+      }).success,
+    ).toBe(false);
   });
 
   it("should let direct content take precedence over stale upload refs", async () => {
@@ -1431,10 +1480,11 @@ A saved research link.`;
       needsConfirmation: true,
       summary: 'Create "Image Discussion"?',
     });
-    expect(result).toHaveProperty(
-      "args.content",
-      "Notes from the image discussion.",
-    );
+    expect(result).toHaveProperty("args.source", {
+      kind: "text",
+      content: "Notes from the image discussion.",
+    });
+    expect(result).not.toHaveProperty("args.content");
     expect(result).not.toHaveProperty("args.upload");
     expect(result).not.toHaveProperty("args.transform");
   });
@@ -1456,10 +1506,11 @@ A saved research link.`;
       needsConfirmation: true,
       summary: "Generate image?",
     });
-    expect(result).toHaveProperty(
-      "args.prompt",
-      "Editorial cover image for the social post.",
-    );
+    expect(result).toHaveProperty("args.source", {
+      kind: "generate",
+      prompt: "Editorial cover image for the social post.",
+    });
+    expect(result).not.toHaveProperty("args.prompt");
     expect(result).toHaveProperty("args.targetEntityType", "social-post");
     expect(result).toHaveProperty(
       "args.targetEntityId",
@@ -1513,10 +1564,13 @@ A saved research link.`;
     if (!("needsConfirmation" in confirmation)) {
       throw new Error("Expected create confirmation");
     }
-    expect(confirmation).toHaveProperty(
-      "args.sourceAttachment.sourceEntityId",
-      "resilience-in-distributed-systems",
-    );
+    expect(confirmation).toHaveProperty("args.source", {
+      kind: "attachment",
+      sourceEntityType: "post",
+      sourceEntityId: "resilience-in-distributed-systems",
+      attachmentType: "printable",
+    });
+    expect(confirmation).not.toHaveProperty("args.sourceAttachment");
     const confirmationArgs = z
       .record(z.string(), z.unknown())
       .parse(confirmation.args);

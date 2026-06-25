@@ -157,7 +157,7 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return 'To turn an uploaded text or PDF file into an editable markdown note, call system_create with entityType: "note", the exact upload object from the current turn or conversation upload refs hint, and transform: "extract-markdown". Use this only when the user explicitly asks to import, extract, or turn the upload into a note/markdown. Do not use this note-import pattern for raw file saves/promotions such as saving a PDF as a document or saving an image as an image; those use system_upload_save with the raw upload ref and no transform. Omit transform for ordinary direct note creates.';
+    return 'To turn an uploaded text or PDF file into an editable markdown note, call system_create with entityType: "note" and source: { kind: "upload", upload: <exact upload object from the current turn or conversation upload refs hint>, transform: "extract-markdown" }. Use this only when the user explicitly asks to import, extract, or turn the upload into a note/markdown. Do not use this note-import pattern for raw file saves/promotions such as saving a PDF as a document or saving an image as an image; those use system_upload_save with the raw upload ref. Use source: { kind: "text", content } for ordinary direct note creates.';
   }
 
   protected override async onShutdown(): Promise<void> {

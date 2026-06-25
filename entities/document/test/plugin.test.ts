@@ -23,14 +23,17 @@ describe("DocumentPlugin", () => {
     ]);
   });
 
-  it("describes durable source-derived saves with sourceAttachment", async () => {
+  it("describes durable source-derived saves with canonical attachment source", async () => {
     const harness = createPluginHarness<DocumentPlugin>();
     const capabilities = await harness.installPlugin(new DocumentPlugin());
     const tool = capabilities.tools.find(
       (candidate) => candidate.name === "document_generate",
     );
 
-    expect(tool?.description).toContain("sourceAttachment");
+    expect(tool?.description).toContain(
+      'source: { kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }',
+    );
+    expect(tool?.description).not.toContain("sourceAttachment");
     expect(tool?.description).not.toContain("and from");
   });
 

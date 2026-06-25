@@ -22,9 +22,10 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "document"
-        sourceAttachment.sourceEntityType: "deck"
-        sourceAttachment.sourceEntityId: "distributed-systems-primer"
-        sourceAttachment.attachmentType: "carousel"
+        source.kind: "attachment"
+        source.sourceEntityType: "deck"
+        source.sourceEntityId: "distributed-systems-primer"
+        source.attachmentType: "carousel"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

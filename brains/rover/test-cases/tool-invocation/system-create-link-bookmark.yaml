@@ -20,6 +20,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
+        source.kind: "url"
+        source.url: "https://github.com/anthropics/claude-code"
       argsAbsent:
         - upload
         - sourceAttachment

@@ -33,7 +33,7 @@ describe("getAgentDiscoveryInstructions", () => {
       "Explicit link or bookmark saves like `save this link: https://example.com/page` are not agent-contact requests",
     );
     expect(instructions).toContain(
-      'use `system_create({ entityType: "link", url: "https://example.com/page" })`',
+      'use `system_create({ entityType: "link", source: { kind: "url", url: "https://example.com/page" } })`',
     );
   });
 
@@ -42,7 +42,7 @@ describe("getAgentDiscoveryInstructions", () => {
 
     expect(instructions).toContain("Yes please");
     expect(instructions).toContain(
-      'system_create({ entityType: "agent", url: "save-first-followup.example" })',
+      'system_create({ entityType: "agent", source: { kind: "url", url: "save-first-followup.example" } })',
     );
     expect(instructions).toContain("return an empty response");
   });

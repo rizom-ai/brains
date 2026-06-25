@@ -164,7 +164,7 @@ describe("buildInstructions", () => {
   it("should tell the agent to capture lightweight memo requests without asking for more detail", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "Create a `note` entity immediately with `content` instead of asking for more detail unless the request is truly empty.",
+      'Create a `note` entity immediately with `source: { kind: "text", content }` instead of asking for more detail unless the request is truly empty.',
     );
     expect(instructions).toContain("save, or capture content");
   });
@@ -182,10 +182,10 @@ describe("buildInstructions", () => {
   it("should tell the agent to preserve finalized deck content without prompt generation", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "finalized deck markdown with frontmatter and slide separators must go in `content` only",
+      "finalized deck markdown with frontmatter and slide separators must go in a text source only",
     );
     expect(instructions).toContain(
-      "including `prompt` would request generation",
+      "using a generate source would request generation",
     );
   });
 
@@ -211,7 +211,7 @@ describe("buildInstructions", () => {
   it("should distinguish standalone image generation from entity-attached image targeting", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      'For standalone image requests like "generate an image of a robot", call `system_create({ entityType: "image", prompt: "..." })` without `targetEntityType` or `targetEntityId`.',
+      'For standalone image requests like "generate an image of a robot", call `system_create({ entityType: "image", source: { kind: "generate", prompt: "..." } })` without `targetEntityType` or `targetEntityId`.',
     );
     expect(instructions).toContain(
       "Only pass `targetEntityType`/`targetEntityId` when the user explicitly asks to set or replace a cover image, OG image, or other entity-attached image on an existing entity.",
@@ -227,7 +227,7 @@ describe("buildInstructions", () => {
       "Do not satisfy a cover-image request by reusing, setting, clearing, or mentioning `ogImageId`",
     );
     expect(instructions).toContain(
-      'use one `system_create` call with `entityType: "image"`, a `prompt`, and pass `targetEntityType`/`targetEntityId`',
+      'use one `system_create` call with `entityType: "image"`, `source: { kind: "generate", prompt: "..." }`, and pass `targetEntityType`/`targetEntityId`',
     );
     expect(instructions).toContain(
       "Do not call `system_update` with an existing image id for a generate/new-cover request",
@@ -243,13 +243,13 @@ describe("buildInstructions", () => {
   it("should keep discussion and summary notes off upload import paths", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      'If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, call `system_create` with `entityType: "note"` and `from: { kind: "conversation-message" }`',
+      'If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, call `system_create` with `entityType: "note"` and `source: { kind: "prior-response" }`',
     );
     expect(instructions).toContain(
       "For follow-ups after you summarized/read/described/analyzed an upload, bare “save it”, “save that”, “save the note”, or “save the summary” means save your visible summary/description/discussion as a note",
     );
     expect(instructions).toContain(
-      '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "note"`; never use `transform` for image uploads.',
+      'Upload extraction is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "note"`; never use it for image uploads.',
     );
     expect(instructions).toContain(
       "Call exactly one `system_upload_save`; do not also create an alternate document/image entity",
@@ -258,10 +258,10 @@ describe("buildInstructions", () => {
       "Do not use `system_create` for status-only requests such as making an existing post a draft or for raw uploaded file preservation.",
     );
     expect(instructions).toContain(
-      "If generating a social post from prior image discussion, use conversation text in `prompt`/`content` and omit `upload`",
+      "If generating a social post from prior image discussion, use a text/generate source from the conversation and omit upload refs",
     );
     expect(instructions).toContain(
-      "If your image-generation args include `upload`, they are wrong unless the user explicitly said to use that uploaded image as the cover.",
+      "If your image-generation args include an upload source, they are wrong unless the user explicitly said to use that uploaded image as the cover.",
     );
     expect(instructions).toContain(
       "Prior upload refs from the conversation are irrelevant to cover-image generation unless the user explicitly says to use the uploaded image as the cover.",
@@ -284,10 +284,10 @@ describe("buildInstructions", () => {
       "If the user asks only to preview/render/generate a preview and a `document_generate` tool is available, call `document_generate`",
     );
     expect(instructions).toContain(
-      "call `system_create` with `sourceAttachment` instead of `document_generate` so confirmation and persistence happen",
+      "call `system_create` with an attachment source instead of `document_generate` so confirmation and persistence happen",
     );
     expect(instructions).toContain(
-      "use the returned canonical entity `id` in `sourceAttachment.sourceEntityId` and continue to `system_create` in the same turn",
+      "use the returned canonical entity `id` as `source.sourceEntityId` and continue to `system_create` in the same turn",
     );
     expect(instructions).toContain(
       "Once `system_get` succeeds for a named source artifact, do not add `system_search`",

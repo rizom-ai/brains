@@ -58,21 +58,21 @@ All entity CRUD goes through shared system tools. Entity plugins intentionally d
 
 Common tools:
 
-| Tool              | Purpose                                                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `system_create`   | Create or generate an entity. Use `content` for exact markdown, `prompt` for AI generation, or `url` for URL-first flows. |
-| `system_update`   | Update fields or replace full content. Requires confirmation for writes.                                                  |
-| `system_delete`   | Delete an entity. Requires confirmation.                                                                                  |
-| `system_get`      | Fetch one entity by id, slug, or title.                                                                                   |
-| `system_list`     | List entities by type, optionally filtered by status.                                                                     |
-| `system_search`   | Search across entities, optionally filtered by type.                                                                      |
-| `system_extract`  | Run derivation/extraction for entity types that support it.                                                               |
-| `system_insights` | Return aggregate insights registered by the runtime or plugins.                                                           |
+| Tool              | Purpose                                                                                                                                        |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `system_create`   | Create or generate an entity. Use `source.kind` (`text`, `generate`, `url`, `upload`, `attachment`, or `prior-response`) to select the source. |
+| `system_update`   | Update fields or replace full content. Requires confirmation for writes.                                                                       |
+| `system_delete`   | Delete an entity. Requires confirmation.                                                                                                       |
+| `system_get`      | Fetch one entity by id, slug, or title.                                                                                                        |
+| `system_list`     | List entities by type, optionally filtered by status.                                                                                          |
+| `system_search`   | Search across entities, optionally filtered by type.                                                                                           |
+| `system_extract`  | Run derivation/extraction for entity types that support it.                                                                                    |
+| `system_insights` | Return aggregate insights registered by the runtime or plugins.                                                                                |
 
 Examples:
 
 ```bash
-brain tool system_create '{"entityType":"note","title":"Idea","content":"# Idea\n\nA short note."}'
+brain tool system_create '{"entityType":"note","title":"Idea","source":{"kind":"text","content":"# Idea\n\nA short note."}}'
 brain tool system_search '{"query":"recent published posts","entityType":"post"}'
 brain tool system_list '{"entityType":"post","status":"draft"}'
 ```

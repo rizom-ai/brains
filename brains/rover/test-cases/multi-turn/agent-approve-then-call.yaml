@@ -30,7 +30,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "agent"
-            url: "save-it-regression.example"
+            source.kind: "url"
+            source.url: "save-it-regression.example"
       responseNotContains:
         - "approve it first"
         - "not approved yet"

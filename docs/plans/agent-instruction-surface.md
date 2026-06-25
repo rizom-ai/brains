@@ -4,11 +4,11 @@
 
 Planning doc. This is the broader cleanup plan for the agent/system-prompt surface after the focused [`save-note-source-resolution.md`](./save-note-source-resolution.md) work.
 
-Recommended ordering:
+Current ordering:
 
-1. Do `save-note-source-resolution.md` Phase 0 immediately: fix the current `from` / `sourceAttachment` contradiction.
-2. Do `save-note-source-resolution.md` Phase 1 next: reject mixed `system_create` source fields so bad model calls fail safely.
-3. Then start this plan. Some phases can run in parallel with save-note Phases 2–3, but the `system_create` source cleanup should remain the first structural dependency because it removes one of the largest prompt-pressure clusters.
+1. `save-note-source-resolution.md` Phases 0–2 are merged.
+2. Phase 3 is implemented in this branch: model-visible `system_create` now exposes canonical `source` only, confirmation args use canonical `source`, and major first-party instruction/eval surfaces have been moved off flat create-source fields.
+3. Remaining work continues after Phase 3 is merged back to `main`; the next cleanup should shrink duplicated routing prose now that source selection is structurally encoded.
 
 ## Problem
 
@@ -93,7 +93,7 @@ This is the most duplicated cluster. The focused save-note/source plan should re
 
 File: `shell/ai-service/src/call-options.ts`
 
-Current regexes influence whether `system_create`, `document_generate`, and create-source fields are model-visible. This should be minimized once schemas/tool handlers can reject invalid source combinations clearly.
+Current regexes influence whether `system_create` and `document_generate` are model-visible. Earlier create-source field gating has been replaced by the canonical `source` selector; remaining NL guards should be minimized once handlers return clear errors.
 
 ### Prompt substring tests
 
@@ -116,9 +116,9 @@ Implementation:
 - Start with a generous warning-style threshold or snapshot helper; do not make the first budget so tight that it blocks cleanup sequencing.
 - Add targeted contradiction tests for known source guidance after `save-note-source-resolution.md`'s contradiction fix (its Phase 0). That phase owns correcting the guidance; this phase owns the regression lock that keeps it corrected:
   - `from` is only described for prior assistant/conversation-message saves;
-  - source-derived artifacts are described with `sourceAttachment` until the future `source` union lands.
+  - source-derived artifacts are described with the canonical attachment `source` branch.
 
-Exit criterion: there is a visible budget/section report and at least one test preventing the known `from` / `sourceAttachment` contradiction from returning.
+Exit criterion: there is a visible budget/section report and at least one test preventing the known prior-response / source-attachment contradiction from returning.
 
 ### Phase 2 — move retrieved memory out of system instructions
 
@@ -174,7 +174,7 @@ Dependencies:
 Implementation:
 
 - Keep hiding internal confirmation fields (`confirmed`, `confirmationToken`, `contentHash`).
-- After the canonical `source` union is model-visible, hide transitional flat source fields from the model and remove special-case per-source field toggles where possible.
+- Keep the canonical `source` union model-visible and keep transitional flat source fields hidden from the model.
 - Revisit `shouldDisableSystemCreateForUploadRead` and similar regex guards:
   - keep only cases with clear safety value;
   - prefer allowing the tool to validate and return a clear error over making the correct field unavailable.
