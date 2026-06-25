@@ -1,6 +1,7 @@
-import { UserPermissionLevelSchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { WidgetComponent } from "./widget-registry";
+
+const widgetVisibilitySchema = z.enum(["public", "trusted", "anchor"]);
 
 export const widgetMetaSchema = z.object({
   id: z.string(),
@@ -10,21 +11,21 @@ export const widgetMetaSchema = z.object({
   priority: z.number(),
   section: z.enum(["primary", "secondary", "sidebar"]),
   rendererName: z.string(),
-  visibility: UserPermissionLevelSchema,
+  visibility: widgetVisibilitySchema,
   component: z.custom<WidgetComponent>().optional(),
 });
 
-export type WidgetMeta = z.infer<typeof widgetMetaSchema>;
+export type WidgetMeta = z.output<typeof widgetMetaSchema>;
 
 export const widgetDataSchema = z.object({
   widget: widgetMetaSchema,
   data: z.unknown(),
 });
 
-export type WidgetData = z.infer<typeof widgetDataSchema>;
+export type WidgetData = z.output<typeof widgetDataSchema>;
 
 export const dashboardDataSchema = z.object({
-  widgets: z.record(widgetDataSchema),
+  widgets: z.record(z.string(), widgetDataSchema),
 });
 
-export type DashboardData = z.infer<typeof dashboardDataSchema>;
+export type DashboardData = z.output<typeof dashboardDataSchema>;

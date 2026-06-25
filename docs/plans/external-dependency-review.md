@@ -809,6 +809,10 @@ Incremental migration progress:
   the generation job handler config now take a structural `.parse()` parser, so
   job input schemas can remain on either Zod generation without mixed schema
   composition.
+- Migrated `@brains/dashboard` widget registry/data-source output schemas to
+  `@brains/utils/zod-v4` while leaving the plugin config and message payload
+  schemas on the current main-Zod plugin/tool boundary. Dashboard data continues
+  through the structural data-source parser boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

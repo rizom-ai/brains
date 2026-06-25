@@ -1,11 +1,7 @@
 import type { ComponentType } from "preact";
-import {
-  PermissionService,
-  UserPermissionLevelSchema,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+import { PermissionService, type UserPermissionLevel } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export interface WidgetComponentProps {
   title: string;
@@ -31,6 +27,7 @@ export type BuiltInWidgetRendererName =
   (typeof BUILT_IN_WIDGET_RENDERERS)[number];
 
 const builtInWidgetRendererSet = new Set<string>(BUILT_IN_WIDGET_RENDERERS);
+const widgetVisibilitySchema = z.enum(["public", "trusted", "anchor"]);
 
 export function isBuiltInWidgetRenderer(
   rendererName: string,
@@ -46,10 +43,10 @@ export const dashboardWidgetSchema = z.object({
   priority: z.number().default(50),
   section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
   rendererName: z.string(),
-  visibility: UserPermissionLevelSchema.default("public"),
+  visibility: widgetVisibilitySchema.default("public"),
 });
 
-export type DashboardWidgetMeta = z.infer<typeof dashboardWidgetSchema>;
+export type DashboardWidgetMeta = z.output<typeof dashboardWidgetSchema>;
 export type DashboardWidgetInput = z.input<typeof dashboardWidgetSchema>;
 
 export interface RegisteredWidget extends DashboardWidgetInput {
