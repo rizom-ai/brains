@@ -780,10 +780,11 @@ Incremental migration progress:
   `@brains/chat` to `@brains/utils/zod-v4`. The interface package's remaining
   main-Zod import is now its plugin config schema; subscription persistence and
   related tests use the runtime-state structural parser contract.
-- Migrated `@brains/content-pipeline` publishable metadata schemas to
-  `@brains/utils/zod-v4`. These schemas are an internal metadata validation
-  boundary used for publish-state parsing and type definitions, separate from
-  the package's plugin config and tool-facing schemas that remain on main Zod.
+- Migrated `@brains/content-pipeline` publishable metadata and publish-asset
+  registry schemas to `@brains/utils/zod-v4`. These schemas are internal
+  metadata/message validation boundaries used for publish-state parsing,
+  publish asset registration, and type definitions, separate from the package's
+  plugin config and tool-facing schemas that remain on main Zod.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

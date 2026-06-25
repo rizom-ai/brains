@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const publishAssetTargetFieldSchema = z.union([
   z.string().min(1),
@@ -8,7 +8,7 @@ export const publishAssetTargetFieldSchema = z.union([
   }),
 ]);
 
-export type PublishAssetTargetField = z.infer<
+export type PublishAssetTargetField = z.output<
   typeof publishAssetTargetFieldSchema
 >;
 
@@ -28,7 +28,7 @@ export const publishAssetDefinitionSchema = z.object({
   jobType: z.string().min(1).optional(),
 });
 
-export type PublishAssetDefinition = z.infer<
+export type PublishAssetDefinition = z.output<
   typeof publishAssetDefinitionSchema
 >;
 
