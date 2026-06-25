@@ -233,7 +233,7 @@ Cleanup:
 - [external-dependency-review.md](./plans/external-dependency-review.md) — dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [codebase-cleanup-backlog.md](./plans/codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package-script drift).
-- [system-create-source-architecture.md](./plans/system-create-source-architecture.md) — deterministic source routing for `system_create`: a typed `source` union plus a tested intent-router at the shared agent chokepoint, with the model as fallback and the prose/regex routing layer deleted. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.
+- [system-create-source-architecture.md](./plans/system-create-source-architecture.md) — agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. Deletes the NL guards (`call-options.ts` regexes, routing prose, source-precedence sniffing) and makes `system_create` source-only at the model boundary. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.
 
 Research probes (parked):
 

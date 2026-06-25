@@ -339,10 +339,10 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Deterministic source routing for <code>system_create</code> — target architecture</span>
+            <span class="card-name">Agent interpretation boundary — target architecture</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">deterministic source routing for <code>system_create</code>: a typed <code>source</code> union plus a tested intent-router at the shared agent chokepoint, with the model as fallback and the prose/regex routing layer deleted. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.</div>
+          <div class="card-desc">agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. Deletes the NL guards (<code>call-options.ts</code> regexes, routing prose, source-precedence sniffing) and makes <code>system_create</code> source-only at the model boundary. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.</div>
           <div class="card-file">system-create-source-architecture.md</div>
         </div>
         <div class="card status-proposed">
