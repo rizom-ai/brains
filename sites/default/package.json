@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-default",
   "private": true,
-  "version": "0.2.0-alpha.127",
+  "version": "0.2.0-alpha.128",
   "description": "Default structural site package — clean professional layout for rover",
   "type": "module",
   "exports": {

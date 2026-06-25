@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.128
+
+### Patch Changes
+
+- [`4f3d7c6`](https://github.com/rizom-ai/brains/commit/4f3d7c6661630b5a346a8402cba2de81e4e1aff7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release the canonical `system_create.source` flow so Rover routes direct creates, uploads, and prior-response saves through the preferred source union while preserving legacy compatibility.
+
 ## 0.2.0-alpha.127
 
 ### Patch Changes
