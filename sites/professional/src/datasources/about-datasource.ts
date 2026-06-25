@@ -1,7 +1,10 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  DataSource,
+  DataSourceSchema,
+  BaseDataSourceContext,
+} from "@brains/plugins";
 import { fetchAnchorProfile } from "@brains/plugins";
 import { AnchorProfileAdapter } from "@brains/identity-service";
-import type { z } from "@brains/utils/zod";
 import {
   professionalProfileSchema,
   type ProfessionalProfile,
@@ -30,7 +33,7 @@ export class AboutDataSource implements DataSource {
    */
   async fetch<T>(
     _query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const content = await fetchAnchorProfile(context.entityService);

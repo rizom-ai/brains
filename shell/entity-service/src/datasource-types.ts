@@ -1,4 +1,3 @@
-import type { z } from "@brains/utils/zod";
 import type { EntityService as IEntityService } from "./types";
 
 /**
@@ -18,6 +17,10 @@ export interface BaseDataSourceContext {
    * to ensure consistent filtering behavior across environments
    */
   entityService: IEntityService;
+}
+
+export interface DataSourceSchema<T> {
+  parse(input: unknown): T;
 }
 
 /**
@@ -53,7 +56,7 @@ export interface DataSource {
    */
   fetch?: <T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ) => Promise<T>;
 
@@ -61,7 +64,7 @@ export interface DataSource {
    * Optional: Generate new content
    * Used by data sources that create content (e.g., AI-generated content, reports)
    */
-  generate?: <T>(request: unknown, schema: z.ZodSchema<T>) => Promise<T>;
+  generate?: <T>(request: unknown, schema: DataSourceSchema<T>) => Promise<T>;
 
   /**
    * Optional: Transform content between formats
@@ -70,7 +73,7 @@ export interface DataSource {
   transform?: <T>(
     content: unknown,
     format: string,
-    schema: z.ZodSchema<T>,
+    schema: DataSourceSchema<T>,
   ) => Promise<T>;
 }
 

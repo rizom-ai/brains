@@ -200,6 +200,7 @@ export {
 // Data source infrastructure
 export type {
   DataSource,
+  DataSourceSchema,
   BaseDataSourceContext,
   PaginationInfo,
 } from "@brains/entity-service";

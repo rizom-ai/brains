@@ -97,6 +97,7 @@ export {
 export { DataSourceRegistry } from "./datasource-registry";
 export type {
   DataSource,
+  DataSourceSchema,
   DataSourceCapabilities,
   BaseDataSourceContext,
 } from "./datasource-types";

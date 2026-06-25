@@ -4,12 +4,12 @@ import {
 } from "@brains/plugins";
 import type {
   BaseDataSourceContext,
+  DataSourceSchema,
   BaseQuery,
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { z } from "@brains/utils/zod";
 import type { Doc } from "../schemas/doc";
 import {
   docFrontmatterSchema,
@@ -79,7 +79,7 @@ export class DocDataSource extends BaseEntityDataSource<Doc, DocWithData> {
 
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const params = this.parseQuery(query);

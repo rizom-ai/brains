@@ -6,7 +6,11 @@ import {
   type NavigationResult,
   type PaginationInfo,
 } from "@brains/plugins";
-import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSourceSchema,
+  IEntityService,
+} from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils/zod";
@@ -130,7 +134,7 @@ export class SocialPostDataSource extends BaseEntityDataSource<
    */
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);
@@ -175,7 +179,7 @@ export class SocialPostDataSource extends BaseEntityDataSource<
    * Fetch the next post in queue (lowest queueOrder with status=queued).
    */
   private async fetchNextInQueue<T>(
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const entities = await entityService.listEntities<SocialPost>({

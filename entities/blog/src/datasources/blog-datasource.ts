@@ -6,7 +6,11 @@ import {
   type NavigationResult,
   type PaginationInfo,
 } from "@brains/plugins";
-import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSourceSchema,
+  IEntityService,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { slugify } from "@brains/utils";
 import { z } from "@brains/utils/zod";
@@ -123,7 +127,7 @@ export class BlogDataSource extends BaseEntityDataSource<
    */
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);
@@ -165,7 +169,7 @@ export class BlogDataSource extends BaseEntityDataSource<
    * Returns in detail format without navigation.
    */
   private async fetchLatestPost<T>(
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const publishedPosts = await entityService.listEntities<BlogPost>({
@@ -206,7 +210,7 @@ export class BlogDataSource extends BaseEntityDataSource<
    */
   private async fetchSinglePost<T>(
     slug: string,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     // Look up the entity first (needed to know seriesName and for navigation)
@@ -257,7 +261,7 @@ export class BlogDataSource extends BaseEntityDataSource<
 
   private async fetchSeriesPosts<T>(
     seriesName: string,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const posts = await this.fetchPostsBySeries(seriesName, entityService);

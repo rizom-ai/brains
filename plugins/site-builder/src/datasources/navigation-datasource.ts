@@ -1,6 +1,9 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  DataSource,
+  DataSourceSchema,
+  BaseDataSourceContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { NavigationSlots } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
@@ -38,7 +41,7 @@ export class NavigationDataSource implements DataSource {
    */
   async fetch<T>(
     query: unknown,
-    outputSchema: frameworkZod.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     _context?: BaseDataSourceContext,
   ): Promise<T> {
     // Parse and validate query parameters

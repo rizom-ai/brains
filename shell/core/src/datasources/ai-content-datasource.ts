@@ -1,9 +1,8 @@
-import type { DataSource } from "@brains/entity-service";
+import type { DataSource, DataSourceSchema } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 import { EntityUrlGenerator } from "@brains/site-composition";
-import type { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { resolvePrompt } from "@brains/plugins";
 
@@ -54,10 +53,7 @@ export class AIContentDataSource implements DataSource {
 
   private readonly siteBaseUrl: string | undefined;
 
-  async generate<T>(
-    request: unknown,
-    schema: frameworkZod.ZodSchema<T>,
-  ): Promise<T> {
+  async generate<T>(request: unknown, schema: DataSourceSchema<T>): Promise<T> {
     const context = GenerationContextSchema.parse(request);
 
     const template = this.templateRegistry.get(context.templateName);

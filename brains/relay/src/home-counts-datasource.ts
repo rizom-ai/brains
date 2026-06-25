@@ -1,4 +1,8 @@
-import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   RELAY_HOME_DIAGRAM_FALLBACK,
@@ -36,7 +40,7 @@ export class RelayHomeCountsDataSource implements DataSource {
 
   public async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const input = querySchema.parse(query ?? {});

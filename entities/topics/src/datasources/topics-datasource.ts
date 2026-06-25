@@ -3,10 +3,10 @@ import type {
   BaseQuery,
   PaginationInfo,
   BaseDataSourceContext,
+  DataSourceSchema,
 } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { z } from "@brains/utils/zod";
 import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { toTopicDetail, toTopicSummary } from "../lib/topic-presenter";
 import type { TopicDetailData } from "../templates/topic-detail/schema";
@@ -59,7 +59,7 @@ export class TopicsDataSource extends BaseEntityDataSource<
    */
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);

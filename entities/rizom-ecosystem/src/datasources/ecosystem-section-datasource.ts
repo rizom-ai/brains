@@ -1,5 +1,8 @@
-import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
-import type { z as zMain } from "@brains/utils/zod";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
 import { parseEcosystemContent } from "../lib";
 
@@ -21,7 +24,7 @@ export class EcosystemSectionDataSource implements DataSource {
 
   public async fetch<T>(
     query: unknown,
-    outputSchema: zMain.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const input: EcosystemSectionQuery = querySchema.parse(query ?? {});

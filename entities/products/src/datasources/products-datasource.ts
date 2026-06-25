@@ -1,7 +1,10 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  DataSource,
+  DataSourceSchema,
+  BaseDataSourceContext,
+} from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { z as zMain } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { Product } from "../schemas/product";
 import {
@@ -98,7 +101,7 @@ export class ProductsDataSource implements DataSource {
 
   async fetch<T>(
     query: unknown,
-    outputSchema: zMain.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const params: ProductsQuery = querySchema.parse(query);

@@ -5,7 +5,11 @@ import {
   type BaseQuery,
   type PaginationInfo,
 } from "@brains/plugins";
-import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSourceSchema,
+  IEntityService,
+} from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { truncateText } from "@brains/utils";
@@ -132,7 +136,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
    */
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);
@@ -170,7 +174,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
    */
   private async fetchSingleNewsletter<T>(
     id: string,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const newsletter = await entityService.getEntity<Newsletter>({

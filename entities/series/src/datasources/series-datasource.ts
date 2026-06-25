@@ -1,12 +1,12 @@
 import type {
   DataSource,
+  DataSourceSchema,
   BaseDataSourceContext,
   IEntityService,
   BaseEntity,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { Series } from "../schemas/series";
 import {
@@ -88,7 +88,7 @@ export class SeriesDataSource implements DataSource {
 
   async fetch<T>(
     query: unknown,
-    outputSchema: frameworkZod.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const params = normalizeQuery(query);
@@ -120,7 +120,7 @@ export class SeriesDataSource implements DataSource {
   }
 
   private async fetchSeriesList<T>(
-    outputSchema: frameworkZod.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const seriesEntities = await entityService.listEntities<Series>({
@@ -146,7 +146,7 @@ export class SeriesDataSource implements DataSource {
 
   private async fetchSeriesDetail<T>(
     seriesName: string,
-    outputSchema: frameworkZod.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
     seriesEntity?: Series,
   ): Promise<T> {
@@ -188,7 +188,7 @@ export class SeriesDataSource implements DataSource {
 
   private async fetchSeriesDetailBySlug<T>(
     seriesSlug: string,
-    outputSchema: frameworkZod.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const candidates = await entityService.listEntities<Series>({

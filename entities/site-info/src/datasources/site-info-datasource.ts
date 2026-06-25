@@ -1,6 +1,9 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  DataSource,
+  DataSourceSchema,
+  BaseDataSourceContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { z as zType } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 import type { SiteInfoBody } from "../schemas/site-info-schema";
@@ -41,7 +44,7 @@ export class SiteInfoDataSource implements DataSource {
 
   async fetch<T>(
     _query: unknown,
-    outputSchema: zType.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { entityService } = context;

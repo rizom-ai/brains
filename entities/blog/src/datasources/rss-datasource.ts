@@ -1,6 +1,9 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  DataSource,
+  DataSourceSchema,
+  BaseDataSourceContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { z as zMain } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { BlogPost } from "../schemas/blog-post";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
@@ -42,7 +45,7 @@ export class RSSDataSource implements DataSource {
    */
   async fetch<T>(
     query: unknown,
-    outputSchema: zMain.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse query parameters

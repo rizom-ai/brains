@@ -1,6 +1,9 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/entity-service";
+import type {
+  DataSource,
+  DataSourceSchema,
+  BaseDataSourceContext,
+} from "@brains/entity-service";
 import type { IEntityService } from "@brains/entity-service";
-import type { z as frameworkZod } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { SHELL_DATASOURCE_IDS } from "../constants";
 
@@ -25,7 +28,7 @@ export class EntityDataSource implements DataSource {
 
   async fetch<T>(
     query: unknown,
-    outputSchema: frameworkZod.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     _context?: BaseDataSourceContext,
   ): Promise<T> {
     const parseResult = entityQuerySchema.safeParse(query);

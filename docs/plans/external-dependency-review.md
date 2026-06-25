@@ -785,6 +785,11 @@ Incremental migration progress:
   metadata/message validation boundaries used for publish-state parsing,
   publish asset registration, and type definitions, separate from the package's
   plugin config and tool-facing schemas that remain on main Zod.
+- Decoupled data source output schemas from main-Zod nominal types by replacing
+  the `DataSource`/`BaseEntityDataSource` schema parameters with a structural
+  `parse(input: unknown): T` contract. Existing main-Zod data source callers
+  remain compatible, and downstream query parser schemas can continue migrating
+  to `@brains/utils/zod-v4` without composing mixed schema trees.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
