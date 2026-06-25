@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const BrainCharacterSchema = z.object({
   name: z.string(),
@@ -7,7 +7,7 @@ export const BrainCharacterSchema = z.object({
   values: z.array(z.string()),
 });
 
-export type BrainCharacter = z.infer<typeof BrainCharacterSchema>;
+export type BrainCharacter = z.output<typeof BrainCharacterSchema>;
 
 export const AnchorProfileSchema = z.object({
   name: z.string(),
@@ -34,4 +34,4 @@ export const AnchorProfileSchema = z.object({
     .optional(),
 });
 
-export type AnchorProfile = z.infer<typeof AnchorProfileSchema>;
+export type AnchorProfile = z.output<typeof AnchorProfileSchema>;

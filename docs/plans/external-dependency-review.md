@@ -767,6 +767,9 @@ Incremental migration progress:
   `@brains/utils/zod-v4`. Consumers only parse message payloads or coerce agent
   context items, so the schemas are not composed into the remaining main-Zod
   contract/config trees.
+- Migrated the plugin public identity DTO parser boundary to
+  `@brains/utils/zod-v4`. Runtime identity/profile data is converted through
+  standalone parse helpers and is not composed into plugin config/tool schemas.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template
