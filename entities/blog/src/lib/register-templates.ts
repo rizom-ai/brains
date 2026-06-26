@@ -1,16 +1,24 @@
-import { paginationInfoSchema } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
-import { z } from "@brains/utils/zod";
-import { enrichedBlogPostSchema } from "../schemas/blog-post";
+import { z } from "@brains/utils/zod-v4";
 import { BlogListTemplate, type BlogListProps } from "../templates/blog-list";
 import { BlogPostTemplate, type BlogPostProps } from "../templates/blog-post";
 import { blogGenerationTemplate } from "../templates/generation-template";
 import { blogExcerptTemplate } from "../templates/excerpt-template";
 import { homepageTemplate } from "../templates/homepage";
+import { templateBlogPostSchema } from "../templates/template-blog-post-schema";
+
+const paginationInfoSchema = z.object({
+  currentPage: z.number(),
+  totalPages: z.number(),
+  totalItems: z.number(),
+  pageSize: z.number(),
+  hasNextPage: z.boolean(),
+  hasPrevPage: z.boolean(),
+});
 
 const postListSchema = z.object({
-  posts: z.array(enrichedBlogPostSchema),
+  posts: z.array(templateBlogPostSchema),
   pageTitle: z.string().optional(),
   pageLabel: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
@@ -19,32 +27,34 @@ const postListSchema = z.object({
 
 export function getTemplates(): Record<string, Template> {
   return {
-    "post-list": createTemplate<z.infer<typeof postListSchema>, BlogListProps>({
-      name: "post-list",
-      description: "Blog list page template",
-      schema: postListSchema,
-      dataSourceId: "blog:entities",
-      requiredPermission: "public",
-      layout: {
-        component: BlogListTemplate,
+    "post-list": createTemplate<z.output<typeof postListSchema>, BlogListProps>(
+      {
+        name: "post-list",
+        description: "Blog list page template",
+        schema: postListSchema,
+        dataSourceId: "blog:entities",
+        requiredPermission: "public",
+        layout: {
+          component: BlogListTemplate,
+        },
       },
-    }),
+    ),
     "post-detail": createTemplate<
       {
-        post: z.infer<typeof enrichedBlogPostSchema>;
-        prevPost: z.infer<typeof enrichedBlogPostSchema> | null;
-        nextPost: z.infer<typeof enrichedBlogPostSchema> | null;
-        seriesPosts: z.infer<typeof enrichedBlogPostSchema>[] | null;
+        post: z.output<typeof templateBlogPostSchema>;
+        prevPost: z.output<typeof templateBlogPostSchema> | null;
+        nextPost: z.output<typeof templateBlogPostSchema> | null;
+        seriesPosts: z.output<typeof templateBlogPostSchema>[] | null;
       },
       BlogPostProps
     >({
       name: "post-detail",
       description: "Individual blog post template",
       schema: z.object({
-        post: enrichedBlogPostSchema,
-        prevPost: enrichedBlogPostSchema.nullable(),
-        nextPost: enrichedBlogPostSchema.nullable(),
-        seriesPosts: z.array(enrichedBlogPostSchema).nullable(),
+        post: templateBlogPostSchema,
+        prevPost: templateBlogPostSchema.nullable(),
+        nextPost: templateBlogPostSchema.nullable(),
+        seriesPosts: z.array(templateBlogPostSchema).nullable(),
       }),
       dataSourceId: "blog:entities",
       requiredPermission: "public",

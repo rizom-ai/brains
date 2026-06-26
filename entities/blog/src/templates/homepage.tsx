@@ -1,9 +1,9 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/templates";
 import { BlogPostTemplate } from "./blog-post";
 import { Head, useMarkdownToHtml } from "@brains/ui-library";
-import { templateBlogPostSchema } from "../schemas/blog-post";
+import { templateBlogPostSchema } from "./template-blog-post-schema";
 
 /**
  * Homepage can show either the latest blog post or markdown content
@@ -24,7 +24,7 @@ export const homepageSchema = z.union([
   }),
 ]);
 
-export type HomepageContent = z.infer<typeof homepageSchema>;
+export type HomepageContent = z.output<typeof homepageSchema>;
 
 /**
  * Homepage template - renders either blog post or markdown content
