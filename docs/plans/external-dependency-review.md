@@ -537,9 +537,9 @@ Incremental migration progress:
   entity schema remains on the existing plugin schema boundary.
 - Migrated the note eval-handler input parser to explicit Zod 4 while keeping
   note config/entity schemas on the existing plugin boundary.
-- Migrated the blog RSS and entity datasource query parsers to explicit Zod 4;
-  datasource output schemas stay typed to existing framework-facing parser
-  boundaries.
+- Migrated the blog, agent-discovery, newsletter, and social-media entity
+  datasource query parsers to explicit Zod 4; datasource output schemas stay
+  typed to existing framework-facing parser boundaries.
 - Migrated the link eval-handler input parser to explicit Zod 4 while keeping
   link config/entity schemas on the existing plugin boundary.
 - Migrated the social-media eval-handler input parsers to explicit Zod 4 while
@@ -906,6 +906,9 @@ Incremental migration progress:
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas
   remain on main Zod.
+- Migrated the agent-discovery skill projection job-data parser to
+  `@brains/utils/zod-v4` with a local content-visibility parser; entity,
+  config, and projection registration boundaries remain on existing contracts.
 - Migrated `@brains/web-chat` internal bootstrap/action request parsers to
   `@brains/utils/zod-v4`; the interface plugin config schema remains on the
   current constructor/config boundary.

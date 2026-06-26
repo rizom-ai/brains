@@ -4,9 +4,9 @@ import type {
   JobHandler,
   JobOptions,
 } from "@brains/plugins";
-import { contentVisibilitySchema, hasPersistedTargets } from "@brains/plugins";
+import { hasPersistedTargets } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   SKILL_DERIVATION_JOB_TYPE,
   SKILL_DERIVATION_PROJECTION_ID,
@@ -14,14 +14,23 @@ import {
 } from "./constants";
 import { deriveSkills } from "./skill-deriver";
 
+const contentVisibilitySchema = z
+  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return "public";
+    if (value === "private") return "restricted";
+    return value;
+  });
+
 const skillDerivationJobDataSchema = z.object({
   mode: z.literal("derive"),
   replaceAll: z.boolean().default(false),
   reason: z.string().optional(),
-  targetVisibility: contentVisibilitySchema.default("public"),
+  targetVisibility: contentVisibilitySchema,
 });
 
-type SkillDerivationJobData = z.infer<typeof skillDerivationJobDataSchema>;
+type SkillDerivationJobData = z.output<typeof skillDerivationJobDataSchema>;
 
 function createSkillDerivationHandler(
   context: EntityPluginContext,

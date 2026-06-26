@@ -1,7 +1,5 @@
 import {
   BaseEntityDataSource,
-  baseInputSchema,
-  baseQuerySchema,
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type {
@@ -12,12 +10,8 @@ import type {
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { z } from "@brains/utils/zod";
-import {
-  agentFrontmatterSchema,
-  agentStatusSchema,
-  agentWithDataSchema,
-} from "../schemas/agent";
+import { z } from "@brains/utils/zod-v4";
+import { agentFrontmatterSchema, agentWithDataSchema } from "../schemas/agent";
 import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
@@ -30,15 +24,23 @@ interface AgentDetailData {
   nextAgent: AgentWithData | null;
 }
 
-const agentQuerySchema = baseQuerySchema.extend({
-  status: agentStatusSchema.optional(),
+const agentStatusQuerySchema = z.enum(["discovered", "approved"]);
+
+const agentQuerySchema = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
+  status: agentStatusQuerySchema.optional(),
 });
 
-const agentInputSchema = baseInputSchema.extend({
+const agentInputSchema = z.looseObject({
+  entityType: z.string().optional(),
   query: agentQuerySchema.optional(),
 });
 
-type AgentQuery = z.infer<typeof agentQuerySchema>;
+type AgentQuery = z.output<typeof agentQuerySchema>;
 
 interface AgentListData {
   agents: AgentWithData[];
@@ -126,7 +128,7 @@ export class AgentDataSource extends BaseEntityDataSource<
     pagination: PaginationInfo | null,
     query: BaseQuery,
   ): AgentListData {
-    const status = agentStatusSchema.safeParse(query["status"]);
+    const status = agentStatusQuerySchema.safeParse(query["status"]);
 
     return {
       agents: items,

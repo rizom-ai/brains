@@ -1,7 +1,5 @@
 import {
   BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
   type BaseQuery,
   type NavigationResult,
   type PaginationInfo,
@@ -13,7 +11,7 @@ import type {
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { SocialPost } from "../schemas/social-post";
 import {
   socialPostFrontmatterSchema,
@@ -21,7 +19,12 @@ import {
   type SocialPostWithData,
 } from "../schemas/social-post";
 
-const socialPostQuerySchema = baseQuerySchema.extend({
+const socialPostQuerySchema = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
   platform: z.enum(["linkedin"]).optional(),
   status: z
     .enum(["generating", "draft", "queued", "published", "failed"])
@@ -30,11 +33,12 @@ const socialPostQuerySchema = baseQuerySchema.extend({
   nextInQueue: z.boolean().optional(),
 });
 
-const socialPostInputSchema = baseInputSchema.extend({
+const socialPostInputSchema = z.looseObject({
+  entityType: z.string().optional(),
   query: socialPostQuerySchema.optional(),
 });
 
-type SocialPostQuery = z.infer<typeof socialPostQuerySchema>;
+type SocialPostQuery = z.output<typeof socialPostQuerySchema>;
 
 /**
  * Parse frontmatter and extract body from entity.

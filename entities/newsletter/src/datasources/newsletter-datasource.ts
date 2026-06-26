@@ -1,7 +1,5 @@
 import {
   BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
   type BaseQuery,
   type PaginationInfo,
 } from "@brains/plugins";
@@ -13,23 +11,29 @@ import type {
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { truncateText } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   type Newsletter,
   newsletterFrontmatterSchema,
 } from "../schemas/newsletter";
 
-const newsletterQuerySchema = baseQuerySchema.extend({
+const newsletterQuerySchema = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
   status: z
     .enum(["generating", "draft", "queued", "published", "failed"])
     .optional(),
 });
 
-const newsletterInputSchema = baseInputSchema.extend({
+const newsletterInputSchema = z.looseObject({
+  entityType: z.string().optional(),
   query: newsletterQuerySchema.optional(),
 });
 
-type NewsletterQuery = z.infer<typeof newsletterQuerySchema>;
+type NewsletterQuery = z.output<typeof newsletterQuerySchema>;
 
 /**
  * Extract body content from newsletter (strips frontmatter).
