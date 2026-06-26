@@ -39,8 +39,10 @@ import {
 import {
   buildSourcesCardFromContextItems,
   extractToolResults,
+  buildAgentContactCandidates,
   buildEntityMemoryRefs,
   buildToolResultPromptFallback,
+  type AgentContactCandidate,
   type EntityMemoryRef,
 } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
@@ -721,6 +723,10 @@ export class AgentService implements IAgentService {
           : (buildToolResultPromptFallback(toolResults) ?? result.text);
     const entityMemoryRefs =
       pendingConfirmations.length > 0 ? [] : buildEntityMemoryRefs(toolResults);
+    const agentContactCandidates =
+      pendingConfirmations.length > 0
+        ? []
+        : buildAgentContactCandidates(toolResults);
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
@@ -739,6 +745,7 @@ export class AgentService implements IAgentService {
           source: this.buildAssistantSource(channelId, channelName),
           cards: responseCards,
           entityMemoryRefs,
+          agentContactCandidates,
         }),
       });
     }
@@ -1001,6 +1008,7 @@ export class AgentService implements IAgentService {
     attachments?: ChatAttachment[];
     cards?: StructuredChatCard[];
     entityMemoryRefs?: EntityMemoryRef[];
+    agentContactCandidates?: AgentContactCandidate[];
   }): { metadata: Record<string, unknown> } | Record<string, never> {
     return withMessageMetadata(
       buildMessageMetadata({

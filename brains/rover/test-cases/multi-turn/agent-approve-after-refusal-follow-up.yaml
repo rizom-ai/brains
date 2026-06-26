@@ -15,9 +15,11 @@ turns:
   - userMessage: "Can you talk to refusal-followup.example for me?"
     successCriteria:
       expectedTools:
-        - toolName: a2a_call
-          shouldBeCalled: false
-        - toolName: system_create
+        - toolName: agent_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "refusal-followup.example"
+        - toolName: agent_connect
           shouldBeCalled: false
       responseContains:
         - "add"
@@ -26,10 +28,9 @@ turns:
   - userMessage: "please add"
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: agent_connect
           shouldBeCalled: true
           argsContain:
-            entityType: "agent"
             source.kind: "url"
             source.url: "refusal-followup.example"
       responseNotContains:

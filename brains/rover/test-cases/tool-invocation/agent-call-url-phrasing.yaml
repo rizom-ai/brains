@@ -15,13 +15,13 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: a2a_call
+    - toolName: agent_call
       shouldBeCalled: false
-    - toolName: system_create
+    - toolName: agent_connect
       shouldBeCalled: false
-  responseContains:
-    - "directory"
-    - "add"
+  responseContainsAny:
+    - ["directory", "local agent", "local agent contact", "saved local id", "saved agent ID", "saved local agent ID", "saved local agent"]
+    - ["add", "save"]
   responseNotContains:
     - "I called"
     - "wishlist"

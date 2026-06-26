@@ -299,6 +299,14 @@ export interface EntityAdapter<
   TMetadata = Record<string, unknown>,
 > {
   entityType: string;
+
+  /**
+   * One declarative sentence describing what this entity type is. This is the
+   * data the model reads to select `entityType`, replacing hardcoded example
+   * phrasings in system instructions. Required: every type must define itself.
+   */
+  purpose: string;
+
   schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
 
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)

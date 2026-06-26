@@ -18,6 +18,8 @@ export class PlaybookAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "playbook",
+      purpose:
+        "A guided multi-step workflow the assistant runs together with the user.",
       schema: playbookSchema,
       frontmatterSchema: playbookFrontmatterSchema,
     });

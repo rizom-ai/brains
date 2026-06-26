@@ -15,7 +15,7 @@ import {
   permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
-import type { Tool } from "@brains/mcp-service";
+import { ConfirmationArgsStore, type Tool } from "@brains/mcp-service";
 import { slugify } from "@brains/utils";
 import type { z } from "@brains/utils";
 import { createInputSchema } from "./schemas";
@@ -336,24 +336,9 @@ function freezeConfirmationSource(input: {
   return input.source;
 }
 
-function stableForConfirmation(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(stableForConfirmation);
-  if (!isRecord(value)) return value;
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(([, entryValue]) => entryValue !== undefined)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, entryValue]) => [key, stableForConfirmation(entryValue)]),
-  );
-}
-
-function serializeConfirmationArgs(input: unknown): string {
-  return JSON.stringify(stableForConfirmation(input));
-}
-
 export function createEntityCreateTool(services: SystemServices): Tool {
   const { entityService, jobs, entityRegistry } = services;
-  const pendingConfirmationArgs = new Map<string, string>();
+  const confirmationArgsStore = new ConfirmationArgsStore();
 
   return createSystemTool(
     "create",
@@ -527,29 +512,51 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         };
       }
 
+      // Boundary: system_create makes NEW entities. If the derived id already
+      // resolves to an existing entity, the caller almost certainly wants to
+      // change that entity (status/title/fields) and misrouted to create.
+      // Refuse with a self-documenting error pointing to system_update rather
+      // than silently minting a deduplicated copy. `replace: true` is the
+      // explicit opt-in for intentionally creating a new copy. Interceptor-
+      // backed types own their own id/existence handling, so skip them.
+      if (!interceptor && !replace) {
+        const candidateId = createInput.prompt
+          ? slugify(createInput.title ?? createInput.prompt).slice(0, 100)
+          : createInput.title
+            ? slugify(createInput.title)
+            : undefined;
+        if (candidateId) {
+          const existing = await entityService.getEntity({
+            entityType: createInput.entityType,
+            id: candidateId,
+          });
+          if (existing) {
+            return {
+              success: false,
+              error: `A ${createInput.entityType} already exists for "${candidateId}". To change its fields or status, use system_update; pass replace:true to create a new copy intentionally.`,
+            };
+          }
+        }
+      }
+
       if (input.confirmed) {
         const token = input.confirmationToken;
-        const expectedArgs = token
-          ? pendingConfirmationArgs.get(token)
-          : undefined;
-        if (!token || !expectedArgs) {
+        const validation = confirmationArgsStore.validate(token, input);
+        if (validation.status === "missing") {
           return {
             success: false,
             error:
               "No pending create confirmation found. Please request creation again and confirm the new approval.",
           };
         }
-        if (serializeConfirmationArgs(input) !== expectedArgs) {
-          pendingConfirmationArgs.delete(token);
+        if (validation.status === "mismatch") {
           return {
             success: false,
             error:
               "Confirmed create arguments do not match the pending approval. Please request creation again and confirm the new approval.",
           };
         }
-        pendingConfirmationArgs.delete(token);
       } else {
-        const confirmationToken = crypto.randomUUID();
         const confirmation = buildCreateConfirmation({
           entityType: input.entityType,
           ...(title && { title }),
@@ -570,24 +577,24 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             resolvedConversationMessage,
           }),
         });
-        const confirmationArgs = {
-          entityType: createInput.entityType,
-          ...(createInput.title && { title: createInput.title }),
-          source: confirmationSource,
-          ...(createInput.replace && { replace: createInput.replace }),
-          ...(createInput.targetEntityType && {
-            targetEntityType: createInput.targetEntityType,
+        const confirmationArgs = confirmationArgsStore.create(
+          (confirmationToken) => ({
+            entityType: createInput.entityType,
+            ...(createInput.title && { title: createInput.title }),
+            source: confirmationSource,
+            ...(createInput.replace && { replace: createInput.replace }),
+            ...(createInput.targetEntityType && {
+              targetEntityType: createInput.targetEntityType,
+            }),
+            ...(createInput.targetEntityId && {
+              targetEntityId: createInput.targetEntityId,
+            }),
+            ...(createInput.coverImage && {
+              coverImage: createInput.coverImage,
+            }),
+            confirmed: true,
+            confirmationToken,
           }),
-          ...(createInput.targetEntityId && {
-            targetEntityId: createInput.targetEntityId,
-          }),
-          ...(createInput.coverImage && { coverImage: createInput.coverImage }),
-          confirmed: true,
-          confirmationToken,
-        };
-        pendingConfirmationArgs.set(
-          confirmationToken,
-          serializeConfirmationArgs(confirmationArgs),
         );
         return {
           needsConfirmation: true,

@@ -15,13 +15,16 @@ turns:
   - userMessage: "Can you talk to save-first-followup.example for me?"
     successCriteria:
       expectedTools:
-        - toolName: a2a_call
-          shouldBeCalled: false
-        - toolName: system_create
+        - toolName: agent_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "save-first-followup.example"
+        - toolName: agent_connect
           shouldBeCalled: false
       responseContains:
         - "add"
-        - "directory"
+      responseContainsAny:
+        - ["directory", "saved local agents", "saved agent", "local agent"]
       responseNotContains:
         - "I called"
         - "Calling save-first-followup.example"
@@ -29,10 +32,9 @@ turns:
   - userMessage: "Yes please"
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: agent_connect
           shouldBeCalled: true
           argsContain:
-            entityType: "agent"
             source.kind: "url"
             source.url: "save-first-followup.example"
       responseNotContains:

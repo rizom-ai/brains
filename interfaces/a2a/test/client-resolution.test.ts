@@ -1,5 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
-import { createA2ACallTool } from "../src/client";
+import { createAgentCallTool } from "../src/client";
 import type { ICoreEntityService, ToolResponse } from "@brains/plugins";
 
 function isError(
@@ -73,12 +73,14 @@ function createMockEntityService(
 
 const toolContext = { interfaceType: "mcp" as const, userId: "test" };
 
-describe("a2a_call agent resolution", () => {
+describe("agent_call agent resolution", () => {
   it("should describe saved-agent questions as A2A calls", () => {
-    const tool = createA2ACallTool();
+    const tool = createAgentCallTool();
 
-    expect(tool.description).toContain("what a saved agent has to say");
+    expect(tool.name).toBe("agent_call");
+    expect(tool.description).toContain("exact domain-like local agent id");
     expect(tool.description).toContain("skills/capabilities");
+    expect(tool.description).toContain("before any network contact");
   });
   it("should resolve an approved saved agent by domain from the entity service", async () => {
     const entities = new Map();
@@ -95,7 +97,7 @@ describe("a2a_call agent resolution", () => {
     });
 
     const fetchFn = createMockFetch();
-    const tool = createA2ACallTool({
+    const tool = createAgentCallTool({
       fetch: fetchFn,
       entityService: createMockEntityService(entities),
       outboundTokens: { "yeehaa.io": "token-123" },
@@ -125,7 +127,7 @@ describe("a2a_call agent resolution", () => {
     });
 
     const fetchFn = createMockFetch();
-    const tool = createA2ACallTool({
+    const tool = createAgentCallTool({
       fetch: fetchFn,
       entityService: createMockEntityService(entities),
     });
@@ -154,7 +156,7 @@ describe("a2a_call agent resolution", () => {
     });
 
     const fetchFn = createMockFetch();
-    const tool = createA2ACallTool({
+    const tool = createAgentCallTool({
       fetch: fetchFn,
       entityService: createMockEntityService(entities),
     });
@@ -183,7 +185,7 @@ describe("a2a_call agent resolution", () => {
     });
 
     const fetchFn = createMockFetch();
-    const tool = createA2ACallTool({
+    const tool = createAgentCallTool({
       fetch: fetchFn,
       entityService: createMockEntityService(entities),
     });
@@ -203,7 +205,7 @@ describe("a2a_call agent resolution", () => {
 
   it("should refuse unknown agents by domain", async () => {
     const fetchFn = createMockFetch();
-    const tool = createA2ACallTool({
+    const tool = createAgentCallTool({
       fetch: fetchFn,
       entityService: createMockEntityService(new Map()),
     });
@@ -225,7 +227,7 @@ describe("a2a_call agent resolution", () => {
 
   it("should reject a full URL for an unknown agent before directory lookup", async () => {
     const fetchFn = createMockFetch();
-    const tool = createA2ACallTool({
+    const tool = createAgentCallTool({
       fetch: fetchFn,
       entityService: createMockEntityService(new Map()),
     });

@@ -46,6 +46,7 @@ class NoteSerializerAdapter extends BaseEntityAdapter<Note> {
   constructor() {
     super({
       entityType: "note",
+      purpose: "Test note entity for unit tests.",
       schema: noteSchema,
       frontmatterSchema: z.object({ category: z.string().optional() }),
     });
@@ -122,6 +123,7 @@ describe("EntityService", (): void => {
 
     const mockAdapter = {
       entityType: "note",
+      purpose: "Test note entity for unit tests.",
       schema: noteSchema,
       toMarkdown: mock(() => "Test content"),
       fromMarkdown: mock(() => ({ content: "Test content" })),

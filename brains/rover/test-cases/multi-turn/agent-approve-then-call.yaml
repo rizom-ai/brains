@@ -15,9 +15,11 @@ turns:
   - userMessage: "Can you talk to save-it-regression.example for me?"
     successCriteria:
       expectedTools:
-        - toolName: a2a_call
-          shouldBeCalled: false
-        - toolName: system_create
+        - toolName: agent_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "save-it-regression.example"
+        - toolName: agent_connect
           shouldBeCalled: false
       responseContains:
         - "save"
@@ -26,10 +28,9 @@ turns:
   - userMessage: "save it"
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: agent_connect
           shouldBeCalled: true
           argsContain:
-            entityType: "agent"
             source.kind: "url"
             source.url: "save-it-regression.example"
       responseNotContains:

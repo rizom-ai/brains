@@ -94,6 +94,7 @@ export function createMockSystemServices(
     getAdapter: (
       type: string,
     ): {
+      purpose: string;
       supportsCoverImage: boolean;
       hasBody: boolean;
       isSingleton: boolean;
@@ -119,6 +120,7 @@ export function createMockSystemServices(
 
       if (type === "link") {
         return {
+          purpose: "Test entity for unit tests.",
           supportsCoverImage: false,
           hasBody: true,
           isSingleton: false,
@@ -170,6 +172,7 @@ export function createMockSystemServices(
       }
 
       return {
+        purpose: "Test entity for unit tests.",
         supportsCoverImage: coverImageEntityTypes.has(type),
         hasBody: true,
         isSingleton: singletonEntityTypes.has(type),

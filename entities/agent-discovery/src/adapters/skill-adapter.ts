@@ -19,6 +19,7 @@ export class SkillAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: SKILL_ENTITY_TYPE,
+      purpose: "A capability advertised by a remote agent.",
       schema: skillEntitySchema,
       frontmatterSchema: skillFrontmatterSchema,
     });

@@ -18,7 +18,7 @@ import {
   jsonrpcRequestSchema,
   streamParamsSchema,
 } from "./jsonrpc-handler";
-import { createA2ACallTool } from "./client";
+import { createAgentCallTool } from "./client";
 import packageJson from "../package.json";
 
 const A2A_CORS_HEADERS = {
@@ -341,7 +341,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
 
   protected override async getTools(): Promise<Tool[]> {
     return [
-      createA2ACallTool({
+      createAgentCallTool({
         outboundTokens: this.config.outboundTokens,
         requestTimeoutMs: this.config.requestTimeoutMs,
         streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
@@ -353,20 +353,20 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
 
   protected override async getInstructions(): Promise<string | undefined> {
     return `## Agent-to-agent calls
-- Use \`a2a_call\` only for agents already saved in the local \`agent\` directory.
-- Pass only the saved local agent id to \`a2a_call\` (for example \`yeehaa.io\` or \`docs.rizom.ai\`). Never pass a full URL or a display name like \`Brain\`.
-- If the user names an exact saved local agent id such as \`yeehaa.io\` or \`docs.rizom.ai\`, call \`a2a_call\` directly with that id. Do not preflight with \`system_list\` or \`system_get\`; the tool validates saved/approved status and reports errors.
-- If the user asks you to ask, message, contact, hear what a saved agent has to say, or ask a saved agent for its own skills/capabilities, treat that as an agent-directory request first and call \`a2a_call\` in the same turn. Do not stop after listing the agent, drafting the question, searching general content locally, or reading the saved agent entity metadata.
-- After \`a2a_call\` returns within a turn, answer that turn from its response. Do **not** supplement with \`system_get\` (or any other read tool) on the agent entity, unless the user explicitly asks for directory/profile details about the agent itself.
+- Use \`agent_call\` for exact domain-like agent ids (for example \`yeehaa.io\` or \`docs.rizom.ai\`). The tool validates whether the id is saved and approved before any network contact.
+- Pass only an exact domain-like local agent id to \`agent_call\`. Never pass a full URL or a display name like \`Brain\`.
+- If the user names an exact domain-like agent id such as \`yeehaa.io\` or \`docs.rizom.ai\`, call \`agent_call\` directly with that id. Do not preflight with \`system_list\` or \`system_get\`; the tool reports structured errors such as not saved, not approved, or archived.
+- If the user asks you to ask, message, contact, hear what an exact domain-like agent id has to say, or ask that agent for its own skills/capabilities, treat that as an agent-directory request first and call \`agent_call\` in the same turn. Do not stop after listing the agent, drafting the question, searching general content locally, or reading saved agent entity metadata.
+- After \`agent_call\` returns within a turn, answer that turn from its response. Do **not** supplement with \`system_get\` (or any other read tool) on the agent entity, unless the user explicitly asks for directory/profile details about the agent itself.
 - Do not create, capture, or generate a note containing the user's question in the same turn as a saved-agent contact request. The user asked to ask the saved agent, not to persist the question.
-- If \`a2a_call\` fails because auth, re-authentication, network, or the remote agent is unavailable, report that failure directly. Do not answer from memory, local docs, onboarding docs, or general knowledge; the saved agent was the requested source.
-- Each new turn that asks the same saved agent something — including short follow-ups like "what skills does it have", "and what about X", "tell me more" — is a **new** contact request and needs its **own** fresh \`a2a_call\`. Do not assume the previous turn's a2a response already covers a new question, and do not substitute \`system_list\`/\`system_get\` or a no-tool answer for the fresh call. If the previous turn targeted an exact saved local id such as \`yeehaa.io\`, use that same id again for the follow-up even if the previous response was a refusal or error; let \`a2a_call\` validate the current directory state again.
-- If the user gives a full URL for an agent, do not pass that URL to \`a2a_call\`. Use a saved local agent id only. If that URL is not already saved in the local directory, tell the user to add it first.
+- If \`agent_call\` fails because auth, re-authentication, network, or the remote agent is unavailable, report that failure directly. Do not answer from memory, local docs, onboarding docs, or general knowledge; the saved agent was the requested source.
+- Each new turn that asks the same exact domain-like agent id something — including short follow-ups like "what skills does it have", "and what about X", "tell me more" — is a **new** contact request and needs its **own** fresh \`agent_call\`. Do not assume the previous turn's agent response already covers a new question, and do not substitute \`system_list\`/\`system_get\` or a no-tool answer for the fresh call. If the previous turn targeted an exact domain-like id such as \`yeehaa.io\`, use that same id again for the follow-up even if the previous response was a refusal or error; let \`agent_call\` validate the current directory state again.
+- If the user gives a full URL for an agent, do not pass that URL to \`agent_call\`; ask them to connect/save the agent first or provide the exact domain-like local id.
 - If the user refers to an agent by name, first make sure that name resolves to exactly one saved agent id. If multiple saved agents could match, ask a concise clarification question naming the matching saved agent ids and do not call any agent yet. Never choose the first match.
-- After asking that clarification question, end the turn. Do not call \`a2a_call\` later in the same turn.
-- If the target agent is not in the directory, do not create a wish, reminder, todo, note, fallback task, or any new entity. Tell the user to add it first.
-- In these invalid agent-target cases, do not call any tool unless the user explicitly asks you to add/save the agent.
-- Only use creation tools for an agent if the user explicitly asks you to add or save that agent.
+- After asking that clarification question, end the turn. Do not call \`agent_call\` later in the same turn.
+- If \`agent_call\` reports that an exact domain-like agent id is not saved, tell the user to add/connect it first. Do not create a wish, reminder, todo, note, fallback task, or any new entity.
+- For full URLs and ambiguous display names, do not call \`agent_call\`; ask the user to connect/save or clarify the agent first.
+- Use \`agent_connect\`, not generic entity creation, when the user explicitly asks you to add, save, or connect an agent contact.
 - If the target agent is discovered but not approved yet, do not call it and do not create a wish. Tell the user it must be approved first.`;
   }
 

@@ -16,10 +16,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: agent_connect
       shouldBeCalled: true
       argsContain:
-        entityType: "agent"
+        source.kind: "url"
   responseNotContains:
     - "already exists"
     - "already saved"

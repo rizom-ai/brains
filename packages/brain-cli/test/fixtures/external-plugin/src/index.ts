@@ -55,6 +55,7 @@ const exampleEntitySchema: z.ZodSchema<ExampleEntity> = z.object({
 
 const exampleEntityAdapter: EntityAdapter<ExampleEntity, { title: string }> = {
   entityType: "example",
+  purpose: "An example entity demonstrating the external plugin adapter API.",
   schema: exampleEntitySchema,
   toMarkdown: (entity) => entity.content,
   fromMarkdown: (markdown) => ({ content: markdown }),

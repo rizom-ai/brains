@@ -24,6 +24,7 @@ class TestAdapter extends BaseEntityAdapter<TestEntity, TestMetadata> {
   constructor() {
     super({
       entityType: "test",
+      purpose: "Test entity for unit tests.",
       schema: testEntitySchema,
       frontmatterSchema: testFrontmatterSchema,
     });

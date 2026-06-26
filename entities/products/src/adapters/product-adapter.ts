@@ -21,6 +21,7 @@ export class ProductAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "product",
+      purpose: "A product entry in the portfolio.",
       schema: productSchema,
       frontmatterSchema: productFrontmatterSchema,
       bodyFormatter: new ProductBodyFormatter(),

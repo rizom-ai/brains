@@ -76,14 +76,12 @@ export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z
         .literal("url")
-        .describe(
-          "Create URL/domain-backed entities such as links or agent contacts",
-        ),
+        .describe("Create URL/domain-backed entities such as links"),
       url: z
         .string()
         .min(1)
         .describe(
-          "URL or domain to create from; preserve a bare domain as provided instead of adding a scheme. When creating an agent contact from conversation context or a follow-up such as 'save it', copy the earlier mentioned bare domain here instead of asking the user to resend it.",
+          "URL or domain to create from; preserve a bare domain as provided instead of adding a scheme.",
         ),
     })
     .strict(),
@@ -151,7 +149,7 @@ export const createInputSchema = z
     entityType: z
       .string()
       .describe(
-        "Entity type to create. Use wish for explicitly saved or tracked unmet requested capabilities or outcomes. Do not use system_create for status-only requests such as making an existing post a draft; use system_update instead.",
+        "Entity type to create. Use wish for explicitly saved or tracked unmet requested capabilities or outcomes.",
       ),
     title: z.string().optional().describe("Title for a new entity."),
     source: createPreferredSourceInputSchema.describe(

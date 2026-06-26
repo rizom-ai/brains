@@ -16,7 +16,7 @@ turns:
   - userMessage: "what does yeehaa.io have to say?"
     successCriteria:
       expectedTools:
-        - toolName: a2a_call
+        - toolName: agent_call
           shouldBeCalled: true
           argsContain:
             agent: "yeehaa.io"
@@ -29,7 +29,7 @@ turns:
   - userMessage: "what skills does it have"
     successCriteria:
       expectedTools:
-        - toolName: a2a_call
+        - toolName: agent_call
           shouldBeCalled: true
           argsContain:
             agent: "yeehaa.io"

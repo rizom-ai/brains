@@ -83,6 +83,7 @@ export class MockEntityAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor(entityType = "note") {
     super({
       entityType,
+      purpose: "Test entity for unit tests.",
       schema: baseEntitySchema,
       frontmatterSchema: z.object({}),
     });

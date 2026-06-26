@@ -15,11 +15,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: a2a_call
+    - toolName: agent_call
       shouldBeCalled: true
       argsContain:
         agent: "yeehaa.io"
-    - toolName: system_create
+    - toolName: agent_connect
       shouldBeCalled: false
   responseNotContains:
     - "brain-labs.io"

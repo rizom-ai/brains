@@ -34,6 +34,30 @@ describe("toModelMessages", () => {
     );
   });
 
+  it("injects structured agent contact candidates from metadata, not prose", () => {
+    const messages = toModelMessages([
+      {
+        id: "message-1",
+        conversationId: "conversation-1",
+        role: "assistant",
+        content:
+          "I can only talk to saved local agents. Add save-it-regression.example first.",
+        metadata: JSON.stringify({
+          agentContactCandidates: [
+            { source: { kind: "url", url: "save-it-regression.example" } },
+          ],
+        }),
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+
+    const serialized = JSON.stringify(messages);
+    expect(serialized).toContain("Internal agent contact candidates");
+    expect(serialized).toContain("agent_connect candidate args");
+    expect(serialized).toContain("save-it-regression.example");
+    expect(serialized).not.toContain("If the prior conversation turn");
+  });
+
   it("does not add assistant-content refs to upload intent acknowledgements", () => {
     const messages = toModelMessages([
       {
@@ -112,6 +136,11 @@ describe("resolveConversationUploadContinuity", () => {
     },
   ];
 
+  const [oldestUploadRef, newestUploadRef] = uploadRefs;
+  if (!oldestUploadRef || !newestUploadRef) {
+    throw new Error("Expected two upload refs for tests");
+  }
+
   const historyMessages = uploadRefs.map((ref, index) => ({
     id: `message-${index}`,
     conversationId: "conversation-1",
@@ -130,7 +159,7 @@ describe("resolveConversationUploadContinuity", () => {
     timestamp: new Date().toISOString(),
   }));
 
-  it("exposes recent historical upload refs independent of message wording", () => {
+  it("exposes recent historical upload refs newest-first independent of message wording", () => {
     const result = resolveConversationUploadContinuity({
       message:
         "Can you generate a preview of the innovation deck carousel for me?",
@@ -142,7 +171,7 @@ describe("resolveConversationUploadContinuity", () => {
       kind: "selected",
       message:
         "Can you generate a preview of the innovation deck carousel for me?",
-      refs: uploadRefs,
+      refs: [newestUploadRef, oldestUploadRef],
       attachments: [],
     });
   });
@@ -160,7 +189,7 @@ describe("resolveConversationUploadContinuity", () => {
         historyMessages,
       });
 
-      expect(result.refs).toEqual(uploadRefs);
+      expect(result.refs).toEqual([newestUploadRef, oldestUploadRef]);
     }
   });
 
@@ -193,12 +222,12 @@ describe("resolveConversationUploadContinuity", () => {
     });
 
     expect(result.refs.map((ref) => ref.source.id)).toEqual([
-      "upload-2",
-      "upload-3",
-      "upload-4",
-      "upload-5",
-      "upload-6",
       "upload-7",
+      "upload-6",
+      "upload-5",
+      "upload-4",
+      "upload-3",
+      "upload-2",
     ]);
   });
 
@@ -230,7 +259,8 @@ describe("resolveConversationUploadContinuity", () => {
           mediaType: "application/pdf",
           source: { kind: "upload", id: "upload-current" },
         },
-        ...uploadRefs,
+        newestUploadRef,
+        oldestUploadRef,
       ],
       attachments: [attachment],
     });

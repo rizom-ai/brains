@@ -92,7 +92,7 @@ describe("entity action policy", () => {
       await getTool("system_create").handler(
         {
           entityType: "note",
-          title: "Team note",
+          title: "Fresh team note",
           source: { kind: "text", content: "Team note body" },
         },
         baseContext("trusted"),

@@ -15,6 +15,14 @@ Latest full Rover eval after Phase 0 / initial Phase 1 / Phase 4a work:
 - Failed: 13 / 176
 - Net improvement: +8 passed / -8 failed
 
+Phase 2 eval/harness correction evidence:
+
+- Added `responseContainsAny` criteria support for brittle response wording assertions.
+- `tool-invocation-agent-call-url-phrasing` transcript evidence: product invariant held (no `a2a_call`, no `system_create`); response said to save as a local agent contact but did not contain the literal words "directory" and "add".
+- `tool-invocation-agent-call-unknown-url` transcript evidence: product invariant held (no `a2a_call`, no `system_create`); response said the agent must already be saved in the local directory and can be added/saved first.
+- `cover-generation-failure-follow-up` transcript evidence: product invariant held (no job-status check; response said the target post did not exist / could not be found). The assertion now accepts equivalent not-found wording and only rejects concrete pending/running language.
+- Full-suite check after these eval corrections: `brains/rover/eval-results/2026-06-26T13-48-10-389Z.json`, 157 / 173 (90.8%). This is not counted as recovered progress against the 163 / 176 high-water mark; the changes are retained as assertion-correction groundwork pending the next product/structure phase.
+
 This plan recovers regressions after the `system_create.source` migration removed
 the natural-language gates. The gates carried implicit state and implicit routing;
 removing them was correct, but it dropped real capability. This plan rebuilds that
@@ -87,16 +95,35 @@ outcome is then structurally determined**. Three structural mechanisms cover all
 - `multi-turn-web-chat-pdf-upload-save-follow-up` — the tool refuses raw promotion, so the
   model cannot double-call `system_create` + `system_upload_save`.
 
-**B4 — Structured pending proposals without first-turn mutation.**
-The follow-up turn is _already_ deterministic when there is a structured pending approval
-or proposal: `routeConfirmationResponse` resolves "yes" / "approve" against pending ids.
-However, the agent follow-up evals currently require turn 0 to **not** call
-`system_create`. Therefore staging must be non-mutating and must not be counted as
-`system_create`: e.g. a host-rendered structured refusal/proposal card or conversation
-memory record containing `{ kind: "agent-contact-proposal", domain, action: "save" }`.
-The follow-up can then convert that proposal into `system_create source.kind:"url"`.
-For direct approval requests, the model should still call `system_update` first and let
-confirmation middleware render "Confirmation required".
+**B4 — Agent call/connect scope guard and structured follow-up candidate.**
+Do **not** ship two doors to the same operation. The canonical agent tools are:
+
+- `agent_call` — call an explicit exact domain-like agent target or a saved local agent id.
+  For an exact domain-like target, the tool verifies the A2A Agent Card before sending any
+  user message. If the target is already saved, the saved status gates apply
+  (`approved` can be called; `discovered` / `archived` fail closed). If the exact domain is
+  not saved but has a valid Agent Card, `agent_call` may perform a one-shot verified call
+  without persisting the agent. It must not auto-save or confirmation-save as a hidden side
+  effect of a call request. It must never accept a full URL or ambiguous display name.
+- `agent_connect` — verify and save/connect a peer contact. It resolves the URL/domain,
+  fetches and validates the A2A Agent Card, captures advertised skills/capabilities,
+  persists a verified/discovered agent record, and leaves approval as a separate
+  `system_update` status gate.
+- `system_update` — approve/archive saved agent contacts.
+
+`system_create source.kind:"url"` must not create agent contacts in this end state.
+`agent_connect` must not be an alias for `system_create`.
+
+The follow-up turn must be driven by typed structure, not routing prose. Prior-turn agent
+save candidates should be surfaced in model-visible context as exact typed `agent_connect`
+args (mirroring `priorResponseRef` / upload refs). Candidates can come from either a
+structured failed call (`agent_not_saved`) or a successful verified one-shot `agent_call`.
+That supports UX like: user explicitly calls `foo.example`; the tool verifies/calls it
+one-shot without durable state; the assistant offers to save/connect it; a terse follow-up
+like "save it" invokes `agent_connect` using typed candidate args. Host code must not parse
+user/assistant prose or branch on message text. For direct approval requests, the model
+should still call `system_update` first and let confirmation middleware render
+"Confirmation required".
 
 - `multi-turn-agent-add-after-save-first-follow-up`
 - `multi-turn-agent-add-after-refusal-no-approval-gate`
@@ -112,10 +139,11 @@ call there is no intermediate step to abandon.
 - `tool-invocation-newsletter-generate-from-post`
 
 > Coupling note: B5 and `set-cover` still require the model to make **one** mutating
-> tool call. B4's first turn must instead create only a non-mutating structured proposal;
-> the follow-up then makes the mutating `system_create` call. These all depend on the
-> model accepting a typed action affordance, but the downstream outcome becomes
-> deterministic once that affordance is used.
+> tool call. B4's first turn may be a non-persisting `agent_call` (including a verified
+> one-shot call); the follow-up then makes the mutating `agent_connect` call if the user
+> asks to save/connect it. These all depend on the model accepting a typed action
+> affordance, but the downstream outcome becomes deterministic once that affordance is
+> used.
 
 ### Bucket C — Eval-harness / brittle assertion (fix the eval, NOT the product) — 4
 
@@ -177,11 +205,12 @@ phase and record the delta against 155/176.
 
 ### Phase 1 — Bucket A (runtime enforcement)
 
-1. `a2a_call` enforces saved + approved + not-archived; returns `agent_not_saved` /
-   `agent_not_approved` / `agent_archived` before network contact.
+1. `agent_call` enforces the call boundary: full URLs and ambiguous names are rejected;
+   saved-but-not-approved / archived agents fail closed before network contact; unsaved
+   exact domains must verify an Agent Card before a one-shot call.
 2. Decide the eval/product boundary for archived calls: either expose only valid approved
-   agent call targets so the model cannot emit `a2a_call`, or update the eval to accept a
-   structured pre-network rejection as satisfying the no-remote-contact invariant.
+   agent call targets so the model cannot emit `agent_call`, or update the eval to accept
+   a structured pre-network rejection as satisfying the no-remote-contact invariant.
 3. Playbook tool returns structured blocking requirements before any mutation tool.
 4. Tests first, then implementation. Full suite; record whether the A2A assertion was
    solved by target-surface gating or by an eval correction.
@@ -218,10 +247,15 @@ phase and record the delta against 155/176.
 
 ### Phase 4b — Structure unlocked by the tool-first lever
 
-1. Structured pending proposals (B4): first-turn agent contact/add/save refusals store a
-   non-mutating structured proposal, not a `system_create` call, so follow-ups resolve via
-   existing confirmation/proposal routing and then call `system_create source.kind:"url"`.
-   Direct approval requests use `system_update` and existing confirmation middleware.
+1. Agent call/connect architecture (B4): make `agent_connect` a real A2A verification /
+   save operation and remove agent-contact creation from `system_create`. Rename the
+   model-visible call tool to `agent_call` (no model-visible `a2a_call` alias). Update
+   `agent_call` so explicit exact domains are verified and may be called one-shot without
+   requiring prior save; saved entries still enforce status gates. Do not make `agent_call`
+   auto-save or confirmation-save on first call. After a successful one-shot call, expose a
+   typed `agent_connect` follow-up candidate so "save it" can connect the same domain
+   without message-text parsing. Direct approval requests use `system_update` and existing
+   confirmation middleware.
 2. Collapse-the-chain (B5): source-derived `system_create` resolves the source reference
    server-side in one atomic call (cover-by-reference, document-from-post,
    newsletter-from-post). Keep preview tools explicitly preview-only.

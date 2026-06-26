@@ -71,6 +71,7 @@ export const successCriteriaSchema = z.object({
 
   // Response-based criteria
   responseContains: z.array(z.string()).optional(),
+  responseContainsAny: z.array(z.array(z.string()).min(1)).optional(),
   responseNotContains: z.array(z.string()).optional(),
 
   // Quality thresholds (for LLM-as-judge)

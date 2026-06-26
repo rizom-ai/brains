@@ -12,6 +12,7 @@ function makeAdapter(
 ): EntityAdapter<BaseEntity> {
   return {
     entityType: "stub-note",
+    purpose: "Test stub entity for unit tests.",
     schema: baseEntitySchema as z.ZodType<BaseEntity, z.ZodTypeDef, unknown>,
     toMarkdown: () => "",
     fromMarkdown: () => ({}),

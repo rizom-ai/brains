@@ -8,7 +8,7 @@ describe("getAgentDiscoveryInstructions", () => {
     expect(instructions).toContain("saved peer-brain contacts");
     expect(instructions).toContain("local agent directory");
     expect(instructions).toContain("discovered, approved, and archived");
-    expect(instructions).toContain("system_create entityType agent");
+    expect(instructions).toContain("agent_connect");
     expect(instructions).toContain("url source");
     expect(instructions).toContain("system_update field changes");
     expect(instructions).toContain(

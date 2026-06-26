@@ -3,8 +3,11 @@ import type { Message } from "@brains/conversation-service";
 import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
 import {
+  agentContactCandidateSchema,
+  buildAgentContactCandidateContext,
   buildEntityMemoryContext,
   entityMemoryRefSchema,
+  type AgentContactCandidate,
   type EntityMemoryRef,
 } from "./agent-results";
 
@@ -17,7 +20,10 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
           content: [
             {
               type: "text",
-              text: msg.content + getEntityMemoryNote(msg.metadata),
+              text:
+                msg.content +
+                getEntityMemoryNote(msg.metadata) +
+                getAgentContactCandidateNote(msg.metadata),
             },
           ],
         },
@@ -28,6 +34,22 @@ function getEntityMemoryNote(metadata: Message["metadata"]): string {
   const parsedMetadata = parseMessageMetadata(metadata);
   const refs = parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]);
   return buildEntityMemoryContext(refs);
+}
+
+function getAgentContactCandidateNote(metadata: Message["metadata"]): string {
+  const parsedMetadata = parseMessageMetadata(metadata);
+  const candidates = parseAgentContactCandidates(
+    parsedMetadata?.["agentContactCandidates"],
+  );
+  return buildAgentContactCandidateContext(candidates);
+}
+
+function parseAgentContactCandidates(value: unknown): AgentContactCandidate[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): AgentContactCandidate[] => {
+    const parsed = agentContactCandidateSchema.safeParse(item);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 function parseEntityMemoryRefs(value: unknown): EntityMemoryRef[] {
@@ -161,9 +183,9 @@ function selectConversationUploadRefs(params: {
           },
         ],
   );
-  const historicalRefs = collectUploadRefsFromMessages(
-    params.historyMessages,
-  ).slice(-MAX_HISTORICAL_UPLOAD_REFS);
+  const historicalRefs = collectUploadRefsFromMessages(params.historyMessages)
+    .slice(-MAX_HISTORICAL_UPLOAD_REFS)
+    .reverse();
 
   return dedupeUploadRefs([...currentRefs, ...historicalRefs]);
 }

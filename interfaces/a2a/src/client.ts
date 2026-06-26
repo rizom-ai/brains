@@ -136,7 +136,7 @@ const a2aCallInputSchema = {
   agent: z
     .string()
     .describe(
-      "Saved local agent id from your directory, usually a domain-like id such as yeehaa.io or docs.rizom.ai. Never pass a display name like Brain or a URL.",
+      "Domain-like local agent id such as yeehaa.io or docs.rizom.ai. The tool validates whether it is saved and approved before any network contact. Never pass a display name like Brain or a URL.",
     ),
   message: z.string().describe("Message to send to the remote agent"),
 };
@@ -443,9 +443,9 @@ export interface A2AClientDeps extends A2ANetworkOptions {
 }
 
 /**
- * Create the a2a_call tool for calling remote A2A agents
+ * Create the agent_call tool for calling remote A2A agents.
  */
-export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
+export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
   const fetchFn = deps.fetch ?? globalThis.fetch;
   const networkOptions: Required<A2ANetworkOptions> = {
     requestTimeoutMs: deps.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
@@ -455,9 +455,9 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
   };
 
   return {
-    name: "a2a_call",
+    name: "agent_call",
     description:
-      "Call a saved remote A2A agent by its local directory id. Use this when the user asks what a saved agent has to say or asks a saved agent for its skills/capabilities. Use only a saved agent id such as yeehaa.io or docs.rizom.ai. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current directory state. Never pass a display name like Brain, never pass a full URL, and do not use this tool to probe whether an agent exists. If the user gives a URL, an unsaved agent, or an ambiguous name, ask them to add/save or clarify the agent first.",
+      "Call a remote A2A agent by exact domain-like local agent id after validating directory state. Use this when the user asks what an exact domain-like agent id has to say or asks that agent for its skills/capabilities; the tool validates saved/approved status before any network contact and returns structured errors such as agent_not_saved. Use ids such as yeehaa.io or docs.rizom.ai. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current directory state. Never pass a display name like Brain and never pass a full URL. If the user gives a URL or an ambiguous name, ask them to connect/save or clarify the agent first.",
     inputSchema: a2aCallInputSchema,
     visibility: "anchor",
     handler: async (input): Promise<ToolResponse> => {
@@ -492,7 +492,7 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
         entityType: "agent",
         id: agentId,
         visibilityScope: internalFullScope(
-          "a2a_call tool is anchor-only and resolves saved remote agents at any visibility",
+          "agent_call tool is anchor-only and resolves saved remote agents at any visibility",
         ),
       });
       if (!entity) {

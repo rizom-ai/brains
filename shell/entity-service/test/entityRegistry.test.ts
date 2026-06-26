@@ -60,6 +60,7 @@ class NoteAdapter extends BaseEntityAdapter<Note> {
   constructor(entityType = "note") {
     super({
       entityType,
+      purpose: "Test note entity for unit tests.",
       schema: noteSchema,
       frontmatterSchema: z.object({
         category: z.string().default("general"),
@@ -427,6 +428,7 @@ This note has frontmatter metadata.`;
       constructor() {
         super({
           entityType: "profile",
+          purpose: "Test profile entity for unit tests.",
           schema: noteSchema,
           frontmatterSchema: baseFrontmatterSchema,
           isSingleton: true,

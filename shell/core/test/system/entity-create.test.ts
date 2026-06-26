@@ -397,6 +397,68 @@ describe("system_create tool", () => {
     expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
 
+  it("rejects creating an entity that already exists and routes to update", async () => {
+    const now = new Date().toISOString();
+    await services.entityService.createEntity({
+      entity: {
+        id: "resilience-is-not-redundancy",
+        entityType: "post",
+        content: "# Resilience Is Not Redundancy",
+        metadata: {
+          title: "Resilience Is Not Redundancy",
+          status: "published",
+        },
+        created: now,
+        updated: now,
+      },
+    });
+    const before = await services.entityService.listEntities({
+      entityType: "post",
+    });
+
+    // Misrouted status change: "make the Resilience post a draft" reaches
+    // system_create instead of system_update. The derived id resolves to the
+    // existing post, so the tool must refuse and name the right tool — before
+    // any confirmation card — instead of silently minting a deduped copy.
+    const result = await execRaw({
+      entityType: "post",
+      title: "Resilience Is Not Redundancy",
+      content: "# Resilience Is Not Redundancy\n\nMake this a draft.",
+    });
+
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("use system_update");
+    expect(result).not.toHaveProperty("needsConfirmation");
+
+    const after = await services.entityService.listEntities({
+      entityType: "post",
+    });
+    expect(after.length).toBe(before.length);
+  });
+
+  it("allows replace:true to bypass the already-exists guard", async () => {
+    const now = new Date().toISOString();
+    await services.entityService.createEntity({
+      entity: {
+        id: "resilience-is-not-redundancy",
+        entityType: "post",
+        content: "# Resilience Is Not Redundancy",
+        metadata: { title: "Resilience Is Not Redundancy" },
+        created: now,
+        updated: now,
+      },
+    });
+
+    const result = await exec({
+      entityType: "post",
+      title: "Resilience Is Not Redundancy",
+      content: "# A deliberate new copy",
+      replace: true,
+    });
+
+    expect(result).toMatchObject({ success: true });
+  });
+
   it("should require confirmation before creating durable entities", async () => {
     const result = await execRaw({
       entityType: "note",

@@ -5,6 +5,7 @@ import {
 import { z } from "@brains/utils";
 import {
   toolConfirmationSchema,
+  toolErrorSchema,
   toolResponseSchema,
   toolSuccessSchema,
 } from "@brains/mcp-service";
@@ -428,6 +429,16 @@ export function extractToolResults(
         toolResult.args = args;
       }
 
+      const errorParsed = toolErrorSchema.safeParse(parsed.data);
+      if (errorParsed.success) {
+        toolResult.error = {
+          message: errorParsed.data.error,
+          ...(errorParsed.data.code !== undefined
+            ? { code: errorParsed.data.code }
+            : {}),
+        };
+      }
+
       if (successParsed.success && successParsed.data.data != null) {
         toolResult.data = successParsed.data.data;
         const jobIdParsed = jobIdSchema.safeParse(successParsed.data.data);
@@ -489,6 +500,48 @@ export const entityMemoryRefSchema = z.object({
 });
 
 export type EntityMemoryRef = z.infer<typeof entityMemoryRefSchema>;
+
+export const agentContactCandidateSchema = z.object({
+  source: z.object({
+    kind: z.literal("url"),
+    url: z.string().min(1),
+  }),
+});
+
+export type AgentContactCandidate = z.infer<typeof agentContactCandidateSchema>;
+
+const a2aCallArgsSchema = z.object({
+  agent: z.string().min(1),
+});
+
+export function buildAgentContactCandidates(
+  toolResults: ToolResultData[],
+): AgentContactCandidate[] {
+  const seen = new Set<string>();
+  const candidates: AgentContactCandidate[] = [];
+  for (const tr of toolResults) {
+    if (tr.toolName !== "agent_call") continue;
+    if (tr.error?.code !== "agent_not_saved") continue;
+    const args = a2aCallArgsSchema.safeParse(tr.args ?? {});
+    if (!args.success) continue;
+    const url = args.data.agent;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    candidates.push({ source: { kind: "url", url } });
+  }
+  return candidates;
+}
+
+export function buildAgentContactCandidateContext(
+  candidates: AgentContactCandidate[],
+): string {
+  if (candidates.length === 0) return "";
+  const lines = candidates.map(
+    (candidate) =>
+      `- agent_connect candidate args: { source: { kind: "url", url: "${candidate.source.url}" } }`,
+  );
+  return `\n\nInternal agent contact candidates from previous assistant turns for follow-up resolution. These are typed runtime candidates, not visible user text. If the user confirms saving/adding/connecting one of these contacts, call agent_connect without confirmed using the exact candidate args. Do not message the remote agent until it is connected and approved.\n${lines.join("\n")}`;
+}
 
 /**
  * Extract structured entity references from tool results so follow-up turns can
