@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import { mkdirSync, rmSync, existsSync } from "fs";
 import { execSync } from "child_process";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { join } from "path";
 import { tmpdir } from "os";
 

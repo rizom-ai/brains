@@ -10,7 +10,7 @@ import {
 import type { ServicePluginContext } from "@brains/plugins";
 import type { SiteImageLookup } from "@brains/site-engine";
 import { EntityUrlGenerator } from "@brains/site-composition";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 describe("SiteBuilder - URL Enrichment", () => {
   let mockContext: ServicePluginContext;
@@ -211,7 +211,7 @@ describe("SiteBuilder - URL Enrichment", () => {
           id: z.string(),
           entityType: z.string(),
           content: z.string(),
-          metadata: z.record(z.unknown()),
+          metadata: z.record(z.string(), z.unknown()),
           frontmatter: z.object({ title: z.string() }),
           body: z.string(),
           url: z.string(),

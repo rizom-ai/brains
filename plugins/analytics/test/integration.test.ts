@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { Tool, ToolResponse } from "@brains/plugins";
 import { expectSuccess, expectError } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { AnalyticsPlugin } from "../src/index";
 import packageJson from "../package.json";
 

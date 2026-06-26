@@ -812,6 +812,10 @@ Incremental migration progress:
   decks, and site-info datasource outputs and parser assertions to
   `@brains/utils/zod-v4`; these tests exercise structural `.parse()`/datasource
   contracts without composing with production entity schema trees.
+- Migrated auth-service, analytics, ai-evaluation, and site-builder
+  parser-only test assertions to `@brains/utils/zod-v4`; the schemas validate
+  response/notification/config/enrichment payloads and are not passed into
+  plugin config or tool schema definitions.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template
