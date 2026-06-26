@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const extractedSummaryEntrySchema = z.object({
   title: z.string().min(1),
@@ -18,13 +18,15 @@ export const extractedSummaryEntrySchema = z.object({
   actionItems: z.array(z.string()),
 });
 
-export type ExtractedSummaryEntry = z.infer<typeof extractedSummaryEntrySchema>;
+export type ExtractedSummaryEntry = z.output<
+  typeof extractedSummaryEntrySchema
+>;
 
 export const summaryExtractionResultSchema = z.object({
   entries: z.array(extractedSummaryEntrySchema),
 });
 
-export type SummaryExtractionResult = z.infer<
+export type SummaryExtractionResult = z.output<
   typeof summaryExtractionResultSchema
 >;
 
@@ -33,6 +35,6 @@ export const summaryProjectionDecisionSchema = z.object({
   rationale: z.string(),
 });
 
-export type SummaryProjectionDecision = z.infer<
+export type SummaryProjectionDecision = z.output<
   typeof summaryProjectionDecisionSchema
 >;

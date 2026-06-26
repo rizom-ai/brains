@@ -790,6 +790,12 @@ Incremental migration progress:
   social-media, link, and topics AI/media parser schemas to
   `@brains/utils/zod-v4`; entity, config, and route/data template schemas that
   compose remaining main-Zod entity/template trees stay on the current boundary.
+- Migrated additional standalone AI parser schemas for note generation, series
+  descriptions, agent-discovery skill derivation, and conversation-memory
+  summary extraction/projection decisions to `@brains/utils/zod-v4`; the entity
+  plugin AI namespace now accepts the same main-Zod/Zod 4 generation schema
+  union as the shell AI service, while still-main entity/config/template-list
+  schemas stay unmixed.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

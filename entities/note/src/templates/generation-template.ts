@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 
 /**
@@ -16,7 +16,7 @@ export const noteGenerationSchema = z.object({
     ),
 });
 
-export type NoteGeneration = z.infer<typeof noteGenerationSchema>;
+export type NoteGeneration = z.output<typeof noteGenerationSchema>;
 
 /**
  * Template for AI-powered note generation

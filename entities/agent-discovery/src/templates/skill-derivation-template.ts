@@ -1,12 +1,20 @@
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { skillFrontmatterSchema } from "../schemas/skill";
+import { z } from "@brains/utils/zod-v4";
 
-const skillDerivationResultSchema = z.object({
-  skills: z.array(skillFrontmatterSchema).max(8),
+const skillDerivationSkillSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  examples: z.array(z.string()),
 });
 
-export type SkillDerivationResult = z.infer<typeof skillDerivationResultSchema>;
+const skillDerivationResultSchema = z.object({
+  skills: z.array(skillDerivationSkillSchema).max(8),
+});
+
+export type SkillDerivationResult = z.output<
+  typeof skillDerivationResultSchema
+>;
 
 export const skillDerivationTemplate = createTemplate<SkillDerivationResult>({
   name: "skill:skill-derivation",

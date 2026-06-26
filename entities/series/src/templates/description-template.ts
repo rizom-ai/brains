@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/templates";
 
 export const seriesDescriptionSchema = z.object({
@@ -9,7 +9,7 @@ export const seriesDescriptionSchema = z.object({
     ),
 });
 
-export type SeriesDescription = z.infer<typeof seriesDescriptionSchema>;
+export type SeriesDescription = z.output<typeof seriesDescriptionSchema>;
 
 export const seriesDescriptionTemplate = createTemplate<SeriesDescription>({
   name: "series:description",

@@ -11,11 +11,11 @@ import type {
 } from "@brains/entity-service";
 import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
 import type {
+  AIGenerationSchema,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
 import type { DefaultQueryResponse } from "@brains/contracts";
-import type { z } from "@brains/utils/zod";
 
 export type { IEntitiesNamespace };
 
@@ -32,10 +32,10 @@ export interface IEntityAINamespace {
   /** Generate content using AI with template */
   generate: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
 
-  /** Generate a structured object using AI with a Zod schema */
+  /** Generate a structured object using AI with a schema parser */
   generateObject: <T>(
     prompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ) => Promise<{ object: T }>;
 
   /** Generate an image using AI (requires AI_API_KEY) */
@@ -101,7 +101,7 @@ export function createEntityPluginContext(
       },
       generateObject: async <T>(
         prompt: string,
-        schema: z.ZodType<T>,
+        schema: AIGenerationSchema<T>,
       ): Promise<{ object: T }> => {
         return shell.generateObject(prompt, schema);
       },
