@@ -1,7 +1,7 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { PresentationLayout } from "@brains/ui-library";
 import { createTemplate } from "@brains/templates";
-import { enrichedDeckSchema } from "../schemas/deck";
+import { enrichedDeckSchema } from "./deck-list/schema";
 
 /**
  * Schema for deck template data
@@ -11,7 +11,7 @@ export const deckTemplateSchema = z.object({
   deck: enrichedDeckSchema.optional(),
 });
 
-export type DeckTemplateData = z.infer<typeof deckTemplateSchema>;
+export type DeckTemplateData = z.output<typeof deckTemplateSchema>;
 
 /**
  * Deck detail template
