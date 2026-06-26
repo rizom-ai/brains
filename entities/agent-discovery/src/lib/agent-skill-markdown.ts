@@ -1,5 +1,11 @@
-import { z } from "@brains/utils/zod";
-import { agentSkillSchema, type AgentSkill } from "../schemas/agent";
+import { z } from "@brains/utils/zod-v4";
+import type { AgentSkill } from "../schemas/agent";
+
+const agentSkillSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+});
 
 const agentSkillsSchema = z.array(agentSkillSchema);
 

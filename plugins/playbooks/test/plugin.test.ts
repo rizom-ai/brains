@@ -11,7 +11,7 @@ import {
   type PlaybookBody,
   type PlaybookFrontmatter,
 } from "@brains/playbook";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   createPluginHarness,
   expectError,
@@ -167,7 +167,7 @@ const playbookToolDataSchema = z
 
 function parsePlaybookToolData(
   input: unknown,
-): z.infer<typeof playbookToolDataSchema> {
+): z.output<typeof playbookToolDataSchema> {
   return playbookToolDataSchema.parse(input);
 }
 

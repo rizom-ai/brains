@@ -844,8 +844,9 @@ Incremental migration progress:
   `@brains/utils/zod-v4` for agent-discovery network widget data,
   conversation-memory recent/detail views, blog/doc/series/social-media
   list/detail views, deck list/detail views, and link/newsletter list/detail
-  view data; durable entity/frontmatter schemas and plugin config boundaries
-  remain on their existing main-Zod contracts.
+  view data, agent-discovery skill markdown formatting guards, and playbooks
+  tool-result test parsers; durable entity/frontmatter schemas and plugin config
+  boundaries remain on their existing main-Zod contracts.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template
