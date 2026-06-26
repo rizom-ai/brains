@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 const summaryItemSchema = z.object({
   conversationId: z.string(),
@@ -16,5 +16,5 @@ export const summaryListSchema = z.object({
   totalCount: z.number(),
 });
 
-export type SummaryItem = z.infer<typeof summaryItemSchema>;
-export type SummaryListData = z.infer<typeof summaryListSchema>;
+export type SummaryItem = z.output<typeof summaryItemSchema>;
+export type SummaryListData = z.output<typeof summaryListSchema>;

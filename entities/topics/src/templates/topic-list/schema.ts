@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 // Schema for individual topic summary in list
 const topicSummarySchema = z.object({
@@ -15,5 +15,5 @@ export const topicListSchema = z.object({
   totalCount: z.number(),
 });
 
-export type TopicSummary = z.infer<typeof topicSummarySchema>;
-export type TopicListData = z.infer<typeof topicListSchema>;
+export type TopicSummary = z.output<typeof topicSummarySchema>;
+export type TopicListData = z.output<typeof topicListSchema>;

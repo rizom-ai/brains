@@ -833,6 +833,10 @@ Incremental migration progress:
 - Migrated the entity-service frontmatter utility test parser fixtures to
   `@brains/utils/zod-v4`; entity adapter/frontmatter production schemas remain
   on the current entity-schema boundary.
+- Migrated the site-content dynamic template schema builder plus standalone
+  topic and conversation-memory list template data schemas to
+  `@brains/utils/zod-v4`; entity/frontmatter schemas they do not own remain on
+  their existing boundaries.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template
