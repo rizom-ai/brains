@@ -961,6 +961,10 @@ Incremental migration progress:
   the app-level dynamic site-package gate to `@brains/utils/zod-v4`. Kept site
   layout metadata on main Zod with a local navigation-item shape because it is
   still composed into main-Zod site-info entity/body schemas.
+- Migrated brain definition preset/mode schemas, app `brain.yaml` instance
+  override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod-v4`.
+  The app parser duplicates the small permission/action-policy validation
+  shapes locally so it does not compose main-Zod template schemas.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

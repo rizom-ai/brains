@@ -1,19 +1,17 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { parseYamlDocument } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { pluginOverrideEntrySchema } from "@brains/app";
 import { resolveModelName } from "./model-registry";
 
-const brainYamlSchema = z
-  .object({
-    brain: z.string(),
-    domain: z.string().optional(),
-    preset: z.string().optional(),
-    model: z.string().optional(),
-    plugins: z.record(pluginOverrideEntrySchema).optional(),
-  })
-  .passthrough();
+const brainYamlSchema = z.looseObject({
+  brain: z.string(),
+  domain: z.string().optional(),
+  preset: z.string().optional(),
+  model: z.string().optional(),
+  plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
+});
 
 export type BrainYamlConfig = z.output<typeof brainYamlSchema>;
 export type BrainYamlConfigInput = z.input<typeof brainYamlSchema>;

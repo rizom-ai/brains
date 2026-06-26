@@ -3,17 +3,17 @@ import type { PermissionConfig } from "@brains/templates";
 import type { DeploymentConfigInput } from "./types";
 import type { SitePackage } from "./site-package";
 
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Standard preset names.
  */
 export const presetNameSchema = z.enum(["core", "default", "full"]);
 export const PresetNames = presetNameSchema.options;
-export type PresetName = z.infer<typeof presetNameSchema>;
+export type PresetName = z.output<typeof presetNameSchema>;
 
 export const modeSchema = z.enum(["eval"]);
-export type BrainMode = z.infer<typeof modeSchema>;
+export type BrainMode = z.output<typeof modeSchema>;
 
 /**
  * Environment record — the deployment-specific variables

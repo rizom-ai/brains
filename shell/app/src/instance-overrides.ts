@@ -1,26 +1,42 @@
 import { parseYamlDocument, interpolateEnv } from "@brains/utils";
-import { z } from "@brains/utils/zod";
-import { z as z4 } from "@brains/utils/zod-v4";
-import { entityActionPolicyConfigSchema } from "@brains/templates";
-import { presetNameSchema, modeSchema } from "./brain-definition";
-import { logLevelSchema } from "./types";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
  *
  * Validates the structure after YAML parsing + env interpolation.
  */
-const pluginConfigOverrideSchema = z.record(z.unknown());
-const rawRecordSchema = z4.record(z4.string(), z4.unknown());
+const pluginConfigOverrideSchema = z.record(z.string(), z.unknown());
+const rawRecordSchema = z.record(z.string(), z.unknown());
 
-export const externalPluginDeclarationSchema = z
-  .object({
-    /** npm package name to import from node_modules */
-    package: z.string().min(1),
-    /** Config object passed to the external plugin factory */
-    config: z.record(z.unknown()).optional(),
-  })
-  .strict();
+const overridePresetNameSchema = z.enum(["core", "default", "full"]);
+const overrideModeSchema = z.enum(["eval"]);
+const overrideLogLevelSchema = z.enum(["debug", "info", "warn", "error"]);
+const overridePermissionLevelSchema = z.enum(["anchor", "trusted", "public"]);
+const overrideEntityActionRequiredLevelSchema = z.enum([
+  "never",
+  "anchor",
+  "trusted",
+  "public",
+]);
+const overrideEntityActionPolicyRuleSchema = z.strictObject({
+  create: overrideEntityActionRequiredLevelSchema.optional(),
+  update: overrideEntityActionRequiredLevelSchema.optional(),
+  delete: overrideEntityActionRequiredLevelSchema.optional(),
+  extract: overrideEntityActionRequiredLevelSchema.optional(),
+  publish: overrideEntityActionRequiredLevelSchema.optional(),
+});
+const overrideEntityActionPolicyConfigSchema = z.record(
+  z.string(),
+  overrideEntityActionPolicyRuleSchema,
+);
+
+export const externalPluginDeclarationSchema = z.strictObject({
+  /** npm package name to import from node_modules */
+  package: z.string().min(1),
+  /** Config object passed to the external plugin factory */
+  config: z.record(z.string(), z.unknown()).optional(),
+});
 
 export const pluginOverrideEntrySchema = pluginConfigOverrideSchema.superRefine(
   (entry, ctx) => {
@@ -70,7 +86,7 @@ const instanceOverridesSchema = z.object({
   name: z.string().optional(),
 
   /** Log level */
-  logLevel: logLevelSchema.optional(),
+  logLevel: overrideLogLevelSchema.optional(),
 
   /** Log file path (enables usage tracking) */
   logFile: z.string().optional(),
@@ -88,10 +104,10 @@ const instanceOverridesSchema = z.object({
   model: z.string().optional(),
 
   /** Preset name — selects a curated subset of capabilities + interfaces */
-  preset: presetNameSchema.optional(),
+  preset: overridePresetNameSchema.optional(),
 
   /** Eval mode — disables plugins with side effects (defined by evalDisable in brain model) */
-  mode: modeSchema.optional(),
+  mode: overrideModeSchema.optional(),
 
   /** Plugin/interface IDs to add on top of the preset */
   add: z.array(z.string()).optional(),
@@ -118,7 +134,7 @@ const instanceOverridesSchema = z.object({
    *   plugins.calendar.package: "@rizom/brain-plugin-calendar"
    *   plugins.calendar.config.apiKey: "${CALENDAR_API_KEY}"
    */
-  plugins: z.record(pluginOverrideEntrySchema).optional(),
+  plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
 
   /** Permission rules */
   permissions: z
@@ -129,11 +145,11 @@ const instanceOverridesSchema = z.object({
         .array(
           z.object({
             pattern: z.string(),
-            level: z.enum(["anchor", "trusted", "public"]),
+            level: overridePermissionLevelSchema,
           }),
         )
         .optional(),
-      entityActions: entityActionPolicyConfigSchema.optional(),
+      entityActions: overrideEntityActionPolicyConfigSchema.optional(),
     })
     .optional(),
 });
@@ -145,14 +161,14 @@ const instanceOverridesSchema = z.object({
  * of the same brain model. Secrets stay in .env; everything else
  * goes here (with ${ENV_VAR} interpolation for referencing secrets).
  */
-export type ExternalPluginDeclaration = z.infer<
+export type ExternalPluginDeclaration = z.output<
   typeof externalPluginDeclarationSchema
 >;
 export type PluginConfigOverride = Record<string, unknown>;
 export type PluginOverrideEntry =
   | PluginConfigOverride
   | ExternalPluginDeclaration;
-export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
+export type InstanceOverrides = z.output<typeof instanceOverridesSchema>;
 
 export function isExternalPluginDeclaration(
   entry: PluginOverrideEntry | undefined,
