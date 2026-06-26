@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
 import { TemplateRegistry, type Template } from "@brains/templates";
