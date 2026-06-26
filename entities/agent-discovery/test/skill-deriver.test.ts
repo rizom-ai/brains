@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   buildSkillPrompt,
   deriveSkills,
@@ -98,13 +98,13 @@ function contextForSkills(
 
 function listEntityCalls(
   spy: ReturnType<typeof mock>,
-): z.infer<typeof listEntitiesRequestSchema>[] {
+): z.output<typeof listEntitiesRequestSchema>[] {
   return spy.mock.calls.map((call) => listEntitiesRequestSchema.parse(call[0]));
 }
 
 function createEntityCalls(
   spy: ReturnType<typeof mock>,
-): z.infer<typeof createEntityRequestSchema>[] {
+): z.output<typeof createEntityRequestSchema>[] {
   return spy.mock.calls.map((call) => createEntityRequestSchema.parse(call[0]));
 }
 

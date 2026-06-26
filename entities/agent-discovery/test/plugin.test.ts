@@ -5,7 +5,7 @@ import {
   ATPROTO_BRAIN_CARD_REFRESHED,
   ATPROTO_BRAIN_DISCOVERED,
 } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";

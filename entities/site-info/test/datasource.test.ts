@@ -2,9 +2,9 @@ import { describe, it, expect } from "bun:test";
 import { SiteInfoDataSource } from "../src/datasources/site-info-datasource";
 import { createSilentLogger } from "@brains/test-utils";
 import { createMockShell } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
-const outputSchema = z.record(z.unknown());
+const outputSchema = z.record(z.string(), z.unknown());
 
 describe("SiteInfoDataSource", () => {
   it("should have correct id", () => {

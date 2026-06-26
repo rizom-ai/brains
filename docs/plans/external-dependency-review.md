@@ -808,6 +808,10 @@ Incremental migration progress:
   insight result parsing, and dynamic site-route template placeholders to
   `@brains/utils/zod-v4`; production entity/template schemas that still compose
   main-Zod framework trees remain unmixed.
+- Migrated more entity-owned structural test fixtures for agent-discovery,
+  decks, and site-info datasource outputs and parser assertions to
+  `@brains/utils/zod-v4`; these tests exercise structural `.parse()`/datasource
+  contracts without composing with production entity schema trees.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template
