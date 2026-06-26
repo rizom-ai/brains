@@ -1,6 +1,6 @@
 import type { DataSource, Template } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { ecosystemSectionAdapter } from "./adapters/ecosystem-section-adapter";
 import { EcosystemSectionDataSource } from "./datasources/ecosystem-section-datasource";
 import type { EcosystemSection } from "./schemas/ecosystem-section";

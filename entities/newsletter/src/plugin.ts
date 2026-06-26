@@ -8,7 +8,6 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils";
-import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { PublishProvider } from "@brains/contracts";
 import { h } from "preact";
@@ -22,9 +21,9 @@ import { newsletterListTemplate } from "./templates/newsletter-list";
 import { newsletterDetailTemplate } from "./templates/newsletter-detail";
 import packageJson from "../package.json";
 
-const newsletterConfigSchema = zConfig.object({});
-type NewsletterConfig = zConfig.output<typeof newsletterConfigSchema>;
-type NewsletterConfigInput = zConfig.input<typeof newsletterConfigSchema>;
+const newsletterConfigSchema = z.looseObject({});
+type NewsletterConfig = z.output<typeof newsletterConfigSchema>;
+type NewsletterConfigInput = z.input<typeof newsletterConfigSchema>;
 
 const generationEvalInputSchema = z.object({
   prompt: z.string().optional(),

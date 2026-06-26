@@ -922,6 +922,11 @@ Incremental migration progress:
   schemas for blog, note, portfolio, products, social-media, and topics to
   `@brains/utils/zod-v4`. Durable entity/frontmatter schemas remain on their
   current main-Zod entity-service registration boundary.
+- Migrated another standalone config-schema batch to `@brains/utils/zod-v4`:
+  content-pipeline, directory-sync, Obsidian vault, site-content, CMS,
+  newsletter, rizom-ecosystem, Rover profile extension, professional site, and
+  Rizom runtime. Tool-facing and durable entity schemas in those packages remain
+  on existing boundaries where applicable.
 - Migrated the agent-discovery, portfolio, and products list/detail template
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas

@@ -1,7 +1,7 @@
 import type { Tool, Resource, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
 import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };

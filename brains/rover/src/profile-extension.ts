@@ -1,9 +1,9 @@
 import type { Plugin, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin, professionalProfileExtension } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json" with { type: "json" };
 
-const emptyConfigSchema = z.object({}).strict();
+const emptyConfigSchema = z.looseObject({});
 
 /**
  * Rover opts into the professional profile contract.

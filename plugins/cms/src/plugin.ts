@@ -10,7 +10,6 @@ import {
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
 import { toYaml } from "@brains/utils";
-import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
@@ -18,27 +17,25 @@ const CMS_OAUTH_STATE_COOKIE = "brains_cms_oauth_state";
 const CMS_OAUTH_STATE_TTL_SECONDS = 10 * 60;
 const CMS_AUTH_ENDPOINT = "auth";
 
-const entityDisplayEntrySchema = zConfig
-  .object({
-    label: zConfig.string().optional(),
-    pluralName: zConfig.string().optional(),
-  })
-  .passthrough();
-
-const githubOAuthConfigSchema = zConfig.object({
-  clientId: zConfig.string().optional(),
-  clientSecret: zConfig.string().optional(),
-  scope: zConfig.string().optional(),
+const entityDisplayEntrySchema = z.looseObject({
+  label: z.string().optional(),
+  pluralName: z.string().optional(),
 });
 
-const passkeyLoginConfigSchema = zConfig.object({
-  contentRepoToken: zConfig.string().optional(),
+const githubOAuthConfigSchema = z.object({
+  clientId: z.string().optional(),
+  clientSecret: z.string().optional(),
+  scope: z.string().optional(),
 });
 
-const cmsPluginConfigSchema = zConfig
+const passkeyLoginConfigSchema = z.object({
+  contentRepoToken: z.string().optional(),
+});
+
+const cmsPluginConfigSchema = z
   .object({
-    entityDisplay: zConfig.record(entityDisplayEntrySchema).optional(),
-    routePath: zConfig.string().default("/cms"),
+    entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
+    routePath: z.string().default("/cms"),
     githubOAuth: githubOAuthConfigSchema.optional(),
     passkeyLogin: passkeyLoginConfigSchema.optional(),
   })
@@ -61,8 +58,8 @@ const cmsPluginConfigSchema = zConfig
     },
   );
 
-type CmsPluginConfig = zConfig.output<typeof cmsPluginConfigSchema>;
-type CmsPluginConfigInput = zConfig.input<typeof cmsPluginConfigSchema>;
+type CmsPluginConfig = z.output<typeof cmsPluginConfigSchema>;
+type CmsPluginConfigInput = z.input<typeof cmsPluginConfigSchema>;
 
 const githubOAuthErrorResponseSchema = z
   .looseObject({

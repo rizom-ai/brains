@@ -1,10 +1,10 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Configuration for publish behavior per entity type
  */
 export const publishExecutionModeSchema = z.enum(["provider"]);
-export type PublishExecutionMode = z.infer<typeof publishExecutionModeSchema>;
+export type PublishExecutionMode = z.output<typeof publishExecutionModeSchema>;
 
 export const publishConfigSchema = z
   .object({

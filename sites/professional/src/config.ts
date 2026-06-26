@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 const entityDisplayItemSchema = z.object({
   label: z.string().describe("Display label for entity type (e.g., 'Essay')"),

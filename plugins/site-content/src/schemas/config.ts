@@ -1,9 +1,9 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { SiteContentDefinition } from "../definitions";
 
 const siteContentDefinitionShapeSchema = z.object({
   namespace: z.string(),
-  sections: z.record(z.any()),
+  sections: z.record(z.string(), z.any()),
 });
 
 const siteContentDefinitionConfigSchema = z.custom<SiteContentDefinition>(
