@@ -537,9 +537,9 @@ Incremental migration progress:
   entity schema remains on the existing plugin schema boundary.
 - Migrated the note eval-handler input parser to explicit Zod 4 while keeping
   note config/entity schemas on the existing plugin boundary.
-- Migrated the blog RSS datasource query parser to explicit Zod 4; the
-  datasource output schema stays typed to the existing framework-facing Zod
-  boundary.
+- Migrated the blog RSS and entity datasource query parsers to explicit Zod 4;
+  datasource output schemas stay typed to existing framework-facing parser
+  boundaries.
 - Migrated the link eval-handler input parser to explicit Zod 4 while keeping
   link config/entity schemas on the existing plugin boundary.
 - Migrated the social-media eval-handler input parsers to explicit Zod 4 while

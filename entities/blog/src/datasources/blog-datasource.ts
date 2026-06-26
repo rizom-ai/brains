@@ -1,7 +1,5 @@
 import {
   BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
   type BaseQuery,
   type NavigationResult,
   type PaginationInfo,
@@ -13,7 +11,7 @@ import type {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { slugify } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { BlogPost } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../schemas/blog-post";
 import { parsePostData as parsePostDataBase } from "./parse-helpers";
@@ -23,16 +21,22 @@ export type { BlogPostWithData };
 
 type BlogPostTransformed = BlogPostWithData & { seriesUrl?: string };
 
-const blogQuerySchema = baseQuerySchema.extend({
+const blogQuerySchema = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
   latest: z.boolean().optional(),
   "metadata.seriesName": z.string().optional(),
 });
 
-const blogInputSchema = baseInputSchema.extend({
+const blogInputSchema = z.looseObject({
+  entityType: z.string().optional(),
   query: blogQuerySchema.optional(),
 });
 
-type BlogQuery = z.infer<typeof blogQuerySchema>;
+type BlogQuery = z.output<typeof blogQuerySchema>;
 
 interface BlogDetailData {
   post: BlogPostTransformed;
