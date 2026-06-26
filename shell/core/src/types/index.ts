@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const serializableEntitySchema = z.object({
   id: z.string(),
@@ -8,6 +8,6 @@ export const serializableEntitySchema = z.object({
   updated: z.string(),
 });
 
-export type SerializableEntity = z.infer<typeof serializableEntitySchema>;
+export type SerializableEntity = z.output<typeof serializableEntitySchema>;
 
 export type SerializableQueryResult<T> = T;

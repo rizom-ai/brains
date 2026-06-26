@@ -1,5 +1,17 @@
-import { z } from "@brains/utils/zod";
-import { summaryEntrySchema } from "../../schemas/summary";
+import { z } from "@brains/utils/zod-v4";
+
+const summaryTimeRangeSchema = z.object({
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+});
+
+const summaryEntrySchema = z.object({
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  timeRange: summaryTimeRangeSchema,
+  sourceMessageCount: z.number().int().min(0),
+  keyPoints: z.array(z.string()),
+});
 
 export const summaryDetailSchema = z.object({
   conversationId: z.string(),
@@ -10,4 +22,4 @@ export const summaryDetailSchema = z.object({
   updated: z.string(),
 });
 
-export type SummaryDetailData = z.infer<typeof summaryDetailSchema>;
+export type SummaryDetailData = z.output<typeof summaryDetailSchema>;

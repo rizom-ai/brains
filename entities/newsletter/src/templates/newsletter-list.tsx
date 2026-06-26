@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { paginationInfoSchema, createTemplate } from "@brains/plugins";
+import { z } from "@brains/utils/zod-v4";
+import { createTemplate } from "@brains/plugins";
 import {
   Head,
   Pagination,
@@ -11,7 +11,22 @@ import {
   CardTitle,
   CardMetadata,
 } from "@brains/ui-library";
-import { newsletterStatusSchema } from "../schemas/newsletter";
+const newsletterStatusSchema = z.enum([
+  "generating",
+  "draft",
+  "queued",
+  "published",
+  "failed",
+]);
+
+const paginationInfoSchema = z.object({
+  currentPage: z.number(),
+  totalPages: z.number(),
+  totalItems: z.number(),
+  pageSize: z.number(),
+  hasNextPage: z.boolean(),
+  hasPrevPage: z.boolean(),
+});
 
 /**
  * Newsletter list item schema for template data
@@ -26,7 +41,7 @@ export const newsletterListItemSchema = z.object({
   url: z.string(),
 });
 
-export type NewsletterListItem = z.infer<typeof newsletterListItemSchema>;
+export type NewsletterListItem = z.output<typeof newsletterListItemSchema>;
 
 /**
  * Newsletter list schema
@@ -37,7 +52,7 @@ export const newsletterListSchema = z.object({
   pagination: paginationInfoSchema.nullable(),
 });
 
-export type NewsletterListData = z.infer<typeof newsletterListSchema>;
+export type NewsletterListData = z.output<typeof newsletterListSchema>;
 
 export interface NewsletterListProps {
   newsletters: NewsletterListItem[];

@@ -1,5 +1,19 @@
-import { z } from "@brains/utils/zod";
-import { linkFrontmatterSchema } from "../../schemas/link";
+import { z } from "@brains/utils/zod-v4";
+
+const linkSourceSchema = z.object({
+  ref: z.string(),
+  label: z.string(),
+});
+
+const linkFrontmatterSchema = z.object({
+  status: z.enum(["pending", "draft", "published"]),
+  title: z.string(),
+  url: z.url(),
+  description: z.string().optional(),
+  domain: z.string(),
+  capturedAt: z.string().datetime(),
+  source: linkSourceSchema,
+});
 
 // Schema for link detail - frontmatter fields plus id and summary
 const linkDetailSchema = linkFrontmatterSchema.extend({
@@ -14,5 +28,5 @@ export const linkDetailDataSchema = z.object({
   nextLink: linkDetailSchema.nullable(),
 });
 
-export type LinkDetail = z.infer<typeof linkDetailSchema>;
-export type LinkDetailData = z.infer<typeof linkDetailDataSchema>;
+export type LinkDetail = z.output<typeof linkDetailSchema>;
+export type LinkDetailData = z.output<typeof linkDetailDataSchema>;

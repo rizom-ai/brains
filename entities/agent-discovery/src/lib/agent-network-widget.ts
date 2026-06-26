@@ -1,7 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { AgentAdapter } from "../adapters/agent-adapter";
-import { agentFrontmatterSchema, agentStatusSchema } from "../schemas/agent";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
@@ -13,7 +12,8 @@ import {
 
 const agentAdapter = new AgentAdapter();
 
-const agentKindSchema = agentFrontmatterSchema.shape.kind;
+const agentKindSchema = z.enum(["professional", "team", "collective"]);
+const agentNetworkStatusSchema = z.enum(["discovered", "approved"]);
 
 export const AGENT_NETWORK_KINDS = ["all", ...agentKindSchema.options] as const;
 
@@ -23,7 +23,7 @@ export const agentNetworkAgentRowSchema = z.object({
   description: z.string(),
   tags: z.array(z.string()),
   kind: agentKindSchema,
-  status: agentStatusSchema,
+  status: agentNetworkStatusSchema,
   discoveredAt: z.string(),
 });
 
@@ -57,10 +57,12 @@ export const agentNetworkWidgetDataSchema = z.object({
 });
 
 export type AgentNetworkKind = (typeof AGENT_NETWORK_KINDS)[number];
-export type AgentNetworkAgentRow = z.infer<typeof agentNetworkAgentRowSchema>;
-export type AgentNetworkSkillRow = z.infer<typeof agentNetworkSkillRowSchema>;
-export type AgentNetworkTagFilter = z.infer<typeof agentNetworkTagFilterSchema>;
-export type AgentNetworkWidgetData = z.infer<
+export type AgentNetworkAgentRow = z.output<typeof agentNetworkAgentRowSchema>;
+export type AgentNetworkSkillRow = z.output<typeof agentNetworkSkillRowSchema>;
+export type AgentNetworkTagFilter = z.output<
+  typeof agentNetworkTagFilterSchema
+>;
+export type AgentNetworkWidgetData = z.output<
   typeof agentNetworkWidgetDataSchema
 >;
 

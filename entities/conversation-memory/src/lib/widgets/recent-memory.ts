@@ -1,10 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import {
-  summaryTimeRangeSchema,
-  type SummaryEntity,
-  type SummaryTimeRange,
-} from "../../schemas/summary";
+import { z } from "@brains/utils/zod-v4";
+import type { SummaryEntity, SummaryTimeRange } from "../../schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { SummaryAdapter } from "../../adapters/summary-adapter";
 
@@ -14,24 +10,29 @@ const WIDGET_RENDERER = "RecentConversationMemoryWidget";
 
 const summaryAdapter = new SummaryAdapter();
 
+const summaryTimeRangeRowSchema = z.object({
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+});
+
 export const summaryEntryRowSchema = z.object({
   id: z.string(),
   title: z.string(),
   keyPoint: z.string().optional(),
   channelName: z.string(),
   channelId: z.string(),
-  timeRange: summaryTimeRangeSchema,
+  timeRange: summaryTimeRangeRowSchema,
   messageCount: z.number().int().min(0),
 });
 
-export type SummaryEntryRow = z.infer<typeof summaryEntryRowSchema>;
+export type SummaryEntryRow = z.output<typeof summaryEntryRowSchema>;
 
 export const recentConversationMemoryDataSchema = z.object({
   all: z.array(summaryEntryRowSchema),
   byChannel: z.array(summaryEntryRowSchema),
 });
 
-export type RecentConversationMemoryData = z.infer<
+export type RecentConversationMemoryData = z.output<
   typeof recentConversationMemoryDataSchema
 >;
 

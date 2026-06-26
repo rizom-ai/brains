@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/plugins";
 import {
   Head,
@@ -10,7 +10,13 @@ import {
   Card,
   type BreadcrumbItem,
 } from "@brains/ui-library";
-import { newsletterStatusSchema } from "../schemas/newsletter";
+const newsletterStatusSchema = z.enum([
+  "generating",
+  "draft",
+  "queued",
+  "published",
+  "failed",
+]);
 
 /**
  * Source entity reference schema
@@ -47,7 +53,7 @@ export const newsletterDetailSchema = z.object({
   nextNewsletter: navLinkSchema.nullable().optional(),
 });
 
-export type NewsletterDetailData = z.infer<typeof newsletterDetailSchema>;
+export type NewsletterDetailData = z.output<typeof newsletterDetailSchema>;
 
 export type NewsletterDetailProps = NewsletterDetailData;
 
