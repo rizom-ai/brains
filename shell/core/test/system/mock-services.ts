@@ -7,12 +7,17 @@ import {
   type EntitySearchRequest,
   type ListEntitiesRequest,
 } from "@brains/entity-service";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { PermissionService } from "@brains/templates";
 
 type SeedEntity = Omit<BaseEntity, "visibility"> & {
   visibility?: BaseEntity["visibility"];
 };
+
+interface Parser<T> {
+  parse(input: unknown): T;
+}
+
 import { createInsightsRegistry } from "../../src/system/insights";
 
 /**
@@ -63,7 +68,7 @@ export function createMockSystemServices(
     status: z.string().optional(),
   });
 
-  const parseFrontMatter = <T>(markdown: string, schema: z.ZodSchema<T>): T =>
+  const parseFrontMatter = <T>(markdown: string, schema: Parser<T>): T =>
     parseMarkdownWithFrontmatter(markdown, schema).metadata;
 
   const buildStub = (input: {
@@ -82,7 +87,7 @@ export function createMockSystemServices(
       hasBody: boolean;
       isSingleton: boolean;
       fromMarkdown: (markdown: string) => unknown;
-      parseFrontMatter: <T>(markdown: string, schema: z.ZodSchema<T>) => T;
+      parseFrontMatter: <T>(markdown: string, schema: Parser<T>) => T;
       buildStub: (input: { id: string; title: string }) => {
         content: string;
         metadata: Record<string, unknown>;

@@ -826,9 +826,13 @@ Incremental migration progress:
   `@brains/utils/zod-v4` while keeping generated tool input schemas on the
   current main-Zod boundary required by tool registration.
 - Migrated shell core structural test fixtures for AI/entity datasource output
-  parsing and system tool response/request assertions to `@brains/utils/zod-v4`;
+  parsing, runtime-state shutdown validation, mock system frontmatter parsing,
+  and system tool response/request assertions to `@brains/utils/zod-v4`;
   production system tool schemas and route/config registration boundaries remain
   on the current main-Zod boundary.
+- Migrated the entity-service frontmatter utility test parser fixtures to
+  `@brains/utils/zod-v4`; entity adapter/frontmatter production schemas remain
+  on the current entity-schema boundary.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template
