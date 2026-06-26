@@ -90,7 +90,11 @@ describe("entity action policy", () => {
   it("allows trusted create for default team-authored entity types after confirmation", async () => {
     const confirmArgs = expectConfirmation(
       await getTool("system_create").handler(
-        { entityType: "note", title: "Team note", content: "Team note body" },
+        {
+          entityType: "note",
+          title: "Team note",
+          source: { kind: "text", content: "Team note body" },
+        },
         baseContext("trusted"),
       ),
     );
@@ -108,7 +112,11 @@ describe("entity action policy", () => {
 
   it("denies public create for default team-authored entity types", async () => {
     const result = await getTool("system_create").handler(
-      { entityType: "note", title: "Public note", content: "Body" },
+      {
+        entityType: "note",
+        title: "Public note",
+        source: { kind: "text", content: "Body" },
+      },
       baseContext("public"),
     );
 
@@ -151,7 +159,7 @@ describe("entity action policy", () => {
       {
         entityType: "summary",
         title: "Weekly summary",
-        content: "Summary body",
+        source: { kind: "text", content: "Summary body" },
       },
       baseContext("trusted"),
     );
@@ -221,7 +229,7 @@ describe("entity action policy", () => {
         {
           entityType: "note",
           title: "Intercepted Summary",
-          content: "Team note body",
+          source: { kind: "text", content: "Team note body" },
         },
         baseContext("trusted"),
       ),

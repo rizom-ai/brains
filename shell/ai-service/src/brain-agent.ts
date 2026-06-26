@@ -32,10 +32,8 @@ export const brainCallOptionsSchema = z.object({
   disableTools: z.boolean().optional(),
   enableCreateUpload: z.boolean().optional(),
   enableCreateTransform: z.boolean().optional(),
-  enableCreateSourceAttachment: z.boolean().optional(),
   enableUploadSave: z.boolean().optional(),
-  disableDocumentGenerate: z.boolean().optional(),
-  disableSystemCreate: z.boolean().optional(),
+  hasPriorResponseCandidate: z.boolean().optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -128,15 +126,8 @@ export function createBrainAgentFactory(
               .filter(
                 (tool) =>
                   !(
-                    callOptions.disableDocumentGenerate === true &&
-                    tool.name === "document_generate"
-                  ) &&
-                  !(
-                    callOptions.disableSystemCreate === true &&
-                    tool.name === "system_create"
-                  ) &&
-                  !(
-                    callOptions.enableUploadSave !== true &&
+                    (callOptions.enableUploadSave !== true ||
+                      callOptions.hasPriorResponseCandidate === true) &&
                     tool.name === "system_upload_save"
                   ),
               );
@@ -153,8 +144,6 @@ export function createBrainAgentFactory(
             userPermissionLevel: callOptions.userPermissionLevel,
             enableCreateUpload: callOptions.enableCreateUpload,
             enableCreateTransform: callOptions.enableCreateTransform,
-            enableCreateSourceAttachment:
-              callOptions.enableCreateSourceAttachment,
           },
           emitter,
         );

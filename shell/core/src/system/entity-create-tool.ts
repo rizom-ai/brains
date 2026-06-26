@@ -127,6 +127,25 @@ function validateCoverImageSupport(
   };
 }
 
+function normalizeCreateTarget(input: {
+  entityType: string;
+  targetEntityType?: string | undefined;
+  targetEntityId?: string | undefined;
+}): { targetEntityType?: string; targetEntityId?: string } {
+  const targetEntityType = normalizeOptionalString(input.targetEntityType);
+  const targetEntityId = normalizeOptionalString(input.targetEntityId);
+  if (!targetEntityType || !targetEntityId) return {};
+
+  const canAttachCreatedArtifact =
+    input.entityType === "image" || input.entityType === "document";
+  if (!canAttachCreatedArtifact) return {};
+
+  const placeholderIds = new Set(["temp", "temporary", "placeholder", "draft"]);
+  if (placeholderIds.has(targetEntityId.toLowerCase())) return {};
+
+  return { targetEntityType, targetEntityId };
+}
+
 async function resolveSourceAttachment(
   services: SystemServices,
   input:
@@ -186,7 +205,8 @@ async function resolveConversationMessageContent(
   input: Extract<CreateInput["from"], { kind: "conversation-message" }>,
   conversationId: string | undefined,
 ): Promise<
-  { success: true; content: string } | { success: false; error: string }
+  | { success: true; messageId: string; content: string }
+  | { success: false; error: string }
 > {
   if (!conversationId) {
     return {
@@ -215,12 +235,12 @@ async function resolveConversationMessageContent(
     };
   }
 
-  return { success: true, content: message.content };
+  return { success: true, messageId: message.id, content: message.content };
 }
 
 type CreateToolInput = z.infer<typeof createInputSchema>;
 
-type PreferredCreateSource = NonNullable<CreateToolInput["source"]>;
+type PreferredCreateSource = CreateToolInput["source"];
 
 interface NormalizedCreateSource {
   prompt?: string;
@@ -235,237 +255,136 @@ interface NormalizedCreateSource {
   transform?: CreateInput["transform"];
 }
 
-function normalizeConversationMessageRef(
-  input:
-    | Extract<CreateInput["from"], { kind: "conversation-message" }>
-    | undefined,
-): Extract<CreateInput["from"], { kind: "conversation-message" }> | undefined {
-  if (!input) return undefined;
-  const rawMessageId = normalizeOptionalString(input.messageId);
-  const messageId = rawMessageId?.toLowerCase();
-  if (
-    !messageId ||
-    messageId === "latest" ||
-    messageId === ":latest" ||
-    messageId === "current" ||
-    messageId === ":current" ||
-    messageId === "auto" ||
-    messageId === ":auto" ||
-    messageId.includes("/latest") ||
-    messageId.includes("/current") ||
-    messageId.endsWith("/messages/auto")
-  ) {
-    return { kind: "conversation-message" };
-  }
-  return { kind: "conversation-message", messageId: rawMessageId };
-}
-
-function getPreferredSourceConflicts(input: CreateToolInput): string[] {
-  if (!input.source) return [];
-  return [
-    normalizeOptionalString(input.content) ? "content" : undefined,
-    normalizeOptionalString(input.prompt) ? "prompt" : undefined,
-    normalizeOptionalString(input.url) ? "url" : undefined,
-    input.from ? "from" : undefined,
-    input.upload ? "upload" : undefined,
-    normalizeOptionalString(input.transform) ? "transform" : undefined,
-    input.sourceAttachment ? "sourceAttachment" : undefined,
-  ].filter((field): field is string => field !== undefined);
-}
-
-function expandPreferredSource(input: CreateToolInput): CreateToolInput {
-  if (!input.source) return input;
-  const { source, ...rest } = input;
+function normalizeCreateSource(
+  source: PreferredCreateSource,
+  sourceAttachment?: {
+    sourceEntityType: string;
+    sourceEntityId: string;
+    attachmentType: string;
+  },
+): { success: true; source: NormalizedCreateSource } {
   switch (source.kind) {
     case "text":
-      return { ...rest, content: source.content };
+      return { success: true, source: { content: source.content } };
     case "generate":
-      return { ...rest, prompt: source.prompt };
+      return { success: true, source: { prompt: source.prompt } };
     case "url":
-      return { ...rest, url: source.url };
+      return { success: true, source: { url: source.url } };
     case "upload":
-      return { ...rest, upload: source.upload, transform: source.transform };
+      return {
+        success: true,
+        source: {
+          from: source.upload,
+          uploadRef: source.upload,
+          transform: source.transform,
+        },
+      };
     case "attachment":
       return {
-        ...rest,
-        sourceAttachment: {
-          sourceEntityType: source.sourceEntityType,
-          sourceEntityId: source.sourceEntityId,
-          attachmentType: source.attachmentType,
+        success: true,
+        source: {
+          from: {
+            kind: "entity-attachment",
+            ...(sourceAttachment ?? {
+              sourceEntityType: source.sourceEntityType,
+              sourceEntityId: source.sourceEntityId,
+              attachmentType: source.attachmentType,
+            }),
+          },
         },
       };
     case "prior-response":
       return {
-        ...rest,
-        from: {
-          kind: "conversation-message",
-          ...(source.messageId ? { messageId: source.messageId } : {}),
+        success: true,
+        source: {
+          conversationMessageRef: {
+            kind: "conversation-message",
+            ...(source.messageId ? { messageId: source.messageId } : {}),
+          },
         },
       };
   }
 }
 
-function toPreferredSource(
-  input: CreateInput,
-): PreferredCreateSource | undefined {
-  if (input.content) return { kind: "text", content: input.content };
-  if (input.prompt) return { kind: "generate", prompt: input.prompt };
-  if (input.url) return { kind: "url", url: input.url };
-  if (!input.from) return undefined;
-  if (input.from.kind === "upload" && input.transform === "extract-markdown") {
-    return {
-      kind: "upload",
-      upload: input.from,
-      transform: "extract-markdown",
-    };
-  }
-  if (input.from.kind === "entity-attachment") {
+function freezeConfirmationSource(input: {
+  source: PreferredCreateSource;
+  resolvedSourceAttachment?: {
+    sourceEntityType: string;
+    sourceEntityId: string;
+    attachmentType: string;
+  };
+  resolvedConversationMessage?: { messageId: string; content: string };
+}): PreferredCreateSource {
+  if (input.source.kind === "attachment") {
     return {
       kind: "attachment",
-      sourceEntityType: input.from.sourceEntityType,
-      sourceEntityId: input.from.sourceEntityId,
-      attachmentType: input.from.attachmentType,
+      ...(input.resolvedSourceAttachment ?? {
+        sourceEntityType: input.source.sourceEntityType,
+        sourceEntityId: input.source.sourceEntityId,
+        attachmentType: input.source.attachmentType,
+      }),
     };
   }
-  return undefined;
-}
-
-function getConversationMessageSourceConflicts(input: {
-  prompt?: string | undefined;
-  content?: string | undefined;
-  url?: string | undefined;
-  upload?: { kind: "upload"; id: string } | undefined;
-  from?:
-    | Extract<CreateInput["from"], { kind: "conversation-message" }>
-    | undefined;
-  sourceAttachment?:
-    | {
-        sourceEntityType: string;
-        sourceEntityId: string;
-        attachmentType: string;
-      }
-    | undefined;
-}): string[] {
-  if (!input.from) return [];
-  return [
-    normalizeOptionalString(input.content) ? "content" : undefined,
-    normalizeOptionalString(input.prompt) ? "prompt" : undefined,
-    normalizeOptionalString(input.url) ? "url" : undefined,
-    input.upload ? "upload" : undefined,
-    input.sourceAttachment ? "sourceAttachment" : undefined,
-  ].filter((field): field is string => field !== undefined);
-}
-
-function normalizeCreateSource(input: {
-  prompt?: string | undefined;
-  content?: string | undefined;
-  url?: string | undefined;
-  upload?: { kind: "upload"; id: string } | undefined;
-  from?:
-    | Extract<CreateInput["from"], { kind: "conversation-message" }>
-    | undefined;
-  sourceAttachment?:
-    | {
-        sourceEntityType: string;
-        sourceEntityId: string;
-        attachmentType: string;
-      }
-    | undefined;
-  transform?: string | undefined;
-}):
-  | { success: true; source: NormalizedCreateSource }
-  | { success: false; error: string } {
-  const prompt = normalizeOptionalString(input.prompt);
-  const content = normalizeOptionalString(input.content);
-  const url = normalizeOptionalString(input.url);
-  const conversationMessageRef = normalizeConversationMessageRef(input.from);
-  const promptForDirectSource = conversationMessageRef ? undefined : prompt;
-  const urlForDirectSource = conversationMessageRef ? undefined : url;
-  const contentForDirectSource = conversationMessageRef ? undefined : content;
-  const hasDirectSource = Boolean(
-    contentForDirectSource ?? promptForDirectSource ?? urlForDirectSource,
-  );
-  const uploadRef =
-    input.sourceAttachment || hasDirectSource || conversationMessageRef
-      ? undefined
-      : input.upload;
-  const from: NormalizedCreateSource["from"] = input.sourceAttachment
-    ? { kind: "entity-attachment", ...input.sourceAttachment }
-    : uploadRef;
-  const rawTransform = normalizeOptionalString(input.transform);
-  const transform =
-    conversationMessageRef || (hasDirectSource && input.upload)
-      ? undefined
-      : rawTransform;
-
-  if (transform !== undefined && transform !== "extract-markdown") {
+  if (input.source.kind === "prior-response") {
+    const messageId =
+      input.source.messageId ?? input.resolvedConversationMessage?.messageId;
     return {
-      success: false,
-      error:
-        'Unsupported transform. Use "extract-markdown" only for upload-to-note imports, or omit transform.',
+      kind: "prior-response",
+      ...(messageId ? { messageId } : {}),
     };
   }
+  return input.source;
+}
 
-  return {
-    success: true,
-    source: {
-      ...(promptForDirectSource && { prompt: promptForDirectSource }),
-      ...(contentForDirectSource && { content: contentForDirectSource }),
-      ...(urlForDirectSource && { url: urlForDirectSource }),
-      ...(from && { from }),
-      ...(uploadRef && { uploadRef }),
-      ...(conversationMessageRef && { conversationMessageRef }),
-      ...(transform && { transform }),
-    },
-  };
+function stableForConfirmation(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableForConfirmation);
+  if (!isRecord(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entryValue]) => [key, stableForConfirmation(entryValue)]),
+  );
+}
+
+function serializeConfirmationArgs(input: unknown): string {
+  return JSON.stringify(stableForConfirmation(input));
 }
 
 export function createEntityCreateTool(services: SystemServices): Tool {
   const { entityService, jobs, entityRegistry } = services;
-  const pendingConfirmationTokens = new Set<string>();
+  const pendingConfirmationArgs = new Map<string, string>();
 
   return createSystemTool(
     "create",
-    "Create a new entity. Requires confirmation. Use source to choose exactly one source: text for exact user-provided content, generate for AI generation, url for URL-first flows, prior-response for saving a previous assistant response, upload with transform extract-markdown for uploaded PDF/text/markdown/JSON note imports, or attachment for source-derived entity artifacts. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity. Requires confirmation. Use source to choose exactly one source: text for exact user-provided content, generate for AI generation, url for URL-first flows, prior-response for saving a previous assistant response, upload with transform extract-markdown for uploaded PDF/text/markdown/JSON note imports, or attachment for source-derived entity artifacts. Use entityType wish for explicitly saved or tracked unmet requested capabilities or outcomes. Use system_upload_save for raw uploaded file preservation. targetEntityType/targetEntityId are only for attaching a newly created image/document to an existing canonical entity; never use placeholder IDs such as temp and omit target fields for standalone images or for a new entity's own coverImage. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
-    async (rawInput, toolContext) => {
-      const preferredSourceConflicts = getPreferredSourceConflicts(rawInput);
-      if (preferredSourceConflicts.length > 0) {
-        return {
-          success: false,
-          error: `source cannot be combined with transitional flat source fields: ${preferredSourceConflicts.join(", ")}. Use source or flat source fields, not both.`,
-        };
-      }
-
-      const input = expandPreferredSource(rawInput);
-      const conversationMessageSourceConflicts =
-        getConversationMessageSourceConflicts(input);
-      if (conversationMessageSourceConflicts.length > 0) {
-        return {
-          success: false,
-          error: `A conversation-message source cannot be combined with other source fields: ${conversationMessageSourceConflicts.join(", ")}. Use either from to save a prior assistant response, or one of content, prompt, url, upload, or sourceAttachment.`,
-        };
-      }
-
-      const visibilityScope = permissionToVisibilityScope(
-        toolContext.userPermissionLevel,
-      );
-      const sourceAttachment = await resolveSourceAttachment(
-        services,
-        input.sourceAttachment,
-        visibilityScope,
-      );
-      const normalizedSource = normalizeCreateSource({
-        ...input,
-        sourceAttachment,
-      });
-      if (!normalizedSource.success) return normalizedSource;
-
+    async (input, toolContext) => {
       const unregisteredError = assertEntityTypeRegistered(
         services,
         input.entityType,
       );
       if (unregisteredError) return unregisteredError;
+
+      const visibilityScope = permissionToVisibilityScope(
+        toolContext.userPermissionLevel,
+      );
+      const sourceAttachment =
+        input.source.kind === "attachment"
+          ? await resolveSourceAttachment(
+              services,
+              {
+                sourceEntityType: input.source.sourceEntityType,
+                sourceEntityId: input.source.sourceEntityId,
+                attachmentType: input.source.attachmentType,
+              },
+              visibilityScope,
+            )
+          : undefined;
+      const normalizedSource = normalizeCreateSource(
+        input.source,
+        sourceAttachment,
+      );
 
       const {
         prompt,
@@ -502,11 +421,24 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         };
       }
       const replace = input.replace === true;
-      const targetEntityType = normalizeOptionalString(input.targetEntityType);
-      const targetEntityId = normalizeOptionalString(input.targetEntityId);
+      const suppliedTargetEntityType = normalizeOptionalString(
+        input.targetEntityType,
+      );
+      const suppliedTargetEntityId = normalizeOptionalString(
+        input.targetEntityId,
+      );
+      const { targetEntityType, targetEntityId } = normalizeCreateTarget({
+        entityType: input.entityType,
+        ...(suppliedTargetEntityType
+          ? { targetEntityType: suppliedTargetEntityType }
+          : {}),
+        ...(suppliedTargetEntityId
+          ? { targetEntityId: suppliedTargetEntityId }
+          : {}),
+      });
       let coverImage = normalizeCoverImageInput(input.coverImage);
 
-      if (!!targetEntityType !== !!targetEntityId)
+      if (!!suppliedTargetEntityType !== !!suppliedTargetEntityId)
         return {
           success: false,
           error:
@@ -597,17 +529,27 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
       if (input.confirmed) {
         const token = input.confirmationToken;
-        if (!token || !pendingConfirmationTokens.has(token)) {
+        const expectedArgs = token
+          ? pendingConfirmationArgs.get(token)
+          : undefined;
+        if (!token || !expectedArgs) {
           return {
             success: false,
             error:
               "No pending create confirmation found. Please request creation again and confirm the new approval.",
           };
         }
-        pendingConfirmationTokens.delete(token);
+        if (serializeConfirmationArgs(input) !== expectedArgs) {
+          pendingConfirmationArgs.delete(token);
+          return {
+            success: false,
+            error:
+              "Confirmed create arguments do not match the pending approval. Please request creation again and confirm the new approval.",
+          };
+        }
+        pendingConfirmationArgs.delete(token);
       } else {
         const confirmationToken = crypto.randomUUID();
-        pendingConfirmationTokens.add(confirmationToken);
         const confirmation = buildCreateConfirmation({
           entityType: input.entityType,
           ...(title && { title }),
@@ -619,25 +561,19 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             sourceAttachment,
           }),
         });
-        const confirmationSource = toPreferredSource(createInput);
-        const transitionalFlatSourceFallback = confirmationSource
-          ? {}
-          : {
-              ...(createInput.prompt && { prompt: createInput.prompt }),
-              ...(createInput.content && { content: createInput.content }),
-              ...(createInput.url && { url: createInput.url }),
-              ...(uploadRef && { upload: uploadRef }),
-              ...(sourceAttachment && { sourceAttachment }),
-              ...(createInput.transform && {
-                transform: createInput.transform,
-              }),
-            };
+        const confirmationSource = freezeConfirmationSource({
+          source: input.source,
+          ...(sourceAttachment && {
+            resolvedSourceAttachment: sourceAttachment,
+          }),
+          ...(resolvedConversationMessage?.success === true && {
+            resolvedConversationMessage,
+          }),
+        });
         const confirmationArgs = {
           entityType: createInput.entityType,
           ...(createInput.title && { title: createInput.title }),
-          ...(confirmationSource
-            ? { source: confirmationSource }
-            : transitionalFlatSourceFallback),
+          source: confirmationSource,
           ...(createInput.replace && { replace: createInput.replace }),
           ...(createInput.targetEntityType && {
             targetEntityType: createInput.targetEntityType,
@@ -649,6 +585,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           confirmed: true,
           confirmationToken,
         };
+        pendingConfirmationArgs.set(
+          confirmationToken,
+          serializeConfirmationArgs(confirmationArgs),
+        );
         return {
           needsConfirmation: true,
           toolName: "system_create",

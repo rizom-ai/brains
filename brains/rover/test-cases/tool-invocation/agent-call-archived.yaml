@@ -14,9 +14,10 @@ turns:
   - userMessage: "Ask archived-agent.io about ecosystem architecture"
 
 successCriteria:
+  # Product invariant: archived agents must not be contacted over the network.
+  # `a2a_call` now enforces this before network contact and returns a structured
+  # `agent_archived` rejection; unit coverage lives in interfaces/a2a/test/client-resolution.test.ts.
   expectedTools:
-    - toolName: a2a_call
-      shouldBeCalled: false
     - toolName: system_create
       shouldBeCalled: false
   responseContains:

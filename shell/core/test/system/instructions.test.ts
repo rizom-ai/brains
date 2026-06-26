@@ -34,7 +34,7 @@ describe("system instructions", () => {
     const instructions = createSystemInstructions(services);
 
     expect(instructions).toContain("Use `fields` for title, status");
-    expect(instructions).toContain("call `system_update`");
+    expect(instructions).toContain("system_update");
   });
 
   it("describes source-derived artifacts with the canonical source attachment branch", () => {
@@ -42,13 +42,11 @@ describe("system instructions", () => {
     const instructions = createSystemInstructions(services);
 
     expect(instructions).toContain(
-      'Pass `source`: `{ kind: "text", content }`',
+      'Required `source` union: `{ kind: "text", content }`',
     );
+    expect(instructions).toContain('`{ kind: "prior-response", messageId? }`');
     expect(instructions).toContain(
-      '`{ kind: "prior-response" }` for prior assistant response saves',
-    );
-    expect(instructions).toContain(
-      '`{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }` for source-derived artifact saves',
+      '`{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }`',
     );
     expect(instructions).not.toContain(
       "`from` for source-derived artifact saves",

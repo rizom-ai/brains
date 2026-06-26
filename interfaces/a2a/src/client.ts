@@ -499,6 +499,15 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
         return {
           success: false,
           error: `Agent ${agentId} is not in your directory. Add it first.`,
+          code: "agent_not_saved",
+        };
+      }
+
+      if (entity.metadata["status"] === "archived") {
+        return {
+          success: false,
+          error: `Agent ${agentId} is archived and cannot be contacted until it is restored and approved.`,
+          code: "agent_archived",
         };
       }
 
@@ -506,6 +515,7 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
         return {
           success: false,
           error: `Agent ${agentId} is discovered but not approved yet. Approve it first.`,
+          code: "agent_not_approved",
         };
       }
 

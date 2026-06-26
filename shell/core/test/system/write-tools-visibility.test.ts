@@ -90,8 +90,13 @@ describe("write tools cap visibility by caller permission", () => {
     input: Record<string, unknown>,
     level: ToolContext["userPermissionLevel"],
   ): Promise<unknown> {
+    const { content, ...rest } = input;
+    const createInput =
+      typeof content === "string"
+        ? { ...rest, source: { kind: "text", content } }
+        : input;
     const result = await getTool("system_create").handler(
-      input,
+      createInput,
       baseContext(level),
     );
     const response = toolResponseSchema.parse(result);

@@ -1,6 +1,5 @@
 import type { ChatAttachment } from "../contracts/agent";
 import { collectUploadIdsFromStoredMessages } from "./stored-message-metadata";
-import { selectReferencedAttachments } from "./upload-selection";
 
 export type MessageUploadConversationLoader = (
   conversationId: string,
@@ -21,7 +20,6 @@ export interface MessageUploadContinuityOptions {
 
 export interface SelectPriorUploadsInput {
   conversationId: string;
-  message: string;
   currentAttachments: ChatAttachment[];
   canRestore: boolean;
 }
@@ -50,7 +48,6 @@ export class MessageUploadContinuity {
 
   public async selectPriorUploads({
     conversationId,
-    message,
     currentAttachments,
     canRestore,
   }: SelectPriorUploadsInput): Promise<ChatAttachment[]> {
@@ -60,7 +57,9 @@ export class MessageUploadContinuity {
     const uploads = await this.getRecentUploads(conversationId);
     if (uploads.length === 0) return currentAttachments;
 
-    return selectReferencedAttachments(message, uploads);
+    // Return the full remembered set; resolving which upload the user means
+    // ("it", "the latest") is the model's job via typed tool args, not ours.
+    return uploads;
   }
 
   public async getRecentUploads(

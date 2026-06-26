@@ -52,7 +52,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "get",
-      "Retrieve a specific entity by type and identifier (ID, slug, or title).",
+      "Retrieve a specific entity by type and identifier (ID, slug, or title). If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
       getInputSchema,
       async (input, context) => {
         if (!entityService.getEntityTypes().includes(input.entityType)) {

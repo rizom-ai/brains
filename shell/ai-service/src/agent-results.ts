@@ -359,12 +359,15 @@ export function extractToolResults(
     }
 
     let stepRequestedConfirmation = false;
+    const confirmedToolNames = new Set<string>();
 
     for (const tr of step.toolResults) {
       if (tr.output === null) continue;
 
       const confirmationParsed = toolConfirmationSchema.safeParse(tr.output);
       if (confirmationParsed.success) {
+        if (confirmedToolNames.has(confirmationParsed.data.toolName)) continue;
+        confirmedToolNames.add(confirmationParsed.data.toolName);
         const approvalId = tr.toolCallId
           ? `approval:${tr.toolCallId}`
           : `approval:${tr.toolName}:${totalToolCalls}`;

@@ -4,7 +4,7 @@ import type { ICoreEntityService, ToolResponse } from "@brains/plugins";
 
 function isError(
   result: ToolResponse,
-): result is { success: false; error: string } {
+): result is { success: false; error: string; code?: string } {
   return "success" in result && result.success === false;
 }
 
@@ -153,8 +153,9 @@ describe("a2a_call agent resolution", () => {
       metadata: { name: "Old", status: "discovered" },
     });
 
+    const fetchFn = createMockFetch();
     const tool = createA2ACallTool({
-      fetch: createMockFetch(),
+      fetch: fetchFn,
       entityService: createMockEntityService(entities),
     });
 
@@ -166,7 +167,38 @@ describe("a2a_call agent resolution", () => {
     expect(isError(result)).toBe(true);
     if (isError(result)) {
       expect(result.error).toContain("Approve it first");
+      expect(result.code).toBe("agent_not_approved");
     }
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("should refuse archived agents before any network contact", async () => {
+    const entities = new Map();
+    entities.set("archived.io", {
+      id: "archived.io",
+      entityType: "agent",
+      content:
+        "---\nname: Archived\nurl: 'https://archived.io'\nstatus: archived\n---",
+      metadata: { name: "Archived", status: "archived" },
+    });
+
+    const fetchFn = createMockFetch();
+    const tool = createA2ACallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(entities),
+    });
+
+    const result = await tool.handler(
+      { agent: "archived.io", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toContain("archived");
+      expect(result.code).toBe("agent_archived");
+    }
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it("should refuse unknown agents by domain", async () => {
@@ -186,6 +218,7 @@ describe("a2a_call agent resolution", () => {
       expect(result.error).toBe(
         "Agent unknown.io is not in your directory. Add it first.",
       );
+      expect(result.code).toBe("agent_not_saved");
     }
     expect(fetchFn).not.toHaveBeenCalled();
   });
