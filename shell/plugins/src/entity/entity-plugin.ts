@@ -24,6 +24,10 @@ import {
   type DerivedEntityProjectionController,
 } from "./derived-entity-projection";
 
+type ConfigSchemaParser<TConfig> =
+  | { parse(input: unknown): TConfig }
+  | z.ZodTypeAny;
+
 const emptyConfigSchema = z.object({});
 
 /**
@@ -54,7 +58,7 @@ export abstract class EntityPlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny = emptyConfigSchema,
+    configSchema: ConfigSchemaParser<TConfig> = emptyConfigSchema,
     entityActionPolicy?: EntityActionPolicyConfig,
   ) {
     super(id, packageJson, config, configSchema);

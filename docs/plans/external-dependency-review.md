@@ -917,6 +917,11 @@ Incremental migration progress:
   webserver to `@brains/utils/zod-v4`. Chat/Discord duplicated the tiny URL
   capture config shape locally to avoid composing main-Zod plugin schemas into
   Zod 4 config trees.
+- Decoupled the entity plugin constructors and public entity delegate to accept
+  structural config parsers, then migrated standalone entity plugin config
+  schemas for blog, note, portfolio, products, social-media, and topics to
+  `@brains/utils/zod-v4`. Durable entity/frontmatter schemas remain on their
+  current main-Zod entity-service registration boundary.
 - Migrated the agent-discovery, portfolio, and products list/detail template
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas

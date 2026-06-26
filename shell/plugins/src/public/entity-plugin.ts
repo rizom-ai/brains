@@ -17,6 +17,10 @@ import type {
 import type { z } from "@brains/utils/zod";
 import type { EntityPluginContext, Plugin } from "./types";
 
+type ConfigSchemaParser<TConfig> =
+  | { parse(input: unknown): TConfig }
+  | z.ZodTypeAny;
+
 interface EntityPluginHooks<TEntity extends BaseEntity> {
   getEntityType(): string;
   getSchema(): z.ZodSchema<TEntity>;
@@ -44,7 +48,7 @@ class EntityPluginDelegate<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
     hooks: EntityPluginHooks<TEntity>,
   ) {
     super(id, packageJson, config, configSchema);
@@ -123,7 +127,7 @@ export abstract class EntityPlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;

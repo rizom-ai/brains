@@ -1,9 +1,9 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Portfolio plugin configuration schema
  */
-export const portfolioConfigSchema = z.object({
+export const portfolioConfigSchema = z.looseObject({
   // Add portfolio-specific config options here if needed
 });
 
