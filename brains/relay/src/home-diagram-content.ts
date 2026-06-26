@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 
 const ctaLinkSchema = z.object({
@@ -48,11 +48,11 @@ export const relayDiagramContentSchema = relayDiagramBaseContentSchema.extend({
   counts: relayHomeCountsSchema,
 });
 
-export type RelayDiagramBaseContent = z.infer<
+export type RelayDiagramBaseContent = z.output<
   typeof relayDiagramBaseContentSchema
 >;
-export type RelayDiagramContent = z.infer<typeof relayDiagramContentSchema>;
-export type RelayHomeCounts = z.infer<typeof relayHomeCountsSchema>;
+export type RelayDiagramContent = z.output<typeof relayDiagramContentSchema>;
+export type RelayHomeCounts = z.output<typeof relayHomeCountsSchema>;
 
 export const RELAY_HOME_DIAGRAM_FALLBACK: RelayDiagramBaseContent = {
   eyebrow: "A team brain, diagrammed",

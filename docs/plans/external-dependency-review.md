@@ -837,6 +837,9 @@ Incremental migration progress:
   topic and conversation-memory list template data schemas to
   `@brains/utils/zod-v4`; entity/frontmatter schemas they do not own remain on
   their existing boundaries.
+- Migrated Relay's local homepage diagram/content schemas and counts datasource
+  query/output parsing to `@brains/utils/zod-v4`; Rover's profile-extension
+  plugin config remains on the current plugin-constructor schema boundary.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

@@ -2,7 +2,7 @@ import type { JSX, ComponentChildren } from "preact";
 import { createTemplate } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { SiteContentDefinition } from "@brains/site-content";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   Button,
   RizomFrame,
@@ -70,11 +70,11 @@ const relayAboutContentSchema = z.object({
   points: z.array(z.string()),
 });
 
-type CtaLink = z.infer<typeof ctaLinkSchema>;
-type RelayHeroContent = z.infer<typeof relayHeroContentSchema>;
-type RelayLoopContent = z.infer<typeof relayLoopContentSchema>;
-type RelaySurfaceContent = z.infer<typeof relaySurfaceContentSchema>;
-type RelayAboutContent = z.infer<typeof relayAboutContentSchema>;
+type CtaLink = z.output<typeof ctaLinkSchema>;
+type RelayHeroContent = z.output<typeof relayHeroContentSchema>;
+type RelayLoopContent = z.output<typeof relayLoopContentSchema>;
+type RelaySurfaceContent = z.output<typeof relaySurfaceContentSchema>;
+type RelayAboutContent = z.output<typeof relayAboutContentSchema>;
 
 const ABOUT_FALLBACK: RelayAboutContent = {
   title: "Relay is a collaborative team-memory brain.",

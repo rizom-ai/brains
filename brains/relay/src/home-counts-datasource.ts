@@ -3,7 +3,7 @@ import type {
   DataSource,
   DataSourceSchema,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   RELAY_HOME_DIAGRAM_FALLBACK,
   parseRelayDiagramContent,
@@ -13,16 +13,14 @@ import {
   type RelayHomeCounts,
 } from "./home-diagram-content";
 
-const querySchema = z
-  .object({
-    query: z
-      .object({
-        routeId: z.string().default("home"),
-        sectionId: z.string().default("diagram"),
-      })
-      .default({ routeId: "home", sectionId: "diagram" }),
-  })
-  .passthrough();
+const querySchema = z.looseObject({
+  query: z
+    .object({
+      routeId: z.string().default("home"),
+      sectionId: z.string().default("diagram"),
+    })
+    .default({ routeId: "home", sectionId: "diagram" }),
+});
 
 const countEntityTypes = {
   captures: "note",
