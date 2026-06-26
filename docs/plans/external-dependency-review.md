@@ -957,6 +957,10 @@ Incremental migration progress:
   to `@brains/utils/zod-v4`, plus the small plugin config/message-content and
   title-regeneration helper schemas. The migration keeps binary attachment
   types broad enough for Buffer-backed upload flows.
+- Migrated site composition route/site-package runtime parser boundaries and
+  the app-level dynamic site-package gate to `@brains/utils/zod-v4`. Kept site
+  layout metadata on main Zod with a local navigation-item shape because it is
+  still composed into main-Zod site-info entity/body schemas.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

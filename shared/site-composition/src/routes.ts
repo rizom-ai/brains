@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /** Section definition schema for site routes. */
 export const SectionDefinitionSchema = z.object({
@@ -6,19 +6,17 @@ export const SectionDefinitionSchema = z.object({
   template: z.string(),
   content: z.unknown().optional(),
   dataQuery: z
-    .object({
+    .looseObject({
       entityType: z.string().optional(),
       template: z.string().optional(),
       query: z
-        .object({
+        .looseObject({
           id: z.string().optional(),
           limit: z.number().optional(),
           offset: z.number().optional(),
         })
-        .passthrough()
         .optional(),
     })
-    .passthrough()
     .optional(),
   order: z.number().optional(),
 });
@@ -73,10 +71,10 @@ export const RouteDefinitionSchema = z.object({
   navigation: NavigationMetadataSchema,
 });
 
-export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
-export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
+export type SectionDefinition = z.output<typeof SectionDefinitionSchema>;
+export type RouteDefinition = z.output<typeof RouteDefinitionSchema>;
 export type RouteDefinitionInput = z.input<typeof RouteDefinitionSchema>;
-export type NavigationMetadata = z.infer<typeof NavigationMetadataSchema>;
+export type NavigationMetadata = z.output<typeof NavigationMetadataSchema>;
 
 /** Message payload schemas for route operations. */
 export const RegisterRoutesPayloadSchema = z.object({
@@ -97,12 +95,14 @@ export const GetRoutePayloadSchema = z.object({
   path: z.string(),
 });
 
-export type RegisterRoutesPayload = z.infer<typeof RegisterRoutesPayloadSchema>;
-export type UnregisterRoutesPayload = z.infer<
+export type RegisterRoutesPayload = z.output<
+  typeof RegisterRoutesPayloadSchema
+>;
+export type UnregisterRoutesPayload = z.output<
   typeof UnregisterRoutesPayloadSchema
 >;
-export type ListRoutesPayload = z.infer<typeof ListRoutesPayloadSchema>;
-export type GetRoutePayload = z.infer<typeof GetRoutePayloadSchema>;
+export type ListRoutesPayload = z.output<typeof ListRoutesPayloadSchema>;
+export type GetRoutePayload = z.output<typeof GetRoutePayloadSchema>;
 
 export interface RouteOperationResponse {
   success: boolean;
@@ -125,4 +125,4 @@ export const NavigationItemSchema = z.object({
   priority: z.number(),
 });
 
-export type NavigationItem = z.infer<typeof NavigationItemSchema>;
+export type NavigationItem = z.output<typeof NavigationItemSchema>;

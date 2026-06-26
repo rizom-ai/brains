@@ -6,7 +6,7 @@ import {
   type SitePackage as BaseSitePackage,
   type SitePackageOverrides as BaseSitePackageOverrides,
 } from "@brains/site-composition";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export { extendSite, themeCssSchema };
 
