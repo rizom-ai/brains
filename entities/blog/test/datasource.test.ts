@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BlogDataSource } from "../src/datasources/blog-datasource";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { createMockPost } from "./fixtures/blog-entities";
 
@@ -28,20 +28,16 @@ const paginationSchema = z.object({
 
 const paginatedListSchema = z.object({
   posts: z.array(
-    z
-      .object({
-        id: z.string(),
-        entityType: z.string(),
-        frontmatter: z
-          .object({
-            title: z.string(),
-            slug: z.string(),
-            status: z.string(),
-          })
-          .passthrough(),
-        body: z.string(),
-      })
-      .passthrough(),
+    z.looseObject({
+      id: z.string(),
+      entityType: z.string(),
+      frontmatter: z.looseObject({
+        title: z.string(),
+        slug: z.string(),
+        status: z.string(),
+      }),
+      body: z.string(),
+    }),
   ),
   pagination: paginationSchema.nullable(),
 });

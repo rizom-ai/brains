@@ -6,7 +6,7 @@ import {
 import { RouteRegistry } from "../src/route-registry";
 import type { BaseEntity, ListEntitiesRequest } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 interface TestViewTemplate {
   name: string;
