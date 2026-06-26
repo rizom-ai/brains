@@ -817,6 +817,14 @@ Incremental migration progress:
   test fixtures to `@brains/utils/zod-v4`; the schemas validate
   response/notification/config/enrichment payloads or flow through structural
   template/data-source slots rather than plugin config or tool definitions.
+- Decoupled typed plugin message channels from main-Zod nominal types by using
+  a structural `safeParse(input)` schema contract and moved the channel guard
+  plus channel/judge/runtime-state context tests to `@brains/utils/zod-v4`.
+  Existing main-Zod channel schemas remain compatible because the messaging
+  namespace only calls `safeParse`.
+- Migrated MCP bridge remote-tool and call-result response guards to
+  `@brains/utils/zod-v4` while keeping generated tool input schemas on the
+  current main-Zod boundary required by tool registration.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

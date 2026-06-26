@@ -23,41 +23,33 @@ export interface ServerCommand {
 /**
  * Schema for a single content part in an MCP tool response.
  */
-const mcpContentPartSchema = z
-  .object({
-    type: z.string(),
-    text: z.string().optional(),
-  })
-  .passthrough();
+const mcpContentPartSchema = z4.looseObject({
+  type: z4.string(),
+  text: z4.string().optional(),
+});
 
 /**
  * Schema for the result of calling a remote MCP tool.
  */
-const mcpCallToolResultSchema = z
-  .object({
-    content: z.array(mcpContentPartSchema),
-    isError: z.boolean().optional(),
-  })
-  .passthrough();
+const mcpCallToolResultSchema = z4.looseObject({
+  content: z4.array(mcpContentPartSchema),
+  isError: z4.boolean().optional(),
+});
 
 /**
  * Schema for a remote tool discovered from the MCP server.
  */
-const remoteToolSchema = z
-  .object({
-    name: z.string(),
-    description: z.string().optional(),
-    inputSchema: z
-      .object({
-        type: z.literal("object"),
-        properties: z.record(z.object({}).passthrough()).optional(),
-        required: z.array(z.string()).optional(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
+const remoteToolSchema = z4.looseObject({
+  name: z4.string(),
+  description: z4.string().optional(),
+  inputSchema: z4.looseObject({
+    type: z4.literal("object"),
+    properties: z4.record(z4.string(), z4.looseObject({})).optional(),
+    required: z4.array(z4.string()).optional(),
+  }),
+});
 
-type RemoteTool = z.infer<typeof remoteToolSchema>;
+type RemoteTool = z4.output<typeof remoteToolSchema>;
 
 /**
  * MCPBridgePlugin — reusable base class for plugins that wrap an external MCP server.
@@ -168,7 +160,7 @@ export abstract class MCPBridgePlugin<
     try {
       const result = await this.client.listTools();
       const allowed = new Set(this.getAllowedTools());
-      const allTools = z.array(remoteToolSchema).parse(result.tools);
+      const allTools = z4.array(remoteToolSchema).parse(result.tools);
 
       this.remoteTools = allTools.filter((t) => allowed.has(t.name));
 
