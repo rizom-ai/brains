@@ -5,15 +5,11 @@ import type {
   DataSource,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/templates";
-import {
-  productSchema,
-  enrichedProductSchema,
-  type Product,
-} from "./schemas/product";
+import { productSchema, type Product } from "./schemas/product";
 import { productAdapter } from "./adapters/product-adapter";
-import { overviewSchema, overviewWithDataSchema } from "./schemas/overview";
+import { overviewSchema } from "./schemas/overview";
 import { overviewAdapter } from "./adapters/overview-adapter";
 import { ProductsDataSource } from "./datasources/products-datasource";
 import {
@@ -31,6 +27,115 @@ import { PRODUCT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-templ
 import { ProductOgImageAttachmentProvider } from "./attachments/og-image-provider";
 import { PRODUCT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
+
+const contentVisibilitySchema = z
+  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return "public";
+    if (value === "private") return "restricted";
+    return value;
+  });
+
+const baseEntitySchema = z.object({
+  id: z.string(),
+  entityType: z.string(),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  visibility: contentVisibilitySchema,
+  metadata: z.record(z.string(), z.unknown()),
+  contentHash: z.string(),
+});
+
+const productAvailabilitySchema = z.enum([
+  "available",
+  "early access",
+  "coming soon",
+  "planned",
+]);
+
+const productFeatureSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+
+const productFrontmatterViewSchema = z.object({
+  name: z.string(),
+  availability: productAvailabilitySchema,
+  order: z.number(),
+  ogImageId: z.string().optional(),
+});
+
+const productBodyViewSchema = z.object({
+  tagline: z.string(),
+  promise: z.string(),
+  role: z.string(),
+  purpose: z.string(),
+  audience: z.string(),
+  values: z.array(z.string()).min(1),
+  features: z.array(productFeatureSchema).min(1).max(6),
+  story: z.string(),
+});
+
+const productMetadataViewSchema = z.object({
+  name: z.string(),
+  availability: productAvailabilitySchema,
+  order: z.number(),
+  slug: z.string(),
+});
+
+const enrichedProductSchema = baseEntitySchema.extend({
+  entityType: z.literal("product"),
+  metadata: productMetadataViewSchema,
+  frontmatter: productFrontmatterViewSchema,
+  body: productBodyViewSchema,
+  labels: z.record(z.string(), z.string()),
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
+  ogImageUrl: z.string().optional(),
+});
+
+const labeledTextSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+
+const ctaSchema = z.object({
+  heading: z.string(),
+  buttonText: z.string(),
+  link: z.string(),
+});
+
+const overviewFrontmatterViewSchema = z.object({
+  headline: z.string(),
+  tagline: z.string(),
+});
+
+const overviewBodyViewSchema = z.object({
+  vision: z.string(),
+  pillars: z.array(labeledTextSchema).min(1).max(6),
+  approach: z.array(labeledTextSchema).min(1).max(6),
+  productsIntro: z.string(),
+  technologies: z.array(labeledTextSchema).min(1).max(6),
+  benefits: z.array(labeledTextSchema).min(1).max(6),
+  cta: ctaSchema,
+});
+
+const overviewMetadataViewSchema = z.object({
+  headline: z.string(),
+  slug: z.string(),
+});
+
+const overviewWithDataSchema = baseEntitySchema.extend({
+  entityType: z.literal("products-overview"),
+  metadata: overviewMetadataViewSchema,
+  frontmatter: overviewFrontmatterViewSchema,
+  body: overviewBodyViewSchema,
+  labels: z.record(z.string(), z.string()),
+});
 
 const productsPageSchema = z.object({
   overview: overviewWithDataSchema,
@@ -59,7 +164,7 @@ export class ProductsPlugin extends EntityPlugin<
   protected override getTemplates(): Record<string, Template> {
     return {
       "product-list": createTemplate<
-        z.infer<typeof productsPageSchema>,
+        z.output<typeof productsPageSchema>,
         ProductsPageProps
       >({
         name: "product-list",
@@ -70,7 +175,7 @@ export class ProductsPlugin extends EntityPlugin<
         layout: { component: ProductsPageTemplate },
       }),
       "product-detail": createTemplate<
-        z.infer<typeof productDetailSchema>,
+        z.output<typeof productDetailSchema>,
         ProductDetailProps
       >({
         name: "product-detail",
