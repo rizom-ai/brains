@@ -800,6 +800,10 @@ Incremental migration progress:
   generation test fixture, and template/content-service structural schema test
   fixtures to `@brains/utils/zod-v4`; the production template/config schemas
   that define framework metadata remain on the current main-Zod boundary.
+- Migrated assessment SWOT derivation job/AI-output schemas and the newsletter
+  composite factory config parser to `@brains/utils/zod-v4`; assessment entity
+  schemas and service-plugin config schemas that compose framework boundaries
+  remain on the current main-Zod boundary.
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template

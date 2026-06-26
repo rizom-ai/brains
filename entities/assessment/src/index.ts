@@ -1,5 +1,5 @@
 import type { Plugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { swotAssessmentPlugin } from "./plugin";
 
 export { SwotAssessmentPlugin, swotAssessmentPlugin } from "./plugin";
@@ -9,7 +9,7 @@ export const assessmentConfigSchema = z.object({}).strict();
 export type AssessmentConfig = z.output<typeof assessmentConfigSchema>;
 export type AssessmentConfigInput = z.input<typeof assessmentConfigSchema>;
 
-export function assessment(config: AssessmentConfigInput = {}): Plugin[] {
+export function assessment(config: unknown = {}): Plugin[] {
   assessmentConfigSchema.parse(config);
   return [swotAssessmentPlugin()];
 }
