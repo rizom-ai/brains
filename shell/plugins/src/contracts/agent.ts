@@ -1,5 +1,4 @@
-import { UserPermissionLevelSchema } from "@brains/templates";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
@@ -54,8 +53,9 @@ export const TextChatAttachmentSchema = z.object({
   source: ChatAttachmentSourceSchema.optional(),
 });
 
-const fileAttachmentDataSchema: z.ZodType<Uint8Array> =
-  z.instanceof(Uint8Array);
+const fileAttachmentDataSchema = z.custom<Uint8Array>(
+  (value) => value instanceof Uint8Array,
+);
 
 export const FileChatAttachmentSchema = z.object({
   kind: z.literal("file"),
@@ -71,10 +71,10 @@ export const ChatAttachmentSchema = z.discriminatedUnion("kind", [
   FileChatAttachmentSchema,
 ]);
 
-export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;
+export type ChatAttachment = z.output<typeof ChatAttachmentSchema>;
 
 export const ChatContextSchema = z.object({
-  userPermissionLevel: UserPermissionLevelSchema.optional(),
+  userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
@@ -83,7 +83,7 @@ export const ChatContextSchema = z.object({
   attachments: z.array(ChatAttachmentSchema).optional(),
 });
 
-export type ChatContext = z.infer<typeof ChatContextSchema>;
+export type ChatContext = z.output<typeof ChatContextSchema>;
 
 export interface AgentNamespace {
   chat(

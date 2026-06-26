@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { messageRoleSchema, type MessageRole } from "@brains/contracts";
 import type { Message, Conversation } from "./schema";
 
@@ -61,7 +61,7 @@ export const conversationMessageActorSchema = z.object({
   isBot: z.boolean().optional(),
 });
 
-export type ConversationMessageActor = z.infer<
+export type ConversationMessageActor = z.output<
   typeof conversationMessageActorSchema
 >;
 
@@ -70,21 +70,19 @@ export const conversationMessageSourceSchema = z.object({
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   threadId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type ConversationMessageSource = z.infer<
+export type ConversationMessageSource = z.output<
   typeof conversationMessageSourceSchema
 >;
 
-export const conversationMessageMetadataSchema = z
-  .object({
-    actor: conversationMessageActorSchema.optional(),
-    source: conversationMessageSourceSchema.optional(),
-  })
-  .passthrough();
+export const conversationMessageMetadataSchema = z.looseObject({
+  actor: conversationMessageActorSchema.optional(),
+  source: conversationMessageSourceSchema.optional(),
+});
 
-export type ConversationMessageMetadata = z.infer<
+export type ConversationMessageMetadata = z.output<
   typeof conversationMessageMetadataSchema
 >;
 
@@ -166,7 +164,7 @@ export const conversationDigestPayloadSchema = z.object({
  * Payload for conversation digest events
  * Broadcast every N messages with overlapping message windows
  */
-export type ConversationDigestPayload = z.infer<
+export type ConversationDigestPayload = z.output<
   typeof conversationDigestPayloadSchema
 >;
 

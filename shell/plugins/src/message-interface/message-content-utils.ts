@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /** Maximum size (in bytes) for an uploaded text file. */
 export const maxFileUploadBytes = 100_000;

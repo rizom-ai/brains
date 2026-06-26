@@ -1,5 +1,5 @@
 import type { UserPermissionLevel } from "@brains/templates";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { ExtensionMetadataSchema } from "./metadata";
 
 export const MessageResponseSchema = z.union([
@@ -26,7 +26,7 @@ export const BaseMessageSchema = z.object({
   metadata: ExtensionMetadataSchema.optional(),
 });
 
-export type BaseMessage = z.infer<typeof BaseMessageSchema>;
+export type BaseMessage = z.output<typeof BaseMessageSchema>;
 
 export type MessageWithPayload<T = unknown> = BaseMessage & {
   payload: T;
@@ -34,7 +34,7 @@ export type MessageWithPayload<T = unknown> = BaseMessage & {
 
 export interface MessageSendOptions {
   target?: string;
-  metadata?: z.infer<typeof ExtensionMetadataSchema>;
+  metadata?: z.output<typeof ExtensionMetadataSchema>;
   broadcast?: boolean;
 }
 

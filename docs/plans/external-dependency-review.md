@@ -952,6 +952,11 @@ Incremental migration progress:
   templates render/build schemas, and plugin/core/mcp-bridge example tests.
   Template schema parser types still explicitly accept both main-Zod and Zod 4
   generation schemas; tool-facing raw shape schemas remain on main Zod.
+- Migrated shared message-role, conversation message metadata/digest, and
+  public plugin contract parsers (agent, conversation, messaging, metadata)
+  to `@brains/utils/zod-v4`, plus the small plugin config/message-content and
+  title-regeneration helper schemas. The migration keeps binary attachment
+  types broad enough for Buffer-backed upload flows.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

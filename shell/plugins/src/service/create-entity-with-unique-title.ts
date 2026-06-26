@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "../entity/context";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Parameters for resolving a unique title before entity creation.

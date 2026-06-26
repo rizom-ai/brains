@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z, type ZodType } from "@brains/utils/zod-v4";
 
 /**
  * Base configuration schema that all plugins should extend
@@ -12,5 +12,5 @@ export const basePluginConfigSchema = z.object({
 /**
  * Type helpers for plugin configuration
  */
-export type PluginConfigInput<T extends z.ZodType> = z.input<T>;
-export type PluginConfig<T extends z.ZodType> = z.output<T>;
+export type PluginConfigInput<T extends ZodType> = z.input<T>;
+export type PluginConfig<T extends ZodType> = z.output<T>;
