@@ -17,7 +17,7 @@ import {
   type ToolStatusUpdate,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,

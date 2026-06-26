@@ -902,6 +902,12 @@ Incremental migration progress:
   `@brains/utils/zod-v4` while leaving the plugin config and message payload
   schemas on the current main-Zod plugin/tool boundary. Dashboard data continues
   through the structural data-source parser boundary.
+- Migrated the agent-discovery list/detail template parser boundary to
+  `@brains/utils/zod-v4` by defining local view-only agent and pagination
+  shapes. Durable agent entity/frontmatter schemas remain on main Zod.
+- Migrated `@brains/web-chat` internal bootstrap/action request parsers to
+  `@brains/utils/zod-v4`; the interface plugin config schema remains on the
+  current constructor/config boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
