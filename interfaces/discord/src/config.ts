@@ -1,5 +1,27 @@
-import { z } from "@brains/utils/zod";
-import { urlCaptureConfigSchema } from "@brains/plugins";
+import { z } from "@brains/utils/zod-v4";
+
+const blockedUrlDomainsDefault = [
+  "meet.google.com",
+  "zoom.us",
+  "teams.microsoft.com",
+  "whereby.com",
+  "gather.town",
+  "calendly.com",
+  "cal.com",
+  "discord.com",
+  "discord.gg",
+  "cdn.discordapp.com",
+  "media.discordapp.net",
+  "giphy.com",
+  "tenor.com",
+  "wetransfer.com",
+  "file.io",
+];
+
+const urlCaptureConfigSchema = z.object({
+  captureUrls: z.boolean().default(false),
+  blockedUrlDomains: z.array(z.string()).default(blockedUrlDomainsDefault),
+});
 
 /**
  * Discord interface configuration schema

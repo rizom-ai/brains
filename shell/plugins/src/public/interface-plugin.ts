@@ -15,6 +15,10 @@ import type {
   Tool,
 } from "./types";
 
+type ConfigSchemaParser<TConfig> =
+  | { parse(input: unknown): TConfig }
+  | z.ZodTypeAny;
+
 interface InterfacePluginHooks {
   onRegister(context: InterfacePluginContext): Promise<void>;
   onReady(context: InterfacePluginContext): Promise<void>;
@@ -36,7 +40,7 @@ class InterfacePluginDelegate<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
     hooks: InterfacePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
@@ -100,7 +104,7 @@ export abstract class InterfacePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;

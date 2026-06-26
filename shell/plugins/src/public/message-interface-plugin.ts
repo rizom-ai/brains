@@ -22,6 +22,10 @@ import type {
   Tool,
 } from "./types";
 
+type ConfigSchemaParser<TConfig> =
+  | { parse(input: unknown): TConfig }
+  | z.ZodTypeAny;
+
 interface MessageInterfacePluginHooks {
   onRegister(context: InterfacePluginContext): Promise<void>;
   onReady(context: InterfacePluginContext): Promise<void>;
@@ -50,7 +54,7 @@ class MessageInterfacePluginDelegate<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
     hooks: MessageInterfacePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
@@ -164,7 +168,7 @@ export abstract class MessageInterfacePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
   ) {
     super(id, packageJson, config, configSchema);
     this.messageDelegate = new MessageInterfacePluginDelegate(

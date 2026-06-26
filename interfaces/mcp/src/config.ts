@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const mcpConfigSchema = z.object({
   transport: z.enum(["stdio", "http"]).default("http"),

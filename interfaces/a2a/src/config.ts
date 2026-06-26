@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * A2A interface configuration schema
@@ -11,10 +11,10 @@ export const a2aConfigSchema = z.object({
   organization: z.string().optional(),
 
   /** Inbound: map of bearer token → agent identity for caller authentication */
-  trustedTokens: z.record(z.string()).optional(),
+  trustedTokens: z.record(z.string(), z.string()).optional(),
 
   /** Outbound: map of remote agent domain → bearer token to send */
-  outboundTokens: z.record(z.string()).optional(),
+  outboundTokens: z.record(z.string(), z.string()).optional(),
 
   /** Max time to receive outbound A2A POST response headers. */
   requestTimeoutMs: z.number().positive().default(30_000),

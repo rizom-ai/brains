@@ -911,6 +911,12 @@ Incremental migration progress:
   analytics, ATProto, Buttondown, email-resend, HackMD, notifications, Notion,
   and stock-photo to `@brains/utils/zod-v4`. Durable entity schemas and
   tool-facing framework schemas stay on their current boundaries.
+- Decoupled the public plugin-author interface/message-interface/service
+  delegates to accept structural config parsers, then migrated interface plugin
+  config schemas for A2A, chat-repl, chat, Discord, MCP, web-chat, and
+  webserver to `@brains/utils/zod-v4`. Chat/Discord duplicated the tiny URL
+  capture config shape locally to avoid composing main-Zod plugin schemas into
+  Zod 4 config trees.
 - Migrated the agent-discovery, portfolio, and products list/detail template
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas

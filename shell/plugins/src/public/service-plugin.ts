@@ -8,6 +8,10 @@ import type {
 import type { z } from "@brains/utils/zod";
 import type { Plugin, Resource, ServicePluginContext, Tool } from "./types";
 
+type ConfigSchemaParser<TConfig> =
+  | { parse(input: unknown): TConfig }
+  | z.ZodTypeAny;
+
 interface ServicePluginHooks {
   onRegister(context: ServicePluginContext): Promise<void>;
   onReady(context: ServicePluginContext): Promise<void>;
@@ -26,7 +30,7 @@ class ServicePluginDelegate<TConfig, TConfigInput> extends RuntimeServicePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
     hooks: ServicePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
@@ -74,7 +78,7 @@ export abstract class ServicePlugin<TConfig, TConfigInput> implements Plugin {
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;
