@@ -3,13 +3,9 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import {
-  PermissionService,
-  ServicePlugin,
-  UserPermissionLevelSchema,
-} from "@brains/plugins";
+import { PermissionService, ServicePlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   BUILT_IN_WIDGET_RENDERERS,
   DashboardWidgetRegistry,
@@ -47,15 +43,18 @@ const registerWidgetPayloadSchema = z
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
-    visibility: UserPermissionLevelSchema.default("public"),
+    visibility: z.enum(["public", "trusted", "anchor"]).default("public"),
     component: z.custom<WidgetComponent>().optional(),
     clientScript: z.string().optional(),
-    dataProvider: z.function().returns(z.promise(z.unknown())),
+    dataProvider: z.custom<() => Promise<unknown>>(
+      (value) => typeof value === "function",
+      { message: "Expected dashboard widget data provider function" },
+    ),
   })
   .superRefine((payload, refinementContext) => {
     if (!isBuiltInWidgetRenderer(payload.rendererName) && !payload.component) {
       refinementContext.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Custom dashboard widgets must register a Preact component.",
         path: ["component"],
       });
@@ -68,7 +67,7 @@ const unregisterWidgetPayloadSchema = z.object({
 });
 
 function createRegisteredWidget(
-  payload: z.infer<typeof registerWidgetPayloadSchema>,
+  payload: z.output<typeof registerWidgetPayloadSchema>,
 ): RegisteredWidget {
   return {
     id: payload.id,

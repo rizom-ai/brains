@@ -3,7 +3,7 @@ import type {
   IRuntimeStateStore,
 } from "@brains/runtime-state";
 import { createPrefixedId } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const playbookRunStatusSchema = z.enum([
   "offered",
@@ -52,13 +52,12 @@ export const playbookRunSchema = z
   })
   .strict();
 
-export type PlaybookRun = z.infer<typeof playbookRunSchema>;
-export type PlaybookRunStatus = z.infer<typeof playbookRunStatusSchema>;
-export type PlaybookRunEvidence = z.infer<typeof playbookRunEvidenceSchema>;
-export type PlaybookGateVerdict = z.infer<typeof playbookGateVerdictSchema>;
+export type PlaybookRun = z.output<typeof playbookRunSchema>;
+export type PlaybookRunStatus = z.output<typeof playbookRunStatusSchema>;
+export type PlaybookRunEvidence = z.output<typeof playbookRunEvidenceSchema>;
+export type PlaybookGateVerdict = z.output<typeof playbookGateVerdictSchema>;
 
 const playbookRunsNamespace = "playbooks.runs";
-const playbookRunStorageSchema = playbookRunSchema as z.ZodType<PlaybookRun>;
 
 export class PlaybookRunStore {
   private readonly store: IRuntimeStateStore<PlaybookRun>;
@@ -67,7 +66,7 @@ export class PlaybookRunStore {
   constructor(runtimeState: IRuntimeStateNamespace) {
     this.store = runtimeState.scoped<PlaybookRun>({
       namespace: playbookRunsNamespace,
-      schema: playbookRunStorageSchema,
+      schema: playbookRunSchema,
     });
   }
 

@@ -931,6 +931,11 @@ Incremental migration progress:
   parser boundaries to `@brains/utils/zod-v4` using local route/site metadata
   parser shapes, keeping the shared site-composition and site-info entity
   schemas on their existing main-Zod boundaries.
+- Migrated additional service/internal parser boundaries to
+  `@brains/utils/zod-v4`: dashboard plugin config/widget message payloads,
+  auth-service plugin config, and playbook runtime-state/run parser schemas.
+  Playbooks keeps model tool input schemas and judge output schema on main Zod
+  where those framework contracts still require tool-facing schemas.
 - Migrated the agent-discovery, portfolio, and products list/detail template
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas

@@ -25,7 +25,8 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
 import { createPrefixedId } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z as zMain } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { computeContentHash } from "@brains/utils/hash";
 import { createActor, createMachine } from "xstate";
 import packageJson from "../package.json";
@@ -90,26 +91,26 @@ const playbookEntitySchema = z
   .passthrough();
 
 const statusInputSchema = {
-  runId: z.string().min(1).optional(),
-  playbookId: z.string().min(1).optional(),
-  lifecycle: z.string().min(1).optional(),
+  runId: zMain.string().min(1).optional(),
+  playbookId: zMain.string().min(1).optional(),
+  lifecycle: zMain.string().min(1).optional(),
 };
 
 const startInputSchema = {
-  playbookId: z.string().min(1),
-  lifecycle: z.string().min(1).optional(),
+  playbookId: zMain.string().min(1),
+  lifecycle: zMain.string().min(1).optional(),
 };
 
 const sendEventInputSchema = {
-  runId: z.string().min(1).optional(),
-  event: z.string().min(1),
-  context: z.record(z.string(), z.unknown()).optional(),
+  runId: zMain.string().min(1).optional(),
+  event: zMain.string().min(1),
+  context: zMain.record(zMain.string(), zMain.unknown()).optional(),
 };
 
 export type LifecyclePlaybookConfig = z.output<typeof lifecycleConfigSchema>;
 export type PlaybooksConfig = z.output<typeof playbooksConfigSchema>;
 export type PlaybooksConfigInput = z.input<typeof playbooksConfigSchema>;
-export type PlaybookEntity = z.infer<typeof playbookEntitySchema>;
+export type PlaybookEntity = z.output<typeof playbookEntitySchema>;
 
 export interface ParsedPlaybook {
   entity: PlaybookEntity;
@@ -156,10 +157,10 @@ export interface GoalCheckResult {
   reason: string;
 }
 
-const goalCheckResultSchema = z
+const goalCheckResultSchema = zMain
   .object({
-    met: z.boolean(),
-    reason: z.string().min(1),
+    met: zMain.boolean(),
+    reason: zMain.string().min(1),
   })
   .strict();
 
@@ -234,7 +235,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     );
 
     context.messaging.subscribe<
-      z.infer<typeof lifecycleStartersRequestSchema>,
+      z.output<typeof lifecycleStartersRequestSchema>,
       LifecycleStartersResponse
     >(PLAYBOOKS_LIFECYCLE_STARTERS, async (message) => {
       const input = lifecycleStartersRequestSchema.parse(message.payload);
@@ -290,7 +291,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = z.object(statusInputSchema).parse(input);
+          const parsed = zMain.object(statusInputSchema).parse(input);
           try {
             const data = await this.getStatus({
               ...parsed,
@@ -312,7 +313,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = z.object(startInputSchema).parse(input);
+          const parsed = zMain.object(startInputSchema).parse(input);
           const conversationId = toolContext.conversationId;
           const lockKey = conversationId
             ? `${conversationId}:${parsed.playbookId}`
@@ -358,7 +359,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = z.object(sendEventInputSchema).parse(input);
+          const parsed = zMain.object(sendEventInputSchema).parse(input);
           const run = await this.resolveScopedRunResponse({
             runId: parsed.runId,
             conversationId: toolContext.conversationId,

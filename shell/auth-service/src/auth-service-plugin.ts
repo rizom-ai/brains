@@ -7,8 +7,8 @@ import type {
   Tool,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { createTool, ServicePlugin, toolSuccess } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { ServicePlugin } from "@brains/plugins";
+import { z } from "@brains/utils/zod-v4";
 import { AuthService, type OperatorSetupRequired } from "./auth-service";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
@@ -46,12 +46,15 @@ const authServiceConfigSchema = z.object({
   setupEmail: setupEmailSchema.optional(),
 });
 
-const getPasskeySetupUrlInputSchema = z.object({});
-
 type PasskeySetupToolData =
   | { status: "setup_required"; setupUrl: string; expiresAt: number }
   | { status: "complete" }
   | { status: "unavailable"; reason: string };
+
+interface PasskeySetupToolResponse {
+  success: true;
+  data: PasskeySetupToolData;
+}
 
 export type AuthServiceConfig = z.output<typeof authServiceConfigSchema>;
 export type AuthServiceConfigInput = z.input<typeof authServiceConfigSchema>;
@@ -111,33 +114,42 @@ export class AuthServicePlugin extends ServicePlugin<
 
   protected override async getTools(): Promise<Tool[]> {
     return [
-      createTool<typeof getPasskeySetupUrlInputSchema, PasskeySetupToolData>(
-        this.id,
-        "get_passkey_setup_url",
-        "Get the first-passkey setup URL when operator setup is required. Anchor-only.",
-        getPasskeySetupUrlInputSchema,
-        async () => {
+      {
+        name: `${this.id}_get_passkey_setup_url`,
+        description:
+          "Get the first-passkey setup URL when operator setup is required. Anchor-only.",
+        inputSchema: {},
+        visibility: "anchor",
+        handler: async (): Promise<PasskeySetupToolResponse> => {
           const service = this.getService();
           if (await service.hasPasskeyCredentials()) {
-            return toolSuccess({ status: "complete" as const });
+            return {
+              success: true,
+              data: { status: "complete" as const },
+            };
           }
 
           const setup = await service.getOperatorSetupRequired();
           if (setup) {
-            return toolSuccess({
-              status: "setup_required" as const,
-              setupUrl: setup.setupUrl,
-              expiresAt: setup.expiresAt,
-            });
+            return {
+              success: true,
+              data: {
+                status: "setup_required" as const,
+                setupUrl: setup.setupUrl,
+                expiresAt: setup.expiresAt,
+              },
+            };
           }
 
-          return toolSuccess({
-            status: "unavailable" as const,
-            reason: "Passkey setup URL is not available.",
-          });
+          return {
+            success: true,
+            data: {
+              status: "unavailable" as const,
+              reason: "Passkey setup URL is not available.",
+            },
+          };
         },
-        { visibility: "anchor" },
-      ),
+      } satisfies Tool<PasskeySetupToolResponse>,
     ];
   }
 
