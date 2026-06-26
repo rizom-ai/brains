@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const apiRouteDefinitionSchema = z.object({
   /** Path suffix (prefixed with /api/{pluginId}) */
@@ -15,7 +15,7 @@ export const apiRouteDefinitionSchema = z.object({
   errorRedirect: z.string().optional(),
 });
 
-export type ApiRouteDefinition = z.infer<typeof apiRouteDefinitionSchema>;
+export type ApiRouteDefinition = z.output<typeof apiRouteDefinitionSchema>;
 
 /**
  * A registered API route with full path and plugin context

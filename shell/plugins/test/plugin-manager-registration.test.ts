@@ -5,7 +5,7 @@ import type { Tool, Resource } from "../src/interfaces";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 // Mock plugin for testing
 class TestPlugin extends ServicePlugin<

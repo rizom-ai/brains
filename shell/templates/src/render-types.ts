@@ -1,5 +1,5 @@
 import type { ProgressCallback } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type {
   ComponentType,
@@ -14,26 +14,32 @@ export const SiteContentEntityTypeSchema = z.enum([
   "site-content-preview",
   "site-content-production",
 ]);
-export type SiteContentEntityType = z.infer<typeof SiteContentEntityTypeSchema>;
+export type SiteContentEntityType = z.output<
+  typeof SiteContentEntityTypeSchema
+>;
 
 /**
  * Renderer output formats supported by view templates.
  */
 export const OutputFormatSchema = z.enum(["web", "image", "pdf"]);
-export type OutputFormat = z.infer<typeof OutputFormatSchema>;
+export type OutputFormat = z.output<typeof OutputFormatSchema>;
 
 /**
  * View template schema
  */
+const rendererFunctionSchema = z.custom<(...args: unknown[]) => unknown>(
+  (value) => typeof value === "function",
+);
+
 export const ViewTemplateSchema = z.object({
   name: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime
   description: z.string().optional(),
   pluginId: z.string(),
   renderers: z.object({
-    web: z.union([z.function(), z.string()]).optional(),
-    image: z.union([z.function(), z.string()]).optional(),
-    pdf: z.union([z.function(), z.string()]).optional(),
+    web: z.union([rendererFunctionSchema, z.string()]).optional(),
+    image: z.union([rendererFunctionSchema, z.string()]).optional(),
+    pdf: z.union([rendererFunctionSchema, z.string()]).optional(),
   }),
 });
 
@@ -99,7 +105,7 @@ export const SiteBuilderOptionsSchema = z.object({
     .optional(),
 });
 
-export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema>;
+export type SiteBuilderOptions = z.output<typeof SiteBuilderOptionsSchema>;
 
 /**
  * Build result schema
@@ -111,7 +117,7 @@ export const BuildResultSchema = z.object({
   warnings: z.array(z.string()).optional(),
 });
 
-export type BuildResult = z.infer<typeof BuildResultSchema>;
+export type BuildResult = z.output<typeof BuildResultSchema>;
 
 /**
  * Site builder interface

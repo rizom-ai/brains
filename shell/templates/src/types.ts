@@ -1,8 +1,7 @@
-import { z } from "@brains/utils/zod";
-import type { ZodType as ZodV4Type } from "@brains/utils/zod-v4";
+import type { z as zMain } from "@brains/utils/zod";
+import { z, type ZodType as ZodV4Type } from "@brains/utils/zod-v4";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { VNode } from "preact";
-import { UserPermissionLevelSchema } from "./permission-service";
 
 /**
  * Component type for layouts - using Preact
@@ -11,7 +10,7 @@ import { UserPermissionLevelSchema } from "./permission-service";
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
 export type TemplateSchemaParser<T> =
-  | z.ZodType<T, z.ZodTypeDef, unknown>
+  | zMain.ZodType<T, zMain.ZodTypeDef, unknown>
   | ZodV4Type<T, unknown>;
 
 /**
@@ -54,7 +53,7 @@ export function createTypedComponent<TSchema, TComponent = TSchema>(
  * This is the single source of truth for what constitutes a template
  */
 export interface Template extends Omit<
-  z.infer<typeof TemplateSchema>,
+  z.output<typeof TemplateSchema>,
   "schema" | "layout" | "formatter"
 > {
   schema: TemplateSchemaParser<unknown>;
@@ -132,7 +131,7 @@ export const TemplateSchema = z.object({
   schema: z.any(), // ZodType can't be validated at runtime - required
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
   useKnowledgeContext: z.boolean().optional(),
-  requiredPermission: UserPermissionLevelSchema,
+  requiredPermission: z.enum(["anchor", "trusted", "public"]),
   formatter: z.any().optional(), // ContentFormatter instance
   layout: z
     .object({
@@ -143,4 +142,4 @@ export const TemplateSchema = z.object({
   dataSourceId: z.string().optional(),
 });
 
-export type TemplateInput = z.infer<typeof TemplateSchema>;
+export type TemplateInput = z.output<typeof TemplateSchema>;

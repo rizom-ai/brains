@@ -946,6 +946,12 @@ Incremental migration progress:
 - Migrated `@brains/web-chat` internal bootstrap/action request parsers to
   `@brains/utils/zod-v4`; the interface plugin config schema remains on the
   current constructor/config boundary.
+- Migrated another plugin/template framework-adjacent parser batch to
+  `@brains/utils/zod-v4`: base-plugin internal tool/resource request parsers,
+  API route definition parsing, content-service template validation,
+  templates render/build schemas, and plugin/core/mcp-bridge example tests.
+  Template schema parser types still explicitly accept both main-Zod and Zod 4
+  generation schemas; tool-facing raw shape schemas remain on main Zod.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -8,7 +8,6 @@ import type {
 } from "./interfaces";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
-import { ToolContextRoutingSchema } from "./interfaces";
 import {
   getErrorMessage,
   Logger,
@@ -16,11 +15,11 @@ import {
   ProgressReporter,
 } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/templates";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
-type ConfigSchemaParser<TConfig> =
-  | { parse(input: unknown): TConfig }
-  | z.ZodTypeAny;
+interface ConfigSchemaParser<TConfig> {
+  parse(input: unknown): TConfig;
+}
 
 // Message schemas for validation
 const toolExecuteRequestSchema = z.object({
@@ -28,8 +27,14 @@ const toolExecuteRequestSchema = z.object({
   args: z.unknown(),
   progressToken: z.union([z.string(), z.number()]).optional(),
   hasProgress: z.boolean().optional(),
-  // Reuse the shared routing metadata schema
-  ...ToolContextRoutingSchema.shape,
+  interfaceType: z.string(),
+  userId: z.string(),
+  conversationId: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  runId: z.string().optional(),
+  toolCallId: z.string().optional(),
+  userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
 });
 
 const resourceGetRequestSchema = z.object({
@@ -110,7 +115,11 @@ export abstract class BasePlugin<
             hasProgress,
             interfaceType,
             userId,
+            conversationId,
             channelId,
+            channelName,
+            runId,
+            toolCallId,
             userPermissionLevel,
           } = toolExecuteRequestSchema.parse(message.payload);
 
@@ -128,7 +137,11 @@ export abstract class BasePlugin<
           const toolContext: ToolContext = {
             interfaceType,
             userId,
+            ...(conversationId && { conversationId }),
             ...(channelId && { channelId }),
+            ...(channelName && { channelName }),
+            ...(runId && { runId }),
+            ...(toolCallId && { toolCallId }),
             ...(userPermissionLevel && { userPermissionLevel }),
             ...(hasProgress &&
               progressToken !== undefined && {

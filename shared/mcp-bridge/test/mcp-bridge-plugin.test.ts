@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { MCPBridgePlugin } from "../src/mcp-bridge-plugin";
 import type { ServerCommand } from "../src/mcp-bridge-plugin";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 // ============================================================================
 // Concrete test subclass

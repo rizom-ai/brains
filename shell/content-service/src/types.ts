@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { ContentVisibility } from "@brains/entity-service";
 
@@ -30,7 +30,7 @@ export const ContentTemplateSchema = z.object({
  * ContentTemplate for reusable generation patterns and view rendering
  */
 export interface ContentTemplate<T = unknown> extends Omit<
-  z.infer<typeof ContentTemplateSchema>,
+  z.output<typeof ContentTemplateSchema>,
   "schema" | "formatter"
 > {
   schema: ContentTemplateSchemaParser<T>;
