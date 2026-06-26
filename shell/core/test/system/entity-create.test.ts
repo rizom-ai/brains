@@ -12,24 +12,22 @@ import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { slugify } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
-const createEntityRequestSchema = z
-  .object({
-    options: z
-      .object({
-        eventContext: z
-          .object({
-            conversationId: z.string().optional(),
-            channelId: z.string().optional(),
-            runId: z.string().optional(),
-            toolCallId: z.string().optional(),
-          })
-          .optional(),
-      })
-      .optional(),
-  })
-  .passthrough();
+const createEntityRequestSchema = z.looseObject({
+  options: z
+    .object({
+      eventContext: z
+        .object({
+          conversationId: z.string().optional(),
+          channelId: z.string().optional(),
+          runId: z.string().optional(),
+          toolCallId: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
 
 const enqueuedCreateJobSchema = z.object({
   targetEntityType: z.string(),
@@ -47,7 +45,7 @@ const enqueuedCoverImageJobSchema = z.object({
 });
 
 const enqueuedLinkJobSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   metadata: z.object({
     interfaceId: z.string(),
     userId: z.string(),
@@ -365,8 +363,7 @@ describe("system_create tool", () => {
     );
 
     const parsedConfirmation = z
-      .object({ preview: z.string() })
-      .passthrough()
+      .looseObject({ preview: z.string() })
       .parse(result);
     expect(result).toMatchObject({ needsConfirmation: true });
     expect(parsedConfirmation.preview).not.toContain("Upload: uploaded file");
@@ -1144,7 +1141,9 @@ status: draft
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
     expect(enqueuedJob.type).toBe("agent:generation");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData["prompt"]).toBe("https://yeehaa.io");
   });
 
@@ -1277,7 +1276,9 @@ A saved research link.`;
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
     expect(enqueuedJob.type).toBe("post:generation");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData["title"]).toBeUndefined();
     expect(rawJobData["content"]).toBeUndefined();
     expect(rawJobData["targetEntityType"]).toBeUndefined();
@@ -1588,7 +1589,9 @@ A saved research link.`;
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
     expect(enqueuedJob.type).toBe("social-post:generation");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData["coverImage"]).toEqual({ generate: true });
   });
 
@@ -1685,7 +1688,9 @@ A saved research link.`;
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData).not.toHaveProperty("options");
     const jobData = enqueuedCreateJobSchema.parse(rawJobData);
     expect(jobData.targetEntityType).toBe("post");

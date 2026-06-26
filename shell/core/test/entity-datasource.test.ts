@@ -6,7 +6,7 @@ import type {
   IEntityService,
   BaseEntity,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 const markdownSchema = z.object({ markdown: z.string() });
 

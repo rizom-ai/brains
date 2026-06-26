@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
 import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 
-const baseEntityResponseSchema = z.object({
+const baseEntityResponseSchema = z.looseObject({
   id: z.string(),
   entityType: z.string(),
 });
@@ -14,23 +14,24 @@ const baseEntityResponseSchema = z.object({
 const searchDataSchema = z.object({
   results: z.array(
     z.object({
-      entity: baseEntityResponseSchema.passthrough(),
+      entity: baseEntityResponseSchema,
     }),
   ),
 });
 
 const listDataSchema = z.object({
-  entities: z.array(baseEntityResponseSchema.passthrough()),
+  entities: z.array(baseEntityResponseSchema),
 });
 
 const getDataSchema = z.object({
-  entity: baseEntityResponseSchema.passthrough(),
+  entity: baseEntityResponseSchema,
 });
 
-function expectSuccess<TSchema extends z.ZodTypeAny>(
-  raw: unknown,
-  schema: TSchema,
-): z.infer<TSchema> {
+interface Parser<T> {
+  parse(input: unknown): T;
+}
+
+function expectSuccess<T>(raw: unknown, schema: Parser<T>): T {
   const response = toolResponseSchema.parse(raw);
   if (!("success" in response) || !response.success) {
     throw new Error(

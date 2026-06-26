@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { registerSystemCapabilities } from "../../src/system/register";
 import { createMockSystemServices } from "./mock-services";
 
@@ -17,7 +17,7 @@ const systemListResponseSchema = z.object({
   }),
 });
 
-const entityIdsSchema = z.array(z.object({ id: z.string() }).passthrough());
+const entityIdsSchema = z.array(z.looseObject({ id: z.string() }));
 
 const makeEntity = (id: string, visibility: ContentVisibility): BaseEntity => ({
   id,
