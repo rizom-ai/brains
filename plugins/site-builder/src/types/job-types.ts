@@ -1,5 +1,5 @@
-import { z } from "@brains/utils/zod";
-import { siteMetadataSchema } from "@brains/site-composition";
+import { z } from "@brains/utils/zod-v4";
+import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
 
 /**
  * Schema for site build job data
@@ -9,13 +9,13 @@ export const siteBuildJobSchema = z.object({
   outputDir: z.string(),
   workingDir: z.string().optional(),
   enableContentGeneration: z.boolean().optional(),
-  siteConfig: siteMetadataSchema.optional(),
+  siteConfig: siteBuilderSiteMetadataSchema.optional(),
 });
 
 /**
  * Site build job data type
  */
-export type SiteBuildJobData = z.infer<typeof siteBuildJobSchema>;
+export type SiteBuildJobData = z.output<typeof siteBuildJobSchema>;
 
 /**
  * Site build job result type

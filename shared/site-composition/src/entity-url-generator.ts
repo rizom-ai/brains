@@ -7,7 +7,7 @@ import { pluralize } from "@brains/utils";
 export interface EntityDisplayMap {
   [entityType: string]: {
     label: string;
-    pluralName?: string;
+    pluralName?: string | undefined;
   };
 }
 

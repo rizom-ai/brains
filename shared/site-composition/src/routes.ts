@@ -30,18 +30,20 @@ export type NavigationSlot = (typeof NavigationSlots)[number];
 /** Display and behavior metadata for an entity type. */
 export interface EntityDisplayEntry {
   label: string;
-  pluralName?: string;
+  pluralName?: string | undefined;
   /** Layout name for this entity type's generated routes (defaults to "default") */
-  layout?: string;
+  layout?: string | undefined;
   /** Enable pagination for list pages */
-  paginate?: boolean;
+  paginate?: boolean | undefined;
   /** Items per page (default: 10) */
-  pageSize?: number;
-  navigation?: {
-    show?: boolean;
-    slot?: NavigationSlot;
-    priority?: number;
-  };
+  pageSize?: number | undefined;
+  navigation?:
+    | {
+        show?: boolean | undefined;
+        slot?: NavigationSlot | undefined;
+        priority?: number | undefined;
+      }
+    | undefined;
 }
 
 /** Navigation metadata schema for route definitions. */

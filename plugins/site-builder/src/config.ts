@@ -1,14 +1,9 @@
-import { z } from "@brains/utils/zod";
-import type { Template } from "@brains/plugins";
-import type { LayoutComponent } from "@brains/site-engine";
+import { z } from "@brains/utils/zod-v4";
 import {
   NavigationSlots,
-  RouteDefinitionSchema,
-  siteMetadataSchema,
   type EntityDisplayEntry,
-  type RouteDefinitionInput,
-  type SiteMetadata,
 } from "@brains/site-composition";
+import { siteBuilderSiteMetadataSchema } from "./types/site-metadata-schema";
 
 /**
  * Entity display metadata per entity type.
@@ -21,6 +16,50 @@ import {
  */
 export type { EntityDisplayEntry };
 export type EntityDisplayMap = Record<string, EntityDisplayEntry>;
+
+const sectionDefinitionSchema = z.object({
+  id: z.string(),
+  template: z.string(),
+  content: z.unknown().optional(),
+  dataQuery: z
+    .looseObject({
+      entityType: z.string().optional(),
+      template: z.string().optional(),
+      query: z
+        .looseObject({
+          id: z.string().optional(),
+          limit: z.number().optional(),
+          offset: z.number().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  order: z.number().optional(),
+});
+
+const navigationMetadataSchema = z
+  .object({
+    show: z.boolean().default(false),
+    label: z.string().optional(),
+    slot: z.enum(NavigationSlots).default("primary"),
+    priority: z.number().min(0).max(100).default(50),
+  })
+  .optional();
+
+const routeDefinitionSchema = z.object({
+  id: z.string(),
+  path: z.string(),
+  title: z.string().default(""),
+  pageLabel: z.string().optional(),
+  description: z.string().default(""),
+  sections: z.array(sectionDefinitionSchema).default([]),
+  layout: z.string().default("default"),
+  fullscreen: z.boolean().optional(),
+  pluginId: z.string().optional(),
+  sourceEntityType: z.string().optional(),
+  external: z.boolean().optional(),
+  navigation: navigationMetadataSchema,
+});
 
 export const siteBuilderConfigSchema = z.object({
   previewOutputDir: z
@@ -42,7 +81,7 @@ export const siteBuilderConfigSchema = z.object({
     .optional()
     .describe("Working directory for builds")
     .default("./.preact-work"),
-  siteInfo: siteMetadataSchema.default({
+  siteInfo: siteBuilderSiteMetadataSchema.default({
     title: "Brain",
     description: "A knowledge management system",
   }),
@@ -58,11 +97,11 @@ export const siteBuilderConfigSchema = z.object({
     .optional(),
   templates: z.any().optional().describe("Template definitions to register"),
   routes: z
-    .array(RouteDefinitionSchema)
+    .array(routeDefinitionSchema)
     .optional()
     .describe("Routes to register"),
   layouts: z
-    .record(z.any())
+    .record(z.string(), z.any())
     .optional()
     .describe("Layout components (at least 'default' required)"),
   autoRebuild: z
@@ -78,6 +117,7 @@ export const siteBuilderConfigSchema = z.object({
     .default(5000),
   entityDisplay: z
     .record(
+      z.string(),
       z.object({
         label: z
           .string()
@@ -123,7 +163,7 @@ export const siteBuilderConfigSchema = z.object({
       "Display metadata per entity type — label, plural name, layout, pagination, navigation slot. Consulted when auto-generating routes for active entity plugins.",
     ),
   staticAssets: z
-    .record(z.string())
+    .record(z.string(), z.string())
     .optional()
     .describe(
       "Static files to write to the output directory at build time. Keys are output paths (e.g. '/canvases/tree.js'), values are file contents as strings. Typically supplied by a SitePackage via text imports.",
@@ -136,30 +176,13 @@ type SiteBuilderSchemaConfig = z.output<typeof siteBuilderConfigSchema>;
 type SiteBuilderSchemaConfigInput = z.input<typeof siteBuilderConfigSchema>;
 
 /**
- * Full site-builder config with properly typed runtime fields.
+ * Full site-builder config after defaults are applied.
  *
  * Several fields use z.any() in the Zod schema because they carry
  * runtime objects (components, templates) that can't be validated.
- * We Omit those fields from the inferred type and re-declare them
- * with their real TypeScript types.
  */
-export type SiteBuilderConfig = Omit<
-  SiteBuilderSchemaConfig,
-  "templates" | "layouts" | "routes" | "entityDisplay"
-> & {
-  siteInfo: SiteMetadata;
-  templates?: Record<string, Template>;
-  layouts?: Record<string, LayoutComponent>;
-  routes?: RouteDefinitionInput[];
-  entityDisplay?: EntityDisplayMap;
-};
+export type SiteBuilderConfig = SiteBuilderSchemaConfig;
 
-export type SiteBuilderConfigInput = Omit<
-  SiteBuilderSchemaConfigInput,
-  "templates" | "layouts" | "routes" | "entityDisplay"
-> & {
-  templates?: Record<string, Template>;
-  layouts?: Record<string, LayoutComponent>;
-  routes?: RouteDefinitionInput[];
-  entityDisplay?: EntityDisplayMap;
+export type SiteBuilderConfigInput = SiteBuilderSchemaConfigInput & {
+  entityDisplay?: EntityDisplayMap | undefined;
 };

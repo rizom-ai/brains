@@ -1,7 +1,7 @@
 import type { ProgressCallback } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
-import { siteMetadataSchema } from "@brains/site-composition";
+import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
 
 /**
  * Site builder options schema
@@ -13,12 +13,12 @@ export const SiteBuilderOptionsSchema = z.object({
   sharedImagesDir: z.string().default("./dist/images"),
   enableContentGeneration: z.boolean().default(false),
   cleanBeforeBuild: z.boolean().default(true),
-  siteConfig: siteMetadataSchema,
-  layouts: z.record(z.any()),
+  siteConfig: siteBuilderSiteMetadataSchema,
+  layouts: z.record(z.string(), z.any()),
   themeCSS: z.string().optional(),
 });
 
-export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema> & {
+export type SiteBuilderOptions = z.output<typeof SiteBuilderOptionsSchema> & {
   // Override layouts type
   layouts: Record<string, LayoutComponent>;
   // Optional slot registry for plugin-registered UI components
@@ -46,7 +46,7 @@ export const BuildResultSchema = z.object({
   warnings: z.array(z.string()).optional(),
 });
 
-export type BuildResult = z.infer<typeof BuildResultSchema>;
+export type BuildResult = z.output<typeof BuildResultSchema>;
 
 /**
  * Site builder interface

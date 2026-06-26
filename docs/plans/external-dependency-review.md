@@ -927,6 +927,10 @@ Incremental migration progress:
   newsletter, rizom-ecosystem, Rover profile extension, professional site, and
   Rizom runtime. Tool-facing and durable entity schemas in those packages remain
   on existing boundaries where applicable.
+- Migrated the site-builder plugin config, build-option, and site-build job
+  parser boundaries to `@brains/utils/zod-v4` using local route/site metadata
+  parser shapes, keeping the shared site-composition and site-info entity
+  schemas on their existing main-Zod boundaries.
 - Migrated the agent-discovery, portfolio, and products list/detail template
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas
