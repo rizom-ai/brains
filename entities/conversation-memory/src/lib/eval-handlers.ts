@@ -1,17 +1,13 @@
 import {
-  contentVisibilitySchema,
   type BaseEntity,
   type ContentVisibility,
   type Conversation,
   type EntityPluginContext,
   type Message,
   type SearchResult,
-  conversationMessageActorSchema,
-  conversationMessageSourceSchema,
 } from "@brains/plugins";
-import { messageRoleSchema } from "@brains/contracts";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { computeContentHash } from "@brains/utils/hash";
 import type {
   ActionItemEntity,
@@ -24,6 +20,35 @@ import { SummaryProjector } from "./summary-projector";
 import { buildConversationMemoryAgentContext } from "./agent-context-provider";
 import { buildFallbackExcerpt } from "./excerpt";
 import { getConversationSpaceId } from "./summary-space-eligibility";
+
+const contentVisibilitySchema = z
+  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return "public";
+    if (value === "private") return "restricted";
+    return value;
+  });
+
+const messageRoleSchema = z.enum(["user", "assistant"]);
+
+const conversationMessageActorSchema = z.object({
+  actorId: z.string(),
+  canonicalId: z.string().optional(),
+  interfaceType: z.string(),
+  role: messageRoleSchema,
+  displayName: z.string().optional(),
+  username: z.string().optional(),
+  isBot: z.boolean().optional(),
+});
+
+const conversationMessageSourceSchema = z.object({
+  messageId: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  threadId: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
 
 const evalMessageSchema = z.object({
   role: messageRoleSchema,
@@ -273,7 +298,7 @@ function createEvalSummaryEntity(params: {
 }
 
 function toEvalMessages(
-  messages: z.infer<typeof evalMessageSchema>[],
+  messages: z.output<typeof evalMessageSchema>[],
   conversationId: string,
 ): Message[] {
   return messages.map((message, index): Message => {
@@ -368,7 +393,7 @@ function createEvalProjectionContext(params: {
   } as EntityPluginContext;
 }
 
-type SeededMemory = z.infer<typeof seededMemorySchema>;
+type SeededMemory = z.output<typeof seededMemorySchema>;
 
 type EvalMemoryEntity = SummaryEntity | DecisionEntity | ActionItemEntity;
 

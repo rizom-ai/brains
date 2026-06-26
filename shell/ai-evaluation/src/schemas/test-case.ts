@@ -1,6 +1,4 @@
-import { z } from "@brains/utils/zod";
-import { UserPermissionLevelSchema } from "@brains/templates";
-import { ChatContextSchema } from "@brains/plugins";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Agent test case types (chat-based)
@@ -30,7 +28,7 @@ export type TestCaseType = z.infer<typeof testCaseTypeSchema>;
  */
 export const expectedToolCallSchema = z.object({
   toolName: z.string(),
-  argsContain: z.record(z.unknown()).optional(),
+  argsContain: z.record(z.string(), z.unknown()).optional(),
   argsAbsent: z
     .array(z.string())
     .optional()
@@ -44,7 +42,7 @@ export type ExpectedToolCall = z.infer<typeof expectedToolCallSchema>;
 
 export const expectedAnyToolCallSchema = z.object({
   toolNames: z.array(z.string()).min(1),
-  argsContain: z.record(z.unknown()).optional(),
+  argsContain: z.record(z.string(), z.unknown()).optional(),
   shouldBeCalled: z.boolean().default(true),
 });
 
@@ -111,9 +109,37 @@ export const evalAttachmentSchema = z.discriminatedUnion("kind", [
 
 export type EvalAttachment = z.infer<typeof evalAttachmentSchema>;
 
-export const turnContextSchema = ChatContextSchema.omit({
-  attachments: true,
-}).partial();
+const userPermissionLevelSchema = z.enum(["anchor", "trusted", "public"]);
+const messageRoleSchema = z.enum(["user", "assistant"]);
+
+const conversationMessageActorSchema = z.object({
+  actorId: z.string(),
+  canonicalId: z.string().optional(),
+  interfaceType: z.string(),
+  role: messageRoleSchema,
+  displayName: z.string().optional(),
+  username: z.string().optional(),
+  isBot: z.boolean().optional(),
+});
+
+const conversationMessageSourceSchema = z.object({
+  messageId: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  threadId: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const turnContextSchema = z
+  .object({
+    userPermissionLevel: userPermissionLevelSchema.optional(),
+    interfaceType: z.string().optional(),
+    channelId: z.string().optional(),
+    channelName: z.string().optional(),
+    actor: conversationMessageActorSchema.optional(),
+    source: conversationMessageSourceSchema.optional(),
+  })
+  .partial();
 
 export type TurnContext = z.infer<typeof turnContextSchema>;
 
@@ -160,7 +186,7 @@ export type Turn = z.infer<typeof turnSchema>;
  * Test setup configuration
  */
 export const testSetupSchema = z.object({
-  permissionLevel: UserPermissionLevelSchema.default("anchor"),
+  permissionLevel: userPermissionLevelSchema.default("anchor"),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
@@ -305,7 +331,7 @@ export const pluginTestCaseSchema = baseTestCaseSchema.extend({
   handler: z.string(),
 
   // Input to pass to the handler
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
 
   // Expected output validation
   expectedOutput: expectedOutputSchema,

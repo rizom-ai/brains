@@ -902,6 +902,10 @@ Incremental migration progress:
   `@brains/utils/zod-v4` while leaving the plugin config and message payload
   schemas on the current main-Zod plugin/tool boundary. Dashboard data continues
   through the structural data-source parser boundary.
+- Migrated `@brains/ai-evaluation` test-case YAML schemas and the
+  conversation-memory eval-handler input parsers to `@brains/utils/zod-v4` with
+  local chat-context/provenance/visibility parser shapes, avoiding mixed
+  composition with plugin/framework schemas.
 - Migrated the agent-discovery, portfolio, and products list/detail template
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas
