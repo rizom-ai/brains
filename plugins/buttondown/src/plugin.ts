@@ -5,7 +5,7 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { ButtondownClient } from "./lib/buttondown-client";
 import { createButtondownTools } from "./tools";
 import {

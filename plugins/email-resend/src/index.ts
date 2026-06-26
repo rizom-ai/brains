@@ -7,21 +7,20 @@ import {
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import type { FetchLike } from "@brains/utils";
-import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
-const emailResendConfigSchema = zConfig.object({
-  apiKey: zConfig.string().min(1).optional(),
-  from: zConfig.string().min(1).optional(),
+const emailResendConfigSchema = z.object({
+  apiKey: z.string().min(1).optional(),
+  from: z.string().min(1).optional(),
 });
 
 const resendEmailResponseSchema = z.looseObject({
   id: z.string().optional(),
 });
 
-type EmailResendConfig = zConfig.output<typeof emailResendConfigSchema>;
-type EmailResendConfigInput = zConfig.input<typeof emailResendConfigSchema>;
+type EmailResendConfig = z.output<typeof emailResendConfigSchema>;
+type EmailResendConfigInput = z.input<typeof emailResendConfigSchema>;
 
 export type EmailSendResult = SendEmailResult;
 

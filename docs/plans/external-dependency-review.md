@@ -906,6 +906,11 @@ Incremental migration progress:
   conversation-memory eval-handler input parsers to `@brains/utils/zod-v4` with
   local chat-context/provenance/visibility parser shapes, avoiding mixed
   composition with plugin/framework schemas.
+- Decoupled the internal base plugin constructor to accept any typed parser with
+  `parse(input)`, then migrated standalone service plugin config schemas for
+  analytics, ATProto, Buttondown, email-resend, HackMD, notifications, Notion,
+  and stock-photo to `@brains/utils/zod-v4`. Durable entity schemas and
+  tool-facing framework schemas stay on their current boundaries.
 - Migrated the agent-discovery, portfolio, and products list/detail template
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas

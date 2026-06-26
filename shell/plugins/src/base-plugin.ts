@@ -18,6 +18,10 @@ import {
 import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 
+type ConfigSchemaParser<TConfig> =
+  | { parse(input: unknown): TConfig }
+  | z.ZodTypeAny;
+
 // Message schemas for validation
 const toolExecuteRequestSchema = z.object({
   toolName: z.string(),
@@ -72,7 +76,7 @@ export abstract class BasePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     partialConfig: TConfigInput,
-    configSchema: z.ZodTypeAny,
+    configSchema: ConfigSchemaParser<TConfig>,
   ) {
     this.id = id;
     this.packageName = packageJson.name;

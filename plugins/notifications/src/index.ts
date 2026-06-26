@@ -5,18 +5,17 @@ import {
 } from "@brains/email-contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
 export const NOTIFICATIONS_SEND = "notifications:send";
 
-const notificationsConfigSchema = zConfig.object({});
+const notificationsConfigSchema = z.looseObject({});
 
 const notificationRecipientSchema = z.discriminatedUnion("type", [
   z.strictObject({
     type: z.literal("email"),
-    address: z.string().email(),
+    address: z.email(),
   }),
 ]);
 
@@ -28,8 +27,8 @@ const sendNotificationSchema = z.strictObject({
   sensitivity: z.enum(["normal", "secret"]).default("normal"),
 });
 
-type NotificationsConfig = zConfig.output<typeof notificationsConfigSchema>;
-type NotificationsConfigInput = zConfig.input<typeof notificationsConfigSchema>;
+type NotificationsConfig = z.output<typeof notificationsConfigSchema>;
+type NotificationsConfigInput = z.input<typeof notificationsConfigSchema>;
 
 export type SendNotificationInput = z.infer<typeof sendNotificationSchema>;
 

@@ -1,9 +1,8 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const atprotoConfigSchema = z.object({
   enabled: z.boolean().default(true),
   pdsEndpoint: z
-    .string()
     .url()
     .default("https://bsky.social")
     .describe("AT Protocol PDS service endpoint"),
