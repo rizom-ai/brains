@@ -804,18 +804,20 @@ Incremental migration progress:
   compose remaining main-Zod entity/template trees stay on the current boundary.
 - Migrated additional standalone AI parser schemas for note generation, series
   descriptions, agent-discovery skill derivation, and conversation-memory
-  summary extraction/projection decisions to `@brains/utils/zod-v4`; the entity
-  plugin AI namespace now accepts the same main-Zod/Zod 4 generation schema
-  union as the shell AI service, while still-main entity/config/template-list
-  schemas stay unmixed.
+  summary extraction/projection decisions to `@brains/utils/zod-v4`; note
+  frontmatter record probing now uses the Zod 4 record helper through the
+  structural frontmatter parser. The entity plugin AI namespace now accepts the
+  same main-Zod/Zod 4 generation schema union as the shell AI service, while
+  still-main entity/config/template-list schemas stay unmixed.
 - Migrated the AI-service brain call-options schema, AI-service object
   generation test fixture, and template/content-service structural schema test
   fixtures to `@brains/utils/zod-v4`; the production template/config schemas
   that define framework metadata remain on the current main-Zod boundary.
 - Migrated assessment SWOT derivation job/AI-output schemas and the newsletter
-  composite factory config parser to `@brains/utils/zod-v4`; assessment entity
-  schemas and service-plugin config schemas that compose framework boundaries
-  remain on the current main-Zod boundary.
+  composite factory config parser to `@brains/utils/zod-v4`; assessment keeps
+  the Zod 4 job/AI parser schemas in a separate module from the durable SWOT
+  entity schema, and service-plugin config schemas that compose framework
+  boundaries remain on the current main-Zod boundary.
 - Migrated additional structural test fixture schemas for datasource outputs,
   insight result parsing, and dynamic site-route template placeholders to
   `@brains/utils/zod-v4`; production entity/template schemas that still compose

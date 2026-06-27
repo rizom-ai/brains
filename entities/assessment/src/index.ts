@@ -35,12 +35,14 @@ export {
   swotFrontmatterSchema,
   swotMetadataSchema,
   swotEntitySchema,
-  swotDerivationJobSchema,
-  swotGenerationSchema,
   type SwotItem,
   type SwotFrontmatter,
   type SwotMetadata,
   type SwotEntity,
+} from "./schemas/swot";
+export {
+  swotDerivationJobSchema,
+  swotGenerationSchema,
   type SwotDerivationJobData,
   type SwotGeneration,
-} from "./schemas/swot";
+} from "./schemas/swot-generation";

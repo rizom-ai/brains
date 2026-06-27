@@ -1,16 +1,15 @@
 import type { EntityPluginContext, JobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { SwotAdapter } from "../adapters/swot-adapter";
+import { type SwotEntity, type SwotItem } from "../schemas/swot";
 import {
   swotDerivationJobSchema,
   swotDraftGenerationSchema,
   swotGenerationSchema,
   type SwotDerivationJobData,
-  type SwotEntity,
   type SwotDraftGeneration,
   type SwotGeneration,
-  type SwotItem,
-} from "../schemas/swot";
+} from "../schemas/swot-generation";
 import { buildSwotContext, type SwotContext } from "../lib/swot-context";
 
 function normalizeSkillText(value: string): string {

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 import type { BaseEntity, EntityAdapter } from "../types";
 import {
@@ -114,7 +114,7 @@ export abstract class BaseEntityAdapter<
 
   private readExistingFrontmatter(content: string): Record<string, unknown> {
     try {
-      return parseMarkdownWithFrontmatter(content, z.record(z.unknown()))
+      return parseMarkdownWithFrontmatter(content, frontmatterRecordSchema)
         .metadata;
     } catch {
       return {};
@@ -145,7 +145,7 @@ export abstract class BaseEntityAdapter<
   /** Strip frontmatter and return the body content. */
   protected extractBody(markdown: string): string {
     try {
-      return parseMarkdownWithFrontmatter(markdown, z.record(z.unknown()))
+      return parseMarkdownWithFrontmatter(markdown, frontmatterRecordSchema)
         .content;
     } catch {
       return markdown;

@@ -1,10 +1,7 @@
 import type { Plugin, EntityPluginContext } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import {
-  swotEntitySchema,
-  type SwotEntity,
-  type SwotDerivationJobData,
-} from "./schemas/swot";
+import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
+import type { SwotDerivationJobData } from "./schemas/swot-generation";
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
 import { SwotWidget } from "./widgets/swot-widget";
