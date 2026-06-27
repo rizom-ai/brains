@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
   createMockShell,
   createServicePluginContext,
+  emptyFrontmatterSchema,
+  type BaseEntity,
   type ServicePluginContext,
 } from "@brains/plugins/test";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
@@ -19,22 +20,21 @@ import {
   getDocumentId,
 } from "../../src/handlers/documentGenerationHandler";
 
-const socialPostStubSchema = baseEntitySchema.extend({
-  entityType: z.literal("social-post"),
-});
-type SocialPostStub = z.infer<typeof socialPostStubSchema>;
+const socialPostStubSchema = baseEntitySchema;
+
+type SocialPostStub = BaseEntity;
 
 class SocialPostStubAdapter extends BaseEntityAdapter<SocialPostStub> {
   constructor() {
     super({
       entityType: "social-post",
       schema: socialPostStubSchema,
-      frontmatterSchema: z.object({}),
+      frontmatterSchema: emptyFrontmatterSchema,
     });
   }
 
   public fromMarkdown(content: string): Partial<SocialPostStub> {
-    return { entityType: "social-post" as const, content };
+    return { entityType: "social-post", content };
   }
 }
 

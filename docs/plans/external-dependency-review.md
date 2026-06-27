@@ -1027,7 +1027,8 @@ Incremental migration progress:
   agent-card parser moved to Zod 4 after splitting the main-Zod `skillDataSchema`
   durable entity contract into its own file, and entity-service now exposes a
   shared empty frontmatter schema so tests/adapters no longer import main-Zod
-  only to spell `z.object({})`.
+  only to spell `z.object({})`, with a few registration-only tests reusing the
+  base entity schema instead of local literal refinements.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
