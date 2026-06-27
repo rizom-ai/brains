@@ -1001,9 +1001,10 @@ Incremental migration progress:
 - Decoupled additional parser-only type slots from nominal main-Zod imports by
   using structural `parse(input)` contracts for site-builder view templates and
   public plugin-author config delegates. Migrated the agent-discovery composite
-  config, directory-sync quarantine ZodError guard/test parser, and entity
-  pagination parser to `@brains/utils/zod-v4` without touching durable
-  entity/frontmatter schemas.
+  config, agent generation job parser, directory-sync quarantine ZodError
+  guard/test parser, content-pipeline mock entity test schemas, entity
+  pagination parser, and public URL-capture config parser to
+  `@brains/utils/zod-v4` without touching durable entity/frontmatter schemas.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

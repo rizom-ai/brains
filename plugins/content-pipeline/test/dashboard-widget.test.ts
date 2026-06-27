@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import type { UserPermissionLevel } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import {
+  baseEntitySchema,
   createMockShell,
   createServicePluginContext,
   type MockShell,
@@ -34,7 +34,11 @@ describe("dashboard widget registration", () => {
     context = createServicePluginContext(mockShell, "content-pipeline");
     mockShell
       .getEntityRegistry()
-      .registerEntityType("social-post", z.any(), {} as never);
+      .registerEntityType(
+        "social-post",
+        baseEntitySchema.partial().passthrough(),
+        {} as never,
+      );
 
     context.messaging.subscribe<DashboardWidgetPayload, { success: boolean }>(
       "dashboard:register-widget",

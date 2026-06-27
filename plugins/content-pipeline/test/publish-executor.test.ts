@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
-import { z } from "@brains/utils/zod";
 import {
+  baseEntitySchema,
   createMockShell,
   createServicePluginContext,
 } from "@brains/plugins/test";
@@ -12,7 +12,11 @@ describe("PublishExecutor", () => {
     const shell = createMockShell();
     shell
       .getEntityRegistry()
-      .registerEntityType("social-post", z.any(), {} as never);
+      .registerEntityType(
+        "social-post",
+        baseEntitySchema.partial().passthrough(),
+        {} as never,
+      );
     const context = createServicePluginContext(shell, "content-pipeline");
     const providerRegistry = ProviderRegistry.createFresh();
     providerRegistry.register(
@@ -56,7 +60,13 @@ Body`,
 
   it("runs publish asset preflight after publish state is updated", async () => {
     const shell = createMockShell();
-    shell.getEntityRegistry().registerEntityType("post", z.any(), {} as never);
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        "post",
+        baseEntitySchema.partial().passthrough(),
+        {} as never,
+      );
     const context = createServicePluginContext(shell, "content-pipeline");
     const providerRegistry = ProviderRegistry.createFresh();
     providerRegistry.register("post", {

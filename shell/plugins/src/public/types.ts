@@ -15,7 +15,8 @@ import type {
   OutputFormat,
   UserPermissionLevel,
 } from "@brains/templates";
-import { z } from "@brains/utils/zod";
+import type { z as zMain } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
@@ -27,12 +28,12 @@ import type {
 } from "../contracts/messaging";
 
 export type PluginConfig = Record<string, unknown>;
-export type PluginConfigInput<T extends z.ZodTypeAny> = z.input<T>;
+export type PluginConfigInput<T extends zMain.ZodTypeAny> = zMain.input<T>;
 
 export interface JudgeInput<T> {
   instruction: string;
   material: string;
-  schema: z.ZodType<T>;
+  schema: zMain.ZodType<T>;
 }
 
 export interface Plugin {
@@ -92,7 +93,7 @@ export type ToolSideEffects = "none" | "writes" | "external";
 export interface Tool<TArgs = unknown, TResult = unknown> {
   name: string;
   description: string;
-  inputSchema: z.ZodRawShape;
+  inputSchema: zMain.ZodRawShape;
   handler: (args: TArgs, context: ToolContext) => Promise<TResult> | TResult;
   visibility?: ToolVisibility;
   confirmation?: ToolConfirmation;
@@ -227,13 +228,13 @@ export const urlCaptureConfigSchema = z.object({
 
 export interface Channel<TPayload, TResponse = unknown> {
   readonly name: string;
-  readonly schema: z.ZodType<TPayload>;
+  readonly schema: zMain.ZodType<TPayload>;
   readonly _response?: TResponse;
 }
 
 export function defineChannel<TPayload, TResponse = unknown>(
   name: string,
-  schema: z.ZodType<TPayload>,
+  schema: zMain.ZodType<TPayload>,
 ): Channel<TPayload, TResponse> {
   return { name, schema };
 }

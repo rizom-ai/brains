@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { z } from "@brains/utils/zod";
 import { createPublishTool, publishInputSchema } from "../../src/tools/publish";
 import { ProviderRegistry } from "../../src/provider-registry";
 import type { PublishProvider } from "@brains/contracts";
@@ -7,6 +6,7 @@ import type { PublishResult } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { PermissionService } from "@brains/templates";
 import {
+  baseEntitySchema,
   createMockShell,
   type MockShell,
   createServicePluginContext,
@@ -64,7 +64,11 @@ describe("Publish Pipeline - Publish Tool", () => {
     // Register the social-post entity type (MockShell just tracks registered types)
     mockShell
       .getEntityRegistry()
-      .registerEntityType("social-post", z.any(), {} as never);
+      .registerEntityType(
+        "social-post",
+        baseEntitySchema.partial().passthrough(),
+        {} as never,
+      );
   });
 
   describe("createPublishTool", () => {
