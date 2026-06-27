@@ -1,6 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
-import type { z } from "@brains/utils/zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 import {
   actionItemMetadataSchema,
@@ -19,6 +18,10 @@ import {
 
 const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
 
+interface TypedFrontmatterSchema<T> {
+  parse(data: unknown): T;
+}
+
 /**
  * Shared adapter for derived conversation memory entities (decisions,
  * action items). Both entity types share an identical markdown shape:
@@ -29,20 +32,20 @@ class ConversationMemoryEntityAdapter<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata extends object,
 > extends BaseEntityAdapter<TEntity, TMetadata> {
-  private readonly metadataSchema: z.ZodSchema<TMetadata>;
+  private readonly metadataSchema: { parse(data: unknown): TMetadata };
 
   constructor(config: {
     entityType: string;
-    schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
-    metadataSchema: z.ZodObject<z.ZodRawShape>;
+    schema: BaseEntityAdapter<TEntity, TMetadata>["schema"];
+    metadataSchema: BaseEntityAdapter<TEntity, TMetadata>["frontmatterSchema"];
+    parseMetadata: TypedFrontmatterSchema<TMetadata>;
   }) {
     super({
       entityType: config.entityType,
       schema: config.schema,
       frontmatterSchema: config.metadataSchema,
     });
-    this.metadataSchema =
-      config.metadataSchema as unknown as z.ZodSchema<TMetadata>;
+    this.metadataSchema = config.parseMetadata;
   }
 
   public composeContent(
@@ -78,6 +81,7 @@ export class DecisionAdapter extends ConversationMemoryEntityAdapter<
       entityType: DECISION_ENTITY_TYPE,
       schema: decisionSchema,
       metadataSchema: decisionMetadataSchema,
+      parseMetadata: decisionMetadataSchema,
     });
   }
 }
@@ -91,6 +95,7 @@ export class ActionItemAdapter extends ConversationMemoryEntityAdapter<
       entityType: ACTION_ITEM_ENTITY_TYPE,
       schema: actionItemSchema,
       metadataSchema: actionItemMetadataSchema,
+      parseMetadata: actionItemMetadataSchema,
     });
   }
 }
