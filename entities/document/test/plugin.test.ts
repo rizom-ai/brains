@@ -23,6 +23,17 @@ describe("DocumentPlugin", () => {
     ]);
   });
 
+  it("declares document_generate as an anchor-only write tool", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    const capabilities = await harness.installPlugin(new DocumentPlugin());
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "document_generate",
+    );
+
+    expect(tool?.visibility).toBe("anchor");
+    expect(tool?.sideEffects).toBe("writes");
+  });
+
   it("describes durable source-derived saves with canonical attachment source", async () => {
     const harness = createPluginHarness<DocumentPlugin>();
     const capabilities = await harness.installPlugin(new DocumentPlugin());
