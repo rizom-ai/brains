@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Shared database configuration — used by all services (entity, embedding,
@@ -9,7 +9,7 @@ export interface DbConfig {
   authToken?: string | undefined;
 }
 
-export const dbConfigSchema: z.ZodType<DbConfig> = z.object({
+export const dbConfigSchema = z.object({
   url: z.string(),
   authToken: z.string().optional(),
 });

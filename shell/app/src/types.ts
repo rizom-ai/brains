@@ -1,14 +1,28 @@
-import { z } from "@brains/utils/zod";
-import { pluginMetadataSchema } from "@brains/plugins";
+import { z } from "@brains/utils/zod-v4";
 import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/chat-repl";
 import type { PermissionConfig } from "@brains/templates";
-import { brainCharacterBodySchema } from "@brains/identity-service";
+
+const pluginMetadataSchema = z.object({
+  id: z.string(),
+  version: z.string(),
+  type: z.enum(["core", "entity", "service", "interface"]),
+  description: z.string().optional(),
+  dependencies: z.array(z.string()).optional(),
+  packageName: z.string(),
+});
+
+const appIdentitySchema = z.object({
+  name: z.string(),
+  role: z.string(),
+  purpose: z.string(),
+  values: z.array(z.string()),
+});
 
 // Log level schema — shared between AppConfig and brain-resolver
 export const logLevelSchema = z.enum(["debug", "info", "warn", "error"]);
-export type LogLevel = z.infer<typeof logLevelSchema>;
+export type LogLevel = z.output<typeof logLevelSchema>;
 
 // Deployment configuration schema
 // This consolidates all deployment settings that were previously in deploy.config.json
@@ -27,7 +41,7 @@ export const deploymentConfigSchema = z.object({
       enabled: z.boolean().default(true),
       image: z.string().optional(), // defaults to app name
     })
-    .default({}),
+    .prefault({}),
 
   // Port configuration (also used by WebserverInterface)
   ports: z
@@ -36,7 +50,7 @@ export const deploymentConfigSchema = z.object({
       preview: z.number().default(4321),
       production: z.number().default(8080),
     })
-    .default({}),
+    .prefault({}),
 
   // CDN configuration
   cdn: z
@@ -44,7 +58,7 @@ export const deploymentConfigSchema = z.object({
       enabled: z.boolean().default(false),
       provider: z.enum(["bunny", "none"]).default("none"),
     })
-    .default({}),
+    .prefault({}),
 
   // DNS configuration
   dns: z
@@ -52,7 +66,7 @@ export const deploymentConfigSchema = z.object({
       enabled: z.boolean().default(false),
       provider: z.enum(["bunny", "none"]).default("none"),
     })
-    .default({}),
+    .prefault({}),
 
   // Paths (with sensible defaults based on app name)
   paths: z
@@ -60,7 +74,7 @@ export const deploymentConfigSchema = z.object({
       install: z.string().optional(), // defaults to /opt/{app-name}
       data: z.string().optional(), // defaults to /opt/{app-name}/data
     })
-    .default({}),
+    .prefault({}),
 });
 
 export type DeploymentConfig = z.output<typeof deploymentConfigSchema>;
@@ -84,11 +98,11 @@ export const appConfigSchema = z.object({
   // Shared conversation spaces for this brain/team
   spaces: z.array(z.string()).default([]),
   // Identity - override default identity for this app
-  identity: brainCharacterBodySchema.optional(),
+  identity: appIdentitySchema.optional(),
   // Brain-specific instructions appended to shell-neutral agent instructions
   agentInstructions: z.array(z.string()).optional(),
   // Deployment configuration
-  deployment: deploymentConfigSchema.default({}),
+  deployment: deploymentConfigSchema.prefault({}),
 });
 
 type AppConfigSchemaOutput = Omit<

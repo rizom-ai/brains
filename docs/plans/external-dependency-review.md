@@ -965,6 +965,11 @@ Incremental migration progress:
   override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod-v4`.
   The app parser duplicates the small permission/action-policy validation
   shapes locally so it does not compose main-Zod template schemas.
+- Migrated shared DB config, shell config, and app config parser boundaries to
+  `@brains/utils/zod-v4`. The app/core config schemas now use local plugin and
+  identity metadata validators to avoid composing plugin/template main-Zod
+  schemas; nested defaults use Zod 4 prefaults where defaults must still be
+  parsed through child object schemas.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

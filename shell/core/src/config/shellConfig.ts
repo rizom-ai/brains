@@ -1,11 +1,11 @@
 import { dbConfigSchema } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type {
   Plugin,
   IEvalHandlerRegistry,
   EntityDisplayEntry,
 } from "@brains/plugins";
-import { pluginMetadataSchema } from "@brains/plugins";
+
 import type { PermissionConfig } from "@brains/templates";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import { mkdir } from "fs/promises";
@@ -18,6 +18,30 @@ import {
 export type { StandardConfig } from "./standardConfig";
 
 export const STANDARD_PATHS = createStandardPaths();
+
+const pluginMetadataSchema = z.object({
+  id: z.string(),
+  version: z.string(),
+  type: z.enum(["core", "entity", "service", "interface"]),
+  description: z.string().optional(),
+  dependencies: z.array(z.string()).optional(),
+  packageName: z.string(),
+});
+
+const entityDisplayEntrySchema = z.looseObject({
+  label: z.string().min(1),
+  pluralName: z.string().optional(),
+  layout: z.string().optional(),
+  paginate: z.boolean().optional(),
+  pageSize: z.number().optional(),
+  navigation: z
+    .object({
+      show: z.boolean().optional(),
+      slot: z.enum(["primary", "secondary"]).optional(),
+      priority: z.number().optional(),
+    })
+    .optional(),
+});
 
 export function getStandardConfig(): StandardConfig {
   return createStandardConfig(STANDARD_PATHS);
@@ -70,7 +94,7 @@ export const shellConfigSchema = z.object({
       file: z.string().optional(),
       context: z.string().default("shell"),
     })
-    .default({ level: "info", context: "shell" }),
+    .prefault({ level: "info", context: "shell" }),
 
   features: z.object({}).default({}),
   plugins: z.array(pluginMetadataSchema).default([]),
@@ -80,15 +104,7 @@ export const shellConfigSchema = z.object({
   localSiteUrl: z.string().optional(),
   preferLocalUrls: z.boolean().default(false),
   themeCSS: z.string().default(""),
-  entityDisplay: z
-    .record(
-      z
-        .object({
-          label: z.string().min(1),
-        })
-        .passthrough(),
-    )
-    .optional(),
+  entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
 });
 
 export type ShellConfigSchemaOutput = z.output<typeof shellConfigSchema>;
@@ -180,8 +196,7 @@ export function createShellConfig(
   if (overrides.preferLocalUrls !== undefined)
     result.preferLocalUrls = overrides.preferLocalUrls;
   result.themeCSS = overrides.themeCSS ?? "";
-  if (entityDisplay !== undefined)
-    result.entityDisplay = entityDisplay as Record<string, EntityDisplayEntry>;
+  if (entityDisplay !== undefined) result.entityDisplay = entityDisplay;
 
   return result;
 }
