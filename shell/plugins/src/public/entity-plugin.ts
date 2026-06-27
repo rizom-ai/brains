@@ -14,16 +14,17 @@ import type {
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
-import type { z } from "@brains/utils/zod";
 import type { EntityPluginContext, Plugin } from "./types";
 
-type ConfigSchemaParser<TConfig> =
-  | { parse(input: unknown): TConfig }
-  | z.ZodTypeAny;
+interface ConfigSchemaParser<TConfig> {
+  parse(input: unknown): TConfig;
+}
+type EntitySchema<TEntity extends BaseEntity> =
+  EntityAdapter<TEntity>["schema"];
 
 interface EntityPluginHooks<TEntity extends BaseEntity> {
   getEntityType(): string;
-  getSchema(): z.ZodSchema<TEntity>;
+  getSchema(): EntitySchema<TEntity>;
   getAdapter(): EntityAdapter<TEntity>;
   onRegister(context: EntityPluginContext): Promise<void>;
   onReady(context: EntityPluginContext): Promise<void>;
@@ -59,7 +60,7 @@ class EntityPluginDelegate<
     return this.hooks.getEntityType();
   }
 
-  override get schema(): z.ZodSchema<TEntity> {
+  override get schema(): EntitySchema<TEntity> {
     return this.hooks.getSchema();
   }
 
@@ -115,7 +116,7 @@ export abstract class EntityPlugin<
   public readonly packageName: string;
   public readonly description?: string;
   public abstract readonly entityType: string;
-  public abstract readonly schema: z.ZodSchema<TEntity>;
+  public abstract readonly schema: EntitySchema<TEntity>;
   public abstract readonly adapter: EntityAdapter<TEntity>;
   private readonly delegate: EntityPluginDelegate<
     TEntity,
@@ -142,7 +143,7 @@ export abstract class EntityPlugin<
       configSchema,
       {
         getEntityType: (): string => this.entityType,
-        getSchema: (): z.ZodSchema<TEntity> => this.schema,
+        getSchema: (): EntitySchema<TEntity> => this.schema,
         getAdapter: (): EntityAdapter<TEntity> => this.adapter,
         onRegister: (context): Promise<void> => this.onRegister(context),
         onReady: (context): Promise<void> => this.onReady(context),
