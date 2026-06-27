@@ -136,7 +136,7 @@ const a2aCallInputSchema = {
   agent: z
     .string()
     .describe(
-      "Exact domain-like agent target, HTTPS agent URL, or saved local agent id such as yeehaa.io, https://docs.rizom.ai/a2a, or save-it-regression.example. HTTPS URLs are canonicalized to their hostname and contacted over HTTPS. Any bare string with a dot and no slash/protocol is domain-like, including .example test domains. The tool verifies unsaved exact domains with an Agent Card before contact and never auto-saves. Never pass a display name like Brain or a non-HTTPS URL.",
+      "Exact domain-like agent target or saved local agent id such as yeehaa.io, docs.rizom.ai, or save-it-regression.example. If the user provides an HTTPS URL, pass only its hostname as the agent id (for https://docs.rizom.ai/a2a, pass docs.rizom.ai). Any bare string with a dot and no slash/protocol is domain-like, including .example test domains. The tool verifies unsaved exact domains with an Agent Card before contact and never auto-saves. Never pass a full URL, display name like Brain, or non-HTTPS URL.",
     ),
   message: z.string().describe("Message to send to the remote agent"),
 };
@@ -487,7 +487,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
   return {
     name: "agent_call",
     description:
-      "Call a remote A2A agent by exact domain-like target, HTTPS agent URL, or saved local agent id. Use this when the user asks what an exact domain-like agent id has to say, asks to talk/message/contact that id, or asks that agent for its skills/capabilities. For saved agents, the tool enforces approved/not-archived status before network contact. For unsaved exact domains or HTTPS URLs, the tool verifies the A2A Agent Card over HTTPS and may perform a one-shot call without saving; it returns a typed save/connect candidate after success. Use bare ids such as yeehaa.io, docs.rizom.ai, or save-it-regression.example, or HTTPS URLs such as https://docs.rizom.ai/a2a; .example test domains are exact domain-like ids. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current state. Never pass a display name like Brain or a non-HTTPS URL. If the user gives an ambiguous name, ask them to connect/save or clarify the agent first.",
+      "Call a remote A2A agent by exact domain-like target or saved local agent id. Use this when the user asks what an exact domain-like agent id has to say, asks to talk/message/contact that id, or asks that agent for its skills/capabilities. For saved agents, the tool enforces approved/not-archived status before network contact. For unsaved exact domains, the tool verifies the A2A Agent Card over HTTPS and may perform a one-shot call without saving; it returns a typed save/connect candidate after success. Use bare ids such as yeehaa.io, docs.rizom.ai, or save-it-regression.example; .example test domains are exact domain-like ids. If the user provides an HTTPS URL such as https://docs.rizom.ai/a2a, pass only the hostname docs.rizom.ai. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current state. Never pass a full URL, a display name like Brain, or a non-HTTPS URL. If the user gives an ambiguous name, ask them to connect/save or clarify the agent first.",
     inputSchema: a2aCallInputSchema,
     visibility: "anchor",
     sideEffects: "external",

@@ -51,6 +51,9 @@ describe("A2A instructions", () => {
     );
     expect(instructions).toContain("report that failure directly");
     expect(instructions).toContain(
+      "Do not say the agent was saved, connected, or may need to be saved/connected first",
+    );
+    expect(instructions).toContain(
       "Do not answer from memory, local docs, onboarding docs, or general knowledge",
     );
   });
