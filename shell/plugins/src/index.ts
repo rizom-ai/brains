@@ -509,9 +509,8 @@ export {
   anchorExtensionParamsSchema,
   parseAgentCard,
   type ParsedAgentCard,
-  skillDataSchema,
-  type SkillData,
 } from "./a2a/agent-card-schema";
+export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
 
 // ============================================================================
 // System Integration (Daemons, Interface Plugins)

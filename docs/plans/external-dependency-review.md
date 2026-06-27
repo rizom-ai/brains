@@ -1021,9 +1021,11 @@ Incremental migration progress:
   public delegate registration derive schema/frontmatter types from
   `EntityAdapter`, conversation-memory derived-entity adapters use a typed
   structural frontmatter parser slot, entity-service test helper mocks no longer
-  import nominal main-Zod types solely for adapter/schema signatures, and shared
+  import nominal main-Zod types solely for adapter/schema signatures, shared
   site-composition metadata is Zod 4-owned with local main-Zod duplicates where
-  durable site-info/professional template schemas still need them.
+  durable site-info/professional template schemas still need them, and the A2A
+  agent-card parser moved to Zod 4 after splitting the main-Zod `skillDataSchema`
+  durable entity contract into its own file.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
