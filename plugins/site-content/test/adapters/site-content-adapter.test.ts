@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { siteContentAdapter } from "../../src/adapters/site-content-adapter";
 import { createMockSiteContent } from "../fixtures/site-entities";
 

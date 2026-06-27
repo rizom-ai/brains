@@ -1026,6 +1026,46 @@ Incremental migration progress:
   should state both key and value schemas explicitly
   (`z.record(z.string(), z.unknown())`).
 
+### Transitional Zod compatibility debt — not endgame
+
+These compatibility points are intentional migration scaffolding only. They must
+be removed or collapsed to the final Zod 4/domain contract before calling the
+migration complete:
+
+- `shell/templates/src/types.ts` keeps `TemplateSchemaParser<T>` as a
+  main-Zod/Zod 4 union so existing template providers continue to typecheck.
+  Endgame: one Zod 4-owned template schema contract, or a non-Zod domain parser
+  contract if templates are deliberately schema-library agnostic.
+- `shell/ai-service/src/types.ts` keeps AI generation output schemas as a
+  main-Zod/Zod 4 union. Endgame: one Zod 4-owned generation schema contract.
+- `shell/plugins/src/public/types.ts` still uses type-only `zMain` for public
+  plugin-author helpers (`PluginConfigInput`, judge input schemas, tool raw
+  shapes, and channels). Endgame: public helpers expose Zod 4 types or domain
+  parser/shape contracts, not main-Zod aliases.
+- `shell/app/src/brain-resolver.ts` treats both main-Zod and Zod 4 `ZodError`
+  as config validation failures. Endgame: remove the main-Zod branch once app
+  plugin/config validators are fully Zod 4-owned.
+- `plugins/directory-sync/src/lib/quarantine.ts` classifies both main-Zod and
+  Zod 4 `ZodError` as validation quarantine reasons. Endgame: remove the
+  main-Zod branch once all deserialize/import validators throw Zod 4 errors (or
+  normalize errors through a non-Zod domain error before quarantine).
+- `plugins/obsidian-vault/src/lib/schema-introspector.ts` structurally
+  introspects both main-Zod and Zod 4 object internals. Endgame: replace this
+  with a Zod 4-only frontmatter-introspection adapter or a schema-owned field
+  metadata contract; do not leave dual internal-shape probing as final design.
+- Structural parser slots added during this migration are compatibility
+  scaffolding when they exist only to accept both Zod generations. Track and
+  revisit: `shell/messaging-service/src/message-validator.ts`,
+  `shell/runtime-state/src/types.ts`, `shell/entity-service/src/datasource-types.ts`,
+  `shell/job-queue/src/base-job-handler.ts`, `shell/plugins/src/base-plugin.ts`,
+  `shell/plugins/src/entity/entity-plugin.ts`, public service/interface/message
+  and entity plugin delegates, `plugins/site-builder/src/lib/site-view-template.ts`,
+  `shared/content-formatters/src/formatters/structured-content.ts`,
+  `shared/media-page-composer/src/types.ts`, and
+  `shell/content-service/src/types.ts`. Endgame for each is either Zod 4-only
+  ownership or an explicitly schema-library-neutral API chosen for architectural
+  reasons, not accidental legacy support.
+
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 
 Revisit `isolatedDeclarations` only after the Zod 4 migration has settled.
