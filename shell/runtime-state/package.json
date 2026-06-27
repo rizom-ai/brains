@@ -1,7 +1,7 @@
 {
   "name": "@brains/runtime-state",
   "private": true,
-  "version": "0.2.0-alpha.129",
+  "version": "0.2.0-alpha.130",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
