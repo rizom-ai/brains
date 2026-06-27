@@ -301,6 +301,26 @@ describe("PlaybooksPlugin", () => {
     ]);
   });
 
+  it("declares playbook tool visibility and side effects", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+
+    const metadata = Object.fromEntries(
+      capabilities.tools
+        .filter((tool) => tool.name.startsWith("playbook_"))
+        .map((tool) => [
+          tool.name,
+          { visibility: tool.visibility, sideEffects: tool.sideEffects },
+        ]),
+    );
+
+    expect(metadata).toEqual({
+      playbook_send_event: { visibility: "anchor", sideEffects: "writes" },
+      playbook_start: { visibility: "anchor", sideEffects: "writes" },
+      playbook_status: { visibility: "anchor", sideEffects: "none" },
+    });
+  });
+
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     const capabilities = await harness.installPlugin(playbooksPlugin({}));

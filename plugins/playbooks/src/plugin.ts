@@ -281,6 +281,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state.",
         inputSchema: statusInputSchema,
         visibility: "anchor",
+        sideEffects: "none",
         handler: async (
           input: unknown,
           toolContext: ToolContext,
@@ -303,6 +304,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           "Start a playbook run, or resume an existing active run. If the operator asks to start a playbook by title, use the stable slug/id form when known (for example lowercase words joined by hyphens) instead of claiming it is unavailable without calling this tool. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
         inputSchema: startInputSchema,
         visibility: "anchor",
+        sideEffects: "writes",
         handler: async (
           input: unknown,
           toolContext: ToolContext,
@@ -349,6 +351,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
         inputSchema: sendEventInputSchema,
         visibility: "anchor",
+        sideEffects: "writes",
         handler: async (
           input: unknown,
           toolContext: ToolContext,
