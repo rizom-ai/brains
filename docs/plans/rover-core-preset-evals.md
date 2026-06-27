@@ -18,7 +18,7 @@ core behavior lands.
 ## Remaining: fill the coverage
 
 The tool-assertion ledger is populated (17/17 core tools asserted), but behavioral depth is still thin. Write cases for the
-known gaps: `system_status`, `system_insights` (topics), `system_check-job-status`,
+known gaps: `system_status`, `system_insights` (topics), `system_job_status`,
 `system_extract` on topics, conversation tools, wishlist beyond the single lasagna
 regression, and multi-turn plus response-quality cases on core content (note/link/topic
 recall, empty states, follow-ups) — the current multi-turn set is half web-chat upload

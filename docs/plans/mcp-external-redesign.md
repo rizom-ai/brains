@@ -9,7 +9,7 @@ Proposed.
 External MCP access bypasses the brain's agent. Today the `interfaces/mcp`
 transport registers individual plugin tools on the MCP server and lets the
 external client's LLM orchestrate them. Read tools (`search`, `get`, `list`,
-`check-job-status` — the only ones marked `visibility: public`) hit the
+`job_status` — the only ones marked `visibility: public`) hit the
 entity/job services directly, which is fine — they're read-only. But there is no
 gated path for _mutations_: a write tool exposed the same way would let an
 external model invoke a state change with no system prompt, no persona, and no
@@ -42,7 +42,7 @@ layer:
 
 Crucially, the command side is **already async and eventually-consistent**: writes
 enqueue jobs (`shell/job-queue`), and the read model (entity DB / search index)
-catches up separately. That is literally why `check-job-status` exists — it's the
+catches up separately. That is literally why `job_status` exists — it's the
 read-your-writes bridge between the command and query models. The brain became
 CQRS the moment writes went through the job queue; this plan just exposes that
 split at the MCP boundary instead of hiding it.
@@ -70,7 +70,7 @@ External MCP exposure follows a CQRS split, with two explicit modes:
 
 - **`basic`** (default, the only thing remote callers get):
   - **Query side** — the existing read tools (`search`, `get`, `list`,
-    `check-job-status`) stay exposed raw, each marked `readOnlyHint`. Structured,
+    `job_status`) stay exposed raw, each marked `readOnlyHint`. Structured,
     cheap, composable. Gated only by permission level + entity visibility (no
     change to that filter).
   - **Command side** — a single `chat` tool routes the query through the brain's
@@ -159,7 +159,7 @@ today — stdio → anchor, http+auth → anchor, http no-auth → configured/pu
 Commands return an acknowledgment (an `AgentResponse`), not the written data —
 classic CQRS. Because writes are async (job queue), an external agent that does
 `chat("save this note")` then `search` may hit the consistency gap. The existing
-`check-job-status` query tool is the bridge. The caller's read-your-writes handle
+`job_status` query tool is the bridge. The caller's read-your-writes handle
 is likely already present: `AgentResponse.toolResults[]` carries
 `{ tool, args, jobId, data }` (`agent.ts:288`), so the write tool's result —
 entity ref + `jobId` to poll — should surface to the caller **through the response
@@ -178,7 +178,7 @@ concern, not inherent safety.
 
 ### Query side (unchanged surface, new marking)
 
-Keep `search`, `get`, `list`, `check-job-status` registered as today. Add
+Keep `search`, `get`, `list`, `job_status` registered as today. Add
 `readOnlyHint: true` to each (`shell/core/src/system/entity-read-tools.ts`,
 `job-tools.ts`) and thread the hint through registration
 (`shell/mcp-service/src/mcp-registration.ts`) so the MCP server advertises it.
@@ -386,7 +386,7 @@ All items previously open are resolved (each verified against the code):
    query tools, invites routing reads to it and wasting the cheap path) and `query`
    (collides with the CQRS query side). `chat`'s one risk — reading as "casual
    conversation" — is carried by the description, which does the real routing.
-2. **`check-job-status` stays a standalone query tool.** It's genuinely read-only
+2. **`job_status` stays a standalone query tool.** It's genuinely read-only
    and is the read-your-writes bridge. Folding job status into the `chat` flow would
    force an agent/LLM turn just to poll a job — defeating the cheap-query purpose
    the CQRS split exists to protect.

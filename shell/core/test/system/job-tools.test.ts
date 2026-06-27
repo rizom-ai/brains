@@ -3,7 +3,7 @@ import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool } from "@brains/mcp-service";
 
-describe("system_check-job-status tool", () => {
+describe("system_job_status tool", () => {
   let tools: Tool[];
 
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe("system_check-job-status tool", () => {
   }
 
   it("tells agents to inspect runtime status for ready checks and status disputes", () => {
-    const tool = findTool("system_check-job-status");
+    const tool = findTool("system_job_status");
 
     expect(tool.description).toContain("ready checks");
     expect(tool.description).toContain("status disputes");
@@ -29,7 +29,7 @@ describe("system_check-job-status tool", () => {
   });
 
   it("declares public read-only metadata", () => {
-    const tool = findTool("system_check-job-status");
+    const tool = findTool("system_job_status");
 
     expect(tool.visibility).toBe("public");
     expect(tool.sideEffects).toBe("none");

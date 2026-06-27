@@ -14,7 +14,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_check-job-status
+    - toolName: system_job_status
       shouldBeCalled: true
   responseNotContains:
     - "based on our conversation"

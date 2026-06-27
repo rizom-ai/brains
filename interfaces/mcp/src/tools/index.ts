@@ -11,7 +11,7 @@ export function createMCPTools(
   _pluginId: string,
   _getContext: () => InterfacePluginContext | undefined,
 ): Tool[] {
-  // Core tools (query, search, get, check-job-status) are now provided by the system plugin
+  // Core tools (query, search, get, job_status) are now provided by the system plugin
   // MCP interface only needs to provide MCP-specific tools if any
   return [];
 }

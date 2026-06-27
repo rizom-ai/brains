@@ -255,7 +255,7 @@ export const extractInputSchema = z.object({
   confirmed: z.literal(true).optional().describe("Confirm destructive rebuild"),
 });
 
-export const checkJobStatusInputSchema = z.object({
+export const jobStatusInputSchema = z.object({
   batchId: z.string().optional().describe("Specific batch ID to check"),
   jobTypes: z.array(z.string()).optional().describe("Filter by job types"),
 });

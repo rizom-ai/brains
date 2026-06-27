@@ -26,7 +26,7 @@ turns:
   - userMessage: "is it ready?"
     successCriteria:
       expectedTools:
-        - toolName: system_check-job-status
+        - toolName: system_job_status
           shouldBeCalled: false
       responseContains:
         - "failed"
