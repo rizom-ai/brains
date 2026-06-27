@@ -27,4 +27,11 @@ describe("system_check-job-status tool", () => {
       "Do not argue from the transcript alone",
     );
   });
+
+  it("declares public read-only metadata", () => {
+    const tool = findTool("system_check-job-status");
+
+    expect(tool.visibility).toBe("public");
+    expect(tool.sideEffects).toBe("none");
+  });
 });

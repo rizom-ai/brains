@@ -76,7 +76,7 @@ export function createJobTools(services: SystemServices): Tool[] {
           },
         };
       },
-      { visibility: "public" },
+      { visibility: "public", sideEffects: "none" },
     ),
   ];
 }
