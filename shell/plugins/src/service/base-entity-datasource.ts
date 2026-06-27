@@ -10,7 +10,7 @@ import type {
 } from "@brains/entity-service";
 import { buildPaginationInfo } from "@brains/entity-service";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export type { SortField };
 
@@ -18,32 +18,28 @@ export type { SortField };
  * Zod schema for the base query fields.
  * Subclasses can extend this with `.extend()` for additional fields.
  */
-export const baseQuerySchema = z
-  .object({
-    id: z.string().optional(),
-    limit: z.number().optional(),
-    page: z.number().optional(),
-    pageSize: z.number().optional(),
-    baseUrl: z.string().optional(),
-  })
-  .passthrough();
+export const baseQuerySchema = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
+});
 
 /**
  * Zod schema for the outer datasource input (entityType + query).
  * Subclasses can extend the inner query via `baseQuerySchema.extend()`.
  */
-export const baseInputSchema = z
-  .object({
-    entityType: z.string().optional(),
-    query: baseQuerySchema.optional(),
-  })
-  .passthrough();
+export const baseInputSchema = z.looseObject({
+  entityType: z.string().optional(),
+  query: baseQuerySchema.optional(),
+});
 
 /**
  * Parsed base query parameters.
  * Subclasses can extend this with additional fields via `parseQuery()`.
  */
-export type BaseQuery = z.infer<typeof baseQuerySchema>;
+export type BaseQuery = z.output<typeof baseQuerySchema>;
 
 /**
  * Navigation context for detail views (prev/next entities).

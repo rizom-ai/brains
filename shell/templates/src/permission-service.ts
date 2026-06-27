@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { matchSpaceSelector } from "./space-selector";
 
 /**
@@ -10,7 +10,7 @@ export const UserPermissionLevelSchema = z.enum([
   "public",
 ]);
 
-export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
+export type UserPermissionLevel = z.output<typeof UserPermissionLevelSchema>;
 
 // Add new actions only when a concrete mutating tool needs them.
 export const EntityActionSchema = z.enum([
@@ -20,7 +20,7 @@ export const EntityActionSchema = z.enum([
   "extract",
   "publish",
 ]);
-export type EntityAction = z.infer<typeof EntityActionSchema>;
+export type EntityAction = z.output<typeof EntityActionSchema>;
 
 /**
  * Required level for an entity action.
@@ -33,19 +33,17 @@ export const EntityActionRequiredLevelSchema = z.enum([
   "trusted",
   "public",
 ]);
-export type EntityActionRequiredLevel = z.infer<
+export type EntityActionRequiredLevel = z.output<
   typeof EntityActionRequiredLevelSchema
 >;
 
-export const entityActionPolicyRuleSchema = z
-  .object({
-    create: EntityActionRequiredLevelSchema.optional(),
-    update: EntityActionRequiredLevelSchema.optional(),
-    delete: EntityActionRequiredLevelSchema.optional(),
-    extract: EntityActionRequiredLevelSchema.optional(),
-    publish: EntityActionRequiredLevelSchema.optional(),
-  })
-  .strict();
+export const entityActionPolicyRuleSchema = z.strictObject({
+  create: EntityActionRequiredLevelSchema.optional(),
+  update: EntityActionRequiredLevelSchema.optional(),
+  delete: EntityActionRequiredLevelSchema.optional(),
+  extract: EntityActionRequiredLevelSchema.optional(),
+  publish: EntityActionRequiredLevelSchema.optional(),
+});
 
 export const entityActionPolicyConfigSchema = z.record(
   z.string(),

@@ -10,18 +10,18 @@ import type {
   AtprotoLexicon,
   AtprotoLexiconMetadata,
 } from "@brains/atproto-contracts";
-import { z as zConfig } from "@brains/utils/zod";
+import { z as zTool } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
-export const atprotoRegistryConfigSchema = zConfig.object({
-  enabled: zConfig.boolean().default(true),
+export const atprotoRegistryConfigSchema = z.object({
+  enabled: z.boolean().default(true),
 });
 
-export type AtprotoRegistryConfig = zConfig.output<
+export type AtprotoRegistryConfig = z.output<
   typeof atprotoRegistryConfigSchema
 >;
-export type AtprotoRegistryConfigInput = zConfig.input<
+export type AtprotoRegistryConfigInput = z.input<
   typeof atprotoRegistryConfigSchema
 >;
 
@@ -114,9 +114,9 @@ export class AtprotoRegistryPlugin extends ServicePlugin<
       description:
         "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
       inputSchema: {
-        nsid: zConfig.string().describe("Canonical lexicon NSID"),
-        record: zConfig
-          .record(zConfig.unknown())
+        nsid: zTool.string().describe("Canonical lexicon NSID"),
+        record: zTool
+          .record(zTool.unknown())
           .describe("Record payload to validate"),
       },
       handler: async (input): Promise<ToolResponse> => {

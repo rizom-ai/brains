@@ -567,6 +567,9 @@ Incremental migration progress:
   Zod 4 while leaving template schema parsing on the existing framework boundary.
 - Migrated the shell core entity datasource query parser to explicit Zod 4 while
   keeping the framework-provided output schema on the existing boundary.
+- Migrated the shared plugin base entity datasource query/input parser boundary
+  to explicit Zod 4 with `z.looseObject(...)`; datasource output validation
+  remains a structural parse-only contract.
 - Migrated the shell core AI content datasource generation-context parser and
   local entity slug guard to explicit Zod 4 while keeping template/output schemas
   on existing framework boundaries.
@@ -597,8 +600,11 @@ Incremental migration progress:
 - Migrated the email-resend external API response guard to explicit Zod 4 while
   keeping plugin config on the current ServicePlugin config-schema boundary.
 - Migrated the ATProto registry validate-lexicon tool's handler-local input
-  parser to explicit Zod 4 while keeping the plugin config and framework-facing
-  tool input schema on the current main-Zod boundary.
+  parser and plugin config schema to explicit Zod 4 while keeping the
+  framework-facing tool input schema on the current main-Zod boundary.
+- Migrated the templates permission/entity-action policy parser boundary to
+  explicit Zod 4 with `z.strictObject(...)` and two-argument `z.record(...)`;
+  app override parsing stays locally duplicated to avoid mixed schema trees.
 - Migrated the stock-photo search/select tool handler-local input parsers to
   explicit Zod 4, using `z.url()`, while keeping framework-facing tool input
   schemas on the current main-Zod boundary for MCP introspection.
