@@ -17,10 +17,7 @@ import {
   formatMessageProgressDisplay,
   formatPendingConfirmationHelp,
   formatPendingConfirmationsFallback,
-  formatStructuredCardFallback,
-  formatStructuredOutputSummary,
   getMessageUploadKind,
-  formatToolStatusLabel,
   isMessageUploadDeclaredSizeAllowed,
   isUploadableTextFile,
   normalizeMessageUploadMediaType,
@@ -74,6 +71,12 @@ import {
 import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
 import {
+  ChatCardBuilder,
+  APPROVAL_CONFIRM_ACTION,
+  APPROVAL_CANCEL_ACTION,
+  PROMPT_ACTION,
+} from "./chat-cards";
+import {
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
   type DiscordThreadSubscriptionState,
@@ -96,15 +99,6 @@ const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
 };
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
-const DISCORD_ACTION_ROW_LIMIT = 5;
-const DISCORD_BUTTONS_PER_ROW_LIMIT = 5;
-const DISCORD_CARD_BUTTON_LIMIT =
-  DISCORD_ACTION_ROW_LIMIT * DISCORD_BUTTONS_PER_ROW_LIMIT;
-const DISCORD_BUTTON_LABEL_LIMIT = 80;
-const APPROVAL_CONFIRM_ACTION = "approval.confirm";
-const APPROVAL_CANCEL_ACTION = "approval.cancel";
-const PROMPT_ACTION = "chat.prompt";
-const UNAVAILABLE_EVENT_ACTION = "chat.event.unavailable";
 const DISCORD_MENTION_REQUIRED_NOTICE =
   "I’ll stop auto-replying now that more people joined. Mention me if you need me.";
 
@@ -194,6 +188,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private readonly toolStatusMessenger = new ToolStatusMessenger(
     this.threadRegistry,
   );
+  private readonly cardBuilder = new ChatCardBuilder({
+    getDisplayBaseUrl: () => this.getPreferredDisplayBaseUrl(),
+    registerPromptAction: (threadId, action) =>
+      this.registerPromptAction(threadId, action),
+  });
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
   private gatewayAbortController: AbortController | undefined;
@@ -1172,7 +1171,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       pendingConfirmations,
       deniedCardIds,
       formatCard: (card): string =>
-        this.formatStructuredCard(card, deniedCardIds),
+        this.cardBuilder.formatStructuredCard(card, deniedCardIds),
     }).join("\n\n");
   }
 
@@ -1188,7 +1187,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       remainingApprovalHelp,
       deniedCardIds,
       formatCard: (card): string =>
-        this.formatStructuredCard(card, deniedCardIds),
+        this.cardBuilder.formatStructuredCard(card, deniedCardIds),
       formatPendingConfirmationHelp,
     });
 
@@ -1353,8 +1352,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       const display = formatArtifactDisplay(card);
       if (!display) continue;
       const sent = await thread.post({
-        card: this.buildArtifactCard(display),
-        fallbackText: this.formatArtifactFallback(display),
+        card: this.cardBuilder.buildArtifactCard(display),
+        fallbackText: this.cardBuilder.formatArtifactFallback(display),
       });
       this.threadRegistry.trackMessage(thread.id, sent);
       lastMessageId = sent.id;
@@ -1368,161 +1367,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     pendingConfirmations?: PendingConfirmation[],
   ): Promise<void> {
     for (const card of getSupplementalCards(cards, pendingConfirmations)) {
-      const built = this.buildSupplementalCard(thread, card);
+      const built = this.cardBuilder.buildSupplementalCard(thread.id, card);
       if (!built) continue;
       const sent = await thread.post({
         card: built,
-        fallbackText: this.formatStructuredCard(card),
+        fallbackText: this.cardBuilder.formatStructuredCard(card),
       });
       this.threadRegistry.trackMessage(thread.id, sent);
     }
-  }
-
-  private buildSupplementalCard(
-    thread: Thread,
-    card: StructuredChatCard,
-  ): CardElement | undefined {
-    switch (card.kind) {
-      case "attachment":
-        return undefined;
-      case "tool-approval":
-        return this.buildToolApprovalSummaryCard(card);
-      case "sources":
-        return this.buildSourcesSummaryCard(card);
-      case "actions":
-        return this.buildActionsSummaryCard(thread, card);
-    }
-  }
-
-  private buildToolApprovalSummaryCard(
-    card: Extract<StructuredChatCard, { kind: "tool-approval" }>,
-  ): CardElement {
-    const children: CardChild[] = [
-      {
-        type: "text",
-        content: card.summary || formatToolStatusLabel(card.toolName),
-      },
-      { type: "text", content: `Status: ${card.state}` },
-    ];
-    if (card.preview) children.push({ type: "text", content: card.preview });
-    const output = formatStructuredOutputSummary(card.output);
-    if (output) children.push({ type: "text", content: `Result: ${output}` });
-    if (card.error)
-      children.push({ type: "text", content: `Error: ${card.error}` });
-    return {
-      type: "card",
-      title:
-        card.state === "approval-requested"
-          ? "Approval required"
-          : "Approval status",
-      children,
-    };
-  }
-
-  private buildSourcesSummaryCard(
-    card: Extract<StructuredChatCard, { kind: "sources" }>,
-  ): CardElement {
-    const children: CardChild[] = card.sources.map((source) => ({
-      type: "text" as const,
-      content: source.title ?? source.source,
-    }));
-    const linkButtons = card.sources
-      .map((source, index) =>
-        this.buildSourceLinkButton(
-          card.sources.length === 1 ? "Open source" : `Open ${index + 1}`,
-          source.url,
-        ),
-      )
-      .filter(
-        (
-          button,
-        ): button is { type: "link-button"; label: string; url: string } =>
-          Boolean(button),
-      )
-      .slice(0, DISCORD_CARD_BUTTON_LIMIT);
-    if (linkButtons.length > 0) {
-      children.push({ type: "actions", children: linkButtons });
-    }
-    return {
-      type: "card",
-      title: card.title ?? "Sources",
-      children,
-    };
-  }
-
-  private buildSourceLinkButton(
-    label: string,
-    url: string | undefined,
-  ): { type: "link-button"; label: string; url: string } | undefined {
-    const resolvedUrl = this.resolveDisplayUrl(url);
-    if (!resolvedUrl || this.isLocalDisplayUrl(resolvedUrl)) return undefined;
-    return {
-      type: "link-button",
-      label: this.truncateDiscordButtonLabel(label),
-      url: resolvedUrl,
-    };
-  }
-
-  private buildActionsSummaryCard(
-    thread: Thread,
-    card: Extract<StructuredChatCard, { kind: "actions" }>,
-  ): CardElement {
-    const children: CardChild[] = card.actions.map((action) => ({
-      type: "text" as const,
-      content: this.formatActionCardText(action),
-    }));
-    const buttons: Array<{
-      type: "button";
-      id: string;
-      label: string;
-      value: string;
-      disabled?: boolean;
-    }> = [];
-    for (const action of card.actions) {
-      if (buttons.length >= DISCORD_CARD_BUTTON_LIMIT) break;
-      if (action.type === "prompt") {
-        const token = this.registerPromptAction(thread.id, {
-          label: action.label,
-          prompt: action.prompt,
-        });
-        buttons.push({
-          type: "button",
-          id: PROMPT_ACTION,
-          label: this.truncateDiscordButtonLabel(action.label),
-          value: token,
-        });
-        continue;
-      }
-      buttons.push({
-        type: "button",
-        id: UNAVAILABLE_EVENT_ACTION,
-        label: this.truncateDiscordButtonLabel(action.label),
-        value: action.event,
-        disabled: true,
-      });
-    }
-    if (buttons.length > 0) {
-      children.push({ type: "actions", children: buttons });
-    }
-    return {
-      type: "card",
-      title: card.title ?? "Suggested actions",
-      children,
-    };
-  }
-
-  private formatActionCardText(
-    action: Extract<StructuredChatCard, { kind: "actions" }>["actions"][number],
-  ): string {
-    const description = action.description ? ` — ${action.description}` : "";
-    const unavailable =
-      action.type === "event" ? " (not available in Discord)" : "";
-    return `${action.label}${description}${unavailable}`;
-  }
-
-  private truncateDiscordButtonLabel(label: string): string {
-    if (label.length <= DISCORD_BUTTON_LABEL_LIMIT) return label;
-    return `${label.slice(0, DISCORD_BUTTON_LABEL_LIMIT - 1)}…`;
   }
 
   private registerPromptAction(
@@ -1534,68 +1386,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return token;
   }
 
-  private buildArtifactCard(
-    display: NonNullable<ReturnType<typeof formatArtifactDisplay>>,
-  ): CardElement {
-    const children: CardChild[] = [];
-    if (display.description) {
-      children.push({ type: "text", content: display.description });
-    }
-
-    const fields = [
-      display.filename
-        ? { type: "field" as const, label: "File", value: display.filename }
-        : undefined,
-      display.mediaType
-        ? { type: "field" as const, label: "Type", value: display.mediaType }
-        : undefined,
-      display.sizeLabel
-        ? { type: "field" as const, label: "Size", value: display.sizeLabel }
-        : undefined,
-    ].filter(
-      (field): field is { type: "field"; label: string; value: string } =>
-        Boolean(field),
-    );
-    if (fields.length > 0) children.push({ type: "fields", children: fields });
-
-    const actions = [
-      this.buildArtifactLinkButton("Preview", display.previewUrl),
-      this.buildArtifactLinkButton("Open", display.url),
-      this.buildArtifactLinkButton("Download", display.downloadUrl),
-    ].filter(
-      (button): button is { type: "link-button"; label: string; url: string } =>
-        Boolean(button),
-    );
-    if (actions.length > 0)
-      children.push({ type: "actions", children: actions });
-
-    return {
-      type: "card",
-      title: display.title,
-      children,
-    };
-  }
-
-  private buildArtifactLinkButton(
-    label: string,
-    url: string | undefined,
-  ): { type: "link-button"; label: string; url: string } | undefined {
-    const resolvedUrl = this.resolveDisplayUrl(url);
-    if (!resolvedUrl || this.isLocalDisplayUrl(resolvedUrl)) return undefined;
-    return { type: "link-button", label, url: resolvedUrl };
-  }
-
-  private formatArtifactFallback(
-    display: NonNullable<ReturnType<typeof formatArtifactDisplay>>,
-  ): string {
-    const lines = [`Artifact: ${display.title}`];
-    if (display.description) lines.push(display.description);
-    if (display.filename) lines.push(`File: ${display.filename}`);
-    if (display.mediaType) lines.push(`Type: ${display.mediaType}`);
-    if (display.sizeLabel) lines.push(`Size: ${display.sizeLabel}`);
-    return lines.join("\n");
-  }
-
   private async sendPendingConfirmationCards(
     thread: Thread,
     conversationId: string,
@@ -1605,7 +1395,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     if (pendingConfirmations.length > 1) {
       await thread.post({
-        card: this.buildPendingConfirmationsCard(pendingConfirmations),
+        card: this.cardBuilder.buildPendingConfirmationsCard(
+          pendingConfirmations,
+        ),
         fallbackText: formatPendingConfirmationsFallback(pendingConfirmations),
       });
       return;
@@ -1617,10 +1409,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const sent = await thread.post(
       fallbackText
         ? {
-            card: this.buildPendingConfirmationCard(confirmation),
+            card: this.cardBuilder.buildPendingConfirmationCard(confirmation),
             fallbackText,
           }
-        : this.buildPendingConfirmationCard(confirmation),
+        : this.cardBuilder.buildPendingConfirmationCard(confirmation),
     );
     this.approvalCardMessages.set(
       this.getApprovalCardKey(conversationId, confirmation.id),
@@ -1639,59 +1431,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return `${conversationId}:${approvalId}`;
   }
 
-  private buildPendingConfirmationsCard(
-    pendingConfirmations: PendingConfirmation[],
-  ): CardElement {
-    return {
-      type: "card",
-      title: "Approvals pending",
-      children: [
-        ...pendingConfirmations.map((confirmation) => ({
-          type: "text" as const,
-          content: `${confirmation.id}: ${confirmation.summary}`,
-        })),
-        {
-          type: "text",
-          content:
-            "Reply yes <approval-id> to confirm one item, or no <approval-id> to abort it.",
-        },
-      ],
-    };
-  }
-
-  private buildPendingConfirmationCard(
-    confirmation: PendingConfirmation,
-  ): CardElement {
-    const children: CardChild[] = [
-      { type: "text", content: confirmation.summary },
-      {
-        type: "text",
-        content:
-          "Confirm this action, or cancel it. You can also reply yes/no.",
-      },
-      {
-        type: "actions",
-        children: [
-          {
-            type: "button",
-            id: APPROVAL_CONFIRM_ACTION,
-            label: "Confirm",
-            style: "primary",
-            value: confirmation.id,
-          },
-          {
-            type: "button",
-            id: APPROVAL_CANCEL_ACTION,
-            label: "Cancel",
-            style: "danger",
-            value: confirmation.id,
-          },
-        ],
-      },
-    ];
-    return { type: "card", title: "Approval required", children };
-  }
-
   private async resolveApprovalCard(
     conversationId: string,
     approvalId: string,
@@ -1703,7 +1442,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.approvalCardMessages.delete(key);
     const label = confirmed ? "confirmed" : "cancelled";
     await tracked.message.edit({
-      card: this.buildResolvedApprovalCard(tracked.summary, confirmed),
+      card: this.cardBuilder.buildResolvedApprovalCard(
+        tracked.summary,
+        confirmed,
+      ),
       fallbackText: `Approval ${label}: ${tracked.summary}`,
     });
     await this.clearDiscordMessageComponents(
@@ -1747,63 +1489,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
   }
 
-  private buildResolvedApprovalCard(
-    summary: string,
-    confirmed: boolean,
-  ): CardElement {
-    return {
-      type: "card",
-      title: confirmed ? "Approval confirmed" : "Approval cancelled",
-      children: [
-        { type: "text", content: summary },
-        {
-          type: "text",
-          content: confirmed
-            ? "This action was confirmed."
-            : "This action was cancelled.",
-        },
-      ],
-    };
-  }
-
-  private formatStructuredCard(
-    card: StructuredChatCard,
-    deniedCardIds?: Set<string>,
-  ): string {
-    return formatStructuredCardFallback(card, {
-      deniedCardIds,
-      resolveUrl: (url): string | undefined => this.resolveDisplayUrl(url),
-      isHiddenUrl: (url): boolean => this.isLocalDisplayUrl(url),
-      eventActionUnavailableLabel: "not available in Discord",
-    });
-  }
-
   private getPreferredDisplayBaseUrl(): string | undefined {
     if (this.context?.preferLocalUrls && this.context.localSiteUrl) {
       return this.context.localSiteUrl;
     }
     return this.context?.siteUrl ?? this.context?.localSiteUrl;
-  }
-
-  private resolveDisplayUrl(url: string | undefined): string | undefined {
-    if (!url) return undefined;
-    try {
-      return new URL(url).toString();
-    } catch {
-      if (!url.startsWith("/")) return url;
-      const baseUrl = this.getPreferredDisplayBaseUrl();
-      if (!baseUrl) return url;
-      return new URL(url, baseUrl).toString();
-    }
-  }
-
-  private isLocalDisplayUrl(url: string): boolean {
-    try {
-      const parsed = new URL(url);
-      return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-    } catch {
-      return url.startsWith("/");
-    }
   }
 
   private syncPendingConfirmationsFromResponse(
