@@ -115,6 +115,16 @@ describe("stock-photo tools", () => {
     ]);
   });
 
+  it("declares tool visibility and side effects", () => {
+    const search = findTool(tools, "stock-photo_search");
+    const select = findTool(tools, "stock-photo_select");
+
+    expect(search.visibility).toBe("anchor");
+    expect(search.sideEffects).toBe("none");
+    expect(select.visibility).toBe("anchor");
+    expect(select.sideEffects).toBe("external");
+  });
+
   describe("stock-photo_search", () => {
     it("should return search results from provider", async () => {
       const searchResult: SearchResult = {
