@@ -10,7 +10,6 @@ import type {
   AtprotoLexicon,
   AtprotoLexiconMetadata,
 } from "@brains/atproto-contracts";
-import { z as zTool } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
@@ -114,9 +113,9 @@ export class AtprotoRegistryPlugin extends ServicePlugin<
       description:
         "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
       inputSchema: {
-        nsid: zTool.string().describe("Canonical lexicon NSID"),
-        record: zTool
-          .record(zTool.unknown())
+        nsid: z.string().describe("Canonical lexicon NSID"),
+        record: z
+          .record(z.string(), z.unknown())
           .describe("Record payload to validate"),
       },
       handler: async (input): Promise<ToolResponse> => {

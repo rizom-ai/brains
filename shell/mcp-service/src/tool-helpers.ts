@@ -1,6 +1,13 @@
 import type { Tool, Resource, ToolResponse, ToolContext } from "./types";
 import { getErrorMessage, Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import {
+  getObjectShape,
+  getParseErrorMessage,
+  safeParse,
+  type AnyObjectSchema,
+  type SchemaOutput,
+} from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Zod schema for tool result validation
@@ -27,10 +34,10 @@ export const toolResultSchema = z.union([
  */
 export type ToolResult<T = unknown> =
   | (Omit<
-      Extract<z.infer<typeof toolResultSchema>, { success: true }>,
+      Extract<z.output<typeof toolResultSchema>, { success: true }>,
       "data"
     > & { data: T })
-  | Extract<z.infer<typeof toolResultSchema>, { success: false }>;
+  | Extract<z.output<typeof toolResultSchema>, { success: false }>;
 
 /**
  * Helper to create a success result
@@ -74,16 +81,13 @@ export function toolError(error: string, code?: string): ToolResult<never> {
  * );
  * ```
  */
-export function createTool<
-  TSchema extends z.ZodObject<z.ZodRawShape>,
-  TOutput = unknown,
->(
+export function createTool<TSchema extends AnyObjectSchema, TOutput = unknown>(
   pluginId: string,
   name: string,
   description: string,
   inputSchema: TSchema,
   handler: (
-    input: z.infer<TSchema>,
+    input: SchemaOutput<TSchema>,
     context: ToolContext,
   ) => Promise<ToolResult<TOutput>>,
   options: {
@@ -95,20 +99,19 @@ export function createTool<
 ): Tool {
   const { visibility = "anchor", sideEffects, debug = false, cli } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
+  const inputShape = getObjectShape(inputSchema) ?? {};
 
   return {
     name: `${pluginId}_${name}`,
     description,
-    inputSchema: inputSchema.shape,
+    inputSchema: inputShape,
     handler: async (input, context): Promise<ToolResponse> => {
       logger?.debug(`Tool ${name} started`);
       try {
         // Auto-validate input
-        const parseResult = inputSchema.safeParse(input);
+        const parseResult = safeParse(inputSchema, input);
         if (!parseResult.success) {
-          const errorMessage = parseResult.error.errors
-            .map((e) => `${e.path.join(".")}: ${e.message}`)
-            .join(", ");
+          const errorMessage = getParseErrorMessage(parseResult.error);
           logger?.debug(`Tool ${name} validation failed: ${errorMessage}`);
           return {
             success: false,

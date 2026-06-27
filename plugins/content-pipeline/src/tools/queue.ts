@@ -5,7 +5,7 @@ import type {
   ToolResult,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 
 /**
@@ -31,7 +31,7 @@ export const queueInputSchema = z.object({
     .describe("New position for reorder action (1-based)"),
 });
 
-export type QueueInput = z.infer<typeof queueInputSchema>;
+export type QueueInput = z.output<typeof queueInputSchema>;
 
 /**
  * Queue item in list response
@@ -43,7 +43,7 @@ export const queueItemSchema = z.object({
   queuedAt: z.string(),
 });
 
-export type QueueItem = z.infer<typeof queueItemSchema>;
+export type QueueItem = z.output<typeof queueItemSchema>;
 
 /**
  * Output schema for publish-pipeline:queue tool - discriminated union for success/error cases
@@ -72,7 +72,7 @@ export const queueOutputSchema = z.union([
   queueErrorSchema,
 ]);
 
-export type QueueOutput = z.infer<typeof queueOutputSchema>;
+export type QueueOutput = z.output<typeof queueOutputSchema>;
 
 /**
  * Create the publish-pipeline:queue tool

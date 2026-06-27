@@ -1,16 +1,51 @@
-import { z } from "@brains/utils/zod";
+import {
+  safeParse,
+  type AnySchema,
+  type ZodRawShapeCompat,
+} from "@modelcontextprotocol/sdk/server/zod-compat.js";
 
-type ZodRawShape = Record<string, z.ZodTypeAny>;
+interface SchemaInternals {
+  _def?: {
+    typeName?: string;
+    innerType?: AnySchema;
+  };
+  _zod?: {
+    def?: {
+      type?: string;
+      innerType?: AnySchema;
+    };
+  };
+  unwrap?: () => AnySchema;
+  removeDefault?: () => AnySchema;
+}
+
+function getTypeName(schema: AnySchema): string | undefined {
+  const internals = schema as SchemaInternals;
+  return internals._def?.typeName ?? internals._zod?.def?.type;
+}
+
+function getInnerType(schema: AnySchema): AnySchema | undefined {
+  const internals = schema as SchemaInternals;
+  return (
+    internals._def?.innerType ??
+    internals._zod?.def?.innerType ??
+    internals.unwrap?.() ??
+    internals.removeDefault?.()
+  );
+}
 
 /**
  * Get the inner type of a Zod schema, unwrapping optional/default wrappers.
  */
-function unwrapType(schema: z.ZodTypeAny): z.ZodTypeAny {
-  if (schema instanceof z.ZodOptional) {
-    return unwrapType(schema.unwrap());
+function unwrapType(schema: AnySchema): AnySchema {
+  const typeName = getTypeName(schema);
+  if (typeName === "ZodOptional" || typeName === "optional") {
+    const inner = getInnerType(schema);
+    return inner ? unwrapType(inner) : schema;
   }
-  if (schema instanceof z.ZodDefault) {
-    return unwrapType(schema.removeDefault());
+  if (typeName === "ZodDefault" || typeName === "default") {
+    const inner = getInnerType(schema);
+    return inner ? unwrapType(inner) : schema;
   }
   return schema;
 }
@@ -18,22 +53,23 @@ function unwrapType(schema: z.ZodTypeAny): z.ZodTypeAny {
 /**
  * Check if a schema field is required (not optional, no default).
  */
-function isRequired(schema: z.ZodTypeAny): boolean {
-  if (schema instanceof z.ZodOptional) return false;
-  if (schema instanceof z.ZodDefault) return false;
-  return true;
+function isRequired(schema: AnySchema): boolean {
+  const typeName = getTypeName(schema);
+  return !["ZodOptional", "optional", "ZodDefault", "default"].includes(
+    typeName ?? "",
+  );
 }
 
 /**
  * Coerce a string value to the type expected by the schema.
  */
-function coerceValue(value: string, schema: z.ZodTypeAny): unknown {
-  const inner = unwrapType(schema);
+function coerceValue(value: string, schema: AnySchema): unknown {
+  const innerTypeName = getTypeName(unwrapType(schema));
 
-  if (inner instanceof z.ZodNumber) {
+  if (innerTypeName === "ZodNumber" || innerTypeName === "number") {
     return Number(value);
   }
-  if (inner instanceof z.ZodBoolean) {
+  if (innerTypeName === "ZodBoolean" || innerTypeName === "boolean") {
     return value === "true";
   }
   return value;
@@ -48,7 +84,7 @@ function coerceValue(value: string, schema: z.ZodTypeAny): unknown {
  * - String values are coerced to number/boolean when schema expects it
  */
 export function mapArgsToInput(
-  inputSchema: ZodRawShape,
+  inputSchema: ZodRawShapeCompat,
   args: string[],
   flags: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -82,7 +118,7 @@ export function mapArgsToInput(
     // No arg and no flag — let Zod defaults handle it
     if (!isRequired(fieldSchema)) {
       // Parse undefined through the schema to get defaults
-      const parsed = fieldSchema.safeParse(undefined);
+      const parsed = safeParse(fieldSchema, undefined);
       if (parsed.success && parsed.data !== undefined) {
         result[name] = parsed.data;
       }

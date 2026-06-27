@@ -1,10 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  z,
-  type ZodRawShape,
-  type ZodType,
-  type ProgressNotification,
-} from "@brains/utils";
+import type {
+  AnySchema,
+  ZodRawShapeCompat,
+} from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import { z } from "@brains/utils/zod-v4";
+import type { ProgressNotification } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/templates";
 
 /**
@@ -53,52 +53,37 @@ export const ToolContextRoutingSchema = z.object({
 /**
  * Success response schema
  */
-export const toolSuccessSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.unknown(),
-    message: z.string().optional(),
-    cached: z.literal(true).optional(),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    if (!Object.prototype.hasOwnProperty.call(value, "data")) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["data"],
-        message: "Required",
-      });
-    }
-  });
+export const toolSuccessSchema = z.strictObject({
+  success: z.literal(true),
+  data: z.unknown().optional(),
+  message: z.string().optional(),
+  cached: z.literal(true).optional(),
+});
 
 /**
  * Error response schema
  */
-export const toolErrorSchema = z
-  .object({
-    success: z.literal(false),
-    error: z.string(),
-    code: z.string().optional(),
-  })
-  .strict();
+export const toolErrorSchema = z.strictObject({
+  success: z.literal(false),
+  error: z.string(),
+  code: z.string().optional(),
+});
 
 /**
  * Confirmation response schema
  * Tools return this when an operation needs user approval.
  * The agent service detects this shape and enters the confirmation flow.
  */
-export const toolConfirmationSchema = z
-  .object({
-    needsConfirmation: z.literal(true),
-    toolName: z.string(),
-    summary: z.string(),
-    completionSummary: z.string().optional(),
-    preview: z.string().optional(),
-    args: z.unknown(),
-  })
-  .strict();
+export const toolConfirmationSchema = z.strictObject({
+  needsConfirmation: z.literal(true),
+  toolName: z.string(),
+  summary: z.string(),
+  completionSummary: z.string().optional(),
+  preview: z.string().optional(),
+  args: z.unknown(),
+});
 
-export type ToolConfirmation = z.infer<typeof toolConfirmationSchema>;
+export type ToolConfirmation = z.output<typeof toolConfirmationSchema>;
 
 /**
  * Standardized tool response schema
@@ -110,7 +95,7 @@ export const toolResponseSchema = z.union([
   toolConfirmationSchema,
 ]);
 
-export type ToolResponse = z.infer<typeof toolResponseSchema>;
+export type ToolResponse = z.output<typeof toolResponseSchema>;
 
 export type ToolSideEffects = "none" | "writes" | "external";
 
@@ -121,8 +106,8 @@ export type ToolSideEffects = "none" | "writes" | "external";
 export interface Tool<TOutput = ToolResponse> {
   name: string;
   description: string;
-  inputSchema: ZodRawShape; // Same type as MCP expects
-  outputSchema?: ZodType<TOutput>; // Optional: Zod schema for type-safe outputs
+  inputSchema: ZodRawShapeCompat; // Same type as MCP expects
+  outputSchema?: AnySchema; // Optional: Zod schema for type-safe outputs
   handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
   /** Declares whether this tool is safe to repeat/cache within one model turn. Undefined defaults to not cacheable. */

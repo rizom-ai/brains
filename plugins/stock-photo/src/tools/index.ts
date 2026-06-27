@@ -1,4 +1,3 @@
-import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type {
   Tool,
@@ -20,38 +19,32 @@ export interface StockPhotoToolsDeps {
 }
 
 const searchInputSchema = {
-  query: zConfig.string().describe("Search terms for stock photos"),
-  perPage: zConfig
+  query: z.string().describe("Search terms for stock photos"),
+  perPage: z
     .number()
     .min(1)
     .max(30)
     .default(10)
     .describe("Results per page (1-30)"),
-  page: zConfig.number().min(1).default(1).describe("Page number"),
+  page: z.number().min(1).default(1).describe("Page number"),
 };
 
 const selectInputSchema = {
-  photoId: zConfig.string().describe("Photo ID from search results"),
-  downloadLocation: zConfig
-    .string()
+  photoId: z.string().describe("Photo ID from search results"),
+  downloadLocation: z
     .url()
     .describe("Download tracking URL (required by provider ToS)"),
-  photographerName: zConfig
-    .string()
-    .describe("Photographer name for attribution"),
-  photographerUrl: zConfig
-    .string()
-    .url()
-    .describe("Photographer profile URL for attribution"),
-  sourceUrl: zConfig.string().url().describe("Photo page URL on provider"),
-  imageUrl: zConfig.string().url().describe("Image URL to download"),
-  title: zConfig.string().optional().describe("Image entity title"),
-  alt: zConfig.string().optional().describe("Alt text for the image"),
-  targetEntityType: zConfig
+  photographerName: z.string().describe("Photographer name for attribution"),
+  photographerUrl: z.url().describe("Photographer profile URL for attribution"),
+  sourceUrl: z.url().describe("Photo page URL on provider"),
+  imageUrl: z.url().describe("Image URL to download"),
+  title: z.string().optional().describe("Image entity title"),
+  alt: z.string().optional().describe("Alt text for the image"),
+  targetEntityType: z
     .string()
     .optional()
     .describe("Entity type to set cover image on"),
-  targetEntityId: zConfig
+  targetEntityId: z
     .string()
     .optional()
     .describe("Entity ID to set cover image on"),

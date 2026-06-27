@@ -1,6 +1,6 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { IDirectorySync, IGitSync } from "../types";
 import { createHistoryTool } from "./history";
 

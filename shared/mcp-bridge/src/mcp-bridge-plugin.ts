@@ -3,10 +3,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { ServicePlugin } from "@brains/plugins";
 import type { Tool, ServicePluginContext, ToolResponse } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod";
-import { z as z4 } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 
-const recordSchema = z4.record(z4.string(), z4.unknown());
+const recordSchema = z.record(z.string(), z.unknown());
 
 /**
  * Server command configuration for spawning an MCP server child process.
@@ -23,33 +22,33 @@ export interface ServerCommand {
 /**
  * Schema for a single content part in an MCP tool response.
  */
-const mcpContentPartSchema = z4.looseObject({
-  type: z4.string(),
-  text: z4.string().optional(),
+const mcpContentPartSchema = z.looseObject({
+  type: z.string(),
+  text: z.string().optional(),
 });
 
 /**
  * Schema for the result of calling a remote MCP tool.
  */
-const mcpCallToolResultSchema = z4.looseObject({
-  content: z4.array(mcpContentPartSchema),
-  isError: z4.boolean().optional(),
+const mcpCallToolResultSchema = z.looseObject({
+  content: z.array(mcpContentPartSchema),
+  isError: z.boolean().optional(),
 });
 
 /**
  * Schema for a remote tool discovered from the MCP server.
  */
-const remoteToolSchema = z4.looseObject({
-  name: z4.string(),
-  description: z4.string().optional(),
-  inputSchema: z4.looseObject({
-    type: z4.literal("object"),
-    properties: z4.record(z4.string(), z4.looseObject({})).optional(),
-    required: z4.array(z4.string()).optional(),
+const remoteToolSchema = z.looseObject({
+  name: z.string(),
+  description: z.string().optional(),
+  inputSchema: z.looseObject({
+    type: z.literal("object"),
+    properties: z.record(z.string(), z.looseObject({})).optional(),
+    required: z.array(z.string()).optional(),
   }),
 });
 
-type RemoteTool = z4.output<typeof remoteToolSchema>;
+type RemoteTool = z.output<typeof remoteToolSchema>;
 
 /**
  * MCPBridgePlugin — reusable base class for plugins that wrap an external MCP server.
@@ -160,7 +159,7 @@ export abstract class MCPBridgePlugin<
     try {
       const result = await this.client.listTools();
       const allowed = new Set(this.getAllowedTools());
-      const allTools = z4.array(remoteToolSchema).parse(result.tools);
+      const allTools = z.array(remoteToolSchema).parse(result.tools);
 
       this.remoteTools = allTools.filter((t) => allowed.has(t.name));
 
@@ -310,7 +309,7 @@ export abstract class MCPBridgePlugin<
     required: string[],
   ): z.ZodRawShape {
     const requiredSet = new Set(required);
-    const shape: z.ZodRawShape = {};
+    const shape: Record<string, z.ZodType> = {};
 
     for (const [key, schema] of Object.entries(properties)) {
       let zodType = this.jsonSchemaPropertyToZod(schema);
@@ -328,7 +327,7 @@ export abstract class MCPBridgePlugin<
   /**
    * Convert a single JSON Schema property to a Zod type.
    */
-  private jsonSchemaPropertyToZod(schema: object): z.ZodTypeAny {
+  private jsonSchemaPropertyToZod(schema: object): z.ZodType {
     const parsedSchema = recordSchema.safeParse(schema);
     const s = parsedSchema.success ? parsedSchema.data : {};
     const rawType = s["type"];
@@ -337,7 +336,7 @@ export abstract class MCPBridgePlugin<
     const description =
       typeof rawDescription === "string" ? rawDescription : undefined;
 
-    let zodType: z.ZodTypeAny;
+    let zodType: z.ZodType;
 
     switch (type) {
       case "string":
@@ -354,7 +353,7 @@ export abstract class MCPBridgePlugin<
         zodType = z.array(z.unknown());
         break;
       case "object":
-        zodType = z.record(z.unknown());
+        zodType = z.record(z.string(), z.unknown());
         break;
       default:
         // Unknown or missing type — accept anything
@@ -362,10 +361,6 @@ export abstract class MCPBridgePlugin<
         break;
     }
 
-    if (description && "describe" in zodType) {
-      zodType = (zodType as z.ZodString).describe(description);
-    }
-
-    return zodType;
+    return description ? zodType.describe(description) : zodType;
   }
 }

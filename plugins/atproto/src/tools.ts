@@ -1,10 +1,9 @@
 import type { ServicePluginContext, Tool, ToolResponse } from "@brains/plugins";
-import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { AtprotoPlugin } from "./plugin";
 
 const publishCardInputSchema = {
-  dryRun: zConfig
+  dryRun: z
     .boolean()
     .default(false)
     .describe("Build and return the card record without writing to the PDS"),
@@ -17,17 +16,17 @@ const publishCardInputParserSchema = z.object({
 const validateCredentialsInputSchema = {};
 
 const publishEntityInputSchema = {
-  entityType: zConfig
+  entityType: z
     .string()
     .describe("Local entity type with a registered AT Protocol projection"),
-  entityId: zConfig.string().optional().describe("Local entity ID to publish"),
-  slug: zConfig.string().optional().describe("Local entity slug to publish"),
-  dryRun: zConfig
+  entityId: z.string().optional().describe("Local entity ID to publish"),
+  slug: z.string().optional().describe("Local entity slug to publish"),
+  dryRun: z
     .boolean()
     .default(false)
     .describe("Build and return the record without writing to the PDS"),
-  topics: zConfig
-    .array(zConfig.string())
+  topics: z
+    .array(z.string())
     .optional()
     .describe("Optional topic labels to include in the AT Protocol record"),
 };
@@ -41,8 +40,8 @@ const publishEntityInputParserSchema = z.object({
 });
 
 const discoverBrainCardsInputSchema = {
-  repos: zConfig
-    .array(zConfig.string().min(1))
+  repos: z
+    .array(z.string().min(1))
     .min(1)
     .max(50)
     .describe("Candidate AT Protocol repo DIDs or handles to inspect"),
@@ -53,17 +52,17 @@ const discoverBrainCardsInputParserSchema = z.object({
 });
 
 const publishPostInputSchema = {
-  entityId: zConfig
+  entityId: z
     .string()
     .optional()
     .describe("Local blog post entity ID to publish"),
-  slug: zConfig.string().optional().describe("Local blog post slug to publish"),
-  dryRun: zConfig
+  slug: z.string().optional().describe("Local blog post slug to publish"),
+  dryRun: z
     .boolean()
     .default(false)
     .describe("Build and return the post record without writing to the PDS"),
-  topics: zConfig
-    .array(zConfig.string())
+  topics: z
+    .array(z.string())
     .optional()
     .describe("Optional topic labels to include in the AT Protocol record"),
 };

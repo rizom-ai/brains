@@ -617,8 +617,14 @@ Incremental migration progress:
 - Migrated the site-builder site metadata message response guard to explicit
   Zod 4 while keeping shared site-composition schemas on the current boundary.
 - Migrated the A2A client call tool handler-local input parser to explicit Zod
-  4 while keeping the tool-facing input schema on the current main-Zod
-  boundary.
+  4; its tool-facing schema moved in the MCP-compatible tool schema batch below.
+- Decoupled the MCP tool schema contract to the MCP SDK's Zod v3/v4-compatible
+  raw-shape helpers, then migrated a batch of framework-facing tool schemas and
+  outputs to explicit Zod 4: A2A call, ATProto registry/publish/discovery,
+  stock-photo search/select, Buttondown subscriber tools, directory-sync
+  sync/status/history, content-pipeline publish/queue/ensure-assets,
+  Obsidian sync, site-content generate options, site-builder build, system
+  status/execute routing, and MCP bridge JSON-Schema-derived remote tools.
 - Migrated Buttondown external API response guards to explicit Zod 4 while
   leaving plugin config and tool schemas on the current main-Zod boundary.
 - Migrated analytics Cloudflare GraphQL response guards to explicit Zod 4 while

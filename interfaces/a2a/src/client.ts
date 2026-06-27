@@ -1,4 +1,3 @@
-import { z as zMain } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type {
   ContentVisibility,
@@ -77,7 +76,7 @@ const sseEventSchema = z.looseObject({
 /**
  * Extract text from a parts array
  */
-function extractText(parts: z.infer<typeof partsSchema>): string {
+function extractText(parts: z.output<typeof partsSchema>): string {
   const texts: string[] = [];
   for (const part of parts) {
     const parsed = textPartSchema.safeParse(part);
@@ -157,12 +156,12 @@ const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 60_000;
 const DEFAULT_MAX_NETWORK_ATTEMPTS = 2;
 
 const a2aCallInputSchema = {
-  agent: zMain
+  agent: z
     .string()
     .describe(
       "Saved local agent id from your directory, usually a domain-like id such as yeehaa.io or docs.rizom.ai. Never pass a display name like Brain or a URL.",
     ),
-  message: zMain.string().describe("Message to send to the remote agent"),
+  message: z.string().describe("Message to send to the remote agent"),
 };
 
 const a2aCallInputParserSchema = z.object({

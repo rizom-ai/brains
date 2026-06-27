@@ -48,6 +48,20 @@ export function normalizeToolResponse(
 ): ToolResponse {
   const parsed = toolResponseSchema.safeParse(raw);
 
+  if (
+    parsed.success &&
+    "success" in parsed.data &&
+    parsed.data.success === true &&
+    !Object.prototype.hasOwnProperty.call(parsed.data, "data")
+  ) {
+    context.logger.error("Tool returned non-compliant response", {
+      pluginId: context.pluginId,
+      toolName: context.toolName,
+      issues: [{ path: ["data"], message: "Required" }],
+    });
+    return invalidToolResponse(context.toolName);
+  }
+
   if (parsed.success) {
     return parsed.data;
   }

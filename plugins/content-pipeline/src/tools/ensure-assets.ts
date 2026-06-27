@@ -1,6 +1,6 @@
 import type { BaseEntity, ServicePluginContext, Tool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
 import type { PublishAssetRegistry } from "../publish-assets";
 
@@ -18,7 +18,7 @@ export const ensureAssetsInputSchema = z.object({
     .describe("Optional attachment type filter, e.g. og-image"),
 });
 
-export type EnsureAssetsInput = z.infer<typeof ensureAssetsInputSchema>;
+export type EnsureAssetsInput = z.output<typeof ensureAssetsInputSchema>;
 
 export const ensureAssetsOutputSchema = z.object({
   success: z.literal(true),
@@ -33,7 +33,7 @@ export const ensureAssetsOutputSchema = z.object({
   message: z.string().optional(),
 });
 
-export type EnsureAssetsOutput = z.infer<typeof ensureAssetsOutputSchema>;
+export type EnsureAssetsOutput = z.output<typeof ensureAssetsOutputSchema>;
 
 export function createEnsureAssetsTool(
   context: ServicePluginContext,

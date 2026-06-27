@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const GenerateOptionsSchema = z.object({
   routeId: z.string().optional().describe("Optional: specific route filter"),
@@ -33,4 +33,4 @@ export const GenerateResultSchema = z.object({
 });
 
 export type GenerateOptions = z.input<typeof GenerateOptionsSchema>;
-export type GenerateResult = z.infer<typeof GenerateResultSchema>;
+export type GenerateResult = z.output<typeof GenerateResultSchema>;

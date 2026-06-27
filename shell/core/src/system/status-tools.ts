@@ -1,6 +1,6 @@
 import type { Tool } from "@brains/mcp-service";
 import { createTool } from "@brains/mcp-service";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { SystemServices } from "./types";
 
 function compactAppInfo(

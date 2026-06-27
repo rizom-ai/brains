@@ -5,7 +5,6 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { ProviderRegistry } from "../provider-registry";
 import {
@@ -16,16 +15,16 @@ import {
 /**
  * Input schema for publish-pipeline:publish tool
  */
-export const publishInputSchema = zConfig.object({
-  entityType: zConfig
+export const publishInputSchema = z.object({
+  entityType: z
     .string()
     .describe("Entity type to publish (e.g., social-post, post, deck)"),
-  id: zConfig.string().optional().describe("Entity ID to publish"),
-  slug: zConfig.string().optional().describe("Entity slug to publish"),
-  confirmed: zConfig.boolean().optional(),
-  confirmationToken: zConfig.string().optional(),
-  contentHash: zConfig.string().optional(),
-  expiresAt: zConfig.string().datetime().optional(),
+  id: z.string().optional().describe("Entity ID to publish"),
+  slug: z.string().optional().describe("Entity slug to publish"),
+  confirmed: z.boolean().optional(),
+  confirmationToken: z.string().optional(),
+  contentHash: z.string().optional(),
+  expiresAt: z.string().datetime().optional(),
 });
 
 const publishInputParserSchema = z.object({
@@ -38,47 +37,47 @@ const publishInputParserSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 });
 
-export type PublishInput = zConfig.output<typeof publishInputSchema>;
+export type PublishInput = z.output<typeof publishInputSchema>;
 
 /**
  * Output schema for publish-pipeline:publish tool - discriminated union for success/error cases
  */
-export const publishSuccessSchema = zConfig.object({
-  success: zConfig.literal(true),
-  message: zConfig.string().optional(),
-  data: zConfig
+export const publishSuccessSchema = z.object({
+  success: z.literal(true),
+  message: z.string().optional(),
+  data: z
     .object({
-      entityType: zConfig.string().optional(),
-      entityId: zConfig.string().optional(),
-      platformId: zConfig.string().optional(),
-      url: zConfig.string().optional(),
+      entityType: z.string().optional(),
+      entityId: z.string().optional(),
+      platformId: z.string().optional(),
+      url: z.string().optional(),
     })
     .optional(),
 });
 
-export const publishErrorSchema = zConfig.object({
-  success: zConfig.literal(false),
-  error: zConfig.string(),
-  code: zConfig.string().optional(),
+export const publishErrorSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  code: z.string().optional(),
 });
 
-export const publishConfirmationSchema = zConfig.object({
-  success: zConfig.literal(false).optional(),
-  error: zConfig.string().optional(),
-  needsConfirmation: zConfig.literal(true),
-  toolName: zConfig.string(),
-  summary: zConfig.string(),
-  preview: zConfig.string().optional(),
-  args: zConfig.unknown(),
+export const publishConfirmationSchema = z.object({
+  success: z.literal(false).optional(),
+  error: z.string().optional(),
+  needsConfirmation: z.literal(true),
+  toolName: z.string(),
+  summary: z.string(),
+  preview: z.string().optional(),
+  args: z.unknown(),
 });
 
-export const publishOutputSchema = zConfig.union([
+export const publishOutputSchema = z.union([
   publishSuccessSchema,
   publishErrorSchema,
   publishConfirmationSchema,
 ]);
 
-export type PublishOutput = zConfig.infer<typeof publishOutputSchema>;
+export type PublishOutput = z.output<typeof publishOutputSchema>;
 
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 
