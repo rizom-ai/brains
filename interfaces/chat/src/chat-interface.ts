@@ -6,13 +6,10 @@ import {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
   formatArtifactDisplay,
-  getArtifactEntityFilename,
   getConfirmationResultTitle,
   getDeliverableArtifactCards,
   getResponseJobIds,
   getSupplementalCards,
-  parseArtifactDataUrl,
-  resolveArtifactEntityRefFromCard,
   formatContentDispositionHeader,
   formatMessageProgressDisplay,
   formatPendingConfirmationHelp,
@@ -23,8 +20,6 @@ import {
   normalizeMessageUploadMediaType,
   PendingApprovalTracker,
   MessageUploadContinuity,
-  canReceiveNativeArtifactFile,
-  resolveMessageArtifactAccess,
   routeConfirmationResponse,
   sanitizeUploadFilename,
   validateMessageUpload,
@@ -76,6 +71,7 @@ import {
   APPROVAL_CANCEL_ACTION,
   PROMPT_ACTION,
 } from "./chat-cards";
+import { ArtifactDeliveryResolver } from "./artifact-delivery";
 import {
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
@@ -98,7 +94,6 @@ const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
 const DISCORD_API_BASE = "https://discord.com/api/v10";
-const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
 const DISCORD_MENTION_REQUIRED_NOTICE =
   "I’ll stop auto-replying now that more people joined. Mention me if you need me.";
 
@@ -192,6 +187,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     getDisplayBaseUrl: () => this.getPreferredDisplayBaseUrl(),
     registerPromptAction: (threadId, action) =>
       this.registerPromptAction(threadId, action),
+  });
+  private readonly artifactDelivery = new ArtifactDeliveryResolver({
+    getContext: () => this.context,
+    getDisplayBaseUrl: () => this.getPreferredDisplayBaseUrl(),
+    logger: this.logger,
   });
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
@@ -979,7 +979,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       input.response,
       input.conversationId,
     );
-    const artifactDelivery = await this.resolveArtifactDelivery(
+    const artifactDelivery = await this.artifactDelivery.resolve(
       input.response.cards,
       input.userPermissionLevel,
     );
@@ -1096,7 +1096,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       input.approvalId,
     );
     await this.handleAgentResponseToolStatuses(response, input.conversationId);
-    const artifactDelivery = await this.resolveArtifactDelivery(
+    const artifactDelivery = await this.artifactDelivery.resolve(
       response.cards,
       input.userPermissionLevel,
     );
@@ -1243,93 +1243,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       this.threadRegistry.trackMessage(input.channelId, lastSent);
     }
     return lastSent?.id;
-  }
-
-  /**
-   * Resolve which generated artifacts to deliver to a Discord caller: native
-   * files for those visible to their permission level, plus the ids of cards
-   * whose artifact exists but is out of scope. Denied cards have their link and
-   * metadata suppressed so fallback links never expose restricted artifacts
-   * outside the intended permission scope.
-   */
-  private async resolveArtifactDelivery(
-    cards: StructuredChatCard[] | undefined,
-    userLevel: UserPermissionLevel,
-  ): Promise<{ files: FileUpload[]; deniedCardIds: Set<string> }> {
-    const files: FileUpload[] = [];
-    const deniedCardIds = new Set<string>();
-    if (!cards || !this.context) return { files, deniedCardIds };
-
-    for (const card of cards) {
-      if (card.kind !== "attachment") continue;
-      const entityRef = resolveArtifactEntityRefFromCard(
-        card,
-        this.getPreferredDisplayBaseUrl(),
-      );
-      if (!entityRef) continue;
-
-      const resolved = await this.resolveArtifactCard(
-        card,
-        entityRef,
-        userLevel,
-      ).catch((error: unknown) => {
-        this.logger.debug("Failed to resolve Discord artifact file", {
-          error,
-          cardId: card.id,
-        });
-        return undefined;
-      });
-      if (resolved?.denied) deniedCardIds.add(card.id);
-      if (resolved?.file) files.push(resolved.file);
-    }
-    return { files, deniedCardIds };
-  }
-
-  private async resolveArtifactCard(
-    card: Extract<StructuredChatCard, { kind: "attachment" }>,
-    entityRef: NonNullable<ReturnType<typeof resolveArtifactEntityRefFromCard>>,
-    userLevel: UserPermissionLevel,
-  ): Promise<{ file?: FileUpload; denied?: boolean }> {
-    const context = this.context;
-    if (!context) return {};
-
-    const access = await resolveMessageArtifactAccess({
-      entityRef,
-      userLevel,
-      getEntity: (ref) => context.entityService.getEntity(ref),
-      getVisibleEntity: (ref, visibilityScope) =>
-        context.entityService.getEntity({ ...ref, visibilityScope }),
-    });
-    if (access.status === "denied") return { denied: true };
-    if (access.status !== "visible") return {};
-    const entity = access.entity;
-    if (typeof entity.content !== "string") return {};
-    if (!canReceiveNativeArtifactFile(userLevel)) return {};
-
-    const parsed = parseArtifactDataUrl(entityRef.entityType, entity.content);
-    if (!parsed) return {};
-    if (parsed.data.byteLength > DISCORD_NATIVE_ARTIFACT_MAX_BYTES) {
-      this.logger.debug("Skipping oversized Discord artifact upload", {
-        cardId: card.id,
-        sizeBytes: parsed.data.byteLength,
-      });
-      return {};
-    }
-
-    return {
-      file: {
-        data: parsed.data,
-        filename:
-          card.attachment.filename ??
-          getArtifactEntityFilename(
-            entity.metadata,
-            entityRef.id,
-            entityRef.entityType,
-            parsed.mimeType,
-          ),
-        mimeType: parsed.mimeType,
-      },
-    };
   }
 
   private getRemainingApprovalHelp(
