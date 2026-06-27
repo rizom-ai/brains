@@ -13,15 +13,9 @@ import {
   formatContentDispositionHeader,
   formatMessageProgressDisplay,
   formatPendingConfirmationHelp,
-  getMessageUploadKind,
-  isMessageUploadDeclaredSizeAllowed,
-  isUploadableTextFile,
-  normalizeMessageUploadMediaType,
   PendingApprovalTracker,
   MessageUploadContinuity,
   routeConfirmationResponse,
-  sanitizeUploadFilename,
-  validateMessageUpload,
   type AgentResponse,
   type ChatAttachment,
   type InterfacePluginContext,
@@ -75,6 +69,11 @@ import { ApprovalCardTracker } from "./approval-card-tracker";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
 import { SubscriptionRouter } from "./subscription-router";
 import {
+  ChatInputBuilder,
+  chatAttachmentFromStoredUpload,
+  type AgentInput,
+} from "./chat-input-builder";
+import {
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
   type DiscordThreadSubscriptionStore,
@@ -116,12 +115,6 @@ const discordCardOutputSchema = z.object({
   ),
   fallbackText: z.string().optional(),
 });
-
-interface AgentInput {
-  message: string;
-  attachments: ChatAttachment[];
-  notices: string[];
-}
 
 interface ChatSdkApp {
   initialize(): Promise<void>;
@@ -199,6 +192,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       this.isBotCreatedDiscordThread(thread, message),
     logger: this.logger,
   });
+  private readonly chatInputBuilder = new ChatInputBuilder({
+    getUploadStore: () =>
+      this.context?.uploads.scoped(createDiscordChatUploadStoreScope()),
+    getThreadIdParts: (threadId) => this.getThreadIdParts(threadId),
+    logger: this.logger,
+  });
   private readonly gatewayLoop: DiscordGatewayLoop;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
 
@@ -240,7 +239,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         );
         if (!uploadStore) throw new Error("Chat upload store unavailable");
         const resolved = await uploadStore.read(uploadId);
-        return this.createChatAttachmentFromStoredUpload(
+        return chatAttachmentFromStoredUpload(
           resolved.record.filename,
           resolved.record.mediaType,
           resolved.content,
@@ -814,7 +813,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       message.author.userId,
       permissionContext,
     );
-    const agentInput = await this.buildAgentInput(
+    const agentInput = await this.chatInputBuilder.build(
       platform,
       thread,
       message,
@@ -1327,149 +1326,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
   }
 
-  private async buildAgentInput(
-    platform: string,
-    thread: Thread,
-    message: Message,
-    userLevel: string,
-  ): Promise<AgentInput> {
-    const agentInput: AgentInput = {
-      message: message.text.trim(),
-      attachments: [],
-      notices: [],
-    };
-    if (message.attachments.length === 0) return agentInput;
-    if (!this.context) return agentInput;
-
-    const canUpload = userLevel === "anchor" || userLevel === "trusted";
-    if (!canUpload) return agentInput;
-
-    const uploadStore = this.context.uploads.scoped(
-      createDiscordChatUploadStoreScope(),
-    );
-    for (const attachment of message.attachments) {
-      const attachmentName = attachment.name;
-      if (!attachmentName) continue;
-      const filename = sanitizeUploadFilename(attachmentName, "upload");
-      const mediaType = normalizeMessageUploadMediaType(
-        filename,
-        attachment.mimeType,
-      );
-      const declaredSize = attachment.size ?? 0;
-      const uploadKind = getMessageUploadKind(filename, mediaType);
-      if (!uploadKind) {
-        agentInput.notices.push(`Unsupported file upload type: ${filename}`);
-        continue;
-      }
-      if (!isMessageUploadDeclaredSizeAllowed(uploadKind, declaredSize)) {
-        agentInput.notices.push(`File upload too large: ${filename}`);
-        continue;
-      }
-
-      try {
-        const content = await this.readMessageAttachmentData(attachment);
-        if (!content) continue;
-        const validation = validateMessageUpload({
-          filename,
-          mediaType,
-          content,
-          fallbackFilename: "upload",
-        });
-        if (!validation.ok) {
-          agentInput.notices.push(validation.message);
-          continue;
-        }
-        const chatAttachment = await this.createChatAttachmentFromUpload({
-          uploadStore,
-          filename: validation.filename,
-          mediaType: validation.mediaType,
-          content,
-          uploadKind: validation.kind,
-          metadata: this.buildUploadMetadata(platform, thread, message),
-        });
-        agentInput.attachments.push(chatAttachment);
-      } catch (error: unknown) {
-        this.logger.error("Failed to read chat attachment", {
-          error,
-          filename,
-        });
-        agentInput.notices.push(`Could not read file upload: ${filename}`);
-      }
-    }
-
-    return agentInput;
-  }
-
-  private async readMessageAttachmentData(
-    attachment: Message["attachments"][number],
-  ): Promise<Buffer | undefined> {
-    if (attachment.fetchData) return attachment.fetchData();
-    if (!attachment.url) return undefined;
-
-    const response = await fetch(attachment.url);
-    if (!response.ok) {
-      throw new Error(
-        `Attachment download failed with status ${response.status}`,
-      );
-    }
-    const data = await response.arrayBuffer();
-    return Buffer.from(new Uint8Array(data));
-  }
-
-  private async createChatAttachmentFromUpload(input: {
-    uploadStore: RuntimeUploadStore;
-    filename: string;
-    mediaType: string;
-    content: Buffer;
-    uploadKind: "text" | "file";
-    metadata: Record<string, unknown>;
-  }): Promise<ChatAttachment> {
-    const record = await input.uploadStore.save({
-      filename: input.filename,
-      mediaType: input.mediaType,
-      content: input.content,
-      metadata: input.metadata,
-    });
-    const source = record.ref;
-    if (input.uploadKind === "text") {
-      return {
-        kind: "text",
-        filename: record.filename,
-        mediaType: record.mediaType,
-        content: input.content.toString("utf8").replace(/^\uFEFF/, ""),
-        sizeBytes: input.content.byteLength,
-        source,
-      };
-    }
-
-    return {
-      kind: "file",
-      filename: record.filename,
-      mediaType: record.mediaType,
-      data: input.content,
-      sizeBytes: input.content.byteLength,
-      source,
-    };
-  }
-
-  private buildUploadMetadata(
-    platform: string,
-    thread: Thread,
-    message: Message,
-  ): Record<string, unknown> {
-    const ids = this.getThreadIdParts(thread.id);
-    return {
-      interfaceType: platform,
-      channelId: thread.id,
-      parentChannelId: thread.channelId,
-      messageId: message.id,
-      uploaderId: message.author.userId,
-      uploaderUsername: message.author.userName,
-      ...(ids.guildId ? { guildId: ids.guildId } : {}),
-      ...(ids.threadId ? { threadId: ids.threadId } : {}),
-    };
-  }
-
   private async postUploadNotices(
     thread: Thread,
     notices: string[],
@@ -1501,32 +1357,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     attachments: ChatAttachment[],
   ): void {
     this.uploadContinuity.remember(conversationId, attachments);
-  }
-
-  private createChatAttachmentFromStoredUpload(
-    filename: string,
-    mediaType: string,
-    content: Buffer,
-    source: { kind: string; id: string },
-  ): ChatAttachment {
-    if (isUploadableTextFile(filename, mediaType)) {
-      return {
-        kind: "text",
-        filename,
-        mediaType,
-        content: content.toString("utf8").replace(/^\uFEFF/, ""),
-        sizeBytes: content.byteLength,
-        source,
-      };
-    }
-    return {
-      kind: "file",
-      filename,
-      mediaType,
-      data: content,
-      sizeBytes: content.byteLength,
-      source,
-    };
   }
 
   private getPlatform(thread: Thread): string {
