@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Schema for pagination information
@@ -16,7 +16,7 @@ export const paginationInfoSchema = z.object({
 /**
  * Pagination information type
  */
-export type PaginationInfo = z.infer<typeof paginationInfoSchema>;
+export type PaginationInfo = z.output<typeof paginationInfoSchema>;
 
 /**
  * Build pagination info from total count and page parameters

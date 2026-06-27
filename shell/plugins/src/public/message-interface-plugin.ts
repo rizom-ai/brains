@@ -12,7 +12,6 @@ import type {
 } from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { PermissionLookupContext } from "@brains/templates";
-import type { z } from "@brains/utils/zod";
 import { InterfacePlugin } from "./interface-plugin";
 import type {
   InterfacePluginContext,
@@ -22,9 +21,9 @@ import type {
   Tool,
 } from "./types";
 
-type ConfigSchemaParser<TConfig> =
-  | { parse(input: unknown): TConfig }
-  | z.ZodTypeAny;
+interface ConfigSchemaParser<TConfig> {
+  parse(input: unknown): TConfig;
+}
 
 interface MessageInterfacePluginHooks {
   onRegister(context: InterfacePluginContext): Promise<void>;

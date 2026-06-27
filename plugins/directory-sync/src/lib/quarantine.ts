@@ -1,7 +1,7 @@
 import type { Logger } from "@brains/utils";
 import type { ImportResult } from "../types.js";
-import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { getErrorMessage, ZodError } from "@brains/utils";
+import { ZodError as ZodV4Error } from "@brains/utils/zod-v4";
 import { rename, appendFile, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
 
@@ -14,7 +14,7 @@ export class Quarantine {
   }
 
   isValidationError(error: unknown): boolean {
-    if (error instanceof z.ZodError) {
+    if (error instanceof ZodError || error instanceof ZodV4Error) {
       return true;
     }
     const message = getErrorMessage(error);

@@ -6,7 +6,6 @@ import type {
   PluginRegistrationContext,
 } from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
-import type { z } from "@brains/utils/zod";
 import type {
   BaseJobTrackingInfo,
   InterfacePluginContext,
@@ -15,9 +14,9 @@ import type {
   Tool,
 } from "./types";
 
-type ConfigSchemaParser<TConfig> =
-  | { parse(input: unknown): TConfig }
-  | z.ZodTypeAny;
+interface ConfigSchemaParser<TConfig> {
+  parse(input: unknown): TConfig;
+}
 
 interface InterfacePluginHooks {
   onRegister(context: InterfacePluginContext): Promise<void>;

@@ -1,5 +1,5 @@
 import type { Plugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { agentDiscoveryPlugin } from "./plugins/agent-plugin";
 import { skillPlugin } from "./plugins/skill-plugin";
 
@@ -33,9 +33,7 @@ export type AgentDiscoveryCompositeConfigInput = z.input<
  * capability when the brain should derive assessment outputs from the
  * agent/skill evidence.
  */
-export function agentDiscovery(
-  config: AgentDiscoveryCompositeConfigInput = {},
-): Plugin[] {
+export function agentDiscovery(config: Record<string, unknown> = {}): Plugin[] {
   agentDiscoveryCompositeConfigSchema.parse(config);
   return [agentDiscoveryPlugin(), skillPlugin()];
 }

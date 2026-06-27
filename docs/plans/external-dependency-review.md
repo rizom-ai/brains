@@ -998,6 +998,12 @@ Incremental migration progress:
 - Updated app brain-definition resolution tests to use Zod 4 config validators
   and taught the resolver's skip-on-validation path to recognize both current
   main-Zod and Zod 4 validation errors.
+- Decoupled additional parser-only type slots from nominal main-Zod imports by
+  using structural `parse(input)` contracts for site-builder view templates and
+  public plugin-author config delegates. Migrated the agent-discovery composite
+  config, directory-sync quarantine ZodError guard/test parser, and entity
+  pagination parser to `@brains/utils/zod-v4` without touching durable
+  entity/frontmatter schemas.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

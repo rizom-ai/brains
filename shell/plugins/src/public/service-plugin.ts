@@ -5,12 +5,11 @@ import type {
   PluginCapabilities,
   PluginRegistrationContext,
 } from "../interfaces";
-import type { z } from "@brains/utils/zod";
 import type { Plugin, Resource, ServicePluginContext, Tool } from "./types";
 
-type ConfigSchemaParser<TConfig> =
-  | { parse(input: unknown): TConfig }
-  | z.ZodTypeAny;
+interface ConfigSchemaParser<TConfig> {
+  parse(input: unknown): TConfig;
+}
 
 interface ServicePluginHooks {
   onRegister(context: ServicePluginContext): Promise<void>;
