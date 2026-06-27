@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/test-utils";
 import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
@@ -191,7 +192,7 @@ describe("atproto plugin", () => {
     expect(plugin.getWebRoutes()).toEqual([]);
   });
 
-  it("provides publishing instructions", async () => {
+  it("does not expose AT Protocol operations as agent tools or instructions", async () => {
     const plugin = atprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
@@ -200,9 +201,8 @@ describe("atproto plugin", () => {
 
     const capabilities = await plugin.register(createMockShell());
 
-    expect(capabilities.instructions).toContain("atproto_publish_card");
-    expect(capabilities.instructions).toContain("atproto_publish_post");
-    expect(capabilities.instructions).toContain("dryRun");
+    expect(capabilities.tools).toEqual([]);
+    expect(capabilities.instructions).toBeUndefined();
   });
 
   it("reports invalid credentials without throwing", async () => {
@@ -225,17 +225,9 @@ describe("atproto plugin", () => {
       },
     );
 
-    const capabilities = await plugin.register(createMockShell());
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_validate_credentials",
-    );
+    await plugin.register(createMockShell());
 
-    expect(tool).toBeDefined();
-    const response = await tool?.handler(
-      {},
-      { interfaceType: "test", userId: "test" },
-    );
-    expect(response).toEqual({ success: true, data: { valid: false } });
+    expect(await plugin.validatePdsCredentials()).toBe(false);
   });
 
   it("discovers a valid brain card and emits a discovery event", async () => {
@@ -279,19 +271,13 @@ describe("atproto plugin", () => {
         return { success: true };
       });
 
-    const capabilities = await plugin.register(shell);
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_discover_brain_cards",
-    );
-    const response = await tool?.handler(
+    await plugin.register(shell);
+    const response = await plugin.discoverBrainCards(
+      createServicePluginContext(shell, "atproto"),
       { repos: ["test.example.com"] },
-      { interfaceType: "test", userId: "test" },
     );
 
-    if (!response || !("success" in response) || !response.success) {
-      throw new Error("Expected discovery tool to succeed");
-    }
-    expect(response.data).toMatchObject({
+    expect(response).toMatchObject({
       discovered: 1,
       results: [
         {
@@ -356,19 +342,13 @@ describe("atproto plugin", () => {
         return { success: true };
       });
 
-    const capabilities = await plugin.register(shell);
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_discover_brain_cards",
-    );
-    const response = await tool?.handler(
+    await plugin.register(shell);
+    const response = await plugin.discoverBrainCards(
+      createServicePluginContext(shell, "atproto"),
       { repos: ["test.example.com"] },
-      { interfaceType: "test", userId: "test" },
     );
 
-    if (!response || !("success" in response) || !response.success) {
-      throw new Error("Expected discovery tool to succeed");
-    }
-    expect(response.data).toMatchObject({
+    expect(response).toMatchObject({
       discovered: 0,
       skipped: 1,
       results: [{ status: "skipped" }],
@@ -404,20 +384,15 @@ describe("atproto plugin", () => {
         createPdsClient,
       },
     );
-    const capabilities = await plugin.register(createMockShell());
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_discover_brain_cards",
-    );
+    const shell = createMockShell();
+    await plugin.register(shell);
 
-    const response = await tool?.handler(
+    const response = await plugin.discoverBrainCards(
+      createServicePluginContext(shell, "atproto"),
       { repos: ["did:plc:missing"] },
-      { interfaceType: "test", userId: "test" },
     );
 
-    if (!response || !("success" in response) || !response.success) {
-      throw new Error("Expected discovery tool to succeed");
-    }
-    expect(response.data).toMatchObject({
+    expect(response).toMatchObject({
       discovered: 0,
       skipped: 1,
       results: [
@@ -432,49 +407,7 @@ describe("atproto plugin", () => {
     expect(getRecord).not.toHaveBeenCalled();
   });
 
-  it("exposes a brain-card discovery tool", async () => {
-    const getRecord = mock(async () => ({
-      uri: "at://did:plc:test/ai.rizom.brain.card/self",
-      cid: "bafytestcard",
-      value: createTestBrainCardRecord(),
-    }));
-    const plugin = new AtprotoPlugin(
-      { pdsEndpoint: "https://pds.example.com" },
-      {
-        fetch: createResolverFetch(),
-        createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:unused",
-            handle: "unused.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
-          createRecord: mock(async () => ({
-            uri: "at://repo/record",
-            cid: "cid",
-          })),
-          getRecord,
-        }),
-      },
-    );
-    const capabilities = await plugin.register(createMockShell());
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_discover_brain_cards",
-    );
-
-    expect(tool).toBeDefined();
-    const response = await tool?.handler(
-      { repos: ["test.example.com"] },
-      { interfaceType: "test", userId: "test" },
-    );
-
-    if (!response || !("success" in response) || !response.success) {
-      throw new Error("Expected discovery tool to succeed");
-    }
-    expect(response.data).toMatchObject({ discovered: 1 });
-  });
-
-  it("exposes a credential validation tool", async () => {
+  it("does not expose credential validation as an agent tool", async () => {
     const createSession = mock(async () => ({
       did: "did:plc:repo",
       handle: "brain.example.com",
@@ -499,16 +432,9 @@ describe("atproto plugin", () => {
     );
 
     const capabilities = await plugin.register(createMockShell());
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_validate_credentials",
-    );
 
-    expect(tool).toBeDefined();
-    const response = await tool?.handler(
-      {},
-      { interfaceType: "test", userId: "test" },
-    );
-    expect(response).toEqual({ success: true, data: { valid: true } });
+    expect(capabilities.tools).toEqual([]);
+    expect(await plugin.validatePdsCredentials()).toBe(true);
     expect(createSession).toHaveBeenCalledTimes(1);
   });
 });

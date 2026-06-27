@@ -1,7 +1,6 @@
 import type {
   BaseEntity,
   ServicePluginContext,
-  Tool,
   WebRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
@@ -26,7 +25,6 @@ import {
   type AtprotoPdsClientLike,
 } from "@brains/atproto-contracts";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
-import { createAtprotoTools } from "./tools";
 import packageJson from "../package.json";
 
 const brainCardLexicon = canonicalAtprotoLexicons["ai.rizom.brain.card"];
@@ -324,21 +322,8 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     }
   }
 
-  protected override async getTools(): Promise<Tool[]> {
-    if (!this.config.enabled) return [];
-    return createAtprotoTools(this.id, this, this.getContext());
-  }
-
-  protected override async getInstructions(): Promise<string | undefined> {
-    if (!this.config.enabled) return undefined;
-    return `## AT Protocol publishing
-- Use \`atproto_validate_credentials\` to check PDS credentials before publishing.
-- Use \`atproto_publish_card\` to publish or dry-run this brain's public discovery card.
-- Use \`atproto_publish_entity\` to publish any public entity with a registered AT Protocol projection.
-- Use \`atproto_publish_post\` for the blog-post convenience path by \`entityId\` or \`slug\`.
-- Use \`atproto_discover_brain_cards\` to read public \`ai.rizom.brain.card/self\` records from candidate repo DIDs or handles and emit internal discovery events.
-- Prefer \`dryRun: true\` first when publishing new AT Protocol records.
-- Only public posts and public cover images can be published.`;
+  protected override async getTools(): Promise<[]> {
+    return [];
   }
 
   private async publishProjectedEntity<TRecord extends Record<string, unknown>>(
