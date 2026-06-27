@@ -1013,6 +1013,11 @@ Incremental migration progress:
   shared base entity adapter's public frontmatter parser now accepts structural
   parsers too, allowing identity adapter tests to exercise Zod 4 parser inputs
   without migrating durable identity entity schemas.
+- Tightened additional entity-service/plugin helper type slots without changing
+  durable entity schema ownership: base entity display frontmatter parsing now
+  uses a Zod 4 record parser, service-plugin registration derives its schema
+  type from `EntityAdapter`, and entity-service test helper mocks no longer
+  import nominal main-Zod types solely for adapter/schema signatures.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

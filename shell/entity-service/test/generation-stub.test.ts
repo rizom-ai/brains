@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import type { z } from "@brains/utils/zod";
 import {
   buildGenerationStubEntity,
   type GenerationStubAdapterLookup,
@@ -12,13 +11,13 @@ function makeAdapter(
 ): EntityAdapter<BaseEntity> {
   return {
     entityType: "stub-note",
-    schema: baseEntitySchema as z.ZodType<BaseEntity, z.ZodTypeDef, unknown>,
+    schema: baseEntitySchema,
     toMarkdown: () => "",
     fromMarkdown: () => ({}),
     extractMetadata: () => ({}),
     parseFrontMatter: <TFrontmatter>(
       _markdown: string,
-      schema: z.ZodSchema<TFrontmatter>,
+      schema: { parse(data: unknown): TFrontmatter },
     ): TFrontmatter => schema.parse({}),
     generateFrontMatter: () => "",
     getBodyTemplate: () => "",

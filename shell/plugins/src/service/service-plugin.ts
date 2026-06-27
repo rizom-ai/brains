@@ -17,7 +17,6 @@ import type {
 } from "@brains/job-queue";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
-import type { z } from "@brains/utils/zod";
 import type { ApiRouteDefinition } from "../types/api-routes";
 import type { WebRouteDefinition } from "../types/web-routes";
 
@@ -79,7 +78,7 @@ export abstract class ServicePlugin<TConfig, TConfigInput> extends BasePlugin<
    */
   protected registerEntityType<T extends BaseEntity>(
     entityType: string,
-    schema: z.ZodSchema<T>,
+    schema: EntityAdapter<T>["schema"],
     adapter: EntityAdapter<T>,
     config?: EntityTypeConfig,
   ): void {
