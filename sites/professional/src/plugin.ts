@@ -10,7 +10,6 @@ import { createTemplate } from "@brains/templates";
 import { enrichedBlogPostSchema } from "@brains/blog";
 import { enrichedDeckSchema } from "@brains/decks";
 import { siteInfoCTASchema } from "@brains/site-info";
-import { siteMetadataSectionSchema } from "@brains/site-composition";
 import { professionalProfileSchema } from "./schemas";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";
@@ -29,6 +28,13 @@ import {
   professionalSiteConfigSchema,
 } from "./config";
 import packageJson from "../package.json";
+
+const homepageSectionSchema = z.object({
+  blurb: z
+    .string()
+    .optional()
+    .describe("Short italic subtitle under the section title"),
+});
 
 /**
  * Professional Site Plugin
@@ -82,7 +88,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       postsListUrl: z.string(),
       decksListUrl: z.string(),
       cta: siteInfoCTASchema,
-      sections: z.record(z.string(), siteMetadataSectionSchema),
+      sections: z.record(z.string(), homepageSectionSchema),
     });
 
     // About page schema

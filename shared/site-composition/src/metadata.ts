@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
@@ -46,8 +46,8 @@ export const siteMetadataSchema = z.object({
     ),
 });
 
-export type SiteMetadata = z.infer<typeof siteMetadataSchema>;
-export type SiteMetadataCTA = z.infer<typeof siteMetadataCTASchema>;
+export type SiteMetadata = z.output<typeof siteMetadataSchema>;
+export type SiteMetadataCTA = z.output<typeof siteMetadataCTASchema>;
 
 const siteLayoutNavigationItemSchema = z.object({
   label: z.string(),
@@ -76,4 +76,4 @@ export const siteLayoutInfoSchema = siteMetadataSchema.extend({
     .describe("Social media links from profile metadata"),
 });
 
-export type SiteLayoutInfo = z.infer<typeof siteLayoutInfoSchema>;
+export type SiteLayoutInfo = z.output<typeof siteLayoutInfoSchema>;

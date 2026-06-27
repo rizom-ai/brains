@@ -970,9 +970,11 @@ Incremental migration progress:
   title-regeneration helper schemas. The migration keeps binary attachment
   types broad enough for Buffer-backed upload flows.
 - Migrated site composition route/site-package runtime parser boundaries and
-  the app-level dynamic site-package gate to `@brains/utils/zod-v4`. Kept site
-  layout metadata on main Zod with a local navigation-item shape because it is
-  still composed into main-Zod site-info entity/body schemas.
+  the app-level dynamic site-package gate to `@brains/utils/zod-v4`. Site
+  composition layout metadata has also moved to Zod 4; main-Zod site-info and
+  professional-site template schemas duplicate their small local CTA/section
+  shapes instead of composing the shared Zod 4 metadata schemas into durable
+  entity/template schema trees.
 - Migrated brain definition preset/mode schemas, app `brain.yaml` instance
   override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod-v4`.
   The app parser duplicates the small permission/action-policy validation
@@ -1017,8 +1019,10 @@ Incremental migration progress:
   durable entity schema ownership: base entity display frontmatter parsing now
   uses a Zod 4 record parser, service-plugin registration derives its schema
   type from `EntityAdapter`, conversation-memory derived-entity adapters use a
-  typed structural frontmatter parser slot, and entity-service test helper mocks
-  no longer import nominal main-Zod types solely for adapter/schema signatures.
+  typed structural frontmatter parser slot, entity-service test helper mocks no
+  longer import nominal main-Zod types solely for adapter/schema signatures, and
+  shared site-composition metadata is Zod 4-owned with local main-Zod duplicates
+  where durable site-info/professional template schemas still need them.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
