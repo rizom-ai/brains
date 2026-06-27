@@ -72,6 +72,7 @@ import {
 } from "./chat-cards";
 import { ArtifactDeliveryResolver } from "./artifact-delivery";
 import { ApprovalCardTracker } from "./approval-card-tracker";
+import { DiscordGatewayLoop } from "./discord-gateway-loop";
 import {
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
@@ -84,7 +85,6 @@ import type {
   ChatAdapterMap,
   ChatPlatform,
   ChatWebhookMap,
-  DiscordChatAdapter,
 } from "./types";
 import packageJson from "../package.json";
 
@@ -194,13 +194,17 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     clearMessageComponents: (threadId, messageId) =>
       this.clearDiscordMessageComponents(threadId, messageId),
   });
-  private discordGatewayAdapter: DiscordChatAdapter | undefined;
+  private readonly gatewayLoop: DiscordGatewayLoop;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
-  private gatewayAbortController: AbortController | undefined;
-  private gatewayLoopPromise: Promise<void> | undefined;
 
   constructor(config: Partial<ChatConfig> = {}) {
     super("chat", packageJson, config, chatConfigSchema);
+    this.gatewayLoop = new DiscordGatewayLoop({
+      getApp: () => this.app,
+      gatewayRunMs: this.config.gatewayRunMs,
+      gatewayRestartDelayMs: this.config.gatewayRestartDelayMs,
+      logger: this.logger,
+    });
     this.pendingApprovals = new PendingApprovalTracker({
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
         return (
@@ -337,14 +341,20 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     return {
       start: async (): Promise<void> => {
-        await this.startGatewayLoop();
+        if (!this.app) throw new Error("Chat SDK app not initialized");
+        await this.app.initialize();
+        this.gatewayLoop.start();
       },
       stop: async (): Promise<void> => {
-        await this.stopGatewayLoop();
+        await this.gatewayLoop.stop();
+        this.threadRegistry.clear();
+        this.uploadContinuity.clear();
+        this.toolStatusMessenger.clear();
+        await this.app?.shutdown();
       },
       healthCheck: async (): Promise<DaemonHealth> => ({
-        status: this.gatewayLoopPromise ? "healthy" : "error",
-        message: this.gatewayLoopPromise
+        status: this.gatewayLoop.isRunning() ? "healthy" : "error",
+        message: this.gatewayLoop.isRunning()
           ? "Chat gateway loop running"
           : "Chat gateway loop stopped",
         lastCheck: new Date(),
@@ -555,7 +565,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       applicationId: discord.applicationId,
       mentionRoleIds: discord.mentionRoleIds,
     });
-    this.discordGatewayAdapter = discordAdapter;
+    this.gatewayLoop.setAdapter(discordAdapter);
 
     return new Chat({
       userName: this.config.userName,
@@ -1755,68 +1765,4 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     };
   }
 
-  private async startGatewayLoop(): Promise<void> {
-    if (this.gatewayLoopPromise) return;
-    if (!this.app) throw new Error("Chat SDK app not initialized");
-
-    this.gatewayAbortController = new AbortController();
-    await this.app.initialize();
-    this.gatewayLoopPromise = this.runGatewayLoop(
-      this.gatewayAbortController.signal,
-    );
-  }
-
-  private async stopGatewayLoop(): Promise<void> {
-    this.gatewayAbortController?.abort();
-    await this.gatewayLoopPromise?.catch((error: unknown) =>
-      this.logger.debug("Chat gateway loop stopped with error", { error }),
-    );
-    this.gatewayLoopPromise = undefined;
-    this.gatewayAbortController = undefined;
-    this.threadRegistry.clear();
-    this.uploadContinuity.clear();
-    this.toolStatusMessenger.clear();
-    await this.app?.shutdown();
-  }
-
-  private async runGatewayLoop(signal: AbortSignal): Promise<void> {
-    if (!this.app) return;
-    const adapter = this.discordGatewayAdapter;
-    if (!adapter) return;
-    while (!this.isAborted(signal)) {
-      const tasks: Promise<unknown>[] = [];
-      try {
-        await adapter.startGatewayListener(
-          { waitUntil: (task): void => void tasks.push(task) },
-          this.config.gatewayRunMs,
-          signal,
-        );
-        await Promise.allSettled(tasks);
-      } catch (error: unknown) {
-        if (this.isAborted(signal)) return;
-        this.logger.error("Discord gateway listener failed", { error });
-      }
-
-      if (this.isAborted(signal)) return;
-      await this.delay(this.config.gatewayRestartDelayMs, signal);
-    }
-  }
-
-  private isAborted(signal: AbortSignal): boolean {
-    return signal.aborted;
-  }
-
-  private delay(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve) => {
-      const timeout = setTimeout(resolve, ms);
-      signal.addEventListener(
-        "abort",
-        () => {
-          clearTimeout(timeout);
-          resolve();
-        },
-        { once: true },
-      );
-    });
-  }
 }
