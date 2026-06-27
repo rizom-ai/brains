@@ -116,18 +116,31 @@ interface AnalyticsReportDefinition<TParams, TResult> {
   type: string;
   description: string;
   paramsSchema: z.ZodType<TParams>;
+  // Optional floor; reports exposing operational/non-public data raise this.
+  // Defaults to the tool's own visibility when omitted.
+  minVisibility?: ToolVisibility;
   handler: (
     params: TParams,
     context: {
       entityService: ICoreEntityService;
       visibilityScope: ContentVisibility;
-      toolContext: ToolContext;
     },
   ) => Promise<TResult>;
 }
 ```
 
-The system tool builds its input schema from registered report definitions after plugin registration, so plugin-provided analytics become visible to the LLM as first-class typed variants.
+The handler context deliberately carries only the already-derived
+`visibilityScope`, not the raw `ToolContext`. Handlers must not re-derive
+visibility from user-auth data — that scope is computed once at the tool
+boundary (as `system_insights` does today via `permissionToVisibilityScope`)
+and passed down. If a future report genuinely needs more from the tool
+context, justify the specific field rather than passing the whole context.
+
+The `minVisibility` field backs the per-report visibility floor described
+under [Permission and visibility](#permission-and-visibility); the interface
+must actually carry it rather than leaving it implied.
+
+The system tool builds its input schema from registered report definitions after plugin registration, so plugin-provided analytics become visible to the LLM as first-class typed variants. This dynamic, cross-plugin discriminated union is the main implementation risk — see Phase 2.
 
 ## Migration plan
 
@@ -149,6 +162,19 @@ The system tool builds its input schema from registered report definitions after
   - `topic-distribution`: optional limit and include counts once counts exist.
   - `traffic-overview`: days/date range/limit.
 - Build the `system_analytics` input schema as a discriminated union from registered definitions.
+
+This is the riskiest step. Today the tool only reads `getTypes()` lazily at
+tool-creation time (`insight-tools.ts`), so a string enum suffices. Composing
+a zod discriminated union from per-plugin param schemas is materially harder:
+the tool must be constructed after every plugin has registered, and the union
+builder has to compose heterogeneous, plugin-owned schemas without a shared
+shape. Treat the registration-ordering guarantee and the union assembly as the
+core of this phase, not an afterthought.
+
+Note that this phase changes the plugin SDK surface, not just core: the
+`InsightHandler` type, the `IInsightsRegistry` interface, and the plugin-facing
+`context.insights.register` all change signature. Both current consumers
+(`entities/topics`, `plugins/analytics`) migrate in the same phase.
 
 ### Phase 3 — Fold Cloudflare query into analytics
 
