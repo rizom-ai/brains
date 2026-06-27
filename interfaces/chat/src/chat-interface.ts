@@ -13,7 +13,6 @@ import {
   formatContentDispositionHeader,
   formatMessageProgressDisplay,
   formatPendingConfirmationHelp,
-  formatPendingConfirmationsFallback,
   getMessageUploadKind,
   isMessageUploadDeclaredSizeAllowed,
   isUploadableTextFile,
@@ -72,6 +71,7 @@ import {
   PROMPT_ACTION,
 } from "./chat-cards";
 import { ArtifactDeliveryResolver } from "./artifact-delivery";
+import { ApprovalCardTracker } from "./approval-card-tracker";
 import {
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
@@ -172,10 +172,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private readonly threadRegistry = new ThreadRegistry();
   private readonly pendingApprovals: PendingApprovalTracker;
   private readonly uploadContinuity: MessageUploadContinuity;
-  private readonly approvalCardMessages = new Map<
-    string,
-    { message: SentMessage; summary: string; threadId: string }
-  >();
   private readonly promptActions = new Map<
     string,
     { threadId: string; label: string; prompt: string }
@@ -192,6 +188,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     getContext: () => this.context,
     getDisplayBaseUrl: () => this.getPreferredDisplayBaseUrl(),
     logger: this.logger,
+  });
+  private readonly approvalCards = new ApprovalCardTracker({
+    cardBuilder: this.cardBuilder,
+    clearMessageComponents: (threadId, messageId) =>
+      this.clearDiscordMessageComponents(threadId, messageId),
   });
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
@@ -1004,7 +1005,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       input.response.cards,
       input.response.pendingConfirmations,
     );
-    await this.sendPendingConfirmationCards(
+    await this.approvalCards.trackPendingConfirmations(
       input.thread,
       input.conversationId,
       input.response.pendingConfirmations,
@@ -1100,7 +1101,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response.cards,
       input.userPermissionLevel,
     );
-    await this.resolveApprovalCard(
+    await this.approvalCards.resolve(
       input.conversationId,
       input.approvalId,
       input.confirmed,
@@ -1126,7 +1127,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response.cards,
       response.pendingConfirmations,
     );
-    await this.sendPendingConfirmationCards(
+    await this.approvalCards.trackPendingConfirmations(
       input.thread,
       input.conversationId,
       response.pendingConfirmations,
@@ -1297,74 +1298,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const token = createPrefixedId("action");
     this.promptActions.set(token, { threadId, ...action });
     return token;
-  }
-
-  private async sendPendingConfirmationCards(
-    thread: Thread,
-    conversationId: string,
-    pendingConfirmations: PendingConfirmation[] | undefined,
-  ): Promise<void> {
-    if (!pendingConfirmations || pendingConfirmations.length === 0) return;
-
-    if (pendingConfirmations.length > 1) {
-      await thread.post({
-        card: this.cardBuilder.buildPendingConfirmationsCard(
-          pendingConfirmations,
-        ),
-        fallbackText: formatPendingConfirmationsFallback(pendingConfirmations),
-      });
-      return;
-    }
-
-    const confirmation = pendingConfirmations[0];
-    if (!confirmation) return;
-    const fallbackText = formatPendingConfirmationHelp(pendingConfirmations);
-    const sent = await thread.post(
-      fallbackText
-        ? {
-            card: this.cardBuilder.buildPendingConfirmationCard(confirmation),
-            fallbackText,
-          }
-        : this.cardBuilder.buildPendingConfirmationCard(confirmation),
-    );
-    this.approvalCardMessages.set(
-      this.getApprovalCardKey(conversationId, confirmation.id),
-      {
-        message: sent,
-        summary: confirmation.summary,
-        threadId: thread.id,
-      },
-    );
-  }
-
-  private getApprovalCardKey(
-    conversationId: string,
-    approvalId: string,
-  ): string {
-    return `${conversationId}:${approvalId}`;
-  }
-
-  private async resolveApprovalCard(
-    conversationId: string,
-    approvalId: string,
-    confirmed: boolean,
-  ): Promise<void> {
-    const key = this.getApprovalCardKey(conversationId, approvalId);
-    const tracked = this.approvalCardMessages.get(key);
-    if (!tracked) return;
-    this.approvalCardMessages.delete(key);
-    const label = confirmed ? "confirmed" : "cancelled";
-    await tracked.message.edit({
-      card: this.cardBuilder.buildResolvedApprovalCard(
-        tracked.summary,
-        confirmed,
-      ),
-      fallbackText: `Approval ${label}: ${tracked.summary}`,
-    });
-    await this.clearDiscordMessageComponents(
-      tracked.threadId,
-      tracked.message.id,
-    );
   }
 
   private async clearDiscordMessageComponents(
