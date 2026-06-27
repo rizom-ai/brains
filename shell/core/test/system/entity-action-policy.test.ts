@@ -125,10 +125,10 @@ describe("entity action policy", () => {
     expect(error).toContain("Public/public");
   });
 
-  it("exposes system_delete to public callers but fails closed before lookup", async () => {
+  it("hides system_delete from non-anchor tool surfaces and still fails closed for direct public calls", async () => {
     const tool = getTool("system_delete");
 
-    expect(tool.visibility).toBe("public");
+    expect(tool.visibility).toBe("anchor");
 
     const result = await tool.handler(
       { entityType: "note", id: "missing-note" },
@@ -213,6 +213,63 @@ describe("entity action policy", () => {
         baseContext("anchor"),
       ),
     );
+  });
+
+  it("binds the delete confirmation to the approved entity and rejects a swapped id", async () => {
+    services.addEntities([makeEntity("note", "other-note")]);
+
+    const confirmArgs = expectConfirmation(
+      await getTool("system_delete").handler(
+        { entityType: "note", id: "team-note" },
+        baseContext("anchor"),
+      ),
+    );
+
+    // Resubmit the approved token but point it at a different entity. The
+    // confirmation must be bound to the approved args, not just the token.
+    const swapped = await getTool("system_delete").handler(
+      { ...confirmArgs, id: "other-note" },
+      baseContext("anchor"),
+    );
+    const error = expectError(swapped);
+    expect(error).toContain("do not match the pending approval");
+
+    // Neither entity was deleted.
+    expect(services.getEntities().has("team-note")).toBe(true);
+    expect(services.getEntities().has("other-note")).toBe(true);
+  });
+
+  it("rejects a confirmed delete without a pending approval token", async () => {
+    const result = await getTool("system_delete").handler(
+      {
+        entityType: "note",
+        id: "team-note",
+        confirmed: true,
+        confirmationToken: "bogus-token",
+      },
+      baseContext("anchor"),
+    );
+
+    const error = expectError(result);
+    expect(error).toContain("No pending delete confirmation");
+    expect(services.getEntities().has("team-note")).toBe(true);
+  });
+
+  it("completes deletion when the confirmed args match the pending approval", async () => {
+    const confirmArgs = expectConfirmation(
+      await getTool("system_delete").handler(
+        { entityType: "note", id: "team-note" },
+        baseContext("anchor"),
+      ),
+    );
+
+    const result = await getTool("system_delete").handler(
+      confirmArgs,
+      baseContext("anchor"),
+    );
+    const data = expectSuccess(result, z.object({ deleted: z.string() }));
+    expect(data.deleted).toBe("team-note");
+    expect(services.getEntities().has("team-note")).toBe(false);
   });
 
   it("rechecks create policy after interceptors change the effective entity type", async () => {

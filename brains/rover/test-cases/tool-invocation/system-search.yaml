@@ -8,6 +8,7 @@ tags:
   - core
   - search
   - preset-default
+  - preset-core
 
 turns:
   - userMessage: "Search for blog posts about programming"
@@ -17,7 +18,8 @@ successCriteria:
     - toolName: system_search
       shouldBeCalled: true
       argsContain:
-        entityType: "post"
+        scope.kind: type
+        scope.entityType: "post"
   responseContains:
     - "programming"
   responseNotContains:

@@ -30,6 +30,12 @@ export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBo
               parser: parseOptionalString,
             },
             {
+              key: "requiredDetails",
+              label: "Required Details",
+              type: "array",
+              itemType: "string",
+            },
+            {
               key: "instructions",
               label: "Instructions",
               type: "array",

@@ -520,7 +520,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return "Image entities store durable images. Standalone generated images are valid system_create image calls with a generate source and no target fields. targetEntityType and targetEntityId are only for attaching the result to an existing entity as coverImageId. Cover images and OG/social preview images are distinct domain concepts: cover-image fields use coverImageId, while OG/Open Graph/social preview fields use ogImageId. Rendered OG/social preview images are deterministic attachment-source images with attachmentType og-image.";
+    return "Image entities store durable images. Standalone generated images are valid system_create image calls with a generate source and no target fields. A generate source creates a new image; never use it to describe, analyze, or discuss an existing uploaded image. For uploaded-image discussion, answer directly from the attachment/context; if the user later asks to save that discussion as a note, create entityType note from prior-response or exact text. targetEntityType and targetEntityId are only for attaching the result to an existing entity as coverImageId. Cover images and OG/social preview images are distinct domain concepts: cover-image fields use coverImageId, while OG/Open Graph/social preview fields use ogImageId. Rendered OG/social preview images are deterministic attachment-source images with attachmentType og-image.";
   }
 
   protected override createGenerationHandler(

@@ -47,6 +47,47 @@ describe("convertToSDKTools", () => {
     ]);
   });
 
+  it("exposes structured scope as the only model-visible system_search scope selector", () => {
+    const runtimeScope = z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("all") }),
+      z.object({ kind: z.literal("type"), entityType: z.string() }),
+    ]);
+    const tool: Tool = {
+      name: "system_search",
+      description: "Search",
+      inputSchema: {
+        query: z.string(),
+        scope: runtimeScope,
+        limit: z.number().optional(),
+      },
+      visibility: "public",
+      handler: mock(async () => ({ success: true as const })),
+    };
+
+    const modelVisibleInputSchema = toModelVisibleInputSchema(
+      tool.inputSchema,
+      { toolName: "system_search" },
+    );
+
+    expect(Object.keys(modelVisibleInputSchema)).toEqual([
+      "query",
+      "scope",
+      "limit",
+    ]);
+    expect(modelVisibleInputSchema["scope"]?.safeParse(undefined).success).toBe(
+      false,
+    );
+    expect(
+      modelVisibleInputSchema["scope"]?.safeParse({ kind: "all" }).success,
+    ).toBe(true);
+    expect(
+      modelVisibleInputSchema["scope"]?.safeParse({
+        kind: "type",
+        entityType: "post",
+      }).success,
+    ).toBe(true);
+  });
+
   it("keeps attachment URLs out of model-visible tool output", async () => {
     const tool: Tool = {
       name: "document_generate",

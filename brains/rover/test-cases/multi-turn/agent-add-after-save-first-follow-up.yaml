@@ -1,6 +1,6 @@
 id: multi-turn-agent-add-after-save-first-follow-up
 name: Save Agent After Bare Save-First Follow-Up
-description: Verifies that after refusing an unsaved A2A call, the agent treats a bare affirmative follow-up as consent to save the same agent domain
+description: Verifies that after an exact-domain agent_call cannot verify/contact an unsaved domain, a bare affirmative follow-up uses the typed candidate to connect the same agent domain
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -21,10 +21,9 @@ turns:
             agent: "save-first-followup.example"
         - toolName: agent_connect
           shouldBeCalled: false
-      responseContains:
-        - "add"
       responseContainsAny:
-        - ["directory", "saved local agents", "saved agent", "local agent"]
+        - ["verify", "verified", "Agent Card", "contact", "reach"]
+        - ["save", "connect", "add"]
       responseNotContains:
         - "I called"
         - "Calling save-first-followup.example"

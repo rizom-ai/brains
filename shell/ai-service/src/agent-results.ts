@@ -514,6 +514,10 @@ const a2aCallArgsSchema = z.object({
   agent: z.string().min(1),
 });
 
+const agentContactCandidateDataSchema = z.object({
+  agentContactCandidate: agentContactCandidateSchema,
+});
+
 export function buildAgentContactCandidates(
   toolResults: ToolResultData[],
 ): AgentContactCandidate[] {
@@ -521,7 +525,21 @@ export function buildAgentContactCandidates(
   const candidates: AgentContactCandidate[] = [];
   for (const tr of toolResults) {
     if (tr.toolName !== "agent_call") continue;
-    if (tr.error?.code !== "agent_not_saved") continue;
+
+    const dataCandidate = agentContactCandidateDataSchema.safeParse(tr.data);
+    if (dataCandidate.success) {
+      const { url } = dataCandidate.data.agentContactCandidate.source;
+      if (seen.has(url)) continue;
+      seen.add(url);
+      candidates.push(dataCandidate.data.agentContactCandidate);
+      continue;
+    }
+
+    if (
+      tr.error?.code !== "agent_not_saved" &&
+      tr.error?.code !== "agent_card_unavailable"
+    )
+      continue;
     const args = a2aCallArgsSchema.safeParse(tr.args ?? {});
     if (!args.success) continue;
     const url = args.data.agent;
@@ -540,7 +558,7 @@ export function buildAgentContactCandidateContext(
     (candidate) =>
       `- agent_connect candidate args: { source: { kind: "url", url: "${candidate.source.url}" } }`,
   );
-  return `\n\nInternal agent contact candidates from previous assistant turns for follow-up resolution. These are typed runtime candidates, not visible user text. If the user confirms saving/adding/connecting one of these contacts, call agent_connect without confirmed using the exact candidate args. Do not message the remote agent until it is connected and approved.\n${lines.join("\n")}`;
+  return `\n\nInternal agent contact candidates from previous assistant turns for follow-up resolution. These are typed runtime candidates, not visible user text. If the user confirms saving/adding/connecting one of these contacts, call agent_connect without confirmed using the exact candidate args. Do not auto-save from an agent_call; saving/connecting is explicit through agent_connect.\n${lines.join("\n")}`;
 }
 
 /**

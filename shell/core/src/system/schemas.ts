@@ -3,9 +3,25 @@ import { z } from "@brains/utils";
 
 // ── Input schemas ──
 
+const searchScopeInputSchema = z.discriminatedUnion("kind", [
+  z
+    .object({ kind: z.literal("all") })
+    .strict()
+    .describe("Search across all entity types"),
+  z
+    .object({
+      kind: z.literal("type"),
+      entityType: z.string().min(1).describe("Entity type to search"),
+    })
+    .strict()
+    .describe("Search within one entity type"),
+]);
+
 export const searchInputSchema = z.object({
   query: z.string().describe("Search term"),
-  entityType: z.string().optional().describe("Entity type to filter by"),
+  scope: searchScopeInputSchema.describe(
+    "Structured search scope. Use { kind: 'all' } for broad search across all entity types. Use { kind: 'type', entityType } only when the user asks for a specific entity type.",
+  ),
   limit: z.number().optional().describe("Maximum number of results"),
   includeUngenerated: z
     .boolean()
@@ -20,7 +36,12 @@ export const getInputSchema = z.object({
 
 export const listInputSchema = z.object({
   entityType: z.string().describe("Entity type to list"),
-  status: z.string().optional().describe("Filter by status"),
+  status: z
+    .string()
+    .optional()
+    .describe(
+      "Filter by status. Omit unless the user asks for a known status; do not invent generic statuses. For wish statuses: new, planned, in-progress, done, declined.",
+    ),
   limit: z
     .number()
     .optional()
@@ -54,7 +75,9 @@ export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
       content: z
         .string()
         .min(1)
-        .describe("Exact markdown/text/content to persist as provided"),
+        .describe(
+          "Exact markdown/text/content to persist as provided. For direct save requests where the user includes the content in the same message, use that provided content directly.",
+        ),
     })
     .strict(),
   z
@@ -62,13 +85,13 @@ export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
       kind: z
         .literal("generate")
         .describe(
-          "Generate new entity content or standalone image content from a prompt; standalone generation does not use target fields",
+          "Generate new entity content or standalone image content from a prompt. This creates new durable content; do not use it to describe, analyze, or discuss an existing uploaded file.",
         ),
       prompt: z
         .string()
         .min(1)
         .describe(
-          "Prompt for AI generation. This is sufficient for standalone generated images/content; no target fields are needed unless attaching to an existing parent entity.",
+          "Prompt for creating new generated content. This is sufficient for standalone generated images/content; no target fields are needed unless attaching to an existing parent entity. Not for summarizing or describing existing uploads.",
         ),
     })
     .strict(),
@@ -89,13 +112,17 @@ export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z
         .literal("upload")
-        .describe("Extract markdown/text from an upload into a note entity"),
+        .describe(
+          "Extract markdown/text from an upload into a note entity only; do not use for raw document/image file preservation",
+        ),
       upload: createUploadInputSchema.describe(
         "Exact upload candidate object to extract from",
       ),
       transform: z
         .literal("extract-markdown")
-        .describe("Required transform for upload-to-note extraction"),
+        .describe(
+          "Required transform for upload-to-note extraction. Use system_upload_save instead when saving the raw uploaded file as a document or image.",
+        ),
     })
     .strict(),
   z
@@ -192,7 +219,7 @@ export const createInputSchema = z
 
 export const updateInputSchema = z.object({
   entityType: z.string().describe("Entity type"),
-  id: z.string().describe("Entity ID"),
+  id: z.string().describe("Entity ID, slug, or title"),
   fields: z
     .record(z.unknown())
     .optional()

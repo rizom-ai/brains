@@ -144,6 +144,9 @@ describe("AgentDiscoveryPlugin", () => {
     expect(tool?.visibility).toBe("trusted");
     expect(tool?.sideEffects).toBe("external");
     expect(tool?.description).toContain("/.well-known/agent-card.json");
+    expect(tool?.description).toContain(
+      "Call this tool without confirmed on the initial request",
+    );
     expect(tool?.description).not.toContain("prior conversation turn");
 
     const confirmation = await harness.executeTool("agent_connect", {

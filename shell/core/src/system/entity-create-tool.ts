@@ -1,7 +1,4 @@
-import {
-  isSavableAssistantMessage,
-  parseConversationMessageMetadata,
-} from "@brains/conversation-service";
+import { isSavableAssistantMessage } from "@brains/conversation-service";
 import type {
   CreateCoverImageInput,
   CreateExecutionContext,
@@ -30,6 +27,7 @@ import {
   buildEntityMutationEventContext,
   createSystemTool,
   hasStructuredFrontmatter,
+  isUploadRefInConversation,
   normalizeOptionalString,
 } from "./tool-helpers";
 
@@ -167,36 +165,6 @@ async function resolveSourceAttachment(
   );
   if (!result.ok) return input;
   return { ...input, sourceEntityId: result.entity.id };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-async function isUploadRefInConversation(
-  services: SystemServices,
-  input: { kind: string; id: string },
-  conversationId: string | undefined,
-): Promise<boolean> {
-  if (!conversationId) return false;
-  const messages = await services.conversationService.getMessages(
-    conversationId,
-    { limit: 100 },
-  );
-  for (const message of messages) {
-    const metadata = parseConversationMessageMetadata(message.metadata);
-    const attachments = metadata?.["attachments"];
-    if (!Array.isArray(attachments)) continue;
-    for (const attachment of attachments) {
-      if (!isRecord(attachment)) continue;
-      const source = attachment["source"];
-      if (!isRecord(source)) continue;
-      if (source["kind"] === input.kind && source["id"] === input.id) {
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 async function resolveConversationMessageContent(
@@ -839,7 +807,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Requires confirmation. Use source to choose exactly one source: text for exact user-provided content, generate for AI generation, url for URL-first flows, prior-response for saving a previous assistant response, upload with transform extract-markdown for uploaded PDF/text/markdown/JSON note imports, or attachment for source-derived entity artifacts. Use entityType wish for explicitly saved or tracked unmet requested capabilities or outcomes. Use system_upload_save for raw uploaded file preservation. targetEntityType/targetEntityId are only for attaching a newly created image/document to an existing canonical entity; never use placeholder IDs such as temp and omit target fields for standalone images or for a new entity's own coverImage. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity. Requires confirmation. Use source to choose exactly one source: text for exact user-provided content, generate for AI generation, url for URL-first flows, prior-response for saving a previous assistant response, upload with transform extract-markdown only for uploaded PDF/text/markdown/JSON imports into note entities, or attachment for source-derived entity artifacts. If the user includes content in the same direct save request, use source.kind text with that content instead of asking them to paste it again. Use entityType wish for explicitly saved or tracked unmet requested capabilities or outcomes. Use system_upload_save, not system_create, for raw uploaded file preservation as a document or image. Do not call both tools for the same upload save request. targetEntityType/targetEntityId are only for attaching a newly created image/document to an existing canonical entity; never use placeholder IDs such as temp and omit target fields for standalone images or for a new entity's own coverImage. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const prep = await prepareCreate(services, input, toolContext);

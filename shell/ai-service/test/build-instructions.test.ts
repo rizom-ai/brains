@@ -51,6 +51,9 @@ describe("buildInstructions", () => {
     const instructions = buildInstructions(identity, "anchor");
 
     expect(instructions).toContain(
+      'For direct identity/profile requests, phrase the brain identity as "I am {identity name}" or "I\'m {identity name}"',
+    );
+    expect(instructions).toContain(
       "For create, update, delete, extract, publish, sync, and other durable actions, call the relevant tool first",
     );
     expect(instructions).toContain(

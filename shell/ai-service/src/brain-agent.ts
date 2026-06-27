@@ -38,6 +38,23 @@ export const brainCallOptionsSchema = z.object({
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
 
+export function filterToolsForCallOptions(
+  tools: Tool[],
+  callOptions: Pick<
+    BrainCallOptions,
+    "enableUploadSave" | "hasPriorResponseCandidate"
+  >,
+): Tool[] {
+  return tools.filter(
+    (tool) =>
+      !(
+        (callOptions.enableUploadSave !== true ||
+          callOptions.hasPriorResponseCandidate === true) &&
+        tool.name === "system_upload_save"
+      ),
+  );
+}
+
 export function shouldStopToolLoop(input: {
   steps: Array<{
     toolResults?: Array<
@@ -121,16 +138,10 @@ export function createBrainAgentFactory(
         // an already-confirmed action).
         const allowedTools = callOptions.disableTools
           ? []
-          : config
-              .getToolsForPermission(callOptions.userPermissionLevel)
-              .filter(
-                (tool) =>
-                  !(
-                    (callOptions.enableUploadSave !== true ||
-                      callOptions.hasPriorResponseCandidate === true) &&
-                    tool.name === "system_upload_save"
-                  ),
-              );
+          : filterToolsForCallOptions(
+              config.getToolsForPermission(callOptions.userPermissionLevel),
+              callOptions,
+            );
         const allowedToolNames = allowedTools.map((t) => t.name);
 
         // Convert tools with proper context from call options

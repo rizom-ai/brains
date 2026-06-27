@@ -177,6 +177,7 @@ const goalCheckStateSchema = z
     id: z.string().min(1),
     title: z.string().min(1),
     instructions: z.array(z.string().min(1)),
+    requiredDetails: z.array(z.string().min(1)).default([]),
     doneWhen: z.array(z.string().min(1)).default([]),
     transitions: z.array(goalCheckTransitionSchema).default([]),
   })
@@ -1282,6 +1283,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const completedStates = run.completedStates
       .map((stateId) => `- ${stateId}`)
       .join("\n");
+    const requiredDetails = state.requiredDetails
+      .map((detail) => `- ${detail}`)
+      .join("\n");
     const goalStatus = this.formatVerifierStatus(run, state);
 
     return {
@@ -1308,7 +1312,7 @@ After a playbook event advances the run, call playbook_status and answer from th
 If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
 Treat setup facts as current-run evidence: unless the operator provided them in this run or they appear in active-run evidence, do not fill missing playbook requirements from ambient memory or existing durable records.
-When the current playbook state asks the operator for information, ask the operator; do not answer the prompt yourself from memory, knowledge search, or existing durable records. If the current operator message appears to answer the current state's operator-facing prompt, use all relevant details in that message as current-run information, then follow the state instructions: act when its requirements are satisfied, or ask only for the next missing required detail instead of repeating the same prompt. If the operator explicitly selects a valid event or operator action such as Skip, send that event instead of asking for the missing information.
+When the current playbook state asks the operator for information, ask the operator; do not answer the prompt yourself from memory, knowledge search, or existing durable records. If the current operator message appears to answer the current state's operator-facing prompt, use all relevant details in that message as current-run information, then follow the state instructions: act when its requirements are satisfied, or ask only for the next missing required detail instead of repeating the same prompt. If the message only partially satisfies the current state's listed requirements, do not call unrelated durable mutation tools such as system_create or system_update for that state yet; ask for the next missing required detail. If the operator explicitly selects a valid event or operator action such as Skip, send that event instead of asking for the missing information.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.
 After meaningful tool actions, explain what happened and why it matters.
@@ -1320,6 +1324,9 @@ ${completedStates || "- none"}
 
 State instructions:
 ${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
+
+Required details:
+${requiredDetails || "- none"}
 
 Done when:
 ${doneWhen || "- none"}

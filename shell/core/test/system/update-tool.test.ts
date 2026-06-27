@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
+import { updateInputSchema } from "../../src/system/schemas";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import type { BaseEntity } from "@brains/entity-service";
 import { PermissionService } from "@brains/templates";
@@ -24,6 +25,12 @@ const updateEntityRequestSchema = z
   .passthrough();
 
 describe("system_update tool", () => {
+  it("describes id as accepting entity id, slug, or title", () => {
+    expect(updateInputSchema.shape.id.description).toContain(
+      "Entity ID, slug, or title",
+    );
+  });
+
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 
@@ -261,10 +268,13 @@ describe("system_update tool", () => {
       confirmed: true,
     });
 
-    expect(result).toMatchObject({
-      needsConfirmation: true,
-      toolName: "system_delete",
-    });
+    // A confirmed call with no matching pending approval is rejected outright
+    // (consistent with system_create / system_upload_save), and nothing is
+    // deleted.
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain(
+      "No pending delete confirmation",
+    );
     expect(services.getEntities().get("newsletter-1")).toBeDefined();
   });
 

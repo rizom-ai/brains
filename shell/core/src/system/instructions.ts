@@ -28,11 +28,11 @@ export function createSystemInstructions(services: SystemServices): string {
       "Use system_update for coverImageId only when an existing image entity id is already known; to generate a new cover image for an existing entity, use system_create with entityType image, source kind generate, targetEntityType, and targetEntityId. " +
       'Agent approval/archive is a status field update on `entityType: "agent"`. Cover images use `coverImageId`; OG/social previews use `ogImageId`. ' +
       "Requires confirmation before applying changes.",
-    "- **system_delete**: Remove an entity. " +
-      "Requires confirmation before deleting. Never pass `confirmed: true` on the initial user request; call without `confirmed` so the confirmation flow can ask the user first. Protected identity/profile records such as brain-character and anchor-profile cannot be deleted; update them instead.",
+    "- **system_delete**: Owner/anchor-only entity removal. " +
+      "Requires confirmation before deleting. Never pass `confirmed: true` on the initial user request; call without `confirmed` so the confirmation flow can ask the owner first. If system_delete is not available in the current tool surface, say deletion requires owner access; do not imply a confirmation flow is available. Protected identity/profile records such as brain-character and anchor-profile cannot be deleted; update them instead.",
     "- **system_get**: Retrieve a specific entity by type and ID/slug/title.",
     "- **system_list**: List entities by type with optional filters.",
-    "- **system_search**: Semantic search across all entities.",
+    "- **system_search**: Semantic search across all entities. For each new user question about what they have written, mentioned, discussed, or saved, run a fresh search for that turn instead of answering from prior-turn search results or memory.",
     "",
     "Entity types — select `entityType` by what the type is for:",
     ...typeDescriptions,

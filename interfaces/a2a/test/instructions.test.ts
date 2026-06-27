@@ -18,7 +18,10 @@ describe("A2A instructions", () => {
     expect(instructions).toContain("call `agent_call` in the same turn");
     expect(instructions).toContain("reading saved agent entity metadata");
     expect(instructions).toContain(
-      "If the user names an exact domain-like agent id such as `yeehaa.io` or `docs.rizom.ai`, call `agent_call` directly",
+      "If the user names an exact domain-like agent id such as `yeehaa.io`, `docs.rizom.ai`, or `refusal-followup.example`, call `agent_call` directly",
+    );
+    expect(instructions).toContain(
+      ".example` test domains are still exact domain-like ids",
     );
     expect(instructions).toContain("Do not preflight with `system_list`");
     expect(instructions).toContain(
@@ -28,16 +31,23 @@ describe("A2A instructions", () => {
       "Do not create, capture, or generate a note containing the user's question",
     );
     expect(instructions).toContain("Use `agent_connect`");
-    expect(instructions).toContain("before any network contact");
-    expect(instructions).toContain("For full URLs and ambiguous display names");
+    expect(instructions).toContain("before network contact");
+    expect(instructions).toContain("one-shot call without saving");
+    expect(instructions).toContain("do not auto-save it");
+    expect(instructions).toContain(
+      "For non-HTTPS URLs and ambiguous display names",
+    );
+    expect(instructions).toContain(
+      "When the user provides an HTTPS URL for an agent, use its hostname as the exact domain-like id for `agent_call`",
+    );
   });
 
-  it("forbids memory/local-doc fallbacks when a saved-agent call fails", async () => {
+  it("forbids memory/local-doc fallbacks when an agent call fails", async () => {
     const plugin = new TestA2AInterface({ port: 0 });
     const instructions = await plugin.instructions();
 
     expect(instructions).toContain(
-      "If `agent_call` fails because auth, re-authentication, network, or the remote agent is unavailable",
+      "If `agent_call` fails because auth, re-authentication, network, invalid Agent Card, or the remote agent is unavailable",
     );
     expect(instructions).toContain("report that failure directly");
     expect(instructions).toContain(

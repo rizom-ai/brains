@@ -168,7 +168,7 @@ describe("deriveSkills", () => {
     expect(updateEntity).toHaveBeenCalledTimes(1);
   });
 
-  it("caps generated skills to the advertised maximum", async () => {
+  it("caps generated skills to the advertised consolidated maximum", async () => {
     const generatedSkills = Array.from({ length: 10 }, (_, i) => ({
       name: `Generated Skill ${i}`,
       description: `Generated skill ${i}`,
@@ -181,8 +181,8 @@ describe("deriveSkills", () => {
       replaceAll: true,
     });
 
-    expect(result.created).toBe(8);
-    expect(createEntity).toHaveBeenCalledTimes(8);
+    expect(result.created).toBe(4);
+    expect(createEntity).toHaveBeenCalledTimes(4);
   });
 
   it("scopes topic listing and stamps skill visibility to targetVisibility", async () => {
@@ -320,7 +320,10 @@ describe("buildSkillPrompt", () => {
     const prompt = buildSkillPrompt(input);
 
     expect(prompt).toContain("action-oriented");
-    expect(prompt).toContain("Return 4-8 skills");
+    expect(prompt).toContain("Return 2-4 consolidated skills");
+    expect(prompt).toContain(
+      "Never return as many skills as there are knowledge domains",
+    );
     expect(prompt).toContain("Reuse an existing tag when one fits");
   });
 });

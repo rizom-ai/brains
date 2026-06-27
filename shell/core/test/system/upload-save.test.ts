@@ -159,6 +159,38 @@ describe("system_upload_save tool", () => {
     ]);
   });
 
+  it("rejects a confirmed upload-save whose args do not match the pending approval", async () => {
+    const calls: unknown[] = [];
+    const services = buildServices({
+      uploadHandler: async (input) => {
+        calls.push(input);
+        return {
+          success: true,
+          data: { entityId: "report", status: "created" },
+        };
+      },
+    });
+    const tool = getUploadSaveTool(createSystemTools(services));
+
+    const pending = await tool.handler(
+      { upload: { kind: "upload", id: uploadId }, title: "Quarterly Report" },
+      context(),
+    );
+    const args = (pending as { args: Record<string, unknown> }).args;
+
+    // Resubmit the approved token but swap the title — must not save.
+    const swapped = await tool.handler(
+      { ...args, title: "Different Title" },
+      context(),
+    );
+
+    expect(swapped).toMatchObject({ success: false });
+    expect((swapped as { error: string }).error).toContain(
+      "do not match the pending approval",
+    );
+    expect(calls).toEqual([]);
+  });
+
   it("rejects accessible uploads when no plugin registered a media handler", async () => {
     const services = buildServices({ mediaType: "application/zip" });
     const tool = getUploadSaveTool(createSystemTools(services));

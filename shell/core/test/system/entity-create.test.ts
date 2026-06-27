@@ -274,6 +274,29 @@ function registerImageCreateInterceptor(services: MockServices): void {
 }
 
 describe("system_create tool", () => {
+  it("describes source text as exact user-provided content for direct save requests", () => {
+    const textBranch = createInputSchema.shape.source.options.find(
+      (option) => option.shape.kind.value === "text",
+    );
+    const contentField =
+      textBranch && "content" in textBranch.shape
+        ? textBranch.shape.content
+        : undefined;
+
+    expect(contentField?.description).toContain("direct save request");
+  });
+
+  it("tells models same-message direct save content is sufficient", () => {
+    const services = createMockSystemServices();
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_create",
+    );
+
+    expect(tool?.description).toContain(
+      "If the user includes content in the same direct save request, use source.kind text with that content",
+    );
+  });
+
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 

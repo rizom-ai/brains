@@ -1,6 +1,6 @@
 id: tool-invocation-agent-call-url-phrasing
-name: Refuse URL-Only Agent Contact Request
-description: Tests that URL-style agent contact requests still follow the save-first directory flow
+name: Call Agent from HTTPS URL Phrasing
+description: Tests that URL-style HTTPS agent contact requests are canonicalized to the hostname for agent_call without auto-saving.
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -16,16 +16,25 @@ turns:
 successCriteria:
   expectedTools:
     - toolName: agent_call
-      shouldBeCalled: false
+      shouldBeCalled: true
+      argsContain:
+        agent: unknown-agent.io
+      argsAbsent:
+        - confirmed
+        - confirmationToken
     - toolName: agent_connect
       shouldBeCalled: false
+    - toolName: system_create
+      shouldBeCalled: false
   responseContainsAny:
-    - ["directory", "local agent", "local agent contact", "saved local id", "saved agent ID", "saved local agent ID", "saved local agent"]
-    - ["add", "save"]
+    - ["could not verify", "couldn’t verify", "could not contact", "couldn’t contact"]
+    - ["unknown-agent.io"]
   responseNotContains:
     - "I called"
     - "wishlist"
     - "wish"
+    - "saved"
+    - "connected"
 
 
 efficiency:

@@ -14,6 +14,7 @@ const body = {
       id: "welcome",
       title: "Welcome",
       prompt: "Welcome. Would you like to continue?",
+      requiredDetails: [],
       instructions: ["Explain the playbook."],
       doneWhen: ["Operator is ready."],
       transitions: [
@@ -30,6 +31,7 @@ const body = {
     {
       id: "complete",
       title: "Complete",
+      requiredDetails: [],
       instructions: ["Complete the run."],
       doneWhen: ["Run is complete."],
       transitions: [],
@@ -104,6 +106,7 @@ Say: You're set up.
         id: "welcome",
         title: "Welcome",
         prompt: "Want to set it up together?",
+        requiredDetails: [],
         instructions: [],
         doneWhen: [],
         transitions: [
@@ -125,6 +128,7 @@ Say: You're set up.
         id: "identity",
         title: "Identity",
         prompt: "What name should Rover remember?",
+        requiredDetails: [],
         instructions: ["Ask for profile details."],
         doneWhen: ["Rover knows who the operator is."],
         transitions: [
@@ -141,6 +145,7 @@ Say: You're set up.
         id: "first-note",
         title: "First note",
         prompt: "Send one rough idea.",
+        requiredDetails: [],
         instructions: ["Save it as a note."],
         doneWhen: ["A first note has been saved."],
         transitions: [{ event: "NEXT", target: "done" }],
@@ -149,11 +154,58 @@ Say: You're set up.
         id: "done",
         title: "Done",
         prompt: "You're set up.",
+        requiredDetails: [],
         instructions: [],
         doneWhen: [],
         transitions: [],
       },
     ]);
+  });
+
+  it("parses authored required details as typed state requirements", () => {
+    const markdown = `---
+title: Required Details Playbook
+status: active
+audience: anchor
+completionMode: agent-confirmed
+---
+
+# Playbook
+
+## Purpose
+
+Teach by doing.
+
+## Steps
+
+### Identity
+
+Say: What should I call you?
+
+Required details:
+- name
+- role
+- audience
+- expertise
+- desiredTone
+
+To do:
+- Ask only for missing details.
+
+Done when:
+- The anchor profile has been updated.
+
+### Done
+
+Say: Done.
+`;
+
+    const { body: parsed } = playbookAdapter.parsePlaybookContent(markdown);
+
+    expect(parsed.states[0]).toMatchObject({
+      id: "identity",
+      requiredDetails: ["name", "role", "audience", "expertise", "desiredTone"],
+    });
   });
 
   it("rejects authored non-terminal steps without a done goal or choices", () => {
@@ -233,6 +285,7 @@ Say: Done.
         {
           id: "welcome",
           title: "Duplicate Welcome",
+          requiredDetails: [],
           instructions: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "missing-target" }],
@@ -240,6 +293,7 @@ Say: Done.
         {
           id: "orphan",
           title: "Orphan",
+          requiredDetails: [],
           instructions: [],
           doneWhen: [],
           transitions: [],

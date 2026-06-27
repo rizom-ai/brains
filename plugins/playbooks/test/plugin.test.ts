@@ -33,6 +33,7 @@ const welcomeState: PlaybookBody["states"][number] = {
   title: "Welcome",
   prompt: "Welcome. Would you like to continue?",
   instructions: ["Explain the playbook."],
+  requiredDetails: [],
   doneWhen: [],
   transitions: [
     {
@@ -59,6 +60,7 @@ const seedState: PlaybookBody["states"][number] = {
   title: "Seed",
   prompt: "What rough idea should Rover remember first?",
   instructions: ["Save a first note."],
+  requiredDetails: [],
   doneWhen: [],
   transitions: [{ event: "NEXT", target: "complete" }],
 };
@@ -67,6 +69,7 @@ const completeState: PlaybookBody["states"][number] = {
   id: "complete",
   title: "Complete",
   instructions: ["Complete the run."],
+  requiredDetails: [],
   doneWhen: ["Run is complete."],
   transitions: [],
 };
@@ -264,6 +267,7 @@ describe("PlaybooksPlugin", () => {
         id: "profile",
         title: "Profile",
         instructions: ["Check the profile."],
+        requiredDetails: [],
         doneWhen: ["The anchor profile is known."],
         transitions: [],
       },
@@ -800,6 +804,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -807,6 +812,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
@@ -857,6 +863,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -864,6 +871,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Capture the operator identity."],
+          requiredDetails: [],
           doneWhen: ["The brain knows who the operator is."],
           transitions: [{ event: "NEXT", target: "complete" }],
         },
@@ -912,6 +920,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -919,6 +928,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Capture the operator identity."],
+          requiredDetails: [],
           doneWhen: ["The brain knows who the operator is."],
           transitions: [{ event: "NEXT", target: "complete" }],
         },
@@ -967,6 +977,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Save a seed."],
+          requiredDetails: [],
           doneWhen: ["A first knowledge seed has been saved."],
           transitions: [{ event: "NEXT", target: "complete" }],
         },
@@ -1024,6 +1035,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -1031,6 +1043,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [{ event: "NEXT", target: "seed" }],
         },
@@ -1092,6 +1105,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -1099,6 +1113,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
@@ -1150,6 +1165,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -1157,6 +1173,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [{ event: "NEXT", target: "seed" }],
         },
@@ -1327,7 +1344,7 @@ describe("PlaybooksPlugin", () => {
     expect(content).toContain("- welcome");
   });
 
-  it("injects actionable run identity and unsatisfied Done When gates as agent context", async () => {
+  it("injects actionable run identity, required details, and unsatisfied Done When gates as agent context", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, {
@@ -1337,6 +1354,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -1344,6 +1362,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: ["name", "role", "audience"],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
@@ -1394,7 +1413,14 @@ describe("PlaybooksPlugin", () => {
     expect(content).toContain("Valid continuation events:");
     expect(content).toContain("Available operator actions:");
     expect(content).toContain("SKIP -> seed: Skip for now");
+    expect(content).toContain("Required details:");
+    expect(content).toContain("- name");
+    expect(content).toContain("- role");
+    expect(content).toContain("- audience");
     expect(content).toContain("Blocked events:");
     expect(content).toContain("NEXT -> seed");
+    expect(content).toContain(
+      "do not call unrelated durable mutation tools such as system_create or system_update",
+    );
   });
 });

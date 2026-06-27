@@ -9,14 +9,15 @@ A2A (Agent-to-Agent) interface plugin. Enables brain instances to discover and c
 - Routes tasks through AgentService for AI-powered responses
 - Provides an **agent_call** tool for calling remote A2A agents
 
-## Directory-aware calling semantics
+## Agent calling semantics
 
-`agent_call` is intentionally directory-aware rather than URL-first:
+`agent_call` accepts exact domain-like agent targets while preserving directory gates:
 
-- it expects one exact **saved local agent id**
-- only saved **approved** agents are callable
-- raw URLs, unknown domains, ambiguous names, and archived entries must be saved, clarified, approved, or unarchived first
-- callers should not pass a full URL directly to `agent_call`; save the agent first, then call it by its local id
+- saved agents are callable only when their saved status is **approved**
+- saved `discovered` or `archived` agents fail closed before network contact
+- unsaved exact domains are verified via `/.well-known/agent-card.json` and may be called one-shot without being saved
+- `agent_call` never auto-saves; save/connect explicitly with `agent_connect`
+- raw URLs and ambiguous display names are not valid `agent_call` targets; connect/save or clarify them first
 
 ## Configuration
 
