@@ -260,20 +260,6 @@ export const checkJobStatusInputSchema = z.object({
   jobTypes: z.array(z.string()).optional().describe("Filter by job types"),
 });
 
-export const getConversationInputSchema = z.object({
-  conversationId: z.string().describe("Conversation ID"),
-});
-
-export const listConversationsInputSchema = z.object({
-  searchQuery: z.string().optional().describe("Optional search query"),
-  limit: z.number().optional().describe("Maximum results (default: 20)"),
-});
-
-export const getMessagesInputSchema = z.object({
-  conversationId: z.string().describe("Conversation ID"),
-  limit: z.number().optional().describe("Maximum messages (default: 20)"),
-});
-
 export const insightsInputSchema = z.object({
   type: z
     .string()
