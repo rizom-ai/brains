@@ -1,3 +1,4 @@
+import { parseConversationMessageMetadata } from "@brains/conversation-service";
 import type {
   BaseEntity,
   EntityMutationEventContext,
@@ -9,6 +10,7 @@ import type {
   UserPermissionLevel,
 } from "@brains/templates";
 import { getErrorMessage, type z } from "@brains/utils";
+import type { SystemServices } from "./types";
 
 const PLUGIN_ID = "system";
 
@@ -223,4 +225,40 @@ export function hasStructuredFrontmatter(
   schema: z.ZodObject<z.ZodRawShape> | undefined,
 ): boolean {
   return !!schema && Object.keys(schema.shape).length > 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * True when the upload ref appears as an attachment on a message in this
+ * conversation. Shared upload-access gate for system_create and
+ * system_upload_save: a caller must not reference an upload outside the
+ * conversation it belongs to.
+ */
+export async function isUploadRefInConversation(
+  services: SystemServices,
+  input: { kind: string; id: string },
+  conversationId: string | undefined,
+): Promise<boolean> {
+  if (!conversationId) return false;
+  const messages = await services.conversationService.getMessages(
+    conversationId,
+    { limit: 100 },
+  );
+  for (const message of messages) {
+    const metadata = parseConversationMessageMetadata(message.metadata);
+    const attachments = metadata?.["attachments"];
+    if (!Array.isArray(attachments)) continue;
+    for (const attachment of attachments) {
+      if (!isRecord(attachment)) continue;
+      const source = attachment["source"];
+      if (!isRecord(source)) continue;
+      if (source["kind"] === input.kind && source["id"] === input.id) {
+        return true;
+      }
+    }
+  }
+  return false;
 }

@@ -1,0 +1,40 @@
+id: shell-broad-search-single-call
+name: Broad Search Uses Single system_search Call
+description: >-
+  Verifies that broad or vague content lookup requests use one broad
+  system_search call with scope.kind all, instead of fanning out into one
+  search per entity type.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - shell
+  - search
+  - efficiency
+  - tool-invocation
+  - preset-core
+
+turns:
+  - userMessage: "Search broadly for foo across all entity types in my knowledge base."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+      argsContain:
+        query: foo
+        scope.kind: all
+
+  responseNotContains:
+    - "Unknown entity type"
+    - "Available types:"
+    - "Error:"
+    - "failed:"
+    - "exception"
+    - "stack trace"
+    - ".ts:"
+    - ".js:"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 30000

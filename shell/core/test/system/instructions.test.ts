@@ -21,9 +21,12 @@ describe("system instructions", () => {
     expect(instructions).toContain("system_create");
     expect(instructions).toContain("system_update");
     expect(instructions).toContain("system_delete");
+    expect(instructions).toContain("Owner/anchor-only entity removal");
+    expect(instructions).toContain("deletion requires owner access");
     expect(instructions).toContain("system_get");
     expect(instructions).toContain("system_list");
     expect(instructions).toContain("system_search");
+    expect(instructions).toContain("run a fresh search for that turn");
     expect(instructions).toContain(
       "Never pass `confirmed: true` on the initial user request",
     );
@@ -34,7 +37,7 @@ describe("system instructions", () => {
     const instructions = createSystemInstructions(services);
 
     expect(instructions).toContain("Use `fields` for title, status");
-    expect(instructions).toContain("call `system_update`");
+    expect(instructions).toContain("system_update");
   });
 
   it("describes source-derived artifacts with the canonical source attachment branch", () => {
@@ -42,13 +45,11 @@ describe("system instructions", () => {
     const instructions = createSystemInstructions(services);
 
     expect(instructions).toContain(
-      'Pass `source`: `{ kind: "text", content }`',
+      'Required `source` union: `{ kind: "text", content }`',
     );
+    expect(instructions).toContain('`{ kind: "prior-response", messageId? }`');
     expect(instructions).toContain(
-      '`{ kind: "prior-response" }` for prior assistant response saves',
-    );
-    expect(instructions).toContain(
-      '`{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }` for source-derived artifact saves',
+      '`{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }`',
     );
     expect(instructions).not.toContain(
       "`from` for source-derived artifact saves",
@@ -83,27 +84,31 @@ describe("system instructions", () => {
     expect(instructions).toContain("note");
   });
 
-  it("does not advertise example entity types that are not registered", () => {
+  it("does not advertise entity types that are not registered", () => {
     const services = createMockSystemServices();
     services.registerEntityTypes(["note"]);
 
     const instructions = createSystemInstructions(services);
 
     // The blog plugin is not installed, so "post" must never be offered as a
-    // mappable entity type — otherwise the model generates an unregistered type.
-    expect(instructions).not.toContain('entityType: "post"');
-    expect(instructions).not.toContain('entityType: "deck"');
-    expect(instructions).toContain('entityType: "note"');
+    // selectable entity type — otherwise the model generates an unregistered type.
+    expect(instructions).toContain("- note:");
+    expect(instructions).not.toContain("- post:");
+    expect(instructions).not.toContain("- deck:");
   });
 
-  it("advertises example mappings only for registered entity types", () => {
+  it("lists each registered entity type by its declared purpose, not example phrasings", () => {
     const services = createMockSystemServices();
     services.registerEntityTypes(["note", "post"]);
 
     const instructions = createSystemInstructions(services);
 
-    expect(instructions).toContain('entityType: "post"');
-    expect(instructions).toContain('entityType: "note"');
-    expect(instructions).not.toContain('entityType: "deck"');
+    expect(instructions).toContain("- note:");
+    expect(instructions).toContain("- post:");
+    expect(instructions).not.toContain("- deck:");
+    // Types are described by their declarative purpose (from the adapter),
+    // not by hardcoded "phrase → entityType" routing examples.
+    expect(instructions).toContain("Test entity for unit tests.");
+    expect(instructions).not.toContain("→ entityType:");
   });
 });

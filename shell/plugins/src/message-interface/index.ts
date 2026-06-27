@@ -153,11 +153,6 @@ export {
 } from "./upload-policy";
 
 export {
-  selectReferencedAttachments,
-  type NamedAttachmentReference,
-} from "./upload-selection";
-
-export {
   MessageUploadContinuity,
   type MessageUploadAttachmentRestorer,
   type MessageUploadContinuityOptions,

@@ -146,6 +146,7 @@ class CapabilityAgentAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "agent",
+      purpose: "An assessed profile of a subject's capabilities.",
       schema: capabilityAgentEntitySchema,
       frontmatterSchema: capabilityAgentFrontmatterSchema,
     });

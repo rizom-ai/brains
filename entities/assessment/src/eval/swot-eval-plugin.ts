@@ -117,6 +117,7 @@ class EvalAgentAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "agent",
+      purpose: "An agent entity used for SWOT evaluation.",
       schema: evalAgentEntitySchema,
       frontmatterSchema: evalAgentFrontmatterSchema,
     });
@@ -157,6 +158,7 @@ class EvalSkillAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "skill",
+      purpose: "A skill entity used for SWOT evaluation.",
       schema: evalSkillEntitySchema,
       frontmatterSchema: skillDataSchema,
     });

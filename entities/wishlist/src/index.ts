@@ -109,16 +109,7 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return (
-      "**CRITICAL — Wishlist exclusions**: A2A agent-contact requests are never wishlist cases. " +
-      "If a request asks you to ask, message, contact, call, or reach out to an agent, and the target is missing, ambiguous, archived, URL-only, unsaved-domain, or not-yet-saved in the local agent directory, do not call any create tool for a wish. Tell the user to add/save or clarify the agent first. " +
-      'This includes requests that contain a full agent URL, a bare domain like unknown-agent.io, or phrasing like "message this agent URL for me". Only create or save an agent entry if the user explicitly asks you to add or save that agent. ' +
-      "**CRITICAL — Unfulfilled requests**: For other unfulfillable requests, ALWAYS call `system_create` with entityType " +
-      '"wish" BEFORE responding when you cannot fulfill a user\'s request. This applies to ' +
-      "physical actions, non-agent missing integrations, and any non-agent capability " +
-      "you lack. Physical-world requests like making food, driving somewhere, or doing chores are always wishlist cases. Do NOT just explain you can't do it — create the wish first, THEN respond. " +
-      "Never claim the request was added to the wishlist unless you actually called system_create for the wish. In your response, tell the user their request has been added to the wishlist."
-    );
+    return "Wish entities record explicitly requested capabilities or desired end states whose literal completion is outside the available toolset. They may capture outcomes the assistant can advise about but cannot directly perform. They track demand, priority, and status for future capability planning; they are not a substitute for first-class entities that already support the requested action. To show the whole wishlist, call system_list once with entityType wish and omit status; only include status when the user asks for a specific wish status.";
   }
 }
 

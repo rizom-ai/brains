@@ -4,6 +4,7 @@ import { toolResponseSchema } from "@brains/mcp-service";
 import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
 import { z } from "@brains/utils";
 import { createSystemTools } from "../../src/system/tools";
+import { listInputSchema, searchInputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 
 const baseEntityResponseSchema = z.object({
@@ -69,6 +70,44 @@ const baseContext = (
   ...(userPermissionLevel && { userPermissionLevel }),
 });
 
+describe("read tool model contracts", () => {
+  it("describes scope.kind all as the broad search path", () => {
+    expect(Object.keys(searchInputSchema.shape)).toEqual([
+      "query",
+      "scope",
+      "limit",
+      "includeUngenerated",
+    ]);
+    expect(searchInputSchema.shape.scope.description).toContain("kind: 'all'");
+    const services = createMockSystemServices();
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_search",
+    );
+    expect(tool?.description).toContain(
+      "For broad search, make one system_search call with scope.kind all",
+    );
+  });
+
+  it("describes status as optional and warns against invented statuses", () => {
+    expect(listInputSchema.shape.status.description).toContain(
+      "Omit unless the user asks for a known status",
+    );
+    expect(listInputSchema.shape.status.description).toContain(
+      "wish statuses: new, planned, in-progress, done, declined",
+    );
+  });
+
+  it("describes system_list as known-type listing, not broad lookup", () => {
+    const services = createMockSystemServices();
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_list",
+    );
+    expect(tool?.description).toContain(
+      "Use system_search, not system_list, for broad or vague lookup requests",
+    );
+  });
+});
+
 describe("read tools enforce caller visibility scope", () => {
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
@@ -93,7 +132,7 @@ describe("read tools enforce caller visibility scope", () => {
     scope: ToolContext["userPermissionLevel"],
   ): Promise<string[]> {
     const raw = await getTool("system_search").handler(
-      { query: "body" },
+      { query: "body", scope: { kind: "all" } },
       baseContext(scope),
     );
     const data = expectSuccess(raw, searchDataSchema);
@@ -141,6 +180,41 @@ describe("read tools enforce caller visibility scope", () => {
 
     it("defaults to public scope when caller permission is missing", async () => {
       expect(await runSearch(undefined)).toEqual(["doc-public"]);
+    });
+
+    it("uses structured all scope as broad search", async () => {
+      const raw = await getTool("system_search").handler(
+        { query: "body", scope: { kind: "all" } },
+        baseContext("anchor"),
+      );
+      const data = expectSuccess(raw, searchDataSchema);
+      expect(data.results.map((r) => r.entity.id).sort()).toEqual([
+        "doc-public",
+        "doc-restricted",
+        "doc-shared",
+      ]);
+    });
+
+    it("uses structured type scope as an entity type filter", async () => {
+      services.addEntities([
+        {
+          id: "note-public",
+          entityType: "note",
+          content: "body of note-public",
+          contentHash: "hash-note-public",
+          visibility: "public",
+          metadata: { title: "note-public" },
+          created: "2026-05-01T00:00:00.000Z",
+          updated: "2026-05-01T00:00:00.000Z",
+        },
+      ]);
+
+      const raw = await getTool("system_search").handler(
+        { query: "body", scope: { kind: "type", entityType: "note" } },
+        baseContext("anchor"),
+      );
+      const data = expectSuccess(raw, searchDataSchema);
+      expect(data.results.map((r) => r.entity.id)).toEqual(["note-public"]);
     });
   });
 

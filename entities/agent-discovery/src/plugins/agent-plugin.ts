@@ -1,7 +1,4 @@
 import type {
-  CreateExecutionContext,
-  CreateInput,
-  CreateInterceptionResult,
   DataSource,
   EntityPluginContext,
   JobHandler,
@@ -12,11 +9,10 @@ import { EntityPlugin } from "@brains/plugins";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AgentDataSource } from "../datasources/agent-datasource";
 import { AgentGenerationJobHandler } from "../handlers/agent-generation-handler";
-import { interceptAgentUrlCreate } from "../lib/agent-create-interceptor";
 import { registerAgentNetworkDashboardWidget } from "../lib/agent-dashboard";
 import { registerAtprotoBrainCardHandlers } from "../lib/atproto-card-events";
-import { AGENT_DISCOVERY_PLUGIN_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 import { getAgentDiscoveryInstructions } from "../lib/agent-instructions";
+import { AGENT_DISCOVERY_PLUGIN_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 import { getTemplates } from "../lib/register-templates";
 import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import packageJson from "../../package.json";
@@ -30,14 +26,6 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
 
   constructor() {
     super(AGENT_DISCOVERY_PLUGIN_ID, packageJson);
-  }
-
-  protected override interceptCreate(
-    input: CreateInput,
-    executionContext: CreateExecutionContext,
-    context: EntityPluginContext,
-  ): Promise<CreateInterceptionResult> {
-    return interceptAgentUrlCreate(input, executionContext, context, this.id);
   }
 
   protected override createGenerationHandler(
@@ -64,7 +52,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
     registerAgentNetworkDashboardWidget(context, this.id);
   }
 
-  protected override async getInstructions(): Promise<string | undefined> {
+  protected override async getInstructions(): Promise<string> {
     return getAgentDiscoveryInstructions();
   }
 }

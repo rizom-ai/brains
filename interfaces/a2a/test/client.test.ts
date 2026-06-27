@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { parseA2AResponse, createA2ACallTool } from "../src/client";
+import { parseA2AResponse, createAgentCallTool } from "../src/client";
 import { parseAgentCard } from "@brains/plugins";
 
 function createSavedAgentEntityService(agentId = "remote.example.com"): {
@@ -217,7 +217,7 @@ describe("A2A Client", () => {
     });
   });
 
-  describe("createA2ACallTool outbound auth", () => {
+  describe("createAgentCallTool outbound auth", () => {
     /** Mock fetch that serves an agent card then records the a2a call */
     function createMockFetch(capturedHeaders: Record<string, string>[]) {
       return async (
@@ -272,7 +272,7 @@ describe("A2A Client", () => {
 
     it("should send Authorization header when outbound token matches domain", async () => {
       const capturedHeaders: Record<string, string>[] = [];
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: createMockFetch(capturedHeaders),
         outboundTokens: {
           "remote.example.com": "secret-token-xyz",
@@ -293,7 +293,7 @@ describe("A2A Client", () => {
 
     it("should not send Authorization header when no token matches", async () => {
       const capturedHeaders: Record<string, string>[] = [];
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: createMockFetch(capturedHeaders),
         outboundTokens: {
           "other-agent.com": "some-token",
@@ -312,7 +312,7 @@ describe("A2A Client", () => {
 
     it("should not send Authorization header when no outbound tokens configured", async () => {
       const capturedHeaders: Record<string, string>[] = [];
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: createMockFetch(capturedHeaders),
         entityService: createSavedAgentEntityService(),
       });
@@ -389,7 +389,7 @@ describe("A2A Client", () => {
     }
 
     it("should read SSE stream and return completed result", async () => {
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: createStreamFetch([
           { state: "working", final: false },
           { state: "completed", final: true, text: "Final answer" },
@@ -408,7 +408,7 @@ describe("A2A Client", () => {
     });
 
     it("should handle failed task via SSE stream", async () => {
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: createStreamFetch([
           { state: "working", final: false },
           { state: "failed", final: true, text: "Error: Agent crashed" },
@@ -426,7 +426,7 @@ describe("A2A Client", () => {
     });
 
     it("should handle stream that closes without final event", async () => {
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: createStreamFetch([
           { state: "working", final: false },
           // stream closes without final: true
@@ -466,7 +466,7 @@ describe("A2A Client", () => {
         });
       };
 
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
         requestTimeoutMs: 5,
@@ -526,7 +526,7 @@ describe("A2A Client", () => {
         });
       };
 
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
         streamIdleTimeoutMs: 5,
@@ -576,7 +576,7 @@ describe("A2A Client", () => {
         );
       };
 
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
         maxNetworkAttempts: 2,
@@ -637,7 +637,7 @@ describe("A2A Client", () => {
         });
       };
 
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
         streamIdleTimeoutMs: 50,
@@ -672,7 +672,7 @@ describe("A2A Client", () => {
         return new Response("Forbidden", { status: 403 });
       };
 
-      const tool = createA2ACallTool({
+      const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
         maxNetworkAttempts: 2,

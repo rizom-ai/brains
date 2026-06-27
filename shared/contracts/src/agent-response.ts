@@ -140,6 +140,12 @@ export const ToolResultDataSchema = z.object({
   args: z.record(z.unknown()).optional(),
   jobId: z.string().optional(),
   data: z.unknown().optional(),
+  error: z
+    .object({
+      message: z.string(),
+      code: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type ToolResultData = z.infer<typeof ToolResultDataSchema>;

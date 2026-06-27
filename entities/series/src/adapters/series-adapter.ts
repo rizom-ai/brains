@@ -18,6 +18,7 @@ export class SeriesAdapter extends BaseEntityAdapter<Series, SeriesMetadata> {
   constructor() {
     super({
       entityType: "series",
+      purpose: "A series grouping related posts or content under one theme.",
       schema: seriesSchema,
       frontmatterSchema: seriesFrontmatterSchema,
       supportsCoverImage: true,

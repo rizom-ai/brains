@@ -1,12 +1,17 @@
 import type { Plugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { agentDiscoveryPlugin } from "./plugins/agent-plugin";
+import { agentToolsPlugin } from "./plugins/agent-tools-plugin";
 import { skillPlugin } from "./plugins/skill-plugin";
 
 export {
   AgentDiscoveryPlugin,
   agentDiscoveryPlugin,
 } from "./plugins/agent-plugin";
+export {
+  AgentToolsPlugin,
+  agentToolsPlugin,
+} from "./plugins/agent-tools-plugin";
 
 /**
  * Composite config for the agent-discovery feature.
@@ -34,7 +39,7 @@ export function agentDiscovery(
   config: AgentDiscoveryCompositeConfig = {},
 ): Plugin[] {
   agentDiscoveryCompositeConfigSchema.parse(config);
-  return [agentDiscoveryPlugin(), skillPlugin()];
+  return [agentDiscoveryPlugin(), agentToolsPlugin(), skillPlugin()];
 }
 
 export {

@@ -27,6 +27,7 @@ export const playbookStateSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   prompt: optionalTextSchema,
+  requiredDetails: z.array(z.string().min(1)).default([]),
   instructions: z.array(z.string().min(1)).default([]),
   doneWhen: z.array(z.string().min(1)).default([]),
   transitions: z.array(playbookTransitionSchema).default([]),

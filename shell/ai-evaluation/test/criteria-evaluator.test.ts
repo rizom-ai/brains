@@ -2,6 +2,42 @@ import { describe, expect, it } from "bun:test";
 import { evaluateCriteria } from "../src/criteria-evaluator";
 
 describe("evaluateCriteria", () => {
+  it("passes responseContainsAny when any alternative is present", () => {
+    const results = evaluateCriteria(
+      {
+        responseContainsAny: [["not found", "doesn't exist"]],
+      },
+      { text: "That target doesn't exist." },
+      [],
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        criterion: "responseContainsAny",
+        passed: true,
+      }),
+    ]);
+  });
+
+  it("fails responseContainsAny when no alternatives are present", () => {
+    const results = evaluateCriteria(
+      {
+        responseContainsAny: [["not found", "doesn't exist"]],
+      },
+      { text: "Still running." },
+      [],
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        criterion: "responseContainsAny",
+        passed: false,
+        message:
+          'Response does not contain any expected text: "not found" or "doesn\'t exist"',
+      }),
+    ]);
+  });
+
   it("passes expectedAnyTool when any listed tool was called", () => {
     const results = evaluateCriteria(
       {

@@ -34,6 +34,30 @@ describe("toModelMessages", () => {
     );
   });
 
+  it("injects structured agent contact candidates from metadata, not prose", () => {
+    const messages = toModelMessages([
+      {
+        id: "message-1",
+        conversationId: "conversation-1",
+        role: "assistant",
+        content:
+          "I can only talk to saved local agents. Add save-it-regression.example first.",
+        metadata: JSON.stringify({
+          agentContactCandidates: [
+            { source: { kind: "url", url: "save-it-regression.example" } },
+          ],
+        }),
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+
+    const serialized = JSON.stringify(messages);
+    expect(serialized).toContain("Internal agent contact candidates");
+    expect(serialized).toContain("agent_connect candidate args");
+    expect(serialized).toContain("save-it-regression.example");
+    expect(serialized).not.toContain("If the prior conversation turn");
+  });
+
   it("does not add assistant-content refs to upload intent acknowledgements", () => {
     const messages = toModelMessages([
       {
@@ -112,6 +136,11 @@ describe("resolveConversationUploadContinuity", () => {
     },
   ];
 
+  const [oldestUploadRef, newestUploadRef] = uploadRefs;
+  if (!oldestUploadRef || !newestUploadRef) {
+    throw new Error("Expected two upload refs for tests");
+  }
+
   const historyMessages = uploadRefs.map((ref, index) => ({
     id: `message-${index}`,
     conversationId: "conversation-1",
@@ -130,7 +159,7 @@ describe("resolveConversationUploadContinuity", () => {
     timestamp: new Date().toISOString(),
   }));
 
-  it("does not expose stale prior uploads without a structural upload handoff", () => {
+  it("exposes recent historical upload refs newest-first independent of message wording", () => {
     const result = resolveConversationUploadContinuity({
       message:
         "Can you generate a preview of the innovation deck carousel for me?",
@@ -142,219 +171,67 @@ describe("resolveConversationUploadContinuity", () => {
       kind: "selected",
       message:
         "Can you generate a preview of the innovation deck carousel for me?",
-      refs: [],
+      refs: [newestUploadRef, oldestUploadRef],
       attachments: [],
     });
   });
 
-  it("exposes prior upload refs immediately after the upload-intent card", () => {
-    const firstHistoryMessage = historyMessages[0];
-    const firstUploadRef = uploadRefs[0];
-    if (firstHistoryMessage === undefined || firstUploadRef === undefined) {
-      throw new Error("Expected upload fixture");
+  it("does not narrow candidates for first/latest/filename wording", () => {
+    for (const message of [
+      "save it",
+      "use the oldest upload",
+      "describe the most recent file",
+      "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+    ]) {
+      const result = resolveConversationUploadContinuity({
+        message,
+        currentAttachments: [],
+        historyMessages,
+      });
+
+      expect(result.refs).toEqual([newestUploadRef, oldestUploadRef]);
     }
-
-    const result = resolveConversationUploadContinuity({
-      message: "Summarize the uploaded PDF.",
-      currentAttachments: [],
-      historyMessages: [
-        firstHistoryMessage,
-        {
-          id: "message-upload-intent",
-          conversationId: "conversation-1",
-          role: "assistant",
-          content:
-            "I got `file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf`. What would you like me to do with it?",
-          metadata: JSON.stringify({
-            cards: [
-              {
-                kind: "actions",
-                id: "actions:upload-intent",
-                title: "Try next",
-                actions: [],
-              },
-            ],
-          }),
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    });
-
-    expect(result).toEqual({
-      kind: "selected",
-      message: "Summarize the uploaded PDF.",
-      refs: [firstUploadRef],
-      attachments: [],
-    });
   });
 
-  it("exposes prior upload refs when the last stored turn is an unanswered upload message", () => {
-    const firstHistoryMessage = historyMessages[0];
-    const firstUploadRef = uploadRefs[0];
-    if (firstHistoryMessage === undefined || firstUploadRef === undefined) {
-      throw new Error("Expected upload fixture");
-    }
-
+  it("caps historical refs by recency without reading message wording", () => {
+    const manyRefs = Array.from({ length: 8 }, (_, index) => ({
+      filename: `file-${index}.pdf`,
+      mediaType: "application/pdf",
+      source: { kind: "upload", id: `upload-${index}` },
+    }));
     const result = resolveConversationUploadContinuity({
-      message: "try again",
+      message: "use the first file",
       currentAttachments: [],
-      historyMessages: [
-        {
-          ...firstHistoryMessage,
-          content: "Summarize this upload",
-        },
-      ],
-    });
-
-    expect(result).toEqual({
-      kind: "selected",
-      message: "try again",
-      refs: [firstUploadRef],
-      attachments: [],
-    });
-  });
-
-  it("does not rewrite clarification replies or select files from text", () => {
-    const result = resolveConversationUploadContinuity({
-      message: "neither, generate it from the deck",
-      currentAttachments: [],
-      historyMessages: [
-        ...historyMessages,
-        {
-          id: "message-request",
-          conversationId: "conversation-1",
-          role: "user",
-          content:
-            "Can you generate a preview of the innovation deck carousel for me?",
-          metadata: null,
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "message-clarify",
-          conversationId: "conversation-1",
-          role: "assistant",
-          content:
-            "Which uploaded file should I use? `file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf`, `IMG_8963.jpeg`",
-          metadata: null,
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    });
-
-    expect(result).toEqual({
-      kind: "selected",
-      message: "neither, generate it from the deck",
-      refs: [],
-      attachments: [],
-    });
-  });
-
-  it("narrows singular raw-save follow-ups to the latest pending upload ref", () => {
-    const latestUploadRef = uploadRefs.at(-1);
-    if (!latestUploadRef) throw new Error("expected upload fixture");
-
-    const result = resolveConversationUploadContinuity({
-      message: "save it",
-      currentAttachments: [],
-      historyMessages: [
-        {
-          id: "message-pending-uploads",
-          conversationId: "conversation-1",
-          role: "user",
-          content: "I uploaded these files",
-          metadata: JSON.stringify({
-            attachments: uploadRefs.map((ref) => ({
+      historyMessages: manyRefs.map((ref, index) => ({
+        id: `message-many-${index}`,
+        conversationId: "conversation-1",
+        role: "user" as const,
+        content: "",
+        metadata: JSON.stringify({
+          attachments: [
+            {
               kind: "file",
               filename: ref.filename,
               mediaType: ref.mediaType,
               source: ref.source,
-            })),
-          }),
-          timestamp: new Date().toISOString(),
-        },
-      ],
+            },
+          ],
+        }),
+        timestamp: new Date().toISOString(),
+      })),
     });
 
-    expect(result).toEqual({
-      kind: "selected",
-      message: "save it",
-      refs: [latestUploadRef],
-      attachments: [],
-    });
+    expect(result.refs.map((ref) => ref.source.id)).toEqual([
+      "upload-7",
+      "upload-6",
+      "upload-5",
+      "upload-4",
+      "upload-3",
+      "upload-2",
+    ]);
   });
 
-  it("does not resurrect historical uploads for summary save-it follow-ups", () => {
-    const result = resolveConversationUploadContinuity({
-      message: "can you save it",
-      currentAttachments: [],
-      historyMessages: [
-        ...historyMessages,
-        {
-          id: "message-summary",
-          conversationId: "conversation-1",
-          role: "assistant",
-          content: "The PDF summarizes consensus protocols.",
-          metadata: null,
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    });
-
-    expect(result).toEqual({
-      kind: "selected",
-      message: "can you save it",
-      refs: [],
-      attachments: [],
-    });
-  });
-
-  it("keeps all pending refs when the user names a filename", () => {
-    const result = resolveConversationUploadContinuity({
-      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
-      currentAttachments: [],
-      historyMessages: [
-        {
-          id: "message-pending-uploads",
-          conversationId: "conversation-1",
-          role: "user",
-          content: "I uploaded these files",
-          metadata: JSON.stringify({
-            attachments: uploadRefs.map((ref) => ({
-              kind: "file",
-              filename: ref.filename,
-              mediaType: ref.mediaType,
-              source: ref.source,
-            })),
-          }),
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    });
-
-    expect(result).toEqual({
-      kind: "selected",
-      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
-      refs: uploadRefs,
-      attachments: [],
-    });
-  });
-
-  it("keeps all historical refs when the user names a filename", () => {
-    const result = resolveConversationUploadContinuity({
-      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
-      currentAttachments: [],
-      historyMessages,
-    });
-
-    expect(result).toEqual({
-      kind: "selected",
-      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
-      refs: uploadRefs,
-      attachments: [],
-    });
-  });
-
-  it("passes current attachments through without deriving conversation control flow", () => {
+  it("passes current attachment refs plus recent history through as candidate data", () => {
     const attachment = {
       kind: "file" as const,
       filename: "brief.pdf",
@@ -376,14 +253,89 @@ describe("resolveConversationUploadContinuity", () => {
     expect(result).toEqual({
       kind: "selected",
       message: "summarize this",
-      refs: [],
+      refs: [
+        {
+          filename: "brief.pdf",
+          mediaType: "application/pdf",
+          source: { kind: "upload", id: "upload-current" },
+        },
+        newestUploadRef,
+        oldestUploadRef,
+      ],
       attachments: [attachment],
     });
+  });
+
+  it("exposes the latest non-upload-intent assistant message as a prior-response candidate in upload follow-ups", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "save it",
+      currentAttachments: [],
+      historyMessages: [
+        {
+          id: "message-upload",
+          conversationId: "conversation-1",
+          role: "user" as const,
+          content: "",
+          metadata: JSON.stringify({
+            attachments: [
+              {
+                kind: "file",
+                filename: "brief.pdf",
+                mediaType: "application/pdf",
+                source: { kind: "upload", id: "upload-brief" },
+              },
+            ],
+          }),
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "message-upload-ack",
+          conversationId: "conversation-1",
+          role: "assistant" as const,
+          content: "I got `brief.pdf`. What would you like me to do with it?",
+          metadata: JSON.stringify({
+            cards: [{ kind: "actions", id: "actions:upload-intent" }],
+          }),
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "message-summary",
+          conversationId: "conversation-1",
+          role: "assistant" as const,
+          content: "The document is about distributed systems.",
+          metadata: "{}",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    });
+
+    expect(result.priorResponseRef).toEqual({ messageId: "message-summary" });
+  });
+
+  it("does not expose entity-memory assistant turns as prior-response candidates", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "show my wishlist",
+      currentAttachments: [],
+      historyMessages: [
+        {
+          id: "message-completed",
+          conversationId: "conversation-1",
+          role: "assistant" as const,
+          content: 'Completed: Create "Make lasagna"',
+          metadata: JSON.stringify({
+            entityMemoryRefs: [{ entityId: "make-lasagna" }],
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    });
+
+    expect(result.priorResponseRef).toBeUndefined();
   });
 });
 
 describe("buildMessageWithAttachments", () => {
-  it("includes model-visible prior upload refs without same-turn attachments", () => {
+  it("includes model-visible prior upload refs without routing prose", () => {
     const content = buildMessageWithAttachments(
       "turn it into a note",
       undefined,
@@ -402,22 +354,23 @@ describe("buildMessageWithAttachments", () => {
     );
 
     expect(content).toContain("turn it into a note\n\nAvailable upload refs");
+    expect(content).toContain("structured candidate data");
+    expect(content).not.toContain("use the most recent matching upload ref");
+    expect(content).not.toContain("Raw uploaded file path:");
+    expect(content).not.toContain("Prior assistant response path:");
     expect(content).toContain(
-      "use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself",
+      '- distributed-systems-primer.pdf; upload: { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
     );
-    expect(content).toContain("Raw uploaded file path:");
-    expect(content).toContain("call system_upload_save");
-    expect(content).toContain("Prior assistant response path:");
-    expect(content).toContain('source: { kind: "prior-response" }');
-    expect(content).not.toContain("content from the conversation");
+    expect(content).not.toContain("note-extract args");
+  });
+
+  it("includes model-visible prior-response refs as structured candidate data", () => {
+    const content = buildMessageWithAttachments("save it", undefined, {
+      priorResponseRef: { messageId: "message-summary" },
+    });
+
     expect(content).toContain(
-      "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
-    );
-    expect(content).toContain(
-      '- distributed-systems-primer.pdf: upload.kind="upload"; upload.id="upload-00000000-0000-4000-8000-000000000401"; mediaType: application/pdf; raw-save entityType="document"; note-extract args: entityType="note", source.kind="upload", source.upload.kind="upload", source.upload.id="upload-00000000-0000-4000-8000-000000000401", source.transform="extract-markdown"',
-    );
-    expect(content).toContain(
-      "This is the only valid durable note-import operation for this upload; do not copy attachment bytes into a text source for note import.",
+      'Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation): { entityType: "note", source: { kind: "prior-response", messageId: "message-summary" } }',
     );
   });
 
@@ -440,7 +393,7 @@ describe("buildMessageWithAttachments", () => {
       {
         type: "text",
         text: expect.stringContaining(
-          '- brief.pdf: upload.kind="upload"; upload.id="upload-00000000-0000-4000-8000-000000000401"; mediaType: application/pdf; raw-save entityType="document"',
+          '- brief.pdf; upload: { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
         ),
       },
       {
@@ -451,16 +404,10 @@ describe("buildMessageWithAttachments", () => {
       },
     ]);
     const textPart = Array.isArray(content) ? content[0] : undefined;
-    expect(textPart?.type === "text" ? textPart.text : "").toContain(
-      "use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself",
-    );
     const text = textPart?.type === "text" ? textPart.text : "";
-    expect(text).toContain("Raw uploaded file path:");
-    expect(text).toContain("Prior assistant response path:");
-    expect(text).toContain('source: { kind: "prior-response" }');
-    expect(text).not.toContain("content from the conversation");
-    expect(text).toContain(
-      "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
-    );
+    expect(text).toContain("structured candidate data");
+    expect(text).not.toContain("use the most recent matching upload ref");
+    expect(text).not.toContain("Raw uploaded file path:");
+    expect(text).not.toContain("Prior assistant response path:");
   });
 });

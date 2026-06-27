@@ -11,6 +11,7 @@ export class DocAdapter extends BaseEntityAdapter<Doc, DocMetadata> {
   constructor() {
     super({
       entityType: "doc",
+      purpose: "A structured documentation page.",
       schema: docSchema,
       frontmatterSchema: docFrontmatterSchema,
     });

@@ -30,6 +30,7 @@ class TestAdapter extends BaseEntityAdapter<TestEntity> {
   constructor() {
     super({
       entityType: "test-item",
+      purpose: "Test entity for plugin tests.",
       schema: testSchema,
       frontmatterSchema: testFrontmatterSchema,
     });

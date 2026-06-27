@@ -34,14 +34,15 @@ import {
   buildMessageWithAttachments,
   buildModelMessages,
   resolveConversationUploadContinuity,
-  shouldHydrateUploadAttachmentsForMessage,
   type ConversationUploadRef,
 } from "./conversation-messages";
 import {
   buildSourcesCardFromContextItems,
   extractToolResults,
+  buildAgentContactCandidates,
   buildEntityMemoryRefs,
   buildToolResultPromptFallback,
+  type AgentContactCandidate,
   type EntityMemoryRef,
 } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
@@ -630,12 +631,17 @@ export class AgentService implements IAgentService {
     const liveUploadRefs = await this.filterLiveUploadRefs(
       uploadContinuity.refs,
     );
+    const modelUploadRefs =
+      uploadContinuity.priorResponseRef !== undefined &&
+      liveUploadRefs.length === 1
+        ? []
+        : liveUploadRefs;
 
     const effectiveMessage = uploadContinuity.message;
     const effectiveAttachments = await this.hydrateUploadAttachments({
       message: effectiveMessage,
       currentAttachments: uploadContinuity.attachments,
-      uploadRefs: liveUploadRefs,
+      uploadRefs: modelUploadRefs,
     });
     const contextItems = await this.fetchAgentContext({
       conversationId,
@@ -650,7 +656,10 @@ export class AgentService implements IAgentService {
       effectiveMessage,
       effectiveAttachments,
       {
-        uploadRefs: liveUploadRefs,
+        uploadRefs: modelUploadRefs,
+        ...(uploadContinuity.priorResponseRef
+          ? { priorResponseRef: uploadContinuity.priorResponseRef }
+          : {}),
       },
     );
     const messages = buildModelMessages(historyMessages, modelMessage);
@@ -683,15 +692,16 @@ export class AgentService implements IAgentService {
       (attachment) => attachment.source !== undefined,
     );
     const hasAccessibleUploads =
-      hasCurrentUploadAttachments || liveUploadRefs.length > 0;
+      hasCurrentUploadAttachments || modelUploadRefs.length > 0;
     const callOptions = buildBrainCallOptions({
-      message,
       hasAccessibleUploads,
       userPermissionLevel,
       conversationId,
       channelId,
       channelName,
       interfaceType,
+      hasPriorResponseCandidate:
+        uploadContinuity.priorResponseRef !== undefined,
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
     });
 
@@ -713,6 +723,10 @@ export class AgentService implements IAgentService {
           : (buildToolResultPromptFallback(toolResults) ?? result.text);
     const entityMemoryRefs =
       pendingConfirmations.length > 0 ? [] : buildEntityMemoryRefs(toolResults);
+    const agentContactCandidates =
+      pendingConfirmations.length > 0
+        ? []
+        : buildAgentContactCandidates(toolResults);
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
@@ -731,6 +745,7 @@ export class AgentService implements IAgentService {
           source: this.buildAssistantSource(channelId, channelName),
           cards: responseCards,
           entityMemoryRefs,
+          agentContactCandidates,
         }),
       });
     }
@@ -792,9 +807,6 @@ export class AgentService implements IAgentService {
     if (params.currentAttachments.length > 0) return params.currentAttachments;
     if (!this.uploadAttachmentResolver) return params.currentAttachments;
     if (params.uploadRefs.length !== 1) return params.currentAttachments;
-    if (!shouldHydrateUploadAttachmentsForMessage(params.message)) {
-      return params.currentAttachments;
-    }
 
     const hydrated: ChatAttachment[] = [];
     for (const ref of params.uploadRefs.slice().reverse()) {
@@ -996,6 +1008,7 @@ export class AgentService implements IAgentService {
     attachments?: ChatAttachment[];
     cards?: StructuredChatCard[];
     entityMemoryRefs?: EntityMemoryRef[];
+    agentContactCandidates?: AgentContactCandidate[];
   }): { metadata: Record<string, unknown> } | Record<string, never> {
     return withMessageMetadata(
       buildMessageMetadata({

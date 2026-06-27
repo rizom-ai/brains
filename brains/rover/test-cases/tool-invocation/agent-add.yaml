@@ -18,26 +18,24 @@ successCriteria: {}
 permissions:
   public:
     expectedTools:
-      - toolName: system_create
+      - toolName: agent_connect
         shouldBeCalled: false
     responseNotContains:
       - "created"
   trusted:
     expectedTools:
-      - toolName: system_create
+      - toolName: agent_connect
         shouldBeCalled: true
         argsContain:
-          entityType: "agent"
           source.kind: "url"
           source.url: "yeehaa.io"
     responseNotContains:
       - "created"
   anchor:
     expectedTools:
-      - toolName: system_create
+      - toolName: agent_connect
         shouldBeCalled: true
         argsContain:
-          entityType: "agent"
           source.kind: "url"
           source.url: "yeehaa.io"
     responseNotContains:

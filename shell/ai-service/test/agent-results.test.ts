@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+  buildAgentContactCandidateContext,
+  buildAgentContactCandidates,
   buildEntityMemoryContext,
   buildEntityMemoryRefs,
   extractToolResults,
@@ -53,6 +55,44 @@ describe("extractToolResults", () => {
         toolName: "system_get",
         args: { entityType: "deck", id: "deck-1" },
         data: { entity: { id: "deck-1", entityType: "deck", metadata: {} } },
+      },
+    ]);
+  });
+
+  it("preserves structured tool error codes for follow-up candidates", () => {
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "tool-1",
+            toolName: "agent_call",
+            input: { agent: "unknown.example", message: "hello" },
+          },
+        ],
+        toolResults: [
+          {
+            toolCallId: "tool-1",
+            toolName: "agent_call",
+            output: {
+              success: false,
+              error:
+                "Agent unknown.example is not in your directory. Add it first.",
+              code: "agent_not_saved",
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "agent_call",
+        args: { agent: "unknown.example", message: "hello" },
+        error: {
+          message:
+            "Agent unknown.example is not in your directory. Add it first.",
+          code: "agent_not_saved",
+        },
       },
     ]);
   });
@@ -111,6 +151,92 @@ describe("extractToolResults", () => {
         ],
       },
     ]);
+  });
+});
+
+describe("buildAgentContactCandidates", () => {
+  it("builds typed agent_connect candidates from agent not-saved rejections", () => {
+    const candidates = buildAgentContactCandidates([
+      {
+        toolName: "agent_call",
+        args: { agent: "save-it-regression.example" },
+        error: {
+          message:
+            "Agent save-it-regression.example is not in your directory. Add it first.",
+          code: "agent_not_saved",
+        },
+      },
+    ]);
+
+    expect(candidates).toEqual([
+      { source: { kind: "url", url: "save-it-regression.example" } },
+    ]);
+
+    const context = buildAgentContactCandidateContext(candidates);
+    expect(context).toContain("Internal agent contact candidates");
+    expect(context).toContain("agent_connect candidate args");
+    expect(context).toContain("save-it-regression.example");
+    expect(context).not.toContain("If the prior conversation turn");
+  });
+
+  it("builds typed agent_connect candidates from failed exact-domain verification", () => {
+    const candidates = buildAgentContactCandidates([
+      {
+        toolName: "agent_call",
+        args: { agent: "verify-failed.example" },
+        error: {
+          message: "Could not verify an A2A Agent Card",
+          code: "agent_card_unavailable",
+        },
+      },
+    ]);
+
+    expect(candidates).toEqual([
+      { source: { kind: "url", url: "verify-failed.example" } },
+    ]);
+  });
+
+  it("builds typed agent_connect candidates from successful one-shot agent calls", () => {
+    const candidates = buildAgentContactCandidates([
+      {
+        toolName: "agent_call",
+        args: { agent: "one-shot.example" },
+        data: {
+          state: "completed",
+          response: "hello",
+          agentCall: { mode: "one-shot", agent: "one-shot.example" },
+          agentContactCandidate: {
+            source: { kind: "url", url: "one-shot.example" },
+          },
+        },
+      },
+    ]);
+
+    expect(candidates).toEqual([
+      { source: { kind: "url", url: "one-shot.example" } },
+    ]);
+  });
+
+  it("does not build candidates for approved, archived, or saved-call results", () => {
+    const candidates = buildAgentContactCandidates([
+      {
+        toolName: "agent_call",
+        args: { agent: "old.io" },
+        error: { message: "Approve it first", code: "agent_not_approved" },
+      },
+      {
+        toolName: "agent_call",
+        args: { agent: "archived.io" },
+        error: { message: "Archived", code: "agent_archived" },
+      },
+      {
+        toolName: "agent_call",
+        args: { agent: "yeehaa.io" },
+        data: { state: "completed", response: "hello" },
+      },
+    ]);
+
+    expect(candidates).toEqual([]);
   });
 });
 

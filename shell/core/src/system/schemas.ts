@@ -3,9 +3,25 @@ import { z } from "@brains/utils";
 
 // ── Input schemas ──
 
+const searchScopeInputSchema = z.discriminatedUnion("kind", [
+  z
+    .object({ kind: z.literal("all") })
+    .strict()
+    .describe("Search across all entity types"),
+  z
+    .object({
+      kind: z.literal("type"),
+      entityType: z.string().min(1).describe("Entity type to search"),
+    })
+    .strict()
+    .describe("Search within one entity type"),
+]);
+
 export const searchInputSchema = z.object({
   query: z.string().describe("Search term"),
-  entityType: z.string().optional().describe("Entity type to filter by"),
+  scope: searchScopeInputSchema.describe(
+    "Structured search scope. Use { kind: 'all' } for broad search across all entity types. Use { kind: 'type', entityType } only when the user asks for a specific entity type.",
+  ),
   limit: z.number().optional().describe("Maximum number of results"),
   includeUngenerated: z
     .boolean()
@@ -20,7 +36,12 @@ export const getInputSchema = z.object({
 
 export const listInputSchema = z.object({
   entityType: z.string().describe("Entity type to list"),
-  status: z.string().optional().describe("Filter by status"),
+  status: z
+    .string()
+    .optional()
+    .describe(
+      "Filter by status. Omit unless the user asks for a known status; do not invent generic statuses. For wish statuses: new, planned, in-progress, done, declined.",
+    ),
   limit: z
     .number()
     .optional()
@@ -38,78 +59,97 @@ const coverImageInputSchema = z.union([
   z.literal(false).describe("Do not generate a cover image"),
 ]);
 
-const createSourceAttachmentInputSchema = z.object({
-  sourceEntityType: z.string().min(1).describe("Source entity type"),
-  sourceEntityId: z
-    .string()
-    .min(1)
-    .describe(
-      "Canonical source entity ID. If system_get/system_search resolved the source, copy entity.id from that tool result; do not use the title.",
-    ),
-  attachmentType: z.string().min(1).describe("Source attachment type"),
-});
-
 const createUploadInputSchema = z.object({
   kind: z.literal("upload").describe("Upload ref kind"),
   id: z.string().min(1).describe("Upload ID"),
 });
 
-const createConversationMessageInputSchema = z.object({
-  kind: z
-    .literal("conversation-message")
-    .describe("Conversation message ref kind"),
-  messageId: z
-    .string()
-    .min(1)
-    .optional()
-    .describe(
-      "Stored assistant message ID to save. Do not invent placeholder IDs such as latest/current; omit messageId unless an exact stored assistant message ID is available. When omitted, the runtime saves the latest savable assistant response in this conversation.",
-    ),
-});
-
 export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
   z
     .object({
-      kind: z.literal("text").describe("Store exact text content"),
-      content: z.string().min(1).describe("Direct content to store"),
+      kind: z
+        .literal("text")
+        .describe(
+          "Store exact/direct user-provided content without generation",
+        ),
+      content: z
+        .string()
+        .min(1)
+        .describe(
+          "Exact markdown/text/content to persist as provided. For direct save requests where the user includes the content in the same message, use that provided content directly.",
+        ),
     })
     .strict(),
   z
     .object({
-      kind: z.literal("generate").describe("Generate content from a prompt"),
-      prompt: z.string().min(1).describe("Prompt for AI generation"),
+      kind: z
+        .literal("generate")
+        .describe(
+          "Generate new entity content or standalone image content from a prompt. This creates new durable content; do not use it to describe, analyze, or discuss an existing uploaded file.",
+        ),
+      prompt: z
+        .string()
+        .min(1)
+        .describe(
+          "Prompt for creating new generated content. This is sufficient for standalone generated images/content; no target fields are needed unless attaching to an existing parent entity. Not for summarizing or describing existing uploads.",
+        ),
     })
     .strict(),
   z
     .object({
-      kind: z.literal("url").describe("Create from a URL or domain"),
-      url: z.string().min(1).describe("URL or domain to create from"),
+      kind: z
+        .literal("url")
+        .describe("Create URL/domain-backed entities such as links"),
+      url: z
+        .string()
+        .min(1)
+        .describe(
+          "URL or domain to create from; preserve a bare domain as provided instead of adding a scheme.",
+        ),
     })
     .strict(),
   z
     .object({
-      kind: z.literal("upload").describe("Extract markdown/text from upload"),
-      upload: createUploadInputSchema.describe("Upload ref to extract from"),
+      kind: z
+        .literal("upload")
+        .describe(
+          "Extract markdown/text from an upload into a note entity only; do not use for raw document/image file preservation",
+        ),
+      upload: createUploadInputSchema.describe(
+        "Exact upload candidate object to extract from",
+      ),
       transform: z
         .literal("extract-markdown")
-        .describe("Required transform for upload-to-note extraction"),
+        .describe(
+          "Required transform for upload-to-note extraction. Use system_upload_save instead when saving the raw uploaded file as a document or image.",
+        ),
     })
     .strict(),
   z
     .object({
       kind: z
         .literal("attachment")
-        .describe("Create from an existing entity artifact"),
+        .describe(
+          "Create saved deterministic artifacts from existing entities. Use this branch for requests to save or regenerate durable PDF document entities such as deck carousel PDFs or post/project printable PDFs, and for OG/social preview images.",
+        ),
       sourceEntityType: z.string().min(1).describe("Source entity type"),
-      sourceEntityId: z.string().min(1).describe("Canonical source entity ID"),
-      attachmentType: z.string().min(1).describe("Source attachment type"),
+      sourceEntityId: z
+        .string()
+        .min(1)
+        .describe("Canonical source entity ID, not a title"),
+      attachmentType: z
+        .string()
+        .min(1)
+        .describe(
+          'Source artifact type such as "carousel", "printable", or "og-image"',
+        ),
     })
     .strict(),
   z
     .object({
       kind: z
         .literal("prior-response")
-        .describe("Save a prior assistant response"),
+        .describe("Save a previous assistant response as durable content"),
       messageId: z
         .string()
         .min(1)
@@ -131,91 +171,55 @@ export const uploadSaveInputSchema = z.object({
     .describe("Internal confirmation token returned by the confirmation flow"),
 });
 
-export const createInputSchema = z.object({
-  entityType: z
-    .string()
-    .describe(
-      "Entity type to create. Do not use system_create for status-only requests such as making an existing post a draft; use system_update instead.",
+export const createInputSchema = z
+  .object({
+    entityType: z
+      .string()
+      .describe(
+        "Entity type to create. Use wish for explicitly saved or tracked unmet requested capabilities or outcomes.",
+      ),
+    title: z.string().optional().describe("Title for a new entity."),
+    source: createPreferredSourceInputSchema.describe(
+      "Canonical source selector. Use exactly one source branch.",
     ),
-  title: z
-    .string()
-    .optional()
-    .describe(
-      "Title for a new entity. Do not invent placeholder titles like 'Draft Post' unless the user explicitly asked to create a new post.",
-    ),
-  source: createPreferredSourceInputSchema
-    .optional()
-    .describe("Canonical source selector. Use exactly one source branch."),
-  prompt: z
-    .string()
-    .optional()
-    .describe(
-      "Prompt for AI generation of a new entity. Do not use for finalized/exact/as-written content, and do not use for status changes like 'make one draft' or 'change it to draft'.",
-    ),
-  content: z
-    .string()
-    .optional()
-    .describe(
-      "Direct content to store. Use this for finalized/exact/as-written user-provided markdown, including deck markdown with frontmatter and slide separators; omit prompt in those cases.",
-    ),
-  url: z
-    .string()
-    .optional()
-    .describe(
-      "URL or domain for URL-first create flows such as saving a link or remote agent",
-    ),
-  upload: createUploadInputSchema
-    .optional()
-    .describe(
-      'Use only with transform: "extract-markdown" to turn an uploaded text, JSON, markdown, or PDF file into a note. For raw uploaded file preservation use system_upload_save instead. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
-    ),
-  transform: z
-    .string()
-    .optional()
-    .describe(
-      'Optional upload transform. Set to exactly "extract-markdown" only with upload and entityType note to extract markdown/text from an uploaded text or PDF file into a markdown note. Omit for raw file promotion to document/image; never include transform with entityType document or image.',
-    ),
-  sourceAttachment: createSourceAttachmentInputSchema
-    .optional()
-    .describe(
-      "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Use this instead of upload when the requested source is an existing entity artifact. Omit upload when using sourceAttachment. Omit for ordinary direct creates that use content, prompt, or url.",
-    ),
-  from: createConversationMessageInputSchema
-    .optional()
-    .describe(
-      'Use only when the user asks to save a previous assistant response, e.g. "save your last answer", "save that response", or "save it/that/this as a note" after your summary/description/discussion. Use entityType "note" for saving prior assistant summaries/descriptions/discussions as notes. Never use for text the user provided in the current message; put current user text in content and omit from. The runtime copies stored assistant message content; do not also copy that text into content or prompt. Omit messageId unless an exact stored assistant message ID is available.',
-    ),
-  replace: z
-    .boolean()
-    .optional()
-    .describe("Force regeneration instead of reusing a deterministic artifact"),
-  targetEntityType: z
-    .string()
-    .optional()
-    .describe(
-      "Existing entity type to attach to after creation. Use only when the user explicitly asks to set/replace a cover or attach the artifact to an existing entity; omit for standalone image/document generation.",
-    ),
-  targetEntityId: z
-    .string()
-    .optional()
-    .describe(
-      "Existing entity ID to attach to after creation. Use only with targetEntityType; omit for standalone image/document generation.",
-    ),
-  coverImage: coverImageInputSchema
-    .optional()
-    .describe(
-      "For creating a new entity with a cover image in the same request. Use { generate: true, prompt } or true. Do not make a separate image create call for the new entity.",
-    ),
-  confirmed: z.literal(true).optional().describe("Confirm the creation"),
-  confirmationToken: z
-    .string()
-    .optional()
-    .describe("Internal confirmation token returned by the confirmation flow"),
-});
+    replace: z
+      .boolean()
+      .optional()
+      .describe(
+        "Force regeneration instead of reusing a deterministic artifact",
+      ),
+    coverImage: coverImageInputSchema
+      .optional()
+      .describe(
+        "For creating a new entity with a cover image in the same request. Omit targetEntityType/targetEntityId in this same-new-entity case.",
+      ),
+    confirmed: z.literal(true).optional().describe("Confirm the creation"),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe(
+        "Internal confirmation token returned by the confirmation flow",
+      ),
+    targetEntityType: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "OMIT unless the created artifact should be attached to a different already-existing canonical entity. This is the existing parent entity type, not the type being created. Omit for standalone creates and when coverImage belongs to the new entity being created. Never use with placeholder or future entities.",
+      ),
+    targetEntityId: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "OMIT unless the created artifact should be attached to a different already-existing canonical entity. This is the existing parent entity ID, not the new entity ID. Never use placeholder IDs such as temp, draft, or a guessed future slug.",
+      ),
+  })
+  .strict();
 
 export const updateInputSchema = z.object({
   entityType: z.string().describe("Entity type"),
-  id: z.string().describe("Entity ID"),
+  id: z.string().describe("Entity ID, slug, or title"),
   fields: z
     .record(z.unknown())
     .optional()

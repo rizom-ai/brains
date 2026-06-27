@@ -22,7 +22,7 @@ export function createDocumentTools(
     createTool(
       pluginId,
       "generate",
-      'Preview or prepare a PDF document attachment from a source attachment or render URL. For save/regenerate durable document requests, including deck carousel PDFs and printable post/project/product PDFs, prefer system_create with entityType: "document" and source: { kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }.',
+      'Preview-only PDF attachment rendering from a source attachment or render URL. Do not use this tool for durable save/regenerate document requests. For saved/regenerated durable documents, including deck carousel PDFs and printable post/project/product PDFs, use system_create with entityType: "document" and source: { kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }.',
       documentGenerationJobSchemaBase,
       async (input, context) => {
         const result = documentGenerationJobSchema.safeParse(input);

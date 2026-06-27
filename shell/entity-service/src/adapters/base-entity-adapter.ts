@@ -20,6 +20,7 @@ export interface BaseEntityAdapterConfig<
   TMetadata extends object,
 > {
   entityType: string;
+  purpose: string;
   schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
   frontmatterSchema: z.ZodObject<z.ZodRawShape>;
   isSingleton?: boolean;
@@ -43,6 +44,7 @@ export abstract class BaseEntityAdapter<
   TFrontmatter = TMetadata,
 > implements EntityAdapter<TEntity, TMetadata> {
   public readonly entityType: string;
+  public readonly purpose: string;
   public readonly schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
   public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
   public readonly isSingleton?: boolean;
@@ -56,6 +58,7 @@ export abstract class BaseEntityAdapter<
 
   constructor(config: BaseEntityAdapterConfig<TEntity, TMetadata>) {
     this.entityType = config.entityType;
+    this.purpose = config.purpose;
     this.schema = config.schema;
     this.frontmatterSchema = config.frontmatterSchema;
     // ZodObject<ZodRawShape> erases the output type; recover it via cast.

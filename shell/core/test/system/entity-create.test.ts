@@ -274,6 +274,29 @@ function registerImageCreateInterceptor(services: MockServices): void {
 }
 
 describe("system_create tool", () => {
+  it("describes source text as exact user-provided content for direct save requests", () => {
+    const textBranch = createInputSchema.shape.source.options.find(
+      (option) => option.shape.kind.value === "text",
+    );
+    const contentField =
+      textBranch && "content" in textBranch.shape
+        ? textBranch.shape.content
+        : undefined;
+
+    expect(contentField?.description).toContain("direct save request");
+  });
+
+  it("tells models same-message direct save content is sufficient", () => {
+    const services = createMockSystemServices();
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_create",
+    );
+
+    expect(tool?.description).toContain(
+      "If the user includes content in the same direct save request, use source.kind text with that content",
+    );
+  });
+
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 
@@ -312,13 +335,55 @@ describe("system_create tool", () => {
     };
   }
 
+  function withSource(input: Record<string, unknown>): Record<string, unknown> {
+    if (input["source"]) return input;
+    const {
+      content,
+      prompt,
+      url,
+      upload,
+      transform,
+      sourceAttachment,
+      from,
+      ...rest
+    } = input;
+    if (typeof content === "string" && content.trim().length > 0) {
+      return transform === undefined || transform === ""
+        ? { ...rest, source: { kind: "text", content } }
+        : { ...rest, transform, source: { kind: "text", content } };
+    }
+    if (typeof prompt === "string" && prompt.trim().length > 0) {
+      return { ...rest, source: { kind: "generate", prompt } };
+    }
+    if (typeof url === "string" && url.trim().length > 0) {
+      return { ...rest, source: { kind: "url", url } };
+    }
+    if (upload && transform === "extract-markdown") {
+      return { ...rest, source: { kind: "upload", upload, transform } };
+    }
+    if (sourceAttachment && typeof sourceAttachment === "object") {
+      return { ...rest, source: { kind: "attachment", ...sourceAttachment } };
+    }
+    if (from && typeof from === "object") {
+      const messageId = (from as { messageId?: unknown }).messageId;
+      return {
+        ...rest,
+        source: {
+          kind: "prior-response",
+          ...(typeof messageId === "string" ? { messageId } : {}),
+        },
+      };
+    }
+    return input;
+  }
+
   function execRaw(
     input: Record<string, unknown>,
     context?: CreateToolTestContext,
   ): Promise<ToolResponse> {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
-    return tool.handler(input, buildContext(context));
+    return tool.handler(withSource(input), buildContext(context));
   }
 
   async function exec(
@@ -353,6 +418,68 @@ describe("system_create tool", () => {
     // No confirmation card and no generation job for an unregistered type.
     expect(unregistered).not.toHaveProperty("needsConfirmation");
     expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
+  it("rejects creating an entity that already exists and routes to update", async () => {
+    const now = new Date().toISOString();
+    await services.entityService.createEntity({
+      entity: {
+        id: "resilience-is-not-redundancy",
+        entityType: "post",
+        content: "# Resilience Is Not Redundancy",
+        metadata: {
+          title: "Resilience Is Not Redundancy",
+          status: "published",
+        },
+        created: now,
+        updated: now,
+      },
+    });
+    const before = await services.entityService.listEntities({
+      entityType: "post",
+    });
+
+    // Misrouted status change: "make the Resilience post a draft" reaches
+    // system_create instead of system_update. The derived id resolves to the
+    // existing post, so the tool must refuse and name the right tool — before
+    // any confirmation card — instead of silently minting a deduped copy.
+    const result = await execRaw({
+      entityType: "post",
+      title: "Resilience Is Not Redundancy",
+      content: "# Resilience Is Not Redundancy\n\nMake this a draft.",
+    });
+
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("use system_update");
+    expect(result).not.toHaveProperty("needsConfirmation");
+
+    const after = await services.entityService.listEntities({
+      entityType: "post",
+    });
+    expect(after.length).toBe(before.length);
+  });
+
+  it("allows replace:true to bypass the already-exists guard", async () => {
+    const now = new Date().toISOString();
+    await services.entityService.createEntity({
+      entity: {
+        id: "resilience-is-not-redundancy",
+        entityType: "post",
+        content: "# Resilience Is Not Redundancy",
+        metadata: { title: "Resilience Is Not Redundancy" },
+        created: now,
+        updated: now,
+      },
+    });
+
+    const result = await exec({
+      entityType: "post",
+      title: "Resilience Is Not Redundancy",
+      content: "# A deliberate new copy",
+      replace: true,
+    });
+
+    expect(result).toMatchObject({ success: true });
   });
 
   it("should require confirmation before creating durable entities", async () => {
@@ -524,6 +651,33 @@ status: draft
     });
   });
 
+  it("should reject confirmed create calls when the confirmed source is changed", async () => {
+    const confirmation = await execRaw({
+      entityType: "note",
+      title: "Original Source",
+      content: "Create this original content.",
+    });
+
+    expect(confirmation).toMatchObject({ needsConfirmation: true });
+    const confirmationArgs = z
+      .object({
+        confirmationToken: z.string(),
+      })
+      .passthrough()
+      .parse((confirmation as { args: unknown }).args);
+
+    const result = await execRaw({
+      ...confirmationArgs,
+      source: { kind: "text", content: "Create swapped content instead." },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Confirmed create arguments do not match the pending approval. Please request creation again and confirm the new approval.",
+    });
+  });
+
   it("passes separate conversation, channel, run, and tool call provenance to entity creation", async () => {
     const result = await exec(
       {
@@ -576,8 +730,6 @@ status: draft
         prompt: "Write about TypeScript.",
         title: "",
         content: "",
-        targetEntityType: "",
-        targetEntityId: "",
       },
       {
         interfaceType: "matrix",
@@ -603,7 +755,7 @@ status: draft
     });
   });
 
-  it("should pass accessible upload refs to registered create interceptors", async () => {
+  it("should pass accessible upload transform refs to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
     services = createSeededSystemServices({
       conversationService: {
@@ -633,27 +785,25 @@ status: draft
       },
     });
     tools = createSystemTools(services);
-    services.entityRegistry.registerCreateInterceptor(
-      "document",
-      async (input) => {
-        capturedInput = input;
-        return {
-          kind: "handled",
-          result: {
-            success: true,
-            data: { status: "created", entityId: "brief" },
-          },
-        };
-      },
-    );
+    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
+      capturedInput = input;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "brief" },
+        },
+      };
+    });
 
     const result = await exec(
       {
-        entityType: "document",
+        entityType: "note",
         upload: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000301",
         },
+        transform: "extract-markdown",
       },
       { interfaceType: "web-chat", channelId: "web-conversation-1" },
     );
@@ -663,11 +813,12 @@ status: draft
       data: { status: "created", entityId: "brief" },
     });
     expect(capturedInput).toEqual({
-      entityType: "document",
+      entityType: "note",
       from: {
         kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000301",
       },
+      transform: "extract-markdown",
     });
   });
 
@@ -745,11 +896,8 @@ status: draft
       transform: "extract-markdown",
     });
 
-    expect(result).toEqual({
-      success: false,
-      error:
-        'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
-    });
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("Unrecognized key");
   });
 
   it("should reject extract-markdown transform for raw document upload promotion", async () => {
@@ -844,7 +992,7 @@ status: draft
     });
   });
 
-  it("should use conversationId for upload access when channelId is not the conversation id", async () => {
+  it("should use conversationId for upload-transform access when channelId is not the conversation id", async () => {
     let capturedInput: CreateInput | undefined;
     services = createSeededSystemServices({
       conversationService: {
@@ -877,27 +1025,25 @@ status: draft
       },
     });
     tools = createSystemTools(services);
-    services.entityRegistry.registerCreateInterceptor(
-      "document",
-      async (input) => {
-        capturedInput = input;
-        return {
-          kind: "handled",
-          result: {
-            success: true,
-            data: { status: "created", entityId: "brief" },
-          },
-        };
-      },
-    );
+    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
+      capturedInput = input;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "brief" },
+        },
+      };
+    });
 
     const result = await exec(
       {
-        entityType: "document",
+        entityType: "note",
         upload: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000303",
         },
+        transform: "extract-markdown",
       },
       {
         interfaceType: "web-chat",
@@ -919,11 +1065,12 @@ status: draft
   it("should reject upload refs outside the current conversation", async () => {
     const result = await exec(
       {
-        entityType: "document",
+        entityType: "note",
         upload: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000302",
         },
+        transform: "extract-markdown",
       },
       { interfaceType: "web-chat", channelId: "web-conversation-1" },
     );
@@ -1158,7 +1305,7 @@ status: draft
 
     expect(result).toHaveProperty("success", false);
     expect((result as { error: string }).error).toContain(
-      'Provide `source` with kind "text", "generate", "url", "prior-response", "upload", or "attachment".',
+      "Invalid input: source: Required",
     );
   });
 
@@ -1324,8 +1471,6 @@ A saved research link.`;
       prompt: "Write about TypeScript.",
       title: "",
       content: "",
-      targetEntityType: "",
-      targetEntityId: "",
     });
 
     const enqueuedJob = services.getLastEnqueuedJob();
@@ -1363,6 +1508,38 @@ A saved research link.`;
     expect((result as { error: string }).error).toContain(
       "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
     );
+  });
+
+  it("should ignore placeholder target fields for standalone generated artifacts", async () => {
+    await exec({
+      entityType: "image",
+      prompt: "Generate a robot image",
+      targetEntityType: "image",
+      targetEntityId: "temp",
+    });
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    const jobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    expect(jobData["targetEntityType"]).toBeUndefined();
+    expect(jobData["targetEntityId"]).toBeUndefined();
+  });
+
+  it("should ignore target fields when creating a non-attachable entity with its own cover image", async () => {
+    await exec({
+      entityType: "post",
+      prompt: "Write about continuous learning",
+      coverImage: { generate: true },
+      targetEntityType: "post",
+      targetEntityId: "temp",
+    });
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    const jobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    expect(jobData["targetEntityType"]).toBeUndefined();
+    expect(jobData["targetEntityId"]).toBeUndefined();
+    expect(jobData["coverImage"]).toEqual({ generate: true });
   });
 
   it("should resolve image generation targets to canonical entity ids", async () => {
@@ -1406,18 +1583,18 @@ A saved research link.`;
     );
   });
 
-  it("should expose canonical source plus transitional flat source fields", () => {
+  it("should expose canonical source and no transitional flat source fields", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
     expect(tool.inputSchema).toHaveProperty("source");
-    expect(tool.inputSchema).toHaveProperty("content");
-    expect(tool.inputSchema).toHaveProperty("prompt");
-    expect(tool.inputSchema).toHaveProperty("url");
-    expect(tool.inputSchema).toHaveProperty("from");
-    expect(tool.inputSchema).toHaveProperty("upload");
-    expect(tool.inputSchema).toHaveProperty("transform");
-    expect(tool.inputSchema).toHaveProperty("sourceAttachment");
+    expect(tool.inputSchema).not.toHaveProperty("content");
+    expect(tool.inputSchema).not.toHaveProperty("prompt");
+    expect(tool.inputSchema).not.toHaveProperty("url");
+    expect(tool.inputSchema).not.toHaveProperty("from");
+    expect(tool.inputSchema).not.toHaveProperty("upload");
+    expect(tool.inputSchema).not.toHaveProperty("transform");
+    expect(tool.inputSchema).not.toHaveProperty("sourceAttachment");
     expect(tool.inputSchema).not.toHaveProperty("fromUpload");
     expect(tool.inputSchema).toHaveProperty("replace");
     expect(tool.inputSchema).toHaveProperty("coverImage");
@@ -1462,13 +1639,29 @@ A saved research link.`;
         source: { kind: "text", content: "Body", prompt: "Nope" },
       }).success,
     ).toBe(false);
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        content: "Body",
+      }).success,
+    ).toBe(false);
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: { kind: "text", content: "Body" },
+        content: "Other body",
+      }).success,
+    ).toBe(false);
   });
 
-  it("should let direct content take precedence over stale upload refs", async () => {
+  it("should reject direct content combined with stale upload refs", async () => {
     const result = await execRaw({
       entityType: "note",
       title: "Image Discussion",
-      content: "Notes from the image discussion.",
+      source: {
+        kind: "text",
+        content: "Notes from the image discussion.",
+      },
       upload: {
         kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000951",
@@ -1476,23 +1669,17 @@ A saved research link.`;
       transform: "extract-markdown",
     });
 
-    expect(result).toMatchObject({
-      needsConfirmation: true,
-      summary: 'Create "Image Discussion"?',
-    });
-    expect(result).toHaveProperty("args.source", {
-      kind: "text",
-      content: "Notes from the image discussion.",
-    });
-    expect(result).not.toHaveProperty("args.content");
-    expect(result).not.toHaveProperty("args.upload");
-    expect(result).not.toHaveProperty("args.transform");
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("Unrecognized key");
   });
 
-  it("should let image prompts take precedence over stale upload refs", async () => {
+  it("should reject image prompts combined with stale upload refs", async () => {
     const result = await execRaw({
       entityType: "image",
-      prompt: "Editorial cover image for the social post.",
+      source: {
+        kind: "generate",
+        prompt: "Editorial cover image for the social post.",
+      },
       targetEntityType: "social-post",
       targetEntityId: "ecosystems-over-extraction",
       upload: {
@@ -1502,22 +1689,8 @@ A saved research link.`;
       transform: "extract-markdown",
     });
 
-    expect(result).toMatchObject({
-      needsConfirmation: true,
-      summary: "Generate image?",
-    });
-    expect(result).toHaveProperty("args.source", {
-      kind: "generate",
-      prompt: "Editorial cover image for the social post.",
-    });
-    expect(result).not.toHaveProperty("args.prompt");
-    expect(result).toHaveProperty("args.targetEntityType", "social-post");
-    expect(result).toHaveProperty(
-      "args.targetEntityId",
-      "ecosystems-over-extraction",
-    );
-    expect(result).not.toHaveProperty("args.upload");
-    expect(result).not.toHaveProperty("args.transform");
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("Unrecognized key");
   });
 
   it("should canonicalize sourceAttachment sourceEntityId before confirmation and create interceptors", async () => {

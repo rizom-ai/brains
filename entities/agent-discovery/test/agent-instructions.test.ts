@@ -2,48 +2,23 @@ import { describe, expect, it } from "bun:test";
 import { getAgentDiscoveryInstructions } from "../src/lib/agent-instructions";
 
 describe("getAgentDiscoveryInstructions", () => {
-  it("treats asking what a saved agent has to say as an A2A contact request", () => {
+  it("describes agent directory domain semantics as typed tool contracts", () => {
     const instructions = getAgentDiscoveryInstructions();
 
-    expect(instructions).toContain("what does <agent> have to say");
-    expect(instructions).toContain("use `a2a_call`");
+    expect(instructions).toContain("saved peer-brain contacts");
+    expect(instructions).toContain("local agent directory");
+    expect(instructions).toContain("discovered, approved, and archived");
+    expect(instructions).toContain("agent_connect");
+    expect(instructions).toContain("url source");
+    expect(instructions).toContain("system_update field changes");
+    expect(instructions).toContain("call system_update on entityType agent");
     expect(instructions).toContain(
-      "rather than answering from local saved agent metadata",
+      "List saved agent contacts with system_list on entityType agent",
     );
+    expect(instructions).toContain("do not use agent_connect for approval");
     expect(instructions).toContain(
-      "a follow-up like `what skills does it have`",
+      "Calling remote agents and saving local contact records are separate capabilities.",
     );
-    expect(instructions).toContain(
-      "even if the previous remote response was a refusal or error",
-    );
-  });
-
-  it("keeps save-first refusals from mentioning wishlist fallback internals", () => {
-    const instructions = getAgentDiscoveryInstructions();
-
-    expect(instructions).toContain(
-      "Do not mention wishes, wishlist, backlog, or fallback entities in that response.",
-    );
-  });
-
-  it("does not apply agent save-first refusal to explicit link/bookmark saves", () => {
-    const instructions = getAgentDiscoveryInstructions();
-
-    expect(instructions).toContain(
-      "Explicit link or bookmark saves like `save this link: https://example.com/page` are not agent-contact requests",
-    );
-    expect(instructions).toContain(
-      'use `system_create({ entityType: "link", source: { kind: "url", url: "https://example.com/page" } })`',
-    );
-  });
-
-  it("treats bare affirmative follow-ups after save-first refusal as consent to save", () => {
-    const instructions = getAgentDiscoveryInstructions();
-
-    expect(instructions).toContain("Yes please");
-    expect(instructions).toContain(
-      'system_create({ entityType: "agent", source: { kind: "url", url: "save-first-followup.example" } })',
-    );
-    expect(instructions).toContain("return an empty response");
+    expect(instructions).not.toContain("When the user");
   });
 });

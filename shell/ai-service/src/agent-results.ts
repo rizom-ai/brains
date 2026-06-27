@@ -5,6 +5,7 @@ import {
 import { z } from "@brains/utils";
 import {
   toolConfirmationSchema,
+  toolErrorSchema,
   toolResponseSchema,
   toolSuccessSchema,
 } from "@brains/mcp-service";
@@ -359,12 +360,15 @@ export function extractToolResults(
     }
 
     let stepRequestedConfirmation = false;
+    const confirmedToolNames = new Set<string>();
 
     for (const tr of step.toolResults) {
       if (tr.output === null) continue;
 
       const confirmationParsed = toolConfirmationSchema.safeParse(tr.output);
       if (confirmationParsed.success) {
+        if (confirmedToolNames.has(confirmationParsed.data.toolName)) continue;
+        confirmedToolNames.add(confirmationParsed.data.toolName);
         const approvalId = tr.toolCallId
           ? `approval:${tr.toolCallId}`
           : `approval:${tr.toolName}:${totalToolCalls}`;
@@ -423,6 +427,16 @@ export function extractToolResults(
       const toolResult: ToolResultData = { toolName: tr.toolName };
       if (args !== undefined) {
         toolResult.args = args;
+      }
+
+      const errorParsed = toolErrorSchema.safeParse(parsed.data);
+      if (errorParsed.success) {
+        toolResult.error = {
+          message: errorParsed.data.error,
+          ...(errorParsed.data.code !== undefined
+            ? { code: errorParsed.data.code }
+            : {}),
+        };
       }
 
       if (successParsed.success && successParsed.data.data != null) {
@@ -486,6 +500,66 @@ export const entityMemoryRefSchema = z.object({
 });
 
 export type EntityMemoryRef = z.infer<typeof entityMemoryRefSchema>;
+
+export const agentContactCandidateSchema = z.object({
+  source: z.object({
+    kind: z.literal("url"),
+    url: z.string().min(1),
+  }),
+});
+
+export type AgentContactCandidate = z.infer<typeof agentContactCandidateSchema>;
+
+const a2aCallArgsSchema = z.object({
+  agent: z.string().min(1),
+});
+
+const agentContactCandidateDataSchema = z.object({
+  agentContactCandidate: agentContactCandidateSchema,
+});
+
+export function buildAgentContactCandidates(
+  toolResults: ToolResultData[],
+): AgentContactCandidate[] {
+  const seen = new Set<string>();
+  const candidates: AgentContactCandidate[] = [];
+  for (const tr of toolResults) {
+    if (tr.toolName !== "agent_call") continue;
+
+    const dataCandidate = agentContactCandidateDataSchema.safeParse(tr.data);
+    if (dataCandidate.success) {
+      const { url } = dataCandidate.data.agentContactCandidate.source;
+      if (seen.has(url)) continue;
+      seen.add(url);
+      candidates.push(dataCandidate.data.agentContactCandidate);
+      continue;
+    }
+
+    if (
+      tr.error?.code !== "agent_not_saved" &&
+      tr.error?.code !== "agent_card_unavailable"
+    )
+      continue;
+    const args = a2aCallArgsSchema.safeParse(tr.args ?? {});
+    if (!args.success) continue;
+    const url = args.data.agent;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    candidates.push({ source: { kind: "url", url } });
+  }
+  return candidates;
+}
+
+export function buildAgentContactCandidateContext(
+  candidates: AgentContactCandidate[],
+): string {
+  if (candidates.length === 0) return "";
+  const lines = candidates.map(
+    (candidate) =>
+      `- agent_connect candidate args: { source: { kind: "url", url: "${candidate.source.url}" } }`,
+  );
+  return `\n\nInternal agent contact candidates from previous assistant turns for follow-up resolution. These are typed runtime candidates, not visible user text. If the user confirms saving/adding/connecting one of these contacts, call agent_connect without confirmed using the exact candidate args. Do not auto-save from an agent_call; saving/connecting is explicit through agent_connect.\n${lines.join("\n")}`;
+}
 
 /**
  * Extract structured entity references from tool results so follow-up turns can

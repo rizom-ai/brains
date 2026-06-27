@@ -12,7 +12,6 @@ export interface ToolContextInfo {
   userPermissionLevel?: UserPermissionLevel;
   enableCreateUpload?: boolean | undefined;
   enableCreateTransform?: boolean | undefined;
-  enableCreateSourceAttachment?: boolean | undefined;
 }
 
 const INTERNAL_CONFIRMATION_FIELDS = new Set([
@@ -85,7 +84,6 @@ export function toModelVisibleInputSchema(
     toolName?: string;
     enableCreateUpload?: boolean;
     enableCreateTransform?: boolean;
-    enableCreateSourceAttachment?: boolean;
   } = {},
 ): Tool["inputSchema"] {
   return Object.fromEntries(
@@ -202,10 +200,6 @@ export function convertToSDKTools(
           }),
           ...(contextInfo.enableCreateTransform !== undefined && {
             enableCreateTransform: contextInfo.enableCreateTransform,
-          }),
-          ...(contextInfo.enableCreateSourceAttachment !== undefined && {
-            enableCreateSourceAttachment:
-              contextInfo.enableCreateSourceAttachment,
           }),
         }),
       ),

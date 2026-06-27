@@ -46,6 +46,7 @@ class NoteTestAdapter extends BaseEntityAdapter<Note> {
   constructor() {
     super({
       entityType: "note",
+      purpose: "Test note entity for unit tests.",
       schema: noteSchema,
       frontmatterSchema: noteFrontmatterSchema,
     });
@@ -89,6 +90,7 @@ class PostTestAdapter extends BaseEntityAdapter<Post, PostMetadata> {
   constructor() {
     super({
       entityType: "post",
+      purpose: "Test post entity for unit tests.",
       schema: postSchema,
       frontmatterSchema: postFrontmatterSchema,
     });
@@ -117,6 +119,7 @@ class MinimalTestAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {
     super({
       entityType: "test",
+      purpose: "Test entity for unit tests.",
       schema: minimalTestSchema,
       frontmatterSchema: minimalFrontmatterSchema,
     });
@@ -147,6 +150,7 @@ class ImageTestAdapter extends BaseEntityAdapter<ImageEntity> {
   constructor() {
     super({
       entityType: "image",
+      purpose: "Test image entity for unit tests.",
       schema: imageSchema,
       frontmatterSchema: imageFrontmatterSchema,
     });

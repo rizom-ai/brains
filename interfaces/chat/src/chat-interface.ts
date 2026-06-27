@@ -2087,7 +2087,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   ): Promise<void> {
     agentInput.attachments = await this.uploadContinuity.selectPriorUploads({
       conversationId,
-      message: agentInput.message,
       currentAttachments: agentInput.attachments,
       canRestore: userLevel === "anchor" || userLevel === "trusted",
     });

@@ -308,7 +308,9 @@ describe("AgentService", () => {
         expect.objectContaining({ content: "Previous message" }),
       );
       expect(messages[2]).toEqual(
-        expect.objectContaining({ content: "New message" }),
+        expect.objectContaining({
+          content: expect.stringContaining("New message"),
+        }),
       );
     });
 
@@ -393,7 +395,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- robot.png: upload.kind="upload"; upload.id="upload-123"; mediaType: image/png; raw-save entityType="image"',
+              '- robot.png; upload: { kind: "upload", id: "upload-123" }; mediaType: image/png',
             ),
           },
           {
@@ -496,7 +498,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- robot.png: upload.kind="upload"; upload.id="upload-123"; mediaType: image/png; raw-save entityType="image"',
+              '- robot.png; upload: { kind: "upload", id: "upload-123" }; mediaType: image/png',
             ),
           },
           {
@@ -657,7 +659,7 @@ describe("AgentService", () => {
       expect(lastMessage?.content).not.toContain("upload-missing");
     });
 
-    it("does not ask service-level upload clarification for deck carousel requests", async () => {
+    it("passes recent upload refs as candidates without service-level clarification", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
           {
@@ -723,39 +725,22 @@ describe("AgentService", () => {
       expect(response.text).not.toContain("Which uploaded file should I use?");
       expect(mockGenerate).toHaveBeenCalledTimes(1);
       const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableCreateUpload).toBeUndefined();
-      expect(callArgs?.options.enableUploadSave).toBeUndefined();
-      expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
-      expect(callArgs?.options.disableDocumentGenerate).toBeUndefined();
+      expect(callArgs?.options.enableCreateUpload).toBe(true);
+      expect(callArgs?.options.enableUploadSave).toBe(true);
+      expect(callArgs?.options).not.toHaveProperty(
+        "enableCreateSourceAttachment",
+      );
+      expect(callArgs?.options).not.toHaveProperty("disableDocumentGenerate");
       const lastMessage = callArgs?.messages.at(-1);
       expect(lastMessage?.role).toBe("user");
       expect(lastMessage?.content).toContain(
         "Can you generate a preview of the innovation deck carousel for me?",
       );
-      expect(lastMessage?.content).not.toContain('id: "upload-pdf"');
-      expect(lastMessage?.content).not.toContain('id: "upload-image"');
+      expect(lastMessage?.content).toContain('id: "upload-pdf"');
+      expect(lastMessage?.content).toContain('id: "upload-image"');
     });
 
-    it("does not expose create sourceAttachment for ordinary direct create requests", async () => {
-      const service = AgentService.createFresh(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-
-      await service.chat(
-        "Save this as a note: hello world",
-        "test-conversation",
-      );
-
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
-    });
-
-    it("exposes create sourceAttachment for source-derived artifact requests", async () => {
+    it("does not derive tool availability from source wording", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -771,8 +756,10 @@ describe("AgentService", () => {
       );
 
       const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableCreateSourceAttachment).toBe(true);
-      expect(callArgs?.options.disableDocumentGenerate).toBe(true);
+      expect(callArgs?.options).not.toHaveProperty(
+        "enableCreateSourceAttachment",
+      );
+      expect(callArgs?.options).not.toHaveProperty("disableDocumentGenerate");
     });
 
     it("lets the agent handle clarification replies instead of rewriting them", async () => {
@@ -857,8 +844,8 @@ describe("AgentService", () => {
       const lastMessage = messages.at(-1);
       expect(lastMessage?.role).toBe("user");
       expect(lastMessage?.content).toContain("the latest one");
-      expect(lastMessage?.content).not.toContain('id: "upload-first"');
-      expect(lastMessage?.content).not.toContain('id: "upload-second"');
+      expect(lastMessage?.content).toContain('id: "upload-first"');
+      expect(lastMessage?.content).toContain('id: "upload-second"');
     });
 
     it("asks for intent when the user submits only a native file attachment", async () => {
@@ -1018,7 +1005,7 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content: expect.stringContaining(
-          '- durable-notes.md: upload.kind="upload"; upload.id="upload-123"; mediaType: text/markdown',
+          '- durable-notes.md; upload: { kind: "upload", id: "upload-123" }; mediaType: text/markdown',
         ),
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
@@ -1628,7 +1615,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- brief.pdf: upload.kind="upload"; upload.id="upload-pdf"; mediaType: application/pdf; raw-save entityType="document"',
+              '- brief.pdf; upload: { kind: "upload", id: "upload-pdf" }; mediaType: application/pdf',
             ),
           },
           {

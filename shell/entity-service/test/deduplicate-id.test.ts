@@ -127,6 +127,7 @@ describe("deduplicateId option", () => {
       constructor() {
         super({
           entityType: "article",
+          purpose: "Test article entity for unit tests.",
           schema: articleSchema,
           frontmatterSchema: z.object({ title: z.string() }),
         });

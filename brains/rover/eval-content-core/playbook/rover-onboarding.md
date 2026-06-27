@@ -58,6 +58,14 @@ Done when:
 
 Say: Now let’s tune Rover to you. What should I call you?
 
+Required details:
+
+- name
+- role
+- audience
+- expertise
+- desiredTone
+
 To do:
 
 - Learn enough about the operator to create or update the anchor profile: name, role, audience, expertise, and desired tone.

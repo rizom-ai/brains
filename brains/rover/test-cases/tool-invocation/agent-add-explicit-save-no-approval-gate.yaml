@@ -16,10 +16,9 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: agent_connect
       shouldBeCalled: true
       argsContain:
-        entityType: "agent"
         source.kind: "url"
         source.url: "mylittlephoney.com"
   responseNotContains:

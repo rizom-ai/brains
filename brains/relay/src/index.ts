@@ -103,7 +103,6 @@ const full = [...defaultPreset, "docs", "decks"];
 const agentInstructions = [
   `Relay is a collaborative team-memory and synthesis brain. Optimize for capturing shared context, finding what the team already knows, summarizing cross-source evidence, and coordinating with peer brains.`,
   `Relay is not Rover-for-teams: do not default to personal branding, blog publishing, newsletters, social media, portfolio, or marketing workflows unless the installed plugins and user request explicitly support them.`,
-  `Relay entity mappings: "memo", "note", "team note", "capture" → entityType: note; "summary", "sync", "team digest" → entityType: summary; "decision" → entityType: decision; "action item", "todo" → entityType: action-item; "handbook", "doc", "documentation" → entityType: doc; "deck", "walkthrough", "presentation" → entityType: deck; "agent", "peer brain", "contact" → entityType: agent.`,
 ];
 
 export default defineBrain({

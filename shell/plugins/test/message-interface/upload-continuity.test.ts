@@ -30,7 +30,6 @@ describe("MessageUploadContinuity", () => {
 
     const selected = await continuity.selectPriorUploads({
       conversationId: "conv-1",
-      message: "summarize this",
       currentAttachments: [firstUpload],
       canRestore: true,
     });
@@ -49,7 +48,6 @@ describe("MessageUploadContinuity", () => {
 
     const selected = await continuity.selectPriorUploads({
       conversationId: "conv-1",
-      message: "summarize latest",
       currentAttachments: [],
       canRestore: false,
     });
@@ -57,7 +55,7 @@ describe("MessageUploadContinuity", () => {
     expect(selected).toEqual([]);
   });
 
-  it("selects remembered uploads by filename", async () => {
+  it("returns all remembered uploads as candidates regardless of wording", async () => {
     const continuity = new MessageUploadContinuity({
       sourceKind: "discord-chat-upload",
       loadMessages: async (): Promise<readonly unknown[]> => [],
@@ -67,12 +65,13 @@ describe("MessageUploadContinuity", () => {
 
     const selected = await continuity.selectPriorUploads({
       conversationId: "conv-1",
-      message: "summarize first.txt",
       currentAttachments: [],
       canRestore: true,
     });
 
-    expect(selected).toEqual([firstUpload]);
+    // The host no longer narrows by filename/recency; the model resolves which
+    // upload the user means from the full candidate set via typed tool args.
+    expect(selected).toEqual([firstUpload, secondUpload]);
   });
 
   it("restores prior uploads from stored conversation metadata", async () => {
@@ -89,12 +88,11 @@ describe("MessageUploadContinuity", () => {
 
     const selected = await continuity.selectPriorUploads({
       conversationId: "conv-1",
-      message: "summarize second.txt",
       currentAttachments: [],
       canRestore: true,
     });
 
-    expect(selected).toEqual([secondUpload]);
+    expect(selected).toEqual([firstUpload, secondUpload]);
   });
 
   it("skips stale restored uploads and reports restore errors", async () => {

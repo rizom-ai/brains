@@ -13,6 +13,7 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {
     super({
       entityType: "note",
+      purpose: "Test entity for unit tests.",
       schema: baseEntitySchema,
       frontmatterSchema: z.object({}),
     });

@@ -55,7 +55,7 @@ describe("system_extract tool", () => {
     });
   }
 
-  it("warns agents not to use extraction for vague continuation", () => {
+  it("warns agents not to use extraction for vague continuation or offer-prose completions", () => {
     const tool = tools.find((candidate) => candidate.name === "system_extract");
     if (!tool) throw new Error("system_extract not found");
 
@@ -63,6 +63,9 @@ describe("system_extract tool", () => {
       "Do not call this for vague continuations",
     );
     expect(tool.description).toContain("go ahead");
+    expect(tool.description).toContain(
+      "do not append optional follow-up offers",
+    );
   });
 
   it("requires confirmation for topic rebuild", async () => {

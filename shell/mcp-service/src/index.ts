@@ -27,3 +27,7 @@ export {
   type ToolResult,
 } from "./tool-helpers";
 export { mapArgsToInput } from "./schema-map";
+export {
+  ConfirmationArgsStore,
+  type ConfirmationArgsValidationResult,
+} from "./confirmation-args-store";

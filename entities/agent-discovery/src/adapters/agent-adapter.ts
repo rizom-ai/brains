@@ -71,6 +71,8 @@ export class AgentAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: AGENT_ENTITY_TYPE,
+      purpose:
+        "A saved remote peer-brain contact in the local agent directory.",
       schema: agentEntitySchema,
       frontmatterSchema: agentFrontmatterSchema,
     });

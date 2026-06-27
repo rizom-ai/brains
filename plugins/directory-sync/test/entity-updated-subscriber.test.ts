@@ -14,6 +14,7 @@ class SeriesTestAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {
     super({
       entityType: "series",
+      purpose: "Test entity for unit tests.",
       schema: baseEntitySchema,
       frontmatterSchema: z.object({}),
       supportsCoverImage: true,

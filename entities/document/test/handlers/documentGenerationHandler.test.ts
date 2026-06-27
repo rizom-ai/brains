@@ -27,6 +27,7 @@ class SocialPostStubAdapter extends BaseEntityAdapter<SocialPostStub> {
   constructor() {
     super({
       entityType: "social-post",
+      purpose: "Test entity for unit tests.",
       schema: socialPostStubSchema,
       frontmatterSchema: z.object({}),
     });

@@ -12,6 +12,7 @@ export class SiteContentAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "site-content",
+      purpose: "A content section bound to a route on the published site.",
       schema: siteContentSchema,
       frontmatterSchema: siteContentMetadataSchema,
     });
