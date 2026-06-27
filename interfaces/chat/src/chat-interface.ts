@@ -73,10 +73,10 @@ import {
 import { ArtifactDeliveryResolver } from "./artifact-delivery";
 import { ApprovalCardTracker } from "./approval-card-tracker";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
+import { SubscriptionRouter } from "./subscription-router";
 import {
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
-  type DiscordThreadSubscriptionState,
   type DiscordThreadSubscriptionStore,
 } from "./subscription-state";
 import { createDiscordChatUploadStoreScope } from "./upload-store";
@@ -94,8 +94,6 @@ const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
 const DISCORD_API_BASE = "https://discord.com/api/v10";
-const DISCORD_MENTION_REQUIRED_NOTICE =
-  "I’ll stop auto-replying now that more people joined. Mention me if you need me.";
 
 interface DiscordCardOutput {
   card: CardElement;
@@ -193,6 +191,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     cardBuilder: this.cardBuilder,
     clearMessageComponents: (threadId, messageId) =>
       this.clearDiscordMessageComponents(threadId, messageId),
+  });
+  private readonly subscriptionRouter = new SubscriptionRouter({
+    getSubscriptions: () => this.discordSubscriptions,
+    getPlatform: (thread) => this.getPlatform(thread),
+    isBotCreatedThread: (thread, message) =>
+      this.isBotCreatedDiscordThread(thread, message),
+    logger: this.logger,
   });
   private readonly gatewayLoop: DiscordGatewayLoop;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
@@ -592,13 +597,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         !thread.isDM &&
         platformConfig.useThreads
       ) {
-        await this.subscribeOwnedDiscordThread(thread, message);
+        await this.subscriptionRouter.subscribeOwnedThread(thread, message);
       }
       await this.handleRoutedMessage(thread, message, context);
     });
 
     app.onSubscribedMessage(async (thread, message, context) => {
-      if (!(await this.shouldRouteSubscribedMessage(thread, message))) return;
+      if (!(await this.subscriptionRouter.shouldRouteSubscribedMessage(thread, message))) return;
       await this.handleRoutedMessage(thread, message, context);
     });
 
@@ -746,90 +751,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!platformConfig) return false;
     if (thread.isDM && !platformConfig.allowDMs) return false;
     return this.isAllowedChannel(thread, platformConfig);
-  }
-
-  private async subscribeOwnedDiscordThread(
-    thread: Thread,
-    message: Message,
-  ): Promise<void> {
-    if (!this.isBotCreatedDiscordThread(thread, message)) return;
-
-    try {
-      await thread.subscribe();
-      await this.discordSubscriptions?.set(thread.id, {
-        subscribedAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      this.logger.debug("Discord thread subscription failed", {
-        error,
-        threadId: thread.id,
-      });
-    }
-  }
-
-  private async shouldRouteSubscribedMessage(
-    thread: Thread,
-    message: Message,
-  ): Promise<boolean> {
-    if (this.getPlatform(thread) !== "discord") return false;
-    if (thread.isDM) return true;
-
-    const subscription = await this.discordSubscriptions?.get(thread.id);
-    if (!subscription) return false;
-
-    if (subscription.routingMode === "mention-required") {
-      if (!message.isMention && !subscription.mentionRequiredNoticeSent) {
-        await this.postMentionRequiredNotice(thread, subscription);
-      }
-      return Boolean(message.isMention);
-    }
-
-    const mentionRequired =
-      await this.shouldRequireMentionInSubscribedThread(thread);
-    if (!mentionRequired) return true;
-
-    const nextSubscription: DiscordThreadSubscriptionState = {
-      ...subscription,
-      routingMode: "mention-required",
-    };
-
-    if (!message.isMention && !subscription.mentionRequiredNoticeSent) {
-      await this.postMentionRequiredNotice(thread, nextSubscription);
-    } else {
-      await this.discordSubscriptions?.set(thread.id, nextSubscription);
-    }
-
-    return Boolean(message.isMention);
-  }
-
-  private async postMentionRequiredNotice(
-    thread: Thread,
-    subscription: DiscordThreadSubscriptionState,
-  ): Promise<void> {
-    await thread.post(DISCORD_MENTION_REQUIRED_NOTICE);
-    await this.discordSubscriptions?.set(thread.id, {
-      ...subscription,
-      routingMode: "mention-required",
-      mentionRequiredNoticeSent: true,
-    });
-  }
-
-  private async shouldRequireMentionInSubscribedThread(
-    thread: Thread,
-  ): Promise<boolean> {
-    try {
-      const participants = await thread.getParticipants();
-      const humanParticipants = participants.filter(
-        (participant) => !participant.isBot && !participant.isMe,
-      );
-      return humanParticipants.length > 1;
-    } catch (error) {
-      this.logger.debug("Failed to inspect Discord thread participants", {
-        error,
-        threadId: thread.id,
-      });
-      return false;
-    }
   }
 
   private isBotCreatedDiscordThread(thread: Thread, message: Message): boolean {
