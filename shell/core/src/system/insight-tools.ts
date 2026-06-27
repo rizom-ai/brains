@@ -24,7 +24,7 @@ export function createInsightTools(services: SystemServices): Tool[] {
         );
         return { success: true, data };
       },
-      { visibility: "public" },
+      { visibility: "public", sideEffects: "none" },
     ),
   ];
 }
