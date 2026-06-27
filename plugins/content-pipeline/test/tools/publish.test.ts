@@ -74,9 +74,10 @@ describe("Publish Pipeline - Publish Tool", () => {
       expect(tool.handler).toBeDefined();
     });
 
-    it("should have anchor visibility", () => {
+    it("should have anchor visibility and external side effects", () => {
       const tool = createPublishTool(context, pluginId, providerRegistry);
       expect(tool.visibility).toBe("anchor");
+      expect(tool.sideEffects).toBe("external");
     });
 
     it("should have description explaining direct publishing", () => {
