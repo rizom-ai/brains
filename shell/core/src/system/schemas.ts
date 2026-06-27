@@ -1,5 +1,4 @@
-import { createResultAttachmentSchema } from "@brains/entity-service";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 // ── Input schemas ──
 
@@ -144,7 +143,7 @@ export const updateInputSchema = z.object({
   entityType: z.string().describe("Entity type"),
   id: z.string().describe("Entity ID"),
   fields: z
-    .record(z.unknown())
+    .record(z.string(), z.unknown())
     .optional()
     .describe(
       "Partial frontmatter fields to update. Use this for status, title, and metadata changes such as approving an agent. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
@@ -210,6 +209,22 @@ export const insightsInputSchema = z.object({
 });
 
 // ── Output schemas ──
+
+const createResultAttachmentSchema = z.object({
+  mediaType: z.string(),
+  url: z.string(),
+  downloadUrl: z.string().optional(),
+  previewUrl: z.string().optional(),
+  filename: z.string().optional(),
+  sizeBytes: z.number().optional(),
+  source: z
+    .object({
+      entityType: z.string().optional(),
+      entityId: z.string().optional(),
+      attachmentType: z.string().optional(),
+    })
+    .optional(),
+});
 
 export const createOutputSchema = z.object({
   entityId: z.string().optional(),

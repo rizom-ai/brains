@@ -1,13 +1,13 @@
 import type { Tool, ToolContext } from "@brains/plugins";
 import { createTool, toolError, toolSuccess } from "@brains/plugins";
-import type { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod-v4";
 import {
   documentGenerationJobSchema,
   documentGenerationJobSchemaBase,
   getDocumentId,
 } from "../handlers/documentGenerationHandler";
 
-export type DocumentGenerateInput = z.infer<
+export type DocumentGenerateInput = z.output<
   typeof documentGenerationJobSchemaBase
 >;
 

@@ -990,6 +990,11 @@ Incremental migration progress:
   schemas to `@brains/utils/zod-v4` now MCP tools and AI generation accept
   Zod 4 parser boundaries. Also migrated plugin example schemas and AI-service
   tool-schema tests to Zod 4.
+- Migrated core system tool schemas and helper validation to
+  `@brains/utils/zod-v4`, using a local attachment result shape to avoid
+  composing the entity-service main-Zod schema. Also migrated document and
+  image plugin config/job/tool parser boundaries to Zod 4 while leaving their
+  durable entity schemas on main Zod.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

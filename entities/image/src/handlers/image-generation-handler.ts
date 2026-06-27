@@ -9,7 +9,6 @@ import {
 import type { ProgressReporter } from "@brains/utils";
 import { imageAdapter, setCoverImageId } from "@brains/image";
 import { getErrorMessage, slugify } from "@brains/utils";
-import { z as zConfig } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import { buildImageBasePrompt } from "../lib/build-image-base-prompt";
@@ -18,8 +17,8 @@ import { getDistillableEntityContent } from "../lib/distillable-content";
 /**
  * Schema for AI-distilled image prompt
  */
-const imagePromptSchema = zConfig.object({
-  imagePrompt: zConfig
+const imagePromptSchema = z.object({
+  imagePrompt: z
     .string()
     .describe(
       "A concise, vivid image prompt capturing the core visual concept",

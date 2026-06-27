@@ -9,12 +9,11 @@ import type {
   UserPermissionLevel,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils";
-import type { z } from "@brains/utils/zod";
-import { z as z4 } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 
 const PLUGIN_ID = "system";
-const updateFieldsSchema = z4.record(z4.string(), z4.unknown());
-const wrappedUpdateFieldsSchema = z4.looseObject({
+const updateFieldsSchema = z.record(z.string(), z.unknown());
+const wrappedUpdateFieldsSchema = z.looseObject({
   fields: updateFieldsSchema,
 });
 
@@ -65,7 +64,7 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
   description: string,
   inputSchema: TSchema,
   handler: (
-    input: z.infer<TSchema>,
+    input: z.output<TSchema>,
     context: ToolContext,
   ) => Promise<ToolResponse>,
   options: {
@@ -83,7 +82,7 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
       if (!parseResult.success) {
         return {
           success: false,
-          error: `Invalid input: ${parseResult.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+          error: `Invalid input: ${parseResult.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
         };
       }
       try {
@@ -189,8 +188,12 @@ export function getEntityDisplayLabel(entity: BaseEntity): string {
   return label ?? entity.id;
 }
 
+interface FrontmatterShapeSchema {
+  shape: Record<string, unknown>;
+}
+
 export function hasStructuredFrontmatter(
-  schema: z.ZodObject<z.ZodRawShape> | undefined,
+  schema: FrontmatterShapeSchema | undefined,
 ): boolean {
   return !!schema && Object.keys(schema.shape).length > 0;
 }

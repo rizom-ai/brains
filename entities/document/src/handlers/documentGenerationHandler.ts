@@ -13,7 +13,7 @@ import {
   slugify,
   updateFrontmatterField,
 } from "@brains/utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   countPdfPages,
   createPdfDataUrl,
@@ -30,7 +30,7 @@ const DOCUMENT_ID_MAX_LENGTH = 80;
 const DOCUMENT_ID_HASH_LENGTH = 10;
 
 export const documentGenerationJobSchemaBase = z.object({
-  renderUrl: z.string().url().optional(),
+  renderUrl: z.url().optional(),
   sourceEntityType: z.string().min(1),
   sourceEntityId: z.string().min(1),
   attachmentType: z.string().min(1),
