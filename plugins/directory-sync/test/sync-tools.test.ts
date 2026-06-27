@@ -127,6 +127,20 @@ describe("sync tool", () => {
     context = createMockServicePluginContext();
   });
 
+  it("declares anchor-only external side effects", () => {
+    const { directorySync } = createMockDirectorySync();
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+    );
+    const syncTool = findTool(tools, "directory-sync_sync");
+
+    expect(syncTool.visibility).toBe("anchor");
+    expect(syncTool.sideEffects).toBe("external");
+  });
+
   it("should call queueSyncBatch (non-blocking)", async () => {
     const { directorySync, queueSyncBatchMock } = createMockDirectorySync();
 
@@ -360,6 +374,20 @@ describe("status tool", () => {
 
   beforeEach(() => {
     context = createMockServicePluginContext();
+  });
+
+  it("declares anchor-only read semantics", () => {
+    const { directorySync } = createMockDirectorySync();
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+    );
+    const statusTool = findTool(tools, "directory-sync_status");
+
+    expect(statusTool.visibility).toBe("anchor");
+    expect(statusTool.sideEffects).toBe("none");
   });
 
   it("should omit git field when not configured", async () => {
