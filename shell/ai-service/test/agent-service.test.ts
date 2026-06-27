@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { MCPService, type IMCPService, type Tool } from "@brains/mcp-service";
 import type {
   IBrainCharacterService,
@@ -2730,7 +2730,7 @@ describe("AgentService", () => {
         inputSchema: {
           entityType: z.string(),
           id: z.string(),
-          fields: z.record(z.unknown()).optional(),
+          fields: z.record(z.string(), z.unknown()).optional(),
           confirmed: z.boolean(),
           contentHash: z.string(),
         },

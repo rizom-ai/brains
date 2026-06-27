@@ -1,6 +1,6 @@
 import { ServicePlugin } from "@brains/plugins";
 import type { ServicePluginContext, Tool } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 const calculatorConfigSchema = z.object({
   enabled: z.boolean().describe("Enable the calculator plugin").default(true),

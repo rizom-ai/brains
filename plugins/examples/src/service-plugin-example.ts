@@ -6,7 +6,7 @@ import type {
   ToolResponse,
   MessageWithPayload,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 // Define the plugin configuration schema
 const calculatorConfigSchema = z.object({

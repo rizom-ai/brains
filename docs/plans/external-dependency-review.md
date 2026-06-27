@@ -986,6 +986,10 @@ Incremental migration progress:
   `@brains/utils/zod-v4`, using a local public permission enum for endpoint and
   interaction metadata so the plugin interfaces boundary does not compose the
   templates permission schema.
+- Migrated Playbooks' remaining model-facing tool input and judge-result
+  schemas to `@brains/utils/zod-v4` now MCP tools and AI generation accept
+  Zod 4 parser boundaries. Also migrated plugin example schemas and AI-service
+  tool-schema tests to Zod 4.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

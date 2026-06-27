@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { MCPService, type Tool } from "@brains/mcp-service";
 import { createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { convertToSDKTools, toModelVisibleInputSchema } from "../src/sdk-tools";
 
 describe("convertToSDKTools", () => {

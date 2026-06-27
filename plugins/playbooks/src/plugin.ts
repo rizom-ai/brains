@@ -25,7 +25,6 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
 import { createPrefixedId } from "@brains/utils";
-import { z as zMain } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import { computeContentHash } from "@brains/utils/hash";
 import { createActor, createMachine } from "xstate";
@@ -91,20 +90,20 @@ const playbookEntitySchema = z
   .passthrough();
 
 const statusInputSchema = {
-  runId: zMain.string().min(1).optional(),
-  playbookId: zMain.string().min(1).optional(),
-  lifecycle: zMain.string().min(1).optional(),
+  runId: z.string().min(1).optional(),
+  playbookId: z.string().min(1).optional(),
+  lifecycle: z.string().min(1).optional(),
 };
 
 const startInputSchema = {
-  playbookId: zMain.string().min(1),
-  lifecycle: zMain.string().min(1).optional(),
+  playbookId: z.string().min(1),
+  lifecycle: z.string().min(1).optional(),
 };
 
 const sendEventInputSchema = {
-  runId: zMain.string().min(1).optional(),
-  event: zMain.string().min(1),
-  context: zMain.record(zMain.string(), zMain.unknown()).optional(),
+  runId: z.string().min(1).optional(),
+  event: z.string().min(1),
+  context: z.record(z.string(), z.unknown()).optional(),
 };
 
 export type LifecyclePlaybookConfig = z.output<typeof lifecycleConfigSchema>;
@@ -157,10 +156,10 @@ export interface GoalCheckResult {
   reason: string;
 }
 
-const goalCheckResultSchema = zMain
+const goalCheckResultSchema = z
   .object({
-    met: zMain.boolean(),
-    reason: zMain.string().min(1),
+    met: z.boolean(),
+    reason: z.string().min(1),
   })
   .strict();
 
@@ -291,7 +290,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = zMain.object(statusInputSchema).parse(input);
+          const parsed = z.object(statusInputSchema).parse(input);
           try {
             const data = await this.getStatus({
               ...parsed,
@@ -313,7 +312,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = zMain.object(startInputSchema).parse(input);
+          const parsed = z.object(startInputSchema).parse(input);
           const conversationId = toolContext.conversationId;
           const lockKey = conversationId
             ? `${conversationId}:${parsed.playbookId}`
@@ -359,7 +358,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = zMain.object(sendEventInputSchema).parse(input);
+          const parsed = z.object(sendEventInputSchema).parse(input);
           const run = await this.resolveScopedRunResponse({
             runId: parsed.runId,
             conversationId: toolContext.conversationId,
