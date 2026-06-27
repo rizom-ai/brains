@@ -995,6 +995,9 @@ Incremental migration progress:
   composing the entity-service main-Zod schema. Also migrated document and
   image plugin config/job/tool parser boundaries to Zod 4 while leaving their
   durable entity schemas on main Zod.
+- Updated app brain-definition resolution tests to use Zod 4 config validators
+  and taught the resolver's skip-on-validation path to recognize both current
+  main-Zod and Zod 4 validation errors.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
