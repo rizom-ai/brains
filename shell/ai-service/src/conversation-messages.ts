@@ -96,38 +96,60 @@ export interface ConversationUploadRef {
   };
 }
 
+function uploadRefKey(ref: ConversationUploadRef): string {
+  return `${ref.source.kind}:${ref.source.id}`;
+}
+
+/** Map a typed in-memory attachment to an upload ref (null if it has no source). */
+function chatAttachmentToRef(
+  attachment: ChatAttachment,
+): ConversationUploadRef | null {
+  if (attachment.source === undefined) return null;
+  return {
+    filename: attachment.filename,
+    mediaType: attachment.mediaType,
+    source: attachment.source,
+  };
+}
+
+/** Parse a raw stored-metadata attachment record into an upload ref, or null. */
+function parseStoredAttachmentRef(
+  value: unknown,
+): ConversationUploadRef | null {
+  if (!isRecord(value)) return null;
+  const source = value["source"];
+  if (!isRecord(source)) return null;
+  const kind = source["kind"];
+  const id = source["id"];
+  const filename = value["filename"];
+  const mediaType = value["mediaType"];
+  if (
+    typeof kind !== "string" ||
+    typeof id !== "string" ||
+    typeof filename !== "string" ||
+    typeof mediaType !== "string"
+  ) {
+    return null;
+  }
+  return { filename, mediaType, source: { kind, id } };
+}
+
+function isUploadRef(
+  ref: ConversationUploadRef | null,
+): ref is ConversationUploadRef {
+  return ref !== null;
+}
+
 export function collectUploadRefsFromMessages(
   messages: Message[],
 ): ConversationUploadRef[] {
-  const refs: ConversationUploadRef[] = [];
-  const seen = new Set<string>();
-  for (const message of messages) {
+  const refs = messages.flatMap((message) => {
     const metadata = parseMessageMetadata(message.metadata);
     const attachments = metadata?.["attachments"];
-    if (!Array.isArray(attachments)) continue;
-    for (const attachment of attachments) {
-      if (!isRecord(attachment)) continue;
-      const source = attachment["source"];
-      if (!isRecord(source)) continue;
-      const kind = source["kind"];
-      const id = source["id"];
-      const filename = attachment["filename"];
-      const mediaType = attachment["mediaType"];
-      if (
-        typeof kind !== "string" ||
-        typeof id !== "string" ||
-        typeof filename !== "string" ||
-        typeof mediaType !== "string"
-      ) {
-        continue;
-      }
-      const key = `${kind}:${id}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      refs.push({ filename, mediaType, source: { kind, id } });
-    }
-  }
-  return refs;
+    if (!Array.isArray(attachments)) return [];
+    return attachments.map(parseStoredAttachmentRef).filter(isUploadRef);
+  });
+  return dedupeUploadRefs(refs);
 }
 
 export interface ConversationPriorResponseRef {
@@ -172,17 +194,9 @@ function selectConversationUploadRefs(params: {
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
 }): ConversationUploadRef[] {
-  const currentRefs = params.currentAttachments.flatMap((attachment) =>
-    attachment.source === undefined
-      ? []
-      : [
-          {
-            filename: attachment.filename,
-            mediaType: attachment.mediaType,
-            source: attachment.source,
-          },
-        ],
-  );
+  const currentRefs = params.currentAttachments
+    .map(chatAttachmentToRef)
+    .filter(isUploadRef);
   const historicalRefs = collectUploadRefsFromMessages(params.historyMessages)
     .slice(-MAX_HISTORICAL_UPLOAD_REFS)
     .reverse();
@@ -196,7 +210,7 @@ function dedupeUploadRefs(
   const seen = new Set<string>();
   const deduped: ConversationUploadRef[] = [];
   for (const ref of refs) {
-    const key = `${ref.source.kind}:${ref.source.id}`;
+    const key = uploadRefKey(ref);
     if (seen.has(key)) continue;
     seen.add(key);
     deduped.push(ref);
@@ -282,27 +296,12 @@ function formatUploadRefs(
   uploadRefs: ConversationUploadRef[],
   priorResponseRef: ConversationPriorResponseRef | undefined,
 ): string {
-  const refs = [
-    ...uploadRefs,
-    ...attachments.flatMap((attachment) =>
-      attachment.source === undefined
-        ? []
-        : [
-            {
-              filename: attachment.filename,
-              mediaType: attachment.mediaType,
-              source: attachment.source,
-            },
-          ],
-    ),
-  ];
-  const seen = new Set<string>();
-  const lines = refs.flatMap((ref) => {
-    const key = `${ref.source.kind}:${ref.source.id}`;
-    if (seen.has(key)) return [];
-    seen.add(key);
-    return [formatUploadRefLine(ref)];
-  });
+  const attachmentRefs = attachments
+    .map(chatAttachmentToRef)
+    .filter(isUploadRef);
+  const lines = dedupeUploadRefs([...uploadRefs, ...attachmentRefs]).map(
+    formatUploadRefLine,
+  );
   const priorResponseCandidate = priorResponseRef
     ? [
         "Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation):",
