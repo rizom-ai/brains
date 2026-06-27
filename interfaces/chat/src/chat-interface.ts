@@ -20,8 +20,6 @@ import {
   formatStructuredCardFallback,
   formatStructuredOutputSummary,
   getMessageUploadKind,
-  getToolStatusDisplay,
-  getToolStatusKey,
   formatToolStatusLabel,
   isMessageUploadDeclaredSizeAllowed,
   isUploadableTextFile,
@@ -74,6 +72,7 @@ import {
   type DiscordChatAdapterConfig,
 } from "./config";
 import { ThreadRegistry } from "./thread-registry";
+import { ToolStatusMessenger } from "./tool-status-messenger";
 import {
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
@@ -192,10 +191,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     string,
     { threadId: string; label: string; prompt: string }
   >();
-  private readonly toolStatusMessages = new Map<
-    string,
-    { channelId: string; message: SentMessage }
-  >();
+  private readonly toolStatusMessenger = new ToolStatusMessenger(
+    this.threadRegistry,
+  );
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
   private gatewayAbortController: AbortController | undefined;
@@ -521,68 +519,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     update: ToolStatusUpdate,
   ): Promise<void> {
     if (update.interfaceType !== this.id || !update.channelId) return;
-
-    const key = getToolStatusKey(update);
-    if (update.state === "running") {
-      await this.sendToolStatusMessage(key, update);
-      return;
-    }
-
-    await this.updateToolStatusMessage(key, update);
-  }
-
-  private async sendToolStatusMessage(
-    key: string,
-    update: ToolStatusUpdate,
-  ): Promise<void> {
-    const channelId = update.channelId;
-    if (!channelId) return;
-    const thread = this.threadRegistry.get(channelId);
-    if (!thread) return;
-
-    const sent = await thread.post(this.formatToolStatusPayload(update));
-    this.threadRegistry.trackMessage(channelId, sent);
-    this.toolStatusMessages.set(key, { channelId, message: sent });
-  }
-
-  private async updateToolStatusMessage(
-    key: string,
-    update: ToolStatusUpdate,
-  ): Promise<void> {
-    const payload = this.formatToolStatusPayload(update);
-    const tracked = this.toolStatusMessages.get(key);
-    if (tracked) {
-      const edited = await tracked.message.edit(payload);
-      this.threadRegistry.trackMessage(tracked.channelId, edited);
-      this.toolStatusMessages.delete(key);
-      return;
-    }
-
-    const channelId = update.channelId;
-    if (!channelId) return;
-    const thread = this.threadRegistry.get(channelId);
-    if (!thread) return;
-    const sent = await thread.post(payload);
-    this.threadRegistry.trackMessage(channelId, sent);
-  }
-
-  private formatToolStatusPayload(update: ToolStatusUpdate): {
-    card: CardElement;
-    fallbackText: string;
-  } {
-    const display = getToolStatusDisplay(update);
-    const children: CardChild[] = [{ type: "text", content: display.label }];
-    if (update.error) {
-      children.push({ type: "text", content: update.error });
-    }
-    return {
-      card: {
-        type: "card",
-        title: display.title,
-        children,
-      },
-      fallbackText: display.fallback,
-    };
+    await this.toolStatusMessenger.handle(update);
   }
 
   private isEnabledPlatform(interfaceType: string): boolean {
@@ -2302,7 +2239,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.gatewayAbortController = undefined;
     this.threadRegistry.clear();
     this.uploadContinuity.clear();
-    this.toolStatusMessages.clear();
+    this.toolStatusMessenger.clear();
     await this.app?.shutdown();
   }
 
