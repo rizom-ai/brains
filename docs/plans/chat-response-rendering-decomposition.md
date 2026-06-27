@@ -18,7 +18,11 @@ Done:
 - **ArtifactDeliveryResolver** (`artifact-delivery.ts`) — extracted artifact
   delivery policy (which generated artifacts to deliver as native files vs deny by
   permission level), duplicated across both render paths. Injected with
-  `getContext`/`getDisplayBaseUrl`/`logger`. `ChatInterface` is now ~1889 lines.
+  `getContext`/`getDisplayBaseUrl`/`logger`.
+- **ApprovalCardTracker** (`approval-card-tracker.ts`) — extracted approval-card
+  bookkeeping (post the request card, edit in place to resolved on confirm/cancel,
+  keyed by conversation+approval). Owns its map; injected with `cardBuilder` and a
+  `clearMessageComponents` callback. `ChatInterface` is now ~1822 lines (from ~2349).
 
 ## Correction to the original "AgentResponseRenderer" plan
 
@@ -33,9 +37,12 @@ base protected methods is the plugin's legitimate role.
 
 ## Remaining within-chat steps
 
-- **ApprovalCardTracker** — `approvalCardMessages` map + `getApprovalCardKey` +
-  `resolveApprovalCard` + `sendPendingConfirmationCards`. Cohesive approval-card
-  bookkeeping; needs `cardBuilder` + `threadRegistry` + `clearDiscordMessageComponents`.
+- **Discord glue** — the Discord-specific cluster (gateway loop, thread subscription
+  state, upload store/request handling, channel-id parsing, config builders,
+  `clearDiscordMessageComponents`). Largest and most entangled; do last. The
+  orchestration (`renderAgentResponse` / `confirmApproval` / `sendAgentResponseWithFiles`)
+  stays in `ChatInterface` — coordinating the now-extracted collaborators via base
+  protected methods is the plugin's legitimate role.
 - **Discord glue** — extract the Discord-specific cluster (upload store, thread
   subscription, routing, gateway loop, config builders, `clearDiscordMessageComponents`).
   Largest and most entangled; do last.
