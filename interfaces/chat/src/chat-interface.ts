@@ -665,46 +665,32 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const conversationId = this.getConversationId(platform, thread.id);
     const channelId = thread.id;
 
-    this.startProcessingInput(channelId);
-    try {
-      if (this.getPlatformConfig(thread)?.showTypingIndicator) {
-        await thread
-          .startTyping()
-          .catch((error: unknown) =>
-            this.logger.debug("Typing indicator failed", { error, channelId }),
-          );
-      }
-
-      const response = await this.context.agent.chat(
-        action.prompt,
-        conversationId,
-        {
-          userPermissionLevel,
-          interfaceType: platform,
+    await this.runAgentTurn({
+      thread,
+      channelId,
+      logLabel: "Error handling chat prompt action",
+      body: async () => {
+        if (!this.context) return;
+        const response = await this.context.agent.chat(
+          action.prompt,
+          conversationId,
+          {
+            userPermissionLevel,
+            interfaceType: platform,
+            channelId,
+            channelName: thread.isDM ? "DM" : thread.channelId,
+            ...this.buildActionEventMetadata(platform, thread, event),
+          },
+        );
+        await this.renderAgentResponse({
+          thread,
           channelId,
-          channelName: thread.isDM ? "DM" : thread.channelId,
-          ...this.buildActionEventMetadata(platform, thread, event),
-        },
-      );
-      await this.renderAgentResponse({
-        thread,
-        channelId,
-        conversationId,
-        response,
-        userPermissionLevel,
-      });
-    } catch (error: unknown) {
-      this.logger.error("Error handling chat prompt action", {
-        error,
-        channelId,
-      });
-      await thread.post(
-        this.toDiscordCardOutput(this.formatErrorPayload(error)) ??
-          "Message failed.",
-      );
-    } finally {
-      this.endProcessingInput();
-    }
+          conversationId,
+          response,
+          userPermissionLevel,
+        });
+      },
+    });
   }
 
   private async handleApprovalAction(event: ActionEvent): Promise<void> {
@@ -796,6 +782,57 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return true;
   }
 
+  /**
+   * Shared turn wrapper for the message and prompt-action paths: marks input
+   * processing (so job-completion messages buffer behind the reply), shows the
+   * typing indicator, runs the path-specific body, and renders a consistent
+   * error to the thread on failure. The confirmation path does not use this —
+   * it is driven by a button press, not user input processing.
+   */
+  private async runAgentTurn(input: {
+    thread: Thread;
+    channelId: string;
+    logLabel: string;
+    body: () => Promise<void>;
+  }): Promise<void> {
+    this.startProcessingInput(input.channelId);
+    try {
+      if (this.getPlatformConfig(input.thread)?.showTypingIndicator) {
+        await input.thread
+          .startTyping()
+          .catch((error: unknown) =>
+            this.logger.debug("Typing indicator failed", {
+              error,
+              channelId: input.channelId,
+            }),
+          );
+      }
+      await input.body();
+    } catch (error: unknown) {
+      this.logger.error(input.logLabel, { error, channelId: input.channelId });
+      await this.postTurnError(input.thread, input.channelId, error);
+    } finally {
+      this.endProcessingInput();
+    }
+  }
+
+  private async postTurnError(
+    thread: Thread,
+    channelId: string,
+    error: unknown,
+  ): Promise<void> {
+    const payload = this.formatErrorPayload(error);
+    const cardOutput = this.toDiscordCardOutput(payload);
+    if (cardOutput) {
+      await thread.post(cardOutput);
+      return;
+    }
+    const text = typeof payload === "string" ? payload : "Message failed.";
+    for (const chunk of this.chunkForChannel(channelId, text)) {
+      await thread.post(chunk);
+    }
+  }
+
   private async routeToAgent(
     platform: string,
     thread: Thread,
@@ -829,70 +866,60 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!agentInput.message && agentInput.attachments.length === 0) return;
     this.rememberUploadAttachments(conversationId, sameTurnUploads);
 
-    this.startProcessingInput(channelId);
-    try {
-      if (this.getPlatformConfig(thread)?.showTypingIndicator) {
-        await thread
-          .startTyping()
-          .catch((error: unknown) =>
-            this.logger.debug("Typing indicator failed", { error, channelId }),
-          );
-      }
+    await this.runAgentTurn({
+      thread,
+      channelId,
+      logLabel: "Error handling chat message",
+      body: async () => {
+        if (!this.context) return;
 
-      const pendingApprovalIds =
-        await this.getPendingApprovalIds(conversationId);
-      if (pendingApprovalIds.size > 0) {
-        await this.handleConfirmationResponse(
-          agentInput.message,
-          conversationId,
-          thread,
-          pendingApprovalIds,
-          userPermissionLevel,
-          this.buildUserMessageMetadata(platform, thread, message),
-        );
-        return;
-      }
-
-      const coalescedInput = this.buildCoalescedAgentInput(
-        agentInput.message,
-        context,
-      );
-      const response = await this.context.agent.chat(
-        coalescedInput.message,
-        conversationId,
-        {
-          userPermissionLevel,
-          interfaceType: platform,
-          channelId,
-          channelName: this.getChannelName(thread),
-          ...this.buildUserMessageMetadata(
-            platform,
+        const pendingApprovalIds =
+          await this.getPendingApprovalIds(conversationId);
+        if (pendingApprovalIds.size > 0) {
+          await this.handleConfirmationResponse(
+            agentInput.message,
+            conversationId,
             thread,
-            message,
-            coalescedInput.metadata,
-          ),
-          ...(agentInput.attachments.length > 0
-            ? { attachments: agentInput.attachments }
-            : {}),
-        },
-      );
+            pendingApprovalIds,
+            userPermissionLevel,
+            this.buildUserMessageMetadata(platform, thread, message),
+          );
+          return;
+        }
 
-      await this.renderAgentResponse({
-        thread,
-        channelId,
-        conversationId,
-        response,
-        userPermissionLevel,
-      });
-    } catch (error: unknown) {
-      this.logger.error("Error handling chat message", { error, channelId });
-      this.sendMessageToChannel({
-        channelId,
-        message: this.formatErrorPayload(error),
-      });
-    } finally {
-      this.endProcessingInput();
-    }
+        const coalescedInput = this.buildCoalescedAgentInput(
+          agentInput.message,
+          context,
+        );
+        const response = await this.context.agent.chat(
+          coalescedInput.message,
+          conversationId,
+          {
+            userPermissionLevel,
+            interfaceType: platform,
+            channelId,
+            channelName: this.getChannelName(thread),
+            ...this.buildUserMessageMetadata(
+              platform,
+              thread,
+              message,
+              coalescedInput.metadata,
+            ),
+            ...(agentInput.attachments.length > 0
+              ? { attachments: agentInput.attachments }
+              : {}),
+          },
+        );
+
+        await this.renderAgentResponse({
+          thread,
+          channelId,
+          conversationId,
+          response,
+          userPermissionLevel,
+        });
+      },
+    });
   }
 
   /**
