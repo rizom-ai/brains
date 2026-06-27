@@ -895,17 +895,36 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
   }
 
+  /**
+   * Single render path for every agent response in chat. The optional
+   * `confirmation` switches it to the approval-resolution variant: it syncs (not
+   * remembers) pending confirmations against the resolved approval, edits the
+   * approval card to its resolved state, and uses the confirmation-response text
+   * formatting. Everything else — tool statuses, artifact delivery, card sends,
+   * and async-job progress tracking — is identical for normal and confirmation
+   * turns. (The previous confirmApproval path duplicated this and omitted job
+   * tracking; routing it here fixes that.)
+   */
   private async renderAgentResponse(input: {
     thread: Thread;
     channelId: string;
     conversationId: string;
     response: AgentResponse;
     userPermissionLevel: UserPermissionLevel;
+    confirmation?: { approvalId: string; confirmed: boolean };
   }): Promise<void> {
-    this.rememberPendingConfirmationsFromResponse(
-      input.conversationId,
-      input.response,
-    );
+    if (input.confirmation) {
+      this.syncPendingConfirmationsFromResponse(
+        input.conversationId,
+        input.response,
+        input.confirmation.approvalId,
+      );
+    } else {
+      this.rememberPendingConfirmationsFromResponse(
+        input.conversationId,
+        input.response,
+      );
+    }
     await this.handleAgentResponseToolStatuses(
       input.response,
       input.conversationId,
@@ -914,15 +933,30 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       input.response.cards,
       input.userPermissionLevel,
     );
+    if (input.confirmation) {
+      await this.approvalCards.resolve(
+        input.conversationId,
+        input.confirmation.approvalId,
+        input.confirmation.confirmed,
+      );
+    }
+    const message = input.confirmation
+      ? this.formatConfirmationResponsePayload(
+          input.response,
+          input.confirmation.confirmed,
+          this.getRemainingApprovalHelp(input.conversationId, input.response),
+          artifactDelivery.deniedCardIds,
+        )
+      : this.formatAgentResponseText(
+          input.response.text,
+          input.response.cards,
+          input.response.pendingConfirmations,
+          artifactDelivery.deniedCardIds,
+        );
     const messageId = await this.sendAgentResponseWithFiles({
       thread: input.thread,
       channelId: input.channelId,
-      message: this.formatAgentResponseText(
-        input.response.text,
-        input.response.cards,
-        input.response.pendingConfirmations,
-        artifactDelivery.deniedCardIds,
-      ),
+      message,
       files: artifactDelivery.files,
     });
     const artifactMessageId = await this.sendArtifactCards(
@@ -1021,47 +1055,17 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.removePendingApproval(input.conversationId, input.approvalId);
     if (!response) return;
 
-    this.syncPendingConfirmationsFromResponse(
-      input.conversationId,
-      response,
-      input.approvalId,
-    );
-    await this.handleAgentResponseToolStatuses(response, input.conversationId);
-    const artifactDelivery = await this.artifactDelivery.resolve(
-      response.cards,
-      input.userPermissionLevel,
-    );
-    await this.approvalCards.resolve(
-      input.conversationId,
-      input.approvalId,
-      input.confirmed,
-    );
-    await this.sendAgentResponseWithFiles({
+    await this.renderAgentResponse({
       thread: input.thread,
       channelId: input.thread.id,
-      message: this.formatConfirmationResponsePayload(
-        response,
-        input.confirmed,
-        this.getRemainingApprovalHelp(input.conversationId, response),
-        artifactDelivery.deniedCardIds,
-      ),
-      files: artifactDelivery.files,
+      conversationId: input.conversationId,
+      response,
+      userPermissionLevel: input.userPermissionLevel,
+      confirmation: {
+        approvalId: input.approvalId,
+        confirmed: input.confirmed,
+      },
     });
-    await this.sendArtifactCards(
-      input.thread,
-      response.cards,
-      artifactDelivery.deniedCardIds,
-    );
-    await this.sendSupplementalCards(
-      input.thread,
-      response.cards,
-      response.pendingConfirmations,
-    );
-    await this.approvalCards.trackPendingConfirmations(
-      input.thread,
-      input.conversationId,
-      response.pendingConfirmations,
-    );
   }
 
   private formatNoticePayload(
