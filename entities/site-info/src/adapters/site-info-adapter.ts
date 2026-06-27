@@ -1,5 +1,4 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import type { z } from "@brains/utils/zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 import {
   siteInfoSchema,
@@ -33,9 +32,7 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
    * Create site info content in frontmatter format
    * Validates input data through Zod schema
    */
-  public createSiteInfoContent(
-    params: z.input<typeof siteInfoBodySchema>,
-  ): string {
+  public createSiteInfoContent(params: SiteInfoBody): string {
     const validatedData = siteInfoBodySchema.parse(params);
     return this.buildMarkdown("", validatedData);
   }

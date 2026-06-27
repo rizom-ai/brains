@@ -125,7 +125,10 @@ export abstract class BaseEntityAdapter<
     return entity.metadata;
   }
 
-  public parseFrontMatter<T>(markdown: string, schema: z.ZodSchema<T>): T {
+  public parseFrontMatter<T>(
+    markdown: string,
+    schema: { parse(data: unknown): T },
+  ): T {
     return parseMarkdownWithFrontmatter(markdown, schema).metadata;
   }
 

@@ -1,5 +1,4 @@
 import type { EntityAdapter } from "@brains/entity-service";
-import type { z } from "@brains/utils/zod";
 import {
   imageSchema,
   type Image,
@@ -68,7 +67,7 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
 
   public parseFrontMatter<TFrontmatter>(
     _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
+    schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter {
     return schema.parse({});
   }

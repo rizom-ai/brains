@@ -1,5 +1,4 @@
 import type { EntityAdapter } from "@brains/entity-service";
-import type { z } from "@brains/utils/zod";
 import {
   documentSchema,
   type DocumentEntity,
@@ -53,7 +52,7 @@ export class DocumentAdapter implements EntityAdapter<
 
   public parseFrontMatter<TFrontmatter>(
     _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
+    schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter {
     return schema.parse({});
   }

@@ -1,5 +1,4 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import type { z } from "@brains/utils/zod";
 import {
   topicEntitySchema,
   topicFrontmatterSchema,
@@ -9,7 +8,7 @@ import {
 } from "../schemas/topic";
 import { TOPIC_ENTITY_TYPE } from "./constants";
 
-type TopicFrontmatter = z.infer<typeof topicFrontmatterSchema>;
+type TopicFrontmatter = ReturnType<typeof topicFrontmatterSchema.parse>;
 
 export class TopicAdapter extends BaseEntityAdapter<
   TopicEntity,

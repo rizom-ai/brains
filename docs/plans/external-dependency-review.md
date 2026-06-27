@@ -1005,6 +1005,14 @@ Incremental migration progress:
   guard/test parser, content-pipeline mock entity test schemas, entity
   pagination parser, and public URL-capture config parser to
   `@brains/utils/zod-v4` without touching durable entity/frontmatter schemas.
+- Removed more nominal main-Zod type slots from complete parse-only boundaries:
+  Obsidian Vault frontmatter introspection now accepts both main-Zod and Zod 4
+  object shapes structurally, its introspector tests use Zod 4 schemas, and
+  binary/media/profile adapters use structural parser inputs or schema-owned
+  output types instead of importing main-Zod only for helper signatures. The
+  shared base entity adapter's public frontmatter parser now accepts structural
+  parsers too, allowing identity adapter tests to exercise Zod 4 parser inputs
+  without migrating durable identity entity schemas.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

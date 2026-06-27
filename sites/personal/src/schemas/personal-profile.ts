@@ -1,4 +1,3 @@
-import type { z } from "@brains/utils/zod";
 import { anchorProfileBodySchema, baseProfileExtension } from "@brains/plugins";
 
 /**
@@ -10,4 +9,4 @@ export const personalProfileSchema = anchorProfileBodySchema.extend(
   personalProfileExtension.shape,
 );
 
-export type PersonalProfile = z.infer<typeof personalProfileSchema>;
+export type PersonalProfile = ReturnType<typeof personalProfileSchema.parse>;

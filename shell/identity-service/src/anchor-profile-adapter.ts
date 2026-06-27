@@ -2,7 +2,6 @@ import {
   BaseEntityAdapter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
-import type { z } from "@brains/utils/zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 import {
   anchorProfileSchema,
@@ -12,6 +11,10 @@ import {
 } from "./anchor-profile-schema";
 
 const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
+
+interface ProfileBodyParser<T> {
+  parse(data: unknown): T;
+}
 
 /**
  * Entity adapter for Anchor Profile entities
@@ -32,9 +35,7 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
    * Create profile content in frontmatter format
    * Validates input data through Zod schema
    */
-  public createProfileContent(
-    params: z.input<typeof anchorProfileBodySchema>,
-  ): string {
+  public createProfileContent(params: AnchorProfile): string {
     const validatedData = anchorProfileBodySchema.parse(params);
     return this.buildMarkdown("", validatedData);
   }
@@ -47,11 +48,11 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
   public parseProfileBody(content: string): AnchorProfile;
   public parseProfileBody<T extends Record<string, unknown>>(
     content: string,
-    schema: z.ZodSchema<T>,
+    schema: ProfileBodyParser<T>,
   ): T;
   public parseProfileBody<T extends Record<string, unknown>>(
     content: string,
-    schema?: z.ZodSchema<T>,
+    schema?: ProfileBodyParser<T>,
   ): AnchorProfile | T {
     if (schema) {
       const { metadata: parsed, content: body } = parseMarkdownWithFrontmatter(
