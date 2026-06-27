@@ -16,17 +16,19 @@ export interface AgentInput {
   notices: string[];
 }
 
-type ThreadIdParts = {
+interface ThreadIdParts {
   guildId?: string;
   channelId?: string;
   threadId?: string;
-};
+}
 
 interface ChatInputBuilderDeps {
   /** The platform's already-scoped upload store (Discord scope applied by the caller). */
   getUploadStore: () => RuntimeUploadStore | undefined;
   getThreadIdParts: (threadId: string) => ThreadIdParts;
-  logger: { error: (message: string, context?: Record<string, unknown>) => void };
+  logger: {
+    error: (message: string, context?: Record<string, unknown>) => void;
+  };
 }
 
 /**

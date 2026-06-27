@@ -86,6 +86,7 @@ export {
 
 export {
   canReceiveNativeArtifactFile,
+  collectDeniedArtifactCardIds,
   resolveMessageArtifactAccess,
   type MessageArtifactAccessInput,
   type MessageArtifactAccessResult,

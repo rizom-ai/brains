@@ -356,6 +356,7 @@ export {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
   canReceiveNativeArtifactFile,
+  collectDeniedArtifactCardIds,
   type CoalescedInputMessage,
   type CoalescedInputMetadata,
   type CoalescedInputResult,

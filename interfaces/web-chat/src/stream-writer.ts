@@ -17,8 +17,14 @@ export function writeTextPart(
 export function writeStructuredCards(
   writer: UIMessageStreamWriter<UIMessage>,
   cards: StructuredChatCard[],
+  deniedCardIds: ReadonlySet<string> = new Set(),
 ): void {
   for (const rawCard of cards) {
+    // Permission-denied artifacts are not exposed at all — not even their card
+    // metadata — matching the discrete-message interfaces.
+    if (rawCard.kind === "attachment" && deniedCardIds.has(rawCard.id)) {
+      continue;
+    }
     const card = redactUploadRefsInStructuredCard(rawCard);
     if (card.kind === "attachment") {
       writer.write({

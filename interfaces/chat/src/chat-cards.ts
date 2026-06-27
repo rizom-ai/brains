@@ -1,6 +1,6 @@
 import type { CardChild, CardElement } from "chat";
+import type { formatArtifactDisplay } from "@brains/plugins";
 import {
-  formatArtifactDisplay,
   formatStructuredCardFallback,
   formatStructuredOutputSummary,
   formatToolStatusLabel,
@@ -23,7 +23,11 @@ const DISCORD_CARD_BUTTON_LIMIT =
 const DISCORD_BUTTON_LABEL_LIMIT = 80;
 
 type ArtifactDisplay = NonNullable<ReturnType<typeof formatArtifactDisplay>>;
-type LinkButton = { type: "link-button"; label: string; url: string };
+interface LinkButton {
+  type: "link-button";
+  label: string;
+  url: string;
+}
 
 export interface ChatCardBuilderDeps {
   /** Resolve the preferred display base URL (from interface context) at render time. */
@@ -230,7 +234,8 @@ export class ChatCardBuilder {
       { type: "text", content: confirmation.summary },
       {
         type: "text",
-        content: "Confirm this action, or cancel it. You can also reply yes/no.",
+        content:
+          "Confirm this action, or cancel it. You can also reply yes/no.",
       },
       {
         type: "actions",

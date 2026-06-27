@@ -1,11 +1,13 @@
 import {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
+  collectDeniedArtifactCardIds,
   redactUploadRefs,
   type AgentNamespace,
   type AgentResponse,
   type ChatAttachment,
   type ChatContext,
+  type MessageArtifactEntity,
 } from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
@@ -26,6 +28,31 @@ interface StreamDeps {
     conversationId: string,
   ): Promise<void>;
   createId(prefix: string): string;
+  /** Resolve site URL for artifact entity-ref parsing (denial check). */
+  displayBaseUrl: string | undefined;
+  /** Backs the permission-denied artifact check so restricted cards are not streamed. */
+  entityService: {
+    getEntity: (ref: {
+      entityType: string;
+      id: string;
+      visibilityScope?: unknown;
+    }) => Promise<MessageArtifactEntity | null | undefined>;
+  };
+}
+
+async function deniedArtifactCardIds(
+  deps: StreamDeps,
+  response: Pick<AgentResponse, "cards">,
+  userLevel: "anchor" | "public",
+): Promise<Set<string>> {
+  return collectDeniedArtifactCardIds({
+    cards: response.cards,
+    userLevel,
+    displayBaseUrl: deps.displayBaseUrl,
+    getEntity: (ref) => deps.entityService.getEntity(ref),
+    getVisibleEntity: (ref, visibilityScope) =>
+      deps.entityService.getEntity({ ...ref, visibilityScope }),
+  });
 }
 
 interface StreamedChatInput {
@@ -70,7 +97,12 @@ export async function handleStreamedChat(
         data: redactUploadRefs(toolResult),
       });
     }
-    writeStructuredCards(input.writer, response.cards ?? []);
+    const deniedCardIds = await deniedArtifactCardIds(
+      deps,
+      response,
+      input.permissionLevel,
+    );
+    writeStructuredCards(input.writer, response.cards ?? [], deniedCardIds);
   } finally {
     deps.endProcessingInput();
     deps.activeStreams.delete(input.conversationId);
@@ -119,7 +151,12 @@ export async function handleStreamedConfirmations(
         input.conversationId,
       );
       writeText(input.writer, response.text, "text", deps.createId);
-      writeStructuredCards(input.writer, response.cards ?? []);
+      const deniedCardIds = await deniedArtifactCardIds(
+        deps,
+        response,
+        input.permissionLevel,
+      );
+      writeStructuredCards(input.writer, response.cards ?? [], deniedCardIds);
     }
   } finally {
     deps.endProcessingInput();

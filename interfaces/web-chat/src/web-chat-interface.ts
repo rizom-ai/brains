@@ -411,9 +411,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response("No user message found", { status: 400 });
     }
 
+    const streamContext = this.getContext();
     const streamDeps = {
       activeStreams: this.activeStreams,
-      agent: this.getContext().agent,
+      agent: streamContext.agent,
       startProcessingInput: (id: string): void => this.startProcessingInput(id),
       endProcessingInput: (): void => this.endProcessingInput(),
       handleAgentResponseToolStatuses: (
@@ -421,6 +422,20 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         id: string,
       ): Promise<void> => this.handleAgentResponseToolStatuses(response, id),
       createId: (prefix: string): string => this.createId(prefix),
+      displayBaseUrl:
+        streamContext.preferLocalUrls && streamContext.localSiteUrl
+          ? streamContext.localSiteUrl
+          : (streamContext.siteUrl ?? streamContext.localSiteUrl),
+      entityService: {
+        getEntity: (ref: {
+          entityType: string;
+          id: string;
+          visibilityScope?: unknown;
+        }) =>
+          streamContext.entityService.getEntity(
+            ref as Parameters<typeof streamContext.entityService.getEntity>[0],
+          ),
+      },
     };
     const stream = createUIMessageStream<UIMessage>({
       execute: async ({ writer }) => {
