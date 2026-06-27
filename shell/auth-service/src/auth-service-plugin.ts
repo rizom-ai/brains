@@ -132,7 +132,7 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
             reason: "Passkey setup URL is not available.",
           });
         },
-        { visibility: "anchor" },
+        { visibility: "anchor", sideEffects: "none" },
       ),
     ];
   }
