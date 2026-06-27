@@ -187,6 +187,7 @@ export {
   BaseEntityAdapter,
   baseEntitySchema,
   contentVisibilitySchema,
+  emptyFrontmatterSchema,
   internalFullScope,
   isVisibleWithinScope,
   permissionToVisibilityScope,

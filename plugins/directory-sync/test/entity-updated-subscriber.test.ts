@@ -2,8 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins/test";
-import { baseEntitySchema, BaseEntityAdapter } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
+import {
+  baseEntitySchema,
+  BaseEntityAdapter,
+  emptyFrontmatterSchema,
+} from "@brains/plugins/test";
 import { createTestEntity } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -15,7 +18,7 @@ class SeriesTestAdapter extends BaseEntityAdapter<BaseEntity> {
     super({
       entityType: "series",
       schema: baseEntitySchema,
-      frontmatterSchema: z.object({}),
+      frontmatterSchema: emptyFrontmatterSchema,
       supportsCoverImage: true,
     });
   }

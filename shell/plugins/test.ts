@@ -32,6 +32,7 @@ export type { Logger } from "@brains/utils";
 export { createMockMessageBus } from "@brains/messaging-service/test";
 export {
   baseEntitySchema,
+  emptyFrontmatterSchema,
   BaseEntityAdapter,
   createServicePluginContext,
   createEntityPluginContext,

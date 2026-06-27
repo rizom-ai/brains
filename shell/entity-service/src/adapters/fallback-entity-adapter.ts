@@ -1,6 +1,5 @@
-import { z } from "@brains/utils/zod";
 import type { BaseEntity } from "../types";
-import { baseEntitySchema } from "../types";
+import { baseEntitySchema, emptyFrontmatterSchema } from "../types";
 import { BaseEntityAdapter } from "./base-entity-adapter";
 
 /**
@@ -15,7 +14,7 @@ export class FallbackEntityAdapter extends BaseEntityAdapter<BaseEntity> {
     super({
       entityType: "note",
       schema: baseEntitySchema,
-      frontmatterSchema: z.object({}),
+      frontmatterSchema: emptyFrontmatterSchema,
     });
   }
 

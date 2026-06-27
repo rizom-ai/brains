@@ -6,8 +6,11 @@
  */
 import { mock } from "bun:test";
 import type { BaseEntity } from "@brains/plugins/test";
-import { baseEntitySchema, BaseEntityAdapter } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
+import {
+  baseEntitySchema,
+  BaseEntityAdapter,
+  emptyFrontmatterSchema,
+} from "@brains/plugins/test";
 import type {
   IDirectorySync,
   IGitSync,
@@ -84,7 +87,7 @@ export class MockEntityAdapter extends BaseEntityAdapter<BaseEntity> {
     super({
       entityType,
       schema: baseEntitySchema,
-      frontmatterSchema: z.object({}),
+      frontmatterSchema: emptyFrontmatterSchema,
     });
   }
 

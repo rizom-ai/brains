@@ -103,6 +103,9 @@ export const baseEntitySchema = z.object({
   contentHash: z.string(),
 });
 
+/** Shared empty frontmatter schema for entity types with no typed frontmatter. */
+export const emptyFrontmatterSchema = z.object({});
+
 /**
  * Base entity type - generic to support typed metadata
  * TMetadata defaults to Record<string, unknown> for backward compatibility

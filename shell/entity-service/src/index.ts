@@ -73,6 +73,7 @@ export {
   canWriteVisibility,
   contentVisibilitySchema,
   createResultAttachmentSchema,
+  emptyFrontmatterSchema,
   getVisibleContentVisibilities,
   isVisibleWithinScope,
   normalizeContentVisibility,
