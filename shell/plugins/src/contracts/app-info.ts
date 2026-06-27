@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   endpointInfoSchema,
   entityCountSchema,
@@ -11,7 +11,7 @@ const DaemonHealthSchema = z.object({
   status: z.enum(["healthy", "warning", "error", "unknown"]),
   message: z.string().optional(),
   lastCheck: z.string().optional(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 const DaemonStatusSchema = z.object({
@@ -37,4 +37,4 @@ export const AppInfoSchema = z.object({
   interactions: z.array(interactionInfoSchema),
 });
 
-export type AppInfo = z.infer<typeof AppInfoSchema>;
+export type AppInfo = z.output<typeof AppInfoSchema>;

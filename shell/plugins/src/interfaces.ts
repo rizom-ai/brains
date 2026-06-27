@@ -1,8 +1,7 @@
-import { z } from "@brains/utils/zod";
-import {
-  UserPermissionLevelSchema,
-  type EntityActionPolicyConfig,
-  type UserPermissionLevel,
+import { z } from "@brains/utils/zod-v4";
+import type {
+  EntityActionPolicyConfig,
+  UserPermissionLevel,
 } from "@brains/templates";
 import {
   defaultQueryResponseSchema,
@@ -112,12 +111,14 @@ export const toolInfoSchema = z.object({
  * through `appInfo.endpoints` so the dashboard (and anything else)
  * can render them without knowing about individual plugins.
  */
+const userPermissionLevelSchema = z.enum(["anchor", "trusted", "public"]);
+
 export const endpointInfoSchema = z.object({
   label: z.string(),
   url: z.string(),
   pluginId: z.string(),
   priority: z.number().default(100),
-  visibility: UserPermissionLevelSchema.default("public"),
+  visibility: userPermissionLevelSchema.default("public"),
 });
 
 export type EndpointInfo = z.output<typeof endpointInfoSchema>;
@@ -144,7 +145,7 @@ export const interactionInfoSchema = z.object({
   kind: interactionKindSchema,
   pluginId: z.string(),
   priority: z.number().default(100),
-  visibility: UserPermissionLevelSchema.default("public"),
+  visibility: userPermissionLevelSchema.default("public"),
   status: interactionStatusSchema.default("available"),
 });
 
@@ -156,7 +157,7 @@ export const entityCountSchema = z.object({
   count: z.number(),
 });
 
-export type EntityCount = z.infer<typeof entityCountSchema>;
+export type EntityCount = z.output<typeof entityCountSchema>;
 
 /**
  * App info schema for validation
@@ -177,7 +178,7 @@ export const appInfoSchema = z.object({
   interactions: z.array(interactionInfoSchema),
 });
 
-export type RuntimeAppInfo = z.infer<typeof appInfoSchema>;
+export type RuntimeAppInfo = z.output<typeof appInfoSchema>;
 
 /**
  * Query context for shell queries
@@ -400,7 +401,7 @@ export interface PluginCapabilities {
 /**
  * Plugin interface - combines validated metadata with the register function
  */
-export type Plugin = z.infer<typeof pluginMetadataSchema> & {
+export type Plugin = z.output<typeof pluginMetadataSchema> & {
   entityActionPolicy?: EntityActionPolicyConfig;
   register(
     shell: IShell,

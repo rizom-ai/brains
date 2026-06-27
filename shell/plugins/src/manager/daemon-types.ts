@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Daemon health status schema
@@ -10,7 +10,7 @@ export const DaemonHealthSchema = z.object({
   details: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type DaemonHealth = z.infer<typeof DaemonHealthSchema>;
+export type DaemonHealth = z.output<typeof DaemonHealthSchema>;
 
 /**
  * Daemon status info schema for validation
@@ -22,7 +22,7 @@ export const DaemonStatusInfoSchema = z.object({
   health: DaemonHealthSchema.optional(),
 });
 
-export type DaemonStatusInfo = z.infer<typeof DaemonStatusInfoSchema>;
+export type DaemonStatusInfo = z.output<typeof DaemonStatusInfoSchema>;
 
 /**
  * Daemon interface for long-running interface processes

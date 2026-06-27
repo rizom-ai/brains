@@ -970,6 +970,10 @@ Incremental migration progress:
   identity metadata validators to avoid composing plugin/template main-Zod
   schemas; nested defaults use Zod 4 prefaults where defaults must still be
   parsed through child object schemas.
+- Migrated plugin runtime app-info/daemon-status parser boundaries to
+  `@brains/utils/zod-v4`, using a local public permission enum for endpoint and
+  interaction metadata so the plugin interfaces boundary does not compose the
+  templates permission schema.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
