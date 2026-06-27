@@ -157,6 +157,7 @@ Returns pageviews, visitors, top pages, referrers, devices, and countries.`,
           return toolError(msg);
         }
       },
+      { sideEffects: "none" },
     ),
   );
 
