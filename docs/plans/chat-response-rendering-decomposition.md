@@ -14,17 +14,28 @@ Done:
   all `CardElement` building from response data, URL display resolution, and the
   shared action-id constants. Injected with `getDisplayBaseUrl` and
   `registerPromptAction` so it holds no interface state and is testable in
-  isolation. `ChatInterface` is now ~1976 lines.
+  isolation.
+- **ArtifactDeliveryResolver** (`artifact-delivery.ts`) — extracted artifact
+  delivery policy (which generated artifacts to deliver as native files vs deny by
+  permission level), duplicated across both render paths. Injected with
+  `getContext`/`getDisplayBaseUrl`/`logger`. `ChatInterface` is now ~1889 lines.
+
+## Correction to the original "AgentResponseRenderer" plan
+
+Reading the code disproved the idea of one `AgentResponseRenderer` collaborator:
+the delivery layer calls **protected base-class methods** (`sendMessageWithId`,
+`trackAgentResponseForJob`) and spans six concerns (agent, artifact policy, thread
+posting, Discord specifics, approval state, job tracking). A single renderer would
+need ~10 injected deps — feature envy, a new smell. The honest cut is to peel off
+the **cohesive sub-units** and leave the orchestration (`renderAgentResponse` /
+`confirmApproval` / `sendAgentResponseWithFiles`) in the class — coordination using
+base protected methods is the plugin's legitimate role.
 
 ## Remaining within-chat steps
 
-- **AgentResponseRenderer** — extract the delivery layer: `sendAgentResponseWithFiles`,
-  `resolveArtifactDelivery`, `sendArtifactCards`, `sendSupplementalCards`,
-  `sendPendingConfirmationCards`, and approval-card tracking (`approvalCardMessages`,
-  `resolveApprovalCard`). It consumes `ChatCardBuilder`. Once extracted, the entry
-  handlers (`routeToAgent`, `handlePromptAction`, `confirmApproval`) collapse to
-  *resolve context → call agent → renderer.render(...)*, since they currently reach
-  directly into the delivery internals — the root cause of the god-class tangle.
+- **ApprovalCardTracker** — `approvalCardMessages` map + `getApprovalCardKey` +
+  `resolveApprovalCard` + `sendPendingConfirmationCards`. Cohesive approval-card
+  bookkeeping; needs `cardBuilder` + `threadRegistry` + `clearDiscordMessageComponents`.
 - **Discord glue** — extract the Discord-specific cluster (upload store, thread
   subscription, routing, gateway loop, config builders, `clearDiscordMessageComponents`).
   Largest and most entangled; do last.
