@@ -1,6 +1,10 @@
 import { describe, it, expect, mock } from "bun:test";
 import { createA2ACallTool } from "../src/client";
-import type { ICoreEntityService, ToolResponse } from "@brains/plugins";
+import type {
+  ContentVisibility,
+  ICoreEntityService,
+  ToolResponse,
+} from "@brains/plugins";
 
 function isError(
   result: ToolResponse,
@@ -58,9 +62,15 @@ function createMockEntityService(
   >,
 ): ICoreEntityService {
   return {
-    getEntity: mock(async (request: { entityType: string; id: string }) => {
-      return entities.get(request.id) ?? null;
-    }),
+    getEntity: mock(
+      async (request: {
+        entityType: string;
+        id: string;
+        visibilityScope?: ContentVisibility;
+      }) => {
+        return entities.get(request.id) ?? null;
+      },
+    ),
     hasEntityType: () => true,
     getEntityTypes: () => ["agent"],
     listEntities: mock(async () => []),
@@ -79,6 +89,13 @@ describe("a2a_call agent resolution", () => {
 
     expect(tool.description).toContain("what a saved agent has to say");
     expect(tool.description).toContain("skills/capabilities");
+  });
+
+  it("declares trusted external-call metadata", () => {
+    const tool = createA2ACallTool();
+
+    expect(tool.visibility).toBe("trusted");
+    expect(tool.sideEffects).toBe("external");
   });
   it("should resolve an approved saved agent by domain from the entity service", async () => {
     const entities = new Map();
@@ -142,6 +159,64 @@ describe("a2a_call agent resolution", () => {
       );
     }
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("resolves trusted calls within the trusted caller visibility scope", async () => {
+    const entities = new Map();
+    entities.set("yeehaa.io", {
+      id: "yeehaa.io",
+      entityType: "agent",
+      content:
+        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+      metadata: {
+        name: "Yeehaa",
+        url: "https://yeehaa.io/a2a",
+        status: "approved",
+      },
+    });
+    const entityService = createMockEntityService(entities);
+    const tool = createA2ACallTool({
+      fetch: createMockFetch(),
+      entityService,
+    });
+
+    await tool.handler(
+      { agent: "yeehaa.io", message: "hello" },
+      { ...toolContext, userPermissionLevel: "trusted" },
+    );
+
+    expect(entityService.getEntity).toHaveBeenCalledWith(
+      expect.objectContaining({ visibilityScope: "shared" }),
+    );
+  });
+
+  it("resolves anchor calls within the anchor caller visibility scope", async () => {
+    const entities = new Map();
+    entities.set("yeehaa.io", {
+      id: "yeehaa.io",
+      entityType: "agent",
+      content:
+        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+      metadata: {
+        name: "Yeehaa",
+        url: "https://yeehaa.io/a2a",
+        status: "approved",
+      },
+    });
+    const entityService = createMockEntityService(entities);
+    const tool = createA2ACallTool({
+      fetch: createMockFetch(),
+      entityService,
+    });
+
+    await tool.handler(
+      { agent: "yeehaa.io", message: "hello" },
+      { ...toolContext, userPermissionLevel: "anchor" },
+    );
+
+    expect(entityService.getEntity).toHaveBeenCalledWith(
+      expect.objectContaining({ visibilityScope: "restricted" }),
+    );
   });
 
   it("should refuse discovered agents until approved", async () => {

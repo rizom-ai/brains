@@ -2,10 +2,11 @@ import { z } from "@brains/utils";
 import type {
   ContentVisibility,
   Tool,
+  ToolContext,
   ToolResponse,
   ParsedAgentCard,
 } from "@brains/plugins";
-import { internalFullScope, parseAgentCard } from "@brains/plugins";
+import { parseAgentCard, permissionToVisibilityScope } from "@brains/plugins";
 
 interface A2ASuccess {
   success: true;
@@ -459,8 +460,9 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
     description:
       "Call a saved remote A2A agent by its local directory id. Use this when the user asks what a saved agent has to say or asks a saved agent for its skills/capabilities. Use only a saved agent id such as yeehaa.io or docs.rizom.ai. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current directory state. Never pass a display name like Brain, never pass a full URL, and do not use this tool to probe whether an agent exists. If the user gives a URL, an unsaved agent, or an ambiguous name, ask them to add/save or clarify the agent first.",
     inputSchema: a2aCallInputSchema,
-    visibility: "anchor",
-    handler: async (input): Promise<ToolResponse> => {
+    visibility: "trusted",
+    sideEffects: "external",
+    handler: async (input, context: ToolContext): Promise<ToolResponse> => {
       const parsed = z.object(a2aCallInputSchema).safeParse(input);
       if (!parsed.success) {
         return {
@@ -491,8 +493,8 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
       const entity = await deps.entityService.getEntity({
         entityType: "agent",
         id: agentId,
-        visibilityScope: internalFullScope(
-          "a2a_call tool is anchor-only and resolves saved remote agents at any visibility",
+        visibilityScope: permissionToVisibilityScope(
+          context.userPermissionLevel,
         ),
       });
       if (!entity) {
