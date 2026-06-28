@@ -1,5 +1,5 @@
 import { baseEntitySchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "./main-zod";
 import { summaryTimeRangeSchema } from "./summary";
 
 export const memoryActorReferenceSchema = z.object({

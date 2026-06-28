@@ -5,7 +5,7 @@ import {
   skillDataSchema,
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { z } from "@brains/utils/zod";
+import { z } from "../src/main-zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 
 export const testAgentSkillSchema = z4.object({

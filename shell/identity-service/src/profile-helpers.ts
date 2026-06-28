@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "./main-zod";
 import type { ICoreEntityService } from "@brains/entity-service";
 
 /**

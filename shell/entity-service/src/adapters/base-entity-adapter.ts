@@ -1,4 +1,4 @@
-import type { z } from "@brains/utils/zod";
+import type { zMain as z } from "../main-zod";
 import { z as z4 } from "@brains/utils/zod-v4";
 import type { BaseEntity, EntityAdapter } from "../types";
 import {
