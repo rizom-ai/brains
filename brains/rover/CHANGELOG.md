@@ -1,5 +1,55 @@
 # @brains/rover
 
+## 0.2.0-alpha.132
+
+### Patch Changes
+
+- [`d70659e`](https://github.com/rizom-ai/brains/commit/d70659ede3ab9247dd8f777a52494073d76c04af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make confirmed `agent_connect` save verified A2A contacts as approved immediately so users do not need a separate approval step before future calls.
+
+- [`9988510`](https://github.com/rizom-ai/brains/commit/998851097b1606786e0b14a0ef3d2c606fbf08ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split durable content generation into explicit generation tool flows so create/update/save paths can distinguish persisted user content from generated document and image artifacts.
+
+- Updated dependencies [[`d70659e`](https://github.com/rizom-ai/brains/commit/d70659ede3ab9247dd8f777a52494073d76c04af), [`9988510`](https://github.com/rizom-ai/brains/commit/998851097b1606786e0b14a0ef3d2c606fbf08ea)]:
+  - @brains/agent-discovery@0.2.0-alpha.132
+  - @brains/image-plugin@0.2.0-alpha.132
+  - @brains/chat@0.2.0-alpha.132
+  - @brains/discord@0.2.0-alpha.132
+  - @brains/app@0.2.0-alpha.132
+  - @brains/document-plugin@0.2.0-alpha.132
+  - @brains/note@0.2.0-alpha.132
+  - @brains/series@0.2.0-alpha.132
+  - @brains/site-info@0.2.0-alpha.132
+  - @brains/blog@0.2.0-alpha.132
+  - @brains/decks@0.2.0-alpha.132
+  - @brains/link@0.2.0-alpha.132
+  - @brains/portfolio@0.2.0-alpha.132
+  - @brains/newsletter@0.2.0-alpha.132
+  - @brains/cms@0.2.0-alpha.132
+  - @brains/directory-sync@0.2.0-alpha.132
+  - @brains/site-builder-plugin@0.2.0-alpha.132
+  - @brains/stock-photo@0.2.0-alpha.132
+  - @brains/site-default@0.2.0-alpha.132
+  - @brains/assessment@0.2.0-alpha.132
+  - @brains/playbook@0.2.0-alpha.132
+  - @brains/prompt@0.2.0-alpha.132
+  - @brains/rizom-ecosystem@0.2.0-alpha.132
+  - @brains/social-media@0.2.0-alpha.132
+  - @brains/topics@0.2.0-alpha.132
+  - @brains/wishlist@0.2.0-alpha.132
+  - @brains/a2a@0.2.0-alpha.132
+  - @brains/mcp@0.2.0-alpha.132
+  - @brains/web-chat@0.2.0-alpha.132
+  - @brains/webserver@0.2.0-alpha.132
+  - @brains/analytics@0.2.0-alpha.132
+  - @brains/atproto@0.2.0-alpha.132
+  - @brains/content-pipeline@0.2.0-alpha.132
+  - @brains/dashboard@0.2.0-alpha.132
+  - @brains/email-resend@0.2.0-alpha.132
+  - @brains/notifications@0.2.0-alpha.132
+  - @brains/obsidian-vault@0.2.0-alpha.132
+  - @brains/playbooks@0.2.0-alpha.132
+  - @brains/auth-service@0.2.0-alpha.132
+  - @brains/theme-default@0.2.0-alpha.132
+
 ## 0.2.0-alpha.131
 
 ### Patch Changes

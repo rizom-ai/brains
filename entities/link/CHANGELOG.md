@@ -1,5 +1,16 @@
 # @brains/link
 
+## 0.2.0-alpha.132
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.132
+  - @brains/atproto-contracts@0.2.0-alpha.132
+  - @brains/content-formatters@0.2.0-alpha.132
+  - @brains/contracts@0.2.0-alpha.132
+  - @brains/utils@0.2.0-alpha.132
+
 ## 0.2.0-alpha.131
 
 ### Patch Changes

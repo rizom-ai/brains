@@ -117,6 +117,7 @@
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
     "agent-approval-frontmatter-sync",
+    "agent-connect-approves",
     "align-preview-domain-routing",
     "atproto-discovery-agent-events",
     "atproto-registry-contracts",
@@ -253,6 +254,7 @@
     "startup-check-mode",
     "swot-evidence-grounding",
     "system-create-source-union-release",
+    "system-generate-tool-split",
     "tailwind-runtime-deps",
     "themes-export",
     "upload-action-routing",

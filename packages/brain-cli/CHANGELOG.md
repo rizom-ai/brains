@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.132
+
+### Patch Changes
+
+- [`d70659e`](https://github.com/rizom-ai/brains/commit/d70659ede3ab9247dd8f777a52494073d76c04af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make confirmed `agent_connect` save verified A2A contacts as approved immediately so users do not need a separate approval step before future calls.
+
+- [`9988510`](https://github.com/rizom-ai/brains/commit/998851097b1606786e0b14a0ef3d2c606fbf08ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split durable content generation into explicit generation tool flows so create/update/save paths can distinguish persisted user content from generated document and image artifacts.
+
 ## 0.2.0-alpha.131
 
 ### Patch Changes

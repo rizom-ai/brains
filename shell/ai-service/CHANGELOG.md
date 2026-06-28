@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.132
+
+### Patch Changes
+
+- [`9988510`](https://github.com/rizom-ai/brains/commit/998851097b1606786e0b14a0ef3d2c606fbf08ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split durable content generation into explicit generation tool flows so create/update/save paths can distinguish persisted user content from generated document and image artifacts.
+
+- Updated dependencies [[`9988510`](https://github.com/rizom-ai/brains/commit/998851097b1606786e0b14a0ef3d2c606fbf08ea)]:
+  - @brains/entity-service@0.2.0-alpha.132
+  - @brains/identity-service@0.2.0-alpha.132
+  - @brains/contracts@0.2.0-alpha.132
+  - @brains/utils@0.2.0-alpha.132
+  - @brains/conversation-service@0.2.0-alpha.132
+  - @brains/mcp-service@0.2.0-alpha.132
+  - @brains/messaging-service@0.2.0-alpha.132
+  - @brains/templates@0.2.0-alpha.132
+
 ## 0.2.0-alpha.131
 
 ### Patch Changes

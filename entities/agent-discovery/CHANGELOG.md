@@ -1,5 +1,21 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.132
+
+### Patch Changes
+
+- [`d70659e`](https://github.com/rizom-ai/brains/commit/d70659ede3ab9247dd8f777a52494073d76c04af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make confirmed `agent_connect` save verified A2A contacts as approved immediately so users do not need a separate approval step before future calls.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.132
+  - @brains/dashboard@0.2.0-alpha.132
+  - @brains/atproto-contracts@0.2.0-alpha.132
+  - @brains/content-formatters@0.2.0-alpha.132
+  - @brains/contracts@0.2.0-alpha.132
+  - @brains/ui-library@0.2.0-alpha.132
+  - @brains/utils@0.2.0-alpha.132
+  - @brains/templates@0.2.0-alpha.132
+
 ## 0.2.0-alpha.131
 
 ### Patch Changes

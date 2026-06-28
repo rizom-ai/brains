@@ -1,5 +1,14 @@
 # @brains/notifications
 
+## 0.2.0-alpha.132
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.132
+  - @brains/email-contracts@0.2.0-alpha.132
+  - @brains/utils@0.2.0-alpha.132
+
 ## 0.2.0-alpha.131
 
 ### Patch Changes

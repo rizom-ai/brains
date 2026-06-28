@@ -1,7 +1,7 @@
 {
   "name": "@brains/playbook",
   "private": true,
-  "version": "0.2.0-alpha.131",
+  "version": "0.2.0-alpha.132",
   "description": "Playbook entity for durable guided agent workflows",
   "type": "module",
   "exports": {
