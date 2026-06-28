@@ -169,7 +169,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     expectSuccess(result);
     expect(result.data).toMatchObject({
-      status: "discovered",
+      status: "approved",
       entityId: "connect-followup.example",
       connected: true,
       created: true,
@@ -190,7 +190,7 @@ describe("AgentDiscoveryPlugin", () => {
       entityType: "agent",
       id: "connect-followup.example",
     });
-    expect(saved?.metadata.status).toBe("discovered");
+    expect(saved?.metadata.status).toBe("approved");
     expect(saved?.metadata.a2aEndpoint).toBe(
       "https://connect-followup.example/a2a",
     );
@@ -252,6 +252,46 @@ describe("AgentDiscoveryPlugin", () => {
       error:
         "Confirmed agent connection arguments do not match the pending approval. Please request connection again and confirm the new approval.",
     });
+
+    harness.reset();
+  });
+
+  it("agent_connect approves an existing discovered agent", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({
+      "yeehaa.io": createAgentCard("yeehaa.io"),
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await harness
+      .getEntityService()
+      .createEntity({ entity: makeAgentEntity("discovered") });
+
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "https://yeehaa.io" },
+    });
+    expectConfirmation(confirmation);
+
+    const result = await harness.executeTool(
+      "agent_connect",
+      confirmation.args as Record<string, unknown>,
+    );
+
+    expectSuccess(result);
+    expect(result.data).toMatchObject({
+      status: "approved",
+      entityId: "yeehaa.io",
+      connected: true,
+      created: false,
+    });
+
+    const entities = await harness.getEntityService().listEntities({
+      entityType: "agent",
+    });
+    expect(entities).toHaveLength(1);
+    expect(entities[0]?.metadata["status"]).toBe("approved");
+    expect(entities[0]?.content).toContain("status: approved");
 
     harness.reset();
   });
