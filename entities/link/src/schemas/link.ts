@@ -51,26 +51,8 @@ export const linkSchema = baseEntitySchema.extend({
   metadata: linkMetadataSchema,
 });
 
-/**
- * Link plugin configuration schema
- */
-export const linkConfigSchema = z.object({
-  enableSummarization: z
-    .boolean()
-    .default(true)
-    .describe("Generate AI summaries for captured links"),
-  jinaApiKey: z
-    .string()
-    .optional()
-    .describe(
-      "Jina Reader API key for higher rate limits (500 RPM vs 20 RPM without key)",
-    ),
-});
-
 export type LinkSource = z.infer<typeof linkSourceSchema>;
 export type LinkStatus = z.infer<typeof linkStatusSchema>;
 export type LinkFrontmatter = z.infer<typeof linkFrontmatterSchema>;
 export type LinkEntity = z.infer<typeof linkSchema>;
-export type LinkConfig = z.output<typeof linkConfigSchema>;
-export type LinkConfigInput = z.input<typeof linkConfigSchema>;
 export type LinkMetadata = z.infer<typeof linkMetadataSchema>;

@@ -51,15 +51,8 @@ export const wishSchema = baseEntitySchema.extend({
   metadata: wishMetadataSchema,
 });
 
-/**
- * Wishlist plugin configuration schema
- */
-export const wishlistConfigSchema = z.object({});
-
 export type WishStatus = z.infer<typeof wishStatusSchema>;
 export type WishPriority = z.infer<typeof wishPrioritySchema>;
 export type WishFrontmatter = z.infer<typeof wishFrontmatterSchema>;
 export type WishMetadata = z.infer<typeof wishMetadataSchema>;
 export type WishEntity = z.infer<typeof wishSchema>;
-export type WishlistConfig = z.output<typeof wishlistConfigSchema>;
-export type WishlistConfigInput = z.input<typeof wishlistConfigSchema>;

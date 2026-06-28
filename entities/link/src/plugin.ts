@@ -14,14 +14,12 @@ import { createPendingEntity, EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { slugify } from "@brains/utils";
 import { z } from "@brains/utils/zod-v4";
+import { linkSchema, type LinkEntity, type LinkSource } from "./schemas/link";
 import {
   linkConfigSchema,
-  linkSchema,
   type LinkConfig,
   type LinkConfigInput,
-  type LinkEntity,
-  type LinkSource,
-} from "./schemas/link";
+} from "./schemas/link-config";
 import { linkAdapter } from "./adapters/link-adapter";
 import {
   linkExtractionTemplate,

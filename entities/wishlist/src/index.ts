@@ -6,13 +6,12 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { wishSchema, type WishEntity } from "./schemas/wish";
 import {
   wishlistConfigSchema,
-  wishSchema,
   type WishlistConfig,
   type WishlistConfigInput,
-  type WishEntity,
-} from "./schemas/wish";
+} from "./schemas/wishlist-config";
 import { wishAdapter } from "./adapters/wish-adapter";
 import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
@@ -134,20 +133,22 @@ export function createWishlistPlugin(config: WishlistConfigInput = {}): Plugin {
 export const wishlistPlugin = createWishlistPlugin;
 
 export type {
-  WishlistConfig,
-  WishlistConfigInput,
   WishEntity,
   WishFrontmatter,
   WishMetadata,
   WishStatus,
   WishPriority,
 } from "./schemas/wish";
+export type {
+  WishlistConfig,
+  WishlistConfigInput,
+} from "./schemas/wishlist-config";
 export {
-  wishlistConfigSchema,
   wishSchema,
   wishFrontmatterSchema,
   wishMetadataSchema,
   wishStatusSchema,
   wishPrioritySchema,
 } from "./schemas/wish";
+export { wishlistConfigSchema } from "./schemas/wishlist-config";
 export { WishAdapter } from "./adapters/wish-adapter";

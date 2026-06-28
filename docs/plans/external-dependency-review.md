@@ -935,9 +935,9 @@ Incremental migration progress:
   Zod 4 config trees.
 - Decoupled the entity plugin constructors and public entity delegate to accept
   structural config parsers, then migrated standalone entity plugin config
-  schemas for blog, note, portfolio, products, social-media, and topics to
-  `@brains/utils/zod-v4`. Durable entity/frontmatter schemas remain on their
-  current main-Zod entity-service registration boundary.
+  schemas for blog, note, portfolio, products, social-media, topics, link, and
+  wishlist to `@brains/utils/zod-v4`. Durable entity/frontmatter schemas remain
+  on their current main-Zod entity-service registration boundary.
 - Migrated another standalone config-schema batch to `@brains/utils/zod-v4`:
   content-pipeline, directory-sync, Obsidian vault, site-content, CMS,
   newsletter, rizom-ecosystem, Rover profile extension, professional site, and
