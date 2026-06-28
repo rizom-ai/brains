@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.131
+
+### Patch Changes
+
+- [`2f0854e`](https://github.com/rizom-ai/brains/commit/2f0854ee0e76e2dcef0f8f356d26d034821b8b76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web-chat upload follow-ups so singular references such as “the uploaded image” and “the uploaded PDF” resolve to the newest matching live upload, and hydrate prior PDF uploads for read-only summaries even when a prior assistant response is also saveable.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.131
+  - @brains/utils@0.2.0-alpha.131
+  - @brains/conversation-service@0.2.0-alpha.131
+  - @brains/entity-service@0.2.0-alpha.131
+  - @brains/identity-service@0.2.0-alpha.131
+  - @brains/mcp-service@0.2.0-alpha.131
+  - @brains/messaging-service@0.2.0-alpha.131
+  - @brains/templates@0.2.0-alpha.131
+
 ## 0.2.0-alpha.130
 
 ### Patch Changes

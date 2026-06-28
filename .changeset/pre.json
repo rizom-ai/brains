@@ -115,6 +115,7 @@
     "@brains/playbooks": "0.2.0-alpha.107"
   },
   "changesets": [
+    "a2a-agent-call-instruction-cleanup",
     "agent-approval-frontmatter-sync",
     "align-preview-domain-routing",
     "atproto-discovery-agent-events",
@@ -268,6 +269,7 @@
     "web-chat-mobile-drawer",
     "web-chat-mobile-fixes",
     "web-chat-native-file-uploads",
+    "web-chat-prior-upload-hydration",
     "web-chat-spine-and-tool-collapse",
     "web-chat-stale-upload-context",
     "web-chat-streamdown-markdown",

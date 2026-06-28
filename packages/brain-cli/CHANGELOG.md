@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.131
+
+### Patch Changes
+
+- [`863421c`](https://github.com/rizom-ai/brains/commit/863421ca34a0e9699133d655ffedd5c1f81ea107) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Rover's A2A agent tools available to trusted users: trusted users can connect/verify agent directory contacts and call exact-domain agents, while public users still cannot access these external agent tools. Also tighten failed remote-agent call guidance so failures do not imply the agent was saved or connected.
+
+- [`2f0854e`](https://github.com/rizom-ai/brains/commit/2f0854ee0e76e2dcef0f8f356d26d034821b8b76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web-chat upload follow-ups so singular references such as “the uploaded image” and “the uploaded PDF” resolve to the newest matching live upload, and hydrate prior PDF uploads for read-only summaries even when a prior assistant response is also saveable.
+
 ## 0.2.0-alpha.130
 
 ### Minor Changes
