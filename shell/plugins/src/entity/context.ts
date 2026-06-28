@@ -19,6 +19,19 @@ import type { DefaultQueryResponse } from "@brains/contracts";
 
 export type { IEntitiesNamespace };
 
+export interface FrontmatterSchemaParser {
+  parse(data: unknown): unknown;
+}
+
+export interface EntityPluginEntitiesNamespace extends Omit<
+  IEntitiesNamespace,
+  "getEffectiveFrontmatterSchema"
+> {
+  getEffectiveFrontmatterSchema(
+    type: string,
+  ): FrontmatterSchemaParser | undefined;
+}
+
 /**
  * AI namespace for entity plugins — includes generation capabilities
  */
@@ -64,7 +77,7 @@ export interface IPromptsNamespace {
  */
 export interface EntityPluginContext extends BasePluginContext {
   readonly entityService: IEntityService;
-  readonly entities: IEntitiesNamespace;
+  readonly entities: EntityPluginEntitiesNamespace;
   readonly ai: IEntityAINamespace;
   readonly prompts: IPromptsNamespace;
   readonly permissions: IPermissionsNamespace;

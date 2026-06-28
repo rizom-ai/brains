@@ -1040,6 +1040,13 @@ Incremental migration progress:
   shared empty frontmatter schema so tests/adapters no longer import main-Zod
   only to spell `z.object({})`, with a few registration-only tests reusing the
   base entity schema instead of local literal refinements.
+- Decoupled entity-plugin frontmatter validation access from the main-Zod
+  namespace return type by narrowing the entity-plugin context/public context
+  `getEffectiveFrontmatterSchema` view to the structural `.parse()` contract
+  used by generation-stub merging. Service/CMS-facing entity namespaces still
+  expose the main-Zod schema object for CMS field introspection, while the
+  generation handler test now validates its local required-frontmatter guard
+  with `@brains/utils/zod-v4`.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
@@ -1088,7 +1095,8 @@ migration complete:
   revisit: `shell/messaging-service/src/message-validator.ts`,
   `shell/runtime-state/src/types.ts`, `shell/entity-service/src/datasource-types.ts`,
   `shell/job-queue/src/base-job-handler.ts`, `shell/plugins/src/base-plugin.ts`,
-  `shell/plugins/src/entity/entity-plugin.ts`, public service/interface/message
+  `shell/plugins/src/entity/entity-plugin.ts`, entity-plugin context/public
+  context `getEffectiveFrontmatterSchema` views, public service/interface/message
   and entity plugin delegates, `plugins/site-builder/src/lib/site-view-template.ts`,
   `shared/content-formatters/src/formatters/structured-content.ts`,
   `shared/media-page-composer/src/types.ts`, and

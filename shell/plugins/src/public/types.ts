@@ -420,6 +420,19 @@ export interface IViewsNamespace {
   validate(templateName: string, content: unknown): boolean;
 }
 
+export interface FrontmatterSchemaParser {
+  parse(data: unknown): unknown;
+}
+
+export interface EntityPluginEntitiesNamespace extends Omit<
+  IEntitiesNamespace,
+  "getEffectiveFrontmatterSchema"
+> {
+  getEffectiveFrontmatterSchema(
+    type: string,
+  ): FrontmatterSchemaParser | undefined;
+}
+
 export interface ServicePluginContext extends BasePluginContext {
   readonly entities: IEntitiesNamespace;
   readonly templates: IServiceTemplatesNamespace;
@@ -429,7 +442,7 @@ export interface ServicePluginContext extends BasePluginContext {
 }
 
 export interface EntityPluginContext extends BasePluginContext {
-  readonly entities: IEntitiesNamespace;
+  readonly entities: EntityPluginEntitiesNamespace;
   readonly prompts: IPromptsNamespace;
 }
 
