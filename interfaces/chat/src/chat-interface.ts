@@ -10,7 +10,6 @@ import {
   getDeliverableArtifactCards,
   getResponseJobIds,
   getSupplementalCards,
-  formatMessageProgressDisplay,
   formatPendingConfirmationHelp,
   PendingApprovalTracker,
   MessageUploadContinuity,
@@ -35,7 +34,6 @@ import type {
 } from "@brains/plugins";
 import {
   type ActionEvent,
-  type CardChild,
   type CardElement,
   type FileUpload,
   type Message,
@@ -44,7 +42,7 @@ import {
   type Thread,
 } from "chat";
 import { z } from "zod";
-import { chunkMessage, createPrefixedId } from "@brains/utils";
+import { createPrefixedId } from "@brains/utils";
 import {
   chatConfigSchema,
   type ChatConfig,
@@ -54,10 +52,12 @@ import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
 import {
   ChatCardBuilder,
+  buildProgressCard,
   APPROVAL_CONFIRM_ACTION,
   APPROVAL_CANCEL_ACTION,
   PROMPT_ACTION,
 } from "./chat-cards";
+import { chunkForChannel, ownsChatPlatform } from "./chat-platform";
 import { ArtifactDeliveryResolver } from "./artifact-delivery";
 import { ApprovalCardTracker } from "./approval-card-tracker";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
@@ -74,15 +74,10 @@ import {
   type DiscordThreadSubscriptionStore,
 } from "./subscription-state";
 import { createDiscordChatUploadStoreScope } from "./upload-store";
-import { CHAT_PLATFORMS } from "./types";
-import type { ChatPlatform } from "./types";
 import packageJson from "../package.json";
 
 const URL_PATTERN = /https?:\/\/\S+/i;
 const ANY_MESSAGE_PATTERN = /[\s\S]+/;
-const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
-  discord: 2000,
-};
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
 interface DiscordCardOutput {
@@ -283,7 +278,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
     if (typeof message !== "string") return;
-    for (const chunk of this.chunkForChannel(channelId, message)) {
+    for (const chunk of chunkForChannel(channelId, message)) {
       thread.post(chunk).catch((error: unknown) =>
         this.logger.error("Failed to send chat message", {
           error,
@@ -310,7 +305,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
     if (typeof message !== "string") return undefined;
     let lastSent: SentMessage | undefined;
-    for (const chunk of this.chunkForChannel(channelId, message)) {
+    for (const chunk of chunkForChannel(channelId, message)) {
       lastSent = await thread.post(chunk);
       this.threadRegistry.trackMessage(thread.id, lastSent);
     }
@@ -358,36 +353,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   protected override formatProgressOutput(
     event: JobProgressEvent,
   ): MessageInterfaceOutput {
-    return this.formatProgressPayload(event);
+    return buildProgressCard(event);
   }
 
   protected override formatCompletionOutput(
     event: JobProgressEvent,
   ): MessageInterfaceOutput {
-    return this.formatProgressPayload(event);
-  }
-
-  private formatProgressPayload(event: JobProgressEvent): {
-    card: CardElement;
-    fallbackText: string;
-  } {
-    const display = formatMessageProgressDisplay(event);
-    const children: CardChild[] = [{ type: "text", content: display.label }];
-    if (display.amount) {
-      children.push({ type: "text", content: display.amount });
-    }
-    if (display.message) {
-      children.push({ type: "text", content: display.message });
-    }
-
-    return {
-      card: {
-        type: "card",
-        title: display.title,
-        children,
-      },
-      fallbackText: display.fallback,
-    };
+    return buildProgressCard(event);
   }
 
   protected override async handleProgressEvent(
@@ -434,20 +406,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private isEnabledPlatform(interfaceType: string): boolean {
-    return interfaceType === "discord" && Boolean(this.config.adapters.discord);
-  }
-
-  private chunkForChannel(channelId: string | null, message: string): string[] {
-    const platform = this.parseChatPlatform(channelId);
-    const limit = platform ? PLATFORM_MESSAGE_LIMITS[platform] : undefined;
-    return limit ? chunkMessage(message, limit) : [message];
-  }
-
-  private parseChatPlatform(
-    channelId: string | null,
-  ): ChatPlatform | undefined {
-    const platform = channelId?.split(":")[0];
-    return CHAT_PLATFORMS.find((candidate) => candidate === platform);
+    return ownsChatPlatform(
+      interfaceType,
+      Boolean(this.config.adapters.discord),
+    );
   }
 
   private registerChatHandlers(app: ChatSdkApp): void {
@@ -699,7 +661,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
     const text = typeof payload === "string" ? payload : "Message failed.";
-    for (const chunk of this.chunkForChannel(channelId, text)) {
+    for (const chunk of chunkForChannel(channelId, text)) {
       await thread.post(chunk);
     }
   }
@@ -1061,7 +1023,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       typeof input.message === "string"
         ? input.message
         : "Generated artifacts attached.";
-    const chunks = this.chunkForChannel(input.channelId, text);
+    const chunks = chunkForChannel(input.channelId, text);
     let lastSent: SentMessage | undefined;
     for (const [index, chunk] of chunks.entries()) {
       const isLastChunk = index === chunks.length - 1;

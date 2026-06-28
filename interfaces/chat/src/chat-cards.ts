@@ -1,9 +1,11 @@
 import type { CardChild, CardElement } from "chat";
 import type { formatArtifactDisplay } from "@brains/plugins";
 import {
+  formatMessageProgressDisplay,
   formatStructuredCardFallback,
   formatStructuredOutputSummary,
   formatToolStatusLabel,
+  type JobProgressEvent,
   type PendingConfirmation,
   type StructuredChatCard,
 } from "@brains/plugins";
@@ -27,6 +29,30 @@ interface LinkButton {
   type: "link-button";
   label: string;
   url: string;
+}
+
+/** Render a job progress/completion event as a Discord status card. */
+export function buildProgressCard(event: JobProgressEvent): {
+  card: CardElement;
+  fallbackText: string;
+} {
+  const display = formatMessageProgressDisplay(event);
+  const children: CardChild[] = [{ type: "text", content: display.label }];
+  if (display.amount) {
+    children.push({ type: "text", content: display.amount });
+  }
+  if (display.message) {
+    children.push({ type: "text", content: display.message });
+  }
+
+  return {
+    card: {
+      type: "card",
+      title: display.title,
+      children,
+    },
+    fallbackText: display.fallback,
+  };
 }
 
 export interface ChatCardBuilderDeps {
