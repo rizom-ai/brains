@@ -28,7 +28,15 @@ import type {
 } from "../contracts/messaging";
 
 export type PluginConfig = Record<string, unknown>;
-export type PluginConfigInput<T extends zMain.ZodTypeAny> = zMain.input<T>;
+export type PluginConfigInput<T extends { _input: unknown }> = T["_input"];
+
+export interface SafeParserSchema<T> {
+  safeParse(
+    input: unknown,
+  ):
+    | { success: true; data: T }
+    | { success: false; error: { message: string } };
+}
 
 export interface JudgeInput<T> {
   instruction: string;
@@ -93,7 +101,7 @@ export type ToolSideEffects = "none" | "writes" | "external";
 export interface Tool<TArgs = unknown, TResult = unknown> {
   name: string;
   description: string;
-  inputSchema: zMain.ZodRawShape;
+  inputSchema: Record<string, unknown>;
   handler: (args: TArgs, context: ToolContext) => Promise<TResult> | TResult;
   visibility?: ToolVisibility;
   confirmation?: ToolConfirmation;
@@ -228,13 +236,13 @@ export const urlCaptureConfigSchema = z.object({
 
 export interface Channel<TPayload, TResponse = unknown> {
   readonly name: string;
-  readonly schema: zMain.ZodType<TPayload>;
+  readonly schema: SafeParserSchema<TPayload>;
   readonly _response?: TResponse;
 }
 
 export function defineChannel<TPayload, TResponse = unknown>(
   name: string,
-  schema: zMain.ZodType<TPayload>,
+  schema: SafeParserSchema<TPayload>,
 ): Channel<TPayload, TResponse> {
   return { name, schema };
 }

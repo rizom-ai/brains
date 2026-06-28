@@ -835,7 +835,8 @@ Incremental migration progress:
   a structural `safeParse(input)` schema contract and moved the channel guard
   plus channel/judge/runtime-state context tests to `@brains/utils/zod-v4`.
   Existing main-Zod channel schemas remain compatible because the messaging
-  namespace only calls `safeParse`.
+  namespace only calls `safeParse`; the public plugin-author channel type now
+  mirrors that structural contract.
 - Migrated MCP bridge remote-tool and call-result response guards to
   `@brains/utils/zod-v4` while keeping generated tool input schemas on the
   current main-Zod boundary required by tool registration.
@@ -1057,9 +1058,10 @@ migration complete:
 - `shell/ai-service/src/types.ts` keeps AI generation output schemas as a
   main-Zod/Zod 4 union. Endgame: one Zod 4-owned generation schema contract.
 - `shell/plugins/src/public/types.ts` still uses type-only `zMain` for public
-  plugin-author helpers (`PluginConfigInput`, judge input schemas, tool raw
-  shapes, and channels). Endgame: public helpers expose Zod 4 types or domain
-  parser/shape contracts, not main-Zod aliases.
+  plugin-author judge input schemas. Tool input shapes and typed message
+  channels are now structural contracts, and `PluginConfigInput` derives from
+  the schema input slot without a main-Zod alias. Endgame: public helpers
+  expose Zod 4 types or domain parser/shape contracts, not main-Zod aliases.
 - `shell/app/src/brain-resolver.ts` treats both main-Zod and Zod 4 `ZodError`
   as config validation failures. Endgame: remove the main-Zod branch once app
   plugin/config validators are fully Zod 4-owned.
