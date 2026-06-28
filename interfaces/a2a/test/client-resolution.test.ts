@@ -78,6 +78,8 @@ describe("agent_call agent resolution", () => {
     const tool = createAgentCallTool();
 
     expect(tool.name).toBe("agent_call");
+    expect(tool.visibility).toBe("trusted");
+    expect(tool.sideEffects).toBe("external");
     expect(tool.description).toContain("exact domain-like target");
     expect(tool.description).toContain("skills/capabilities");
     expect(tool.description).toContain("one-shot call without saving");

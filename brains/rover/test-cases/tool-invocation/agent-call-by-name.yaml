@@ -27,10 +27,14 @@ permissions:
   trusted:
     expectedTools:
       - toolName: agent_call
-        shouldBeCalled: false
+        shouldBeCalled: true
+        argsContain:
+          agent: "yeehaa.io"
     responseNotContains:
-      - "yeehaa.io says"
-      - "according to yeehaa.io"
+      - "I need a URL"
+      - "provide the full URL"
+      - "I cannot"
+      - "Add it first"
   anchor:
     expectedTools:
       - toolName: agent_call

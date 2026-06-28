@@ -489,7 +489,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
     description:
       "Call a remote A2A agent by exact domain-like target or saved local agent id. Use this when the user asks what an exact domain-like agent id has to say, asks to talk/message/contact that id, or asks that agent for its skills/capabilities. For saved agents, the tool enforces approved/not-archived status before network contact. For unsaved exact domains, the tool verifies the A2A Agent Card over HTTPS and may perform a one-shot call without saving; it returns a typed save/connect candidate after success. Use bare ids such as yeehaa.io, docs.rizom.ai, or save-it-regression.example; .example test domains are exact domain-like ids. If the user provides an HTTPS URL such as https://docs.rizom.ai/a2a, pass only the hostname docs.rizom.ai. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current state. Never pass a full URL, a display name like Brain, or a non-HTTPS URL. If the user gives an ambiguous name, ask them to connect/save or clarify the agent first.",
     inputSchema: a2aCallInputSchema,
-    visibility: "anchor",
+    visibility: "trusted",
     sideEffects: "external",
     handler: async (input): Promise<ToolResponse> => {
       const parsed = z.object(a2aCallInputSchema).safeParse(input);
