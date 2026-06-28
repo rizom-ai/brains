@@ -3,11 +3,8 @@ import type { Logger } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
 import { SUMMARY_AI_TEMPLATE_NAME } from "./constants";
 import { buildSummaryExtractionPrompt } from "./summary-prompt";
-import type {
-  SummaryConfig,
-  SummaryEntry,
-  SummaryTimeRange,
-} from "../schemas/summary";
+import type { SummaryEntry, SummaryTimeRange } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 import {
   summaryExtractionResultSchema,
   type ExtractedSummaryEntry,

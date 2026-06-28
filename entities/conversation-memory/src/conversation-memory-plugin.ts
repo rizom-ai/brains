@@ -11,13 +11,12 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
 import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
+import { summarySchema, type SummaryEntity } from "./schemas/summary";
 import {
   summaryConfigSchema,
-  summarySchema,
   type SummaryConfig,
   type SummaryConfigInput,
-  type SummaryEntity,
-} from "./schemas/summary";
+} from "./schemas/summary-config";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import {
   ActionItemAdapter,

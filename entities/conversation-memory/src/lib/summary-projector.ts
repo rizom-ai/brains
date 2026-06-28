@@ -28,12 +28,12 @@ import {
   type SummaryProjectionDecision,
 } from "../schemas/extraction";
 import type {
-  SummaryConfig,
   SummaryEntity,
   SummaryEntry,
   SummaryMetadata,
   SummaryParticipant,
 } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 import {
   SummaryExtractor,
   type ExtractedConversationMemoryItem,

@@ -13,7 +13,8 @@ import type {
   ActionItemEntity,
   DecisionEntity,
 } from "../schemas/conversation-memory";
-import type { SummaryConfig, SummaryEntity } from "../schemas/summary";
+import type { SummaryEntity } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 import { SummaryExtractor } from "./summary-extractor";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
 import { SummaryProjector } from "./summary-projector";

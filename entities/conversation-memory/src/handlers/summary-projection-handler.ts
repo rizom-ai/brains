@@ -2,7 +2,7 @@ import type { EntityPluginContext, JobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
 import { z } from "@brains/utils/zod-v4";
-import type { SummaryConfig } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 import {
   SummaryProjector,
   type ProjectSummaryResult,

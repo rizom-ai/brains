@@ -6,10 +6,8 @@ import type {
   ActionItemEntity,
   DecisionEntity,
 } from "../../src/schemas/conversation-memory";
-import {
-  summaryConfigSchema,
-  type SummaryEntity,
-} from "../../src/schemas/summary";
+import type { SummaryEntity } from "../../src/schemas/summary";
+import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
 

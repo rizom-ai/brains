@@ -4,7 +4,7 @@ import type {
   Message,
 } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
-import type { SummaryConfig } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 
 export interface SummarySource {
   conversation: Conversation;
