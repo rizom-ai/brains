@@ -1,5 +1,53 @@
 # @brains/rover
 
+## 0.2.0-alpha.131
+
+### Patch Changes
+
+- [`2f0854e`](https://github.com/rizom-ai/brains/commit/2f0854ee0e76e2dcef0f8f356d26d034821b8b76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web-chat upload follow-ups so singular references such as “the uploaded image” and “the uploaded PDF” resolve to the newest matching live upload, and hydrate prior PDF uploads for read-only summaries even when a prior assistant response is also saveable.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.131
+  - @brains/assessment@0.2.0-alpha.131
+  - @brains/blog@0.2.0-alpha.131
+  - @brains/decks@0.2.0-alpha.131
+  - @brains/document-plugin@0.2.0-alpha.131
+  - @brains/image-plugin@0.2.0-alpha.131
+  - @brains/link@0.2.0-alpha.131
+  - @brains/note@0.2.0-alpha.131
+  - @brains/playbook@0.2.0-alpha.131
+  - @brains/portfolio@0.2.0-alpha.131
+  - @brains/prompt@0.2.0-alpha.131
+  - @brains/rizom-ecosystem@0.2.0-alpha.131
+  - @brains/series@0.2.0-alpha.131
+  - @brains/site-info@0.2.0-alpha.131
+  - @brains/social-media@0.2.0-alpha.131
+  - @brains/topics@0.2.0-alpha.131
+  - @brains/wishlist@0.2.0-alpha.131
+  - @brains/a2a@0.2.0-alpha.131
+  - @brains/chat@0.2.0-alpha.131
+  - @brains/discord@0.2.0-alpha.131
+  - @brains/mcp@0.2.0-alpha.131
+  - @brains/web-chat@0.2.0-alpha.131
+  - @brains/webserver@0.2.0-alpha.131
+  - @brains/analytics@0.2.0-alpha.131
+  - @brains/atproto@0.2.0-alpha.131
+  - @brains/cms@0.2.0-alpha.131
+  - @brains/content-pipeline@0.2.0-alpha.131
+  - @brains/dashboard@0.2.0-alpha.131
+  - @brains/directory-sync@0.2.0-alpha.131
+  - @brains/email-resend@0.2.0-alpha.131
+  - @brains/newsletter@0.2.0-alpha.131
+  - @brains/notifications@0.2.0-alpha.131
+  - @brains/obsidian-vault@0.2.0-alpha.131
+  - @brains/playbooks@0.2.0-alpha.131
+  - @brains/site-builder-plugin@0.2.0-alpha.131
+  - @brains/stock-photo@0.2.0-alpha.131
+  - @brains/theme-default@0.2.0-alpha.131
+  - @brains/app@0.2.0-alpha.131
+  - @brains/auth-service@0.2.0-alpha.131
+  - @brains/site-default@0.2.0-alpha.131
+
 ## 0.2.0-alpha.130
 
 ### Patch Changes
