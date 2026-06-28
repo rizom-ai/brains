@@ -428,6 +428,10 @@ describe("publish_queue tool", () => {
       expect(tool.visibility).toBe("anchor");
     });
 
+    it("should declare write side effects", () => {
+      expect(tool.sideEffects).toBe("writes");
+    });
+
     it("should have output schema", () => {
       expect(tool.outputSchema).toBeDefined();
     });

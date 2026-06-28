@@ -155,7 +155,7 @@ describe("extractToolResults", () => {
 });
 
 describe("buildAgentContactCandidates", () => {
-  it("builds typed agent_connect candidates from a2a not-saved rejections", () => {
+  it("builds typed agent_connect candidates from agent not-saved rejections", () => {
     const candidates = buildAgentContactCandidates([
       {
         toolName: "agent_call",
@@ -179,7 +179,45 @@ describe("buildAgentContactCandidates", () => {
     expect(context).not.toContain("If the prior conversation turn");
   });
 
-  it("does not build candidates for approved, archived, or successful a2a results", () => {
+  it("builds typed agent_connect candidates from failed exact-domain verification", () => {
+    const candidates = buildAgentContactCandidates([
+      {
+        toolName: "agent_call",
+        args: { agent: "verify-failed.example" },
+        error: {
+          message: "Could not verify an A2A Agent Card",
+          code: "agent_card_unavailable",
+        },
+      },
+    ]);
+
+    expect(candidates).toEqual([
+      { source: { kind: "url", url: "verify-failed.example" } },
+    ]);
+  });
+
+  it("builds typed agent_connect candidates from successful one-shot agent calls", () => {
+    const candidates = buildAgentContactCandidates([
+      {
+        toolName: "agent_call",
+        args: { agent: "one-shot.example" },
+        data: {
+          state: "completed",
+          response: "hello",
+          agentCall: { mode: "one-shot", agent: "one-shot.example" },
+          agentContactCandidate: {
+            source: { kind: "url", url: "one-shot.example" },
+          },
+        },
+      },
+    ]);
+
+    expect(candidates).toEqual([
+      { source: { kind: "url", url: "one-shot.example" } },
+    ]);
+  });
+
+  it("does not build candidates for approved, archived, or saved-call results", () => {
     const candidates = buildAgentContactCandidates([
       {
         toolName: "agent_call",

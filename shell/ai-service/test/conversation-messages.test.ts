@@ -193,6 +193,65 @@ describe("resolveConversationUploadContinuity", () => {
     }
   });
 
+  it("selects the newest matching upload for singular image/pdf references", () => {
+    const refs = [
+      {
+        filename: "drunken-robot.png",
+        mediaType: "image/png",
+        source: { kind: "upload", id: "upload-old-image" },
+      },
+      {
+        filename: "distributed-systems-primer.pdf",
+        mediaType: "application/pdf",
+        source: { kind: "upload", id: "upload-pdf" },
+      },
+      {
+        filename: "flirty-robot.png",
+        mediaType: "image/png",
+        source: { kind: "upload", id: "upload-new-image" },
+      },
+    ];
+    const pdfRef = refs[1];
+    const newestImageRef = refs[2];
+    if (!pdfRef || !newestImageRef) {
+      throw new Error("Expected PDF and newest image refs for test");
+    }
+
+    const history = refs.map((ref, index) => ({
+      id: `message-upload-${index}`,
+      conversationId: "conversation-1",
+      role: "user" as const,
+      content: "",
+      metadata: JSON.stringify({
+        attachments: [
+          {
+            kind: "file",
+            filename: ref.filename,
+            mediaType: ref.mediaType,
+            source: ref.source,
+          },
+        ],
+      }),
+      timestamp: new Date().toISOString(),
+    }));
+
+    expect(
+      resolveConversationUploadContinuity({
+        message: "Describe the uploaded image.",
+        currentAttachments: [],
+        historyMessages: history,
+      }).refs,
+    ).toEqual([newestImageRef]);
+
+    expect(
+      resolveConversationUploadContinuity({
+        message: "Summarize the uploaded PDF.",
+        currentAttachments: [],
+        historyMessages: history,
+      }).refs,
+    ).toEqual([pdfRef]);
+  });
+
   it("caps historical refs by recency without reading message wording", () => {
     const manyRefs = Array.from({ length: 8 }, (_, index) => ({
       filename: `file-${index}.pdf`,
@@ -335,6 +394,35 @@ describe("resolveConversationUploadContinuity", () => {
 });
 
 describe("buildMessageWithAttachments", () => {
+  it("tells the model that upload descriptions and summaries are read-only", () => {
+    const content = buildMessageWithAttachments(
+      "Summarize the uploaded PDF.",
+      undefined,
+      {
+        uploadRefs: [
+          {
+            filename: "distributed-systems-primer.pdf",
+            mediaType: "application/pdf",
+            source: { kind: "upload", id: "upload-pdf" },
+          },
+        ],
+      },
+    );
+
+    expect(content).toContain(
+      'For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type',
+    );
+    expect(content).toContain(
+      "Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses",
+    );
+    expect(content).toContain(
+      "do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity",
+    );
+    expect(content).toContain(
+      'Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note',
+    );
+  });
+
   it("includes model-visible prior upload refs without routing prose", () => {
     const content = buildMessageWithAttachments(
       "turn it into a note",

@@ -24,7 +24,10 @@ permissions:
     responseNotContains:
       - "Confirmation required"
       - "created"
-      - "saved"
+      - "I've saved"
+      - "I saved"
+      - "saved it"
+      - "successfully saved"
       - "done"
   trusted:
     expectedTools:
@@ -36,7 +39,10 @@ permissions:
     responseNotContains:
       - "Confirmation required"
       - "created"
-      - "saved"
+      - "I've saved"
+      - "I saved"
+      - "saved it"
+      - "successfully saved"
       - "done"
   anchor:
     expectedTools:

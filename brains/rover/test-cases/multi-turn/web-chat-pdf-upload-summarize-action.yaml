@@ -51,7 +51,7 @@ successCriteria:
       shouldBeCalled: false
     - toolName: system_update
       shouldBeCalled: false
-    - toolName: document_generate
+    - toolName: system_generate
       shouldBeCalled: false
   responseNotContains:
     - "Confirmation required"

@@ -78,9 +78,11 @@ describe("agent_call agent resolution", () => {
     const tool = createAgentCallTool();
 
     expect(tool.name).toBe("agent_call");
-    expect(tool.description).toContain("exact domain-like local agent id");
+    expect(tool.visibility).toBe("trusted");
+    expect(tool.sideEffects).toBe("external");
+    expect(tool.description).toContain("exact domain-like target");
     expect(tool.description).toContain("skills/capabilities");
-    expect(tool.description).toContain("before any network contact");
+    expect(tool.description).toContain("one-shot call without saving");
   });
   it("should resolve an approved saved agent by domain from the entity service", async () => {
     const entities = new Map();
@@ -112,7 +114,7 @@ describe("agent_call agent resolution", () => {
     expect(fetchFn).toHaveBeenCalled();
   });
 
-  it("should reject a full URL even when the agent is already saved", async () => {
+  it("should normalize an HTTPS URL for a saved agent to its hostname and contact over HTTPS", async () => {
     const entities = new Map();
     entities.set("yeehaa.io", {
       id: "yeehaa.io",
@@ -133,17 +135,15 @@ describe("agent_call agent resolution", () => {
     });
 
     const result = await tool.handler(
-      { agent: "https://yeehaa.io", message: "hello" },
+      { agent: "https://yeehaa.io/agent", message: "hello" },
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toBe(
-        "Invalid agent id. Use a saved agent id from your directory, not a URL.",
-      );
-    }
-    expect(fetchFn).not.toHaveBeenCalled();
+    expect(isError(result)).toBe(false);
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      "https://yeehaa.io/.well-known/agent-card.json",
+    );
+    expect(fetchFn.mock.calls[1]?.[0]).toBe("https://yeehaa.io/a2a");
   });
 
   it("should refuse discovered agents until approved", async () => {
@@ -203,7 +203,7 @@ describe("agent_call agent resolution", () => {
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
-  it("should refuse unknown agents by domain", async () => {
+  it("should verify and one-shot call an unsaved exact domain", async () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
@@ -215,17 +215,27 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toBe(
-        "Agent unknown.io is not in your directory. Add it first.",
-      );
-      expect(result.code).toBe("agent_not_saved");
+    expect(isError(result)).toBe(false);
+    expect("success" in result && result.success).toBe(true);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      "https://unknown.io/.well-known/agent-card.json",
+    );
+    expect(fetchFn.mock.calls[1]?.[0]).toBe("https://unknown.io/a2a");
+    if (!("success" in result) || result.success !== true) {
+      throw new Error("Expected successful tool response");
     }
-    expect(fetchFn).not.toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      state: "completed",
+      response: "hello back",
+      agentContactCandidate: {
+        source: { kind: "url", url: "unknown.io" },
+      },
+      agentCall: { mode: "one-shot", agent: "unknown.io" },
+    });
   });
 
-  it("should reject a full URL for an unknown agent before directory lookup", async () => {
+  it("should refuse unsaved ambiguous names before network contact", async () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
@@ -233,14 +243,64 @@ describe("agent_call agent resolution", () => {
     });
 
     const result = await tool.handler(
-      { agent: "https://unknown.io", message: "hello" },
+      { agent: "Brain", message: "hello" },
       toolContext,
     );
 
     expect(isError(result)).toBe(true);
     if (isError(result)) {
       expect(result.error).toBe(
-        "Invalid agent id. Use a saved agent id from your directory, not a URL.",
+        "Agent Brain is not an exact domain-like id and is not saved. Connect or clarify the agent first.",
+      );
+      expect(result.code).toBe("agent_not_saved");
+    }
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("should normalize an HTTPS URL for an unknown agent to a one-shot hostname call", async () => {
+    const fetchFn = createMockFetch();
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(new Map()),
+    });
+
+    const result = await tool.handler(
+      { agent: "https://unknown.io/path?q=1", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(false);
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      "https://unknown.io/.well-known/agent-card.json",
+    );
+    expect(fetchFn.mock.calls[1]?.[0]).toBe("https://unknown.io/a2a");
+    if (!("success" in result) || result.success !== true) {
+      throw new Error("Expected successful tool response");
+    }
+    expect(result.data).toMatchObject({
+      agentCall: { mode: "one-shot", agent: "unknown.io" },
+      agentContactCandidate: {
+        source: { kind: "url", url: "https://unknown.io" },
+      },
+    });
+  });
+
+  it("should reject non-HTTPS agent URLs before network contact", async () => {
+    const fetchFn = createMockFetch();
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(new Map()),
+    });
+
+    const result = await tool.handler(
+      { agent: "http://unknown.io", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toBe(
+        "Invalid agent URL. Agent URLs must use https://.",
       );
     }
     expect(fetchFn).not.toHaveBeenCalled();

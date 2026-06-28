@@ -1,6 +1,6 @@
 id: tool-invocation-document-preview-carousel
 name: Preview Deck Carousel as Durable Document
-description: "Verifies carousel preview requests use document_generate so the operator receives a durable PDF attachment"
+description: "Verifies carousel preview requests use system_generate so the operator receives a durable PDF attachment"
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -10,7 +10,7 @@ tags:
   - carousel
   - document
   - media
-  - document-generate
+  - system-generate
   - preset-full
 
 turns:
@@ -18,12 +18,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: document_generate
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        sourceEntityType: "deck"
-        sourceEntityId: "distributed-systems-primer"
-        attachmentType: "carousel"
+        entityType: "document"
+        source.kind: "attachment"
+        source.sourceEntityType: "deck"
+        source.sourceEntityId: "distributed-systems-primer"
+        source.attachmentType: "carousel"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

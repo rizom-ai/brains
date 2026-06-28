@@ -94,13 +94,17 @@ describe("generated artifact cards", () => {
 describe("generated artifact tool loop", () => {
   it("keeps attachment URLs available for cards while hiding them from model-visible tool results", async () => {
     const storedArtifacts = new Map<string, Buffer>();
-    const documentGenerate: Tool = {
-      name: "document_generate",
+    const systemGenerate: Tool = {
+      name: "system_generate",
       description: "Generate a PDF document artifact",
       inputSchema: {
-        sourceEntityType: z.string(),
-        sourceEntityId: z.string(),
-        attachmentType: z.string(),
+        entityType: z.string(),
+        source: z.object({
+          kind: z.literal("attachment"),
+          sourceEntityType: z.string(),
+          sourceEntityId: z.string(),
+          attachmentType: z.string(),
+        }),
       },
       visibility: "public",
       handler: mock(async (): Promise<{ success: true; data: unknown }> => {
@@ -126,11 +130,15 @@ describe("generated artifact tool loop", () => {
         };
       }),
     };
-    const toolOutput = await documentGenerate.handler(
+    const toolOutput = await systemGenerate.handler(
       {
-        sourceEntityType: "deck",
-        sourceEntityId: "deck-1",
-        attachmentType: "carousel",
+        entityType: "document",
+        source: {
+          kind: "attachment",
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+        },
       },
       {
         interfaceType: "agent",
@@ -153,18 +161,22 @@ describe("generated artifact tool loop", () => {
               toolCalls: [
                 {
                   toolCallId: "call-1",
-                  toolName: "document_generate",
+                  toolName: "system_generate",
                   input: {
-                    sourceEntityType: "deck",
-                    sourceEntityId: "deck-1",
-                    attachmentType: "carousel",
+                    entityType: "document",
+                    source: {
+                      kind: "attachment",
+                      sourceEntityType: "deck",
+                      sourceEntityId: "deck-1",
+                      attachmentType: "carousel",
+                    },
                   },
                 },
               ],
               toolResults: [
                 {
                   toolCallId: "call-1",
-                  toolName: "document_generate",
+                  toolName: "system_generate",
                   output: toolOutput,
                 },
               ],
@@ -184,7 +196,7 @@ describe("generated artifact tool loop", () => {
       },
       logger,
     );
-    mcpService.registerTool("document", documentGenerate);
+    mcpService.registerTool("system", systemGenerate);
     const service = AgentService.createFresh(
       mcpService,
       createConversationService(),

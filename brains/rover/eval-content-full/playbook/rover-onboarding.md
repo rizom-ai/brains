@@ -58,6 +58,14 @@ Done when:
 
 Say: Now let’s tune Rover to you. What should I call you?
 
+Required details:
+
+- name
+- role
+- audience
+- expertise
+- desiredTone
+
 To do:
 
 - Learn enough about the operator to create or update the anchor profile: name, role, audience, expertise, and desired tone.
@@ -76,7 +84,7 @@ To do:
 - Store onboarding essentials as structured frontmatter keys: name, kind, role, audience, expertise, and desiredTone.
 - `kind: professional` is required. Never call system_update for anchor-profile if the replacement content omits kind.
 - `expertise` must be a YAML list, even when the operator gives one expertise phrase. Never call system_update for anchor-profile if expertise is a one-line string.
-- Use this exact frontmatter shape for anchor-profile content: `---`, `name: Ada Morgan`, `kind: professional`, `role: advisor`, `audience: climate-tech founders`, `expertise:`, `  - resilient software systems`, `desiredTone: clear, practical, quietly confident`, then closing `---`.
+- Use this exact frontmatter shape for anchor-profile content, substituting only details the operator provided in the current onboarding run: `---`, `name: <provided name>`, `kind: professional`, `role: <provided role>`, `audience: <provided audience>`, `expertise:`, `  - <provided expertise>`, `desiredTone: <provided tone>`, then closing `---`. Do not copy placeholder or example values into the profile.
 - Do not use fields-only updates for anchor-profile.
 - Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.
 - After saving, explain that Rover uses the anchor profile to shape answers, site content, and publishing workflows around the operator.

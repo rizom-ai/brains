@@ -14,27 +14,13 @@ describe("DocumentPlugin", () => {
     expect(documentPlugin().id).toBe("document");
   });
 
-  it("registers the manual document_generate tool", async () => {
+  it("does not expose document_generate as a competing model-visible tool", async () => {
     const harness = createPluginHarness<DocumentPlugin>();
     const capabilities = await harness.installPlugin(new DocumentPlugin());
 
-    expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+    expect(capabilities.tools.map((tool) => tool.name)).not.toContain(
       "document_generate",
-    ]);
-  });
-
-  it("describes durable source-derived saves with canonical attachment source", async () => {
-    const harness = createPluginHarness<DocumentPlugin>();
-    const capabilities = await harness.installPlugin(new DocumentPlugin());
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "document_generate",
     );
-
-    expect(tool?.description).toContain(
-      'source: { kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }',
-    );
-    expect(tool?.description).not.toContain("sourceAttachment");
-    expect(tool?.description).not.toContain("and from");
   });
 
   it("registers a system_create interceptor for attachment-derived documents", async () => {
@@ -282,39 +268,6 @@ describe("DocumentPlugin", () => {
               entityId: "existing-printable",
               attachmentType: "printable",
             },
-          },
-        },
-      },
-    });
-  });
-
-  it("returns a predicted PDF attachment for chat surfaces", async () => {
-    const harness = createPluginHarness<DocumentPlugin>();
-    await harness.installPlugin(new DocumentPlugin());
-
-    const result = await harness.executeTool("document_generate", {
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-      documentId: "deck-carousel",
-      filename: "deck-carousel.pdf",
-    });
-
-    expect(result).toEqual({
-      success: true,
-      data: {
-        jobId: expect.any(String),
-        documentId: "deck-carousel",
-        attachment: {
-          mediaType: "application/pdf",
-          url: "/api/chat/attachments/document?id=deck-carousel",
-          downloadUrl:
-            "/api/chat/attachments/document?id=deck-carousel&download=1",
-          filename: "deck-carousel.pdf",
-          source: {
-            entityType: "document",
-            entityId: "deck-carousel",
-            attachmentType: "carousel",
           },
         },
       },

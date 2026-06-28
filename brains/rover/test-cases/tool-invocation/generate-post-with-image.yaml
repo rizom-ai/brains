@@ -1,6 +1,6 @@
 id: social-media-generate-post-with-image
 name: Generate social post with cover image
-description: Tests that the agent creates a social post with generic coverImage orchestration instead of guessing a future image target ID
+description: Tests that the agent starts social post generation without guessing a future cover-image target ID
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -16,16 +16,16 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
         entityType: "social-post"
-        source.kind: "generate"
-        coverImage.generate: true
+        source.kind: "prompt"
       argsAbsent:
         - upload
         - sourceAttachment
         - from
+        - coverImage
         - targetEntityType
         - targetEntityId
   responseNotContains:

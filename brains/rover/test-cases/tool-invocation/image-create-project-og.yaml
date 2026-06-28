@@ -1,6 +1,6 @@
 id: tool-invocation-image-create-project-og
 name: Generate Project OG Image
-description: "Verifies system_create renders a project OG/social preview image and targets ogImageId"
+description: "Verifies system_generate renders a project OG/social preview image and targets ogImageId"
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -17,10 +17,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
         entityType: "image"
+        source.kind: "attachment"
+        source.sourceEntityType: "project"
+        source.sourceEntityId: "city-pulse"
+        source.attachmentType: "og-image"
         targetEntityType: "project"
         targetEntityId: "city-pulse"
   responseNotContains:

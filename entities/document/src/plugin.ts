@@ -17,7 +17,6 @@ import {
   documentGenerationJobSchema,
   getDocumentId,
 } from "./handlers/documentGenerationHandler";
-import { createDocumentTools } from "./tools";
 import packageJson from "../package.json";
 
 const PENDING_PDF_DATA_URL = `data:application/pdf;base64,${Buffer.from(
@@ -351,21 +350,11 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks. Source-derived document artifacts are durable documents backed by registered attachment providers such as carousel or printable. Preview-only rendering is handled by document_generate; saved document artifacts are document entities.";
+    return "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks. Source-derived document artifacts are durable documents backed by registered attachment providers such as carousel or printable. Generate saved PDF artifacts through system_generate with source.kind attachment; preserve raw uploaded PDFs with system_create source.kind upload and transform preserve.";
   }
 
   protected override async getTools(): Promise<Tool[]> {
-    const context = this.pluginContext;
-    if (!context) {
-      throw new Error("Plugin context not initialized");
-    }
-    return createDocumentTools(this.id, (input, toolContext) =>
-      context.jobs.enqueue({
-        type: "generate",
-        data: input,
-        toolContext,
-      }),
-    );
+    return [];
   }
 }
 

@@ -498,7 +498,7 @@ describe("AT Protocol post publishing", () => {
     }
   });
 
-  it("exposes a publish-entity tool that can dry-run a registered projection", async () => {
+  it("does not expose publish-entity as an agent tool", async () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     shell.addEntities([createPost()]);
     const plugin = atprotoPlugin({
@@ -507,25 +507,20 @@ describe("AT Protocol post publishing", () => {
       brainDid: "did:web:brain.example.com",
     });
     const capabilities = await plugin.register(shell);
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_publish_entity",
-    );
 
-    expect(tool).toBeDefined();
-    const response = await tool?.handler(
-      { entityType: "post", entityId: "post-123", dryRun: true },
-      { interfaceType: "test", userId: "test" },
-    );
-    expect(response).toMatchObject({
-      success: true,
-      data: {
-        dryRun: true,
-        record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
-      },
+    expect(capabilities.tools).toEqual([]);
+    const result = await plugin.publishEntity(createContext(), {
+      entityType: "post",
+      entityId: "post-123",
+      dryRun: true,
+    });
+    expect(result).toMatchObject({
+      dryRun: true,
+      record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
     });
   });
 
-  it("exposes a publish-post tool that can dry-run by slug", async () => {
+  it("does not expose publish-post as an agent tool", async () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     shell.addEntities([createPost()]);
     const plugin = atprotoPlugin({
@@ -534,25 +529,19 @@ describe("AT Protocol post publishing", () => {
       brainDid: "did:web:brain.example.com",
     });
     const capabilities = await plugin.register(shell);
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_publish_post",
-    );
 
-    expect(tool).toBeDefined();
-    const response = await tool?.handler(
-      { slug: "distributed-brains", dryRun: true },
-      { interfaceType: "test", userId: "test" },
-    );
-    expect(response).toMatchObject({
-      success: true,
-      data: {
-        dryRun: true,
-        record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
-      },
+    expect(capabilities.tools).toEqual([]);
+    const result = await plugin.publishPost(createContext(), {
+      slug: "distributed-brains",
+      dryRun: true,
+    });
+    expect(result).toMatchObject({
+      dryRun: true,
+      record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
     });
   });
 
-  it("exposes a publish-post tool that can dry-run by entity id", async () => {
+  it("keeps publish-post available as an internal plugin method", async () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     shell.addEntities([createPost()]);
     const plugin = atprotoPlugin({
@@ -560,22 +549,15 @@ describe("AT Protocol post publishing", () => {
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
     });
-    const capabilities = await plugin.register(shell);
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_publish_post",
-    );
+    await plugin.register(shell);
 
-    expect(tool).toBeDefined();
-    const response = await tool?.handler(
-      { entityId: "post-123", dryRun: true },
-      { interfaceType: "test", userId: "test" },
-    );
-    expect(response).toMatchObject({
-      success: true,
-      data: {
-        dryRun: true,
-        record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
-      },
+    const result = await plugin.publishPost(createContext(), {
+      entityId: "post-123",
+      dryRun: true,
+    });
+    expect(result).toMatchObject({
+      dryRun: true,
+      record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
     });
   });
 });

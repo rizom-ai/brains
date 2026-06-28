@@ -100,7 +100,12 @@ describe("ObsidianVaultPlugin", () => {
   it("should register the sync-templates tool", () => {
     const capabilities = harness.getCapabilities();
     const toolNames = capabilities.tools.map((t) => t.name);
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "obsidian-vault_sync-templates",
+    );
     expect(toolNames).toContain("obsidian-vault_sync-templates");
+    expect(tool?.visibility).toBe("anchor");
+    expect(tool?.sideEffects).toBe("external");
   });
 
   it("should generate templates for all entity types", async () => {

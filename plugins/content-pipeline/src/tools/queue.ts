@@ -127,6 +127,7 @@ export function createQueueTool(
           };
       }
     },
+    { sideEffects: "writes" },
   );
 
   return {

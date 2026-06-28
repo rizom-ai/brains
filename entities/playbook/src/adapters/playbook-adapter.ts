@@ -83,6 +83,7 @@ interface AuthoredStep {
   title: string;
   id: string;
   prompt?: string | undefined;
+  requiredDetails: string[];
   instructions: string[];
   doneWhen: string[];
   choices: Array<{ label: string; target: string }>;
@@ -116,6 +117,7 @@ function parseAuthoredStepsBody(markdown: string): PlaybookBody {
       id: step.id,
       title: step.title,
       ...(step.prompt ? { prompt: step.prompt } : {}),
+      requiredDetails: step.requiredDetails,
       instructions: step.instructions,
       doneWhen: step.doneWhen,
       transitions: [
@@ -174,6 +176,7 @@ function parseAuthoredSteps(stepsMarkdown: string): AuthoredStep[] {
       ...(prefixedLine(content, "Say")
         ? { prompt: prefixedLine(content, "Say") }
         : {}),
+      requiredDetails: labelledList(content, "Required details"),
       instructions: labelledList(content, "To do"),
       doneWhen: labelledList(content, "Done when"),
       choices: labelledChoices(content, "Choices"),

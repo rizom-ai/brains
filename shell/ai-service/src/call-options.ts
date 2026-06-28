@@ -26,7 +26,6 @@ export function buildBrainCallOptions(params: {
       ? {
           enableCreateUpload: true,
           enableCreateTransform: true,
-          enableUploadSave: true,
         }
       : {}),
     ...(params.hasPriorResponseCandidate !== undefined

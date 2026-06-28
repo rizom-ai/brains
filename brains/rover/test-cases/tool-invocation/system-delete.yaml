@@ -20,10 +20,9 @@ permissions:
   public:
     expectedTools:
       - toolName: system_delete
-        shouldBeCalled: true
-        argsContain:
-          entityType: note
-          id: green-software-principles
+        shouldBeCalled: false
+    responseContainsAny:
+      - ["can't", "can’t", "cannot", "not allowed", "permission", "public", "owner", "no delete action"]
     responseNotContains:
       - "deleted"
       - "removed"
@@ -31,7 +30,9 @@ permissions:
   trusted:
     expectedTools:
       - toolName: system_delete
-        shouldBeCalled: true
+        shouldBeCalled: false
+    responseContainsAny:
+      - ["can't", "can’t", "cannot", "not allowed", "permission", "owner", "anchor", "no delete action"]
     responseNotContains:
       - "deleted"
       - "removed"

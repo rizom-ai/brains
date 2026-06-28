@@ -322,5 +322,9 @@ describe("system_insights tool", () => {
     it("should be publicly visible", () => {
       expect(tool.visibility).toBe("public");
     });
+
+    it("declares read-only side effects", () => {
+      expect(tool.sideEffects).toBe("none");
+    });
   });
 });

@@ -1,6 +1,6 @@
-id: tool-invocation-system-check-job-status
+id: tool-invocation-system-job-status
 name: Avoid Job Status for General System Status
-description: Verifies that the agent does not use system_check-job-status for a general system overview when no job or batch status was requested.
+description: Verifies that the agent does not use system_job_status for a general system overview when no job or batch status was requested.
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -17,7 +17,7 @@ successCriteria:
   expectedTools:
     - toolName: system_status
       shouldBeCalled: true
-    - toolName: system_check-job-status
+    - toolName: system_job_status
       shouldBeCalled: false
   responseNotContains:
     - "I cannot"

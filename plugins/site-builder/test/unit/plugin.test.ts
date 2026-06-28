@@ -130,8 +130,11 @@ describe("SiteBuilderPlugin", () => {
     capabilities = await harness.installPlugin(plugin);
 
     const toolNames = capabilities.tools.map((t) => t.name);
+    const [tool] = capabilities.tools;
 
     expect(toolNames).toEqual(["site-builder_build-site"]);
+    expect(tool?.visibility).toBe("anchor");
+    expect(tool?.sideEffects).toBe("external");
   });
 
   it("should set environment on routes", async () => {

@@ -179,41 +179,34 @@ describe("AT Protocol brain card publishing", () => {
     });
   });
 
-  it("exposes a publish-card tool that can dry-run the record", async () => {
+  it("does not expose publish-card as an agent tool", async () => {
     const plugin = atprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
       anchorDid: "did:plc:anchor",
     });
-    const capabilities = await plugin.register(createShellWithA2A());
+    const shell = createShellWithA2A();
+    const capabilities = await plugin.register(shell);
 
-    const tool = capabilities.tools.find(
-      (candidate) => candidate.name === "atproto_publish_card",
-    );
-
-    expect(tool).toBeDefined();
-    const response = await tool?.handler(
-      { dryRun: true },
-      { interfaceType: "test", userId: "test" },
-    );
-    expect(response).toMatchObject({
-      success: true,
-      data: {
-        dryRun: true,
-        record: {
-          $type: "ai.rizom.brain.card",
-          brain: {
-            did: "did:web:brain.example.com",
-            name: "Test Brain",
-          },
-          anchor: {
-            did: "did:plc:anchor",
-            name: "Test Owner",
-            kind: "professional",
-          },
-          siteUrl: "https://brain.example.com/",
+    expect(capabilities.tools).toEqual([]);
+    const result = await plugin.publishBrainCard(createContext(), {
+      dryRun: true,
+    });
+    expect(result).toMatchObject({
+      dryRun: true,
+      record: {
+        $type: "ai.rizom.brain.card",
+        brain: {
+          did: "did:web:brain.example.com",
+          name: "Test Brain",
         },
+        anchor: {
+          did: "did:plc:anchor",
+          name: "Test Owner",
+          kind: "professional",
+        },
+        siteUrl: "https://brain.example.com/",
       },
     });
   });

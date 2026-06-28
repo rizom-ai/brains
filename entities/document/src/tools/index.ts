@@ -52,6 +52,8 @@ export function createDocumentTools(
         });
       },
       {
+        visibility: "anchor",
+        sideEffects: "writes",
         cli: { name: "document-generate" },
       },
     ),

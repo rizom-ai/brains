@@ -20,7 +20,7 @@ turns:
   - userMessage: "is it ready?"
     successCriteria:
       expectedTools:
-        - toolName: system_check-job-status
+        - toolName: system_job_status
           shouldBeCalled: false
       responseContainsAny:
         - ["failed", "couldn't find", "isn’t found", "isn't found", "doesn’t exist", "doesn't exist"]

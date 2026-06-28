@@ -136,21 +136,51 @@ const a2aCallInputSchema = {
   agent: z
     .string()
     .describe(
-      "Domain-like local agent id such as yeehaa.io or docs.rizom.ai. The tool validates whether it is saved and approved before any network contact. Never pass a display name like Brain or a URL.",
+      "Exact domain-like agent target or saved local agent id such as yeehaa.io, docs.rizom.ai, or save-it-regression.example. If the user provides an HTTPS URL, pass only its hostname as the agent id (for https://docs.rizom.ai/a2a, pass docs.rizom.ai). Any bare string with a dot and no slash/protocol is domain-like, including .example test domains. The tool verifies unsaved exact domains with an Agent Card before contact and never auto-saves. Never pass a full URL, display name like Brain, or non-HTTPS URL.",
     ),
   message: z.string().describe("Message to send to the remote agent"),
 };
 
-function normalizeSavedAgentId(agent: string): string | null {
+type NormalizedAgentTarget =
+  | { ok: true; agentId: string; sourceUrl?: string | undefined }
+  | { ok: false; error: string };
+
+function normalizeAgentTarget(agent: string): NormalizedAgentTarget {
   const trimmed = agent.trim();
-  if (!trimmed) return null;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return null;
+  if (!trimmed) return { ok: false, error: "Invalid agent id." };
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    let url: URL;
+    try {
+      url = new URL(trimmed);
+    } catch {
+      return { ok: false, error: "Invalid agent URL." };
+    }
+    if (url.protocol !== "https:") {
+      return {
+        ok: false,
+        error: "Invalid agent URL. Agent URLs must use https://.",
+      };
+    }
+    return {
+      ok: true,
+      agentId: url.hostname.toLowerCase(),
+      sourceUrl: `https://${url.hostname.toLowerCase()}`,
+    };
   }
+
   if (/^[^\s/]+$/.test(trimmed)) {
-    return trimmed.toLowerCase();
+    return { ok: true, agentId: trimmed.toLowerCase() };
   }
-  return null;
+  return {
+    ok: false,
+    error:
+      "Invalid agent id. Use a saved agent id, exact domain-like id, or https:// agent URL.",
+  };
+}
+
+function isExactDomainLikeAgentId(agentId: string): boolean {
+  return /^[^\s/.][^\s/]*\.[^\s/]+$/.test(agentId);
 }
 
 async function fetchAgentCard(
@@ -457,9 +487,10 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
   return {
     name: "agent_call",
     description:
-      "Call a remote A2A agent by exact domain-like local agent id after validating directory state. Use this when the user asks what an exact domain-like agent id has to say or asks that agent for its skills/capabilities; the tool validates saved/approved status before any network contact and returns structured errors such as agent_not_saved. Use ids such as yeehaa.io or docs.rizom.ai. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current directory state. Never pass a display name like Brain and never pass a full URL. If the user gives a URL or an ambiguous name, ask them to connect/save or clarify the agent first.",
+      "Call a remote A2A agent by exact domain-like target or saved local agent id. Use this when the user asks what an exact domain-like agent id has to say, asks to talk/message/contact that id, or asks that agent for its skills/capabilities. For saved agents, the tool enforces approved/not-archived status before network contact. For unsaved exact domains, the tool verifies the A2A Agent Card over HTTPS and may perform a one-shot call without saving; it returns a typed save/connect candidate after success. Use bare ids such as yeehaa.io, docs.rizom.ai, or save-it-regression.example; .example test domains are exact domain-like ids. If the user provides an HTTPS URL such as https://docs.rizom.ai/a2a, pass only the hostname docs.rizom.ai. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current state. Never pass a full URL, a display name like Brain, or a non-HTTPS URL. If the user gives an ambiguous name, ask them to connect/save or clarify the agent first.",
     inputSchema: a2aCallInputSchema,
-    visibility: "anchor",
+    visibility: "trusted",
+    sideEffects: "external",
     handler: async (input): Promise<ToolResponse> => {
       const parsed = z.object(a2aCallInputSchema).safeParse(input);
       if (!parsed.success) {
@@ -470,15 +501,15 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
       }
 
       const { agent, message } = parsed.data;
-      const agentId = normalizeSavedAgentId(agent);
+      const normalized = normalizeAgentTarget(agent);
 
-      if (!agentId) {
+      if (!normalized.ok) {
         return {
           success: false,
-          error:
-            "Invalid agent id. Use a saved agent id from your directory, not a URL.",
+          error: normalized.error,
         };
       }
+      const { agentId } = normalized;
 
       if (!deps.entityService) {
         return {
@@ -496,11 +527,49 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
         ),
       });
       if (!entity) {
-        return {
-          success: false,
-          error: `Agent ${agentId} is not in your directory. Add it first.`,
-          code: "agent_not_saved",
-        };
+        if (!isExactDomainLikeAgentId(agentId)) {
+          return {
+            success: false,
+            error: `Agent ${agent} is not an exact domain-like id and is not saved. Connect or clarify the agent first.`,
+            code: "agent_not_saved",
+          };
+        }
+
+        const cardBaseUrl = `https://${agentId}`;
+        const card = await fetchAgentCard(cardBaseUrl, fetchFn);
+        if (!card) {
+          return {
+            success: false,
+            error: `Could not verify an A2A Agent Card for ${agentId}. Connect/save it first if you want to add it to the directory.`,
+            code: "agent_card_unavailable",
+          };
+        }
+
+        const oneShotResult = await sendMessage(
+          card.url,
+          message,
+          fetchFn,
+          undefined,
+          networkOptions,
+        );
+        if ("success" in oneShotResult && oneShotResult.success === true) {
+          const baseData =
+            typeof oneShotResult.data === "object" &&
+            oneShotResult.data !== null
+              ? oneShotResult.data
+              : {};
+          return {
+            ...oneShotResult,
+            data: {
+              ...baseData,
+              agentCall: { mode: "one-shot", agent: agentId },
+              agentContactCandidate: {
+                source: { kind: "url", url: normalized.sourceUrl ?? agentId },
+              },
+            },
+          };
+        }
+        return oneShotResult;
       }
 
       if (entity.metadata["status"] === "archived") {

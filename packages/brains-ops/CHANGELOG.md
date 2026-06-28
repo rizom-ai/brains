@@ -1,5 +1,15 @@
 # @brains/ops
 
+## 0.2.0-alpha.130
+
+## 0.2.0-alpha.129
+
+### Patch Changes
+
+- [`23b84d7`](https://github.com/rizom-ai/brains/commit/23b84d790412efb428a76d8124ea67f4d52a37fc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow rover-pilot users to opt into the Rover onboarding playbook starter with `playbooks.onboarding: true`, rendering the corresponding `playbooks.triggers.first-anchor-web-chat` brain config.
+
+## 0.2.0-alpha.128
+
 ## 0.2.0-alpha.127
 
 ## 0.2.0-alpha.126

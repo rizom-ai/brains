@@ -47,11 +47,135 @@ describe("convertToSDKTools", () => {
     ]);
   });
 
-  it("keeps attachment URLs out of model-visible tool output", async () => {
+  it("exposes upload preserve through system_create source", () => {
+    const uploadRef = z.object({ kind: z.literal("upload"), id: z.string() });
+    const runtimeSource = z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("text"), content: z.string() }),
+      z.object({
+        kind: z.literal("upload"),
+        upload: uploadRef,
+        transform: z.enum(["extract-markdown", "preserve"]),
+      }),
+    ]);
+    const createTool: Tool = {
+      name: "system_create",
+      description: "Create",
+      inputSchema: {
+        entityType: z.string(),
+        source: runtimeSource,
+        confirmed: z.literal(true).optional(),
+        confirmationToken: z.string().optional(),
+      },
+      visibility: "trusted",
+      handler: mock(async () => ({ success: true as const })),
+    };
+    const modelVisibleInputSchema = toModelVisibleInputSchema(
+      createTool.inputSchema,
+      { toolName: "system_create" },
+    );
+    expect(
+      modelVisibleInputSchema["source"]?.safeParse({
+        kind: "upload",
+        upload: { kind: "upload", id: "upload-1" },
+        transform: "preserve",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("exposes structured scope as the only model-visible system_search scope selector", () => {
+    const runtimeScope = z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("all") }),
+      z.object({ kind: z.literal("type"), entityType: z.string() }),
+    ]);
     const tool: Tool = {
-      name: "document_generate",
+      name: "system_search",
+      description: "Search",
+      inputSchema: {
+        query: z.string(),
+        scope: runtimeScope,
+        limit: z.number().optional(),
+      },
+      visibility: "public",
+      handler: mock(async () => ({ success: true as const })),
+    };
+
+    const modelVisibleInputSchema = toModelVisibleInputSchema(
+      tool.inputSchema,
+      { toolName: "system_search" },
+    );
+
+    expect(Object.keys(modelVisibleInputSchema)).toEqual([
+      "query",
+      "scope",
+      "limit",
+    ]);
+    expect(modelVisibleInputSchema["scope"]?.safeParse(undefined).success).toBe(
+      false,
+    );
+    expect(
+      modelVisibleInputSchema["scope"]?.safeParse({ kind: "all" }).success,
+    ).toBe(true);
+    expect(
+      modelVisibleInputSchema["scope"]?.safeParse({
+        kind: "type",
+        entityType: "post",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("exposes system_generate source while hiding confirmation internals", () => {
+    const runtimeSource = z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("prompt"), prompt: z.string() }),
+      z.object({
+        kind: z.literal("attachment"),
+        sourceEntityType: z.string(),
+        sourceEntityId: z.string(),
+        attachmentType: z.string(),
+      }),
+    ]);
+    const tool: Tool = {
+      name: "system_generate",
+      description: "Generate",
+      inputSchema: {
+        entityType: z.string(),
+        source: runtimeSource,
+        confirmed: z.literal(true).optional(),
+        confirmationToken: z.string().optional(),
+      },
+      visibility: "trusted",
+      handler: mock(async () => ({ success: true as const })),
+    };
+
+    const modelVisibleInputSchema = toModelVisibleInputSchema(
+      tool.inputSchema,
+      { toolName: "system_generate" },
+    );
+
+    expect(Object.keys(modelVisibleInputSchema)).toEqual([
+      "entityType",
+      "source",
+    ]);
+    expect(
+      modelVisibleInputSchema["source"]?.safeParse({
+        kind: "prompt",
+        prompt: "Draft a post",
+      }).success,
+    ).toBe(true);
+    expect(
+      modelVisibleInputSchema["source"]?.safeParse({
+        kind: "attachment",
+        sourceEntityType: "deck",
+        sourceEntityId: "deck-1",
+        attachmentType: "carousel",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("keeps attachment URLs out of model-visible generated artifact output", async () => {
+    const tool: Tool = {
+      name: "system_generate",
       description: "Generate document",
-      inputSchema: { sourceEntityId: z.string() },
+      inputSchema: { source: z.object({ sourceEntityId: z.string() }) },
       visibility: "public",
       handler: mock(
         async (): Promise<{ success: true; data: unknown }> => ({
@@ -80,18 +204,19 @@ describe("convertToSDKTools", () => {
       [tool],
       { conversationId: "conversation-1", interfaceType: "agent" },
       { emit: mock(() => {}) },
-    )["document_generate"];
+    )["system_generate"];
     if (!sdkTool?.execute || !sdkTool.toModelOutput) {
-      throw new Error("Expected document_generate to be executable");
+      throw new Error("Expected system_generate to be executable");
     }
 
-    const result = await sdkTool.execute(
-      { sourceEntityId: "deck-1" },
-      { toolCallId: "call-1", messages: [] },
-    );
+    const input = { source: { sourceEntityId: "deck-1" } };
+    const result = await sdkTool.execute(input, {
+      toolCallId: "call-1",
+      messages: [],
+    });
     const modelOutput = await sdkTool.toModelOutput({
       toolCallId: "call-1",
-      input: { sourceEntityId: "deck-1" },
+      input,
       output: result,
     });
 

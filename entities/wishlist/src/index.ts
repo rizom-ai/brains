@@ -109,7 +109,7 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return "Wish entities record explicitly requested capabilities or desired end states whose literal completion is outside the available toolset. They may capture outcomes the assistant can advise about but cannot directly perform. They track demand, priority, and status for future capability planning; they are not a substitute for first-class entities that already support the requested action.";
+    return "Wish entities record explicitly requested capabilities or desired end states whose literal completion is outside the available toolset. They may capture outcomes the assistant can advise about but cannot directly perform. They track demand, priority, and status for future capability planning; they are not a substitute for first-class entities that already support the requested action. To show the whole wishlist, call system_list once with entityType wish and omit status; only include status when the user asks for a specific wish status.";
   }
 }
 

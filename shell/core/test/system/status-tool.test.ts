@@ -76,4 +76,9 @@ describe("system_status tool", () => {
     const tool = findTool("system_status");
     expect(tool.visibility).toBe("public");
   });
+
+  it("declares read-only side effects", () => {
+    const tool = findTool("system_status");
+    expect(tool.sideEffects).toBe("none");
+  });
 });

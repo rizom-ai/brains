@@ -102,6 +102,7 @@ export function createPublishTool(
     inputSchema: publishInputSchema.shape,
     outputSchema: publishOutputSchema,
     visibility: "anchor",
+    sideEffects: "external",
     handler: async (rawInput, toolContext): Promise<ToolResponse> => {
       const parsed = publishInputSchema.safeParse(rawInput);
       if (!parsed.success) {

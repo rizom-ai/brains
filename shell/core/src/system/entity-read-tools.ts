@@ -15,7 +15,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "search",
-      "Search entities using semantic search. Optionally filter by entity type.",
+      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
       searchInputSchema,
       async (input, context) => {
         const visibilityScope = permissionToVisibilityScope(
@@ -24,12 +24,16 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         return {
           success: true,
           data: {
+            guidance:
+              "Search results are semantic candidates, not guaranteed exact matches. If the results do not clearly answer the requested item/category, say no clear matching content was found instead of presenting weak candidates as matches.",
             results: (
               await entityService.search({
                 query: input.query,
                 options: {
                   limit: input.limit ?? services.searchLimit,
-                  ...(input.entityType && { types: [input.entityType] }),
+                  ...(input.scope.kind === "type" && {
+                    types: [input.scope.entityType],
+                  }),
                   ...(input.includeUngenerated !== undefined && {
                     includeUngenerated: input.includeUngenerated,
                   }),
@@ -92,7 +96,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "list",
-      "List entities by type. Returns metadata only — use system_get for full content.",
+      "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests.",
       listInputSchema,
       async (input, context) => {
         if (!entityService.getEntityTypes().includes(input.entityType)) {
