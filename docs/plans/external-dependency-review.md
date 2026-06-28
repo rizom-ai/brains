@@ -1060,6 +1060,10 @@ Incremental migration progress:
   config schema explicitly. Durable entity/frontmatter schemas remain on their
   current main-Zod boundary; this only removes the entity-plugin base class's
   nominal main-Zod config parser slot.
+- Consolidated entity-service tests that intentionally compose with durable
+  main-Zod entity/frontmatter schemas behind `test/helpers/main-zod.ts`, keeping
+  that test-only main-Zod dependency explicit in one place rather than scattered
+  across local test files.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
@@ -1103,6 +1107,10 @@ migration complete:
   introspects both main-Zod and Zod 4 object internals. Endgame: replace this
   with a Zod 4-only frontmatter-introspection adapter or a schema-owned field
   metadata contract; do not leave dual internal-shape probing as final design.
+- `shell/entity-service/test/helpers/main-zod.ts` centralizes test-only
+  main-Zod schema construction for fixtures that still compose with durable
+  entity/frontmatter schemas. Endgame: remove the helper when those durable
+  schemas migrate or when tests move to a Zod 4/domain fixture boundary.
 - Structural parser slots added during this migration are compatibility
   scaffolding when they exist only to accept both Zod generations. Track and
   revisit: `shell/messaging-service/src/message-validator.ts`,

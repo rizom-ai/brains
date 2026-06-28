@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "@brains/utils/zod";
+import { z } from "./helpers/main-zod";
 import { createTestEntity } from "@brains/test-utils";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { baseEntitySchema, type BaseEntity } from "../src/types";
