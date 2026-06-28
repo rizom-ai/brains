@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Skill data for Agent Card integration.
@@ -13,4 +13,4 @@ export const skillDataSchema = z.object({
   examples: z.array(z.string()),
 });
 
-export type SkillData = z.infer<typeof skillDataSchema>;
+export type SkillData = z.output<typeof skillDataSchema>;

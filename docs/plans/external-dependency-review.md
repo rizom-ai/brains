@@ -1070,6 +1070,14 @@ Incremental migration progress:
   durable schemas, and products durable schemas. This reduces scattered direct
   imports while preserving the rule that durable entity/frontmatter schema trees
   do not mix Zod generations.
+- Migrated the public A2A `skillDataSchema` parser contract to
+  `@brains/utils/zod-v4`. Durable skill entity schemas in agent-discovery and
+  assessment now duplicate the small SkillData shape locally on their main-Zod
+  entity boundaries instead of composing the Zod 4 public parser into main-Zod
+  entity schemas.
+- Centralized CMS config's remaining main-Zod introspection dependency behind
+  `shared/cms-config/src/main-zod.ts`, without adding a Zod 4 compatibility
+  layer for CMS schema introspection.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
@@ -1117,9 +1125,13 @@ migration complete:
   in `shell/entity-service/src/main-zod.ts`,
   `shell/identity-service/src/main-zod.ts`,
   `entities/assessment/src/main-zod.ts`,
+  `entities/agent-discovery/src/schemas/main-zod.ts`,
   `entities/conversation-memory/src/schemas/main-zod.ts`, and
   `entities/products/src/schemas/main-zod.ts`. Endgame: remove these modules
   when those durable entity/frontmatter boundaries migrate as whole schema trees.
+- `shared/cms-config/src/main-zod.ts` centralizes CMS config's main-Zod
+  introspection dependency. Endgame: replace with a Zod 4-only CMS schema
+  metadata/introspection contract rather than hidden dual Zod support.
 - `shell/entity-service/test/helpers/main-zod.ts` centralizes test-only
   main-Zod schema construction for fixtures that still compose with durable
   entity/frontmatter schemas. Endgame: remove the helper when those durable

@@ -8,7 +8,6 @@ import {
   BaseEntityAdapter,
   baseEntitySchema,
   createEntityPluginContext,
-  skillDataSchema,
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { ProgressReporter } from "@brains/utils";
@@ -50,9 +49,18 @@ const evalAgentEntitySchema = baseEntitySchema.extend({
   }),
 });
 
+const evalSkillDataSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  examples: z.array(z.string()),
+});
+
+type EvalSkillData = z.infer<typeof evalSkillDataSchema>;
+
 const evalSkillEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("skill"),
-  metadata: skillDataSchema,
+  metadata: evalSkillDataSchema,
 });
 
 const evalAgentBodySchema = z4.object({
@@ -160,18 +168,18 @@ class EvalSkillAdapter extends BaseEntityAdapter<
     super({
       entityType: "skill",
       schema: evalSkillEntitySchema,
-      frontmatterSchema: skillDataSchema,
+      frontmatterSchema: evalSkillDataSchema,
     });
   }
 
   public fromMarkdown(
     markdown: string,
   ): Partial<z.infer<typeof evalSkillEntitySchema>> {
-    const frontmatter = this.parseFrontMatter(markdown, skillDataSchema);
+    const frontmatter = this.parseFrontMatter(markdown, evalSkillDataSchema);
     return { content: markdown, entityType: "skill", metadata: frontmatter };
   }
 
-  public createSkillContent(input: z.infer<typeof skillDataSchema>): string {
+  public createSkillContent(input: EvalSkillData): string {
     return this.buildMarkdown("", input);
   }
 }

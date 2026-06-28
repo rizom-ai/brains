@@ -1,9 +1,5 @@
-import type { BaseEntity, SkillData } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  skillDataSchema,
-} from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "../src/main-zod";
 import { z as z4 } from "@brains/utils/zod-v4";
@@ -37,9 +33,18 @@ export const testAgentEntitySchema = baseEntitySchema.extend({
   }),
 });
 
+export const testSkillDataSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  examples: z.array(z.string()),
+});
+
+export type TestSkillData = z.infer<typeof testSkillDataSchema>;
+
 export const testSkillEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("skill"),
-  metadata: skillDataSchema,
+  metadata: testSkillDataSchema,
 });
 
 const testAgentBodySchema = z4.object({
@@ -148,16 +153,16 @@ export class SkillAdapter extends BaseEntityAdapter<
     super({
       entityType: "skill",
       schema: testSkillEntitySchema,
-      frontmatterSchema: skillDataSchema,
+      frontmatterSchema: testSkillDataSchema,
     });
   }
 
   public fromMarkdown(markdown: string): Partial<TestSkillEntity> {
-    const frontmatter = this.parseFrontMatter(markdown, skillDataSchema);
+    const frontmatter = this.parseFrontMatter(markdown, testSkillDataSchema);
     return { content: markdown, entityType: "skill", metadata: frontmatter };
   }
 
-  public createSkillContent(input: SkillData): string {
+  public createSkillContent(input: TestSkillData): string {
     return this.buildMarkdown("", input);
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "@brains/utils/zod";
+import { z } from "../src/main-zod";
 import {
   zodFieldToCmsWidget,
   generateCmsConfig,
