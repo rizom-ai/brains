@@ -12,7 +12,7 @@ import type {
   JudgeInput,
 } from "@brains/ai-service";
 import { RuntimeUploadRegistry } from "@brains/plugins";
-import type { LanguageModel } from "ai";
+import { asSchema, type LanguageModel } from "ai";
 
 import { EvaluationService } from "../src/evaluation-service";
 import { EvalHandlerRegistry } from "../src/eval-handler-registry";
@@ -22,6 +22,21 @@ const createResponse = (text: string): AgentResponse => ({
   usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
   toolResults: [],
 });
+
+async function parseSchema<T>(
+  schema: AIGenerationSchema<T>,
+  value: unknown,
+): Promise<T> {
+  const validate = asSchema(schema).validate;
+  if (!validate) {
+    throw new Error("Test AI schema does not provide validation");
+  }
+  const result = await validate(value);
+  if (!result.success) {
+    throw result.error;
+  }
+  return result.value;
+}
 
 const createAIService = (): IAIService => ({
   generateText: async () => ({
@@ -33,11 +48,11 @@ const createAIService = (): IAIService => ({
     _userPrompt: string,
     schema: AIGenerationSchema<T>,
   ) => ({
-    object: schema.parse({}),
+    object: await parseSchema(schema, {}),
     usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
   }),
   judge: async <T>(input: JudgeInput<T>) => ({
-    verdict: input.schema.parse({}),
+    verdict: await parseSchema(input.schema, {}),
     usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
   }),
   updateConfig: (_config: Partial<AIModelConfig>): void => {},

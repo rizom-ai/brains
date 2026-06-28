@@ -978,7 +978,9 @@ Incremental migration progress:
   composition layout metadata has also moved to Zod 4; main-Zod site-info and
   professional-site template schemas duplicate their small local CTA/section
   shapes instead of composing the shared Zod 4 metadata schemas into durable
-  entity/template schema trees.
+  entity/template schema trees. The standalone site-info view schema is now
+  Zod 4-owned with duplicated local body/CTA/section shapes, leaving the
+  durable site-info entity/body schemas on main Zod.
 - Migrated brain definition preset/mode schemas, app `brain.yaml` instance
   override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod-v4`.
   The app parser duplicates the small permission/action-policy validation
@@ -1056,8 +1058,10 @@ migration complete:
   main-Zod/Zod 4 union so existing template providers continue to typecheck.
   Endgame: one Zod 4-owned template schema contract, or a non-Zod domain parser
   contract if templates are deliberately schema-library agnostic.
-- `shell/ai-service/src/types.ts` keeps AI generation output schemas as a
-  main-Zod/Zod 4 union. Endgame: one Zod 4-owned generation schema contract.
+- `shell/ai-service/src/types.ts` now exposes AI generation output schemas via
+  the AI SDK `FlexibleSchema<T>` contract, which still accepts both Zod
+  generations. Endgame: one Zod 4-owned generation schema contract or an
+  explicitly chosen schema-library-neutral AI SDK boundary.
 - `shell/plugins/src/public/types.ts` still uses type-only `zMain` for public
   plugin-author judge input schemas. Tool input shapes and typed message
   channels are now structural contracts, and `PluginConfigInput` derives from

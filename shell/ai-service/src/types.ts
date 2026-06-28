@@ -1,6 +1,4 @@
-import type { LanguageModel } from "ai";
-import type { z } from "@brains/utils/zod";
-import type { ZodType as ZodV4Type } from "@brains/utils/zod-v4";
+import type { FlexibleSchema, LanguageModel } from "ai";
 
 /**
  * AI model configuration
@@ -21,9 +19,7 @@ export interface AIModelConfig {
 
 export type AIModelConfigUpdate = Partial<AIModelConfig>;
 
-export type AIGenerationSchema<T> =
-  | z.ZodType<T, z.ZodTypeDef, unknown>
-  | ZodV4Type<T, unknown>;
+export type AIGenerationSchema<T> = FlexibleSchema<T>;
 
 /**
  * AI Service interface for generating text and structured objects
