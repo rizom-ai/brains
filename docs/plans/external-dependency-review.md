@@ -1078,6 +1078,14 @@ Incremental migration progress:
 - Centralized CMS config's remaining main-Zod introspection dependency behind
   `shared/cms-config/src/main-zod.ts`, without adding a Zod 4 compatibility
   layer for CMS schema introspection.
+- Migrated the public `@rizom/brain` root Zod re-export to
+  `@brains/utils/zod-v4`, removed the public plugin-author judge input's
+  main-Zod alias, and changed template schema storage to a structural parser
+  slot. Core now explicitly narrows template schemas before using them for AI
+  object generation so display-only main-Zod templates can remain registered
+  without being passed to the AI SDK generation boundary. Entity schema slots
+  are also structural `parse`/`safeParse` parsers now, allowing public Zod 4
+  entity schemas without changing durable frontmatter/CMS schema ownership.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
@@ -1098,18 +1106,19 @@ be removed or collapsed to the final Zod 4/domain contract before calling the
 migration complete:
 
 - `shell/templates/src/types.ts` keeps `TemplateSchemaParser<T>` as a
-  main-Zod/Zod 4 union so existing template providers continue to typecheck.
-  Endgame: one Zod 4-owned template schema contract, or a non-Zod domain parser
-  contract if templates are deliberately schema-library agnostic.
+  structural parse-only slot so existing display/template providers can remain
+  registered while durable schemas migrate. `shell/core/src/datasources/ai-content-datasource.ts`
+  narrows this slot before AI object generation. Endgame: one Zod 4-owned
+  template generation schema contract, or a deliberately schema-library-neutral
+  parser contract with a separate AI-generation schema slot.
 - `shell/ai-service/src/types.ts` now exposes AI generation output schemas via
   the AI SDK `FlexibleSchema<T>` contract, which still accepts both Zod
   generations. Endgame: one Zod 4-owned generation schema contract or an
   explicitly chosen schema-library-neutral AI SDK boundary.
-- `shell/plugins/src/public/types.ts` still uses type-only `zMain` for public
-  plugin-author judge input schemas. Tool input shapes and typed message
-  channels are now structural contracts, and `PluginConfigInput` derives from
-  the schema input slot without a main-Zod alias. Endgame: public helpers
-  expose Zod 4 types or domain parser/shape contracts, not main-Zod aliases.
+- `packages/brain-cli/src/entries/index.ts` now exports Zod 4 from the public
+  `@rizom/brain` root, while the package still carries `zod` dependency
+  metadata during the public declaration/runtime transition. Endgame: published
+  dependency metadata and declarations reflect the final single Zod 4 contract.
 - `shell/app/src/brain-resolver.ts` treats both main-Zod and Zod 4 `ZodError`
   as config validation failures. Endgame: remove the main-Zod branch once app
   plugin/config validators are fully Zod 4-owned.
@@ -1140,6 +1149,7 @@ migration complete:
   scaffolding when they exist only to accept both Zod generations. Track and
   revisit: `shell/messaging-service/src/message-validator.ts`,
   `shell/runtime-state/src/types.ts`, `shell/entity-service/src/datasource-types.ts`,
+  `shell/entity-service/src/types.ts` entity schema parser slots,
   `shell/job-queue/src/base-job-handler.ts`, `shell/plugins/src/base-plugin.ts`,
   `shell/plugins/src/entity/entity-plugin.ts`, entity-plugin context/public
   context `getEffectiveFrontmatterSchema` views, public service/interface/message

@@ -1,5 +1,4 @@
-import type { z as zMain } from "@brains/utils/zod";
-import { z, type ZodType as ZodV4Type } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { VNode } from "preact";
 
@@ -9,9 +8,9 @@ import type { VNode } from "preact";
  */
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
-export type TemplateSchemaParser<T> =
-  | zMain.ZodType<T, zMain.ZodTypeDef, unknown>
-  | ZodV4Type<T, unknown>;
+export interface TemplateSchemaParser<T> {
+  parse(data: unknown): T;
+}
 
 /**
  * A runtime script that a template depends on. Site-builder collects

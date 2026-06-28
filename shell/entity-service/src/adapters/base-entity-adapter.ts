@@ -1,6 +1,6 @@
 import type { zMain as z } from "../main-zod";
 import { z as z4 } from "@brains/utils/zod-v4";
-import type { BaseEntity, EntityAdapter } from "../types";
+import type { BaseEntity, EntityAdapter, EntitySchemaParser } from "../types";
 import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
@@ -23,7 +23,7 @@ export interface BaseEntityAdapterConfig<
   TMetadata extends object,
 > {
   entityType: string;
-  schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
+  schema: EntitySchemaParser<TEntity>;
   frontmatterSchema: z.ZodObject<z.ZodRawShape>;
   isSingleton?: boolean;
   hasBody?: boolean;
@@ -46,7 +46,7 @@ export abstract class BaseEntityAdapter<
   TFrontmatter = TMetadata,
 > implements EntityAdapter<TEntity, TMetadata> {
   public readonly entityType: string;
-  public readonly schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
+  public readonly schema: EntitySchemaParser<TEntity>;
   public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
   public readonly isSingleton?: boolean;
   public readonly hasBody?: boolean;

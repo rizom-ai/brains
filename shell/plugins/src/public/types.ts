@@ -15,7 +15,6 @@ import type {
   OutputFormat,
   UserPermissionLevel,
 } from "@brains/templates";
-import type { z as zMain } from "@brains/utils/zod";
 import { z } from "@brains/utils/zod-v4";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
@@ -41,7 +40,7 @@ export interface SafeParserSchema<T> {
 export interface JudgeInput<T> {
   instruction: string;
   material: string;
-  schema: zMain.ZodType<T>;
+  schema: z.ZodType<T, unknown>;
 }
 
 export interface Plugin {

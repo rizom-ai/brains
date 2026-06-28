@@ -1,5 +1,5 @@
 import type { DataSource, DataSourceSchema } from "@brains/entity-service";
-import type { IAIService } from "@brains/ai-service";
+import type { AIGenerationSchema, IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 import { EntityUrlGenerator } from "@brains/site-composition";
@@ -16,6 +16,12 @@ export const GenerationContextSchema = z.object({
 export type GenerationContext = z.output<typeof GenerationContextSchema>;
 
 const entitySlugSchema = z.object({ slug: z.string() });
+
+function isAIGenerationSchema<T>(schema: {
+  parse(data: unknown): T;
+}): schema is AIGenerationSchema<T> & { parse(data: unknown): T } {
+  return "_def" in schema || "def" in schema || "~standard" in schema;
+}
 
 function normalizeSiteBaseUrl(
   siteBaseUrl: string | undefined,
@@ -98,6 +104,12 @@ export class AIContentDataSource implements DataSource {
     );
 
     const systemPrompt = this.buildSystemPrompt(basePrompt);
+
+    if (!isAIGenerationSchema(template.schema)) {
+      throw new Error(
+        `Template ${template.name} cannot be used for AI generation: schema is not an AI generation schema`,
+      );
+    }
 
     const result = await this.aiService.generateObject(
       systemPrompt,

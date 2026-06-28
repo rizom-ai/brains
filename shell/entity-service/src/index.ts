@@ -42,6 +42,7 @@ export type {
   EntityInput,
   SearchResult,
   EntityAdapter,
+  EntitySchemaParser,
   ListOptions,
   SearchOptions,
   GetEntityRequest,
