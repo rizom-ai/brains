@@ -10,7 +10,6 @@ import {
   getDeliverableArtifactCards,
   getResponseJobIds,
   getSupplementalCards,
-  formatContentDispositionHeader,
   formatMessageProgressDisplay,
   formatPendingConfirmationHelp,
   PendingApprovalTracker,
@@ -23,7 +22,6 @@ import {
   type PendingConfirmation,
   type StructuredChatCard,
   type PermissionLookupContext,
-  type RuntimeUploadStore,
   type ToolActivityEvent,
   type ToolStatusUpdate,
   type UserPermissionLevel,
@@ -36,11 +34,9 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
-  Chat,
   type ActionEvent,
   type CardChild,
   type CardElement,
-  type Channel,
   type FileUpload,
   type Message,
   type MessageContext,
@@ -48,8 +44,6 @@ import {
   type Thread,
 } from "chat";
 import { z } from "zod";
-import { createDiscordAdapter } from "@chat-adapter/discord";
-import { createMemoryState } from "@chat-adapter/state-memory";
 import { chunkMessage, createPrefixedId } from "@brains/utils";
 import {
   chatConfigSchema,
@@ -67,6 +61,8 @@ import {
 import { ArtifactDeliveryResolver } from "./artifact-delivery";
 import { ApprovalCardTracker } from "./approval-card-tracker";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
+import { DiscordChatApp, type ChatSdkApp } from "./discord-chat-app";
+import { createDiscordChatSdkApp } from "./discord-chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import {
   ChatInputBuilder,
@@ -74,17 +70,12 @@ import {
   type AgentInput,
 } from "./chat-input-builder";
 import {
-  createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
   type DiscordThreadSubscriptionStore,
 } from "./subscription-state";
 import { createDiscordChatUploadStoreScope } from "./upload-store";
 import { CHAT_PLATFORMS } from "./types";
-import type {
-  ChatAdapterMap,
-  ChatPlatform,
-  ChatWebhookMap,
-} from "./types";
+import type { ChatPlatform } from "./types";
 import packageJson from "../package.json";
 
 const URL_PATTERN = /https?:\/\/\S+/i;
@@ -116,50 +107,9 @@ const discordCardOutputSchema = z.object({
   fallbackText: z.string().optional(),
 });
 
-interface ChatSdkApp {
-  initialize(): Promise<void>;
-  shutdown(): Promise<void>;
-  webhooks?: ChatWebhookMap;
-  onDirectMessage(
-    handler: (
-      thread: Thread,
-      message: Message,
-      channel: Channel,
-      context?: MessageContext,
-    ) => Promise<void>,
-  ): void;
-  onNewMention(
-    handler: (
-      thread: Thread,
-      message: Message,
-      context?: MessageContext,
-    ) => Promise<void>,
-  ): void;
-  onNewMessage(
-    pattern: RegExp,
-    handler: (
-      thread: Thread,
-      message: Message,
-      context?: MessageContext,
-    ) => Promise<void>,
-  ): void;
-  onSubscribedMessage(
-    handler: (
-      thread: Thread,
-      message: Message,
-      context?: MessageContext,
-    ) => Promise<void>,
-  ): void;
-  onAction(
-    actionIds: string[] | string,
-    handler: (event: ActionEvent) => Promise<void>,
-  ): void;
-}
-
 export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   declare protected config: ChatConfig;
 
-  private app: ChatSdkApp | undefined;
   private readonly threadRegistry = new ThreadRegistry();
   private readonly pendingApprovals: PendingApprovalTracker;
   private readonly uploadContinuity: MessageUploadContinuity;
@@ -199,15 +149,28 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     logger: this.logger,
   });
   private readonly gatewayLoop: DiscordGatewayLoop;
+  private readonly discordApp: DiscordChatApp;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
 
   constructor(config: Partial<ChatConfig> = {}) {
     super("chat", packageJson, config, chatConfigSchema);
     this.gatewayLoop = new DiscordGatewayLoop({
-      getApp: () => this.app,
+      getApp: () => this.discordApp.instance,
       gatewayRunMs: this.config.gatewayRunMs,
       gatewayRestartDelayMs: this.config.gatewayRestartDelayMs,
       logger: this.logger,
+    });
+    this.discordApp = new DiscordChatApp({
+      discord: this.config.adapters.discord,
+      getUploadStore: () =>
+        this.context?.uploads.scoped(createDiscordChatUploadStoreScope()),
+      buildApp: (runtimeState) =>
+        createDiscordChatSdkApp({
+          userName: this.config.userName,
+          discord: this.config.adapters.discord,
+          gatewayLoop: this.gatewayLoop,
+          runtimeState,
+        }),
     });
     this.pendingApprovals = new PendingApprovalTracker({
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
@@ -268,76 +231,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.discordSubscriptions = createDiscordThreadSubscriptionStore(
       context.runtimeState,
     );
-    this.app = this.createChatApp(context);
-    this.registerChatHandlers(this.app);
+    this.registerChatHandlers(this.discordApp.build(context.runtimeState));
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
-    return [
-      {
-        path: "/api/webhooks/chat/discord",
-        method: "POST",
-        public: true,
-        handler: async (request: Request): Promise<Response> => {
-          if (!this.app?.webhooks?.discord) {
-            return new Response("Discord chat webhook not configured", {
-              status: 404,
-            });
-          }
-          return this.app.webhooks.discord(request);
-        },
-      },
-      {
-        path: "/api/webhooks/chat/discord/uploads",
-        method: "GET",
-        public: true,
-        handler: async (request: Request): Promise<Response> => {
-          return this.handleDiscordUploadRequest(request);
-        },
-      },
-    ];
-  }
-
-  private async handleDiscordUploadRequest(
-    request: Request,
-  ): Promise<Response> {
-    if (!this.config.adapters.discord) {
-      return new Response("Discord chat uploads not configured", {
-        status: 404,
-      });
-    }
-
-    const uploadId = new URL(request.url).searchParams.get("id")?.trim();
-    if (!uploadId) {
-      return new Response("Missing upload id", { status: 400 });
-    }
-
-    try {
-      const uploadStore = this.getDiscordUploadStore();
-      const { record, content } = await uploadStore.read(uploadId);
-      const body = new Uint8Array(content).buffer;
-      return new Response(body, {
-        headers: {
-          "Content-Type": record.mediaType,
-          "Content-Length": String(content.byteLength),
-          "Cache-Control": "private, no-store",
-          "X-Content-Type-Options": "nosniff",
-          "Content-Disposition": formatContentDispositionHeader({
-            disposition: new URL(request.url).searchParams.has("download")
-              ? "attachment"
-              : "inline",
-            filename: record.filename,
-          }),
-        },
-      });
-    } catch {
-      return new Response("Upload not found", { status: 404 });
-    }
-  }
-
-  private getDiscordUploadStore(): RuntimeUploadStore {
-    if (!this.context) throw new Error("Chat interface not registered");
-    return this.context.uploads.scoped(createDiscordChatUploadStoreScope());
+    return this.discordApp.getWebRoutes();
   }
 
   protected override createDaemon(): Daemon | undefined {
@@ -345,8 +243,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     return {
       start: async (): Promise<void> => {
-        if (!this.app) throw new Error("Chat SDK app not initialized");
-        await this.app.initialize();
+        await this.discordApp.initialize();
         this.gatewayLoop.start();
       },
       stop: async (): Promise<void> => {
@@ -354,7 +251,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         this.threadRegistry.clear();
         this.uploadContinuity.clear();
         this.toolStatusMessenger.clear();
-        await this.app?.shutdown();
+        await this.discordApp.shutdown();
       },
       healthCheck: async (): Promise<DaemonHealth> => ({
         status: this.gatewayLoop.isRunning() ? "healthy" : "error",
@@ -553,36 +450,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return CHAT_PLATFORMS.find((candidate) => candidate === platform);
   }
 
-  private createChatApp(context: InterfacePluginContext): ChatSdkApp {
-    const discord = this.config.adapters.discord;
-    if (!discord) {
-      return new Chat({
-        userName: this.config.userName,
-        adapters: {},
-        state: createMemoryState(),
-      });
-    }
-
-    const discordAdapter = createDiscordAdapter({
-      botToken: discord.botToken,
-      publicKey: discord.publicKey,
-      applicationId: discord.applicationId,
-      mentionRoleIds: discord.mentionRoleIds,
-    });
-    this.gatewayLoop.setAdapter(discordAdapter);
-
-    return new Chat({
-      userName: this.config.userName,
-      adapters: { discord: discordAdapter } satisfies ChatAdapterMap,
-      concurrency: {
-        strategy: "queue",
-        maxQueueSize: 5,
-        onQueueFull: "drop-oldest",
-      },
-      state: createDiscordSubscriptionStateAdapter(context.runtimeState),
-    });
-  }
-
   private registerChatHandlers(app: ChatSdkApp): void {
     app.onDirectMessage(async (thread, message, _channel, context) => {
       await this.handleRoutedMessage(thread, message, context);
@@ -602,7 +469,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     });
 
     app.onSubscribedMessage(async (thread, message, context) => {
-      if (!(await this.subscriptionRouter.shouldRouteSubscribedMessage(thread, message))) return;
+      if (
+        !(await this.subscriptionRouter.shouldRouteSubscribedMessage(
+          thread,
+          message,
+        ))
+      )
+        return;
       await this.handleRoutedMessage(thread, message, context);
     });
 
@@ -798,14 +671,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.startProcessingInput(input.channelId);
     try {
       if (this.getPlatformConfig(input.thread)?.showTypingIndicator) {
-        await input.thread
-          .startTyping()
-          .catch((error: unknown) =>
-            this.logger.debug("Typing indicator failed", {
-              error,
-              channelId: input.channelId,
-            }),
-          );
+        await input.thread.startTyping().catch((error: unknown) =>
+          this.logger.debug("Typing indicator failed", {
+            error,
+            channelId: input.channelId,
+          }),
+        );
       }
       await input.body();
     } catch (error: unknown) {
@@ -1546,5 +1417,4 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       ...(parts[3] ? { threadId: parts[3] } : {}),
     };
   }
-
 }
