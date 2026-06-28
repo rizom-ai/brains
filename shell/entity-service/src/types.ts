@@ -1,4 +1,5 @@
 import { z } from "./main-zod";
+import { z as z4 } from "@brains/utils/zod-v4";
 import type { DataSource } from "./datasource-types";
 import {
   contentVisibilitySchema,
@@ -101,6 +102,31 @@ export const baseEntitySchema = z.object({
   visibility: contentVisibilitySchema,
   metadata: z.record(z.string(), z.unknown()),
   contentHash: z.string(),
+});
+
+const canonicalContentVisibilityParserSchema = z4.enum([
+  "public",
+  "shared",
+  "restricted",
+]);
+
+/** Zod 4-owned parser base for entity schemas whose registration slot is structural. */
+export const baseEntityParserSchema = z4.object({
+  id: z4.string(),
+  entityType: z4.string(),
+  content: z4.string(),
+  created: z4.string().datetime(),
+  updated: z4.string().datetime(),
+  visibility: z4
+    .union([canonicalContentVisibilityParserSchema, z4.literal("private")])
+    .optional()
+    .transform((value): ContentVisibility => {
+      if (value === undefined) return "public";
+      if (value === "private") return "restricted";
+      return value;
+    }),
+  metadata: z4.record(z4.string(), z4.unknown()),
+  contentHash: z4.string(),
 });
 
 /** Shared empty frontmatter schema for entity types with no typed frontmatter. */

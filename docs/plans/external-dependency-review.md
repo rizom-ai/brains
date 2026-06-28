@@ -1086,6 +1086,12 @@ Incremental migration progress:
   without being passed to the AI SDK generation boundary. Entity schema slots
   are also structural `parse`/`safeParse` parsers now, allowing public Zod 4
   entity schemas without changing durable frontmatter/CMS schema ownership.
+- Added a Zod 4-owned `baseEntityParserSchema` for entity schema registration
+  boundaries and migrated complete non-CMS entity parser trees for image and
+  document. Also split several mixed durable/frontmatter packages so their
+  registered entity schema is Zod 4-owned while their frontmatter/CMS schema
+  remains main-Zod-owned for now: site-content, prompt, rizom-ecosystem, and
+  site-info.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

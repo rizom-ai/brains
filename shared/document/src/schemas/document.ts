@@ -1,15 +1,15 @@
-import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/entity-service";
+import { baseEntityParserSchema } from "@brains/entity-service";
+import { z } from "@brains/utils/zod-v4";
 
 export const documentMimeTypeSchema = z.literal("application/pdf");
-export type DocumentMimeType = z.infer<typeof documentMimeTypeSchema>;
+export type DocumentMimeType = z.output<typeof documentMimeTypeSchema>;
 
 export const documentIngestionStatusSchema = z.enum([
   "pending",
   "draft",
   "failed",
 ]);
-export type DocumentIngestionStatus = z.infer<
+export type DocumentIngestionStatus = z.output<
   typeof documentIngestionStatusSchema
 >;
 
@@ -30,12 +30,12 @@ export const documentMetadataSchema = z.object({
   dedupKey: z.string().min(1).optional(),
 });
 
-export type DocumentMetadata = z.infer<typeof documentMetadataSchema>;
+export type DocumentMetadata = z.output<typeof documentMetadataSchema>;
 
-export const documentSchema = baseEntitySchema.extend({
+export const documentSchema = baseEntityParserSchema.extend({
   entityType: z.literal("document"),
   content: z.string().regex(/^data:application\/pdf;base64,.+$/),
   metadata: documentMetadataSchema,
 });
 
-export type DocumentEntity = z.infer<typeof documentSchema>;
+export type DocumentEntity = z.output<typeof documentSchema>;

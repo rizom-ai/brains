@@ -69,6 +69,7 @@ export type {
 } from "./types";
 
 export {
+  baseEntityParserSchema,
   baseEntitySchema,
   NOTE_ENTITY_TYPE,
   canWriteVisibility,

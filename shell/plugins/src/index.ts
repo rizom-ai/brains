@@ -188,6 +188,7 @@ export type {
 } from "@brains/entity-service";
 export {
   BaseEntityAdapter,
+  baseEntityParserSchema,
   baseEntitySchema,
   contentVisibilitySchema,
   emptyFrontmatterSchema,

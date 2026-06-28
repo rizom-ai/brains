@@ -1,5 +1,5 @@
-import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/entity-service";
+import { baseEntityParserSchema } from "@brains/entity-service";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Supported image formats
@@ -12,7 +12,7 @@ export const imageFormatSchema = z.enum([
   "gif",
   "svg",
 ]);
-export type ImageFormat = z.infer<typeof imageFormatSchema>;
+export type ImageFormat = z.output<typeof imageFormatSchema>;
 
 /**
  * Image entity metadata schema
@@ -24,7 +24,7 @@ export const imageIngestionStatusSchema = z.enum([
   "draft",
   "failed",
 ]);
-export type ImageIngestionStatus = z.infer<typeof imageIngestionStatusSchema>;
+export type ImageIngestionStatus = z.output<typeof imageIngestionStatusSchema>;
 
 export const imageMetadataSchema = z.object({
   title: z.string().optional(),
@@ -35,7 +35,7 @@ export const imageMetadataSchema = z.object({
   status: imageIngestionStatusSchema.optional(),
   processingJobId: z.string().optional(),
   processingError: z.string().optional(),
-  sourceUrl: z.string().url().optional(),
+  sourceUrl: z.url().optional(),
   sourceEntityType: z.string().optional(),
   sourceEntityId: z.string().optional(),
   sourceUploadId: z.string().optional(),
@@ -45,18 +45,18 @@ export const imageMetadataSchema = z.object({
   dedupKey: z.string().optional(),
 });
 
-export type ImageMetadata = z.infer<typeof imageMetadataSchema>;
+export type ImageMetadata = z.output<typeof imageMetadataSchema>;
 
 /**
  * Image entity schema (extends BaseEntity)
  * Content field contains base64 data URL: data:image/png;base64,...
  */
-export const imageSchema = baseEntitySchema.extend({
+export const imageSchema = baseEntityParserSchema.extend({
   entityType: z.literal("image"),
   metadata: imageMetadataSchema,
 });
 
-export type Image = z.infer<typeof imageSchema>;
+export type Image = z.output<typeof imageSchema>;
 
 /**
  * Resolved image data for templates
@@ -69,4 +69,4 @@ export const resolvedImageSchema = z.object({
   height: z.number(),
 });
 
-export type ResolvedImage = z.infer<typeof resolvedImageSchema>;
+export type ResolvedImage = z.output<typeof resolvedImageSchema>;

@@ -1,5 +1,6 @@
+import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+import { z as z4 } from "@brains/utils/zod-v4";
 
 /**
  * Prompt frontmatter schema
@@ -10,25 +11,25 @@ export const promptFrontmatterSchema = z.object({
   target: z.string(),
 });
 
-export type PromptFrontmatter = z.infer<typeof promptFrontmatterSchema>;
+export type PromptFrontmatter = z.output<typeof promptFrontmatterSchema>;
 
 /**
  * Prompt metadata schema — derived from frontmatter
  */
-export const promptMetadataSchema = z.object({
-  title: z.string(),
-  target: z.string(),
-  slug: z.string().optional(),
+export const promptMetadataSchema = z4.object({
+  title: z4.string(),
+  target: z4.string(),
+  slug: z4.string().optional(),
 });
 
-export type PromptMetadata = z.infer<typeof promptMetadataSchema>;
+export type PromptMetadata = z4.output<typeof promptMetadataSchema>;
 
 /**
  * Prompt entity schema
  */
-export const promptSchema = baseEntitySchema.extend({
-  entityType: z.literal("prompt"),
+export const promptSchema = baseEntityParserSchema.extend({
+  entityType: z4.literal("prompt"),
   metadata: promptMetadataSchema,
 });
 
-export type Prompt = z.infer<typeof promptSchema>;
+export type Prompt = z4.output<typeof promptSchema>;
