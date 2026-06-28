@@ -39,9 +39,31 @@ Adding more prompt/schema wording is not sufficient. The tool contract should ma
 
 ## Proposed Tool Contract
 
-Make `system_generate` input a **discriminated union by top-level `kind`**. The previous nested `source` object is removed entirely; `kind` becomes the top-level discriminator and each branch carries only its own valid fields.
+Make `system_generate` input an object with a single **`operation`** field that is a discriminated union by `kind`, plus top-level confirmation internals:
+
+```json
+{
+  "operation": { "kind": "cover-image", "...": "..." },
+  "confirmed": true,
+  "confirmationToken": "..."
+}
+```
+
+The previous nested `source` object is removed; each operation branch carries only its own valid fields. The four branch shapes below are the **value of `operation`**.
 
 There are four operation kinds. The split is by **generation mechanism**, not by output shape — `cover-image` (prompt-generated image) and OG image (deterministic provider render, lives under `attachment`) look like siblings but are produced by different machinery, which is why they are different branches.
+
+### Why `operation` is nested, not a top-level union
+
+The tool framework types `Tool.inputSchema` as a `ZodRawShape` (a flat object map), and two paths depend on that: `createSystemTool` extracts `inputSchema.shape` (`shell/core/src/system/tool-helpers.ts`), and the model-visible projection iterates `Object.entries(inputSchema)` to strip confirmation fields (`shell/ai-service/src/sdk-tools.ts`). A top-level `z.discriminatedUnion` has no `.shape` and is not an object map, so it cannot be the input without changing the framework or hand-authoring a second `modelInputSchema`.
+
+Decisions that follow from this:
+
+- **No `modelInputSchema` override.** The model-visible schema stays a _projection_ of the one runtime schema (drop `confirmed`/`confirmationToken`, re-wrap), not a second hand-authored contract that can drift. The nested-`operation` shape needs no override at all.
+- **Confirmation fields stay top-level**, outside `operation` — required, because the strip filter matches top-level keys.
+- **The outer schema must remain a plain `z.object`.** Do not `.superRefine()` it — that yields a `ZodEffects` with no `.shape` and breaks `createSystemTool`.
+- **Refinements do not make rules unrepresentable to the model.** `@ai-sdk/provider-utils asSchema` drops Zod `.refine()`/`.superRefine()` from the model-visible JSON Schema (a refined string serializes as plain `{ "type": "string" }`). So a refinement only enforces server-side at runtime. For genuine model-visible unrepresentability, use structural schema (the discriminated union itself, literals, enums) — e.g. the prompt branch's `entityType: "image"` rule prefers a generated enum of allowed non-image generatable types, falling back to runtime validation (see the `prompt` branch). The discriminated union _is_ structural, so it survives serialization as `oneOf`; only refinement-based rules are at risk.
+- Nesting is the pattern already proven in this codebase: `system_generate` today carries `source` as a nested discriminated union, and `sdk-tools.test.ts` already exercises a nested union round-tripping through the model-visible projection and MCP serialization (`oneOf`). Confirmation args deep-serialize, so a nested `operation` round-trips for exact-match validation.
 
 ### 1. `prompt` — generate a new durable entity from a prompt
 
@@ -57,7 +79,7 @@ There are four operation kinds. The split is by **generation mechanism**, not by
 Rules:
 
 - No target fields.
-- For generated posts, newsletters, notes, etc. — **not** images. `entityType: "image"` is rejected on this branch (use `standalone-image` or `cover-image`); this is enforced by a schema refinement, not prose, so the prompt branch cannot mint an image.
+- For generated posts, newsletters, notes, etc. — **not** images. `entityType: "image"` is rejected on this branch (use `standalone-image` or `cover-image`). Verified with `@ai-sdk/provider-utils asSchema`: Zod refinements do **not** survive to model-visible JSON Schema (`z.string().refine(v => v !== "image")` serializes as plain `{ type: "string" }`). Therefore, make this unrepresentable with a generated enum of allowed non-image generatable entity types if practical; otherwise enforce it as pre-confirmation runtime validation and do not claim tool-schema unrepresentability.
 - Always creates a fresh generated entity request; no `replace`. If the derived slug already exists, the persistence layer creates a deduplicated ID rather than reusing a deterministic artifact (confirmed current behavior: `executePromptGenerate` calls `createEntity` with `deduplicateId: true`).
 
 ### 2. `standalone-image` — standalone generated image
@@ -249,8 +271,8 @@ Each reason carries the offending identifiers (e.g. the unresolved id, the reque
 ## Cleanup
 
 - Remove `coverImage` from `generateInputSchema` entirely.
-- Remove the nested `source` object — it is flattened into the top-level `kind` discriminator.
-- Remove generic top-level `targetEntityType` / `targetEntityId` from `system_generate` input (now only on `cover-image`).
+- Remove the nested `source` object and replace it with a top-level `operation` field whose value is the discriminated union.
+- Remove generic top-level `targetEntityType` / `targetEntityId` from `system_generate` input; these fields are allowed only inside `operation.kind: "cover-image"`.
 - Remove any schema prose added only to discourage invalid cross-products; the union now makes them unrepresentable.
 - Cross-check `shell/ai-service/src/call-options.ts` for message-text gates touching `system_generate` fields (e.g. `shouldEnableCreateSourceAttachment`). Coordinate with `system-create-source-architecture.md`, which deletes those gates, so the two changes do not collide on a field this plan removes.
 - Revisit the placeholder-only `system_create source.kind: text` guard; if kept, justify as data validation, not as routing around one eval.
@@ -274,7 +296,9 @@ Tests first:
 
 ### Phase 2 — flip `system_generate` to the discriminated union
 
-Tests first (see Tests section); move all generation evals to the new branches in this same slice. End state: no flat fields, no `coverImage`, no nested `source`.
+Tests first (see Tests section); move all generation evals to the new branches in this same slice. End state: input is `{ operation, confirmed?, confirmationToken? }` — no top-level `entityType`/`source`/`coverImage`/`targetEntityType`/`targetEntityId`.
+
+Eval arg-shape migration: every generation eval's expected tool args move under `operation` (e.g. `{ operation: { kind: "cover-image", ... } }`), not just renamed fields. This is a sweep across the focused eval set, done in this slice.
 
 At the end of Phase 2, metadata becomes required for attachment providers: registration fails fast when a provider omits metadata, so authoring errors surface immediately. Validation still returns `provider-missing-metadata` as a runtime fallback for any provider that slips through.
 
@@ -309,15 +333,15 @@ At the end of Phase 2, metadata becomes required for attachment providers: regis
 
 These prove the contract, not just the handler:
 
-- `kind: "attachment"` with an `entityType` field fails to parse (model cannot supply output type for artifacts — kills `image + carousel`).
-- `kind: "prompt"` with `entityType: "image"` is rejected (refinement) — the prompt branch cannot produce a standalone image; that is `standalone-image`.
+- `{ operation: { kind: "attachment", entityType: ... } }` fails to parse (model cannot supply output type for artifacts — kills `image + carousel`).
+- `{ operation: { kind: "prompt", entityType: "image", ... } }` is rejected — by serialized schema only if non-image generatable entity types are enumerated. A Zod refinement is insufficient because AI SDK JSON Schema serialization drops it. Otherwise reject by pre-confirmation runtime validation. The SDK schema exposure test must verify which level is actually enforced.
 - `coverImage` anywhere fails to parse.
-- `targetEntityType`/`targetEntityId` on `prompt`, `standalone-image`, or `attachment` fail to parse.
+- `targetEntityType`/`targetEntityId` on `operation.kind: "prompt"`, `"standalone-image"`, or `"attachment"` fail to parse.
 - A nested `source` object fails to parse.
 
 ### Tool visibility / schema-exposure tests
 
-- The **model-visible** SDK schema for `system_generate` exposes the four branches as discriminated alternatives — assert the wire schema is a discriminated union, not a single object with collapsed optionals. (The whole benefit depends on the union surviving zod → JSON-schema → tool serialization; verify it does.)
+- The **model-visible** SDK schema for `system_generate.operation` exposes the four branches as alternatives with discriminator constants — AI SDK currently serializes the Zod discriminated union as JSON Schema `anyOf` branches with `kind.const`, not as collapsed optionals. Assert that alternatives survive without requiring a specific `oneOf` vs `anyOf` keyword. Also verify whether the prompt branch excludes `entityType: "image"` at the serialized schema level; if not, require runtime validation coverage. Do not rely on Zod refinements for serialized tool constraints.
 - Confirmation summary/preview reflects the **derived** output entity type for `attachment` (e.g. "Generate a PDF document carousel from deck X"), since the model no longer supplies it.
 - `system_create` has no generation branches.
 - `document_generate` remains non-model-visible.
