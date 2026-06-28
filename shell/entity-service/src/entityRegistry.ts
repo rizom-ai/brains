@@ -1,5 +1,4 @@
 import type { Logger } from "@brains/utils";
-import type { z } from "@brains/utils/zod";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import type {
   BaseEntity,
@@ -9,6 +8,8 @@ import type {
   EntityRegistry as IEntityRegistry,
   EntityTypeConfig,
   PersistValidator,
+  FrontmatterSchema,
+  UnknownEntitySchema,
 } from "./types";
 
 /**
@@ -18,16 +19,13 @@ import type {
 export class EntityRegistry implements IEntityRegistry {
   private static instance: EntityRegistry | null = null;
 
-  private entitySchemas = new Map<string, z.ZodType<unknown>>();
+  private entitySchemas = new Map<string, UnknownEntitySchema>();
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();
   private createInterceptors = new Map<string, CreateInterceptor>();
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
-  private frontmatterExtensions = new Map<
-    string,
-    z.ZodObject<z.ZodRawShape>[]
-  >();
+  private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
   private logger: Logger;
 
   /**
@@ -67,7 +65,7 @@ export class EntityRegistry implements IEntityRegistry {
     TMetadata = Record<string, unknown>,
   >(
     type: string,
-    schema: z.ZodType<unknown>,
+    schema: UnknownEntitySchema,
     adapter: EntityAdapter<TEntity, TMetadata>,
     config?: EntityTypeConfig,
   ): void {
@@ -98,7 +96,7 @@ export class EntityRegistry implements IEntityRegistry {
   /**
    * Get schema for a specific entity type
    */
-  getSchema(type: string): z.ZodType<unknown> {
+  getSchema(type: string): UnknownEntitySchema {
     const schema = this.entitySchemas.get(type);
     if (!schema) {
       throw new Error(
@@ -255,10 +253,7 @@ export class EntityRegistry implements IEntityRegistry {
    * Extend an adapter's frontmatterSchema with additional fields.
    * Extensions are merged into the effective schema returned by getEffectiveFrontmatterSchema().
    */
-  extendFrontmatterSchema(
-    type: string,
-    extension: z.ZodObject<z.ZodRawShape>,
-  ): void {
+  extendFrontmatterSchema(type: string, extension: FrontmatterSchema): void {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
       throw new Error(
@@ -283,9 +278,7 @@ export class EntityRegistry implements IEntityRegistry {
    * with all registered extensions merged in.
    * Returns undefined if the adapter has no frontmatterSchema.
    */
-  getEffectiveFrontmatterSchema(
-    type: string,
-  ): z.ZodObject<z.ZodRawShape> | undefined {
+  getEffectiveFrontmatterSchema(type: string): FrontmatterSchema | undefined {
     const adapter = this.entityAdapters.get(type);
     return this.mergeExtensions(type, adapter?.frontmatterSchema);
   }
@@ -297,8 +290,8 @@ export class EntityRegistry implements IEntityRegistry {
    */
   private mergeExtensions(
     type: string,
-    baseSchema?: z.ZodObject<z.ZodRawShape>,
-  ): z.ZodObject<z.ZodRawShape> | undefined {
+    baseSchema?: FrontmatterSchema,
+  ): FrontmatterSchema | undefined {
     if (!baseSchema) {
       return undefined;
     }

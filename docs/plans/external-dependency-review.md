@@ -1051,6 +1051,10 @@ Incremental migration progress:
   `@brains/utils/zod-v4`, duplicating small agent skill/status shapes locally
   so parser-only eval inputs do not compose with main-Zod durable agent/skill
   entity schemas used by the in-test adapters.
+- Centralized entity-service registry Zod helper type aliases in
+  `shell/entity-service/src/types.ts` and switched registry helper annotations
+  to those aliases. This removes a local main-Zod type-only import without
+  changing durable entity/frontmatter schema ownership.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
