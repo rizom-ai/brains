@@ -983,7 +983,8 @@ Incremental migration progress:
   durable site-info entity/body schemas on main Zod. Personal and professional
   site homepage/about template schemas now use local Zod 4 view shapes for
   profile, CTA, post, and deck data instead of composing durable entity schemas
-  from the entity packages.
+  from the entity packages. The agent-discovery adapter body formatter now uses
+  a local Zod 4 body parser instead of composing durable agent schema pieces.
 - Migrated brain definition preset/mode schemas, app `brain.yaml` instance
   override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod-v4`.
   The app parser duplicates the small permission/action-policy validation
@@ -1014,8 +1015,9 @@ Incremental migration progress:
   public plugin-author config delegates. Migrated the agent-discovery composite
   config, agent generation job parser, directory-sync quarantine ZodError
   guard/test parser, content-pipeline mock entity test schemas, entity
-  pagination parser, and public URL-capture config parser to
-  `@brains/utils/zod-v4` without touching durable entity/frontmatter schemas.
+  pagination parser, assessment capability-profile parsing helpers, and public
+  URL-capture config parser to `@brains/utils/zod-v4` without touching durable
+  entity/frontmatter schemas.
 - Removed more nominal main-Zod type slots from complete parse-only boundaries:
   Obsidian Vault frontmatter introspection now accepts both main-Zod and Zod 4
   object shapes structurally, its introspector tests use Zod 4 schemas, and
