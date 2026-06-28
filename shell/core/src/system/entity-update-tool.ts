@@ -95,6 +95,41 @@ function validateAnchorProfileUpdate(
   return undefined;
 }
 
+function validateContentReplacement(
+  entityType: string,
+  normalizedInput: { fields?: Record<string, unknown>; content?: string },
+  entityRegistry: SystemServices["entityRegistry"],
+): { success: false; error: string } | undefined {
+  if (normalizedInput.content === undefined) return undefined;
+
+  const trimmedContent = normalizedInput.content.trim();
+  const frontmatterSchema =
+    entityRegistry.getEffectiveFrontmatterSchema(entityType);
+  if (!frontmatterSchema) return undefined;
+
+  if (!trimmedContent) {
+    return {
+      success: false,
+      error:
+        "Full content replacement cannot be empty for this entity type. Use 'fields' for partial updates.",
+    };
+  }
+
+  try {
+    entityRegistry
+      .getAdapter(entityType)
+      .parseFrontMatter(normalizedInput.content, frontmatterSchema);
+  } catch {
+    return {
+      success: false,
+      error:
+        "Invalid content replacement for this entity type. Provide full markdown with valid frontmatter, or use 'fields' for partial updates.",
+    };
+  }
+
+  return undefined;
+}
+
 function validateCoverImageFieldUpdate(
   entityType: string,
   normalizedInput: { fields?: Record<string, unknown> },
@@ -244,6 +279,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       );
       if (anchorProfileError) return anchorProfileError;
 
+      const contentReplacementError = validateContentReplacement(
+        entity.entityType,
+        normalizedInput,
+        entityRegistry,
+      );
+      if (contentReplacementError) return contentReplacementError;
+
       const coverImageFieldError = validateCoverImageFieldUpdate(
         entity.entityType,
         normalizedInput,
@@ -280,34 +322,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
             error:
               "Entity was modified since you reviewed the changes. Please try again.",
           };
-        }
-
-        if (normalizedInput.content !== undefined) {
-          const trimmedContent = normalizedInput.content.trim();
-          const frontmatterSchema =
-            entityRegistry.getEffectiveFrontmatterSchema(entity.entityType);
-
-          if (frontmatterSchema) {
-            if (!trimmedContent) {
-              return {
-                success: false,
-                error:
-                  "Full content replacement cannot be empty for this entity type. Use 'fields' for partial updates.",
-              };
-            }
-
-            try {
-              entityRegistry
-                .getAdapter(entity.entityType)
-                .parseFrontMatter(normalizedInput.content, frontmatterSchema);
-            } catch {
-              return {
-                success: false,
-                error:
-                  "Invalid content replacement for this entity type. Provide full markdown with valid frontmatter, or use 'fields' for partial updates.",
-              };
-            }
-          }
         }
 
         const updated =

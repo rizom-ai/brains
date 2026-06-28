@@ -32,7 +32,6 @@ export const brainCallOptionsSchema = z.object({
   disableTools: z.boolean().optional(),
   enableCreateUpload: z.boolean().optional(),
   enableCreateTransform: z.boolean().optional(),
-  enableUploadSave: z.boolean().optional(),
   hasPriorResponseCandidate: z.boolean().optional(),
 });
 
@@ -40,19 +39,9 @@ export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
 
 export function filterToolsForCallOptions(
   tools: Tool[],
-  callOptions: Pick<
-    BrainCallOptions,
-    "enableUploadSave" | "hasPriorResponseCandidate"
-  >,
+  _callOptions: Pick<BrainCallOptions, "hasPriorResponseCandidate">,
 ): Tool[] {
-  return tools.filter(
-    (tool) =>
-      !(
-        (callOptions.enableUploadSave !== true ||
-          callOptions.hasPriorResponseCandidate === true) &&
-        tool.name === "system_upload_save"
-      ),
-  );
+  return tools;
 }
 
 export function shouldStopToolLoop(input: {

@@ -14,47 +14,22 @@ function tool(name: string): Tool {
 }
 
 describe("filterToolsForCallOptions", () => {
-  it("keeps system_create available when raw upload save is available", () => {
-    const tools = [
-      tool("system_create"),
-      tool("system_upload_save"),
-      tool("system_search"),
-    ];
+  it("keeps system_create available for upload-preserve create flows", () => {
+    const tools = [tool("system_create"), tool("system_search")];
 
     expect(
       filterToolsForCallOptions(tools, {
-        enableUploadSave: true,
         hasPriorResponseCandidate: false,
-      }).map((t) => t.name),
-    ).toEqual(["system_create", "system_upload_save", "system_search"]);
-  });
-
-  it("prefers prior-response create over stale upload save", () => {
-    const tools = [
-      tool("system_create"),
-      tool("system_upload_save"),
-      tool("system_search"),
-    ];
-
-    expect(
-      filterToolsForCallOptions(tools, {
-        enableUploadSave: true,
-        hasPriorResponseCandidate: true,
       }).map((t) => t.name),
     ).toEqual(["system_create", "system_search"]);
   });
 
-  it("hides upload save when no accessible upload save candidate exists", () => {
-    const tools = [
-      tool("system_create"),
-      tool("system_upload_save"),
-      tool("system_search"),
-    ];
+  it("keeps system_create available when prior-response candidates exist", () => {
+    const tools = [tool("system_create"), tool("system_search")];
 
     expect(
       filterToolsForCallOptions(tools, {
-        enableUploadSave: false,
-        hasPriorResponseCandidate: false,
+        hasPriorResponseCandidate: true,
       }).map((t) => t.name),
     ).toEqual(["system_create", "system_search"]);
   });

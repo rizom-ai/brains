@@ -234,7 +234,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * True when the upload ref appears as an attachment on a message in this
  * conversation. Shared upload-access gate for system_create and
- * system_upload_save: a caller must not reference an upload outside the
+ * system_create upload sources: a caller must not reference an upload outside the
  * conversation it belongs to.
  */
 export async function isUploadRefInConversation(

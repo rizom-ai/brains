@@ -35,7 +35,6 @@ describe("buildBrainCallOptions", () => {
       ...base,
       enableCreateUpload: true,
       enableCreateTransform: true,
-      enableUploadSave: true,
     });
   });
 

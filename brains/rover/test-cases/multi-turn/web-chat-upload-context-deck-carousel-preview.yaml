@@ -44,12 +44,14 @@ turns:
   - userMessage: "Can you generate a preview of the carousel for deck 'distributed-systems-primer'? Use the deck, not the uploaded files."
     successCriteria:
       expectedTools:
-        - toolName: document_generate
+        - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            sourceEntityType: deck
-            sourceEntityId: distributed-systems-primer
-            attachmentType: carousel
+            entityType: document
+            source.kind: attachment
+            source.sourceEntityType: deck
+            source.sourceEntityId: distributed-systems-primer
+            source.attachmentType: carousel
         - toolName: system_create
           shouldBeCalled: false
       responseNotContains:
@@ -59,12 +61,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: document_generate
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        sourceEntityType: deck
-        sourceEntityId: distributed-systems-primer
-        attachmentType: carousel
+        entityType: document
+        source.kind: attachment
+        source.sourceEntityType: deck
+        source.sourceEntityId: distributed-systems-primer
+        source.attachmentType: carousel
     - toolName: system_create
       shouldBeCalled: false
   responseNotContains:

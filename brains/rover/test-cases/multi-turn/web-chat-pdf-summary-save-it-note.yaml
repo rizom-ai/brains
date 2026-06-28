@@ -87,7 +87,7 @@ successCriteria:
         - from
         - fromUpload
         - sourceAttachment
-    - toolName: document_generate
+    - toolName: system_generate
       shouldBeCalled: false
     - toolName: system_update
       shouldBeCalled: false

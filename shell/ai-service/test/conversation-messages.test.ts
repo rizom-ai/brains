@@ -416,7 +416,10 @@ describe("buildMessageWithAttachments", () => {
       "Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses",
     );
     expect(content).toContain(
-      "do not call system_create or system_upload_save unless the user explicitly asks to save, import, preserve, or create an entity",
+      "do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity",
+    );
+    expect(content).toContain(
+      'Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note',
     );
   });
 

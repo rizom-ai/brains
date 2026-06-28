@@ -15,11 +15,11 @@ turns:
   - userMessage: "Generate a LinkedIn post about the future of AI"
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: system_generate
           shouldBeCalled: true
           argsContain:
             entityType: "social-post"
-            source.kind: "generate"
+            source.kind: "prompt"
       responseContains:
         - "Confirmation required"
 
@@ -32,12 +32,13 @@ turns:
   - userMessage: "Now generate a cover image for that post"
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: system_generate
           shouldBeCalled: true
           argsContain:
             entityType: "image"
-            source.kind: "generate"
+            source.kind: "prompt"
             targetEntityType: "social-post"
+            coverImage: true
 
 successCriteria: {}
 

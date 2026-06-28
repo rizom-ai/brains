@@ -1,6 +1,6 @@
 id: social-media-generate-agent
 name: Generate LinkedIn post via natural language
-description: Tests that the agent uses system_create to create a social post when asked
+description: Tests that the agent uses system_generate to generate a social post when asked
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -16,8 +16,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
+      argsContain:
+        entityType: social-post
+        source.kind: prompt
   responseNotContains:
     - "I cannot"
     - "social-media_generate"
