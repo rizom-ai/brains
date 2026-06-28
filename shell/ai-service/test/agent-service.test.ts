@@ -652,7 +652,6 @@ describe("AgentService", () => {
       await service.chat("save it as a document", "test-conversation");
 
       const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableUploadSave).toBeUndefined();
       expect(callArgs?.options.enableCreateUpload).toBeUndefined();
       const lastMessage = callArgs?.messages.at(-1);
       expect(lastMessage?.content).not.toContain("Available upload refs");
@@ -726,7 +725,6 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalledTimes(1);
       const callArgs = mockGenerate.mock.calls[0]?.[0];
       expect(callArgs?.options.enableCreateUpload).toBe(true);
-      expect(callArgs?.options.enableUploadSave).toBe(true);
       expect(callArgs?.options).not.toHaveProperty(
         "enableCreateSourceAttachment",
       );
@@ -3191,18 +3189,22 @@ describe("AgentService", () => {
           {
             toolCalls: [
               {
-                toolName: "document_generate",
+                toolName: "system_generate",
                 toolCallId: "call1",
                 input: {
-                  sourceEntityType: "deck",
-                  sourceEntityId: "deck-1",
-                  attachmentType: "carousel",
+                  entityType: "document",
+                  source: {
+                    kind: "attachment",
+                    sourceEntityType: "deck",
+                    sourceEntityId: "deck-1",
+                    attachmentType: "carousel",
+                  },
                 },
               },
             ],
             toolResults: [
               {
-                toolName: "document_generate",
+                toolName: "system_generate",
                 toolCallId: "call1",
                 output: {
                   success: true,

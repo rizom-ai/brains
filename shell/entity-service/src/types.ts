@@ -172,7 +172,7 @@ export type CreateFromInput =
   | CreateFromUploadInput
   | CreateFromConversationMessageInput;
 
-export type CreateTransform = "extract-markdown";
+export type CreateTransform = "extract-markdown" | "preserve";
 
 export interface CreateInput {
   entityType: string;

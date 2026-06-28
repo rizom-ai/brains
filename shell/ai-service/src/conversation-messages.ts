@@ -311,7 +311,7 @@ function formatUploadRefs(
   if (lines.length === 0) return priorResponseCandidate;
 
   const guidance =
-    "Available upload refs from this conversation. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. Upload candidates are file bytes; previous assistant answers are saved separately. Use system_upload_save for preserving raw file bytes as a document/image. Use system_create source.kind upload only for extracting/importing upload text as a note. Choose one tool; do not call both for the same upload save request.";
+    'Available upload refs from this conversation. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. Upload candidates are file bytes; previous assistant answers are saved separately. Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. Choose exactly one transform for the user request.';
 
   return [guidance, priorResponseCandidate, ...lines]
     .filter((line) => line.length > 0)

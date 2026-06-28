@@ -1,6 +1,6 @@
 id: image-generate-uses-target-params
 name: Image generate uses target entity params for cover image
-description: Tests that when asked to generate a cover image for a specific entity, the agent uses system_create with entityType "image" and passes targetEntityType/targetEntityId in options
+description: Tests that when asked to generate a cover image for a specific entity, the agent uses system_generate with entityType "image" and passes targetEntityType/targetEntityId with coverImage
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -15,12 +15,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
         entityType: "image"
+        source.kind: prompt
         targetEntityType: "post"
         targetEntityId: "urban-sensing-networks"
+        coverImage: true
   responseNotContains:
     - "I cannot"
     - "I don't have access"

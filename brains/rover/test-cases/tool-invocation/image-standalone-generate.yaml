@@ -1,6 +1,6 @@
 id: tool-invocation-image-standalone-generate
 name: Standalone image generation does not require a target entity
-description: Verifies that a plain image generation request uses system_create for an image without cover-image target fields
+description: Verifies that a plain image generation request uses system_generate for an image without cover-image target fields
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -15,11 +15,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
         entityType: "image"
-        source.kind: "generate"
+        source.kind: "prompt"
       argsAbsent:
         - targetEntityType
         - targetEntityId

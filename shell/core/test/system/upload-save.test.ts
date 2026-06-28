@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { IConversationService } from "@brains/conversation-service";
-import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
+import type { Tool, ToolContext } from "@brains/mcp-service";
+import type { UploadSaveHandler } from "@brains/entity-service";
 import type { SystemServices } from "../../src/system/types";
 import { createSystemTools } from "../../src/system/tools";
+import { createInputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 
 const uploadId = "upload-00000000-0000-4000-8000-000000000111";
@@ -42,9 +44,9 @@ function conversationWithUpload(): IConversationService {
 
 function buildServices(input: {
   mediaType?: string;
-  uploadHandler?: (input: unknown, context: unknown) => Promise<ToolResponse>;
+  entityType?: string;
+  uploadHandler?: UploadSaveHandler;
 }): ReturnType<typeof createMockSystemServices> {
-  const base = createMockSystemServices();
   const mediaType = input.mediaType ?? "application/pdf";
   const runtimeUploads = {
     scoped: (): {
@@ -74,38 +76,25 @@ function buildServices(input: {
       }),
     }),
   };
-  const entityRegistry = {
-    ...base.entityRegistry,
-    getUploadSaveHandler: (
-      requestedMediaType: string,
-    ):
-      | {
-          entityType: string;
-          mediaTypes: string[];
-          handler: (input: unknown, context: unknown) => Promise<ToolResponse>;
-        }
-      | undefined =>
-      input.uploadHandler && requestedMediaType === mediaType
-        ? {
-            entityType: "document",
-            mediaTypes: [mediaType],
-            handler: input.uploadHandler,
-          }
-        : undefined,
-  };
 
-  return createMockSystemServices({
+  const services = createMockSystemServices({
     conversationService: conversationWithUpload(),
     runtimeUploads,
-    entityRegistry,
   } as unknown as Partial<SystemServices>);
+  services.registerEntityTypes(["note", "document", "image"]);
+  if (input.uploadHandler) {
+    services.entityRegistry.registerUploadSaveHandler({
+      entityType: input.entityType ?? "document",
+      mediaTypes: [mediaType],
+      handler: input.uploadHandler,
+    });
+  }
+  return services;
 }
 
-function getUploadSaveTool(tools: Tool[]): Tool {
-  const tool = tools.find(
-    (candidate) => candidate.name === "system_upload_save",
-  );
-  if (!tool) throw new Error("system_upload_save not found");
+function getCreateTool(tools: Tool[]): Tool {
+  const tool = tools.find((candidate) => candidate.name === "system_create");
+  if (!tool) throw new Error("system_create not found");
   return tool;
 }
 
@@ -119,8 +108,27 @@ function context(): ToolContext {
   };
 }
 
-describe("system_upload_save tool", () => {
-  it("requires confirmation before dispatching to the registered media handler", async () => {
+describe("system_create upload preserve", () => {
+  it("exposes preserve as an upload transform and removes system_upload_save", () => {
+    expect(
+      createInputSchema.safeParse({
+        entityType: "document",
+        source: {
+          kind: "upload",
+          upload: { kind: "upload", id: uploadId },
+          transform: "preserve",
+        },
+      }).success,
+    ).toBe(true);
+
+    const toolNames = createSystemTools(buildServices({})).map(
+      (tool) => tool.name,
+    );
+    expect(toolNames).toContain("system_create");
+    expect(toolNames).not.toContain("system_upload_save");
+  });
+
+  it("requires create confirmation before dispatching preserve to the registered media handler", async () => {
     const calls: unknown[] = [];
     const services = buildServices({
       uploadHandler: async (input) => {
@@ -131,18 +139,27 @@ describe("system_upload_save tool", () => {
         };
       },
     });
-    const tool = getUploadSaveTool(createSystemTools(services));
+    const tool = getCreateTool(createSystemTools(services));
 
     const pending = await tool.handler(
-      { upload: { kind: "upload", id: uploadId }, title: "Quarterly Report" },
+      {
+        entityType: "document",
+        title: "Quarterly Report",
+        source: {
+          kind: "upload",
+          upload: { kind: "upload", id: uploadId },
+          transform: "preserve",
+        },
+      },
       context(),
     );
 
     expect(pending).toMatchObject({
       needsConfirmation: true,
-      toolName: "system_upload_save",
+      toolName: "system_create",
       summary: 'Save uploaded file as "Quarterly Report"?',
     });
+    expect(pending).toHaveProperty("args.source.transform", "preserve");
     expect(calls).toEqual([]);
 
     const confirmed = await tool.handler(
@@ -159,7 +176,55 @@ describe("system_upload_save tool", () => {
     ]);
   });
 
-  it("rejects a confirmed upload-save whose args do not match the pending approval", async () => {
+  it("derives preserved upload entity type from media handler instead of trusting model entityType", async () => {
+    const calls: unknown[] = [];
+    const services = buildServices({
+      entityType: "document",
+      uploadHandler: async (input) => {
+        calls.push(input);
+        return {
+          success: true,
+          data: { entityId: "report", status: "created" },
+        };
+      },
+    });
+    const tool = getCreateTool(createSystemTools(services));
+
+    const pending = await tool.handler(
+      {
+        entityType: "image",
+        title: "Quarterly Report",
+        source: {
+          kind: "upload",
+          upload: { kind: "upload", id: uploadId },
+          transform: "preserve",
+        },
+      },
+      context(),
+    );
+
+    expect(pending).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_create",
+    });
+    expect(pending).toHaveProperty("args.entityType", "document");
+    expect(pending).toHaveProperty("preview");
+    expect((pending as { preview: string }).preview).toContain(
+      "Entity type: document",
+    );
+
+    const confirmed = await tool.handler(
+      (pending as { args: Record<string, unknown> }).args,
+      context(),
+    );
+
+    expect(confirmed).toMatchObject({ success: true });
+    expect(calls).toEqual([
+      { upload: { kind: "upload", id: uploadId }, title: "Quarterly Report" },
+    ]);
+  });
+
+  it("rejects confirmed preserve calls whose args do not match the pending approval", async () => {
     const calls: unknown[] = [];
     const services = buildServices({
       uploadHandler: async (input) => {
@@ -170,15 +235,22 @@ describe("system_upload_save tool", () => {
         };
       },
     });
-    const tool = getUploadSaveTool(createSystemTools(services));
+    const tool = getCreateTool(createSystemTools(services));
 
     const pending = await tool.handler(
-      { upload: { kind: "upload", id: uploadId }, title: "Quarterly Report" },
+      {
+        entityType: "document",
+        title: "Quarterly Report",
+        source: {
+          kind: "upload",
+          upload: { kind: "upload", id: uploadId },
+          transform: "preserve",
+        },
+      },
       context(),
     );
     const args = (pending as { args: Record<string, unknown> }).args;
 
-    // Resubmit the approved token but swap the title — must not save.
     const swapped = await tool.handler(
       { ...args, title: "Different Title" },
       context(),
@@ -191,12 +263,19 @@ describe("system_upload_save tool", () => {
     expect(calls).toEqual([]);
   });
 
-  it("rejects accessible uploads when no plugin registered a media handler", async () => {
+  it("rejects accessible preserve uploads when no plugin registered a media handler", async () => {
     const services = buildServices({ mediaType: "application/zip" });
-    const tool = getUploadSaveTool(createSystemTools(services));
+    const tool = getCreateTool(createSystemTools(services));
 
     const result = await tool.handler(
-      { upload: { kind: "upload", id: uploadId } },
+      {
+        entityType: "document",
+        source: {
+          kind: "upload",
+          upload: { kind: "upload", id: uploadId },
+          transform: "preserve",
+        },
+      },
       context(),
     );
 

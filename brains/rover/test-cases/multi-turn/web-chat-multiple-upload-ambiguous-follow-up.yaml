@@ -50,15 +50,17 @@ turns:
   - userMessage: "save it"
     successCriteria:
       expectedTools:
-        - toolName: system_upload_save
+        - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            upload.kind: upload
-            upload.id: upload-00000000-0000-4000-8000-000000000902
+            entityType: image
+            source.kind: upload
+            source.transform: preserve
+            source.upload.kind: upload
+            source.upload.id: upload-00000000-0000-4000-8000-000000000902
           argsAbsent:
-            - entityType
             - sourceAttachment
-        - toolName: document_generate
+        - toolName: system_generate
           shouldBeCalled: false
       toolCountRange:
         max: 1
@@ -68,17 +70,17 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_upload_save
+    - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        upload.kind: upload
-        upload.id: upload-00000000-0000-4000-8000-000000000902
+        entityType: image
+        source.kind: upload
+        source.transform: preserve
+        source.upload.kind: upload
+        source.upload.id: upload-00000000-0000-4000-8000-000000000902
       argsAbsent:
-        - entityType
         - sourceAttachment
-    - toolName: system_create
-      shouldBeCalled: false
-    - toolName: document_generate
+    - toolName: system_generate
       shouldBeCalled: false
   responseNotContains:
     - "alpha-guide.pdf"

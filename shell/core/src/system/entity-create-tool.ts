@@ -1,16 +1,12 @@
 import { isSavableAssistantMessage } from "@brains/conversation-service";
 import type {
-  CreateCoverImageInput,
   CreateExecutionContext,
   CreateInput,
 } from "@brains/entity-service";
 import {
-  buildGenerationStubEntity,
   canWriteVisibility,
   extractVisibilityFromMarkdown,
   hasVisibilityFrontmatter,
-  permissionToVisibilityScope,
-  resolveEntityOrError,
 } from "@brains/entity-service";
 import {
   ConfirmationArgsStore,
@@ -31,35 +27,33 @@ import {
   normalizeOptionalString,
 } from "./tool-helpers";
 
-interface NormalizedCoverImageInput {
-  generate: true;
-  prompt?: string;
-}
-
-function normalizeCoverImageInput(
-  coverImage: boolean | CreateCoverImageInput | undefined,
-): NormalizedCoverImageInput | undefined {
-  if (coverImage === undefined || coverImage === false) return undefined;
-  if (coverImage === true) return { generate: true };
-
-  if (coverImage.generate === false) return undefined;
-  const prompt = normalizeOptionalString(coverImage.prompt);
-  return {
-    generate: true,
-    ...(prompt && { prompt }),
-  };
-}
-
-function buildCoverImagePrompt(
-  coverImage: NormalizedCoverImageInput,
-  title: string,
-): string {
-  return coverImage.prompt ?? `Editorial cover image for: ${title}. `;
-}
-
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
 // `content` already holds the resolved prior-response/text content.
+const uploadScope = {
+  namespace: "upload",
+  refKind: "upload",
+  routePath: "/api/chat/uploads",
+} as const;
+
+function buildUploadPreserveConfirmation(input: {
+  title?: string;
+  filename: string;
+  mediaType: string;
+  entityType: string;
+}): { summary: string; preview: string } {
+  const label = input.title ? ` as "${input.title}"` : "";
+  return {
+    summary: `Save uploaded file${label}?`,
+    preview: [
+      `Filename: ${input.filename}`,
+      `Media type: ${input.mediaType}`,
+      `Entity type: ${input.entityType}`,
+      ...(input.title ? [`Title: ${input.title}`] : []),
+    ].join("\n"),
+  };
+}
+
 function buildCreateConfirmation(createInput: CreateInput): {
   summary: string;
   preview: string;
@@ -84,87 +78,6 @@ function buildCreateConfirmation(createInput: CreateInput): {
   ];
 
   return { summary, preview: previewParts.join("\n") };
-}
-
-async function enqueueCoverImageGeneration(
-  services: SystemServices,
-  input: {
-    entityType: string;
-    entityId: string;
-    title: string;
-    content?: string;
-    coverImage: NormalizedCoverImageInput;
-  },
-  toolContext: Parameters<Tool["handler"]>[1],
-): Promise<string> {
-  return services.jobs.enqueue({
-    type: "image:image-generate",
-    data: {
-      prompt: buildCoverImagePrompt(input.coverImage, input.title),
-      title: `${input.title} Cover`,
-      aspectRatio: "16:9",
-      targetEntityType: input.entityType,
-      targetEntityId: input.entityId,
-      entityTitle: input.title,
-      ...(input.content && { entityContent: input.content }),
-    },
-    toolContext,
-  });
-}
-
-function validateCoverImageSupport(
-  services: SystemServices,
-  entityType: string,
-): { success: false; error: string } | undefined {
-  const adapter = services.entityRegistry.getAdapter(entityType);
-  if (adapter.supportsCoverImage) return undefined;
-  return {
-    success: false,
-    error: `Entity type '${entityType}' doesn't support cover images`,
-  };
-}
-
-function normalizeCreateTarget(input: {
-  entityType: string;
-  targetEntityType?: string | undefined;
-  targetEntityId?: string | undefined;
-}): { targetEntityType?: string; targetEntityId?: string } {
-  const targetEntityType = normalizeOptionalString(input.targetEntityType);
-  const targetEntityId = normalizeOptionalString(input.targetEntityId);
-  if (!targetEntityType || !targetEntityId) return {};
-
-  const canAttachCreatedArtifact =
-    input.entityType === "image" || input.entityType === "document";
-  if (!canAttachCreatedArtifact) return {};
-
-  const placeholderIds = new Set(["temp", "temporary", "placeholder", "draft"]);
-  if (placeholderIds.has(targetEntityId.toLowerCase())) return {};
-
-  return { targetEntityType, targetEntityId };
-}
-
-async function resolveSourceAttachment(
-  services: SystemServices,
-  input:
-    | {
-        sourceEntityType: string;
-        sourceEntityId: string;
-        attachmentType: string;
-      }
-    | undefined,
-  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
-): Promise<typeof input> {
-  if (!input) return undefined;
-  const result = await resolveEntityOrError(
-    services.entityService,
-    input.sourceEntityType,
-    input.sourceEntityId,
-    services.logger,
-    undefined,
-    visibilityScope,
-  );
-  if (!result.ok) return input;
-  return { ...input, sourceEntityId: result.entity.id };
 }
 
 async function resolveConversationMessageContent(
@@ -210,7 +123,6 @@ type CreateToolInput = z.infer<typeof createInputSchema>;
 type PreferredCreateSource = CreateToolInput["source"];
 
 interface NormalizedCreateSource {
-  prompt?: string;
   content?: string;
   url?: string;
   from?: Exclude<CreateInput["from"], { kind: "conversation-message" }>;
@@ -222,19 +134,13 @@ interface NormalizedCreateSource {
   transform?: CreateInput["transform"];
 }
 
-function normalizeCreateSource(
-  source: PreferredCreateSource,
-  sourceAttachment?: {
-    sourceEntityType: string;
-    sourceEntityId: string;
-    attachmentType: string;
-  },
-): { success: true; source: NormalizedCreateSource } {
+function normalizeCreateSource(source: PreferredCreateSource): {
+  success: true;
+  source: NormalizedCreateSource;
+} {
   switch (source.kind) {
     case "text":
       return { success: true, source: { content: source.content } };
-    case "generate":
-      return { success: true, source: { prompt: source.prompt } };
     case "url":
       return { success: true, source: { url: source.url } };
     case "upload":
@@ -244,20 +150,6 @@ function normalizeCreateSource(
           from: source.upload,
           uploadRef: source.upload,
           transform: source.transform,
-        },
-      };
-    case "attachment":
-      return {
-        success: true,
-        source: {
-          from: {
-            kind: "entity-attachment",
-            ...(sourceAttachment ?? {
-              sourceEntityType: source.sourceEntityType,
-              sourceEntityId: source.sourceEntityId,
-              attachmentType: source.attachmentType,
-            }),
-          },
         },
       };
     case "prior-response":
@@ -275,23 +167,8 @@ function normalizeCreateSource(
 
 function freezeConfirmationSource(input: {
   source: PreferredCreateSource;
-  resolvedSourceAttachment?: {
-    sourceEntityType: string;
-    sourceEntityId: string;
-    attachmentType: string;
-  };
   resolvedMessageId?: string;
 }): PreferredCreateSource {
-  if (input.source.kind === "attachment") {
-    return {
-      kind: "attachment",
-      ...(input.resolvedSourceAttachment ?? {
-        sourceEntityType: input.source.sourceEntityType,
-        sourceEntityId: input.source.sourceEntityId,
-        attachmentType: input.source.attachmentType,
-      }),
-    };
-  }
   if (input.source.kind === "prior-response") {
     const messageId = input.source.messageId ?? input.resolvedMessageId;
     return {
@@ -311,14 +188,12 @@ type InterceptorOutcome =
   | {
       kind: "continue";
       createInput: CreateInput;
-      coverImage: NormalizedCoverImageInput | undefined;
     };
 
 /**
  * Run a plugin create interceptor. Returns the terminal response when the
- * interceptor handles the create itself (queuing cover generation if asked),
- * an error when the transformed input fails policy/cover validation, or the
- * possibly-transformed input/cover for the caller to persist directly.
+ * interceptor handles the create itself, an error when the transformed input
+ * fails policy validation, or the possibly-transformed input for direct persistence.
  */
 async function runCreateInterceptor(
   services: SystemServices,
@@ -326,7 +201,6 @@ async function runCreateInterceptor(
     ReturnType<SystemServices["entityRegistry"]["getCreateInterceptor"]>
   >,
   createInput: CreateInput,
-  coverImage: NormalizedCoverImageInput | undefined,
   toolContext: CreateToolContext,
 ): Promise<InterceptorOutcome> {
   const executionContext: CreateExecutionContext = {
@@ -337,28 +211,10 @@ async function runCreateInterceptor(
   };
   const interception = await interceptor(createInput, executionContext);
   if (interception.kind === "handled") {
-    if (
-      coverImage &&
-      interception.result.success &&
-      interception.result.data.status === "created" &&
-      interception.result.data.entityId
-    ) {
-      await enqueueCoverImageGeneration(
-        services,
-        {
-          entityType: createInput.entityType,
-          entityId: interception.result.data.entityId,
-          title: createInput.title ?? interception.result.data.entityId,
-          ...(createInput.content && { content: createInput.content }),
-          coverImage,
-        },
-        toolContext,
-      );
-    }
     return { kind: "handled", result: interception.result };
   }
 
-  let transformedInput = interception.input;
+  const transformedInput = interception.input;
   const transformedPolicyError = assertEntityActionAllowed(
     services,
     transformedInput.entityType,
@@ -369,123 +225,42 @@ async function runCreateInterceptor(
     return { kind: "error", result: transformedPolicyError };
   }
 
-  const transformedCover = normalizeCoverImageInput(
-    transformedInput.coverImage,
-  );
-  if (transformedCover) {
-    const validationError = validateCoverImageSupport(
-      services,
-      transformedInput.entityType,
-    );
-    if (validationError) return { kind: "error", result: validationError };
-    transformedInput = { ...transformedInput, coverImage: transformedCover };
-  }
-
   return {
     kind: "continue",
     createInput: transformedInput,
-    coverImage: transformedCover,
   };
 }
 
 /**
- * Persist a generate-source create: write a generation stub, then enqueue the
- * entity-type generation job. Returns the queued status or a structured error.
+ * Persist a content/text-source create directly, choosing markdown or raw
+ * creation based on whether the entity type has structured frontmatter.
  */
-async function executeGenerateCreate(
-  services: SystemServices,
-  createInput: CreateInput,
-  prompt: string,
-  coverImage: NormalizedCoverImageInput | undefined,
-  eventContext: CreateEventContext,
+async function executeUploadPreserve(
+  input: {
+    upload: { kind: "upload"; id: string };
+    title?: string;
+    handler: NonNullable<PreparedCreate["uploadPreserve"]>["handler"];
+  },
   toolContext: CreateToolContext,
 ): Promise<ToolResponse> {
-  const { entityService, jobs } = services;
-  const proposedId = slugify(createInput.title ?? prompt).slice(0, 100);
-  if (!proposedId) {
-    return {
-      success: false,
-      error:
-        "Could not derive a slug from the provided title/prompt. Provide a 'title' with at least one URL-safe character.",
-    };
-  }
-  const stubTitle = createInput.title ?? proposedId;
-  const stub = buildGenerationStubEntity(services.entityRegistry, {
-    entityType: createInput.entityType,
-    id: proposedId,
-    title: stubTitle,
-  });
-  if (!stub) {
-    return {
-      success: false,
-      error: `Entity type '${createInput.entityType}' does not support queued generate-source creation. Provide source kind "text" instead.`,
-    };
-  }
-
-  let resolvedEntityId: string;
-  try {
-    const result = await entityService.createEntity({
-      entity: stub,
-      options: {
-        deduplicateId: true,
-        ...(eventContext ? { eventContext } : {}),
-      },
-    });
-    resolvedEntityId = result.entityId;
-  } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to persist generation stub",
-    };
-  }
-
-  try {
-    const jobId = await jobs.enqueue({
-      type: `${createInput.entityType}:generation`,
-      data: {
-        entityId: resolvedEntityId,
-        prompt,
-        ...(createInput.title && { title: createInput.title }),
-        ...(createInput.content && { content: createInput.content }),
-        ...(createInput.targetEntityType && {
-          targetEntityType: createInput.targetEntityType,
-        }),
-        ...(createInput.targetEntityId && {
-          targetEntityId: createInput.targetEntityId,
-        }),
-        ...(coverImage && { coverImage }),
-      },
-      toolContext,
-    });
-    return {
-      success: true,
-      data: { entityId: resolvedEntityId, status: "generating", jobId },
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to queue generation job",
-    };
-  }
+  const executionContext: CreateExecutionContext = {
+    interfaceType: toolContext.interfaceType,
+    userId: toolContext.userId,
+    ...(toolContext.channelId && { channelId: toolContext.channelId }),
+    ...(toolContext.channelName && {
+      channelName: toolContext.channelName,
+    }),
+  };
+  return input.handler(
+    { upload: input.upload, ...(input.title && { title: input.title }) },
+    executionContext,
+  );
 }
 
-/**
- * Persist a content/text-source create directly, choosing markdown or raw
- * creation based on whether the entity type has structured frontmatter, then
- * enqueue cover-image generation if requested.
- */
 async function executeDirectCreate(
   services: SystemServices,
   createInput: CreateInput,
-  coverImage: NormalizedCoverImageInput | undefined,
   eventContext: CreateEventContext,
-  toolContext: CreateToolContext,
 ): Promise<ToolResponse> {
   const { entityService, entityRegistry } = services;
   const id = slugify(
@@ -520,20 +295,6 @@ async function executeDirectCreate(
             },
             options: createOptions,
           });
-    if (coverImage) {
-      await enqueueCoverImageGeneration(
-        services,
-        {
-          entityType: createInput.entityType,
-          entityId: result.entityId,
-          title: createInput.title ?? result.entityId,
-          ...(createInput.content && { content: createInput.content }),
-          coverImage,
-        },
-        toolContext,
-      );
-    }
-
     return {
       success: true,
       data: { entityId: result.entityId, status: "created" },
@@ -548,19 +309,19 @@ async function executeDirectCreate(
 
 interface PreparedCreate {
   createInput: CreateInput;
-  coverImage: NormalizedCoverImageInput | undefined;
-  sourceAttachment:
-    | {
-        sourceEntityType: string;
-        sourceEntityId: string;
-        attachmentType: string;
-      }
-    | undefined;
   resolvedMessageId: string | undefined;
   interceptor: ReturnType<
     SystemServices["entityRegistry"]["getCreateInterceptor"]
   >;
   eventContext: CreateEventContext;
+  uploadPreserve?: {
+    upload: { kind: "upload"; id: string };
+    filename: string;
+    mediaType: string;
+    handler: NonNullable<
+      ReturnType<SystemServices["entityRegistry"]["getUploadSaveHandler"]>
+    >["handler"];
+  };
 }
 
 /**
@@ -577,41 +338,20 @@ async function prepareCreate(
   | { kind: "error"; result: ToolResponse }
   | { kind: "ok"; prepared: PreparedCreate }
 > {
-  const unregisteredError = assertEntityTypeRegistered(
-    services,
-    input.entityType,
-  );
-  if (unregisteredError) return { kind: "error", result: unregisteredError };
+  const isUploadPreserve =
+    input.source.kind === "upload" && input.source.transform === "preserve";
+  if (!isUploadPreserve) {
+    const unregisteredError = assertEntityTypeRegistered(
+      services,
+      input.entityType,
+    );
+    if (unregisteredError) return { kind: "error", result: unregisteredError };
+  }
 
-  const visibilityScope = permissionToVisibilityScope(
-    toolContext.userPermissionLevel,
-  );
-  const sourceAttachment =
-    input.source.kind === "attachment"
-      ? await resolveSourceAttachment(
-          services,
-          {
-            sourceEntityType: input.source.sourceEntityType,
-            sourceEntityId: input.source.sourceEntityId,
-            attachmentType: input.source.attachmentType,
-          },
-          visibilityScope,
-        )
-      : undefined;
-  const normalizedSource = normalizeCreateSource(
-    input.source,
-    sourceAttachment,
-  );
+  const normalizedSource = normalizeCreateSource(input.source);
 
-  const {
-    prompt,
-    content,
-    url,
-    from,
-    uploadRef,
-    conversationMessageRef,
-    transform,
-  } = normalizedSource.source;
+  const { content, url, from, uploadRef, conversationMessageRef, transform } =
+    normalizedSource.source;
   const resolvedConversationMessage = conversationMessageRef
     ? await resolveConversationMessageContent(
         services,
@@ -641,41 +381,19 @@ async function prepareCreate(
     };
   }
   const replace = input.replace === true;
-  const suppliedTargetEntityType = normalizeOptionalString(
-    input.targetEntityType,
-  );
-  const suppliedTargetEntityId = normalizeOptionalString(input.targetEntityId);
-  const { targetEntityType, targetEntityId } = normalizeCreateTarget({
-    entityType: input.entityType,
-    ...(suppliedTargetEntityType
-      ? { targetEntityType: suppliedTargetEntityType }
-      : {}),
-    ...(suppliedTargetEntityId
-      ? { targetEntityId: suppliedTargetEntityId }
-      : {}),
-  });
-  const coverImage = normalizeCoverImageInput(input.coverImage);
 
-  if (!!suppliedTargetEntityType !== !!suppliedTargetEntityId)
+  if (!resolvedContent && !url && !from)
     return {
       kind: "error",
       result: {
         success: false,
         error:
-          "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
+          'Provide `source` with kind "text", "url", "prior-response", or "upload". Use system_generate for generated content or artifacts.',
       },
     };
 
-  if (!resolvedContent && !prompt && !url && !from)
-    return {
-      kind: "error",
-      result: {
-        success: false,
-        error:
-          'Provide `source` with kind "text", "generate", "url", "prior-response", "upload", or "attachment".',
-      },
-    };
-
+  let uploadPreserve: PreparedCreate["uploadPreserve"];
+  let derivedEntityType = input.entityType;
   if (uploadRef) {
     const hasAccess = await isUploadRefInConversation(
       services,
@@ -692,6 +410,52 @@ async function prepareCreate(
         },
       };
     }
+
+    if (transform === "preserve") {
+      let uploadRecord: {
+        filename: string;
+        mediaType: string;
+      };
+      try {
+        uploadRecord = await services.runtimeUploads
+          .scoped(uploadScope)
+          .readRecord(uploadRef.id);
+      } catch {
+        return {
+          kind: "error",
+          result: { success: false, error: "Upload ref not found" },
+        };
+      }
+
+      const registration = services.entityRegistry.getUploadSaveHandler(
+        uploadRecord.mediaType,
+      );
+      if (!registration) {
+        return {
+          kind: "error",
+          result: {
+            success: false,
+            error: `No installed plugin can save uploads with media type "${uploadRecord.mediaType}".`,
+          },
+        };
+      }
+
+      derivedEntityType = registration.entityType;
+      uploadPreserve = {
+        upload: uploadRef,
+        filename: uploadRecord.filename,
+        mediaType: uploadRecord.mediaType,
+        handler: registration.handler,
+      };
+    }
+  }
+
+  const unregisteredDerivedError = assertEntityTypeRegistered(
+    services,
+    derivedEntityType,
+  );
+  if (unregisteredDerivedError) {
+    return { kind: "error", result: unregisteredDerivedError };
   }
 
   if (resolvedContent && hasVisibilityFrontmatter(resolvedContent)) {
@@ -712,26 +476,14 @@ async function prepareCreate(
   const eventContext = buildEntityMutationEventContext(toolContext);
 
   const createInput: CreateInput = {
-    entityType: input.entityType,
-    ...(prompt && { prompt }),
+    entityType: derivedEntityType,
     ...(title && { title }),
     ...(resolvedContent && { content: resolvedContent }),
     ...(url && { url }),
     ...(from && { from }),
     ...(transform && { transform }),
     ...(replace && { replace }),
-    ...(targetEntityType && { targetEntityType }),
-    ...(targetEntityId && { targetEntityId }),
-    ...(coverImage && { coverImage }),
   };
-
-  if (coverImage) {
-    const validationError = validateCoverImageSupport(
-      services,
-      createInput.entityType,
-    );
-    if (validationError) return { kind: "error", result: validationError };
-  }
 
   const policyError = assertEntityActionAllowed(
     services,
@@ -745,13 +497,13 @@ async function prepareCreate(
     createInput.entityType,
   );
 
-  if (!createInput.content && !createInput.prompt && !interceptor) {
+  if (!createInput.content && !interceptor && !uploadPreserve) {
     return {
       kind: "error",
       result: {
         success: false,
         error:
-          'URL, upload, or attachment source creation is supported only for entity types that explicitly handle it. Provide source kind "text" or "generate" for this entity type.',
+          'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
       },
     };
   }
@@ -764,11 +516,9 @@ async function prepareCreate(
   // explicit opt-in for intentionally creating a new copy. Interceptor-
   // backed types own their own id/existence handling, so skip them.
   if (!interceptor && !replace) {
-    const candidateId = createInput.prompt
-      ? slugify(createInput.title ?? createInput.prompt).slice(0, 100)
-      : createInput.title
-        ? slugify(createInput.title)
-        : undefined;
+    const candidateId = createInput.title
+      ? slugify(createInput.title)
+      : undefined;
     if (candidateId) {
       const existing = await services.entityService.getEntity({
         entityType: createInput.entityType,
@@ -790,14 +540,13 @@ async function prepareCreate(
     kind: "ok",
     prepared: {
       createInput,
-      coverImage,
-      sourceAttachment,
       resolvedMessageId:
         resolvedConversationMessage?.success === true
           ? resolvedConversationMessage.messageId
           : undefined,
       interceptor,
       eventContext,
+      ...(uploadPreserve && { uploadPreserve }),
     },
   };
 }
@@ -807,13 +556,13 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Requires confirmation. Use source to choose exactly one source: text for exact user-provided content, generate for AI generation, url for URL-first flows, prior-response for saving a previous assistant response, upload with transform extract-markdown only for uploaded PDF/text/markdown/JSON imports into note entities, or attachment for source-derived entity artifacts. If the user includes content in the same direct save request, use source.kind text with that content instead of asking them to paste it again. Use entityType wish for explicitly saved or tracked unmet requested capabilities or outcomes. Use system_upload_save, not system_create, for raw uploaded file preservation as a document or image. Do not call both tools for the same upload save request. targetEntityType/targetEntityId are only for attaching a newly created image/document to an existing canonical entity; never use placeholder IDs such as temp and omit target fields for standalone images or for a new entity's own coverImage. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity from existing material. Requires confirmation. Use source to choose exactly one concrete source: text for exact user-provided content, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind text with that content instead of asking them to paste it again. Use entityType wish for explicitly saved or tracked unmet requested capabilities or outcomes. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const prep = await prepareCreate(services, input, toolContext);
       if (prep.kind === "error") return prep.result;
-      let { createInput, coverImage } = prep.prepared;
-      const { sourceAttachment, resolvedMessageId, interceptor, eventContext } =
+      let { createInput } = prep.prepared;
+      const { resolvedMessageId, interceptor, eventContext, uploadPreserve } =
         prep.prepared;
 
       if (input.confirmed) {
@@ -834,12 +583,16 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           };
         }
       } else {
-        const confirmation = buildCreateConfirmation(createInput);
+        const confirmation = uploadPreserve
+          ? buildUploadPreserveConfirmation({
+              ...(createInput.title && { title: createInput.title }),
+              filename: uploadPreserve.filename,
+              mediaType: uploadPreserve.mediaType,
+              entityType: createInput.entityType,
+            })
+          : buildCreateConfirmation(createInput);
         const confirmationSource = freezeConfirmationSource({
           source: input.source,
-          ...(sourceAttachment && {
-            resolvedSourceAttachment: sourceAttachment,
-          }),
           ...(resolvedMessageId && { resolvedMessageId }),
         });
         const confirmationArgs = confirmationArgsStore.create(
@@ -848,15 +601,6 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             ...(createInput.title && { title: createInput.title }),
             source: confirmationSource,
             ...(createInput.replace && { replace: createInput.replace }),
-            ...(createInput.targetEntityType && {
-              targetEntityType: createInput.targetEntityType,
-            }),
-            ...(createInput.targetEntityId && {
-              targetEntityId: createInput.targetEntityId,
-            }),
-            ...(createInput.coverImage && {
-              coverImage: createInput.coverImage,
-            }),
             confirmed: true,
             confirmationToken,
           }),
@@ -869,47 +613,38 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           args: confirmationArgs,
         };
       }
+      if (uploadPreserve) {
+        return executeUploadPreserve(
+          {
+            upload: uploadPreserve.upload,
+            ...(createInput.title && { title: createInput.title }),
+            handler: uploadPreserve.handler,
+          },
+          toolContext,
+        );
+      }
       if (interceptor) {
         const outcome = await runCreateInterceptor(
           services,
           interceptor,
           createInput,
-          coverImage,
           toolContext,
         );
         if (outcome.kind === "handled" || outcome.kind === "error") {
           return outcome.result;
         }
         createInput = outcome.createInput;
-        coverImage = outcome.coverImage;
       }
 
-      if (!createInput.content && !createInput.prompt) {
+      if (!createInput.content) {
         return {
           success: false,
           error:
-            'URL, upload, or attachment source creation is supported only for entity types that explicitly handle it. Provide source kind "text" or "generate" for this entity type.',
+            'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
         };
       }
 
-      if (createInput.prompt) {
-        return executeGenerateCreate(
-          services,
-          createInput,
-          createInput.prompt,
-          coverImage,
-          eventContext,
-          toolContext,
-        );
-      }
-
-      return executeDirectCreate(
-        services,
-        createInput,
-        coverImage,
-        eventContext,
-        toolContext,
-      );
+      return executeDirectCreate(services, createInput, eventContext);
     },
     { visibility: "trusted", sideEffects: "writes" },
   );
