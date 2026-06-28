@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createPluginHarness } from "../../src/test/harness";
 import { createSilentLogger } from "@brains/test-utils";
-import { EntityPlugin } from "../../src/entity/entity-plugin";
+import {
+  EntityPlugin,
+  emptyEntityPluginConfigSchema,
+} from "../../src/entity/entity-plugin";
 import type { EntityPluginContext } from "../../src/entity/context";
 import type { DerivedEntityProjection } from "../../src/entity/derived-entity-projection";
 import type {
@@ -51,7 +54,7 @@ class TestEntityPlugin extends EntityPlugin<
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("test-item", testPkg, {});
+    super("test-item", testPkg, {}, emptyEntityPluginConfigSchema);
   }
 }
 
@@ -65,7 +68,7 @@ class InterceptingEntityPlugin extends EntityPlugin<
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("intercepting-item", testPkg, {});
+    super("intercepting-item", testPkg, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override async interceptCreate(input: {
@@ -92,7 +95,7 @@ class ProjectionEntityPlugin extends EntityPlugin<
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("projection-item", testPkg, {});
+    super("projection-item", testPkg, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getDerivedEntityProjections(

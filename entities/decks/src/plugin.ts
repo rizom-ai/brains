@@ -6,7 +6,7 @@ import type {
   DataSource,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
 import { getErrorMessage } from "@brains/utils";
@@ -60,7 +60,7 @@ export class DecksPlugin extends EntityPlugin<
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(deps: DecksPluginDeps = {}) {
-    super("decks", packageJson, {});
+    super("decks", packageJson, {}, emptyEntityPluginConfigSchema);
     this.deps = deps;
   }
 

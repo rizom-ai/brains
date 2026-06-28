@@ -8,7 +8,7 @@ import type {
   Plugin,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AgentDataSource } from "../datasources/agent-datasource";
 import { AgentGenerationJobHandler } from "../handlers/agent-generation-handler";
@@ -33,7 +33,12 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   readonly adapter = agentAdapter;
 
   constructor() {
-    super(AGENT_DISCOVERY_PLUGIN_ID, packageJson, {});
+    super(
+      AGENT_DISCOVERY_PLUGIN_ID,
+      packageJson,
+      {},
+      emptyEntityPluginConfigSchema,
+    );
   }
 
   protected override interceptCreate(

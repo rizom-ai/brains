@@ -1,5 +1,5 @@
 import type { Plugin, EntityTypeConfig } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { promptSchema, type Prompt } from "./schemas/prompt";
 import { promptAdapter } from "./adapters/prompt-adapter";
 import packageJson from "../package.json";
@@ -24,7 +24,7 @@ export class PromptPlugin extends EntityPlugin<
   readonly adapter = promptAdapter;
 
   constructor() {
-    super("prompt", packageJson, {}, undefined);
+    super("prompt", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   public override getEntityTypeConfig(): EntityTypeConfig {

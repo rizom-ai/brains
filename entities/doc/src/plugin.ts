@@ -1,5 +1,5 @@
 import type { DataSource, Plugin, Template } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { docSchema, type Doc } from "./schemas/doc";
 import { docAdapter } from "./adapters/doc-adapter";
 import { DocDataSource } from "./datasources/doc-datasource";
@@ -16,7 +16,7 @@ export class DocsPlugin extends EntityPlugin<
   readonly adapter = docAdapter;
 
   constructor() {
-    super("docs", packageJson, {}, undefined);
+    super("docs", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getTemplates(): Record<string, Template> {

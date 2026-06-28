@@ -4,7 +4,10 @@
 
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
-export { EntityPlugin } from "./entity/entity-plugin";
+export {
+  EntityPlugin,
+  emptyEntityPluginConfigSchema,
+} from "./entity/entity-plugin";
 export {
   hasPersistedTargets,
   reconcileDerivedEntities,

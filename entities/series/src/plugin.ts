@@ -8,7 +8,7 @@ import type {
   BaseEntity,
   DerivedEntityProjection,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod-v4";
 import { seriesSchema, type Series } from "./schemas/series";
@@ -60,7 +60,7 @@ export class SeriesPlugin extends EntityPlugin<
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor() {
-    super("series", packageJson, {});
+    super("series", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {

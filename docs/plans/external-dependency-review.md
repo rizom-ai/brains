@@ -1055,6 +1055,11 @@ Incremental migration progress:
   `shell/entity-service/src/types.ts` and switched registry helper annotations
   to those aliases. This removes a local main-Zod type-only import without
   changing durable entity/frontmatter schema ownership.
+- Migrated the runtime `EntityPlugin` empty config schema to
+  `@brains/utils/zod-v4` and made no-config entity plugins pass the shared empty
+  config schema explicitly. Durable entity/frontmatter schemas remain on their
+  current main-Zod boundary; this only removes the entity-plugin base class's
+  nominal main-Zod config parser slot.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

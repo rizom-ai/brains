@@ -4,7 +4,7 @@ import type {
   EntityTypeConfig,
   DataSource,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import {
   SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
@@ -39,7 +39,7 @@ export class SiteInfoPlugin extends EntityPlugin<
   private defaultSiteInfo: Partial<SiteInfoBody>;
 
   constructor(config?: { siteInfo?: Partial<SiteInfoBody> }) {
-    super("site-info", packageJson, {});
+    super("site-info", packageJson, {}, emptyEntityPluginConfigSchema);
     this.defaultSiteInfo = config?.siteInfo ?? {};
   }
 

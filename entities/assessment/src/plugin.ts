@@ -1,5 +1,5 @@
 import type { Plugin, EntityPluginContext } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
 import type { SwotDerivationJobData } from "./schemas/swot-generation";
 import { SwotAdapter } from "./adapters/swot-adapter";
@@ -22,7 +22,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<
   private initialSyncComplete = false;
 
   constructor() {
-    super("swot", packageJson, {});
+    super("swot", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override async onRegister(
