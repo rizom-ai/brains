@@ -4,7 +4,7 @@ preset: core
 plugins:
   playbooks:
     triggers:
-      first-anchor-web-chat: true
+      first-anchor-web-chat: false
   directory-sync:
     seedContentPath: ../../eval-content-core
     autoSync: true
