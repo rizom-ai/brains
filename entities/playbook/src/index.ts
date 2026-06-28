@@ -1,13 +1,12 @@
 import type { Plugin } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { playbookAdapter } from "./adapters/playbook-adapter";
+import { playbookSchema, type PlaybookEntity } from "./schemas/playbook";
 import {
   playbookConfigSchema,
-  playbookSchema,
   type PlaybookConfig,
   type PlaybookConfigInput,
-  type PlaybookEntity,
-} from "./schemas/playbook";
+} from "./schemas/playbook-config";
 import packageJson from "../package.json";
 
 export class PlaybookPlugin extends EntityPlugin<
@@ -41,7 +40,6 @@ export {
   playbookAudienceSchema,
   playbookBodySchema,
   playbookCompletionModeSchema,
-  playbookConfigSchema,
   playbookFrontmatterSchema,
   playbookMetadataSchema,
   playbookSchema,
@@ -51,8 +49,6 @@ export {
   type PlaybookAudience,
   type PlaybookBody,
   type PlaybookCompletionMode,
-  type PlaybookConfig,
-  type PlaybookConfigInput,
   type PlaybookEntity,
   type PlaybookFrontmatter,
   type PlaybookMetadata,
@@ -60,6 +56,11 @@ export {
   type PlaybookStatus,
   type PlaybookTransition,
 } from "./schemas/playbook";
+export {
+  playbookConfigSchema,
+  type PlaybookConfig,
+  type PlaybookConfigInput,
+} from "./schemas/playbook-config";
 export {
   assertValidPlaybookBody,
   validatePlaybookBody,

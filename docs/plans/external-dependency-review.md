@@ -836,7 +836,8 @@ Incremental migration progress:
   plus channel/judge/runtime-state context tests to `@brains/utils/zod-v4`.
   Existing main-Zod channel schemas remain compatible because the messaging
   namespace only calls `safeParse`; the public plugin-author channel type now
-  mirrors that structural contract.
+  mirrors that structural contract. Entity plugin entity-schema typing now
+  derives from `EntityAdapter` instead of spelling main-Zod generics locally.
 - Migrated MCP bridge remote-tool and call-result response guards to
   `@brains/utils/zod-v4` while keeping generated tool input schemas on the
   current main-Zod boundary required by tool registration.
@@ -948,9 +949,8 @@ Incremental migration progress:
   schemas on their existing main-Zod boundaries.
 - Migrated additional service/internal parser boundaries to
   `@brains/utils/zod-v4`: dashboard plugin config/widget message payloads,
-  auth-service plugin config, and playbook runtime-state/run parser schemas.
-  Playbooks keeps model tool input schemas and judge output schema on main Zod
-  where those framework contracts still require tool-facing schemas.
+  auth-service plugin config, and playbook runtime-state/run/config parser
+  schemas. Playbooks keeps durable entity/frontmatter schemas on main Zod.
 - Migrated the agent-discovery, portfolio, and products list/detail template
   parser boundaries to `@brains/utils/zod-v4` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas

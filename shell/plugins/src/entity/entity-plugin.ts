@@ -67,8 +67,8 @@ export abstract class EntityPlugin<
     }
   }
 
-  /** Zod schema for validating entities of this type */
-  abstract readonly schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
+  /** Schema for validating entities of this type */
+  abstract readonly schema: EntityAdapter<TEntity>["schema"];
 
   /** Entity adapter for serialization/deserialization */
   abstract readonly adapter: EntityAdapter<TEntity>;

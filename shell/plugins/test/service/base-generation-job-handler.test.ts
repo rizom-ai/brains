@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
-import { z } from "@brains/utils/zod";
+import { z as zMain } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import {
   createMockEntityPluginContext,
   createMockEntityService,
@@ -18,7 +19,7 @@ const testJobSchema = z.object({
   shouldFail: z.boolean().optional(),
 });
 
-type TestJobData = z.infer<typeof testJobSchema>;
+type TestJobData = z.output<typeof testJobSchema>;
 type TestGenerationResult = GenerationResult & { slug?: string };
 
 class TestGenerationHandler extends BaseGenerationJobHandler<
@@ -261,9 +262,9 @@ describe("BaseGenerationJobHandler", () => {
     // Effective schema requires `status`; the body-only generator emits none,
     // and the stub's `status` is stripped as a lifecycle field — so the merge
     // must fail validation rather than silently saving an invalid entity.
-    const requiredStatusSchema = z.object({
-      title: z.string(),
-      status: z.string(),
+    const requiredStatusSchema = zMain.object({
+      title: zMain.string(),
+      status: zMain.string(),
     });
     context.entities.getEffectiveFrontmatterSchema = mock(
       () => requiredStatusSchema,

@@ -72,8 +72,6 @@ export const playbookSchema = baseEntitySchema.extend({
   metadata: playbookMetadataSchema,
 });
 
-export const playbookConfigSchema = z.object({});
-
 export type PlaybookStatus = z.infer<typeof playbookStatusSchema>;
 export type PlaybookAudience = z.infer<typeof playbookAudienceSchema>;
 export type PlaybookCompletionMode = z.infer<
@@ -85,5 +83,3 @@ export type PlaybookBody = z.infer<typeof playbookBodySchema>;
 export type PlaybookFrontmatter = z.infer<typeof playbookFrontmatterSchema>;
 export type PlaybookMetadata = z.infer<typeof playbookMetadataSchema>;
 export type PlaybookEntity = z.infer<typeof playbookSchema>;
-export type PlaybookConfig = z.output<typeof playbookConfigSchema>;
-export type PlaybookConfigInput = z.input<typeof playbookConfigSchema>;
