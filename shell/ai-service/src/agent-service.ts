@@ -631,11 +631,7 @@ export class AgentService implements IAgentService {
     const liveUploadRefs = await this.filterLiveUploadRefs(
       uploadContinuity.refs,
     );
-    const modelUploadRefs =
-      uploadContinuity.priorResponseRef !== undefined &&
-      liveUploadRefs.length === 1
-        ? []
-        : liveUploadRefs;
+    const modelUploadRefs = liveUploadRefs;
 
     const effectiveMessage = uploadContinuity.message;
     const effectiveAttachments = await this.hydrateUploadAttachments({

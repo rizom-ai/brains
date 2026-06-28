@@ -172,6 +172,7 @@ export function resolveConversationUploadContinuity(params: {
   historyMessages: Message[];
 }): ConversationUploadContinuitySelection {
   const refs = selectConversationUploadRefs({
+    message: params.message,
     currentAttachments: params.currentAttachments,
     historyMessages: params.historyMessages,
   });
@@ -191,6 +192,7 @@ export function resolveConversationUploadContinuity(params: {
 }
 
 function selectConversationUploadRefs(params: {
+  message: string;
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
 }): ConversationUploadRef[] {
@@ -200,8 +202,29 @@ function selectConversationUploadRefs(params: {
   const historicalRefs = collectUploadRefsFromMessages(params.historyMessages)
     .slice(-MAX_HISTORICAL_UPLOAD_REFS)
     .reverse();
+  const refs = dedupeUploadRefs([...currentRefs, ...historicalRefs]);
+  const mediaKind = referencedUploadMediaKind(params.message);
+  if (mediaKind === undefined) return refs;
+  return refs
+    .filter((ref) => uploadRefMatchesMediaKind(ref, mediaKind))
+    .slice(0, 1);
+}
 
-  return dedupeUploadRefs([...currentRefs, ...historicalRefs]);
+function referencedUploadMediaKind(
+  message: string,
+): "image" | "pdf" | undefined {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("uploaded image")) return "image";
+  if (normalized.includes("uploaded pdf")) return "pdf";
+  return undefined;
+}
+
+function uploadRefMatchesMediaKind(
+  ref: ConversationUploadRef,
+  mediaKind: "image" | "pdf",
+): boolean {
+  if (mediaKind === "image") return ref.mediaType.startsWith("image/");
+  return ref.mediaType === "application/pdf";
 }
 
 function dedupeUploadRefs(
@@ -311,7 +334,7 @@ function formatUploadRefs(
   if (lines.length === 0) return priorResponseCandidate;
 
   const guidance =
-    "Available upload refs from this conversation. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. Upload candidates are file bytes; previous assistant answers are saved separately. Use system_upload_save for preserving raw file bytes as a document/image. Use system_create source.kind upload only for extracting/importing upload text as a note. Choose one tool; do not call both for the same upload save request.";
+    'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create or system_upload_save unless the user explicitly asks to save, import, preserve, or create an entity. Upload candidates are file bytes; previous assistant answers are saved separately. Use system_upload_save for preserving raw file bytes as a document/image. Use system_create source.kind upload only for extracting/importing upload text as a note. Choose one tool; do not call both for the same upload save request.';
 
   return [guidance, priorResponseCandidate, ...lines]
     .filter((line) => line.length > 0)
