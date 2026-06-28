@@ -5,12 +5,8 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createTemplate } from "@brains/templates";
-import { enrichedBlogPostSchema } from "@brains/blog";
-import { enrichedDeckSchema } from "@brains/decks";
-import { siteInfoCTASchema } from "@brains/site-info";
-import { professionalProfileSchema } from "./schemas";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";
 import {
@@ -34,6 +30,103 @@ const homepageSectionSchema = z.object({
     .string()
     .optional()
     .describe("Short italic subtitle under the section title"),
+});
+
+const siteInfoCTASchema = z.object({
+  heading: z.string(),
+  buttonText: z.string(),
+  buttonLink: z.string(),
+});
+
+const professionalProfileSchema = z.looseObject({
+  name: z.string(),
+  kind: z.enum(["professional", "team", "collective"]),
+  organization: z.string().optional(),
+  description: z.string().optional(),
+  avatar: z.string().optional(),
+  website: z.string().optional(),
+  email: z.string().optional(),
+  socialLinks: z
+    .array(
+      z.object({
+        platform: z.enum([
+          "github",
+          "instagram",
+          "linkedin",
+          "email",
+          "website",
+        ]),
+        url: z.string(),
+        label: z.string().optional(),
+      }),
+    )
+    .optional(),
+  tagline: z.string().optional(),
+  intro: z.string().optional(),
+  story: z.string().optional(),
+  role: z.string().optional(),
+  audience: z.string().optional(),
+  expertise: z.array(z.string()).optional(),
+  currentFocus: z.string().optional(),
+  availability: z.string().optional(),
+  desiredTone: z.string().optional(),
+});
+
+const blogPostSchema = z.looseObject({
+  id: z.string(),
+  entityType: z.literal("post"),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  contentHash: z.string(),
+  metadata: z.looseObject({
+    title: z.string(),
+    publishedAt: z.string().optional(),
+  }),
+  frontmatter: z.looseObject({
+    excerpt: z.string(),
+    seriesName: z.string().optional(),
+    seriesIndex: z.number().optional(),
+  }),
+  body: z.string(),
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
+  seriesUrl: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
+  coverImageSrcset: z.string().optional(),
+  coverImageSizes: z.string().optional(),
+});
+
+const deckSchema = z.looseObject({
+  id: z.string(),
+  entityType: z.literal("deck"),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  contentHash: z.string(),
+  metadata: z.looseObject({
+    title: z.string(),
+    publishedAt: z.string().optional(),
+  }),
+  frontmatter: z.looseObject({
+    title: z.string(),
+    description: z.string().optional(),
+    publishedAt: z.string().optional(),
+  }),
+  body: z.string(),
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
 });
 
 /**
@@ -83,8 +176,8 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering
     const homepageListSchema = z.object({
       profile: professionalProfileSchema,
-      posts: z.array(enrichedBlogPostSchema),
-      decks: z.array(enrichedDeckSchema),
+      posts: z.array(blogPostSchema),
+      decks: z.array(deckSchema),
       postsListUrl: z.string(),
       decksListUrl: z.string(),
       cta: siteInfoCTASchema,

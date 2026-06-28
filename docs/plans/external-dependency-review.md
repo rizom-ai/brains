@@ -980,7 +980,10 @@ Incremental migration progress:
   shapes instead of composing the shared Zod 4 metadata schemas into durable
   entity/template schema trees. The standalone site-info view schema is now
   Zod 4-owned with duplicated local body/CTA/section shapes, leaving the
-  durable site-info entity/body schemas on main Zod.
+  durable site-info entity/body schemas on main Zod. Personal and professional
+  site homepage/about template schemas now use local Zod 4 view shapes for
+  profile, CTA, post, and deck data instead of composing durable entity schemas
+  from the entity packages.
 - Migrated brain definition preset/mode schemas, app `brain.yaml` instance
   override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod-v4`.
   The app parser duplicates the small permission/action-policy validation
