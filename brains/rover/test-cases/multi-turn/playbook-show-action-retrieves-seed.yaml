@@ -1,6 +1,6 @@
 id: multi-turn-playbook-show-action-retrieves-seed
 name: Playbook Retrieval Uses Saved Seed
-description: Verifies that Rover does not answer from playbook runtime evidence alone; when asked to find the saved seed, Rover must use normal retrieval tools before saying it found it.
+description: Verifies that Rover does not answer from playbook runtime evidence alone in the first knowledge loop; when asked to find the saved seed, Rover must use normal retrieval tools before saying it found it.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -58,6 +58,17 @@ turns:
   - userMessage: "Approve saving that profile update."
     confirmPendingAction: true
     successCriteria:
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Start playbook rover-first-knowledge-loop."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-first-knowledge-loop
       responseNotContains:
         - "I cannot"
         - "I don't have access"
@@ -120,5 +131,5 @@ successCriteria:
     - "playbook_send_event"
 
 efficiency:
-  maxToolCalls: 14
+  maxToolCalls: 16
   maxTokens: 180000

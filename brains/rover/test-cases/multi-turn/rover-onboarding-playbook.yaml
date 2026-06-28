@@ -1,6 +1,6 @@
 id: multi-turn-rover-onboarding-playbook
 name: Rover Onboarding Playbook Conversation
-description: Verifies that Rover starts onboarding, saves identity/profile information through confirmation, saves a first durable knowledge seed, retrieves it through normal tools, and transforms it without scripted non-exit playbook actions.
+description: Verifies that Rover starts setup onboarding, saves identity/profile information through confirmation, then starts the first knowledge loop to save a durable seed, retrieve it through normal tools, and transform it without scripted non-exit playbook actions.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -46,7 +46,7 @@ turns:
       responseContains:
         - "brain"
       responseNotContains:
-        - "Completed: Update \""
+        - 'Completed: Update "'
         - "I cannot"
         - "I don't have access"
 
@@ -69,9 +69,22 @@ turns:
       responseContains:
         - "Updated anchor profile"
       responseNotContains:
-        - "Completed: Update \""
+        - 'Completed: Update "'
         - "What should I call you"
         - "what should I call you"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Start playbook rover-first-knowledge-loop."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-first-knowledge-loop
+      responseContains:
+        - "idea"
+      responseNotContains:
         - "I cannot"
         - "I don't have access"
 
@@ -183,5 +196,5 @@ successCriteria:
     - "I don't have access"
 
 efficiency:
-  maxToolCalls: 20
+  maxToolCalls: 22
   maxTokens: 260000
