@@ -20,13 +20,10 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "image"
-        source.kind: "attachment"
-        source.sourceEntityType: "project"
-        source.sourceEntityId: "city-pulse"
-        source.attachmentType: "og-image"
-        targetEntityType: "project"
-        targetEntityId: "city-pulse"
+        operation.kind: "attachment"
+        operation.sourceEntityType: "project"
+        operation.sourceEntityId: "city-pulse"
+        operation.attachmentType: "og-image"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

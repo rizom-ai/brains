@@ -18,8 +18,7 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "image"
-        source.kind: "prompt"
+        operation.kind: "standalone-image"
       argsAbsent:
         - targetEntityType
         - targetEntityId

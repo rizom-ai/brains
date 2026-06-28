@@ -35,6 +35,11 @@ export interface BlogOgImageAttachmentProviderDeps {
 }
 
 export class BlogOgImageAttachmentProvider implements AttachmentProvider {
+  readonly metadata = {
+    outputEntityType: "image",
+    targetField: "ogImageId",
+  } as const;
+
   private readonly screenshotPng: ScreenshotPng;
 
   constructor(

@@ -20,13 +20,10 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "image"
-        source.kind: "attachment"
-        source.sourceEntityType: "deck"
-        source.sourceEntityId: "distributed-systems-primer"
-        source.attachmentType: "og-image"
-        targetEntityType: "deck"
-        targetEntityId: "distributed-systems-primer"
+        operation.kind: "attachment"
+        operation.sourceEntityType: "deck"
+        operation.sourceEntityId: "distributed-systems-primer"
+        operation.attachmentType: "og-image"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

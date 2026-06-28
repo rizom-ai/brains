@@ -56,6 +56,7 @@ export {
   AttachmentRegistry,
   createAttachmentsNamespace,
   type AttachmentProvider,
+  type AttachmentProviderMetadata,
   type AttachmentResolveRequest,
   type IAttachmentsNamespace,
 } from "./service/attachment-registry";

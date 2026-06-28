@@ -19,8 +19,8 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: newsletter
-        source.kind: prompt
+        operation.entityType: newsletter
+        operation.kind: prompt
   toolCountRange:
     min: 1
   responseNotContains:

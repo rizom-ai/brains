@@ -22,13 +22,12 @@ export function createSystemInstructions(services: SystemServices): string {
       `Available entity types: ${types.join(", ")}.`,
     "- **system_generate**: Generate a new durable entity or deterministic artifact. " +
       "Requires confirmation before queueing generation; never pass `confirmed: true` on the initial user request. " +
-      'Use `{ kind: "prompt", prompt }` for AI-generated content/images. Use `{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }` for deterministic artifacts from existing entities. ' +
-      'For `entityType: "image"`, a prompt source creates a standalone/generated image without requiring a target; `targetEntityType` + `targetEntityId` attach the generated image to an existing canonical entity as its cover image. For OG/social preview renders, use an attachment source with `attachmentType: "og-image"`. ' +
-      'For `entityType: "document"`, attachment sources create durable rendered documents; deck carousel PDFs use `attachmentType: "carousel"`, printable post/project/product PDFs use `attachmentType: "printable"`. ' +
-      "To create an entity and a cover image, first create the entity without coverImage, then after the real canonical entity ID is known call system_generate with entityType image, source.kind prompt, targetEntityType, and targetEntityId. Never guess a future target ID.",
+      'Required `operation` union: `{ kind: "prompt", entityType, prompt }` generates a new non-image durable entity; `{ kind: "standalone-image", prompt }` generates an unattached image; `{ kind: "cover-image", targetEntityType, targetEntityId, prompt }` generates an image and attaches it to an existing canonical entity as `coverImageId`; `{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }` renders a deterministic artifact from an existing entity attachment provider. ' +
+      'For OG/social preview renders, use `operation.kind: "attachment"` with `attachmentType: "og-image"`; the provider derives the output image and updates `ogImageId`. For deck carousel PDFs use `attachmentType: "carousel"`; for printable post/project/product PDFs use `attachmentType: "printable"`. ' +
+      "To create an entity and a cover image, first create the entity, then after the real canonical entity ID is known call system_generate with operation.kind cover-image. Never guess a future target ID.",
     "- **system_update**: Modify an entity's fields or content. " +
       "Use `fields` for title, status, coverImageId, ogImageId, and other frontmatter/metadata changes. " +
-      "Use system_update for coverImageId only when an existing image entity id is already known; to generate a new cover image for an existing entity, use system_generate with entityType image, source kind prompt, targetEntityType, and targetEntityId. " +
+      "Use system_update for coverImageId only when an existing image entity id is already known; to generate a new cover image for an existing entity, use system_generate with operation.kind cover-image. " +
       'Agent approval/archive is a status field update on `entityType: "agent"`. Cover images use `coverImageId`; OG/social previews use `ogImageId`. ' +
       "Requires confirmation before applying changes.",
     "- **system_delete**: Owner/anchor-only entity removal. " +

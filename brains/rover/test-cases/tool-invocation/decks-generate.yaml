@@ -18,8 +18,8 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: deck
-        source.kind: prompt
+        operation.entityType: deck
+        operation.kind: prompt
   toolCountRange:
     min: 1
   responseNotContains:

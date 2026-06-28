@@ -48,17 +48,6 @@ export const listInputSchema = z.object({
     .describe("Maximum number of results (default: 20)"),
 });
 
-const coverImageInputSchema = z.union([
-  z.object({
-    generate: z
-      .literal(true)
-      .describe("Set to true when the user asks for a cover image"),
-    prompt: z.string().optional().describe("Prompt for cover image generation"),
-  }),
-  z.literal(true).describe("Set to true when the user asks for a cover image"),
-  z.literal(false).describe("Do not generate a cover image"),
-]);
-
 const createUploadInputSchema = z.object({
   kind: z.literal("upload").describe("Upload ref kind"),
   id: z.string().min(1).describe("Upload ID"),
@@ -124,16 +113,57 @@ export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
-export const generateSourceInputSchema = z.discriminatedUnion("kind", [
+export const generateOperationInputSchema = z.discriminatedUnion("kind", [
   z
     .object({
-      kind: z.literal("prompt").describe("Generate new durable content"),
+      kind: z
+        .literal("prompt")
+        .describe("Generate a new non-image durable entity from a prompt"),
+      entityType: z
+        .string()
+        .min(1)
+        .describe(
+          "Entity type to generate from the prompt. Do not use image here; use standalone-image or cover-image.",
+        ),
+      title: z.string().optional().describe("Title for the generated entity"),
       prompt: z
         .string()
         .min(1)
         .describe(
           "Prompt for creating new generated content. Do not use for saving/importing existing uploads or prior responses.",
         ),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z
+        .literal("standalone-image")
+        .describe(
+          "Generate a standalone image that is not attached to another entity",
+        ),
+      title: z.string().optional().describe("Title for the generated image"),
+      prompt: z.string().min(1).describe("Prompt for creating the image"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z
+        .literal("cover-image")
+        .describe(
+          "Generate an image and attach it to an existing entity as coverImageId",
+        ),
+      targetEntityType: z
+        .string()
+        .min(1)
+        .describe("Existing target entity type"),
+      targetEntityId: z
+        .string()
+        .min(1)
+        .describe(
+          "Existing target entity ID, slug, or title; never a placeholder",
+        ),
+      title: z.string().optional().describe("Title for the generated image"),
+      prompt: z.string().min(1).describe("Prompt for creating the cover image"),
     })
     .strict(),
   z
@@ -147,13 +177,18 @@ export const generateSourceInputSchema = z.discriminatedUnion("kind", [
       sourceEntityId: z
         .string()
         .min(1)
-        .describe("Canonical source entity ID, not a title"),
+        .describe("Canonical source entity ID, slug, or title"),
       attachmentType: z
         .string()
         .min(1)
         .describe(
           'Source artifact type such as "carousel", "printable", or "og-image"',
         ),
+      title: z.string().optional().describe("Title for the generated artifact"),
+      replace: z
+        .boolean()
+        .optional()
+        .describe("Regenerate instead of reusing a deterministic artifact"),
     })
     .strict(),
 ]);
@@ -182,40 +217,15 @@ export const createInputSchema = z
 
 export const generateInputSchema = z
   .object({
-    entityType: z.string().describe("Entity type to generate"),
-    title: z.string().optional().describe("Title for the generated entity"),
-    source: generateSourceInputSchema.describe(
-      "Generation source selector. Use prompt for new AI-generated content; use attachment for deterministic source-derived artifacts.",
+    operation: generateOperationInputSchema.describe(
+      "Generation operation selector. Use prompt for non-image AI-generated entities, standalone-image for unattached images, cover-image for generated covers on existing entities, and attachment for deterministic source-derived artifacts.",
     ),
-    replace: z
-      .boolean()
-      .optional()
-      .describe("Regenerate instead of reusing a deterministic artifact"),
-    coverImage: coverImageInputSchema
-      .optional()
-      .describe(
-        "When entityType is image and targetEntityType/targetEntityId identify an existing entity, mark the generated image as that target entity's cover image.",
-      ),
     confirmed: z.literal(true).optional().describe("Confirm generation"),
     confirmationToken: z
       .string()
       .optional()
       .describe(
         "Internal confirmation token returned by the confirmation flow",
-      ),
-    targetEntityType: z
-      .string()
-      .min(1)
-      .optional()
-      .describe(
-        "Existing target entity type when attaching a generated image/document artifact",
-      ),
-    targetEntityId: z
-      .string()
-      .min(1)
-      .optional()
-      .describe(
-        "Existing target entity id when attaching a generated image/document artifact. Never use placeholders.",
       ),
   })
   .strict();

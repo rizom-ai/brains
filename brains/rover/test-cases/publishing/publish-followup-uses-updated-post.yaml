@@ -20,10 +20,6 @@ turns:
       Change the blog post "Resilience Is Not Redundancy" to draft.
     successCriteria:
       expectedTools:
-        - toolName: system_get
-          shouldBeCalled: true
-          argsContain:
-            entityType: post
         - toolName: system_update
           shouldBeCalled: true
           argsContain:

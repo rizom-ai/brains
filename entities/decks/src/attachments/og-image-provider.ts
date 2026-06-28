@@ -18,6 +18,11 @@ export interface DeckOgImageAttachmentProviderDeps {
 }
 
 export class DeckOgImageAttachmentProvider implements AttachmentProvider {
+  readonly metadata = {
+    outputEntityType: "image",
+    targetField: "ogImageId",
+  } as const;
+
   constructor(
     private readonly context: Pick<
       EntityPluginContext,

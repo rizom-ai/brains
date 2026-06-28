@@ -18,11 +18,9 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "image"
-        source.kind: prompt
-        targetEntityType: "post"
-        targetEntityId: "resilience-in-distributed-systems"
-        coverImage: true
+        operation.kind: "cover-image"
+        operation.targetEntityType: "post"
+        operation.targetEntityId: "resilience-in-distributed-systems"
   responseNotContains:
     - "not found"
     - "I cannot"

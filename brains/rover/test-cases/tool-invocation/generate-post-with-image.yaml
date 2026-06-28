@@ -19,8 +19,8 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "social-post"
-        source.kind: "prompt"
+        operation.entityType: "social-post"
+        operation.kind: "prompt"
       argsAbsent:
         - upload
         - sourceAttachment

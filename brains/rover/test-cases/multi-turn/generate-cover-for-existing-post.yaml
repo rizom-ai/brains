@@ -18,8 +18,8 @@ turns:
         - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            entityType: "social-post"
-            source.kind: "prompt"
+            operation.entityType: "social-post"
+            operation.kind: "prompt"
       responseContains:
         - "Confirmation required"
 
@@ -35,10 +35,8 @@ turns:
         - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            entityType: "image"
-            source.kind: "prompt"
-            targetEntityType: "social-post"
-            coverImage: true
+            operation.kind: "cover-image"
+            operation.targetEntityType: "social-post"
 
 successCriteria: {}
 

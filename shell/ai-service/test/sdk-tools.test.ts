@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { asSchema } from "@ai-sdk/provider-utils";
 import { MCPService, type Tool } from "@brains/mcp-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
@@ -123,9 +124,20 @@ describe("convertToSDKTools", () => {
     ).toBe(true);
   });
 
-  it("exposes system_generate source while hiding confirmation internals", () => {
-    const runtimeSource = z.discriminatedUnion("kind", [
-      z.object({ kind: z.literal("prompt"), prompt: z.string() }),
+  it("exposes system_generate operation while hiding confirmation internals", async () => {
+    const operation = z.discriminatedUnion("kind", [
+      z.object({
+        kind: z.literal("prompt"),
+        entityType: z.string(),
+        prompt: z.string(),
+      }),
+      z.object({ kind: z.literal("standalone-image"), prompt: z.string() }),
+      z.object({
+        kind: z.literal("cover-image"),
+        targetEntityType: z.string(),
+        targetEntityId: z.string(),
+        prompt: z.string(),
+      }),
       z.object({
         kind: z.literal("attachment"),
         sourceEntityType: z.string(),
@@ -137,8 +149,7 @@ describe("convertToSDKTools", () => {
       name: "system_generate",
       description: "Generate",
       inputSchema: {
-        entityType: z.string(),
-        source: runtimeSource,
+        operation,
         confirmed: z.literal(true).optional(),
         confirmationToken: z.string().optional(),
       },
@@ -151,24 +162,36 @@ describe("convertToSDKTools", () => {
       { toolName: "system_generate" },
     );
 
-    expect(Object.keys(modelVisibleInputSchema)).toEqual([
-      "entityType",
-      "source",
-    ]);
+    expect(Object.keys(modelVisibleInputSchema)).toEqual(["operation"]);
     expect(
-      modelVisibleInputSchema["source"]?.safeParse({
-        kind: "prompt",
-        prompt: "Draft a post",
+      modelVisibleInputSchema["operation"]?.safeParse({
+        kind: "standalone-image",
+        prompt: "Draw a robot",
       }).success,
     ).toBe(true);
     expect(
-      modelVisibleInputSchema["source"]?.safeParse({
+      modelVisibleInputSchema["operation"]?.safeParse({
         kind: "attachment",
         sourceEntityType: "deck",
         sourceEntityId: "deck-1",
         attachmentType: "carousel",
       }).success,
     ).toBe(true);
+
+    const serialized = z
+      .object({ properties: z.record(z.unknown()).optional() })
+      .passthrough()
+      .parse(await asSchema(z.object(modelVisibleInputSchema)).jsonSchema);
+    const operationSchema = z
+      .object({
+        anyOf: z.array(z.unknown()).optional(),
+        oneOf: z.array(z.unknown()).optional(),
+      })
+      .passthrough()
+      .parse(serialized.properties?.["operation"]);
+    const alternatives = operationSchema.anyOf ?? operationSchema.oneOf;
+    expect(alternatives?.length).toBe(4);
+    expect(JSON.stringify(operationSchema)).toContain('"const":"attachment"');
   });
 
   it("keeps attachment URLs out of model-visible generated artifact output", async () => {

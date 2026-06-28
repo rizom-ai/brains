@@ -31,6 +31,8 @@ export interface ProjectPrintableAttachmentProviderDeps {
 }
 
 export class ProjectPrintableAttachmentProvider implements AttachmentProvider {
+  readonly metadata = { outputEntityType: "document" } as const;
+
   private readonly renderPdf: RenderPdf;
 
   constructor(

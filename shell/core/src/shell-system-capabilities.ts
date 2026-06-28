@@ -9,7 +9,10 @@ import type {
   IInsightsRegistry,
   QueryContext,
 } from "@brains/plugins";
-import type { RuntimeAppInfo } from "@brains/plugins";
+import {
+  createAttachmentsNamespace,
+  type RuntimeAppInfo,
+} from "@brains/plugins";
 import type { ShellServices } from "./initialization/shellInitializer";
 import { registerSystemCapabilities } from "./system/register";
 
@@ -43,6 +46,7 @@ export function registerShellSystemCapabilities(
       },
       conversationService: services.conversationService,
       runtimeUploads: services.runtimeUploadRegistry,
+      attachments: createAttachmentsNamespace(services.attachmentRegistry),
       logger: systemLogger,
       query,
       getIdentity: () => services.identityService.getCharacter(),

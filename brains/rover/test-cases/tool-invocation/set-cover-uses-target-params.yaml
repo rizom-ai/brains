@@ -18,11 +18,9 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "image"
-        source.kind: prompt
-        targetEntityType: "post"
-        targetEntityId: "urban-sensing-networks"
-        coverImage: true
+        operation.kind: "cover-image"
+        operation.targetEntityType: "post"
+        operation.targetEntityId: "urban-sensing-networks"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

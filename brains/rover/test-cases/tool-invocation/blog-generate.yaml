@@ -18,8 +18,8 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: post
-        source.kind: prompt
+        operation.entityType: post
+        operation.kind: prompt
   toolCountRange:
     min: 1
   responseNotContains:
