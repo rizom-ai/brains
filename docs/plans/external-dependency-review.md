@@ -1015,9 +1015,9 @@ Incremental migration progress:
   public plugin-author config delegates. Migrated the agent-discovery composite
   config, agent generation job parser, directory-sync quarantine ZodError
   guard/test parser, content-pipeline mock entity test schemas, entity
-  pagination parser, assessment capability-profile parsing helpers, and public
-  URL-capture config parser to `@brains/utils/zod-v4` without touching durable
-  entity/frontmatter schemas.
+  pagination parser, entity frontmatter visibility parsing, assessment
+  capability-profile parsing helpers, and public URL-capture config parser to
+  `@brains/utils/zod-v4` without touching durable entity/frontmatter schemas.
 - Removed more nominal main-Zod type slots from complete parse-only boundaries:
   Obsidian Vault frontmatter introspection now accepts both main-Zod and Zod 4
   object shapes structurally, its introspector tests use Zod 4 schemas, and

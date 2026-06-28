@@ -1,7 +1,6 @@
 import matter from "gray-matter";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import type { BaseEntity, ContentVisibility } from "./types";
-import { contentVisibilitySchema } from "./types";
 
 /**
  * Configuration for frontmatter handling
@@ -205,7 +204,13 @@ export function generateFrontmatter(metadata: Record<string, unknown>): string {
 }
 
 const visibilityFrontmatterSchema = z.object({
-  visibility: contentVisibilitySchema,
+  visibility: z
+    .enum(["public", "shared", "restricted", "private"])
+    .optional()
+    .transform((value): ContentVisibility => {
+      if (value === undefined) return "public";
+      return value === "private" ? "restricted" : value;
+    }),
 });
 
 export function extractVisibilityFromMarkdown(
