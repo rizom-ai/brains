@@ -1047,6 +1047,10 @@ Incremental migration progress:
   expose the main-Zod schema object for CMS field introspection, while the
   generation handler test now validates its local required-frontmatter guard
   with `@brains/utils/zod-v4`.
+- Migrated assessment eval/test body and input parser schemas to
+  `@brains/utils/zod-v4`, duplicating small agent skill/status shapes locally
+  so parser-only eval inputs do not compose with main-Zod durable agent/skill
+  entity schemas used by the in-test adapters.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -6,11 +6,12 @@ import {
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
+import { z as z4 } from "@brains/utils/zod-v4";
 
-export const testAgentSkillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
+export const testAgentSkillSchema = z4.object({
+  name: z4.string(),
+  description: z4.string(),
+  tags: z4.array(z4.string()),
 });
 
 export const testAgentStatusSchema = z.enum(["discovered", "approved"]);
@@ -41,17 +42,17 @@ export const testSkillEntitySchema = baseEntitySchema.extend({
   metadata: skillDataSchema,
 });
 
-const testAgentBodySchema = z.object({
-  about: z.string(),
-  skills: z.array(testAgentSkillSchema),
-  notes: z.string(),
+const testAgentBodySchema = z4.object({
+  about: z4.string(),
+  skills: z4.array(testAgentSkillSchema),
+  notes: z4.string(),
 });
 
 export type TestAgentEntity = z.infer<typeof testAgentEntitySchema>;
 export type TestSkillEntity = z.infer<typeof testSkillEntitySchema>;
-export type TestAgentSkill = z.infer<typeof testAgentSkillSchema>;
+export type TestAgentSkill = z4.output<typeof testAgentSkillSchema>;
 export type TestAgentFrontmatter = z.infer<typeof testAgentFrontmatterSchema>;
-type TestAgentBody = z.infer<typeof testAgentBodySchema>;
+type TestAgentBody = z4.output<typeof testAgentBodySchema>;
 
 function formatSkills(value: unknown): string {
   if (!Array.isArray(value) || value.length === 0) return "";
