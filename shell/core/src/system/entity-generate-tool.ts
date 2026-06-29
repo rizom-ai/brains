@@ -119,23 +119,58 @@ async function resolveSourceAttachment(
   return { kind: "ok", sourceAttachment, metadata };
 }
 
-async function resolveGenerateTarget(
+interface GenerateSourceEntity {
+  entityType: string;
+  entityId: string;
+}
+
+async function resolveGenerateSource(
   services: SystemServices,
-  input:
-    | {
-        targetEntityType: string;
-        targetEntityId: string;
-      }
-    | undefined,
+  input: GenerateSourceEntity | undefined,
   visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
 ): Promise<
-  { kind: "ok"; target: typeof input } | { kind: "error"; result: ToolResponse }
+  | { kind: "ok"; source: GenerateSourceEntity | undefined }
+  | { kind: "error"; result: ToolResponse }
+> {
+  if (!input) return { kind: "ok", source: undefined };
+  const result = await resolveEntityOrError(
+    services.entityService,
+    input.entityType,
+    input.entityId,
+    services.logger,
+    undefined,
+    visibilityScope,
+  );
+  if (!result.ok) {
+    return {
+      kind: "error",
+      result: { success: false, error: result.error, code: "source-not-found" },
+    };
+  }
+  return {
+    kind: "ok",
+    source: { ...input, entityId: result.entity.id },
+  };
+}
+
+interface GenerateTargetEntity {
+  entityType: string;
+  entityId: string;
+}
+
+async function resolveGenerateTarget(
+  services: SystemServices,
+  input: GenerateTargetEntity | undefined,
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): Promise<
+  | { kind: "ok"; target: GenerateTargetEntity | undefined }
+  | { kind: "error"; result: ToolResponse }
 > {
   if (!input) return { kind: "ok", target: undefined };
   const result = await resolveEntityOrError(
     services.entityService,
-    input.targetEntityType,
-    input.targetEntityId,
+    input.entityType,
+    input.entityId,
     services.logger,
     undefined,
     visibilityScope,
@@ -148,7 +183,7 @@ async function resolveGenerateTarget(
   }
   return {
     kind: "ok",
-    target: { ...input, targetEntityId: result.entity.id },
+    target: { ...input, entityId: result.entity.id },
   };
 }
 
@@ -250,6 +285,15 @@ async function executePromptGenerate(
         entityId: resolvedEntityId,
         prompt,
         ...(createInput.title && { title: createInput.title }),
+        ...(createInput.sourceEntityType && {
+          sourceEntityType: createInput.sourceEntityType,
+        }),
+        ...(createInput.sourceEntityId && {
+          sourceEntityId: createInput.sourceEntityId,
+        }),
+        ...(createInput.sourceEntityIds && {
+          sourceEntityIds: createInput.sourceEntityIds,
+        }),
         ...(createInput.targetEntityType && {
           targetEntityType: createInput.targetEntityType,
         }),
@@ -313,11 +357,24 @@ async function prepareGenerate(
         },
       };
     }
+    const source = await resolveGenerateSource(
+      services,
+      operation.source,
+      visibilityScope,
+    );
+    if (source.kind === "error") return source;
     const title = normalizeOptionalString(operation.title);
     createInput = {
       entityType: operation.entityType,
       ...(title ? { title } : {}),
       prompt: operation.prompt,
+      ...(source.source?.entityType && {
+        sourceEntityType: source.source.entityType,
+      }),
+      ...(source.source?.entityId && {
+        sourceEntityId: source.source.entityId,
+        sourceEntityIds: [source.source.entityId],
+      }),
     };
   } else if (operation.kind === "standalone-image") {
     const title = normalizeOptionalString(operation.title);
@@ -329,10 +386,7 @@ async function prepareGenerate(
   } else if (operation.kind === "cover-image") {
     const target = await resolveGenerateTarget(
       services,
-      {
-        targetEntityType: operation.targetEntityType,
-        targetEntityId: operation.targetEntityId,
-      },
+      operation.target,
       visibilityScope,
     );
     if (target.kind === "error") {
@@ -350,19 +404,19 @@ async function prepareGenerate(
       entityType: "image",
       ...(title ? { title } : {}),
       prompt: operation.prompt,
-      ...(target.target?.targetEntityType && {
-        targetEntityType: target.target.targetEntityType,
+      ...(target.target?.entityType && {
+        targetEntityType: target.target.entityType,
       }),
-      ...(target.target?.targetEntityId && {
-        targetEntityId: target.target.targetEntityId,
+      ...(target.target?.entityId && {
+        targetEntityId: target.target.entityId,
       }),
     };
   } else {
     const resolvedSource = await resolveSourceAttachment(
       services,
       {
-        sourceEntityType: operation.sourceEntityType,
-        sourceEntityId: operation.sourceEntityId,
+        sourceEntityType: operation.source.entityType,
+        sourceEntityId: operation.source.entityId,
         attachmentType: operation.attachmentType,
       },
       visibilityScope,
@@ -480,13 +534,18 @@ function freezeGenerationOperation(
   resolvedSourceAttachment?: GenerateSourceAttachment,
 ): GenerateToolInput["operation"] {
   if (operation.kind === "attachment") {
+    const sourceAttachment = resolvedSourceAttachment ?? {
+      sourceEntityType: operation.source.entityType,
+      sourceEntityId: operation.source.entityId,
+      attachmentType: operation.attachmentType,
+    };
     return {
       kind: "attachment",
-      ...(resolvedSourceAttachment ?? {
-        sourceEntityType: operation.sourceEntityType,
-        sourceEntityId: operation.sourceEntityId,
-        attachmentType: operation.attachmentType,
-      }),
+      source: {
+        entityType: sourceAttachment.sourceEntityType,
+        entityId: sourceAttachment.sourceEntityId,
+      },
+      attachmentType: sourceAttachment.attachmentType,
       ...(createInput.title && { title: createInput.title }),
       ...(createInput.replace && { replace: createInput.replace }),
     };
@@ -494,9 +553,10 @@ function freezeGenerationOperation(
   if (operation.kind === "cover-image") {
     return {
       kind: "cover-image",
-      targetEntityType:
-        createInput.targetEntityType ?? operation.targetEntityType,
-      targetEntityId: createInput.targetEntityId ?? operation.targetEntityId,
+      target: {
+        entityType: createInput.targetEntityType ?? operation.target.entityType,
+        entityId: createInput.targetEntityId ?? operation.target.entityId,
+      },
       ...(createInput.title && { title: createInput.title }),
       prompt: operation.prompt,
     };
@@ -512,6 +572,13 @@ function freezeGenerationOperation(
     kind: "prompt",
     entityType: createInput.entityType,
     ...(createInput.title && { title: createInput.title }),
+    ...(createInput.sourceEntityType &&
+      createInput.sourceEntityId && {
+        source: {
+          entityType: createInput.sourceEntityType,
+          entityId: createInput.sourceEntityId,
+        },
+      }),
     prompt: operation.prompt,
   };
 }
@@ -521,7 +588,7 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "generate",
-    "Generate a new durable entity or deterministic artifact. Requires confirmation. Use operation.kind prompt for non-image AI-generated entities, standalone-image for unattached generated images, cover-image for generated covers on existing entities, and attachment for source-derived artifacts such as carousel/printable PDFs or OG/social preview images. Use system_create instead for saving/importing existing text, URLs, uploads, prior assistant responses, or raw uploaded file preservation with upload transform preserve. On the initial generation request, do not pass confirmed; the tool returns confirmation args.",
+    "Generate durable content or artifacts. Critical: for a request to generate a post/social-post/newsletter/etc. with a cover image, call only the prompt generation first; do not call standalone-image or cover-image until the target entity exists after confirmation. Critical: for broad topical prompt generation, omit operation.source; never use brain-character/profile, uploads, filenames, guessed ids, or placeholders as source refs. Requires confirmation. Calling this tool without confirmed is how you request that confirmation; do not respond with separate prose such as 'I can generate it if you want' or 'I need to queue it first.' Use operation.kind prompt for non-image AI-generated entities, with operation.source only when generating from a resolved existing durable source entity, for example a newsletter from a resolved post: { kind: 'prompt', entityType: 'newsletter', source: { entityType: 'post', entityId: '...' }, prompt: '...' }. Use standalone-image only for unattached generated images, cover-image with operation.target only for generated covers on existing entities, and attachment with operation.source for source-derived artifacts such as carousel/printable PDFs or OG/social preview images. When the user asks to create/write/draft/generate new durable content, call this tool without confirmed to request confirmation instead of asking for separate prose approval. If you first resolve a clear source entity for the requested generation, still call this tool in the same turn. Use system_create instead for saving/importing existing text, URLs, uploads, prior assistant responses, or raw uploaded file preservation with upload transform preserve. On the initial generation request, do not pass confirmed; the tool returns confirmation args.",
     generateInputSchema,
     async (input, toolContext) => {
       const prep = await prepareGenerate(services, input, toolContext);

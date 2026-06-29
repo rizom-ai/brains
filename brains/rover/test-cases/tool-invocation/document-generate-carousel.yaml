@@ -1,6 +1,6 @@
 id: tool-invocation-document-create-from-carousel
 name: Save Deck Carousel as Document Entity
-description: "Verifies system_create persists a deck carousel as a durable PDF document entity"
+description: "Verifies system_generate renders a deck carousel as a durable PDF document artifact"
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -22,9 +22,15 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         operation.kind: "attachment"
-        operation.sourceEntityType: "deck"
-        operation.sourceEntityId: "distributed-systems-primer"
+        operation.source.entityType: "deck"
+        operation.source.entityId: "distributed-systems-primer"
         operation.attachmentType: "carousel"
+      argsAbsent:
+        - operation.target
+        - targetEntityType
+        - targetEntityId
+        - sourceEntityType
+        - sourceEntityId
   responseNotContains:
     - "I cannot"
     - "I don't have access"

@@ -105,8 +105,10 @@ Rules:
 ```json
 {
   "kind": "cover-image",
-  "targetEntityType": "post",
-  "targetEntityId": "resilience-in-distributed-systems",
+  "target": {
+    "entityType": "post",
+    "entityId": "resilience-in-distributed-systems"
+  },
   "title": "Cover image for Resilience Is Not Redundancy",
   "prompt": "Create an editorial cover image for the article."
 }
@@ -124,8 +126,10 @@ Rules:
 ```json
 {
   "kind": "attachment",
-  "sourceEntityType": "deck",
-  "sourceEntityId": "distributed-systems-primer",
+  "source": {
+    "entityType": "deck",
+    "entityId": "distributed-systems-primer"
+  },
   "attachmentType": "carousel",
   "title": "Distributed Systems Primer Carousel",
   "replace": false
@@ -263,16 +267,16 @@ Pre-confirmation rejections return a **typed reason** so the model can recover i
 - `unsupported-generation` — requested entity type is registered but does not support queued generation or plugin-intercepted generation.
 - `target-not-found` — `cover-image` target does not resolve.
 - `source-not-found` — `attachment` source does not resolve.
-- `no-provider` — no attachment provider for `sourceEntityType`/`attachmentType`.
+- `no-provider` — no attachment provider for source `entityType`/`attachmentType`.
 - `provider-missing-metadata` — provider exists but declares no `outputEntityType`.
 
-Each reason carries the offending identifiers (e.g. the unresolved id, the requested `sourceEntityType/attachmentType`) so the model can correct the next call.
+Each reason carries the offending identifiers (e.g. the unresolved id, the requested source `entityType`/`attachmentType`) so the model can correct the next call.
 
 ## Cleanup
 
 - Remove `coverImage` from `generateInputSchema` entirely.
 - Remove the nested `source` object and replace it with a top-level `operation` field whose value is the discriminated union.
-- Remove generic top-level `targetEntityType` / `targetEntityId` from `system_generate` input; these fields are allowed only inside `operation.kind: "cover-image"`.
+- Remove generic top-level `targetEntityType` / `targetEntityId` from `system_generate` input; cover targets are expressed only as `operation.target: { entityType, entityId }` on `operation.kind: "cover-image"`.
 - Remove any schema prose added only to discourage invalid cross-products; the union now makes them unrepresentable.
 - Cross-check `shell/ai-service/src/call-options.ts` for message-text gates touching `system_generate` fields (e.g. `shouldEnableCreateSourceAttachment`). Coordinate with `system-create-source-architecture.md`, which deletes those gates, so the two changes do not collide on a field this plan removes.
 - Revisit the placeholder-only `system_create source.kind: text` guard; if kept, justify as data validation, not as routing around one eval.
@@ -336,8 +340,8 @@ These prove the contract, not just the handler:
 - `{ operation: { kind: "attachment", entityType: ... } }` fails to parse (model cannot supply output type for artifacts — kills `image + carousel`).
 - `{ operation: { kind: "prompt", entityType: "image", ... } }` is rejected — by serialized schema only if non-image generatable entity types are enumerated. A Zod refinement is insufficient because AI SDK JSON Schema serialization drops it. Otherwise reject by pre-confirmation runtime validation. The SDK schema exposure test must verify which level is actually enforced.
 - `coverImage` anywhere fails to parse.
-- `targetEntityType`/`targetEntityId` on `operation.kind: "prompt"`, `"standalone-image"`, or `"attachment"` fail to parse.
-- A nested `source` object fails to parse.
+- `targetEntityType`/`targetEntityId` on `operation.kind: "prompt"`, `"standalone-image"`, or `"attachment"` fail to parse; cover targets must use nested `operation.target`.
+- Flat `sourceEntityType`/`sourceEntityId` on `operation.kind: "prompt"` or `"attachment"` fail to parse; source refs must use nested `operation.source`.
 
 ### Tool visibility / schema-exposure tests
 

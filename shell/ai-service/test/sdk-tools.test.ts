@@ -129,19 +129,20 @@ describe("convertToSDKTools", () => {
       z.object({
         kind: z.literal("prompt"),
         entityType: z.string(),
+        source: z
+          .object({ entityType: z.string(), entityId: z.string() })
+          .optional(),
         prompt: z.string(),
       }),
       z.object({ kind: z.literal("standalone-image"), prompt: z.string() }),
       z.object({
         kind: z.literal("cover-image"),
-        targetEntityType: z.string(),
-        targetEntityId: z.string(),
+        target: z.object({ entityType: z.string(), entityId: z.string() }),
         prompt: z.string(),
       }),
       z.object({
         kind: z.literal("attachment"),
-        sourceEntityType: z.string(),
-        sourceEntityId: z.string(),
+        source: z.object({ entityType: z.string(), entityId: z.string() }),
         attachmentType: z.string(),
       }),
     ]);
@@ -172,8 +173,7 @@ describe("convertToSDKTools", () => {
     expect(
       modelVisibleInputSchema["operation"]?.safeParse({
         kind: "attachment",
-        sourceEntityType: "deck",
-        sourceEntityId: "deck-1",
+        source: { entityType: "deck", entityId: "deck-1" },
         attachmentType: "carousel",
       }).success,
     ).toBe(true);

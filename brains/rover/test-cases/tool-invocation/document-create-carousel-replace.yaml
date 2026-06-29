@@ -21,10 +21,10 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         operation.kind: "attachment"
-        operation.sourceEntityType: "deck"
-        operation.sourceEntityId: "distributed-systems-primer"
+        operation.source.entityType: "deck"
+        operation.source.entityId: "distributed-systems-primer"
         operation.attachmentType: "carousel"
-        replace: true
+        operation.replace: true
   responseNotContains:
     - "I cannot"
     - "I don't have access"

@@ -66,6 +66,7 @@ const STANDARD_ENTITY_TYPES = [
   "link",
   "agent",
   "social-post",
+  "newsletter",
   "summary",
 ];
 
@@ -309,6 +310,54 @@ describe("system_create tool", () => {
     userPermissionLevel?: UserPermissionLevel;
   }
 
+  interface EntityRefInput {
+    entityType: string;
+    entityId: string;
+  }
+
+  interface AttachmentRefInput {
+    source: EntityRefInput;
+    attachmentType: string;
+  }
+
+  function toAttachmentRefInput(
+    value: unknown,
+  ): AttachmentRefInput | undefined {
+    if (!value || typeof value !== "object") return undefined;
+    const record = value as Record<string, unknown>;
+    const nestedSource = record["source"];
+    if (nestedSource && typeof nestedSource === "object") {
+      const sourceRecord = nestedSource as Record<string, unknown>;
+      if (
+        typeof sourceRecord["entityType"] === "string" &&
+        typeof sourceRecord["entityId"] === "string" &&
+        typeof record["attachmentType"] === "string"
+      ) {
+        return {
+          source: {
+            entityType: sourceRecord["entityType"],
+            entityId: sourceRecord["entityId"],
+          },
+          attachmentType: record["attachmentType"],
+        };
+      }
+    }
+    if (
+      typeof record["sourceEntityType"] === "string" &&
+      typeof record["sourceEntityId"] === "string" &&
+      typeof record["attachmentType"] === "string"
+    ) {
+      return {
+        source: {
+          entityType: record["sourceEntityType"],
+          entityId: record["sourceEntityId"],
+        },
+        attachmentType: record["attachmentType"],
+      };
+    }
+    return undefined;
+  }
+
   function buildContext(context?: CreateToolTestContext): ToolContext {
     return {
       interfaceType: context?.interfaceType ?? "test",
@@ -403,8 +452,18 @@ describe("system_create tool", () => {
     } = input;
 
     const promptValue = typeof prompt === "string" ? prompt : undefined;
+    let promptSource: EntityRefInput | undefined;
     if (source && typeof source === "object") {
       const sourceRecord = source as Record<string, unknown>;
+      if (
+        typeof sourceRecord["entityType"] === "string" &&
+        typeof sourceRecord["entityId"] === "string"
+      ) {
+        promptSource = {
+          entityType: sourceRecord["entityType"],
+          entityId: sourceRecord["entityId"],
+        };
+      }
       if (sourceRecord["kind"] === "prompt") {
         const sourcePrompt = sourceRecord["prompt"];
         if (typeof sourcePrompt === "string") {
@@ -419,39 +478,47 @@ describe("system_create tool", () => {
         }
       }
       if (sourceRecord["kind"] === "attachment") {
-        return {
-          ...rest,
-          operation: {
-            kind: "attachment",
-            sourceEntityType: sourceRecord["sourceEntityType"],
-            sourceEntityId: sourceRecord["sourceEntityId"],
-            attachmentType: sourceRecord["attachmentType"],
-            ...(typeof title === "string" ? { title } : {}),
-            ...(replace === true ? { replace } : {}),
-          },
-        };
+        const attachmentRef = toAttachmentRefInput(sourceRecord);
+        if (attachmentRef) {
+          return {
+            ...rest,
+            operation: {
+              kind: "attachment",
+              ...attachmentRef,
+              ...(typeof title === "string" ? { title } : {}),
+              ...(replace === true ? { replace } : {}),
+            },
+          };
+        }
       }
     }
 
-    if (sourceAttachment && typeof sourceAttachment === "object") {
+    const attachmentRef = toAttachmentRefInput(sourceAttachment);
+    if (attachmentRef) {
       return {
         ...rest,
         operation: {
           kind: "attachment",
-          ...(sourceAttachment as Record<string, unknown>),
+          ...attachmentRef,
           ...(typeof title === "string" ? { title } : {}),
           ...(replace === true ? { replace } : {}),
         },
       };
     }
     if (promptValue && promptValue.trim().length > 0) {
-      if (entityType === "image" && targetEntityType && targetEntityId) {
+      if (
+        entityType === "image" &&
+        typeof targetEntityType === "string" &&
+        typeof targetEntityId === "string"
+      ) {
         return {
           ...rest,
           operation: {
             kind: "cover-image",
-            targetEntityType,
-            targetEntityId,
+            target: {
+              entityType: targetEntityType,
+              entityId: targetEntityId,
+            },
             ...(typeof title === "string" ? { title } : {}),
             prompt: promptValue,
           },
@@ -473,6 +540,7 @@ describe("system_create tool", () => {
           kind: "prompt",
           entityType,
           ...(typeof title === "string" ? { title } : {}),
+          ...(promptSource ? { source: promptSource } : {}),
           prompt: promptValue,
         },
       };
@@ -1620,8 +1688,7 @@ A saved research link.`;
       generateInputSchema.safeParse({
         operation: {
           kind: "cover-image",
-          targetEntityType: "post",
-          targetEntityId: "my-post",
+          target: { entityType: "post", entityId: "my-post" },
           prompt: "Generate a cover image",
           coverImage: true,
         },
@@ -1655,8 +1722,7 @@ A saved research link.`;
     ).toMatchObject({
       operation: {
         kind: "cover-image",
-        targetEntityType: "post",
-        targetEntityId: "my-blog-post",
+        target: { entityType: "post", entityId: "my-blog-post" },
       },
     });
 
@@ -1686,6 +1752,61 @@ A saved research link.`;
     });
     expect("needsConfirmation" in result).toBe(false);
     expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
+  it("should resolve prompt generation source refs before confirmation and forward them to jobs", async () => {
+    services.addEntities([
+      {
+        id: "event-sourcing-sustainability",
+        entityType: "post",
+        content: "Post content",
+        metadata: { title: "Event Sourcing for Sustainability Metrics" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-source-post",
+      },
+    ]);
+
+    const confirmation = await execGenerateRaw({
+      operation: {
+        kind: "prompt",
+        entityType: "newsletter",
+        source: {
+          entityType: "post",
+          entityId: "Event Sourcing for Sustainability Metrics",
+        },
+        prompt: "Write a newsletter from the source post",
+      },
+    });
+
+    expect(confirmation).toMatchObject({ needsConfirmation: true });
+    expect(
+      (confirmation as { args: Record<string, unknown> }).args,
+    ).toMatchObject({
+      operation: {
+        kind: "prompt",
+        entityType: "newsletter",
+        source: {
+          entityType: "post",
+          entityId: "event-sourcing-sustainability",
+        },
+      },
+    });
+
+    const result = await execGenerateRaw(
+      (confirmation as { args: Record<string, unknown> }).args,
+    );
+
+    expect(result).toHaveProperty("success", true);
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("newsletter:generation");
+    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    expect(rawJobData["sourceEntityType"]).toBe("post");
+    expect(rawJobData["sourceEntityId"]).toBe("event-sourcing-sustainability");
+    expect(rawJobData["sourceEntityIds"]).toEqual([
+      "event-sourcing-sustainability",
+    ]);
   });
 
   it("should expose canonical concrete source and no generation branches on system_create", () => {
@@ -1748,9 +1869,27 @@ A saved research link.`;
     expect(
       generateInputSchema.safeParse({
         operation: {
+          kind: "prompt",
+          entityType: "newsletter",
+          source: { entityType: "post", entityId: "post-1" },
+          prompt: "Write a newsletter from the source post",
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "cover-image",
+          target: { entityType: "post", entityId: "post-1" },
+          prompt: "Draw a cover image",
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
           kind: "attachment",
-          sourceEntityType: "deck",
-          sourceEntityId: "deck-1",
+          source: { entityType: "deck", entityId: "deck-1" },
           attachmentType: "carousel",
         },
       }).success,
@@ -1760,8 +1899,7 @@ A saved research link.`;
         operation: {
           kind: "attachment",
           entityType: "image",
-          sourceEntityType: "deck",
-          sourceEntityId: "deck-1",
+          source: { entityType: "deck", entityId: "deck-1" },
           attachmentType: "carousel",
         },
       }).success,
@@ -1952,8 +2090,10 @@ A saved research link.`;
         operation: {
           kind: "attachment",
           entityType: "image",
-          sourceEntityType: "deck",
-          sourceEntityId: "distributed-systems-primer",
+          source: {
+            entityType: "deck",
+            entityId: "distributed-systems-primer",
+          },
           attachmentType: "carousel",
         },
       }).success,
@@ -2010,8 +2150,10 @@ A saved research link.`;
     }
     expect(confirmation).toHaveProperty("args.operation", {
       kind: "attachment",
-      sourceEntityType: "post",
-      sourceEntityId: "resilience-in-distributed-systems",
+      source: {
+        entityType: "post",
+        entityId: "resilience-in-distributed-systems",
+      },
       attachmentType: "printable",
     });
     expect(confirmation).not.toHaveProperty("args.sourceAttachment");

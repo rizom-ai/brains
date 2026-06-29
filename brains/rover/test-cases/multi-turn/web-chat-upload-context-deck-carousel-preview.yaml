@@ -48,8 +48,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             operation.kind: attachment
-            operation.sourceEntityType: deck
-            operation.sourceEntityId: distributed-systems-primer
+            operation.source.entityType: deck
+            operation.source.entityId: distributed-systems-primer
             operation.attachmentType: carousel
         - toolName: system_create
           shouldBeCalled: false
@@ -64,8 +64,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         operation.kind: attachment
-        operation.sourceEntityType: deck
-        operation.sourceEntityId: distributed-systems-primer
+        operation.source.entityType: deck
+        operation.source.entityId: distributed-systems-primer
         operation.attachmentType: carousel
     - toolName: system_create
       shouldBeCalled: false

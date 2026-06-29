@@ -183,6 +183,9 @@ export interface CreateInput {
   from?: CreateFromInput;
   transform?: CreateTransform;
   replace?: boolean;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  sourceEntityIds?: string[];
   targetEntityType?: string;
   targetEntityId?: string;
   coverImage?: boolean | CreateCoverImageInput;

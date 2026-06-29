@@ -49,7 +49,7 @@ describe("system instructions", () => {
     );
     expect(instructions).toContain('`{ kind: "prior-response", messageId? }`');
     expect(instructions).toContain(
-      '`{ kind: "attachment", sourceEntityType, sourceEntityId, attachmentType }`',
+      '`{ kind: "attachment", source: { entityType, entityId }, attachmentType }`',
     );
     expect(instructions).not.toContain(
       "`from` for source-derived artifact saves",

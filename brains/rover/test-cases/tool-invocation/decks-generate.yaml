@@ -1,6 +1,6 @@
 id: tool-invocation-decks-generate
 name: Deck Generation via system_generate
-description: Verifies that the agent uses system_generate with entityType deck instead of old decks_generate tool
+description: Verifies that the agent uses system_generate operation.kind prompt for broad deck generation
 type: tool_invocation
 setup:
   permissionLevel: anchor

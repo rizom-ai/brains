@@ -25,7 +25,12 @@ successCriteria:
         - upload
         - sourceAttachment
         - from
+        - operation.source
+        - operation.target
+        - operation.attachmentType
         - coverImage
+        - sourceEntityType
+        - sourceEntityId
         - targetEntityType
         - targetEntityId
   responseNotContains:

@@ -59,25 +59,20 @@ The `coverImage` field is removed from `system_create`. Generating a cover is a 
 
 Purpose: create new durable generated content or artifacts.
 
-Source branches:
+The model-visible input is `{ operation, confirmed?, confirmationToken? }`, where `operation` is a discriminated union:
 
-- `prompt`
-  - New AI-generated content or standalone generated images.
-  - Examples: generated post, deck, newsletter, image.
-- `attachment`
+- `{ kind: "prompt", entityType, title?, source?: { entityType, entityId }, prompt }`
+  - New AI-generated durable content.
+  - Include `source` when generation is grounded in an existing entity, such as a newsletter from a post.
+- `{ kind: "standalone-image", title?, prompt }`
+  - New unattached generated image.
+- `{ kind: "cover-image", target: { entityType, entityId }, title?, prompt }`
+  - New generated image attached to the target as `coverImageId`.
+- `{ kind: "attachment", source: { entityType, entityId }, attachmentType, title?, replace? }`
   - Deterministic artifact generation from an existing entity attachment provider.
   - Examples: deck carousel PDF, post/project printable PDF, OG/social preview image.
 
-Expected fields:
-
-- `entityType`
-- `title?`
-- `source`
-- `replace?`
-- `coverImage?` — when generating an image, designate it as the target entity's cover; requires `targetEntityType`/`targetEntityId` pointing at an existing entity
-- `targetEntityType?`
-- `targetEntityId?`
-- confirmation fields hidden from the model as with other durable tools
+Confirmation fields are hidden from the model as with other durable tools.
 
 Rules:
 
@@ -112,7 +107,7 @@ Rationale:
 - Attachment artifacts (deck carousel PDFs, post/project printables, OG/social images) are deterministic renderings of content that is already durable. Previewing them before save adds a decision point with nothing real to decide; if the rendering is wrong the fix is editing the source or regenerating, not rejecting a preview.
 - "See it before you commit it" is already provided by the durable confirmation step, which returns `summary`/`preview` and requires a confirmed call before any write. A standalone preview tool is a weaker second copy of a UX we already have.
 
-Action: remove model-visible `document_generate` from the agent tool surface. `system_generate source.kind: attachment` becomes the canonical durable PDF artifact path, and its confirmation step carries whatever see-before-save value exists. There is no orphaned preview capability to migrate.
+Action: remove model-visible `document_generate` from the agent tool surface. `system_generate operation.kind: "attachment"` becomes the canonical durable PDF artifact path, and its confirmation step carries whatever see-before-save value exists. There is no orphaned preview capability to migrate.
 
 Open verification: confirm no chat/web UI affordance renders a preview attachment inline before save. If one does, that surface must be accounted for separately before removal.
 
@@ -151,7 +146,7 @@ Establishes the new tool end to end on the simplest source, and removes the matc
 Tests first:
 
 - `system_generate` is registered with write side effects and trusted-or-anchor visibility matching generation policy.
-- `system_generate` accepts `source.kind: prompt`.
+- `system_generate` accepts `operation.kind: "prompt"`.
 - `system_generate` confirmation binding rejects missing/mismatched confirmation tokens.
 - Prompt generation queues the same jobs/results currently reached through `system_create source.kind: generate`.
 - `system_create` schema rejects `source.kind: generate`.
@@ -173,7 +168,7 @@ Moves deterministic artifact generation onto `system_generate` and removes the p
 
 Tests first:
 
-- `system_generate` accepts `source.kind: attachment`.
+- `system_generate` accepts `operation.kind: "attachment"`.
 - Attachment generation queues/returns the same document/image artifacts currently reached through `system_create source.kind: attachment` or `document_generate`.
 - `system_create` schema rejects `source.kind: attachment`.
 - `document_generate` is removed from the model-visible tool surface entirely (no preview-only door remains).

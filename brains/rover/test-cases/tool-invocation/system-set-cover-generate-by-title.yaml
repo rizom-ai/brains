@@ -19,8 +19,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         operation.kind: "cover-image"
-        operation.targetEntityType: "post"
-        operation.targetEntityId: "resilience-in-distributed-systems"
+        operation.target.entityType: "post"
+        operation.target.entityId: "resilience-in-distributed-systems"
   responseNotContains:
     - "not found"
     - "I cannot"

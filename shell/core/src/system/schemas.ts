@@ -87,7 +87,7 @@ export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
       kind: z
         .literal("upload")
         .describe(
-          "Use extract-markdown to import upload text into a note, or preserve to save raw uploaded bytes as their durable file entity",
+          "Use extract-markdown to import upload text into a note, or preserve only when the user explicitly wants to save the uploaded file/document bytes themselves. Do not use for saving a previous assistant summary about an upload; use prior-response for that.",
         ),
       upload: createUploadInputSchema.describe(
         "Exact upload candidate object from the current conversation",
@@ -95,7 +95,7 @@ export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
       transform: z
         .enum(["extract-markdown", "preserve"])
         .describe(
-          "extract-markdown imports upload text into a note-like entity; preserve saves raw uploaded bytes via the registered upload-save handler and derives the durable entity type from media type.",
+          "extract-markdown imports upload text into a note-like entity; preserve saves raw uploaded bytes via the registered upload-save handler and derives the durable entity type from media type. Use preserve only for explicit file/document preservation, not for saving an assistant summary response.",
         ),
     })
     .strict(),
@@ -103,7 +103,9 @@ export const createPreferredSourceInputSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z
         .literal("prior-response")
-        .describe("Save a previous assistant response as durable content"),
+        .describe(
+          "Save a previous assistant response as durable content, especially an assistant summary or answer about an upload.",
+        ),
       messageId: z
         .string()
         .min(1)
@@ -118,7 +120,9 @@ export const generateOperationInputSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z
         .literal("prompt")
-        .describe("Generate a new non-image durable entity from a prompt"),
+        .describe(
+          "Generate a new non-image durable entity from a prompt. For general topical social/newsletter/blog/deck generation, omit source. Only include source when the user explicitly asks to generate from/based on a specific existing content entity that was resolved with a tool result.",
+        ),
       entityType: z
         .string()
         .min(1)
@@ -126,6 +130,26 @@ export const generateOperationInputSchema = z.discriminatedUnion("kind", [
           "Entity type to generate from the prompt. Do not use image here; use standalone-image or cover-image.",
         ),
       title: z.string().optional().describe("Title for the generated entity"),
+      source: z
+        .object({
+          entityType: z
+            .string()
+            .min(1)
+            .describe(
+              "Resolved content source entity type, such as post for a newsletter from a blog post. Do not use brain-character or anchor-profile.",
+            ),
+          entityId: z
+            .string()
+            .min(1)
+            .describe(
+              "Resolved source entity ID copied from a prior tool result or typed entity ref; never an upload id, filename, guessed slug, or future placeholder.",
+            ),
+        })
+        .strict()
+        .optional()
+        .describe(
+          "Existing durable source entity to ground this generation. Use only when the user asked to generate from/based on that specific resolved content entity. Omit source for broad topical prompts, profile/brain-character context, uploads, conversation-only context, or unknown/guessed sources.",
+        ),
       prompt: z
         .string()
         .min(1)
@@ -139,10 +163,15 @@ export const generateOperationInputSchema = z.discriminatedUnion("kind", [
       kind: z
         .literal("standalone-image")
         .describe(
-          "Generate a standalone image that is not attached to another entity",
+          "Generate a standalone image that is not attached to another entity. Do not use this as a cover image substitute; requested covers require cover-image after the target entity exists.",
         ),
       title: z.string().optional().describe("Title for the generated image"),
-      prompt: z.string().min(1).describe("Prompt for creating the image"),
+      prompt: z
+        .string()
+        .min(1)
+        .describe(
+          "Prompt for creating an unattached image. Not for cover images requested for a generated post/entity.",
+        ),
     })
     .strict(),
   z
@@ -150,17 +179,26 @@ export const generateOperationInputSchema = z.discriminatedUnion("kind", [
       kind: z
         .literal("cover-image")
         .describe(
-          "Generate an image and attach it to an existing entity as coverImageId",
+          "Generate an image and attach it to an existing entity as coverImageId. Use only after the target entity already exists and its real entityId is known; do not use in the same initial turn as generating that target entity.",
         ),
-      targetEntityType: z
-        .string()
-        .min(1)
-        .describe("Existing target entity type"),
-      targetEntityId: z
-        .string()
-        .min(1)
+      target: z
+        .object({
+          entityType: z
+            .string()
+            .min(1)
+            .describe(
+              "Existing target entity type. Use the actual type of the entity being covered: social-post for LinkedIn/social posts, post for blog posts, etc.",
+            ),
+          entityId: z
+            .string()
+            .min(1)
+            .describe(
+              "Existing target entity ID copied from a prior tool result or typed entity ref; never a placeholder or guessed future id",
+            ),
+        })
+        .strict()
         .describe(
-          "Existing target entity ID, slug, or title; never a placeholder",
+          "Existing entity that should receive the generated coverImageId",
         ),
       title: z.string().optional().describe("Title for the generated image"),
       prompt: z.string().min(1).describe("Prompt for creating the cover image"),
@@ -173,11 +211,20 @@ export const generateOperationInputSchema = z.discriminatedUnion("kind", [
         .describe(
           "Generate a deterministic durable artifact from an existing entity attachment provider",
         ),
-      sourceEntityType: z.string().min(1).describe("Source entity type"),
-      sourceEntityId: z
-        .string()
-        .min(1)
-        .describe("Canonical source entity ID, slug, or title"),
+      source: z
+        .object({
+          entityType: z.string().min(1).describe("Source entity type"),
+          entityId: z
+            .string()
+            .min(1)
+            .describe(
+              "Canonical source entity ID copied from a prior tool result or typed entity ref; never an upload id, filename, guessed slug, or future placeholder",
+            ),
+        })
+        .strict()
+        .describe(
+          "Existing durable entity whose attachment provider should render the artifact. Use only resolved entity refs, not uploads or conversation-only context.",
+        ),
       attachmentType: z
         .string()
         .min(1)
@@ -237,7 +284,7 @@ export const updateInputSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe(
-      "Partial frontmatter fields to update. Use this for status, title, and metadata changes such as approving an agent. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
+      "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, update fields.coverImageId to that image id. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
     ),
   content: z
     .string()

@@ -66,7 +66,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             operation.kind: "cover-image"
-            operation.targetEntityType: social-post
+            operation.target.entityType: social-post
 
   - userMessage: "Confirm creation"
     confirmPendingAction: true
@@ -82,7 +82,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         operation.kind: "cover-image"
-        operation.targetEntityType: social-post
+        operation.target.entityType: social-post
   responseNotContains:
     - "Upload ref not found"
 

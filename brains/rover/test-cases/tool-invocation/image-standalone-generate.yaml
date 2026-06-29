@@ -20,6 +20,12 @@ successCriteria:
       argsContain:
         operation.kind: "standalone-image"
       argsAbsent:
+        - operation.source
+        - operation.target
+        - operation.attachmentType
+        - coverImage
+        - sourceEntityType
+        - sourceEntityId
         - targetEntityType
         - targetEntityId
   responseNotContains:
