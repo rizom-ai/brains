@@ -1,5 +1,6 @@
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+import { z as z4 } from "@brains/utils/zod-v4";
+import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
  * Wish status
@@ -18,6 +19,15 @@ export const wishStatusSchema = z.enum([
 ]);
 
 export const wishPrioritySchema = z.enum(["low", "medium", "high", "critical"]);
+
+const wishStatusParserSchema = z4.enum([
+  "new",
+  "planned",
+  "in-progress",
+  "done",
+  "declined",
+]);
+const wishPriorityParserSchema = z4.enum(["low", "medium", "high", "critical"]);
 
 /**
  * Wish frontmatter schema (stored in content as YAML frontmatter)
@@ -46,13 +56,21 @@ export const wishMetadataSchema = z.object({
 /**
  * Wish entity schema
  */
-export const wishSchema = baseEntitySchema.extend({
-  entityType: z.literal("wish"),
-  metadata: wishMetadataSchema,
+const wishEntityMetadataParserSchema = z4.object({
+  title: z4.string(),
+  status: wishStatusParserSchema,
+  priority: wishPriorityParserSchema,
+  requested: z4.number().int(),
+  slug: z4.string(),
 });
 
-export type WishStatus = z.infer<typeof wishStatusSchema>;
-export type WishPriority = z.infer<typeof wishPrioritySchema>;
-export type WishFrontmatter = z.infer<typeof wishFrontmatterSchema>;
-export type WishMetadata = z.infer<typeof wishMetadataSchema>;
-export type WishEntity = z.infer<typeof wishSchema>;
+export const wishSchema = baseEntityParserSchema.extend({
+  entityType: z4.literal("wish"),
+  metadata: wishEntityMetadataParserSchema,
+});
+
+export type WishStatus = z.output<typeof wishStatusSchema>;
+export type WishPriority = z.output<typeof wishPrioritySchema>;
+export type WishFrontmatter = z.output<typeof wishFrontmatterSchema>;
+export type WishMetadata = z.output<typeof wishMetadataSchema>;
+export type WishEntity = z4.output<typeof wishSchema>;

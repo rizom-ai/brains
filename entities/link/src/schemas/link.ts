@@ -1,5 +1,6 @@
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+import { z as z4 } from "@brains/utils/zod-v4";
+import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
  * Source reference for links (where the link was captured from)
@@ -18,6 +19,8 @@ export const linkSourceSchema = z.object({
  * - published: user explicitly published the link
  */
 export const linkStatusSchema = z.enum(["pending", "draft", "published"]);
+
+const linkStatusParserSchema = z4.enum(["pending", "draft", "published"]);
 
 /**
  * Link frontmatter schema (stored in content as YAML frontmatter)
@@ -46,13 +49,18 @@ export const linkMetadataSchema = linkFrontmatterSchema.pick({
 /**
  * Link entity schema
  */
-export const linkSchema = baseEntitySchema.extend({
-  entityType: z.literal("link"),
-  metadata: linkMetadataSchema,
+const linkEntityMetadataParserSchema = z4.object({
+  title: z4.string(),
+  status: linkStatusParserSchema,
 });
 
-export type LinkSource = z.infer<typeof linkSourceSchema>;
-export type LinkStatus = z.infer<typeof linkStatusSchema>;
-export type LinkFrontmatter = z.infer<typeof linkFrontmatterSchema>;
-export type LinkEntity = z.infer<typeof linkSchema>;
-export type LinkMetadata = z.infer<typeof linkMetadataSchema>;
+export const linkSchema = baseEntityParserSchema.extend({
+  entityType: z4.literal("link"),
+  metadata: linkEntityMetadataParserSchema,
+});
+
+export type LinkSource = z.output<typeof linkSourceSchema>;
+export type LinkStatus = z.output<typeof linkStatusSchema>;
+export type LinkFrontmatter = z.output<typeof linkFrontmatterSchema>;
+export type LinkEntity = z4.output<typeof linkSchema>;
+export type LinkMetadata = z.output<typeof linkMetadataSchema>;
