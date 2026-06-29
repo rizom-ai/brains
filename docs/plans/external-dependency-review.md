@@ -1152,9 +1152,11 @@ migration complete:
   `@rizom/brain` root, while the package still carries `zod` dependency
   metadata during the public declaration/runtime transition. Endgame: published
   dependency metadata and declarations reflect the final single Zod 4 contract.
-- `shared/utils/src/zod.ts` remains as the legacy main-Zod compatibility export
-  even though source consumers have moved off it. Endgame: remove the export and
-  dependency metadata once public/back-compat policy allows it.
+- `shared/utils/src/index.ts` now re-exports Zod from the Zod 4 helper. The
+  legacy `shared/utils/src/zod.ts` subpath remains as the only main-Zod
+  compatibility export even though source consumers have moved off it. Endgame:
+  remove the subpath and dependency metadata once public/back-compat policy
+  allows it.
 - `shell/app/src/brain-resolver.ts` and
   `plugins/directory-sync/src/lib/quarantine.ts` now classify only Zod 4
   `ZodError` instances directly. Endgame: normalize validation failures through

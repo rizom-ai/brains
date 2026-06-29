@@ -71,10 +71,10 @@ export { toISODateString, getYesterday, getDaysAgo } from "./date";
 // HTTP utilities
 export { isHttpUrl, fetchAsBase64DataUrl, fetchAsText } from "./http-utils";
 
-// Zod exports - centralized for the entire monorepo
+// Zod 4 exports - centralized for the monorepo
 // NOTE: No wildcard exports to avoid loading all Zod types (causes 5M+ type instantiations)
-export { z, ZodError } from "./zod";
-export type { ZodType, ZodSchema } from "./zod";
+export { z, ZodError } from "./zod-v4";
+export type { ZodType, ZodSchema } from "./zod-v4";
 
 // Additional Zod type exports
 export type {
@@ -83,7 +83,7 @@ export type {
   ZodInput,
   ZodOutput,
   ZodTypeAny,
-} from "./zod";
+} from "./zod-v4";
 
 // Error utilities
 export { getErrorMessage, toError } from "./error";
