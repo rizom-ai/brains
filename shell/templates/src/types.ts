@@ -134,7 +134,7 @@ export const TemplateSchema = z.object({
   formatter: z.any().optional(), // ContentFormatter instance
   layout: z
     .object({
-      component: z.any(), // ComponentType or string
+      component: z.any().optional(), // ComponentType or string
       fullscreen: z.boolean().optional(),
     })
     .optional(),

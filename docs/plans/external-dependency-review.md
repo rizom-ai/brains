@@ -1101,6 +1101,12 @@ Incremental migration progress:
   split entity frontmatter schemas, CMS config generation, and CMS/Obsidian test
   fixtures now use `@brains/utils/zod-v4`. Deleted the package-local `main-zod`
   modules rather than leaving renamed compatibility wrappers.
+- Trimmed legacy Zod compatibility branches after the durable migration: app
+  config handling and directory quarantine now classify Zod 4 errors directly,
+  Obsidian introspection reads only Zod 4 internals, the `@brains/utils` root and
+  compatibility zod subpath re-export the Zod 4 helper, and direct `zod`
+  package metadata now resolves to Zod 4 with a root override to avoid nested
+  mixed Zod instances.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
@@ -1149,9 +1155,8 @@ migration complete:
   generations. Endgame: one Zod 4-owned generation schema contract or an
   explicitly chosen schema-library-neutral AI SDK boundary.
 - `packages/brain-cli/src/entries/index.ts` now exports Zod 4 from the public
-  `@rizom/brain` root, while the package still carries `zod` dependency
-  metadata during the public declaration/runtime transition. Endgame: published
-  dependency metadata and declarations reflect the final single Zod 4 contract.
+  `@rizom/brain` root, and published package metadata now depends on Zod 4.
+  Keep declaration/runtime output aligned with that single public Zod contract.
 - `shared/utils/src/index.ts` and the compatibility
   `shared/utils/src/zod.ts` subpath now re-export from the Zod 4 helper. Endgame:
   decide whether the compatibility subpath remains as a stable alias or is

@@ -35,6 +35,9 @@
   },
   "packageManager": "bun@1.0.0",
   "private": true,
+  "overrides": {
+    "zod": "^4.1.8"
+  },
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
