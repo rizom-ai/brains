@@ -1,5 +1,6 @@
 import { z } from "./main-zod";
-import { baseEntitySchema } from "@brains/plugins";
+import { z as z4 } from "@brains/utils/zod-v4";
+import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
  * Product availability — maturity stage, not a publish workflow status
@@ -10,17 +11,24 @@ export const productAvailabilitySchema = z.enum([
   "coming soon",
   "planned",
 ]);
-export type ProductAvailability = z.infer<typeof productAvailabilitySchema>;
+export type ProductAvailability = z.output<typeof productAvailabilitySchema>;
+
+const productAvailabilityParserSchema = z4.enum([
+  "available",
+  "early access",
+  "coming soon",
+  "planned",
+]);
 
 /**
  * Product feature/capability schema
  */
-export const productFeatureSchema = z.object({
-  title: z.string(),
-  description: z.string(),
+export const productFeatureSchema = z4.object({
+  title: z4.string(),
+  description: z4.string(),
 });
 
-export type ProductFeature = z.infer<typeof productFeatureSchema>;
+export type ProductFeature = z4.output<typeof productFeatureSchema>;
 
 /**
  * Product frontmatter schema — minimal: identity + metadata only
@@ -33,24 +41,24 @@ export const productFrontmatterSchema = z.object({
   ogImageId: z.string().optional(), // References an image entity for social previews
 });
 
-export type ProductFrontmatter = z.infer<typeof productFrontmatterSchema>;
+export type ProductFrontmatter = z.output<typeof productFrontmatterSchema>;
 
 /**
  * Product body schema — structured content parsed from markdown sections
  * Contains all descriptive/narrative content that was previously in frontmatter
  */
-export const productBodySchema = z.object({
-  tagline: z.string(),
-  promise: z.string(),
-  role: z.string(),
-  purpose: z.string(),
-  audience: z.string(),
-  values: z.array(z.string()).min(1),
-  features: z.array(productFeatureSchema).min(1).max(6),
-  story: z.string(),
+export const productBodySchema = z4.object({
+  tagline: z4.string(),
+  promise: z4.string(),
+  role: z4.string(),
+  purpose: z4.string(),
+  audience: z4.string(),
+  values: z4.array(z4.string()).min(1),
+  features: z4.array(productFeatureSchema).min(1).max(6),
+  story: z4.string(),
 });
 
-export type ProductBody = z.infer<typeof productBodySchema>;
+export type ProductBody = z4.output<typeof productBodySchema>;
 
 /**
  * Product metadata schema - derived from frontmatter
@@ -66,41 +74,55 @@ export const productMetadataSchema = productFrontmatterSchema
     slug: z.string(),
   });
 
-export type ProductMetadata = z.infer<typeof productMetadataSchema>;
+export type ProductMetadata = z.output<typeof productMetadataSchema>;
+
+const productEntityMetadataParserSchema = z4.object({
+  name: z4.string(),
+  availability: productAvailabilityParserSchema,
+  order: z4.number(),
+  slug: z4.string(),
+});
+
+const productFrontmatterParserSchema = z4.object({
+  name: z4.string(),
+  availability: productAvailabilityParserSchema,
+  order: z4.number(),
+  ogImageId: z4.string().optional(),
+});
 
 /**
  * Product entity schema (extends BaseEntity)
  */
-export const productSchema = baseEntitySchema.extend({
-  entityType: z.literal("product"),
-  metadata: productMetadataSchema,
+export const productSchema = baseEntityParserSchema.extend({
+  entityType: z4.literal("product"),
+  metadata: productEntityMetadataParserSchema,
 });
 
-export type Product = z.infer<typeof productSchema>;
+export type Product = z4.output<typeof productSchema>;
 
 /**
  * Product with parsed data (returned by datasource)
  * Body is structured content, not a raw string
  */
 export const productWithDataSchema = productSchema.extend({
-  frontmatter: productFrontmatterSchema,
+  frontmatter: productFrontmatterParserSchema,
   body: productBodySchema,
-  labels: z.record(z.string(), z.string()),
-  ogImageUrl: z.string().optional(), // Absolute URL for social preview metadata
+  labels: z4.record(z4.string(), z4.string()),
+  ogImageUrl: z4.string().optional(), // Absolute URL for social preview metadata
 });
 
-export type ProductWithData = z.infer<typeof productWithDataSchema>;
+export type ProductWithData = z4.output<typeof productWithDataSchema>;
 
 /**
  * Enriched product (after site-builder enrichment adds url/typeLabel)
  * Schema validates with optional fields — site-builder enriches before rendering
  */
 export const enrichedProductSchema = productWithDataSchema.extend({
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
-  listUrl: z.string().optional(),
-  listLabel: z.string().optional(),
-  ogImageUrl: z.string().optional(),
+  url: z4.string().optional(),
+  typeLabel: z4.string().optional(),
+  listUrl: z4.string().optional(),
+  listLabel: z4.string().optional(),
+  ogImageUrl: z4.string().optional(),
 });
 
-export type EnrichedProduct = z.infer<typeof enrichedProductSchema>;
+export type EnrichedProduct = z4.output<typeof enrichedProductSchema>;

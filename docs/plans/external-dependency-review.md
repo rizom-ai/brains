@@ -1093,10 +1093,10 @@ Incremental migration progress:
   remains main-Zod-owned for now: site-content, prompt, rizom-ecosystem, and
   site-info. Extended that split to additional durable-frontmatter entity
   packages (`link`, `newsletter`, `wishlist`, `doc`, `note`, `portfolio`,
-  `series`, `blog`, `decks`, `social-media`, `topics`, and `playbook`) by
-  duplicating only the parser-side metadata/data/template/body shapes in Zod 4
-  and leaving their frontmatter adapter schemas on the existing main-Zod
-  boundary.
+  `series`, `blog`, `decks`, `social-media`, `topics`, `playbook`, `products`,
+  and `conversation-memory`) by duplicating only the parser-side
+  metadata/data/template/body shapes in Zod 4 and leaving their frontmatter
+  adapter schemas on the existing main-Zod boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
