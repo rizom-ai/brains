@@ -7,7 +7,18 @@
 
 export { z as default } from "zod/v4";
 export { z, ZodError } from "zod/v4";
-export type { ZodRawShape, ZodSchema, ZodType, ZodTypeAny } from "zod/v4";
+export type {
+  ZodCatch,
+  ZodDefault,
+  ZodErrorMap,
+  ZodLiteral,
+  ZodNullable,
+  ZodOptional,
+  ZodRawShape,
+  ZodSchema,
+  ZodType,
+  ZodTypeAny,
+} from "zod/v4";
 export type {
   infer as ZodInfer,
   input as ZodInput,

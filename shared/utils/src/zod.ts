@@ -1,31 +1,26 @@
 /**
- * Centralized Zod exports for the entire monorepo.
- * This provides a single point of control for Zod versioning and migrations.
+ * Compatibility Zod subpath.
+ *
+ * Keep this file so older @brains/utils zod-subpath imports continue to
+ * resolve, but route the export through the monorepo's Zod 4 boundary.
  *
  * IMPORTANT: Do not use wildcard exports here as they cause TypeScript to load
  * all of Zod's complex types, creating millions of type instantiations.
  */
 
-// Default export
-export { z as default } from "zod";
-
-// Explicit named exports for commonly used items
-export { z, ZodError } from "zod";
-
-// Type-only re-exports that need explicit type annotation
-export type { ZodType, ZodSchema } from "zod";
-
-// Type-only exports for better tree-shaking
+export { default, z, ZodError } from "./zod-v4";
 export type {
-  infer as ZodInfer,
-  input as ZodInput,
-  output as ZodOutput,
-  ZodTypeAny,
-  ZodRawShape,
+  ZodCatch,
+  ZodDefault,
   ZodErrorMap,
+  ZodInfer,
+  ZodInput,
   ZodLiteral,
   ZodNullable,
   ZodOptional,
-  ZodDefault,
-  ZodCatch,
-} from "zod";
+  ZodOutput,
+  ZodRawShape,
+  ZodSchema,
+  ZodType,
+  ZodTypeAny,
+} from "./zod-v4";

@@ -1116,11 +1116,11 @@ Incremental migration progress:
 
 ### Remaining Zod migration strategy
 
-Direct source imports from `@brains/utils/zod` are now eliminated outside the
-compatibility export itself (`shared/utils/src/zod.ts`) and public API tests that
-assert bare `zod` is not leaked. The Zod migration is still not complete: several
-runtime boundaries intentionally accept or classify both Zod generations, and
-those compatibility paths remain tracked below.
+Direct source imports from `@brains/utils/zod` are now eliminated, and the
+compatibility subpath (`shared/utils/src/zod.ts`) now routes to the Zod 4 helper.
+The Zod migration is still not complete: some structural compatibility slots
+still intentionally accept both Zod generations, and those paths remain tracked
+below.
 
 Near-term rules for continuing Phase 2:
 
@@ -1152,11 +1152,10 @@ migration complete:
   `@rizom/brain` root, while the package still carries `zod` dependency
   metadata during the public declaration/runtime transition. Endgame: published
   dependency metadata and declarations reflect the final single Zod 4 contract.
-- `shared/utils/src/index.ts` now re-exports Zod from the Zod 4 helper. The
-  legacy `shared/utils/src/zod.ts` subpath remains as the only main-Zod
-  compatibility export even though source consumers have moved off it. Endgame:
-  remove the subpath and dependency metadata once public/back-compat policy
-  allows it.
+- `shared/utils/src/index.ts` and the compatibility
+  `shared/utils/src/zod.ts` subpath now re-export from the Zod 4 helper. Endgame:
+  decide whether the compatibility subpath remains as a stable alias or is
+  removed with a public/back-compat policy note.
 - `shell/app/src/brain-resolver.ts` and
   `plugins/directory-sync/src/lib/quarantine.ts` now classify only Zod 4
   `ZodError` instances directly. Endgame: normalize validation failures through
