@@ -29,9 +29,7 @@ export type SiteInfoEntity = z4.output<typeof siteInfoSchema>;
 /**
  * CTA schema - call-to-action configuration.
  *
- * Kept as a local main-Zod schema because site-info is still a durable
- * entity/frontmatter boundary. The shared site-composition metadata schema is
- * Zod 4-owned and must not be composed into this main-Zod schema tree.
+ * Local durable frontmatter schema for the site-info entity.
  */
 export const siteInfoCTASchema = z.object({
   heading: z.string().describe("Main CTA heading text"),

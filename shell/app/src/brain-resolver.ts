@@ -5,8 +5,8 @@ import {
   type EntityActionRequiredLevel,
 } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
-import { ensureArray, ZodError, type Logger } from "@brains/utils";
-import { z, ZodError as ZodV4Error } from "@brains/utils/zod-v4";
+import { ensureArray, type Logger } from "@brains/utils";
+import { z, ZodError } from "@brains/utils/zod-v4";
 import type {
   BrainDefinition,
   BrainEnvironment,
@@ -265,7 +265,7 @@ function instantiateSitePlugin(
 }
 
 function isZodError(error: unknown): boolean {
-  return error instanceof ZodError || error instanceof ZodV4Error;
+  return error instanceof ZodError;
 }
 
 function instantiateCapabilities(

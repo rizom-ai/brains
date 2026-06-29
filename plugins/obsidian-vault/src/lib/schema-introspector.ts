@@ -22,22 +22,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function getDefinition(schema: unknown): Record<string, unknown> | undefined {
   if (!isRecord(schema)) return undefined;
-  const publicDef = schema["def"];
-  if (isRecord(publicDef)) return publicDef;
-  const privateDef = schema["_def"];
-  if (isRecord(privateDef)) return privateDef;
-  return undefined;
+  const definition = schema["def"];
+  return isRecord(definition) ? definition : undefined;
 }
 
 function getSchemaKind(schema: unknown): string | undefined {
-  const definition = getDefinition(schema);
-  const type = definition?.["type"];
-  if (typeof type === "string") return type;
-  const typeName = definition?.["typeName"];
-  if (typeof typeName !== "string") return undefined;
-  return typeName.startsWith("Zod")
-    ? typeName.slice(3).toLowerCase()
-    : typeName;
+  const type = getDefinition(schema)?.["type"];
+  return typeof type === "string" ? type : undefined;
 }
 
 function readDefaultValue(value: unknown): unknown {
@@ -45,8 +36,7 @@ function readDefaultValue(value: unknown): unknown {
 }
 
 /**
- * Unwrap Zod wrappers (optional, default, nullable) to get the base type.
- * Supports both the repo's main Zod boundary and schemas built with Zod 4.
+ * Unwrap Zod 4 wrappers (optional, default, nullable) to get the base type.
  */
 function unwrap(schema: unknown): UnwrappedSchema {
   let inner = schema;
@@ -88,13 +78,6 @@ function unwrap(schema: unknown): UnwrappedSchema {
 
 function readEnumValues(schema: unknown): string[] | undefined {
   const definition = getDefinition(schema);
-  const values = definition?.["values"];
-  if (
-    Array.isArray(values) &&
-    values.every((value) => typeof value === "string")
-  ) {
-    return values;
-  }
   const entries = definition?.["entries"];
   if (!isRecord(entries)) return undefined;
   const entryValues = Object.values(entries);
@@ -131,7 +114,7 @@ function classifyType(
   if (kind === "array") return { type: "array" };
   if (kind === "date") return { type: "date" };
 
-  // Older z.coerce.date() shapes can produce a pipeline/pipe wrapping ZodDate.
+  // Coerced date shapes can produce a pipeline/pipe wrapping ZodDate.
   if (kind === "pipeline" || kind === "pipe") {
     const definition = getDefinition(schema);
     return classifyType(definition?.["out"]);

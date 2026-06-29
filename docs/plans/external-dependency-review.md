@@ -1155,17 +1155,14 @@ migration complete:
 - `shared/utils/src/zod.ts` remains as the legacy main-Zod compatibility export
   even though source consumers have moved off it. Endgame: remove the export and
   dependency metadata once public/back-compat policy allows it.
-- `shell/app/src/brain-resolver.ts` treats both main-Zod and Zod 4 `ZodError`
-  as config validation failures. Endgame: remove the main-Zod branch once app
-  plugin/config validators are fully Zod 4-owned.
-- `plugins/directory-sync/src/lib/quarantine.ts` classifies both main-Zod and
-  Zod 4 `ZodError` as validation quarantine reasons. Endgame: remove the
-  main-Zod branch once all deserialize/import validators throw Zod 4 errors (or
-  normalize errors through a non-Zod domain error before quarantine).
-- `plugins/obsidian-vault/src/lib/schema-introspector.ts` structurally
-  introspects both main-Zod and Zod 4 object internals. Endgame: replace this
-  with a Zod 4-only frontmatter-introspection adapter or a schema-owned field
-  metadata contract; do not leave dual internal-shape probing as final design.
+- `shell/app/src/brain-resolver.ts` and
+  `plugins/directory-sync/src/lib/quarantine.ts` now classify only Zod 4
+  `ZodError` instances directly. Endgame: normalize validation failures through
+  a non-Zod domain error if callers need a schema-library-neutral contract.
+- `plugins/obsidian-vault/src/lib/schema-introspector.ts` now introspects Zod 4
+  object internals only. Endgame: replace internal-shape reads with explicit
+  schema-owned field metadata if Obsidian generation grows beyond simple field
+  mapping.
 - The former package-local `main-zod` modules and test helpers were removed when
   durable entity/frontmatter schemas moved to Zod 4. Do not recreate them.
 - `shared/cms-config/src/index.ts` now introspects Zod 4 internals directly for

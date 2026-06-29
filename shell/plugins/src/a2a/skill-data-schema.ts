@@ -2,9 +2,8 @@ import { z } from "@brains/utils/zod-v4";
 
 /**
  * Skill data for Agent Card integration.
- * Defined here as the shared durable entity contract — entities compose this
- * schema into their main-Zod entity/frontmatter schemas while the agent-card
- * parser itself can migrate independently.
+ * Defined here as the shared Zod 4 contract used by agent-card parsing and
+ * durable skill entity/frontmatter schemas.
  */
 export const skillDataSchema = z.object({
   name: z.string(),

@@ -3,10 +3,9 @@ import { z } from "@brains/utils/zod-v4";
 import { SKILL_ENTITY_TYPE } from "../lib/constants";
 
 /**
- * Skill frontmatter schema — local main-Zod duplicate of the A2A SkillData
- * shape. The public A2A parser schema is Zod 4-owned; this durable entity
- * schema stays on the main-Zod entity boundary until that boundary migrates as
- * a whole.
+ * Skill frontmatter schema.
+ * Same shape as the A2A SkillData contract so the interface can read skill
+ * metadata directly.
  */
 export const skillFrontmatterSchema = z.object({
   name: z.string(),
