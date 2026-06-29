@@ -1,4 +1,4 @@
-import { z } from "./main-zod";
+import { z } from "@brains/utils/zod-v4";
 import { baseEntitySchema } from "@brains/entity-service";
 
 /**

@@ -1,5 +1,4 @@
-import type { zMain as z } from "../main-zod";
-import { z as z4 } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import type { BaseEntity, EntityAdapter, EntitySchemaParser } from "../types";
 import {
   parseMarkdownWithFrontmatter,
@@ -16,7 +15,7 @@ const defaultBodyFormatter: BodyTemplateProvider = {
   generateBodyTemplate: () => "",
 };
 
-const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 export interface BaseEntityAdapterConfig<
   TEntity extends BaseEntity<TMetadata>,

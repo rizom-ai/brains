@@ -1,5 +1,5 @@
 import { baseEntitySchema } from "@brains/plugins";
-import { z } from "./main-zod";
+import { z } from "@brains/utils/zod-v4";
 import { SKILL_ENTITY_TYPE } from "../lib/constants";
 
 /**

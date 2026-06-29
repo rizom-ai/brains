@@ -5,7 +5,7 @@ import type {
   CreateInterceptionResult,
   UploadSaveHandler,
 } from "../src/types";
-import { z } from "./helpers/main-zod";
+import { z } from "@brains/utils/zod-v4";
 import { EntityRegistry } from "../src/entityRegistry";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";

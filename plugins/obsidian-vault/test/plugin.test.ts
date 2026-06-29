@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod-v4";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 
 import { ObsidianVaultPlugin } from "../src/plugin";

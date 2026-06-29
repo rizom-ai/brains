@@ -1,7 +1,7 @@
 import type { BaseEntity } from "@brains/plugins";
 import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { z } from "../src/main-zod";
+import { z } from "@brains/utils/zod-v4";
 import { z as z4 } from "@brains/utils/zod-v4";
 
 export const testAgentSkillSchema = z4.object({

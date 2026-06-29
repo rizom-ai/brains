@@ -20,7 +20,11 @@ interface ProfileBodyParser<T> {
  * Entity adapter for Anchor Profile entities
  * Uses frontmatter format for CMS compatibility
  */
-export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity> {
+export class AnchorProfileAdapter extends BaseEntityAdapter<
+  AnchorProfileEntity,
+  Record<string, unknown>,
+  AnchorProfile
+> {
   constructor() {
     super({
       entityType: "anchor-profile",
@@ -61,7 +65,7 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
       );
       return body ? { ...parsed, story: body } : parsed;
     }
-    return this.parseFrontmatter(content) as AnchorProfile;
+    return this.parseFrontmatter(content);
   }
 
   /**
@@ -81,7 +85,7 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
   public override extractMetadata(
     entity: AnchorProfileEntity,
   ): Record<string, unknown> {
-    const data = this.parseFrontmatter(entity.content) as AnchorProfile;
+    const data = this.parseFrontmatter(entity.content);
     return {
       name: data.name,
       email: data.email,

@@ -1090,16 +1090,17 @@ Incremental migration progress:
   boundaries and migrated complete non-CMS entity parser trees for image and
   document. Also split several mixed durable/frontmatter packages so their
   registered entity schema is Zod 4-owned while their frontmatter/CMS schema
-  remains main-Zod-owned for now: site-content, prompt, rizom-ecosystem, and
-  site-info. Extended that split to additional durable-frontmatter entity
-  packages (`link`, `newsletter`, `wishlist`, `doc`, `note`, `portfolio`,
-  `series`, `blog`, `decks`, `social-media`, `topics`, `playbook`, `products`,
-  and `conversation-memory`) by duplicating only the parser-side
-  metadata/data/template/body shapes in Zod 4 and leaving their frontmatter
-  adapter schemas on the existing main-Zod boundary. The agent-discovery
-  list/detail display parser schemas now follow the same split: durable
-  agent frontmatter/entity schemas stay main-Zod-owned while parsed
-  datasource/template data is Zod 4-owned.
+  remained main-Zod-owned during the transition: site-content, prompt,
+  rizom-ecosystem, site-info, `link`, `newsletter`, `wishlist`, `doc`, `note`,
+  `portfolio`, `series`, `blog`, `decks`, `social-media`, `topics`, `playbook`,
+  `products`, and `conversation-memory`. The agent-discovery list/detail display
+  parser schemas followed the same temporary split.
+- Migrated the durable entity/frontmatter boundary to Zod 4: `baseEntitySchema`,
+  `BaseEntityAdapter` frontmatter schemas, `EntityRegistry.extendFrontmatterSchema`,
+  identity/profile schemas, assessment/agent-discovery durable schemas, all
+  split entity frontmatter schemas, CMS config generation, and CMS/Obsidian test
+  fixtures now use `@brains/utils/zod-v4`. Deleted the package-local `main-zod`
+  modules rather than leaving renamed compatibility wrappers.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
@@ -1115,39 +1116,21 @@ Incremental migration progress:
 
 ### Remaining Zod migration strategy
 
-The remaining main-Zod imports are no longer good candidates for opportunistic
-one-file parser duplication. Treat them as durable frontmatter/CMS ownership
-points unless proven otherwise.
+Direct source imports from `@brains/utils/zod` are now eliminated outside the
+compatibility export itself (`shared/utils/src/zod.ts`) and public API tests that
+assert bare `zod` is not leaked. The Zod migration is still not complete: several
+runtime boundaries intentionally accept or classify both Zod generations, and
+those compatibility paths remain tracked below.
 
 Near-term rules for continuing Phase 2:
 
-- Do not add new parser twins for shared exported contracts by default. A Zod 4
-  duplicate is acceptable only inside a bounded package-local parser/display
-  boundary, with the legacy half listed below as transitional debt.
-- Do not add new `main-zod` wrapper modules. Existing ones are debt ledgers, not
-  a pattern to repeat.
-- Do not migrate identity/profile by duplicating exported profile schemas. That
-  boundary is shared by identity-service, plugins, sites, A2A, and frontmatter
-  extension APIs; migrate it as part of the durable frontmatter boundary.
-- The preferred endgame is a Zod 4-owned frontmatter/entity schema boundary:
-  `BaseEntityAdapter`, `EntityRegistry.extendFrontmatterSchema`, CMS config, and
-  Obsidian introspection all agree on the same Zod 4 object contract. If this
-  proves too coupled to schema internals, replace CMS/Obsidian introspection with
-  an explicit schema-owned field metadata contract rather than hidden dual-Zod
-  probing.
-- Until that boundary is selected and migrated, leave durable frontmatter schemas
-  on main-Zod and only migrate complete parser/display/config boundaries that do
-  not compose with them.
-
-Current remaining direct `@brains/utils/zod` import ledger:
-
-| Category                                                        | Files                                                                                                                                                                                                                                                                                                                        | Endgame                                                                                                                                                                                                |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Core durable entity/frontmatter contract                        | `shell/entity-service/src/main-zod.ts`, `shell/entity-service/test/helpers/main-zod.ts`                                                                                                                                                                                                                                      | Move entity/frontmatter schema types and tests to the chosen final Zod 4/domain contract; remove helpers.                                                                                              |
-| Identity/profile durable frontmatter and extension contract     | `shell/identity-service/src/main-zod.ts` plus schemas importing it                                                                                                                                                                                                                                                           | Migrate identity profile/body/extensions together with `BaseEntityAdapter`, `extendFrontmatterSchema`, site profile schemas, and A2A anchor parsing; do not use exported parser twins as the strategy. |
-| CMS/frontmatter introspection                                   | `shared/cms-config/src/main-zod.ts`, `plugins/cms/test/plugin.test.ts`, `plugins/obsidian-vault/test/plugin.test.ts`                                                                                                                                                                                                         | Replace main-Zod introspection fixtures with Zod 4 once CMS/Obsidian consume the final frontmatter contract or explicit field metadata.                                                                |
-| Durable entity packages with split parser/frontmatter ownership | `plugins/site-content/src/schemas/site-content.ts`; entity schema files in `prompt`, `rizom-ecosystem`, `site-info`, `link`, `newsletter`, `wishlist`, `doc`, `note`, `portfolio`, `series`, `blog`, `decks`, `social-media`, `topics`, `playbook`, plus `conversation-memory` and `products` package-local main-Zod modules | Remove the main-Zod frontmatter half only when the durable adapter/CMS boundary migrates; keep existing Zod 4 parser halves unmixed.                                                                   |
-| Durable assessment and agent-discovery schemas                  | `entities/assessment/src/main-zod.ts`, `entities/assessment/src/schemas/swot.ts`, `entities/assessment/src/eval/swot-eval-plugin.ts`, `entities/agent-discovery/src/schemas/main-zod.ts`, `entities/agent-discovery/src/schemas/agent.ts`, `entities/agent-discovery/src/schemas/skill.ts`                                   | Migrate whole durable assessment/agent-discovery entity schemas when the frontmatter boundary migrates; keep current parser/display Zod 4 splits explicit.                                             |
+- Do not reintroduce parser twins for shared exported contracts. Identity/profile
+  moved with the durable frontmatter boundary; keep that as the pattern.
+- Do not add new `main-zod` wrapper modules. The previous package-local wrappers
+  were removed once their boundaries moved to Zod 4.
+- Treat remaining dual-Zod detection as transitional debt. Either remove it when
+  callers are confirmed Zod 4-only, or replace it with an explicit domain/schema
+  metadata contract chosen intentionally.
 
 ### Transitional Zod compatibility debt — not endgame
 
@@ -1169,6 +1152,9 @@ migration complete:
   `@rizom/brain` root, while the package still carries `zod` dependency
   metadata during the public declaration/runtime transition. Endgame: published
   dependency metadata and declarations reflect the final single Zod 4 contract.
+- `shared/utils/src/zod.ts` remains as the legacy main-Zod compatibility export
+  even though source consumers have moved off it. Endgame: remove the export and
+  dependency metadata once public/back-compat policy allows it.
 - `shell/app/src/brain-resolver.ts` treats both main-Zod and Zod 4 `ZodError`
   as config validation failures. Endgame: remove the main-Zod branch once app
   plugin/config validators are fully Zod 4-owned.
@@ -1180,29 +1166,18 @@ migration complete:
   introspects both main-Zod and Zod 4 object internals. Endgame: replace this
   with a Zod 4-only frontmatter-introspection adapter or a schema-owned field
   metadata contract; do not leave dual internal-shape probing as final design.
-- Package-local `main-zod` modules centralize durable main-Zod schema ownership
-  in `shell/entity-service/src/main-zod.ts`,
-  `shell/identity-service/src/main-zod.ts`,
-  `entities/assessment/src/main-zod.ts`,
-  `entities/agent-discovery/src/schemas/main-zod.ts`,
-  `entities/conversation-memory/src/schemas/main-zod.ts`, and
-  `entities/products/src/schemas/main-zod.ts`. Endgame: remove these modules
-  when those durable entity/frontmatter boundaries migrate as whole schema trees.
-- `shared/cms-config/src/main-zod.ts` centralizes CMS config's main-Zod
-  introspection dependency. Endgame: replace with a Zod 4-only CMS schema
-  metadata/introspection contract rather than hidden dual Zod support.
-- `shell/entity-service/test/helpers/main-zod.ts` centralizes test-only
-  main-Zod schema construction for fixtures that still compose with durable
-  entity/frontmatter schemas. Endgame: remove the helper when those durable
-  schemas migrate or when tests move to a Zod 4/domain fixture boundary.
+- The former package-local `main-zod` modules and test helpers were removed when
+  durable entity/frontmatter schemas moved to Zod 4. Do not recreate them.
+- `shared/cms-config/src/index.ts` now introspects Zod 4 internals directly for
+  CMS widget generation. Endgame: replace internal-shape reads with explicit
+  schema-owned field metadata if CMS behavior grows beyond simple widgets.
 - Structural parser slots added during this migration are compatibility
   scaffolding when they exist only to accept both Zod generations. Track and
   revisit: `shell/messaging-service/src/message-validator.ts`,
   `shell/runtime-state/src/types.ts`, `shell/entity-service/src/datasource-types.ts`,
   `shell/entity-service/src/types.ts` entity schema parser slots,
   `shell/job-queue/src/base-job-handler.ts`, `shell/plugins/src/base-plugin.ts`,
-  `shell/plugins/src/entity/entity-plugin.ts`, entity-plugin context/public
-  context `getEffectiveFrontmatterSchema` views, public service/interface/message
+  `shell/plugins/src/entity/entity-plugin.ts`, public service/interface/message
   and entity plugin delegates, `plugins/site-builder/src/lib/site-view-template.ts`,
   `shared/content-formatters/src/formatters/structured-content.ts`,
   `shared/media-page-composer/src/types.ts`, and

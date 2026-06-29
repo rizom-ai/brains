@@ -16,7 +16,8 @@ const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
  */
 export class SiteInfoAdapter extends BaseEntityAdapter<
   SiteInfoEntity,
-  SiteInfoMetadata
+  SiteInfoMetadata,
+  SiteInfoBody
 > {
   constructor() {
     super({
@@ -41,7 +42,7 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
    * Parse site info body from content
    */
   public parseSiteInfoBody(content: string): SiteInfoBody {
-    return this.parseFrontmatter(content) as SiteInfoBody;
+    return this.parseFrontmatter(content);
   }
 
   /**

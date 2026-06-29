@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
-import { z } from "./helpers/main-zod";
+import { z } from "@brains/utils/zod-v4";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import { baseEntitySchema } from "../src/types";

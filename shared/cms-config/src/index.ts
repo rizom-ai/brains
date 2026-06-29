@@ -1,5 +1,5 @@
 import { formatLabel, pluralize } from "@brains/utils";
-import type { zMain as z } from "./main-zod";
+import type { z } from "@brains/utils/zod-v4";
 import { NOTE_ENTITY_TYPE } from "@brains/entity-service";
 
 /**
@@ -106,28 +106,83 @@ function pluralizeLabel(label: string): string {
   return pluralize(label);
 }
 
+interface UnwrappedSchema {
+  inner: unknown;
+  isOptional: boolean;
+  defaultValue?: unknown;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getDefinition(schema: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(schema)) return undefined;
+  const definition = schema["def"];
+  return isRecord(definition) ? definition : undefined;
+}
+
+function getKind(schema: unknown): string | undefined {
+  const type = getDefinition(schema)?.["type"];
+  return typeof type === "string" ? type : undefined;
+}
+
+function readDefaultValue(value: unknown): unknown {
+  return typeof value === "function" ? value() : value;
+}
+
 function unwrapZodType(
-  schema: z.ZodTypeAny,
+  schema: unknown,
   isOptional = false,
   defaultValue?: unknown,
-): { inner: z.ZodTypeAny; isOptional: boolean; defaultValue?: unknown } {
-  const typeName = (schema._def as { typeName?: string }).typeName;
+): UnwrappedSchema {
+  const kind = getKind(schema);
+  const definition = getDefinition(schema);
 
-  if (typeName === "ZodOptional" || typeName === "ZodNullable") {
+  if (kind === "optional" || kind === "nullable") {
+    return unwrapZodType(definition?.["innerType"], true, defaultValue);
+  }
+  if (kind === "default") {
     return unwrapZodType(
-      (schema._def as { innerType: z.ZodTypeAny }).innerType,
+      definition?.["innerType"],
       true,
-      defaultValue,
+      readDefaultValue(definition?.["defaultValue"]),
     );
   }
-  if (typeName === "ZodDefault") {
-    return unwrapZodType(
-      (schema._def as { innerType: z.ZodTypeAny }).innerType,
-      isOptional,
-      (schema._def as { defaultValue: () => unknown }).defaultValue(),
-    );
+  const result: UnwrappedSchema = { inner: schema, isOptional };
+  if (defaultValue !== undefined) {
+    result.defaultValue = defaultValue;
   }
-  return { inner: schema, isOptional, defaultValue };
+  return result;
+}
+
+function readEnumValues(schema: unknown): string[] | undefined {
+  const entries = getDefinition(schema)?.["entries"];
+  if (!isRecord(entries)) return undefined;
+  const values = Object.values(entries);
+  return values.every((value) => typeof value === "string")
+    ? values
+    : undefined;
+}
+
+function readLiteralDefault(schema: unknown): unknown {
+  const values = getDefinition(schema)?.["values"];
+  return Array.isArray(values) ? values[0] : undefined;
+}
+
+function hasDateTimeCheck(schema: unknown): boolean {
+  const checks = getDefinition(schema)?.["checks"];
+  if (!Array.isArray(checks)) return false;
+  return checks.some((check) => {
+    const definition = getDefinition(check);
+    return definition?.["format"] === "datetime";
+  });
+}
+
+function readShape(schema: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(schema)) return undefined;
+  const shape = schema["shape"];
+  return isRecord(shape) ? shape : undefined;
 }
 
 /**
@@ -135,24 +190,23 @@ function unwrapZodType(
  */
 export function zodFieldToCmsWidget(
   name: string,
-  fieldSchema: z.ZodTypeAny,
+  fieldSchema: unknown,
 ): CmsFieldWidget {
   const { inner, isOptional, defaultValue } = unwrapZodType(fieldSchema);
-  const typeName = (inner._def as { typeName?: string }).typeName;
+  const kind = getKind(inner);
+  const effectiveDefault = defaultValue ?? readLiteralDefault(inner);
 
   const base: CmsFieldWidget = {
     name,
     label: formatLabel(name),
     widget: "string",
     ...(isOptional && { required: false }),
-    ...(defaultValue !== undefined && { default: defaultValue }),
+    ...(effectiveDefault !== undefined && { default: effectiveDefault }),
   };
 
-  switch (typeName) {
-    case "ZodString": {
-      const checks =
-        (inner._def as { checks?: Array<{ kind: string }> }).checks ?? [];
-      if (checks.some((c) => c.kind === "datetime")) {
+  switch (kind) {
+    case "string": {
+      if (hasDateTimeCheck(inner)) {
         return { ...base, widget: "datetime" };
       }
       if (LONG_TEXT_FIELDS.has(name)) {
@@ -160,16 +214,16 @@ export function zodFieldToCmsWidget(
       }
       return { ...base, widget: "string" };
     }
-    case "ZodNumber":
+    case "number":
       return { ...base, widget: "number" };
-    case "ZodBoolean":
+    case "boolean":
       return { ...base, widget: "boolean" };
-    case "ZodEnum": {
-      const values = (inner._def as { values: string[] }).values;
-      return { ...base, widget: "select", options: values };
+    case "enum": {
+      const options = readEnumValues(inner);
+      return { ...base, widget: "select", ...(options ? { options } : {}) };
     }
-    case "ZodArray": {
-      const elementType = (inner._def as { type: z.ZodTypeAny }).type;
+    case "array": {
+      const elementType = getDefinition(inner)?.["element"];
       const elementWidget = zodFieldToCmsWidget("item", elementType);
       if (elementWidget.widget === "object" && elementWidget.fields) {
         return { ...base, widget: "list", fields: elementWidget.fields };
@@ -180,13 +234,14 @@ export function zodFieldToCmsWidget(
         field: { name, label: formatLabel(name), widget: elementWidget.widget },
       };
     }
-    case "ZodObject": {
-      const shape = (inner as z.ZodObject<z.ZodRawShape>).shape;
-      const fields = Object.entries(shape).map(([key, value]) =>
-        zodFieldToCmsWidget(key, value as z.ZodTypeAny),
+    case "object": {
+      const fields = Object.entries(readShape(inner) ?? {}).map(
+        ([key, value]) => zodFieldToCmsWidget(key, value),
       );
       return { ...base, widget: "object", fields };
     }
+    case "literal":
+      return { ...base, widget: "string" };
     default:
       return { ...base, widget: "string" };
   }
@@ -197,7 +252,7 @@ function buildFields(
   hasBody: boolean,
 ): CmsFieldWidget[] {
   const fields: CmsFieldWidget[] = Object.entries(schema.shape).map(
-    ([key, value]) => zodFieldToCmsWidget(key, value as z.ZodTypeAny),
+    ([key, value]) => zodFieldToCmsWidget(key, value),
   );
 
   if (hasBody) {
