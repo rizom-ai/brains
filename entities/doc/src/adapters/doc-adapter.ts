@@ -5,9 +5,14 @@ import {
   docFrontmatterSchema,
   type Doc,
   type DocMetadata,
+  type DocFrontmatter,
 } from "../schemas/doc";
 
-export class DocAdapter extends BaseEntityAdapter<Doc, DocMetadata> {
+export class DocAdapter extends BaseEntityAdapter<
+  Doc,
+  DocMetadata,
+  DocFrontmatter
+> {
   constructor() {
     super({
       entityType: "doc",

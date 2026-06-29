@@ -12,6 +12,7 @@ import {
  */
 export class NewsletterAdapter extends BaseEntityAdapter<
   Newsletter,
+  NewsletterMetadata,
   NewsletterMetadata
 > {
   constructor() {

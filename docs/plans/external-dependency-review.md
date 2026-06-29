@@ -1106,8 +1106,9 @@ Incremental migration progress:
   Obsidian introspection reads only Zod 4 internals, the `@brains/utils` root and
   compatibility zod subpath re-export the Zod 4 helper, direct `zod` package
   metadata now resolves to Zod 4 with a root override to avoid nested mixed Zod
-  instances, and AI object-generation schema inputs are Zod 4-owned rather than
-  AI SDK `FlexibleSchema`/dual-Zod typed.
+  instances, AI object-generation schema inputs are Zod 4-owned rather than
+  AI SDK `FlexibleSchema`/dual-Zod typed, and the base entity adapter no longer
+  casts frontmatter schemas to recover parsed frontmatter types.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
@@ -1125,9 +1126,9 @@ Incremental migration progress:
 
 Direct source imports from `@brains/utils/zod` are now eliminated, and the
 compatibility subpath (`shared/utils/src/zod.ts`) now routes to the Zod 4 helper.
-The Zod migration is still not complete: some structural compatibility slots
-still intentionally accept both Zod generations, and those paths remain tracked
-below.
+The Zod migration is still not complete: some structural parser slots remain
+broader than the final policy needs, and those paths stay tracked below as
+transitional debt rather than final architecture.
 
 Near-term rules for continuing Phase 2:
 
@@ -1135,9 +1136,9 @@ Near-term rules for continuing Phase 2:
   moved with the durable frontmatter boundary; keep that as the pattern.
 - Do not add new `main-zod` wrapper modules. The previous package-local wrappers
   were removed once their boundaries moved to Zod 4.
-- Treat remaining dual-Zod detection as transitional debt. Either remove it when
-  callers are confirmed Zod 4-only, or replace it with an explicit domain/schema
-  metadata contract chosen intentionally.
+- Treat any remaining dual-Zod detection as transitional debt. Either remove it
+  when callers are confirmed Zod 4-only, or replace it with an explicit
+  domain/schema metadata contract chosen intentionally.
 
 ### Transitional Zod compatibility debt — not endgame
 
@@ -1173,7 +1174,7 @@ migration complete:
   CMS widget generation. Endgame: replace internal-shape reads with explicit
   schema-owned field metadata if CMS behavior grows beyond simple widgets.
 - Structural parser slots added during this migration are compatibility
-  scaffolding when they exist only to accept both Zod generations. Track and
+  scaffolding when they exist only to bridge historical Zod ownership. Track and
   revisit: `shell/messaging-service/src/message-validator.ts`,
   `shell/runtime-state/src/types.ts`, `shell/entity-service/src/datasource-types.ts`,
   `shell/entity-service/src/types.ts` entity schema parser slots,

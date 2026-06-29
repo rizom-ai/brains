@@ -344,7 +344,7 @@ export interface EntityAdapter<
   // Parse frontmatter metadata from markdown
   parseFrontMatter<TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
+    schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter;
 
   // Generate frontmatter for markdown

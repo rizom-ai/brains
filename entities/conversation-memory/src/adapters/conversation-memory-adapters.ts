@@ -1,5 +1,9 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import type { BaseEntity } from "@brains/plugins";
+import type {
+  BaseEntity,
+  BaseEntityFrontmatterSchema,
+  EntitySchemaParser,
+} from "@brains/plugins";
 import { z as z4 } from "@brains/utils/zod-v4";
 import {
   actionItemMetadataSchema,
@@ -31,13 +35,13 @@ interface TypedFrontmatterSchema<T> {
 class ConversationMemoryEntityAdapter<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata extends object,
-> extends BaseEntityAdapter<TEntity, TMetadata> {
+> extends BaseEntityAdapter<TEntity, TMetadata, Record<string, unknown>> {
   private readonly metadataSchema: { parse(data: unknown): TMetadata };
 
   constructor(config: {
     entityType: string;
-    schema: BaseEntityAdapter<TEntity, TMetadata>["schema"];
-    metadataSchema: BaseEntityAdapter<TEntity, TMetadata>["frontmatterSchema"];
+    schema: EntitySchemaParser<TEntity>;
+    metadataSchema: BaseEntityFrontmatterSchema<Record<string, unknown>>;
     parseMetadata: TypedFrontmatterSchema<TMetadata>;
   }) {
     super({

@@ -10,6 +10,7 @@ import {
 
 export class EcosystemSectionAdapter extends BaseEntityAdapter<
   EcosystemSection,
+  EcosystemSectionMetadata,
   EcosystemSectionMetadata
 > {
   constructor() {

@@ -7,6 +7,7 @@ import {
 
 export class SiteContentAdapter extends BaseEntityAdapter<
   SiteContent,
+  SiteContentMetadata,
   SiteContentMetadata
 > {
   constructor() {

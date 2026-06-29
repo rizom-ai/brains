@@ -134,7 +134,7 @@ class NoteAdapter extends BaseEntityAdapter<Note> {
 
   public override parseFrontMatter<TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
+    schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter {
     const { data } = matter(markdown);
     return schema.parse(data);

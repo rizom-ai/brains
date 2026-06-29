@@ -3,6 +3,11 @@ export { EntityRegistry } from "./entityRegistry";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
+export type {
+  BaseEntityAdapterConfig,
+  BaseEntityFrontmatterSchema,
+  DefaultEntityFrontmatter,
+} from "./adapters";
 export { SingletonEntityService } from "./singleton-entity-service";
 
 // Embedding
