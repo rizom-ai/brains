@@ -1,5 +1,6 @@
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+import { z as z4 } from "@brains/utils/zod-v4";
+import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
  * Topic metadata schema. Empty for now — unknown fields are stripped via
@@ -8,23 +9,27 @@ import { baseEntitySchema } from "@brains/plugins";
  */
 export const topicMetadataSchema = z.object({});
 
-export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
+export type TopicMetadata = Record<string, unknown>;
+
+const topicEntityMetadataParserSchema = z4
+  .record(z4.string(), z4.unknown())
+  .transform((): TopicMetadata => ({}));
 
 /**
  * Topic entity schema - extends base entity with topic-specific fields
  */
-export const topicEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("topic"),
-  metadata: topicMetadataSchema,
+export const topicEntitySchema = baseEntityParserSchema.extend({
+  entityType: z4.literal("topic"),
+  metadata: topicEntityMetadataParserSchema,
 });
 
-export type TopicEntity = z.infer<typeof topicEntitySchema>;
+export type TopicEntity = z4.output<typeof topicEntitySchema>;
 
 /**
  * Schema for topic body structure
  */
-export const topicBodySchema = z.object({
-  content: z.string(),
+export const topicBodySchema = z4.object({
+  content: z4.string(),
 });
 
 /**
@@ -34,4 +39,4 @@ export const topicFrontmatterSchema = z.object({
   title: z.string().describe("Topic title"),
 });
 
-export type TopicBody = z.infer<typeof topicBodySchema>;
+export type TopicBody = z4.output<typeof topicBodySchema>;

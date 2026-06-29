@@ -1,11 +1,14 @@
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+import { z as z4 } from "@brains/utils/zod-v4";
+import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
  * Supported social media platforms
  */
 export const platformSchema = z.enum(["linkedin"]);
-export type Platform = z.infer<typeof platformSchema>;
+export type Platform = z.output<typeof platformSchema>;
+
+const platformParserSchema = z4.enum(["linkedin"]);
 
 /**
  * Social post status
@@ -21,13 +24,23 @@ export const socialPostStatusSchema = z.enum([
   "published",
   "failed",
 ]);
-export type SocialPostStatus = z.infer<typeof socialPostStatusSchema>;
+export type SocialPostStatus = z.output<typeof socialPostStatusSchema>;
+
+const socialPostStatusParserSchema = z4.enum([
+  "generating",
+  "draft",
+  "queued",
+  "published",
+  "failed",
+]);
 
 /**
  * Source entity types that can generate social posts
  */
 export const sourceEntityTypeSchema = z.enum(["post", "deck"]);
-export type SourceEntityType = z.infer<typeof sourceEntityTypeSchema>;
+export type SourceEntityType = z.output<typeof sourceEntityTypeSchema>;
+
+const sourceEntityTypeParserSchema = z4.enum(["post", "deck"]);
 
 /**
  * Publishable document attachments for social posts.
@@ -37,9 +50,13 @@ export type SourceEntityType = z.infer<typeof sourceEntityTypeSchema>;
 export const socialPostDocumentAttachmentSchema = z.object({
   id: z.string().min(1).describe("Document entity ID"),
 });
-export type SocialPostDocumentAttachment = z.infer<
+export type SocialPostDocumentAttachment = z.output<
   typeof socialPostDocumentAttachmentSchema
 >;
+
+const socialPostDocumentAttachmentParserSchema = z4.object({
+  id: z4.string().min(1),
+});
 
 /**
  * Social post frontmatter schema (stored in content as YAML frontmatter)
@@ -73,7 +90,9 @@ export const socialPostFrontmatterSchema = z.object({
     .describe("Source entity type (post, deck)"),
 });
 
-export type SocialPostFrontmatter = z.infer<typeof socialPostFrontmatterSchema>;
+export type SocialPostFrontmatter = z.output<
+  typeof socialPostFrontmatterSchema
+>;
 
 /**
  * Lenient frontmatter schema for direct creation. A user "save this post"
@@ -106,43 +125,65 @@ export const socialPostMetadataSchema = socialPostFrontmatterSchema
     error: z.string().optional(),
   });
 
-export type SocialPostMetadata = z.infer<typeof socialPostMetadataSchema>;
+export type SocialPostMetadata = z.output<typeof socialPostMetadataSchema>;
+
+const socialPostEntityMetadataParserSchema = z4.object({
+  title: z4.string(),
+  platform: platformParserSchema,
+  status: socialPostStatusParserSchema,
+  publishedAt: z4.string().datetime().optional(),
+  platformPostId: z4.string().optional(),
+  slug: z4.string(),
+  error: z4.string().optional(),
+});
+
+const socialPostFrontmatterParserSchema = z4.object({
+  title: z4.string(),
+  platform: platformParserSchema,
+  status: socialPostStatusParserSchema,
+  coverImageId: z4.string().optional(),
+  documents: z4.array(socialPostDocumentAttachmentParserSchema).optional(),
+  publishedAt: z4.string().datetime().optional(),
+  platformPostId: z4.string().optional(),
+  sourceEntityId: z4.string().optional(),
+  sourceEntityType: sourceEntityTypeParserSchema.optional(),
+});
 
 /**
  * Social post entity schema (extends BaseEntity)
  * Content field contains markdown with frontmatter + post body
  * Metadata field duplicates key fields from frontmatter for fast queries
  */
-export const socialPostSchema = baseEntitySchema.extend({
-  entityType: z.literal("social-post"),
-  metadata: socialPostMetadataSchema,
+export const socialPostSchema = baseEntityParserSchema.extend({
+  entityType: z4.literal("social-post"),
+  metadata: socialPostEntityMetadataParserSchema,
 });
 
-export type SocialPost = z.infer<typeof socialPostSchema>;
+export type SocialPost = z4.output<typeof socialPostSchema>;
 
 /**
  * Social post with parsed frontmatter data (returned by datasource)
  * Extends SocialPost with parsed frontmatter and body
  */
 export const socialPostWithDataSchema = socialPostSchema.extend({
-  frontmatter: socialPostFrontmatterSchema,
-  body: z.string(),
+  frontmatter: socialPostFrontmatterParserSchema,
+  body: z4.string(),
 });
 
-export type SocialPostWithData = z.infer<typeof socialPostWithDataSchema>;
+export type SocialPostWithData = z4.output<typeof socialPostWithDataSchema>;
 
 /**
  * Enriched social post schema for templates (includes URL fields)
  * Fields are optional to allow validation before site-builder enrichment
  */
 export const enrichedSocialPostSchema = socialPostWithDataSchema.extend({
-  url: z.string().optional(),
-  listUrl: z.string().optional(),
-  listLabel: z.string().optional(),
-  typeLabel: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
+  url: z4.string().optional(),
+  listUrl: z4.string().optional(),
+  listLabel: z4.string().optional(),
+  typeLabel: z4.string().optional(),
+  coverImageUrl: z4.string().optional(),
+  coverImageWidth: z4.number().optional(),
+  coverImageHeight: z4.number().optional(),
 });
 
-export type EnrichedSocialPost = z.infer<typeof enrichedSocialPostSchema>;
+export type EnrichedSocialPost = z4.output<typeof enrichedSocialPostSchema>;
