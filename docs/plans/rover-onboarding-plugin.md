@@ -6,7 +6,15 @@ Planned.
 
 ## Goal
 
-Move Rover onboarding from ad hoc seed markdown into a first-party service plugin that owns onboarding content and lifecycle wiring while still using the existing `playbook` entity and `playbooks` runtime.
+Give Rover onboarding a single owner. Today it is smeared across seed-content
+markdown, Rover's `playbooks` lifecycle/`triggers` config, eval-content copies, and
+a sync test. Fold that into one first-party service plugin so onboarding is one
+module that can be **toggled on or off as a unit** — drop the plugin and there is
+no onboarding starter, so the web-chat overlay card disappears — while still using
+the existing `playbook` entity and `playbooks` runtime.
+
+Seeding the content is a mechanism this plugin uses, not its reason to exist; the
+reason is ownership + the enable/disable lever.
 
 ## Proposed shape
 
@@ -24,11 +32,12 @@ The plugin should be thin: no new entity type, no replacement for `@brains/playb
 
 ## Responsibilities
 
-- Bundle the Rover onboarding playbooks.
-- Seed missing bundled playbooks as durable `playbook` entities.
-- Preserve user-edited playbook entities.
+- Be the single owner of onboarding: enabling the plugin enables the whole
+  onboarding experience (content + starter + overlay card); removing it removes it.
+- Bundle the Rover onboarding playbooks and seed missing ones as durable `playbook`
+  entities (mechanism — see Open decisions).
+- Preserve operator-edited playbook entities (do not overwrite).
 - Provide Rover-specific onboarding instructions only if needed.
-- Eventually own starter/lifecycle registration for the first web-chat prompt.
 
 ## Non-goals
 
@@ -41,26 +50,35 @@ The plugin should be thin: no new entity type, no replacement for `@brains/playb
 
 ### Starter registration
 
-Initial implementation can keep using existing config:
+No new registration API is needed. The completed `playbooks` engine already
+resolves lifecycle starters from **playbook entity frontmatter** (its metadata
+scan), in addition to Rover's `lifecycle:` config. So once this plugin seeds
+`rover-onboarding.md` as an entity, that entity's own frontmatter
+(`trigger`/`lifecycle`/`starterText`/`starterPrompt`) registers the starter — which
+drives the web-chat overlay card via `playbooks:lifecycle-starters`.
 
-```yaml
-plugins:
-  playbooks:
-    triggers:
-      first-anchor-web-chat: true
-```
-
-Later, add a small `playbooks` extension channel so `rover-onboarding` can register its lifecycle starter directly with `playbooks`.
+So the plan is: rely on the seeded entity's frontmatter for the starter, and retire
+the Rover `playbooks.triggers.first-anchor-web-chat` config entry once the plugin
+owns the content. Do **not** add a `playbooks` extension channel for cross-plugin
+starter registration; two mechanisms already exist and a third is unjustified
+(single-brain model — no fleet to register across).
 
 ### Content seeding mechanism
 
-Start with plugin `ready()` seeding:
+This must reconcile with the **existing** seeding path: onboarding markdown is
+currently seeded by `directory-sync` copying `seed-content-*`. This plugin's
+`onReady()` + `entityService.createEntityFromMarkdown()` would be a second path, so
+pick one and do not run both against the same playbooks (see Phase 1):
 
 - if bundled playbook entity is missing, create it from markdown;
-- if present, leave it alone;
+- if present, leave it alone (note: `directory-sync` likely already implements this
+  create-missing/preserve policy — reuse it rather than reinvent it);
 - store bundled hashes in runtime state for safe future migration checks.
 
-Only add a shared bundled-content or multi-seed-path mechanism if other plugins need the same pattern.
+`onReady()` is the override hook (`ready()` is the public dispatcher). Also decide
+**how bundled markdown is read at runtime** — no plugin uses a `content/` dir today,
+so choose `fs` read via `import.meta.dir`, a `.md` import, or inlined strings before
+building it.
 
 ### Updates and migrations
 
@@ -77,10 +95,14 @@ Safe update policy can come later:
 
 1. Add `plugins/rover-onboarding` as a `ServicePlugin`.
 2. Move canonical onboarding playbook markdown into plugin `content/playbook/`.
-3. Add seeding logic in `ready()` using `entityService.createEntityFromMarkdown()`.
+3. Add seeding logic in the `onReady()` override using
+   `entityService.createEntityFromMarkdown()`.
 4. Add plugin tests for missing-content seed and no-overwrite behavior.
 5. Add plugin to Rover capabilities after `playbook` and `playbooks`.
-6. Keep current Rover seed/eval copies temporarily for compatibility.
+6. Per the seeding-mechanism decision, do **not** leave a second active path seeding
+   the same playbooks. If the plugin owns seeding, remove the duplicate
+   `seed-content` copies in this pass; if it contributes a path to `directory-sync`,
+   don't also seed directly.
 
 ### Phase 2 — remove duplicate ownership
 
@@ -88,11 +110,13 @@ Safe update policy can come later:
 2. Replace Rover onboarding seed/eval copy checks with a sync/check test against plugin content.
 3. Remove onboarding markdown from Rover seed content once plugin seeding is proven in app and eval boot.
 
-### Phase 3 — lifecycle registration cleanup
+### Phase 3 — retire the standalone trigger config
 
-1. Add a `playbooks` channel/API for plugins to register lifecycle starters.
-2. Move `first-anchor-web-chat` starter ownership into `rover-onboarding`.
-3. Keep `playbooks.triggers` config as a lower-level escape hatch.
+1. Confirm the starter is driven by the seeded entity's frontmatter (no new API).
+2. Remove the Rover `playbooks.triggers.first-anchor-web-chat` config entry now that
+   the plugin owns the onboarding content that carries the lifecycle wiring.
+3. Verify the web-chat overlay card still appears (and disappears when the plugin is
+   removed) — this is the enable/disable lever working end to end.
 
 ## Validation
 
