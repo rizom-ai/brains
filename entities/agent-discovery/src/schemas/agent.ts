@@ -1,23 +1,32 @@
 import { z } from "./main-zod";
-import { baseEntitySchema, anchorProfileBodySchema } from "@brains/plugins";
+import {
+  baseEntityParserSchema,
+  baseEntitySchema,
+  anchorProfileBodySchema,
+} from "@brains/plugins";
+import { z as z4 } from "@brains/utils/zod-v4";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 
 /**
- * Shared sub-schemas — used by frontmatter, adapter, and Agent Card parsing.
+ * Shared parser sub-schema — used by body/template parsing.
  */
-export const agentSkillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
+export const agentSkillSchema = z4.object({
+  name: z4.string(),
+  description: z4.string(),
+  tags: z4.array(z4.string()),
 });
 
-export type AgentSkill = z.infer<typeof agentSkillSchema>;
+export type AgentSkill = z4.output<typeof agentSkillSchema>;
 
 export const agentStatusSchema = z
   .enum(["discovered", "approved"])
   .describe("Discovered for review or approved for calling");
 
 export type AgentStatus = z.infer<typeof agentStatusSchema>;
+
+const agentStatusParserSchema = z4
+  .enum(["discovered", "approved"])
+  .describe("Discovered for review or approved for calling");
 
 /**
  * Agent frontmatter schema — structured data in YAML frontmatter.
@@ -70,6 +79,37 @@ export const agentMetadataSchema = agentFrontmatterSchema
 
 export type AgentMetadata = z.infer<typeof agentMetadataSchema>;
 
+const agentFrontmatterParserSchema = z4.object({
+  name: z4.string(),
+  kind: z4.enum(["professional", "team", "collective"]),
+  organization: z4.string().optional(),
+  brainName: z4.string(),
+  url: z4.url(),
+  did: z4.string().optional(),
+  repoDid: z4.string().optional(),
+  brainDid: z4.string().optional(),
+  anchorDid: z4.string().optional(),
+  cardUri: z4.string().optional(),
+  cardCid: z4.string().optional(),
+  a2aEndpoint: z4.url().optional(),
+  status: agentStatusParserSchema,
+  discoveredAt: z4.string().datetime(),
+});
+
+const agentMetadataParserSchema = z4.object({
+  name: z4.string(),
+  url: z4.url(),
+  status: agentStatusParserSchema,
+  discoveredAt: z4.string().datetime().optional(),
+  slug: z4.string(),
+  repoDid: z4.string().optional(),
+  brainDid: z4.string().optional(),
+  anchorDid: z4.string().optional(),
+  cardUri: z4.string().optional(),
+  cardCid: z4.string().optional(),
+  a2aEndpoint: z4.url().optional(),
+});
+
 /**
  * Agent entity schema
  */
@@ -84,30 +124,35 @@ export type AgentEntity = z.infer<typeof agentEntitySchema>;
  * Agent with parsed frontmatter and body sections.
  * Used by the datasource to pass structured data to templates.
  */
-export const agentWithDataSchema = agentEntitySchema.extend({
-  frontmatter: agentFrontmatterSchema,
-  about: z.string(),
-  skills: z.array(agentSkillSchema),
-  notes: z.string(),
+const agentEntityParserSchema = baseEntityParserSchema.extend({
+  entityType: z4.literal(AGENT_ENTITY_TYPE),
+  metadata: agentMetadataParserSchema,
 });
 
-export type AgentWithData = z.infer<typeof agentWithDataSchema>;
+export const agentWithDataSchema = agentEntityParserSchema.extend({
+  frontmatter: agentFrontmatterParserSchema,
+  about: z4.string(),
+  skills: z4.array(agentSkillSchema),
+  notes: z4.string(),
+});
+
+export type AgentWithData = z4.output<typeof agentWithDataSchema>;
 
 /**
  * Enriched agent schema — includes URL and display fields added by site-builder.
  */
 export const enrichedAgentSchema = agentWithDataSchema.extend({
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
+  url: z4.string().optional(),
+  typeLabel: z4.string().optional(),
 });
 
 /**
  * Template agent schema — all enrichment fields are required.
  */
 export const templateAgentSchema = agentWithDataSchema.extend({
-  url: z.string(),
-  typeLabel: z.string(),
+  url: z4.string(),
+  typeLabel: z4.string(),
 });
 
-export type EnrichedAgent = z.infer<typeof enrichedAgentSchema>;
-export type TemplateAgent = z.infer<typeof templateAgentSchema>;
+export type EnrichedAgent = z4.output<typeof enrichedAgentSchema>;
+export type TemplateAgent = z4.output<typeof templateAgentSchema>;

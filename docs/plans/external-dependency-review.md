@@ -1096,7 +1096,10 @@ Incremental migration progress:
   `series`, `blog`, `decks`, `social-media`, `topics`, `playbook`, `products`,
   and `conversation-memory`) by duplicating only the parser-side
   metadata/data/template/body shapes in Zod 4 and leaving their frontmatter
-  adapter schemas on the existing main-Zod boundary.
+  adapter schemas on the existing main-Zod boundary. The agent-discovery
+  list/detail display parser schemas now follow the same split: durable
+  agent frontmatter/entity schemas stay main-Zod-owned while parsed
+  datasource/template data is Zod 4-owned.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
