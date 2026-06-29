@@ -47,11 +47,10 @@ turns:
         - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            entityType: document
-            source.kind: attachment
-            source.sourceEntityType: deck
-            source.sourceEntityId: distributed-systems-primer
-            source.attachmentType: carousel
+            operation.kind: attachment
+            operation.source.entityType: deck
+            operation.source.entityId: distributed-systems-primer
+            operation.attachmentType: carousel
         - toolName: system_create
           shouldBeCalled: false
       responseNotContains:
@@ -64,11 +63,10 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: document
-        source.kind: attachment
-        source.sourceEntityType: deck
-        source.sourceEntityId: distributed-systems-primer
-        source.attachmentType: carousel
+        operation.kind: attachment
+        operation.source.entityType: deck
+        operation.source.entityId: distributed-systems-primer
+        operation.attachmentType: carousel
     - toolName: system_create
       shouldBeCalled: false
   responseNotContains:

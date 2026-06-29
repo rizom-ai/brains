@@ -377,12 +377,57 @@ export function createMockSystemServices(
     }),
   } as unknown as SystemServices["runtimeUploads"];
 
+  const attachmentProviders = new Map<
+    string,
+    {
+      metadata?: ReturnType<
+        SystemServices["attachments"]["getProviderMetadata"]
+      >;
+      resolve: (...args: unknown[]) => unknown;
+    }
+  >();
+  const attachmentKey = (
+    sourceEntityType: string,
+    attachmentType: string,
+  ): string => `${sourceEntityType}:${attachmentType}`;
+  const attachments = {
+    register: (
+      sourceEntityType: string,
+      attachmentType: string,
+      provider: {
+        metadata?: ReturnType<
+          SystemServices["attachments"]["getProviderMetadata"]
+        >;
+        resolve: (...args: unknown[]) => unknown;
+      },
+    ): (() => boolean) => {
+      const key = attachmentKey(sourceEntityType, attachmentType);
+      attachmentProviders.set(key, provider);
+      return (): boolean => attachmentProviders.delete(key);
+    },
+    resolve: async (request: {
+      sourceEntityType: string;
+      attachmentType: string;
+    }) => {
+      const provider = attachmentProviders.get(
+        attachmentKey(request.sourceEntityType, request.attachmentType),
+      );
+      return provider?.resolve(request);
+    },
+    hasProvider: (sourceEntityType: string, attachmentType: string) =>
+      attachmentProviders.has(attachmentKey(sourceEntityType, attachmentType)),
+    getProviderMetadata: (sourceEntityType: string, attachmentType: string) =>
+      attachmentProviders.get(attachmentKey(sourceEntityType, attachmentType))
+        ?.metadata,
+  } as unknown as SystemServices["attachments"];
+
   return {
     entityService,
     entityRegistry,
     jobs,
     conversationService,
     runtimeUploads,
+    attachments,
     logger: createSilentLogger("system-test"),
     query: async () => ({ message: "Mock response", summary: "Mock" }),
     getIdentity: () => ({

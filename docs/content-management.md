@@ -58,16 +58,16 @@ All entity CRUD goes through shared system tools. Entity plugins intentionally d
 
 Common tools:
 
-| Tool              | Purpose                                                                                                                                        |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `system_create`   | Create or generate an entity. Use `source.kind` (`text`, `generate`, `url`, `upload`, `attachment`, or `prior-response`) to select the source. |
-| `system_update`   | Update fields or replace full content. Requires confirmation for writes.                                                                       |
-| `system_delete`   | Delete an entity. Requires confirmation.                                                                                                       |
-| `system_get`      | Fetch one entity by id, slug, or title.                                                                                                        |
-| `system_list`     | List entities by type, optionally filtered by status.                                                                                          |
-| `system_search`   | Search across entities, optionally filtered by type.                                                                                           |
-| `system_extract`  | Run derivation/extraction for entity types that support it.                                                                                    |
-| `system_insights` | Return aggregate insights registered by the runtime or plugins.                                                                                |
+| Tool              | Purpose                                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `system_create`   | Create an entity from existing material. Use `source.kind` (`text`, `url`, `upload`, or `prior-response`) to select the concrete source. |
+| `system_update`   | Update fields or replace full content. Requires confirmation for writes.                                                                 |
+| `system_delete`   | Delete an entity. Requires confirmation.                                                                                                 |
+| `system_get`      | Fetch one entity by id, slug, or title.                                                                                                  |
+| `system_list`     | List entities by type, optionally filtered by status.                                                                                    |
+| `system_search`   | Search across entities, optionally filtered by type.                                                                                     |
+| `system_extract`  | Run derivation/extraction for entity types that support it.                                                                              |
+| `system_insights` | Return aggregate insights registered by the runtime or plugins.                                                                          |
 
 Examples:
 
@@ -129,12 +129,12 @@ For the git-command-oriented lifecycle and conflict policy, see [Directory Sync 
 
 Some entity types own generation or capture workflows:
 
-- links can be created from a URL and captured/summarized
-- images can be uploaded as data URLs or generated from prompts
-- posts, decks, newsletters, and social posts can be generated from prompts or source entities depending on active plugins
+- links can be created from a URL and captured/summarized through `system_create`
+- images can be preserved from uploads through `system_create` or generated from prompts through `system_generate`
+- posts, decks, newsletters, and social posts can be generated from prompts or resolved source entities through `system_generate`
 - topics, skills, and SWOT entries are usually derived from existing content
 
-Create requests use the standard confirmation flow before anything is persisted or queued. After confirmation, a create call may return `{ status: "generating", jobId }` instead of an immediate entity. Check job status through runtime tools or wait for progress in MCP/chat clients.
+Create and generate requests use the standard confirmation flow before anything is persisted or queued. After confirmation, a generation call may return `{ status: "generating", jobId }` instead of an immediate entity. Check job status through runtime tools or wait for progress in MCP/chat clients.
 
 ## Publishing workflow
 
@@ -176,14 +176,15 @@ Common fields that accept image references:
 - `series.coverImageId`
 - `social-post.coverImageId`
 
-For a generated/uploaded image intended as a cover, pass a target entity when creating it:
+For a generated image intended as a cover, use `system_generate` with a nested target reference:
 
 ```bash
-brain tool system_create '{
-  "entityType":"image",
-  "prompt":"Abstract cover image for a post about cooperative AI",
-  "targetEntityType":"post",
-  "targetEntityId":"cooperative-ai"
+brain tool system_generate '{
+  "operation": {
+    "kind": "cover-image",
+    "target": { "entityType": "post", "entityId": "cooperative-ai" },
+    "prompt": "Abstract cover image for a post about cooperative AI"
+  }
 }'
 ```
 

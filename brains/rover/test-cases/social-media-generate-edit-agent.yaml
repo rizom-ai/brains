@@ -18,8 +18,8 @@ turns:
         - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            entityType: social-post
-            source.kind: prompt
+            operation.entityType: social-post
+            operation.kind: prompt
 
   - userMessage: "Make it shorter and more punchy, remove any hashtags"
 
@@ -29,8 +29,8 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: social-post
-        source.kind: prompt
+        operation.entityType: social-post
+        operation.kind: prompt
   # Agent should respond with confirmation of changes
   responseNotContains:
     - "I cannot"

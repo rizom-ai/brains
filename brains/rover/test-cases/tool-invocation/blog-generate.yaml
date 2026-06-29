@@ -1,6 +1,6 @@
 id: tool-invocation-blog-generate
 name: Blog Post Generation via system_generate
-description: Verifies that the agent uses system_generate with entityType post instead of old blog_generate tool
+description: Verifies that the agent uses system_generate operation.kind prompt for broad blog post generation
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -18,8 +18,8 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: post
-        source.kind: prompt
+        operation.entityType: post
+        operation.kind: prompt
   toolCountRange:
     min: 1
   responseNotContains:

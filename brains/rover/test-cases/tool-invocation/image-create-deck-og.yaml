@@ -1,6 +1,6 @@
 id: tool-invocation-image-create-deck-og
 name: Generate Deck OG Image
-description: "Verifies system_generate renders a deck OG/social preview image and targets ogImageId"
+description: "Verifies system_generate renders a deck OG/social preview image through the attachment provider"
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -20,13 +20,10 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "image"
-        source.kind: "attachment"
-        source.sourceEntityType: "deck"
-        source.sourceEntityId: "distributed-systems-primer"
-        source.attachmentType: "og-image"
-        targetEntityType: "deck"
-        targetEntityId: "distributed-systems-primer"
+        operation.kind: "attachment"
+        operation.source.entityType: "deck"
+        operation.source.entityId: "distributed-systems-primer"
+        operation.attachmentType: "og-image"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

@@ -22,12 +22,11 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "document"
-        source.kind: "attachment"
-        source.sourceEntityType: "project"
-        source.sourceEntityId: "city-pulse"
-        source.attachmentType: "printable"
-        replace: true
+        operation.kind: "attachment"
+        operation.source.entityType: "project"
+        operation.source.entityId: "city-pulse"
+        operation.attachmentType: "printable"
+        operation.replace: true
   responseNotContains:
     - "I cannot"
     - "I don't have access"

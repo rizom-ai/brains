@@ -1,6 +1,6 @@
 id: tool-invocation-system-create-social-post
-name: Social Post Creation via system_create
-description: Verifies the agent uses system_create with entityType social-post
+name: Social Post Generation via system_generate
+description: Verifies the agent uses system_generate for newly generated social-post content
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -15,8 +15,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
+      argsContain:
+        operation.entityType: social-post
+        operation.kind: prompt
   toolCountRange:
     min: 1
   responseNotContains:

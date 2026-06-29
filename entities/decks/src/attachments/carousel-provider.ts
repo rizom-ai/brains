@@ -33,6 +33,8 @@ export interface DeckCarouselAttachmentProviderDeps {
 }
 
 export class DeckCarouselAttachmentProvider implements AttachmentProvider {
+  readonly metadata = { outputEntityType: "document" } as const;
+
   private readonly renderPdf: RenderPdf;
   private readonly getThemeMode: GetThemeMode;
 

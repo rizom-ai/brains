@@ -48,37 +48,27 @@ function buildGenerateConfirmation(input: CreateInput): {
   return { summary: `Generate${label}?`, preview: previewParts.join("\n") };
 }
 
-function normalizeGenerateTarget(input: {
-  entityType: string;
-  targetEntityType?: string | undefined;
-  targetEntityId?: string | undefined;
-}): { targetEntityType?: string; targetEntityId?: string } {
-  const targetEntityType = normalizeOptionalString(input.targetEntityType);
-  const targetEntityId = normalizeOptionalString(input.targetEntityId);
-  if (!targetEntityType || !targetEntityId) return {};
-
-  const canAttachGeneratedArtifact =
-    input.entityType === "image" || input.entityType === "document";
-  if (!canAttachGeneratedArtifact) return {};
-
-  const placeholderIds = new Set(["temp", "temporary", "placeholder", "draft"]);
-  if (placeholderIds.has(targetEntityId.toLowerCase())) return {};
-
-  return { targetEntityType, targetEntityId };
+interface GenerateSourceAttachment {
+  sourceEntityType: string;
+  sourceEntityId: string;
+  attachmentType: string;
 }
 
 async function resolveSourceAttachment(
   services: SystemServices,
-  input:
-    | {
-        sourceEntityType: string;
-        sourceEntityId: string;
-        attachmentType: string;
-      }
-    | undefined,
+  input: GenerateSourceAttachment | undefined,
   visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
-): Promise<typeof input> {
-  if (!input) return undefined;
+): Promise<
+  | {
+      kind: "ok";
+      sourceAttachment: GenerateSourceAttachment | undefined;
+      metadata?: NonNullable<
+        ReturnType<SystemServices["attachments"]["getProviderMetadata"]>
+      >;
+    }
+  | { kind: "error"; result: ToolResponse }
+> {
+  if (!input) return { kind: "ok", sourceAttachment: undefined };
   const result = await resolveEntityOrError(
     services.entityService,
     input.sourceEntityType,
@@ -87,8 +77,114 @@ async function resolveSourceAttachment(
     undefined,
     visibilityScope,
   );
-  if (!result.ok) return input;
-  return { ...input, sourceEntityId: result.entity.id };
+  if (!result.ok) {
+    return {
+      kind: "error",
+      result: { success: false, error: result.error, code: "source-not-found" },
+    };
+  }
+
+  const sourceAttachment = { ...input, sourceEntityId: result.entity.id };
+  if (
+    !services.attachments.hasProvider(
+      sourceAttachment.sourceEntityType,
+      sourceAttachment.attachmentType,
+    )
+  ) {
+    return {
+      kind: "error",
+      result: {
+        success: false,
+        error: `No attachment provider found for ${sourceAttachment.sourceEntityType}/${sourceAttachment.attachmentType}.`,
+        code: "no-provider",
+      },
+    };
+  }
+
+  const metadata = services.attachments.getProviderMetadata(
+    sourceAttachment.sourceEntityType,
+    sourceAttachment.attachmentType,
+  );
+  if (!metadata) {
+    return {
+      kind: "error",
+      result: {
+        success: false,
+        error: `Attachment provider for ${sourceAttachment.sourceEntityType}/${sourceAttachment.attachmentType} is missing output metadata.`,
+        code: "provider-missing-metadata",
+      },
+    };
+  }
+
+  return { kind: "ok", sourceAttachment, metadata };
+}
+
+interface GenerateSourceEntity {
+  entityType: string;
+  entityId: string;
+}
+
+async function resolveGenerateSource(
+  services: SystemServices,
+  input: GenerateSourceEntity | undefined,
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): Promise<
+  | { kind: "ok"; source: GenerateSourceEntity | undefined }
+  | { kind: "error"; result: ToolResponse }
+> {
+  if (!input) return { kind: "ok", source: undefined };
+  const result = await resolveEntityOrError(
+    services.entityService,
+    input.entityType,
+    input.entityId,
+    services.logger,
+    undefined,
+    visibilityScope,
+  );
+  if (!result.ok) {
+    return {
+      kind: "error",
+      result: { success: false, error: result.error, code: "source-not-found" },
+    };
+  }
+  return {
+    kind: "ok",
+    source: { ...input, entityId: result.entity.id },
+  };
+}
+
+interface GenerateTargetEntity {
+  entityType: string;
+  entityId: string;
+}
+
+async function resolveGenerateTarget(
+  services: SystemServices,
+  input: GenerateTargetEntity | undefined,
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): Promise<
+  | { kind: "ok"; target: GenerateTargetEntity | undefined }
+  | { kind: "error"; result: ToolResponse }
+> {
+  if (!input) return { kind: "ok", target: undefined };
+  const result = await resolveEntityOrError(
+    services.entityService,
+    input.entityType,
+    input.entityId,
+    services.logger,
+    undefined,
+    visibilityScope,
+  );
+  if (!result.ok) {
+    return {
+      kind: "error",
+      result: { success: false, error: result.error },
+    };
+  }
+  return {
+    kind: "ok",
+    target: { ...input, entityId: result.entity.id },
+  };
 }
 
 type GenerateToolInput = z.infer<typeof generateInputSchema>;
@@ -189,6 +285,15 @@ async function executePromptGenerate(
         entityId: resolvedEntityId,
         prompt,
         ...(createInput.title && { title: createInput.title }),
+        ...(createInput.sourceEntityType && {
+          sourceEntityType: createInput.sourceEntityType,
+        }),
+        ...(createInput.sourceEntityId && {
+          sourceEntityId: createInput.sourceEntityId,
+        }),
+        ...(createInput.sourceEntityIds && {
+          sourceEntityIds: createInput.sourceEntityIds,
+        }),
         ...(createInput.targetEntityType && {
           targetEntityType: createInput.targetEntityType,
         }),
@@ -215,13 +320,8 @@ async function executePromptGenerate(
 
 interface PreparedGenerate {
   createInput: CreateInput;
-  sourceAttachment:
-    | {
-        sourceEntityType: string;
-        sourceEntityId: string;
-        attachmentType: string;
-      }
-    | undefined;
+  operation: GenerateToolInput["operation"];
+  sourceAttachment: GenerateSourceAttachment | undefined;
   interceptor: ReturnType<
     SystemServices["entityRegistry"]["getCreateInterceptor"]
   >;
@@ -236,87 +336,125 @@ async function prepareGenerate(
   | { kind: "error"; result: ToolResponse }
   | { kind: "ok"; prepared: PreparedGenerate }
 > {
-  const unregisteredError = assertEntityTypeRegistered(
-    services,
-    input.entityType,
-  );
-  if (unregisteredError) return { kind: "error", result: unregisteredError };
-
-  const title = normalizeOptionalString(input.title);
-  const replace = input.replace === true;
-  const suppliedTargetEntityType = normalizeOptionalString(
-    input.targetEntityType,
-  );
-  const suppliedTargetEntityId = normalizeOptionalString(input.targetEntityId);
-  if (!!suppliedTargetEntityType !== !!suppliedTargetEntityId) {
-    return {
-      kind: "error",
-      result: {
-        success: false,
-        error:
-          "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
-      },
-    };
-  }
-  const { targetEntityType, targetEntityId } = normalizeGenerateTarget({
-    entityType: input.entityType,
-    ...(suppliedTargetEntityType
-      ? { targetEntityType: suppliedTargetEntityType }
-      : {}),
-    ...(suppliedTargetEntityId
-      ? { targetEntityId: suppliedTargetEntityId }
-      : {}),
-  });
-  const coverImageRequested =
-    input.coverImage !== undefined && input.coverImage !== false;
-
+  const operation = input.operation;
   const visibilityScope = permissionToVisibilityScope(
     toolContext.userPermissionLevel,
   );
-  const sourceAttachment =
-    input.source.kind === "attachment"
-      ? await resolveSourceAttachment(
-          services,
-          {
-            sourceEntityType: input.source.sourceEntityType,
-            sourceEntityId: input.source.sourceEntityId,
-            attachmentType: input.source.attachmentType,
-          },
-          visibilityScope,
-        )
-      : undefined;
 
-  const createInput: CreateInput = {
-    entityType: input.entityType,
-    ...(title && { title }),
-    ...(input.source.kind === "prompt" && { prompt: input.source.prompt }),
-    ...(input.source.kind === "attachment" && {
-      from: {
-        kind: "entity-attachment" as const,
-        ...(sourceAttachment ?? {
-          sourceEntityType: input.source.sourceEntityType,
-          sourceEntityId: input.source.sourceEntityId,
-          attachmentType: input.source.attachmentType,
-        }),
-      },
-    }),
-    ...(replace && { replace }),
-    ...(targetEntityType && { targetEntityType }),
-    ...(targetEntityId && { targetEntityId }),
-  };
+  let createInput: CreateInput;
+  let sourceAttachment: GenerateSourceAttachment | undefined;
+  const replace = operation.kind === "attachment" && operation.replace === true;
 
-  if (coverImageRequested) {
-    if (input.entityType !== "image" || !targetEntityType || !targetEntityId) {
+  if (operation.kind === "prompt") {
+    if (operation.entityType === "image") {
       return {
         kind: "error",
         result: {
           success: false,
           error:
-            "coverImage is only valid for generated image entities targeting an existing entity.",
+            "Use operation.kind 'standalone-image' or 'cover-image' for image generation.",
+          code: "unsupported-generation",
         },
       };
     }
+    const source = await resolveGenerateSource(
+      services,
+      operation.source,
+      visibilityScope,
+    );
+    if (source.kind === "error") return source;
+    const title = normalizeOptionalString(operation.title);
+    createInput = {
+      entityType: operation.entityType,
+      ...(title ? { title } : {}),
+      prompt: operation.prompt,
+      ...(source.source?.entityType && {
+        sourceEntityType: source.source.entityType,
+      }),
+      ...(source.source?.entityId && {
+        sourceEntityId: source.source.entityId,
+        sourceEntityIds: [source.source.entityId],
+      }),
+    };
+  } else if (operation.kind === "standalone-image") {
+    const title = normalizeOptionalString(operation.title);
+    createInput = {
+      entityType: "image",
+      ...(title ? { title } : {}),
+      prompt: operation.prompt,
+    };
+  } else if (operation.kind === "cover-image") {
+    const target = await resolveGenerateTarget(
+      services,
+      operation.target,
+      visibilityScope,
+    );
+    if (target.kind === "error") {
+      const result = target.result;
+      return {
+        kind: "error",
+        result:
+          "success" in result && result.success === false
+            ? { ...result, code: "target-not-found" }
+            : result,
+      };
+    }
+    const title = normalizeOptionalString(operation.title);
+    createInput = {
+      entityType: "image",
+      ...(title ? { title } : {}),
+      prompt: operation.prompt,
+      ...(target.target?.entityType && {
+        targetEntityType: target.target.entityType,
+      }),
+      ...(target.target?.entityId && {
+        targetEntityId: target.target.entityId,
+      }),
+    };
+  } else {
+    const resolvedSource = await resolveSourceAttachment(
+      services,
+      {
+        sourceEntityType: operation.source.entityType,
+        sourceEntityId: operation.source.entityId,
+        attachmentType: operation.attachmentType,
+      },
+      visibilityScope,
+    );
+    if (resolvedSource.kind === "error") return resolvedSource;
+    sourceAttachment = resolvedSource.sourceAttachment;
+    const metadata = resolvedSource.metadata;
+    if (!metadata || !sourceAttachment) {
+      return {
+        kind: "error",
+        result: {
+          success: false,
+          error: "Attachment generation requires provider metadata.",
+          code: "provider-missing-metadata",
+        },
+      };
+    }
+    const title = normalizeOptionalString(operation.title);
+    createInput = {
+      entityType: metadata.outputEntityType,
+      ...(title ? { title } : {}),
+      from: {
+        kind: "entity-attachment" as const,
+        ...sourceAttachment,
+      },
+      ...(replace && { replace }),
+      ...(metadata.targetField && {
+        targetEntityType: sourceAttachment.sourceEntityType,
+        targetEntityId: sourceAttachment.sourceEntityId,
+      }),
+    };
   }
+
+  const unregisteredError = assertEntityTypeRegistered(
+    services,
+    createInput.entityType,
+  );
+  if (unregisteredError) return { kind: "error", result: unregisteredError };
 
   const policyError = assertEntityActionAllowed(
     services,
@@ -336,6 +474,17 @@ async function prepareGenerate(
       result: {
         success: false,
         error: "Provide a generation source.",
+      },
+    };
+  }
+
+  if (createInput.from && !interceptor) {
+    return {
+      kind: "error",
+      result: {
+        success: false,
+        error: `Entity type '${createInput.entityType}' does not support attachment-based generation. Use operation.kind prompt for AI-generated content based on referenced source material, or choose an entity type with an attachment provider.`,
+        code: "unsupported-generation",
       },
     };
   }
@@ -367,6 +516,11 @@ async function prepareGenerate(
     kind: "ok",
     prepared: {
       createInput,
+      operation: freezeGenerationOperation(
+        operation,
+        createInput,
+        sourceAttachment,
+      ),
       sourceAttachment,
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
@@ -374,25 +528,59 @@ async function prepareGenerate(
   };
 }
 
-function freezeGenerationSource(input: {
-  source: GenerateToolInput["source"];
-  resolvedSourceAttachment?: {
-    sourceEntityType: string;
-    sourceEntityId: string;
-    attachmentType: string;
-  };
-}): GenerateToolInput["source"] {
-  if (input.source.kind === "attachment") {
+function freezeGenerationOperation(
+  operation: GenerateToolInput["operation"],
+  createInput: CreateInput,
+  resolvedSourceAttachment?: GenerateSourceAttachment,
+): GenerateToolInput["operation"] {
+  if (operation.kind === "attachment") {
+    const sourceAttachment = resolvedSourceAttachment ?? {
+      sourceEntityType: operation.source.entityType,
+      sourceEntityId: operation.source.entityId,
+      attachmentType: operation.attachmentType,
+    };
     return {
       kind: "attachment",
-      ...(input.resolvedSourceAttachment ?? {
-        sourceEntityType: input.source.sourceEntityType,
-        sourceEntityId: input.source.sourceEntityId,
-        attachmentType: input.source.attachmentType,
-      }),
+      source: {
+        entityType: sourceAttachment.sourceEntityType,
+        entityId: sourceAttachment.sourceEntityId,
+      },
+      attachmentType: sourceAttachment.attachmentType,
+      ...(createInput.title && { title: createInput.title }),
+      ...(createInput.replace && { replace: createInput.replace }),
     };
   }
-  return input.source;
+  if (operation.kind === "cover-image") {
+    return {
+      kind: "cover-image",
+      target: {
+        entityType: createInput.targetEntityType ?? operation.target.entityType,
+        entityId: createInput.targetEntityId ?? operation.target.entityId,
+      },
+      ...(createInput.title && { title: createInput.title }),
+      prompt: operation.prompt,
+    };
+  }
+  if (operation.kind === "standalone-image") {
+    return {
+      kind: "standalone-image",
+      ...(createInput.title && { title: createInput.title }),
+      prompt: operation.prompt,
+    };
+  }
+  return {
+    kind: "prompt",
+    entityType: createInput.entityType,
+    ...(createInput.title && { title: createInput.title }),
+    ...(createInput.sourceEntityType &&
+      createInput.sourceEntityId && {
+        source: {
+          entityType: createInput.sourceEntityType,
+          entityId: createInput.sourceEntityId,
+        },
+      }),
+    prompt: operation.prompt,
+  };
 }
 
 export function createEntityGenerateTool(services: SystemServices): Tool {
@@ -400,13 +588,13 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "generate",
-    "Generate a new durable entity or deterministic artifact. Requires confirmation. Use source.kind prompt for new AI-generated content/images. Use source.kind attachment for source-derived artifacts such as carousel/printable PDFs or OG/social preview images. Use system_create instead for saving/importing existing text, URLs, uploads, prior assistant responses, or raw uploaded file preservation with upload transform preserve. On the initial generation request, do not pass confirmed; the tool returns confirmation args.",
+    "Generate durable content or artifacts. Critical: for a request to generate a post/social-post/newsletter/etc. with a cover image, call only the prompt generation first; do not call standalone-image or cover-image until the target entity exists after confirmation. Critical: for broad topical prompt generation, omit operation.source; never use brain-character/profile, uploads, filenames, guessed ids, or placeholders as source refs. Requires confirmation. Calling this tool without confirmed is how you request that confirmation; do not respond with separate prose such as 'I can generate it if you want' or 'I need to queue it first.' Use operation.kind prompt for non-image AI-generated entities, with operation.source only when generating from a resolved existing durable source entity, for example a newsletter from a resolved post: { kind: 'prompt', entityType: 'newsletter', source: { entityType: 'post', entityId: '...' }, prompt: '...' }. Use standalone-image only for unattached generated images, cover-image with operation.target only for generated covers on existing entities, and attachment with operation.source for source-derived artifacts such as carousel/printable PDFs or OG/social preview images. When the user asks to create/write/draft/generate new durable content, call this tool without confirmed to request confirmation instead of asking for separate prose approval. If you first resolve a clear source entity for the requested generation, still call this tool in the same turn. Use system_create instead for saving/importing existing text, URLs, uploads, prior assistant responses, or raw uploaded file preservation with upload transform preserve. On the initial generation request, do not pass confirmed; the tool returns confirmation args.",
     generateInputSchema,
     async (input, toolContext) => {
       const prep = await prepareGenerate(services, input, toolContext);
       if (prep.kind === "error") return prep.result;
       let { createInput } = prep.prepared;
-      const { sourceAttachment, interceptor, eventContext } = prep.prepared;
+      const { operation, interceptor, eventContext } = prep.prepared;
 
       if (input.confirmed) {
         const validation = confirmationArgsStore.validate(
@@ -429,26 +617,9 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         }
       } else {
         const confirmation = buildGenerateConfirmation(createInput);
-        const confirmationSource = freezeGenerationSource({
-          source: input.source,
-          ...(sourceAttachment && {
-            resolvedSourceAttachment: sourceAttachment,
-          }),
-        });
         const confirmationArgs = confirmationArgsStore.create(
           (confirmationToken) => ({
-            entityType: createInput.entityType,
-            ...(createInput.title && { title: createInput.title }),
-            source: confirmationSource,
-            ...(createInput.replace && { replace: createInput.replace }),
-            ...(createInput.targetEntityType && {
-              targetEntityType: createInput.targetEntityType,
-            }),
-            ...(createInput.targetEntityId && {
-              targetEntityId: createInput.targetEntityId,
-            }),
-            ...(input.coverImage !== undefined &&
-              input.coverImage !== false && { coverImage: input.coverImage }),
+            operation,
             confirmed: true,
             confirmationToken,
           }),

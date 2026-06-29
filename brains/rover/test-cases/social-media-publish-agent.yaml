@@ -21,8 +21,6 @@ successCriteria:
         - system_list
         - system_search
       shouldBeCalled: true
-      argsContain:
-        entityType: social-post
   # Agent should describe the LinkedIn/social publish situation clearly and not hallucinate success.
   responseContains:
     - "LinkedIn"

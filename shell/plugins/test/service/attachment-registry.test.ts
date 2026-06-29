@@ -60,6 +60,24 @@ describe("AttachmentRegistry", () => {
     unregister();
     expect(registry.has("deck", "carousel")).toBe(false);
   });
+
+  it("returns optional provider metadata when declared", () => {
+    const registry = AttachmentRegistry.createFresh();
+
+    registry.register("deck", "carousel", {
+      metadata: { outputEntityType: "document" },
+      resolve: () => createPdfAttachment("deck-carousel.pdf"),
+    });
+    registry.register("post", "legacy", {
+      resolve: () => createPdfAttachment("legacy.pdf"),
+    });
+
+    expect(registry.getMetadata("deck", "carousel")).toEqual({
+      outputEntityType: "document",
+    });
+    expect(registry.getMetadata("post", "legacy")).toBeUndefined();
+    expect(registry.getMetadata("missing", "carousel")).toBeUndefined();
+  });
 });
 
 describe("plugin context attachments namespace", () => {
@@ -73,6 +91,9 @@ describe("plugin context attachments namespace", () => {
     });
 
     expect(context.attachments.hasProvider("deck", "carousel")).toBe(true);
+    expect(
+      context.attachments.getProviderMetadata("deck", "carousel"),
+    ).toBeUndefined();
     const result = await context.attachments.resolve({
       sourceEntityType: "deck",
       sourceEntityId: "deck-1",
@@ -88,10 +109,14 @@ describe("plugin context attachments namespace", () => {
     const attachment = createPdfAttachment("deck-carousel.pdf");
 
     context.attachments.register("deck", "carousel", {
+      metadata: { outputEntityType: "document" },
       resolve: () => attachment,
     });
 
     expect(context.attachments.hasProvider("deck", "carousel")).toBe(true);
+    expect(context.attachments.getProviderMetadata("deck", "carousel")).toEqual(
+      { outputEntityType: "document" },
+    );
     const result = await context.attachments.resolve({
       sourceEntityType: "deck",
       sourceEntityId: "deck-1",

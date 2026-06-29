@@ -48,8 +48,8 @@ turns:
         - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            entityType: social-post
-            source.kind: prompt
+            operation.entityType: social-post
+            operation.kind: prompt
 
   - userMessage: "Confirm creation"
     confirmPendingAction: true
@@ -65,10 +65,8 @@ turns:
         - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            entityType: image
-            source.kind: prompt
-            targetEntityType: social-post
-            coverImage: true
+            operation.kind: "cover-image"
+            operation.target.entityType: social-post
 
   - userMessage: "Confirm creation"
     confirmPendingAction: true
@@ -83,10 +81,8 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: image
-        source.kind: prompt
-        targetEntityType: social-post
-        coverImage: true
+        operation.kind: "cover-image"
+        operation.target.entityType: social-post
   responseNotContains:
     - "Upload ref not found"
 

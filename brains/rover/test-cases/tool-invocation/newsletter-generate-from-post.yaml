@@ -19,8 +19,10 @@ successCriteria:
     - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: newsletter
-        source.kind: prompt
+        operation.entityType: newsletter
+        operation.kind: prompt
+        operation.source.entityType: post
+        operation.source.entityId: event-sourcing-sustainability
   toolCountRange:
     min: 1
   responseNotContains:
