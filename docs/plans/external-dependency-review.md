@@ -1091,10 +1091,11 @@ Incremental migration progress:
   document. Also split several mixed durable/frontmatter packages so their
   registered entity schema is Zod 4-owned while their frontmatter/CMS schema
   remains main-Zod-owned for now: site-content, prompt, rizom-ecosystem, and
-  site-info. Extended that split to another batch of durable-frontmatter entity
-  packages (`link`, `newsletter`, `wishlist`, `doc`, and `note`) by duplicating
-  only the small parser-side metadata/data shapes in Zod 4 and leaving their
-  frontmatter adapter schemas on the existing main-Zod boundary.
+  site-info. Extended that split to additional durable-frontmatter entity
+  packages (`link`, `newsletter`, `wishlist`, `doc`, `note`, `portfolio`,
+  `series`, `blog`, and `decks`) by duplicating only the parser-side
+  metadata/data/template shapes in Zod 4 and leaving their frontmatter adapter
+  schemas on the existing main-Zod boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -1,6 +1,7 @@
 import { z } from "@brains/utils/zod";
+import { z as z4 } from "@brains/utils/zod-v4";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
  * Series frontmatter schema (stored in content as YAML frontmatter)
@@ -11,7 +12,7 @@ export const seriesFrontmatterSchema = z.object({
   coverImageId: z.string().optional(),
 });
 
-export type SeriesFrontmatter = z.infer<typeof seriesFrontmatterSchema>;
+export type SeriesFrontmatter = z.output<typeof seriesFrontmatterSchema>;
 
 /**
  * Series metadata schema (searchable fields only)
@@ -21,47 +22,59 @@ export const seriesMetadataSchema = seriesFrontmatterSchema.pick({
   slug: true,
 });
 
-export type SeriesMetadata = z.infer<typeof seriesMetadataSchema>;
+export type SeriesMetadata = z.output<typeof seriesMetadataSchema>;
+
+const seriesEntityMetadataParserSchema = z4.object({
+  title: z4.string(),
+  slug: z4.string(),
+});
+
+const seriesFrontmatterParserSchema = z4.object({
+  title: z4.string(),
+  slug: z4.string(),
+  coverImageId: z4.string().optional(),
+});
 
 /**
  * Series entity schema
  */
-export const seriesSchema = baseEntitySchema.extend({
-  metadata: seriesMetadataSchema,
+export const seriesSchema = baseEntityParserSchema.extend({
+  entityType: z4.literal("series"),
+  metadata: seriesEntityMetadataParserSchema,
 });
 
-export type Series = z.infer<typeof seriesSchema>;
+export type Series = z4.output<typeof seriesSchema>;
 
 /**
  * Series with parsed frontmatter (returned by datasource)
  */
 export const seriesWithDataSchema = seriesSchema.extend({
-  frontmatter: seriesFrontmatterSchema,
+  frontmatter: seriesFrontmatterParserSchema,
 });
 
-export type SeriesWithData = z.infer<typeof seriesWithDataSchema>;
+export type SeriesWithData = z4.output<typeof seriesWithDataSchema>;
 
 /**
  * Series list item schema (for templates)
  */
 export const seriesListItemSchema = seriesWithDataSchema.extend({
-  description: z.string().optional(),
-  postCount: z.number(),
-  coverImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
+  description: z4.string().optional(),
+  postCount: z4.number(),
+  coverImageUrl: z4.string().optional(),
+  coverImageWidth: z4.number().optional(),
+  coverImageHeight: z4.number().optional(),
 });
 
-export type SeriesListItem = z.infer<typeof seriesListItemSchema>;
+export type SeriesListItem = z4.output<typeof seriesListItemSchema>;
 
 /**
  * Series body schema (structured content in markdown body)
  */
-export const seriesBodySchema = z.object({
-  description: z.string().optional(),
+export const seriesBodySchema = z4.object({
+  description: z4.string().optional(),
 });
 
-export type SeriesBody = z.infer<typeof seriesBodySchema>;
+export type SeriesBody = z4.output<typeof seriesBodySchema>;
 
 /**
  * Create formatter for series content body

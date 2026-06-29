@@ -1,5 +1,6 @@
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+import { z as z4 } from "@brains/utils/zod-v4";
+import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
  * Deck status
@@ -11,7 +12,15 @@ export const deckStatusSchema = z.enum([
   "published",
   "failed",
 ]);
-export type DeckStatus = z.infer<typeof deckStatusSchema>;
+export type DeckStatus = z.output<typeof deckStatusSchema>;
+
+const deckStatusParserSchema = z4.enum([
+  "generating",
+  "draft",
+  "queued",
+  "published",
+  "failed",
+]);
 
 export const publishedAtRequiredMessage =
   "publishedAt is required when deck status is published";
@@ -48,7 +57,7 @@ export const deckFrontmatterSchema = z.object({
   ogImageId: z.string().optional(), // References an image entity for social previews
 });
 
-export type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
+export type DeckFrontmatter = z.output<typeof deckFrontmatterSchema>;
 
 /**
  * Deck metadata schema - derived from frontmatter
@@ -76,45 +85,76 @@ export const deckMetadataSchema = deckFrontmatterSchema
     });
   });
 
-export type DeckMetadata = z.infer<typeof deckMetadataSchema>;
+export type DeckMetadata = z.output<typeof deckMetadataSchema>;
+
+const deckEntityMetadataParserSchema = z4
+  .object({
+    title: z4.string(),
+    description: z4.string().optional(),
+    status: deckStatusParserSchema,
+    publishedAt: z4.string().datetime().optional(),
+    coverImageId: z4.string().optional(),
+    slug: z4.string(),
+    error: z4.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!isMissingPublishedAt(data)) return;
+    ctx.addIssue({
+      code: "custom",
+      path: ["publishedAt"],
+      message: publishedAtRequiredMessage,
+    });
+  });
+
+const deckFrontmatterParserSchema = z4.object({
+  title: z4.string(),
+  slug: z4.string().optional(),
+  description: z4.string().optional(),
+  author: z4.string().optional(),
+  status: deckStatusParserSchema,
+  publishedAt: z4.string().datetime().optional(),
+  event: z4.string().optional(),
+  coverImageId: z4.string().optional(),
+  ogImageId: z4.string().optional(),
+});
 
 /**
  * Deck entity schema (extends BaseEntity)
  * Content field contains markdown with frontmatter + slide content
  * Metadata field duplicates key fields from frontmatter for fast queries
  */
-export const deckSchema = baseEntitySchema.extend({
-  entityType: z.literal("deck"),
-  metadata: deckMetadataSchema,
+export const deckSchema = baseEntityParserSchema.extend({
+  entityType: z4.literal("deck"),
+  metadata: deckEntityMetadataParserSchema,
 });
 
-export type DeckEntity = z.infer<typeof deckSchema>;
+export type DeckEntity = z4.output<typeof deckSchema>;
 
 /**
  * Deck with parsed frontmatter data (returned by datasource)
  * Extends DeckEntity with parsed frontmatter and body (markdown without frontmatter)
  */
 export const deckWithDataSchema = deckSchema.extend({
-  frontmatter: deckFrontmatterSchema,
-  body: z.string(),
-  ogImageUrl: z.string().optional(),
+  frontmatter: deckFrontmatterParserSchema,
+  body: z4.string(),
+  ogImageUrl: z4.string().optional(),
 });
 
-export type DeckWithData = z.infer<typeof deckWithDataSchema>;
+export type DeckWithData = z4.output<typeof deckWithDataSchema>;
 
 /**
  * Enriched deck schema (used for validation)
  * url, typeLabel, listUrl, listLabel are optional to allow validation before enrichment
  */
 export const enrichedDeckSchema = deckWithDataSchema.extend({
-  url: z.string().optional(),
-  typeLabel: z.string().optional(),
-  listUrl: z.string().optional(),
-  listLabel: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  ogImageUrl: z.string().optional(),
-  coverImageWidth: z.number().optional(),
-  coverImageHeight: z.number().optional(),
+  url: z4.string().optional(),
+  typeLabel: z4.string().optional(),
+  listUrl: z4.string().optional(),
+  listLabel: z4.string().optional(),
+  coverImageUrl: z4.string().optional(),
+  ogImageUrl: z4.string().optional(),
+  coverImageWidth: z4.number().optional(),
+  coverImageHeight: z4.number().optional(),
 });
 
 /**
@@ -122,7 +162,7 @@ export const enrichedDeckSchema = deckWithDataSchema.extend({
  * All enrichment fields are required - always present after enrichment
  */
 export type EnrichedDeck = Omit<
-  z.infer<typeof enrichedDeckSchema>,
+  z4.output<typeof enrichedDeckSchema>,
   "url" | "typeLabel" | "listUrl" | "listLabel"
 > & {
   url: string;
