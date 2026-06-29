@@ -19,8 +19,8 @@ const entitySlugSchema = z.object({ slug: z.string() });
 
 function isAIGenerationSchema<T>(schema: {
   parse(data: unknown): T;
-}): schema is AIGenerationSchema<T> & { parse(data: unknown): T } {
-  return "_def" in schema || "def" in schema || "~standard" in schema;
+}): schema is AIGenerationSchema<T> {
+  return schema instanceof z.ZodType;
 }
 
 function normalizeSiteBaseUrl(

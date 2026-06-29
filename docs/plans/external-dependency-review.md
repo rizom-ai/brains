@@ -1104,9 +1104,10 @@ Incremental migration progress:
 - Trimmed legacy Zod compatibility branches after the durable migration: app
   config handling and directory quarantine now classify Zod 4 errors directly,
   Obsidian introspection reads only Zod 4 internals, the `@brains/utils` root and
-  compatibility zod subpath re-export the Zod 4 helper, and direct `zod`
-  package metadata now resolves to Zod 4 with a root override to avoid nested
-  mixed Zod instances.
+  compatibility zod subpath re-export the Zod 4 helper, direct `zod` package
+  metadata now resolves to Zod 4 with a root override to avoid nested mixed Zod
+  instances, and AI object-generation schema inputs are Zod 4-owned rather than
+  AI SDK `FlexibleSchema`/dual-Zod typed.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
@@ -1145,15 +1146,12 @@ be removed or collapsed to the final Zod 4/domain contract before calling the
 migration complete:
 
 - `shell/templates/src/types.ts` keeps `TemplateSchemaParser<T>` as a
-  structural parse-only slot so existing display/template providers can remain
-  registered while durable schemas migrate. `shell/core/src/datasources/ai-content-datasource.ts`
-  narrows this slot before AI object generation. Endgame: one Zod 4-owned
-  template generation schema contract, or a deliberately schema-library-neutral
-  parser contract with a separate AI-generation schema slot.
-- `shell/ai-service/src/types.ts` now exposes AI generation output schemas via
-  the AI SDK `FlexibleSchema<T>` contract, which still accepts both Zod
-  generations. Endgame: one Zod 4-owned generation schema contract or an
-  explicitly chosen schema-library-neutral AI SDK boundary.
+  structural parse-only slot so display/template providers can remain registered
+  without forcing every view parser through the AI-generation contract.
+  `shell/core/src/datasources/ai-content-datasource.ts` now narrows this slot to
+  Zod 4 before AI object generation. Endgame: keep the schema-library-neutral
+  parser contract intentionally, or split display parsing and generation schemas
+  into separate explicit fields.
 - `packages/brain-cli/src/entries/index.ts` now exports Zod 4 from the public
   `@rizom/brain` root, and published package metadata now depends on Zod 4.
   Keep declaration/runtime output aligned with that single public Zod contract.

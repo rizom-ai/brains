@@ -134,7 +134,6 @@ export class AIService implements IAIService {
     });
 
     try {
-      // @ts-ignore - Type instantiation issue with Zod v3 and AI SDK
       const result = await generateObject({
         model: this.getModel(),
         system: systemPrompt,
@@ -153,7 +152,7 @@ export class AIService implements IAIService {
 
       this.logUsage("object_generation", usage);
 
-      return { object: result.object as T, usage };
+      return { object: result.object, usage };
     } catch (error) {
       this.logger.error("Failed to generate object", error);
       throw new Error("AI object generation failed", { cause: error });
