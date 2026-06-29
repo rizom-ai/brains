@@ -194,7 +194,7 @@ export const generateInputSchema = z
     coverImage: coverImageInputSchema
       .optional()
       .describe(
-        "When entityType is image and targetEntityType/targetEntityId identify an existing entity, mark the generated image as that target entity's cover image.",
+        "Only for generated images targeting an existing non-image entity as its cover image. Omit for standalone image generation.",
       ),
     confirmed: z.literal(true).optional().describe("Confirm generation"),
     confirmationToken: z
@@ -208,14 +208,14 @@ export const generateInputSchema = z
       .min(1)
       .optional()
       .describe(
-        "Existing target entity type when attaching a generated image/document artifact",
+        "Existing non-image target entity type when attaching a generated artifact to an existing entity. Omit for standalone image generation.",
       ),
     targetEntityId: z
       .string()
       .min(1)
       .optional()
       .describe(
-        "Existing target entity id when attaching a generated image/document artifact. Never use placeholders.",
+        "Existing target entity id when attaching a generated artifact. Never use placeholders such as __new__, new, temp, or draft; omit for standalone generation.",
       ),
   })
   .strict();
