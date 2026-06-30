@@ -1,8 +1,9 @@
 /**
- * Compatibility Zod subpath.
+ * Stable internal Zod subpath.
  *
- * Keep this file so older @brains/utils zod-subpath imports continue to
- * resolve, but route the export through the monorepo's Zod 4 boundary.
+ * This alias intentionally resolves to the monorepo's Zod 4 boundary. Keep it
+ * for older @brains/utils zod-subpath imports, but prefer new internal imports
+ * from @brains/utils/zod-v4 when the Zod major matters at the call site.
  *
  * IMPORTANT: Do not use wildcard exports here as they cause TypeScript to load
  * all of Zod's complex types, creating millions of type instantiations.
