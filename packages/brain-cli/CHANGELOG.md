@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.134
+
+### Patch Changes
+
+- [`0738da5`](https://github.com/rizom-ai/brains/commit/0738da59cef4005980bc896a9d6453979fa53348) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stabilize system_generate flows by normalizing model-authored generation operation arguments, preserving publish state during generated updates, and tightening related Rover tool invocation coverage.
+
 ## 0.2.0-alpha.133
 
 ## 0.2.0-alpha.132

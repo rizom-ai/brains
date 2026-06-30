@@ -1,5 +1,14 @@
 # @brains/content-pipeline
 
+## 0.2.0-alpha.134
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.134
+  - @brains/utils@0.2.0-alpha.134
+  - @brains/plugins@0.2.0-alpha.134
+
 ## 0.2.0-alpha.133
 
 ### Patch Changes

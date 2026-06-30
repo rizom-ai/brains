@@ -254,6 +254,7 @@
     "startup-check-mode",
     "swot-evidence-grounding",
     "system-create-source-union-release",
+    "system-generate-flow-stability",
     "system-generate-standalone-image-guidance",
     "system-generate-tool-split",
     "tailwind-runtime-deps",
