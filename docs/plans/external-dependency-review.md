@@ -1214,7 +1214,9 @@ enabled `isolatedDeclarations` for `@brains/notion`, mirroring that explicit
 config contract pattern for its MCP bridge config schema. The eighth pilot
 enabled `isolatedDeclarations` for `@brains/buttondown`, replacing exported enum
 schema inference with explicit union contracts and annotating the plugin config
-schema.
+schema. The ninth pilot enabled `isolatedDeclarations` for `@brains/stock-photo`,
+using explicit config, job payload, and Unsplash response contracts around the
+package-local Zod parsers.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:

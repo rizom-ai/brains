@@ -5,7 +5,25 @@ import { z } from "@brains/utils/zod-v4";
 import { imageAdapter } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 
-export const selectPhotoJobSchema = z.object({
+export interface SelectPhotoJobData {
+  photoId: string;
+  downloadLocation: string;
+  photographerName: string;
+  photographerUrl: string;
+  sourceUrl: string;
+  imageUrl: string;
+  title?: string | undefined;
+  alt?: string | undefined;
+  targetEntityType?: string | undefined;
+  targetEntityId?: string | undefined;
+}
+
+export type SelectPhotoJobDataInput = SelectPhotoJobData;
+
+export const selectPhotoJobSchema: z.ZodType<
+  SelectPhotoJobData,
+  SelectPhotoJobDataInput
+> = z.object({
   photoId: z.string(),
   downloadLocation: z.url(),
   photographerName: z.string(),
@@ -17,8 +35,6 @@ export const selectPhotoJobSchema = z.object({
   targetEntityType: z.string().optional(),
   targetEntityId: z.string().optional(),
 });
-
-export type SelectPhotoJobData = z.output<typeof selectPhotoJobSchema>;
 
 export interface SelectPhotoJobResult {
   imageEntityId: string;

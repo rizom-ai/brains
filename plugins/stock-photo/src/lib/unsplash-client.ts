@@ -65,7 +65,38 @@ export class UnsplashClient implements StockPhotoProvider {
 
 // -- Unsplash API response schemas (internal) --
 
-const unsplashPhotoSchema = z.looseObject({
+interface UnsplashPhoto {
+  id: string;
+  description: string | null;
+  alt_description: string | null;
+  urls: {
+    raw: string;
+    full: string;
+    regular: string;
+    small: string;
+    thumb: string;
+  };
+  links: {
+    html: string;
+    download_location: string;
+  };
+  user: {
+    name: string;
+    links: {
+      html: string;
+    };
+  };
+  width: number;
+  height: number;
+}
+
+interface UnsplashSearchResponse {
+  total: number;
+  total_pages: number;
+  results: UnsplashPhoto[];
+}
+
+const unsplashPhotoSchema: z.ZodType<UnsplashPhoto> = z.looseObject({
   id: z.string(),
   description: z.string().nullable(),
   alt_description: z.string().nullable(),
@@ -90,13 +121,12 @@ const unsplashPhotoSchema = z.looseObject({
   height: z.number().int().nonnegative(),
 });
 
-const unsplashSearchResponseSchema = z.looseObject({
-  total: z.number().int().nonnegative(),
-  total_pages: z.number().int().nonnegative(),
-  results: z.array(unsplashPhotoSchema),
-});
-
-type UnsplashPhoto = z.output<typeof unsplashPhotoSchema>;
+const unsplashSearchResponseSchema: z.ZodType<UnsplashSearchResponse> =
+  z.looseObject({
+    total: z.number().int().nonnegative(),
+    total_pages: z.number().int().nonnegative(),
+    results: z.array(unsplashPhotoSchema),
+  });
 
 function toPhotoCandidate(photo: UnsplashPhoto): PhotoCandidate {
   return {
