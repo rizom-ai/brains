@@ -1190,7 +1190,12 @@ active Zod 3 migration work:
 
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 
-Revisit `isolatedDeclarations` only after the Zod 4 migration has settled.
+The first Phase 5 pilot enables `isolatedDeclarations` only for
+`@brains/email-contracts`, a small public-contract package. Its exported email
+payload schema now has explicit domain input/output interfaces and a
+`z.ZodType<Output, Input>` annotation, avoiding generated declarations that leak
+inferred Zod object internals. Continue one package at a time.
+
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
 

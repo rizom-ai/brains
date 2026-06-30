@@ -1,6 +1,7 @@
 {
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
+    "isolatedDeclarations": true,
     "outDir": "./dist"
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
