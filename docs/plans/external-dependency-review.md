@@ -87,9 +87,10 @@ repo-owned schema code and dependency resolution: the public `@rizom/brain`
 root `z`, `@brains/utils`, and the compatibility `@brains/utils/zod` subpath
 all route to Zod 4; durable entity/frontmatter/CMS boundaries are Zod 4-owned;
 package-local `main-zod` wrappers are removed; direct implementation imports of
-`zod`/`@brains/utils/zod` are gone; and full `typecheck`, `lint`, `deps:check`,
-and `workspace:check` pass. Remaining Phase 4 work is policy/cleanup around
-validation error normalization and schema-introspection metadata, not active
+`zod`/`@brains/utils/zod` are gone; framework schema slots are Zod 4-owned;
+plugin config validation failures normalize through a domain error; and full
+`typecheck`, `lint`, `deps:check`, and `workspace:check` pass. Residual
+schema-introspection debt is tracked below as future API design work, not active
 Zod 3 usage.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
@@ -1123,23 +1124,22 @@ Incremental migration progress:
   should state both key and value schemas explicitly
   (`z.record(z.string(), z.unknown())`).
 
-### Remaining Zod migration strategy
+### Zod migration status
 
 Direct source imports from `@brains/utils/zod` are now eliminated. The
 `shared/utils/src/zod.ts` subpath is retained as a stable internal alias that
 routes to the Zod 4 helper; prefer `@brains/utils/zod-v4` for new internal code
-when the Zod major matters at the call site. The Zod 3 replacement work is
-complete in repo-owned schema code and dependency resolution. Remaining Phase 4
-items are follow-up policy hardening for validation/domain errors and schema
-field metadata, not active Zod 3 usage.
+when the Zod major matters at the call site. The Zod 3 replacement and Phase 4
+schema-boundary hardening work is complete in repo-owned schema code,
+dependency resolution, and framework-facing validation contracts.
 
-Near-term rules for continuing Phase 2:
+Ongoing rules:
 
 - Do not reintroduce parser twins for shared exported contracts. Identity/profile
   moved with the durable frontmatter boundary; keep that as the pattern.
 - Do not add new `main-zod` wrapper modules. The previous package-local wrappers
   were removed once their boundaries moved to Zod 4.
-- Treat any remaining dual-Zod detection as transitional debt. Either remove it
+- Treat any future dual-Zod detection as transitional debt. Either remove it
   when callers are confirmed Zod 4-only, or replace it with an explicit
   domain/schema metadata contract chosen intentionally.
 
@@ -1164,29 +1164,29 @@ exceptions. Plugin config constructor failures now surface as
 For AI object generation, `shell/core/src/datasources/ai-content-datasource.ts`
 still narrows template schemas to Zod 4 before invoking the AI SDK boundary.
 
-### Transitional Zod compatibility debt — not endgame
+### Residual schema metadata debt — not endgame
 
-These compatibility points are intentional migration scaffolding only. They must
-be removed or collapsed to the final Zod 4/domain contract before calling the
-migration complete:
+These compatibility/design points are tracked explicitly, but they are not
+active Zod 3 migration work:
 
 - `packages/brain-cli/src/entries/index.ts` now exports Zod 4 from the public
   `@rizom/brain` root, and published package metadata now depends on Zod 4.
   Keep declaration/runtime output aligned with that single public Zod contract.
 - `plugins/directory-sync/src/lib/quarantine.ts` no longer depends on the
   `ZodError` class; it recognizes validation-style issue payloads and existing
-  domain message fragments for quarantine reason extraction. Endgame: replace
-  message-fragment detection with a domain error if callers should not depend
-  on text matching.
+  domain message fragments for quarantine reason extraction. Future improvement:
+  replace message-fragment detection with a domain error if callers should not
+  depend on text matching.
 - `plugins/obsidian-vault/src/lib/schema-introspector.ts` now introspects Zod 4
-  object internals only. Endgame: replace internal-shape reads with explicit
-  schema-owned field metadata if Obsidian generation grows beyond simple field
-  mapping.
+  object internals only. Future improvement: replace internal-shape reads with
+  explicit schema-owned field metadata if Obsidian generation grows beyond
+  simple field mapping.
 - The former package-local `main-zod` modules and test helpers were removed when
   durable entity/frontmatter schemas moved to Zod 4. Do not recreate them.
 - `shared/cms-config/src/index.ts` now introspects Zod 4 internals directly for
-  CMS widget generation. Endgame: replace internal-shape reads with explicit
-  schema-owned field metadata if CMS behavior grows beyond simple widgets.
+  CMS widget generation. Future improvement: replace internal-shape reads with
+  explicit schema-owned field metadata if CMS behavior grows beyond simple
+  widgets.
 
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 
