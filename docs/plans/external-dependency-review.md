@@ -1165,11 +1165,9 @@ exceptions. Plugin config constructor failures now surface as
 `PluginConfigValidationError`, with Zod issues normalized at the plugin boundary.
 For AI object generation, `shell/core/src/datasources/ai-content-datasource.ts`
 still narrows template schemas to Zod 4 before invoking the AI SDK boundary. MCP
-tool contracts are Zod 4-owned locally; the only remaining MCP SDK
-`zod-compat.js` use is the CLI schema mapper's upstream `isZ4Schema`/`safeParse`
-helpers for SDK raw-shape fields. That mapper now rejects non-Zod-4 schemas and
-reads only Zod 4 internals for optional/default unwrapping and primitive
-coercion.
+tool contracts are Zod 4-owned locally; the MCP schema mapper no longer imports
+the SDK `zod-compat.js` helper and reads only Zod 4 internals for
+optional/default unwrapping and primitive coercion.
 
 ### Residual schema metadata debt — not endgame
 

@@ -1,7 +1,4 @@
-import {
-  isZ4Schema,
-  safeParse,
-} from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import { z } from "@brains/utils/zod-v4";
 import type { ToolInputSchema } from "./types";
 
 type ToolSchemaField = ToolInputSchema[string];
@@ -20,7 +17,7 @@ interface SchemaInternals {
 function isZod4SchemaWithInternals(
   schema: ToolSchemaField,
 ): schema is ToolSchemaField & SchemaInternals {
-  return isZ4Schema(schema);
+  return "_zod" in schema;
 }
 
 function getZod4Internals(schema: ToolSchemaField): SchemaInternals {
@@ -127,7 +124,7 @@ export function mapArgsToInput(
     // No arg and no flag — let Zod defaults handle it
     if (!isRequired(fieldSchema)) {
       // Parse undefined through the schema to get defaults
-      const parsed = safeParse(fieldSchema, undefined);
+      const parsed = z.safeParse(fieldSchema, undefined);
       if (parsed.success && parsed.data !== undefined) {
         result[name] = parsed.data;
       }
