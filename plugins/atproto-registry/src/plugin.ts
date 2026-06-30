@@ -13,16 +13,20 @@ import type {
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
-export const atprotoRegistryConfigSchema = z.object({
+export interface AtprotoRegistryConfig {
+  enabled: boolean;
+}
+
+export interface AtprotoRegistryConfigInput {
+  enabled?: boolean | undefined;
+}
+
+export const atprotoRegistryConfigSchema: z.ZodType<
+  AtprotoRegistryConfig,
+  AtprotoRegistryConfigInput
+> = z.object({
   enabled: z.boolean().default(true),
 });
-
-export type AtprotoRegistryConfig = z.output<
-  typeof atprotoRegistryConfigSchema
->;
-export type AtprotoRegistryConfigInput = z.input<
-  typeof atprotoRegistryConfigSchema
->;
 
 export interface AtprotoLexiconRegistryEntry extends AtprotoLexiconMetadata {
   path: string;
@@ -34,7 +38,15 @@ export interface AtprotoLexiconRegistryIndex {
 
 const BASE_PATH = "/atproto/lexicons";
 
-const validateLexiconInputSchema = z.strictObject({
+interface ValidateLexiconInput {
+  nsid: string;
+  record: Record<string, unknown>;
+}
+
+const validateLexiconInputSchema: z.ZodType<
+  ValidateLexiconInput,
+  ValidateLexiconInput
+> = z.strictObject({
   nsid: z.string(),
   record: z.record(z.string(), z.unknown()),
 });
@@ -175,4 +187,4 @@ export function atprotoRegistryPlugin(
   return new AtprotoRegistryPlugin(config);
 }
 
-export const plugin = atprotoRegistryPlugin;
+export const plugin: typeof atprotoRegistryPlugin = atprotoRegistryPlugin;
