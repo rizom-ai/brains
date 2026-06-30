@@ -1,5 +1,16 @@
 # @brains/topics
 
+## 0.2.0-alpha.135
+
+### Patch Changes
+
+- Updated dependencies [[`37db2bc`](https://github.com/rizom-ai/brains/commit/37db2bc759e606f42efacedd70056e9c2f440a4e)]:
+  - @brains/plugins@0.2.0-alpha.135
+  - @brains/atproto-contracts@0.2.0-alpha.135
+  - @brains/content-formatters@0.2.0-alpha.135
+  - @brains/ui-library@0.2.0-alpha.135
+  - @brains/utils@0.2.0-alpha.135
+
 ## 0.2.0-alpha.134
 
 ### Patch Changes

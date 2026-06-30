@@ -1,5 +1,20 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.135
+
+### Patch Changes
+
+- Updated dependencies [[`37db2bc`](https://github.com/rizom-ai/brains/commit/37db2bc759e606f42efacedd70056e9c2f440a4e)]:
+  - @brains/plugins@0.2.0-alpha.135
+  - @brains/blog@0.2.0-alpha.135
+  - @brains/site-info@0.2.0-alpha.135
+  - @brains/site-engine@0.2.0-alpha.135
+  - @brains/site-composition@0.2.0-alpha.135
+  - @brains/ui-library@0.2.0-alpha.135
+  - @brains/utils@0.2.0-alpha.135
+  - @brains/identity-service@0.2.0-alpha.135
+  - @brains/templates@0.2.0-alpha.135
+
 ## 0.2.0-alpha.134
 
 ### Patch Changes

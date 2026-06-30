@@ -112,7 +112,8 @@
     "@brains/runtime-state": "0.2.0-alpha.123",
     "@brains/chat": "0.2.0-alpha.78",
     "@brains/playbook": "0.2.0-alpha.107",
-    "@brains/playbooks": "0.2.0-alpha.107"
+    "@brains/playbooks": "0.2.0-alpha.107",
+    "@brains/rover-onboarding": "0.2.0-alpha.133"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -156,6 +157,7 @@
     "deploy-template-embedding-release",
     "deploy-template-runtime-sync",
     "deploy-workflow-env-mask-lock",
+    "discord-approval-artifacts",
     "discord-spaces-passive-capture",
     "docker-node24-actions",
     "docs-agent-a2a-routing",
@@ -232,6 +234,7 @@
     "rover-core-eval-fixes",
     "rover-eval-deterministic-context",
     "rover-instruction-disclosure-and-routing-guards",
+    "rover-onboarding-plugin",
     "rover-pilot-onboarding-playbook",
     "rover-setup-email-scaffold",
     "runtime-node-env-production",

@@ -1,5 +1,23 @@
 # @brains/plugins
 
+## 0.2.0-alpha.135
+
+### Patch Changes
+
+- [`37db2bc`](https://github.com/rizom-ai/brains/commit/37db2bc759e606f42efacedd70056e9c2f440a4e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix Discord approval interactions so approve/decline buttons are removed after a response, and deliver generated image artifacts as native Discord files after approved generation actions.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.135
+  - @brains/contracts@0.2.0-alpha.135
+  - @brains/site-composition@0.2.0-alpha.135
+  - @brains/utils@0.2.0-alpha.135
+  - @brains/conversation-service@0.2.0-alpha.135
+  - @brains/identity-service@0.2.0-alpha.135
+  - @brains/job-queue@0.2.0-alpha.135
+  - @brains/messaging-service@0.2.0-alpha.135
+  - @brains/runtime-state@0.2.0-alpha.135
+  - @brains/templates@0.2.0-alpha.135
+
 ## 0.2.0-alpha.134
 
 ### Patch Changes

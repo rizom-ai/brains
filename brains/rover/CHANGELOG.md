@@ -1,5 +1,56 @@
 # @brains/rover
 
+## 0.2.0-alpha.135
+
+### Minor Changes
+
+- [`cadc0a6`](https://github.com/rizom-ai/brains/commit/cadc0a661ea7b6704a6b823b596155acf5516874) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a Rover onboarding service plugin that owns bundled onboarding playbooks and registers the first web-chat starter through the playbooks runtime. Playbooks now accepts runtime lifecycle starter registrations, and Rover/ops opt into onboarding through the new plugin config instead of the generic trigger flag.
+
+### Patch Changes
+
+- Updated dependencies [[`37db2bc`](https://github.com/rizom-ai/brains/commit/37db2bc759e606f42efacedd70056e9c2f440a4e), [`cadc0a6`](https://github.com/rizom-ai/brains/commit/cadc0a661ea7b6704a6b823b596155acf5516874)]:
+  - @brains/discord@0.2.0-alpha.135
+  - @brains/playbooks@0.2.0-alpha.135
+  - @brains/rover-onboarding@0.2.0-alpha.135
+  - @brains/agent-discovery@0.2.0-alpha.135
+  - @brains/assessment@0.2.0-alpha.135
+  - @brains/blog@0.2.0-alpha.135
+  - @brains/decks@0.2.0-alpha.135
+  - @brains/document-plugin@0.2.0-alpha.135
+  - @brains/image-plugin@0.2.0-alpha.135
+  - @brains/link@0.2.0-alpha.135
+  - @brains/note@0.2.0-alpha.135
+  - @brains/playbook@0.2.0-alpha.135
+  - @brains/portfolio@0.2.0-alpha.135
+  - @brains/prompt@0.2.0-alpha.135
+  - @brains/rizom-ecosystem@0.2.0-alpha.135
+  - @brains/series@0.2.0-alpha.135
+  - @brains/site-info@0.2.0-alpha.135
+  - @brains/social-media@0.2.0-alpha.135
+  - @brains/topics@0.2.0-alpha.135
+  - @brains/wishlist@0.2.0-alpha.135
+  - @brains/a2a@0.2.0-alpha.135
+  - @brains/chat@0.2.0-alpha.135
+  - @brains/mcp@0.2.0-alpha.135
+  - @brains/web-chat@0.2.0-alpha.135
+  - @brains/webserver@0.2.0-alpha.135
+  - @brains/analytics@0.2.0-alpha.135
+  - @brains/atproto@0.2.0-alpha.135
+  - @brains/cms@0.2.0-alpha.135
+  - @brains/content-pipeline@0.2.0-alpha.135
+  - @brains/dashboard@0.2.0-alpha.135
+  - @brains/directory-sync@0.2.0-alpha.135
+  - @brains/email-resend@0.2.0-alpha.135
+  - @brains/newsletter@0.2.0-alpha.135
+  - @brains/notifications@0.2.0-alpha.135
+  - @brains/obsidian-vault@0.2.0-alpha.135
+  - @brains/site-builder-plugin@0.2.0-alpha.135
+  - @brains/stock-photo@0.2.0-alpha.135
+  - @brains/app@0.2.0-alpha.135
+  - @brains/auth-service@0.2.0-alpha.135
+  - @brains/site-default@0.2.0-alpha.135
+  - @brains/theme-default@0.2.0-alpha.135
+
 ## 0.2.0-alpha.134
 
 ### Patch Changes
