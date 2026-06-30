@@ -1,9 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type {
-  AnySchema,
-  ZodRawShapeCompat,
-} from "@modelcontextprotocol/sdk/server/zod-compat.js";
-import { z } from "@brains/utils/zod-v4";
+import { z, type ZodRawShape } from "@brains/utils/zod-v4";
 import type { ProgressNotification } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/templates";
 
@@ -98,6 +94,8 @@ export const toolResponseSchema = z.union([
 export type ToolResponse = z.output<typeof toolResponseSchema>;
 
 export type ToolSideEffects = "none" | "writes" | "external";
+export type ToolInputSchema = ZodRawShape;
+export type ToolOutputSchema = z.ZodType;
 
 /**
  * Tool definition
@@ -106,8 +104,8 @@ export type ToolSideEffects = "none" | "writes" | "external";
 export interface Tool<TOutput = ToolResponse> {
   name: string;
   description: string;
-  inputSchema: ZodRawShapeCompat; // Same type as MCP expects
-  outputSchema?: AnySchema; // Optional: Zod schema for type-safe outputs
+  inputSchema: ToolInputSchema;
+  outputSchema?: ToolOutputSchema; // Optional: Zod schema for type-safe outputs
   handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
   /** Declares whether this tool is safe to repeat/cache within one model turn. Undefined defaults to not cacheable. */

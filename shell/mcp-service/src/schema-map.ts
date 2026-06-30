@@ -1,28 +1,29 @@
 import {
   isZ4Schema,
   safeParse,
-  type AnySchema,
-  type ZodRawShapeCompat,
 } from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import type { ToolInputSchema } from "./types";
+
+type ToolSchemaField = ToolInputSchema[string];
 
 interface SchemaInternals {
   _zod?: {
     def?: {
       type?: string;
-      innerType?: AnySchema;
+      innerType?: ToolSchemaField;
     };
   };
-  unwrap?: () => AnySchema;
-  removeDefault?: () => AnySchema;
+  unwrap?: () => ToolSchemaField;
+  removeDefault?: () => ToolSchemaField;
 }
 
 function isZod4SchemaWithInternals(
-  schema: AnySchema,
-): schema is AnySchema & SchemaInternals {
+  schema: ToolSchemaField,
+): schema is ToolSchemaField & SchemaInternals {
   return isZ4Schema(schema);
 }
 
-function getZod4Internals(schema: AnySchema): SchemaInternals {
+function getZod4Internals(schema: ToolSchemaField): SchemaInternals {
   if (!isZod4SchemaWithInternals(schema)) {
     throw new Error(
       "Tool input schemas must use the blessed Zod 4 export from @rizom/brain.",
@@ -31,11 +32,11 @@ function getZod4Internals(schema: AnySchema): SchemaInternals {
   return schema;
 }
 
-function getTypeName(schema: AnySchema): string | undefined {
+function getTypeName(schema: ToolSchemaField): string | undefined {
   return getZod4Internals(schema)._zod?.def?.type;
 }
 
-function getInnerType(schema: AnySchema): AnySchema | undefined {
+function getInnerType(schema: ToolSchemaField): ToolSchemaField | undefined {
   const internals = getZod4Internals(schema);
   return (
     internals._zod?.def?.innerType ??
@@ -47,7 +48,7 @@ function getInnerType(schema: AnySchema): AnySchema | undefined {
 /**
  * Get the inner type of a Zod schema, unwrapping optional/default wrappers.
  */
-function unwrapType(schema: AnySchema): AnySchema {
+function unwrapType(schema: ToolSchemaField): ToolSchemaField {
   const typeName = getTypeName(schema);
   if (typeName === "optional") {
     const inner = getInnerType(schema);
@@ -63,7 +64,7 @@ function unwrapType(schema: AnySchema): AnySchema {
 /**
  * Check if a schema field is required (not optional, no default).
  */
-function isRequired(schema: AnySchema): boolean {
+function isRequired(schema: ToolSchemaField): boolean {
   const typeName = getTypeName(schema);
   return !["optional", "default"].includes(typeName ?? "");
 }
@@ -71,7 +72,7 @@ function isRequired(schema: AnySchema): boolean {
 /**
  * Coerce a string value to the type expected by the schema.
  */
-function coerceValue(value: string, schema: AnySchema): unknown {
+function coerceValue(value: string, schema: ToolSchemaField): unknown {
   const innerTypeName = getTypeName(unwrapType(schema));
 
   if (innerTypeName === "number") {
@@ -92,7 +93,7 @@ function coerceValue(value: string, schema: AnySchema): unknown {
  * - String values are coerced to number/boolean when schema expects it
  */
 export function mapArgsToInput(
-  inputSchema: ZodRawShapeCompat,
+  inputSchema: ToolInputSchema,
   args: string[],
   flags: Record<string, unknown>,
 ): Record<string, unknown> {

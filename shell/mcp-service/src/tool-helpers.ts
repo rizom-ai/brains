@@ -1,13 +1,6 @@
 import type { Tool, Resource, ToolResponse, ToolContext } from "./types";
 import { getErrorMessage, Logger } from "@brains/utils";
-import {
-  getObjectShape,
-  getParseErrorMessage,
-  safeParse,
-  type AnyObjectSchema,
-  type SchemaOutput,
-} from "@modelcontextprotocol/sdk/server/zod-compat.js";
-import { z } from "@brains/utils/zod-v4";
+import { z, type ZodRawShape } from "@brains/utils/zod-v4";
 
 /**
  * Zod schema for tool result validation
@@ -81,13 +74,25 @@ export function toolError(error: string, code?: string): ToolResult<never> {
  * );
  * ```
  */
-export function createTool<TSchema extends AnyObjectSchema, TOutput = unknown>(
+function formatZodError(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => {
+      const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
+      return `${path}: ${issue.message}`;
+    })
+    .join(", ");
+}
+
+export function createTool<
+  TSchema extends z.ZodObject<ZodRawShape>,
+  TOutput = unknown,
+>(
   pluginId: string,
   name: string,
   description: string,
   inputSchema: TSchema,
   handler: (
-    input: SchemaOutput<TSchema>,
+    input: z.output<TSchema>,
     context: ToolContext,
   ) => Promise<ToolResult<TOutput>>,
   options: {
@@ -99,7 +104,7 @@ export function createTool<TSchema extends AnyObjectSchema, TOutput = unknown>(
 ): Tool {
   const { visibility = "anchor", sideEffects, debug = false, cli } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
-  const inputShape = getObjectShape(inputSchema) ?? {};
+  const inputShape = inputSchema.shape;
 
   return {
     name: `${pluginId}_${name}`,
@@ -109,9 +114,9 @@ export function createTool<TSchema extends AnyObjectSchema, TOutput = unknown>(
       logger?.debug(`Tool ${name} started`);
       try {
         // Auto-validate input
-        const parseResult = safeParse(inputSchema, input);
+        const parseResult = inputSchema.safeParse(input);
         if (!parseResult.success) {
-          const errorMessage = getParseErrorMessage(parseResult.error);
+          const errorMessage = formatZodError(parseResult.error);
           logger?.debug(`Tool ${name} validation failed: ${errorMessage}`);
           return {
             success: false,
