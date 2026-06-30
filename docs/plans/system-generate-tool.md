@@ -61,9 +61,10 @@ Purpose: create new durable generated content or artifacts.
 
 The model-visible input is `{ operation, confirmed?, confirmationToken? }`, where `operation` is a discriminated union:
 
-- `{ kind: "prompt", entityType, title?, source?: { entityType, entityId }, prompt }`
-  - New AI-generated durable content.
-  - Include `source` when generation is grounded in an existing entity, such as a newsletter from a post.
+- `{ kind: "prompt", entityType, title?, prompt }`
+  - New AI-generated durable content from a broad prompt with no source entity.
+- `{ kind: "prompt-from-source", entityType, title?, source: { entityType, entityId }, prompt }`
+  - New AI-generated durable content grounded in an existing resolved entity, such as a newsletter from a post.
 - `{ kind: "standalone-image", title?, prompt }`
   - New unattached generated image.
 - `{ kind: "cover-image", target: { entityType, entityId }, title?, prompt }`

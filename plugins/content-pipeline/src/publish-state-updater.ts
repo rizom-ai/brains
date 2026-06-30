@@ -25,8 +25,14 @@ export async function markEntityPublished<
   result: PublishResult,
   options: MarkPublishedOptions = {},
 ): Promise<BaseEntity<TMetadata & Record<string, unknown>>> {
-  const publishedAt = options.publishedAt ?? new Date().toISOString();
   const publishTimestampField = options.publishTimestampField ?? "publishedAt";
+  const existingPublishedAt = entity.metadata[publishTimestampField];
+  const publishedAt =
+    options.publishedAt ??
+    (typeof existingPublishedAt === "string"
+      ? existingPublishedAt
+      : undefined) ??
+    new Date().toISOString();
   const metadata = {
     ...entity.metadata,
     status: "published",

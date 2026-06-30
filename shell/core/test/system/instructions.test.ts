@@ -48,6 +48,10 @@ describe("system instructions", () => {
       'Required `source` union: `{ kind: "text", content }`',
     );
     expect(instructions).toContain('`{ kind: "prior-response", messageId? }`');
+    expect(instructions).toContain('`{ kind: "prompt", entityType, prompt }`');
+    expect(instructions).toContain(
+      '`{ kind: "prompt-from-source", entityType, source: { entityType, entityId }, prompt }`',
+    );
     expect(instructions).toContain(
       '`{ kind: "attachment", source: { entityType, entityId }, attachmentType }`',
     );

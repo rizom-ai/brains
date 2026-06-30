@@ -537,7 +537,7 @@ describe("system_create tool", () => {
       return {
         ...rest,
         operation: {
-          kind: "prompt",
+          kind: promptSource ? "prompt-from-source" : "prompt",
           entityType,
           ...(typeof title === "string" ? { title } : {}),
           ...(promptSource ? { source: promptSource } : {}),
@@ -1769,7 +1769,7 @@ A saved research link.`;
 
     const confirmation = await execGenerateRaw({
       operation: {
-        kind: "prompt",
+        kind: "prompt-from-source",
         entityType: "newsletter",
         source: {
           entityType: "post",
@@ -1784,7 +1784,7 @@ A saved research link.`;
       (confirmation as { args: Record<string, unknown> }).args,
     ).toMatchObject({
       operation: {
-        kind: "prompt",
+        kind: "prompt-from-source",
         entityType: "newsletter",
         source: {
           entityType: "post",
@@ -1869,13 +1869,23 @@ A saved research link.`;
     expect(
       generateInputSchema.safeParse({
         operation: {
-          kind: "prompt",
+          kind: "prompt-from-source",
           entityType: "newsletter",
           source: { entityType: "post", entityId: "post-1" },
           prompt: "Write a newsletter from the source post",
         },
       }).success,
     ).toBe(true);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "prompt",
+          entityType: "newsletter",
+          source: { entityType: "post", entityId: "post-1" },
+          prompt: "Write a newsletter from the source post",
+        },
+      }).success,
+    ).toBe(false);
     expect(
       generateInputSchema.safeParse({
         operation: {

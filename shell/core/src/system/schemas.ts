@@ -121,13 +121,35 @@ export const generateOperationInputSchema = z.discriminatedUnion("kind", [
       kind: z
         .literal("prompt")
         .describe(
-          "Generate a new non-image durable entity from a prompt. For general topical social/newsletter/blog/deck generation, omit source. Only include source when the user explicitly asks to generate from/based on a specific existing content entity that was resolved with a tool result.",
+          "Generate a new non-image durable entity from a broad prompt with no durable source entity. Use this for general topical social/newsletter/blog/deck generation. This branch has no source field; use prompt-from-source only after resolving a specific existing content entity.",
         ),
       entityType: z
         .string()
         .min(1)
         .describe(
           "Entity type to generate from the prompt. Do not use image here; use standalone-image or cover-image.",
+        ),
+      title: z.string().optional().describe("Title for the generated entity"),
+      prompt: z
+        .string()
+        .min(1)
+        .describe(
+          "Prompt for creating new generated content. Do not use for saving/importing existing uploads or prior responses.",
+        ),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z
+        .literal("prompt-from-source")
+        .describe(
+          "Generate a new non-image durable entity from a specific resolved existing content entity. Use when the user asks to generate from/based on a source, including requests like 'create a newsletter based on my latest blog post'. After resolving the source with a tool result, call this operation in the same turn; do not merely say you can generate it.",
+        ),
+      entityType: z
+        .string()
+        .min(1)
+        .describe(
+          "Entity type to generate from the source and prompt. Do not use image here; use standalone-image or cover-image.",
         ),
       title: z.string().optional().describe("Title for the generated entity"),
       source: z
@@ -146,15 +168,14 @@ export const generateOperationInputSchema = z.discriminatedUnion("kind", [
             ),
         })
         .strict()
-        .optional()
         .describe(
-          "Existing durable source entity to ground this generation. Use only when the user asked to generate from/based on that specific resolved content entity. Omit source for broad topical prompts, profile/brain-character context, uploads, conversation-only context, or unknown/guessed sources.",
+          "Existing durable source entity to ground this generation. Use only resolved entity refs, not uploads, filenames, profile/brain-character context, conversation-only context, unknown sources, or guessed sources.",
         ),
       prompt: z
         .string()
         .min(1)
         .describe(
-          "Prompt for creating new generated content. Do not use for saving/importing existing uploads or prior responses.",
+          "Prompt for creating new generated content from the resolved source. Do not use for saving/importing existing uploads or prior responses.",
         ),
     })
     .strict(),
@@ -235,7 +256,9 @@ export const generateOperationInputSchema = z.discriminatedUnion("kind", [
       replace: z
         .boolean()
         .optional()
-        .describe("Regenerate instead of reusing a deterministic artifact"),
+        .describe(
+          "Set true for regenerate, replace, refresh, or update requests so a deterministic artifact is regenerated instead of reused",
+        ),
     })
     .strict(),
 ]);
@@ -265,7 +288,7 @@ export const createInputSchema = z
 export const generateInputSchema = z
   .object({
     operation: generateOperationInputSchema.describe(
-      "Generation operation selector. Use prompt for non-image AI-generated entities, standalone-image for unattached images, cover-image for generated covers on existing entities, and attachment for deterministic source-derived artifacts.",
+      "Generation operation selector. Use prompt for broad non-image AI-generated entities with no source, prompt-from-source for generation from a resolved existing entity, standalone-image for unattached images, cover-image for generated covers on existing entities, and attachment for deterministic source-derived artifacts; for regenerate/replace/refresh artifact requests use attachment with replace:true.",
     ),
     confirmed: z.literal(true).optional().describe("Confirm generation"),
     confirmationToken: z
@@ -284,7 +307,7 @@ export const updateInputSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe(
-      "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, update fields.coverImageId to that image id. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
+      "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, update fields.coverImageId to that image id. To remove or clear a cover image, set fields.coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
     ),
   content: z
     .string()

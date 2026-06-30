@@ -345,7 +345,7 @@ async function prepareGenerate(
   let sourceAttachment: GenerateSourceAttachment | undefined;
   const replace = operation.kind === "attachment" && operation.replace === true;
 
-  if (operation.kind === "prompt") {
+  if (operation.kind === "prompt" || operation.kind === "prompt-from-source") {
     if (operation.entityType === "image") {
       return {
         kind: "error",
@@ -357,11 +357,14 @@ async function prepareGenerate(
         },
       };
     }
-    const source = await resolveGenerateSource(
-      services,
-      operation.source,
-      visibilityScope,
-    );
+    const source =
+      operation.kind === "prompt-from-source"
+        ? await resolveGenerateSource(
+            services,
+            operation.source,
+            visibilityScope,
+          )
+        : { kind: "ok" as const, source: undefined };
     if (source.kind === "error") return source;
     const title = normalizeOptionalString(operation.title);
     createInput = {
@@ -483,7 +486,7 @@ async function prepareGenerate(
       kind: "error",
       result: {
         success: false,
-        error: `Entity type '${createInput.entityType}' does not support attachment-based generation. Use operation.kind prompt for AI-generated content based on referenced source material, or choose an entity type with an attachment provider.`,
+        error: `Entity type '${createInput.entityType}' does not support attachment-based generation. Use operation.kind prompt-from-source for AI-generated content based on referenced source material, or choose an entity type with an attachment provider.`,
         code: "unsupported-generation",
       },
     };
@@ -568,17 +571,22 @@ function freezeGenerationOperation(
       prompt: operation.prompt,
     };
   }
+  if (operation.kind === "prompt-from-source") {
+    return {
+      kind: "prompt-from-source",
+      entityType: createInput.entityType,
+      ...(createInput.title && { title: createInput.title }),
+      source: {
+        entityType: createInput.sourceEntityType ?? operation.source.entityType,
+        entityId: createInput.sourceEntityId ?? operation.source.entityId,
+      },
+      prompt: operation.prompt,
+    };
+  }
   return {
     kind: "prompt",
     entityType: createInput.entityType,
     ...(createInput.title && { title: createInput.title }),
-    ...(createInput.sourceEntityType &&
-      createInput.sourceEntityId && {
-        source: {
-          entityType: createInput.sourceEntityType,
-          entityId: createInput.sourceEntityId,
-        },
-      }),
     prompt: operation.prompt,
   };
 }
@@ -588,7 +596,7 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "generate",
-    "Generate durable content or artifacts. Critical: for a request to generate a post/social-post/newsletter/etc. with a cover image, call only the prompt generation first; do not call standalone-image or cover-image until the target entity exists after confirmation. Critical: for broad topical prompt generation, omit operation.source; never use brain-character/profile, uploads, filenames, guessed ids, or placeholders as source refs. Requires confirmation. Calling this tool without confirmed is how you request that confirmation; do not respond with separate prose such as 'I can generate it if you want' or 'I need to queue it first.' Use operation.kind prompt for non-image AI-generated entities, with operation.source only when generating from a resolved existing durable source entity, for example a newsletter from a resolved post: { kind: 'prompt', entityType: 'newsletter', source: { entityType: 'post', entityId: '...' }, prompt: '...' }. Use standalone-image only for unattached generated images, cover-image with operation.target only for generated covers on existing entities, and attachment with operation.source for source-derived artifacts such as carousel/printable PDFs or OG/social preview images. When the user asks to create/write/draft/generate new durable content, call this tool without confirmed to request confirmation instead of asking for separate prose approval. If you first resolve a clear source entity for the requested generation, still call this tool in the same turn. Use system_create instead for saving/importing existing text, URLs, uploads, prior assistant responses, or raw uploaded file preservation with upload transform preserve. On the initial generation request, do not pass confirmed; the tool returns confirmation args.",
+    "Generate durable content or artifacts. Critical: for a request to generate a post/social-post/newsletter/etc. with a cover image, call only the prompt generation first; do not call standalone-image or cover-image until the target entity exists after confirmation. Critical: broad topical prompt generation uses operation.kind prompt and has no source field. Never invent source IDs, use brain-character/profile, uploads, filenames, guessed ids, or placeholders as source refs. Critical: when the user asks to generate from a source such as 'my latest blog post', resolve the source, then call operation.kind prompt-from-source in the same turn; if dated candidates such as publishedAt are visible, choose the newest candidate and do not stop with prose like 'I found it and can generate it' or 'if that is the one you mean.' Requires confirmation. Calling this tool without confirmed is how you request that confirmation; do not respond with separate prose such as 'I can generate it if you want' or 'I need to queue it first.' Use operation.kind prompt for broad non-image AI-generated entities with no source. Use operation.kind prompt-from-source only when generating from a resolved existing durable source entity, for example a newsletter from a resolved post: { kind: 'prompt-from-source', entityType: 'newsletter', source: { entityType: 'post', entityId: '...' }, prompt: '...' }. Use standalone-image only for unattached generated images, cover-image with operation.target only for generated covers on existing entities, and attachment with operation.source for source-derived artifacts such as carousel/printable PDFs or OG/social preview images. For regenerate/replace/refresh source-derived artifact requests, call attachment with replace:true immediately; do not say you can queue it later. When the user asks to create/write/draft/generate new durable content, call this tool without confirmed to request confirmation instead of asking for separate prose approval. If you first resolve a clear source entity for the requested generation, still call this tool in the same turn using prompt-from-source. Use system_create instead for saving/importing existing text, URLs, uploads, prior assistant responses, or raw uploaded file preservation with upload transform preserve. On the initial generation request, do not pass confirmed; the tool returns confirmation args.",
     generateInputSchema,
     async (input, toolContext) => {
       const prep = await prepareGenerate(services, input, toolContext);

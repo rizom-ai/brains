@@ -151,7 +151,10 @@ function validateCoverImageFieldUpdate(
     };
   }
 
-  if (coverImageId === "__PENDING__") {
+  if (
+    coverImageId === "__PENDING__" ||
+    (typeof coverImageId === "string" && coverImageId.startsWith("upload-"))
+  ) {
     return {
       success: false,
       error: "coverImageId must reference an existing image id or be null",

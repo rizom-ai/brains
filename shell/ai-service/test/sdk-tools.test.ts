@@ -129,9 +129,12 @@ describe("convertToSDKTools", () => {
       z.object({
         kind: z.literal("prompt"),
         entityType: z.string(),
-        source: z
-          .object({ entityType: z.string(), entityId: z.string() })
-          .optional(),
+        prompt: z.string(),
+      }),
+      z.object({
+        kind: z.literal("prompt-from-source"),
+        entityType: z.string(),
+        source: z.object({ entityType: z.string(), entityId: z.string() }),
         prompt: z.string(),
       }),
       z.object({ kind: z.literal("standalone-image"), prompt: z.string() }),
@@ -190,7 +193,10 @@ describe("convertToSDKTools", () => {
       .passthrough()
       .parse(serialized.properties?.["operation"]);
     const alternatives = operationSchema.anyOf ?? operationSchema.oneOf;
-    expect(alternatives?.length).toBe(4);
+    expect(alternatives?.length).toBe(5);
+    expect(JSON.stringify(operationSchema)).toContain(
+      '"const":"prompt-from-source"',
+    );
     expect(JSON.stringify(operationSchema)).toContain('"const":"attachment"');
   });
 
