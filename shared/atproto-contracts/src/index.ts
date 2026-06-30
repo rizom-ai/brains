@@ -57,7 +57,20 @@ export function parseAtprotoLexicon(input: unknown): AtprotoLexicon {
   return atprotoLexiconSchema.parse(input);
 }
 
-export const canonicalAtprotoLexicons = {
+export type CanonicalAtprotoLexiconId =
+  | "ai.rizom.brain.card"
+  | "ai.rizom.brain.deck"
+  | "ai.rizom.brain.link"
+  | "ai.rizom.brain.note"
+  | "ai.rizom.brain.post"
+  | "ai.rizom.brain.project"
+  | "ai.rizom.brain.series"
+  | "ai.rizom.brain.socialPost"
+  | "ai.rizom.brain.topic";
+
+export const canonicalAtprotoLexicons: Readonly<
+  Record<CanonicalAtprotoLexiconId, AtprotoLexicon>
+> = {
   "ai.rizom.brain.card": parseAtprotoLexicon(cardLexiconJson),
   "ai.rizom.brain.deck": parseAtprotoLexicon(deckLexiconJson),
   "ai.rizom.brain.link": parseAtprotoLexicon(linkLexiconJson),
@@ -67,9 +80,7 @@ export const canonicalAtprotoLexicons = {
   "ai.rizom.brain.series": parseAtprotoLexicon(seriesLexiconJson),
   "ai.rizom.brain.socialPost": parseAtprotoLexicon(socialPostLexiconJson),
   "ai.rizom.brain.topic": parseAtprotoLexicon(topicLexiconJson),
-} as const satisfies Record<string, AtprotoLexicon>;
-
-export type CanonicalAtprotoLexiconId = keyof typeof canonicalAtprotoLexicons;
+};
 
 export type AtprotoLexiconStatus = "draft" | "approved" | "deprecated";
 
@@ -103,7 +114,10 @@ function approvedLexiconMetadata(
   };
 }
 
-export const canonicalAtprotoLexiconMetadata = {
+export const canonicalAtprotoLexiconMetadata: Record<
+  CanonicalAtprotoLexiconId,
+  Omit<AtprotoLexiconMetadata, "id">
+> = {
   "ai.rizom.brain.card": approvedLexiconMetadata("@brains/atproto"),
   "ai.rizom.brain.deck": approvedLexiconMetadata("@brains/decks"),
   "ai.rizom.brain.link": approvedLexiconMetadata("@brains/link"),
@@ -113,10 +127,7 @@ export const canonicalAtprotoLexiconMetadata = {
   "ai.rizom.brain.series": approvedLexiconMetadata("@brains/series"),
   "ai.rizom.brain.socialPost": approvedLexiconMetadata("@brains/social-media"),
   "ai.rizom.brain.topic": approvedLexiconMetadata("@brains/topics"),
-} satisfies Record<
-  CanonicalAtprotoLexiconId,
-  Omit<AtprotoLexiconMetadata, "id">
->;
+};
 
 export function listCanonicalAtprotoLexicons(): AtprotoLexicon[] {
   return Object.values(canonicalAtprotoLexicons);
@@ -510,7 +521,10 @@ export interface CanonicalAtprotoRecordMap {
 export type CanonicalAtprotoRecord =
   CanonicalAtprotoRecordMap[keyof CanonicalAtprotoRecordMap];
 
-export const canonicalAtprotoRecordSchemas = {
+export const canonicalAtprotoRecordSchemas: Record<
+  CanonicalAtprotoLexiconId,
+  AtprotoRecordSchema
+> = {
   "ai.rizom.brain.card": buildAtprotoRecordSchema(
     canonicalAtprotoLexicons["ai.rizom.brain.card"],
   ),
@@ -538,10 +552,9 @@ export const canonicalAtprotoRecordSchemas = {
   "ai.rizom.brain.topic": buildAtprotoRecordSchema(
     canonicalAtprotoLexicons["ai.rizom.brain.topic"],
   ),
-} satisfies Record<CanonicalAtprotoLexiconId, AtprotoRecordSchema>;
+};
 
-export type CanonicalAtprotoRecordSchemaId =
-  keyof typeof canonicalAtprotoRecordSchemas;
+export type CanonicalAtprotoRecordSchemaId = CanonicalAtprotoLexiconId;
 
 export function listCanonicalAtprotoRecordSchemas(): AtprotoRecordSchema[] {
   return Object.values(canonicalAtprotoRecordSchemas);
@@ -604,7 +617,17 @@ const atprotoBrainCardRecordSchema = z.custom<AtprotoBrainCardRecord>(
   "expected ai.rizom.brain.card record",
 );
 
-export const atprotoBrainCardDiscoveredPayloadSchema = z.strictObject({
+export interface AtprotoBrainCardDiscoveredPayload {
+  repoDid: string;
+  uri: string;
+  cid: string;
+  record: AtprotoBrainCardRecord;
+}
+
+export const atprotoBrainCardDiscoveredPayloadSchema: z.ZodType<
+  AtprotoBrainCardDiscoveredPayload,
+  AtprotoBrainCardDiscoveredPayload
+> = z.strictObject({
   repoDid: z.string().min(1),
   uri: z.string().min(1),
   cid: z.string().min(1),
@@ -614,11 +637,22 @@ export const atprotoBrainCardDiscoveredPayloadSchema = z.strictObject({
   record: atprotoBrainCardRecordSchema,
 });
 
-export type AtprotoBrainCardDiscoveredPayload = z.infer<
-  typeof atprotoBrainCardDiscoveredPayloadSchema
->;
+export interface AtprotoBrainDiscoveryEventPayload {
+  agentId: string;
+  name: string;
+  url: string;
+  status: "discovered" | "approved";
+  repoDid?: string | undefined;
+  brainDid?: string | undefined;
+  anchorDid?: string | undefined;
+  cardUri?: string | undefined;
+  cardCid?: string | undefined;
+}
 
-export const atprotoBrainDiscoveryEventPayloadSchema = z.strictObject({
+export const atprotoBrainDiscoveryEventPayloadSchema: z.ZodType<
+  AtprotoBrainDiscoveryEventPayload,
+  AtprotoBrainDiscoveryEventPayload
+> = z.strictObject({
   agentId: z.string().min(1),
   name: z.string().min(1),
   url: z.url(),
@@ -629,10 +663,6 @@ export const atprotoBrainDiscoveryEventPayloadSchema = z.strictObject({
   cardUri: z.string().min(1).optional(),
   cardCid: z.string().min(1).optional(),
 });
-
-export type AtprotoBrainDiscoveryEventPayload = z.infer<
-  typeof atprotoBrainDiscoveryEventPayloadSchema
->;
 
 export interface AtprotoBlobRef {
   $type?: "blob" | undefined;

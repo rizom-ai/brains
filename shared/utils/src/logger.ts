@@ -235,4 +235,6 @@ export class Logger {
 }
 
 // Export default logger instance
-export default Logger.getInstance();
+const defaultLogger: Logger = Logger.getInstance();
+
+export default defaultLogger;

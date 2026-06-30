@@ -1228,7 +1228,13 @@ widget, entity, and parser-boundary contracts where declaration emit required
 stable names. The following batch enabled `isolatedDeclarations` for the
 remaining plugin packages: `@brains/content-pipeline`, `@brains/directory-sync`,
 `@brains/playbooks`, and `@brains/site-builder-plugin`. At this point every
-package under `plugins/` has `isolatedDeclarations` enabled.
+package under `plugins/` has `isolatedDeclarations` enabled. The next shared
+package batch enabled `isolatedDeclarations` for `@brains/atproto-contracts`,
+`@brains/cms-config`, `@brains/content-formatters`, `@brains/deploy-support`,
+`@brains/mcp-bridge`, `@brains/media-page-composer`, `@brains/media-renderer`,
+`@rizom/ui`, `@brains/site-engine`, `@brains/test-utils`,
+`@brains/theme-base`, `@brains/theme-default`, `@brains/theme-rizom`, and
+`@brains/utils`, adding only explicit declarations/annotations where required.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
