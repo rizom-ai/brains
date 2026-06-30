@@ -75,6 +75,17 @@ plugins:
     );
   });
 
+  it("treats semantic content search results as candidates", () => {
+    const config = resolve(rover, {}, { preset: "full" });
+
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "use semantic search results as candidates, not proof",
+    );
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "omit weak/tangential candidates",
+    );
+  });
+
   it("treats make-one-draft follow-ups as ambiguous after an empty draft list", () => {
     const config = resolve(rover, {}, { preset: "full" });
 
