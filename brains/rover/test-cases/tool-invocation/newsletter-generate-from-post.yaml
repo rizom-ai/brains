@@ -20,7 +20,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         operation.entityType: newsletter
-        operation.kind: prompt
+        operation.kind: prompt-from-source
         operation.source.entityType: post
         operation.source.entityId: event-sourcing-sustainability
   toolCountRange:

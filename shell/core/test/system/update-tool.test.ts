@@ -443,6 +443,21 @@ describe("system_update tool", () => {
     });
   });
 
+  it("rejects upload refs as coverImageId updates before confirmation", async () => {
+    const result = await exec({
+      entityType: "social-post",
+      id: "linkedin-update",
+      fields: {
+        coverImageId: "upload-00000000-0000-4000-8000-000000000912",
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "coverImageId must reference an existing image id or be null",
+    });
+  });
+
   it("writes coverImageId field updates to frontmatter for entity types with cover support", async () => {
     const result = await exec({
       entityType: "social-post",

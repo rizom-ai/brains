@@ -49,9 +49,9 @@ Make `system_generate` input an object with a single **`operation`** field that 
 }
 ```
 
-The previous nested `source` object is removed; each operation branch carries only its own valid fields. The four branch shapes below are the **value of `operation`**.
+The previous nested `source` object is removed; each operation branch carries only its own valid fields. The five branch shapes below are the **value of `operation`**.
 
-There are four operation kinds. The split is by **generation mechanism**, not by output shape — `cover-image` (prompt-generated image) and OG image (deterministic provider render, lives under `attachment`) look like siblings but are produced by different machinery, which is why they are different branches.
+There are five operation kinds. The split is by **generation mechanism** and source semantics, not by output shape — broad `prompt`, source-grounded `prompt-from-source`, `cover-image` (prompt-generated image), and OG image (deterministic provider render, lives under `attachment`) look like siblings but are produced by different machinery, which is why they are different branches.
 
 ### Why `operation` is nested, not a top-level union
 
@@ -82,7 +82,27 @@ Rules:
 - For generated posts, newsletters, notes, etc. — **not** images. `entityType: "image"` is rejected on this branch (use `standalone-image` or `cover-image`). Verified with `@ai-sdk/provider-utils asSchema`: Zod refinements do **not** survive to model-visible JSON Schema (`z.string().refine(v => v !== "image")` serializes as plain `{ type: "string" }`). Therefore, make this unrepresentable with a generated enum of allowed non-image generatable entity types if practical; otherwise enforce it as pre-confirmation runtime validation and do not claim tool-schema unrepresentability.
 - Always creates a fresh generated entity request; no `replace`. If the derived slug already exists, the persistence layer creates a deduplicated ID rather than reusing a deterministic artifact (confirmed current behavior: `executePromptGenerate` calls `createEntity` with `deduplicateId: true`).
 
-### 2. `standalone-image` — standalone generated image
+### 2. `prompt-from-source` — generate a new durable entity from a resolved entity
+
+```json
+{
+  "kind": "prompt-from-source",
+  "entityType": "newsletter",
+  "source": {
+    "entityType": "post",
+    "entityId": "event-sourcing-sustainability"
+  },
+  "prompt": "Turn this post into a concise newsletter."
+}
+```
+
+Rules:
+
+- Requires a resolved existing durable source entity.
+- Never use upload IDs, filenames, profile/brain-character context, conversation-only context, unknown sources, or guessed sources.
+- For broad topical prompts, use `kind: "prompt"` with no source.
+
+### 3. `standalone-image` — standalone generated image
 
 Resolves Open Question 4: standalone image is its own branch, structurally distinct from prompt-entity generation and from cover-image.
 
@@ -100,7 +120,7 @@ Rules:
 - No target fields (a standalone image attaches to nothing).
 - Always creates a fresh generated image request; no `replace`. If the derived slug already exists, the persistence layer must create a deduplicated ID rather than reusing a deterministic artifact.
 
-### 3. `cover-image` — generate an image and attach it to an existing entity
+### 4. `cover-image` — generate an image and attach it to an existing entity
 
 ```json
 {
@@ -121,7 +141,7 @@ Rules:
 - Prompt-only for now (Open Question 3 resolved): style/aspect-ratio fields are deferred until a real use case; add them as an explicit additive change, not as free-form passthrough.
 - Always creates a fresh generated image request; no `replace`. If the derived slug already exists, the persistence layer must create a deduplicated ID rather than reusing a deterministic artifact.
 
-### 4. `attachment` — deterministic artifact from a source attachment provider
+### 5. `attachment` — deterministic artifact from a source attachment provider
 
 ```json
 {
@@ -210,6 +230,12 @@ The public tool branches map to existing internal create/generation flows. Inter
 
 ```ts
 CreateInput { entityType, title?, prompt }
+```
+
+### `kind: "prompt-from-source"`
+
+```ts
+CreateInput { entityType, title?, prompt, sourceEntityType, sourceEntityId, sourceEntityIds }
 ```
 
 ### `kind: "standalone-image"`
@@ -340,12 +366,13 @@ These prove the contract, not just the handler:
 - `{ operation: { kind: "attachment", entityType: ... } }` fails to parse (model cannot supply output type for artifacts — kills `image + carousel`).
 - `{ operation: { kind: "prompt", entityType: "image", ... } }` is rejected — by serialized schema only if non-image generatable entity types are enumerated. A Zod refinement is insufficient because AI SDK JSON Schema serialization drops it. Otherwise reject by pre-confirmation runtime validation. The SDK schema exposure test must verify which level is actually enforced.
 - `coverImage` anywhere fails to parse.
-- `targetEntityType`/`targetEntityId` on `operation.kind: "prompt"`, `"standalone-image"`, or `"attachment"` fail to parse; cover targets must use nested `operation.target`.
-- Flat `sourceEntityType`/`sourceEntityId` on `operation.kind: "prompt"` or `"attachment"` fail to parse; source refs must use nested `operation.source`.
+- `targetEntityType`/`targetEntityId` on `operation.kind: "prompt"`, `"prompt-from-source"`, `"standalone-image"`, or `"attachment"` fail to parse; cover targets must use nested `operation.target`.
+- `source` on broad `operation.kind: "prompt"` fails to parse; use `operation.kind: "prompt-from-source"` for source-grounded generation.
+- Flat `sourceEntityType`/`sourceEntityId` on `operation.kind: "prompt-from-source"` or `"attachment"` fail to parse; source refs must use nested `operation.source`.
 
 ### Tool visibility / schema-exposure tests
 
-- The **model-visible** SDK schema for `system_generate.operation` exposes the four branches as alternatives with discriminator constants — AI SDK currently serializes the Zod discriminated union as JSON Schema `anyOf` branches with `kind.const`, not as collapsed optionals. Assert that alternatives survive without requiring a specific `oneOf` vs `anyOf` keyword. Also verify whether the prompt branch excludes `entityType: "image"` at the serialized schema level; if not, require runtime validation coverage. Do not rely on Zod refinements for serialized tool constraints.
+- The **model-visible** SDK schema for `system_generate.operation` exposes the five branches as alternatives with discriminator constants — AI SDK currently serializes the Zod discriminated union as JSON Schema `anyOf` branches with `kind.const`, not as collapsed optionals. Assert that alternatives survive without requiring a specific `oneOf` vs `anyOf` keyword. Also verify whether the prompt branch excludes `entityType: "image"` at the serialized schema level; if not, require runtime validation coverage. Do not rely on Zod refinements for serialized tool constraints.
 - Confirmation summary/preview reflects the **derived** output entity type for `attachment` (e.g. "Generate a PDF document carousel from deck X"), since the model no longer supplies it.
 - `system_create` has no generation branches.
 - `document_generate` remains non-model-visible.
