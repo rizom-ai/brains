@@ -38,6 +38,7 @@ export interface CreateRizomSiteOptions {
   routes: RouteDefinitionInput[];
   templates: Record<string, Template>;
   dataSources?: DataSource[];
+  themeOverride?: string;
 }
 
 export function createRizomSite(
@@ -58,5 +59,6 @@ export function createRizomSite(
     layouts: { default: options.layout },
     routes: options.routes,
     plugin,
+    ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),
   });
 }

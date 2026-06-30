@@ -44,6 +44,15 @@ export interface SitePackage<
   plugin: (config?: TPluginConfig) => TPlugin;
 
   /**
+   * Optional additive CSS owned by the site package.
+   *
+   * This is layered after the selected base theme and before any
+   * instance-level `site.themeOverride`, so package-specific visual
+   * fixes travel with the site code without leaking into deploy config.
+   */
+  themeOverride?: string;
+
+  /**
    * Display metadata per entity type — label, plural name, layout,
    * pagination, navigation slot. Consulted by the dynamic route
    * generator when producing auto-generated list/detail routes for
@@ -117,6 +126,7 @@ export function extendSite<
     layouts: overrideLayouts,
     entityDisplay: overrideEntityDisplay,
     staticAssets: overrideStaticAssets,
+    themeOverride: overrideThemeOverride,
     plugin = baseSite.plugin,
   } = overrides;
 
@@ -131,12 +141,16 @@ export function extendSite<
   const staticAssets = overrideStaticAssets
     ? { ...(baseSite.staticAssets ?? {}), ...overrideStaticAssets }
     : baseSite.staticAssets;
+  const themeOverride = [baseSite.themeOverride, overrideThemeOverride]
+    .filter(Boolean)
+    .join("\n\n");
 
   return {
     layouts,
     routes: mergeRoutes(baseSite.routes, overrides.routes),
     plugin,
     entityDisplay,
+    ...(themeOverride ? { themeOverride } : {}),
     ...(staticAssets && Object.keys(staticAssets).length > 0
       ? { staticAssets }
       : {}),
@@ -166,6 +180,7 @@ const sitePackageShapeSchema = z
     plugin: z.function(),
     routes: z.array(sitePackageRouteShapeSchema),
     entityDisplay: z.record(entityDisplayEntrySchema),
+    themeOverride: z.string().optional(),
     staticAssets: z.record(z.string()).optional(),
   })
   .passthrough();

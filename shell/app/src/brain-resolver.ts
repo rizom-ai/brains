@@ -471,7 +471,7 @@ export function resolve(
     definition,
     overrides,
   );
-  const theme = resolveTheme(definition, overrides);
+  const theme = resolveTheme(definition, overrides, site);
 
   applyPluginDefaults(pluginOverrides, {
     webserverEnabled,
@@ -857,17 +857,22 @@ function resolveThemeCssRef(refOrCss: string): string {
 function resolveTheme(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
+  site?: SitePackage,
 ): string | undefined {
   const baseTheme = overrides?.site?.theme
     ? resolveThemeCssRef(overrides.site.theme)
     : definition.theme;
-  const themeOverride = overrides?.site?.themeOverride
+  const siteThemeOverride = site?.themeOverride;
+  const instanceThemeOverride = overrides?.site?.themeOverride
     ? resolveThemeCssRef(overrides.site.themeOverride)
     : undefined;
+  const theme = [baseTheme, siteThemeOverride, instanceThemeOverride]
+    .filter(Boolean)
+    .join("\n\n");
 
-  if (!baseTheme && !themeOverride) {
+  if (!theme) {
     return undefined;
   }
 
-  return composeTheme([baseTheme, themeOverride].filter(Boolean).join("\n\n"));
+  return composeTheme(theme);
 }

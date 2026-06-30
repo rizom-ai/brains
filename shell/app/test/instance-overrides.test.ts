@@ -1920,6 +1920,35 @@ describe("resolve with site package", () => {
     );
   });
 
+  test("should layer site package themeOverride before brain.yaml site.themeOverride", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site", {
+      themeOverride: ".site { color: amber; }",
+    });
+
+    const config = resolve(
+      defineBrain({
+        name: "test",
+        version: "1.0.0",
+        site,
+        theme: "body { color: pink; }",
+        capabilities: [["site-builder", siteBuilderFactory, {}]],
+        interfaces: [],
+      }),
+      {},
+      {
+        site: { themeOverride: ".instance { color: lime; }" },
+      },
+    );
+
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+      composeTheme(
+        "body { color: pink; }\n\n.site { color: amber; }\n\n.instance { color: lime; }",
+      ),
+    );
+  });
+
   test("should allow brain.yaml site-builder overrides to win over site defaults", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const site = createMockSitePackage("personal-site");
