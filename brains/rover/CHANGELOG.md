@@ -1,5 +1,54 @@
 # @brains/rover
 
+## 0.2.0-alpha.136
+
+### Patch Changes
+
+- [`9319d1d`](https://github.com/rizom-ai/brains/commit/9319d1d75e226e8eeac5c9f7681c89c53a94a73e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Clarify ambiguous draft blog post follow-ups to avoid generating fresh drafts after an empty draft-list check.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.136
+  - @brains/assessment@0.2.0-alpha.136
+  - @brains/blog@0.2.0-alpha.136
+  - @brains/decks@0.2.0-alpha.136
+  - @brains/document-plugin@0.2.0-alpha.136
+  - @brains/image-plugin@0.2.0-alpha.136
+  - @brains/link@0.2.0-alpha.136
+  - @brains/note@0.2.0-alpha.136
+  - @brains/playbook@0.2.0-alpha.136
+  - @brains/portfolio@0.2.0-alpha.136
+  - @brains/prompt@0.2.0-alpha.136
+  - @brains/rizom-ecosystem@0.2.0-alpha.136
+  - @brains/series@0.2.0-alpha.136
+  - @brains/site-info@0.2.0-alpha.136
+  - @brains/social-media@0.2.0-alpha.136
+  - @brains/topics@0.2.0-alpha.136
+  - @brains/wishlist@0.2.0-alpha.136
+  - @brains/a2a@0.2.0-alpha.136
+  - @brains/chat@0.2.0-alpha.136
+  - @brains/discord@0.2.0-alpha.136
+  - @brains/mcp@0.2.0-alpha.136
+  - @brains/web-chat@0.2.0-alpha.136
+  - @brains/webserver@0.2.0-alpha.136
+  - @brains/analytics@0.2.0-alpha.136
+  - @brains/atproto@0.2.0-alpha.136
+  - @brains/cms@0.2.0-alpha.136
+  - @brains/content-pipeline@0.2.0-alpha.136
+  - @brains/dashboard@0.2.0-alpha.136
+  - @brains/directory-sync@0.2.0-alpha.136
+  - @brains/email-resend@0.2.0-alpha.136
+  - @brains/newsletter@0.2.0-alpha.136
+  - @brains/notifications@0.2.0-alpha.136
+  - @brains/obsidian-vault@0.2.0-alpha.136
+  - @brains/playbooks@0.2.0-alpha.136
+  - @brains/rover-onboarding@0.2.0-alpha.136
+  - @brains/site-builder-plugin@0.2.0-alpha.136
+  - @brains/stock-photo@0.2.0-alpha.136
+  - @brains/theme-default@0.2.0-alpha.136
+  - @brains/app@0.2.0-alpha.136
+  - @brains/auth-service@0.2.0-alpha.136
+  - @brains/site-default@0.2.0-alpha.136
+
 ## 0.2.0-alpha.135
 
 ### Minor Changes

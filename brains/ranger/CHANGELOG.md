@@ -1,5 +1,31 @@
 # @brains/ranger
 
+## 0.2.0-alpha.136
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/link@0.2.0-alpha.136
+  - @brains/note@0.2.0-alpha.136
+  - @brains/products@0.2.0-alpha.136
+  - @brains/prompt@0.2.0-alpha.136
+  - @brains/site-info@0.2.0-alpha.136
+  - @brains/social-media@0.2.0-alpha.136
+  - @brains/wishlist@0.2.0-alpha.136
+  - @brains/discord@0.2.0-alpha.136
+  - @brains/mcp@0.2.0-alpha.136
+  - @brains/webserver@0.2.0-alpha.136
+  - @brains/analytics@0.2.0-alpha.136
+  - @brains/atproto-registry@0.2.0-alpha.136
+  - @brains/cms@0.2.0-alpha.136
+  - @brains/dashboard@0.2.0-alpha.136
+  - @brains/directory-sync@0.2.0-alpha.136
+  - @brains/site-builder-plugin@0.2.0-alpha.136
+  - @brains/site-content@0.2.0-alpha.136
+  - @brains/theme-rizom@0.2.0-alpha.136
+  - @brains/app@0.2.0-alpha.136
+  - @brains/site-rizom@0.2.0-alpha.136
+
 ## 0.2.0-alpha.135
 
 ### Patch Changes
