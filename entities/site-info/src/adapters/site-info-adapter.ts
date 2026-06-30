@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { z as z4 } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import {
   siteInfoSchema,
   siteInfoBodySchema,
@@ -8,7 +8,7 @@ import {
   type SiteInfoMetadata,
 } from "../schemas/site-info-schema";
 
-const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 /**
  * Entity adapter for SiteInfo entities

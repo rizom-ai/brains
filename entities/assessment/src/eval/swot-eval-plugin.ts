@@ -12,7 +12,6 @@ import {
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 import packageJson from "../../package.json";
 import { SwotAdapter } from "../adapters/swot-adapter";
 import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";
@@ -20,10 +19,10 @@ import { swotEntitySchema, type SwotFrontmatter } from "../schemas/swot";
 
 const swotAdapter = new SwotAdapter();
 
-const evalAgentSkillSchema = z4.object({
-  name: z4.string(),
-  description: z4.string(),
-  tags: z4.array(z4.string()),
+const evalAgentSkillSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
 });
 
 const evalAgentStatusSchema = z.enum(["discovered", "approved"]);
@@ -63,15 +62,15 @@ const evalSkillEntitySchema = baseEntitySchema.extend({
   metadata: evalSkillDataSchema,
 });
 
-const evalAgentBodySchema = z4.object({
-  about: z4.string(),
-  skills: z4.array(evalAgentSkillSchema),
-  notes: z4.string(),
+const evalAgentBodySchema = z.object({
+  about: z.string(),
+  skills: z.array(evalAgentSkillSchema),
+  notes: z.string(),
 });
 
-type EvalAgentBody = z4.output<typeof evalAgentBodySchema>;
+type EvalAgentBody = z.output<typeof evalAgentBodySchema>;
 type EvalAgentFrontmatter = z.infer<typeof evalAgentFrontmatterSchema>;
-type EvalAgentSkill = z4.output<typeof evalAgentSkillSchema>;
+type EvalAgentSkill = z.output<typeof evalAgentSkillSchema>;
 
 function formatSkills(value: unknown): string {
   if (!Array.isArray(value) || value.length === 0) return "";
@@ -187,29 +186,29 @@ class EvalSkillAdapter extends BaseEntityAdapter<
 const agentAdapter = new EvalAgentAdapter();
 const skillAdapter = new EvalSkillAdapter();
 
-const swotEvalSkillSchema = z4.object({
-  name: z4.string(),
-  description: z4.string(),
-  tags: z4.array(z4.string()),
-  examples: z4.array(z4.string()),
+const swotEvalSkillSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  examples: z.array(z.string()),
 });
 
-const swotEvalInputSchema = z4.object({
-  skills: z4.array(swotEvalSkillSchema),
-  agents: z4.array(
-    z4.object({
-      id: z4.string().optional(),
-      name: z4.string(),
-      kind: z4.enum(["professional", "team", "collective"]),
-      organization: z4.string().optional(),
-      brainName: z4.string(),
-      url: z4.url(),
-      did: z4.string().optional(),
-      status: z4.enum(["discovered", "approved"]),
-      discoveredAt: z4.string().datetime().optional(),
-      about: z4.string(),
-      skills: z4.array(evalAgentSkillSchema),
-      notes: z4.string().default(""),
+const swotEvalInputSchema = z.object({
+  skills: z.array(swotEvalSkillSchema),
+  agents: z.array(
+    z.object({
+      id: z.string().optional(),
+      name: z.string(),
+      kind: z.enum(["professional", "team", "collective"]),
+      organization: z.string().optional(),
+      brainName: z.string(),
+      url: z.url(),
+      did: z.string().optional(),
+      status: z.enum(["discovered", "approved"]),
+      discoveredAt: z.string().datetime().optional(),
+      about: z.string(),
+      skills: z.array(evalAgentSkillSchema),
+      notes: z.string().default(""),
     }),
   ),
 });
@@ -245,7 +244,7 @@ async function deleteAllEntities(
 
 async function seedSwotEvalEntities(
   context: EntityPluginContext,
-  input: z4.output<typeof swotEvalInputSchema>,
+  input: z.output<typeof swotEvalInputSchema>,
 ): Promise<void> {
   await deleteAllEntities(context, "swot");
   await deleteAllEntities(context, "agent");

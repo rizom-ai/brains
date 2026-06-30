@@ -1,6 +1,5 @@
 import { slugify } from "@brains/utils";
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 import { computeContentHash } from "@brains/utils/hash";
 import { baseEntityParserSchema } from "@brains/plugins";
 
@@ -16,7 +15,7 @@ export const newsletterStatusSchema = z.enum([
 ]);
 export type NewsletterStatus = z.output<typeof newsletterStatusSchema>;
 
-const newsletterStatusParserSchema = z4.enum([
+const newsletterStatusParserSchema = z.enum([
   "generating",
   "draft",
   "queued",
@@ -62,26 +61,26 @@ export const newsletterMetadataSchema = newsletterFrontmatterSchema
 
 export type NewsletterMetadata = z.output<typeof newsletterMetadataSchema>;
 
-const newsletterEntityMetadataParserSchema = z4.object({
-  subject: z4.string(),
+const newsletterEntityMetadataParserSchema = z.object({
+  subject: z.string(),
   status: newsletterStatusParserSchema,
-  entityIds: z4.array(z4.string()).optional(),
-  scheduledFor: z4.string().datetime().optional(),
-  sentAt: z4.string().datetime().optional(),
-  buttondownId: z4.string().optional(),
-  sourceEntityType: z4.string().optional(),
-  error: z4.string().optional(),
+  entityIds: z.array(z.string()).optional(),
+  scheduledFor: z.string().datetime().optional(),
+  sentAt: z.string().datetime().optional(),
+  buttondownId: z.string().optional(),
+  sourceEntityType: z.string().optional(),
+  error: z.string().optional(),
 });
 
 /**
  * Newsletter entity schema
  */
 export const newsletterSchema = baseEntityParserSchema.extend({
-  entityType: z4.literal("newsletter"),
+  entityType: z.literal("newsletter"),
   metadata: newsletterEntityMetadataParserSchema,
 });
 
-export type Newsletter = z4.output<typeof newsletterSchema>;
+export type Newsletter = z.output<typeof newsletterSchema>;
 
 /**
  * Input for creating a newsletter

@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
@@ -9,7 +8,7 @@ import { baseEntityParserSchema } from "@brains/plugins";
 export const noteStatusSchema = z.enum(["generating", "failed"]);
 export type NoteStatus = z.output<typeof noteStatusSchema>;
 
-const noteStatusParserSchema = z4.enum(["generating", "failed"]);
+const noteStatusParserSchema = z.enum(["generating", "failed"]);
 
 export const noteFrontmatterSchema = z.object({
   title: z.string().optional(),
@@ -30,16 +29,16 @@ export const noteMetadataSchema = noteFrontmatterSchema
 
 export type NoteMetadata = z.output<typeof noteMetadataSchema>;
 
-const noteEntityMetadataParserSchema = z4.object({
-  title: z4.string(),
+const noteEntityMetadataParserSchema = z.object({
+  title: z.string(),
   status: noteStatusParserSchema.optional(),
-  error: z4.string().optional(),
+  error: z.string().optional(),
 });
 
-const noteFrontmatterParserSchema = z4.object({
-  title: z4.string().optional(),
+const noteFrontmatterParserSchema = z.object({
+  title: z.string().optional(),
   status: noteStatusParserSchema.optional(),
-  error: z4.string().optional(),
+  error: z.string().optional(),
 });
 
 /**
@@ -47,18 +46,18 @@ const noteFrontmatterParserSchema = z4.object({
  * Content field contains markdown with optional frontmatter
  */
 export const noteSchema = baseEntityParserSchema.extend({
-  entityType: z4.literal("note"),
+  entityType: z.literal("note"),
   metadata: noteEntityMetadataParserSchema,
 });
 
-export type Note = z4.output<typeof noteSchema>;
+export type Note = z.output<typeof noteSchema>;
 
 /**
  * Note with parsed data (returned by datasource if needed later)
  */
 export const noteWithDataSchema = noteSchema.extend({
   frontmatter: noteFrontmatterParserSchema,
-  body: z4.string(),
+  body: z.string(),
 });
 
-export type NoteWithData = z4.output<typeof noteWithDataSchema>;
+export type NoteWithData = z.output<typeof noteWithDataSchema>;

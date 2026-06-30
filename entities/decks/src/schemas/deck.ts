@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
@@ -14,7 +13,7 @@ export const deckStatusSchema = z.enum([
 ]);
 export type DeckStatus = z.output<typeof deckStatusSchema>;
 
-const deckStatusParserSchema = z4.enum([
+const deckStatusParserSchema = z.enum([
   "generating",
   "draft",
   "queued",
@@ -87,15 +86,15 @@ export const deckMetadataSchema = deckFrontmatterSchema
 
 export type DeckMetadata = z.output<typeof deckMetadataSchema>;
 
-const deckEntityMetadataParserSchema = z4
+const deckEntityMetadataParserSchema = z
   .object({
-    title: z4.string(),
-    description: z4.string().optional(),
+    title: z.string(),
+    description: z.string().optional(),
     status: deckStatusParserSchema,
-    publishedAt: z4.string().datetime().optional(),
-    coverImageId: z4.string().optional(),
-    slug: z4.string(),
-    error: z4.string().optional(),
+    publishedAt: z.string().datetime().optional(),
+    coverImageId: z.string().optional(),
+    slug: z.string(),
+    error: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (!isMissingPublishedAt(data)) return;
@@ -106,16 +105,16 @@ const deckEntityMetadataParserSchema = z4
     });
   });
 
-const deckFrontmatterParserSchema = z4.object({
-  title: z4.string(),
-  slug: z4.string().optional(),
-  description: z4.string().optional(),
-  author: z4.string().optional(),
+const deckFrontmatterParserSchema = z.object({
+  title: z.string(),
+  slug: z.string().optional(),
+  description: z.string().optional(),
+  author: z.string().optional(),
   status: deckStatusParserSchema,
-  publishedAt: z4.string().datetime().optional(),
-  event: z4.string().optional(),
-  coverImageId: z4.string().optional(),
-  ogImageId: z4.string().optional(),
+  publishedAt: z.string().datetime().optional(),
+  event: z.string().optional(),
+  coverImageId: z.string().optional(),
+  ogImageId: z.string().optional(),
 });
 
 /**
@@ -124,11 +123,11 @@ const deckFrontmatterParserSchema = z4.object({
  * Metadata field duplicates key fields from frontmatter for fast queries
  */
 export const deckSchema = baseEntityParserSchema.extend({
-  entityType: z4.literal("deck"),
+  entityType: z.literal("deck"),
   metadata: deckEntityMetadataParserSchema,
 });
 
-export type DeckEntity = z4.output<typeof deckSchema>;
+export type DeckEntity = z.output<typeof deckSchema>;
 
 /**
  * Deck with parsed frontmatter data (returned by datasource)
@@ -136,25 +135,25 @@ export type DeckEntity = z4.output<typeof deckSchema>;
  */
 export const deckWithDataSchema = deckSchema.extend({
   frontmatter: deckFrontmatterParserSchema,
-  body: z4.string(),
-  ogImageUrl: z4.string().optional(),
+  body: z.string(),
+  ogImageUrl: z.string().optional(),
 });
 
-export type DeckWithData = z4.output<typeof deckWithDataSchema>;
+export type DeckWithData = z.output<typeof deckWithDataSchema>;
 
 /**
  * Enriched deck schema (used for validation)
  * url, typeLabel, listUrl, listLabel are optional to allow validation before enrichment
  */
 export const enrichedDeckSchema = deckWithDataSchema.extend({
-  url: z4.string().optional(),
-  typeLabel: z4.string().optional(),
-  listUrl: z4.string().optional(),
-  listLabel: z4.string().optional(),
-  coverImageUrl: z4.string().optional(),
-  ogImageUrl: z4.string().optional(),
-  coverImageWidth: z4.number().optional(),
-  coverImageHeight: z4.number().optional(),
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
 });
 
 /**
@@ -162,7 +161,7 @@ export const enrichedDeckSchema = deckWithDataSchema.extend({
  * All enrichment fields are required - always present after enrichment
  */
 export type EnrichedDeck = Omit<
-  z4.output<typeof enrichedDeckSchema>,
+  z.output<typeof enrichedDeckSchema>,
   "url" | "typeLabel" | "listUrl" | "listLabel"
 > & {
   url: string;

@@ -1,24 +1,23 @@
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 
-export const ecosystemSuffixSchema = z4.enum(["ai", "foundation", "work"]);
+export const ecosystemSuffixSchema = z.enum(["ai", "foundation", "work"]);
 
-export const ecosystemCardSchema = z4.object({
+export const ecosystemCardSchema = z.object({
   suffix: ecosystemSuffixSchema,
-  title: z4.string(),
-  body: z4.string(),
-  linkLabel: z4.string(),
-  linkHref: z4.string(),
+  title: z.string(),
+  body: z.string(),
+  linkLabel: z.string(),
+  linkHref: z.string(),
 });
 
-export const ecosystemContentSchema = z4.object({
-  eyebrow: z4.string(),
-  headline: z4.string(),
-  cards: z4.array(ecosystemCardSchema).min(1),
+export const ecosystemContentSchema = z.object({
+  eyebrow: z.string(),
+  headline: z.string(),
+  cards: z.array(ecosystemCardSchema).min(1),
 });
 
-export type EcosystemContent = z4.output<typeof ecosystemContentSchema>;
+export type EcosystemContent = z.output<typeof ecosystemContentSchema>;
 
 export const ecosystemSectionMetadataSchema = z.object({
   title: z.string(),
@@ -30,15 +29,15 @@ export type EcosystemSectionMetadata = z.output<
   typeof ecosystemSectionMetadataSchema
 >;
 
-const ecosystemSectionEntityMetadataSchema = z4.object({
-  title: z4.string(),
-  slug: z4.string(),
-  status: z4.enum(["draft", "published"]),
+const ecosystemSectionEntityMetadataSchema = z.object({
+  title: z.string(),
+  slug: z.string(),
+  status: z.enum(["draft", "published"]),
 });
 
 export const ecosystemSectionSchema = baseEntityParserSchema.extend({
-  entityType: z4.literal("ecosystem-section"),
+  entityType: z.literal("ecosystem-section"),
   metadata: ecosystemSectionEntityMetadataSchema,
 });
 
-export type EcosystemSection = z4.output<typeof ecosystemSectionSchema>;
+export type EcosystemSection = z.output<typeof ecosystemSectionSchema>;

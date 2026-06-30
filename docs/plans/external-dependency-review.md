@@ -1129,9 +1129,11 @@ Incremental migration progress:
 Direct source imports from `@brains/utils/zod` are now eliminated. The
 `shared/utils/src/zod.ts` subpath is retained as a stable internal alias that
 routes to the Zod 4 helper; prefer `@brains/utils/zod-v4` for new internal code
-when the Zod major matters at the call site. The Zod 3 replacement and Phase 4
-schema-boundary hardening work is complete in repo-owned schema code,
-dependency resolution, and framework-facing validation contracts.
+when the Zod major matters at the call site. Local Zod bindings have been
+normalized back to `z`; transitional `z4` aliases are removed from repo-owned
+schema code. The Zod 3 replacement and Phase 4 schema-boundary hardening work is
+complete in repo-owned schema code, dependency resolution, and framework-facing
+validation contracts.
 
 Ongoing rules:
 
@@ -1162,7 +1164,10 @@ validation now uses `safeParse` results instead of classifying thrown Zod
 exceptions. Plugin config constructor failures now surface as
 `PluginConfigValidationError`, with Zod issues normalized at the plugin boundary.
 For AI object generation, `shell/core/src/datasources/ai-content-datasource.ts`
-still narrows template schemas to Zod 4 before invoking the AI SDK boundary.
+still narrows template schemas to Zod 4 before invoking the AI SDK boundary. MCP
+CLI argument mapping still uses the MCP SDK's `zod-compat.js` API types, but it
+now rejects non-Zod-4 schemas and reads only Zod 4 internals for optional/default
+unwrapping and primitive coercion.
 
 ### Residual schema metadata debt — not endgame
 
@@ -1190,11 +1195,11 @@ active Zod 3 migration work:
 
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 
-The first Phase 5 pilot enables `isolatedDeclarations` only for
-`@brains/email-contracts`, a small public-contract package. Its exported email
-payload schema now has explicit domain input/output interfaces and a
-`z.ZodType<Output, Input>` annotation, avoiding generated declarations that leak
-inferred Zod object internals. Continue one package at a time.
+Phase 5 is proceeding one package at a time. The first pilot enabled
+`isolatedDeclarations` for `@brains/email-contracts`, a small public-contract
+package. Its exported email payload schema now has explicit domain input/output
+interfaces and a `z.ZodType<Output, Input>` annotation, avoiding generated
+declarations that leak inferred Zod object internals.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:

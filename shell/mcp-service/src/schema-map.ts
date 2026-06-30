@@ -1,14 +1,11 @@
 import {
+  isZ4Schema,
   safeParse,
   type AnySchema,
   type ZodRawShapeCompat,
 } from "@modelcontextprotocol/sdk/server/zod-compat.js";
 
 interface SchemaInternals {
-  _def?: {
-    typeName?: string;
-    innerType?: AnySchema;
-  };
   _zod?: {
     def?: {
       type?: string;
@@ -19,15 +16,28 @@ interface SchemaInternals {
   removeDefault?: () => AnySchema;
 }
 
+function isZod4SchemaWithInternals(
+  schema: AnySchema,
+): schema is AnySchema & SchemaInternals {
+  return isZ4Schema(schema);
+}
+
+function getZod4Internals(schema: AnySchema): SchemaInternals {
+  if (!isZod4SchemaWithInternals(schema)) {
+    throw new Error(
+      "Tool input schemas must use the blessed Zod 4 export from @rizom/brain.",
+    );
+  }
+  return schema;
+}
+
 function getTypeName(schema: AnySchema): string | undefined {
-  const internals = schema as SchemaInternals;
-  return internals._def?.typeName ?? internals._zod?.def?.type;
+  return getZod4Internals(schema)._zod?.def?.type;
 }
 
 function getInnerType(schema: AnySchema): AnySchema | undefined {
-  const internals = schema as SchemaInternals;
+  const internals = getZod4Internals(schema);
   return (
-    internals._def?.innerType ??
     internals._zod?.def?.innerType ??
     internals.unwrap?.() ??
     internals.removeDefault?.()
@@ -39,11 +49,11 @@ function getInnerType(schema: AnySchema): AnySchema | undefined {
  */
 function unwrapType(schema: AnySchema): AnySchema {
   const typeName = getTypeName(schema);
-  if (typeName === "ZodOptional" || typeName === "optional") {
+  if (typeName === "optional") {
     const inner = getInnerType(schema);
     return inner ? unwrapType(inner) : schema;
   }
-  if (typeName === "ZodDefault" || typeName === "default") {
+  if (typeName === "default") {
     const inner = getInnerType(schema);
     return inner ? unwrapType(inner) : schema;
   }
@@ -55,9 +65,7 @@ function unwrapType(schema: AnySchema): AnySchema {
  */
 function isRequired(schema: AnySchema): boolean {
   const typeName = getTypeName(schema);
-  return !["ZodOptional", "optional", "ZodDefault", "default"].includes(
-    typeName ?? "",
-  );
+  return !["optional", "default"].includes(typeName ?? "");
 }
 
 /**
@@ -66,10 +74,10 @@ function isRequired(schema: AnySchema): boolean {
 function coerceValue(value: string, schema: AnySchema): unknown {
   const innerTypeName = getTypeName(unwrapType(schema));
 
-  if (innerTypeName === "ZodNumber" || innerTypeName === "number") {
+  if (innerTypeName === "number") {
     return Number(value);
   }
-  if (innerTypeName === "ZodBoolean" || innerTypeName === "boolean") {
+  if (innerTypeName === "boolean") {
     return value === "true";
   }
   return value;

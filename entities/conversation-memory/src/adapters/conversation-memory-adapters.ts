@@ -4,7 +4,7 @@ import type {
   BaseEntityFrontmatterSchema,
   EntitySchema,
 } from "@brains/plugins";
-import { z as z4 } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import {
   actionItemMetadataSchema,
   actionItemSchema,
@@ -20,7 +20,7 @@ import {
   DECISION_ENTITY_TYPE,
 } from "../lib/constants";
 
-const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 interface TypedFrontmatterSchema<T> {
   parse(data: unknown): T;

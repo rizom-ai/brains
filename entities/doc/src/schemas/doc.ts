@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 import { baseEntityParserSchema } from "@brains/plugins";
 
 export const docFrontmatterSchema = z.object({
@@ -26,33 +25,33 @@ export const docMetadataSchema = docFrontmatterSchema
 
 export type DocMetadata = z.output<typeof docMetadataSchema>;
 
-const docEntityMetadataParserSchema = z4.object({
-  title: z4.string(),
-  section: z4.string(),
-  order: z4.number().int(),
-  description: z4.string().optional(),
-  slug: z4.string(),
+const docEntityMetadataParserSchema = z.object({
+  title: z.string(),
+  section: z.string(),
+  order: z.number().int(),
+  description: z.string().optional(),
+  slug: z.string(),
 });
 
-const docFrontmatterParserSchema = z4.object({
-  title: z4.string(),
-  section: z4.string(),
-  order: z4.number().int(),
-  sourcePath: z4.string(),
-  description: z4.string().optional(),
-  slug: z4.string().optional(),
+const docFrontmatterParserSchema = z.object({
+  title: z.string(),
+  section: z.string(),
+  order: z.number().int(),
+  sourcePath: z.string(),
+  description: z.string().optional(),
+  slug: z.string().optional(),
 });
 
 export const docSchema = baseEntityParserSchema.extend({
-  entityType: z4.literal("doc"),
+  entityType: z.literal("doc"),
   metadata: docEntityMetadataParserSchema,
 });
 
-export type Doc = z4.output<typeof docSchema>;
+export type Doc = z.output<typeof docSchema>;
 
 export const docWithDataSchema = docSchema.extend({
   frontmatter: docFrontmatterParserSchema,
-  body: z4.string(),
+  body: z.string(),
 });
 
-export type DocWithData = z4.output<typeof docWithDataSchema>;
+export type DocWithData = z.output<typeof docWithDataSchema>;

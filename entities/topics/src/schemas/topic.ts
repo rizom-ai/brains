@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
@@ -11,25 +10,25 @@ export const topicMetadataSchema = z.object({});
 
 export type TopicMetadata = Record<string, unknown>;
 
-const topicEntityMetadataParserSchema = z4
-  .record(z4.string(), z4.unknown())
+const topicEntityMetadataParserSchema = z
+  .record(z.string(), z.unknown())
   .transform((): TopicMetadata => ({}));
 
 /**
  * Topic entity schema - extends base entity with topic-specific fields
  */
 export const topicEntitySchema = baseEntityParserSchema.extend({
-  entityType: z4.literal("topic"),
+  entityType: z.literal("topic"),
   metadata: topicEntityMetadataParserSchema,
 });
 
-export type TopicEntity = z4.output<typeof topicEntitySchema>;
+export type TopicEntity = z.output<typeof topicEntitySchema>;
 
 /**
  * Schema for topic body structure
  */
-export const topicBodySchema = z4.object({
-  content: z4.string(),
+export const topicBodySchema = z.object({
+  content: z.string(),
 });
 
 /**
@@ -39,4 +38,4 @@ export const topicFrontmatterSchema = z.object({
   title: z.string().describe("Topic title"),
 });
 
-export type TopicBody = z4.output<typeof topicBodySchema>;
+export type TopicBody = z.output<typeof topicBodySchema>;

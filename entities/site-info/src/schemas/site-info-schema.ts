@@ -1,6 +1,5 @@
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 
 /**
  * Site info metadata schema - empty as site-info doesn't use metadata for filtering
@@ -13,18 +12,18 @@ export type SiteInfoMetadata = z.output<typeof siteInfoMetadataSchema>;
  * Site info entity schema
  * Site info data (title, description, CTA, etc.) is stored in content field as structured markdown
  */
-const siteInfoEntityMetadataSchema = z4.object({});
+const siteInfoEntityMetadataSchema = z.object({});
 
 export const siteInfoSchema = baseEntityParserSchema.extend({
-  id: z4.literal("site-info"),
-  entityType: z4.literal("site-info"),
+  id: z.literal("site-info"),
+  entityType: z.literal("site-info"),
   metadata: siteInfoEntityMetadataSchema,
 });
 
 /**
  * Site info entity type derived from schema
  */
-export type SiteInfoEntity = z4.output<typeof siteInfoSchema>;
+export type SiteInfoEntity = z.output<typeof siteInfoSchema>;
 
 /**
  * CTA schema - call-to-action configuration.

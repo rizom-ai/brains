@@ -2,7 +2,7 @@ import {
   BaseEntityAdapter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
-import { z as z4 } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import {
   anchorProfileSchema,
   anchorProfileBodySchema,
@@ -10,7 +10,7 @@ import {
   type AnchorProfile,
 } from "./anchor-profile-schema";
 
-const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 interface ProfileBodyParser<T> {
   parse(data: unknown): T;

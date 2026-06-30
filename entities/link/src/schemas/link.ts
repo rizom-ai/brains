@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
@@ -20,7 +19,7 @@ export const linkSourceSchema = z.object({
  */
 export const linkStatusSchema = z.enum(["pending", "draft", "published"]);
 
-const linkStatusParserSchema = z4.enum(["pending", "draft", "published"]);
+const linkStatusParserSchema = z.enum(["pending", "draft", "published"]);
 
 /**
  * Link frontmatter schema (stored in content as YAML frontmatter)
@@ -49,18 +48,18 @@ export const linkMetadataSchema = linkFrontmatterSchema.pick({
 /**
  * Link entity schema
  */
-const linkEntityMetadataParserSchema = z4.object({
-  title: z4.string(),
+const linkEntityMetadataParserSchema = z.object({
+  title: z.string(),
   status: linkStatusParserSchema,
 });
 
 export const linkSchema = baseEntityParserSchema.extend({
-  entityType: z4.literal("link"),
+  entityType: z.literal("link"),
   metadata: linkEntityMetadataParserSchema,
 });
 
 export type LinkSource = z.output<typeof linkSourceSchema>;
 export type LinkStatus = z.output<typeof linkStatusSchema>;
 export type LinkFrontmatter = z.output<typeof linkFrontmatterSchema>;
-export type LinkEntity = z4.output<typeof linkSchema>;
+export type LinkEntity = z.output<typeof linkSchema>;
 export type LinkMetadata = z.output<typeof linkMetadataSchema>;

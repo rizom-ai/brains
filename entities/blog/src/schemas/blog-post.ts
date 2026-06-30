@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod-v4";
-import { z as z4 } from "@brains/utils/zod-v4";
 import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
@@ -14,7 +13,7 @@ export const blogPostStatusSchema = z.enum([
 ]);
 export type BlogPostStatus = z.output<typeof blogPostStatusSchema>;
 
-const blogPostStatusParserSchema = z4.enum([
+const blogPostStatusParserSchema = z.enum([
   "generating",
   "draft",
   "queued",
@@ -68,32 +67,32 @@ export const blogPostMetadataSchema = blogPostFrontmatterSchema
 
 export type BlogPostMetadata = z.output<typeof blogPostMetadataSchema>;
 
-const blogPostEntityMetadataParserSchema = z4.object({
-  title: z4.string(),
+const blogPostEntityMetadataParserSchema = z.object({
+  title: z.string(),
   status: blogPostStatusParserSchema,
-  publishedAt: z4.string().datetime().optional(),
-  seriesName: z4.string().optional(),
-  seriesIndex: z4.number().optional(),
-  slug: z4.string(),
-  error: z4.string().optional(),
+  publishedAt: z.string().datetime().optional(),
+  seriesName: z.string().optional(),
+  seriesIndex: z.number().optional(),
+  slug: z.string(),
+  error: z.string().optional(),
 });
 
-const blogPostFrontmatterParserSchema = z4.object({
-  title: z4.string(),
-  slug: z4.string().optional(),
+const blogPostFrontmatterParserSchema = z.object({
+  title: z.string(),
+  slug: z.string().optional(),
   status: blogPostStatusParserSchema,
-  publishedAt: z4.string().datetime().optional(),
-  excerpt: z4.string(),
-  author: z4.string(),
-  coverImageId: z4.string().optional(),
-  ogImageId: z4.string().optional(),
-  seriesName: z4.string().optional(),
-  seriesIndex: z4.number().optional(),
-  ogImage: z4.url().optional(),
-  ogDescription: z4.string().optional(),
-  twitterCard: z4.enum(["summary", "summary_large_image"]).optional(),
-  canonicalUrl: z4.url().optional(),
-  atprotoUri: z4.string().optional(),
+  publishedAt: z.string().datetime().optional(),
+  excerpt: z.string(),
+  author: z.string(),
+  coverImageId: z.string().optional(),
+  ogImageId: z.string().optional(),
+  seriesName: z.string().optional(),
+  seriesIndex: z.number().optional(),
+  ogImage: z.url().optional(),
+  ogDescription: z.string().optional(),
+  twitterCard: z.enum(["summary", "summary_large_image"]).optional(),
+  canonicalUrl: z.url().optional(),
+  atprotoUri: z.string().optional(),
 });
 
 /**
@@ -102,14 +101,14 @@ const blogPostFrontmatterParserSchema = z4.object({
  * Metadata field duplicates key fields from frontmatter for fast queries
  */
 export const blogPostSchema = baseEntityParserSchema.extend({
-  entityType: z4.literal("post"),
+  entityType: z.literal("post"),
   metadata: blogPostEntityMetadataParserSchema,
 });
 
 /**
  * Blog post entity type
  */
-export type BlogPost = z4.output<typeof blogPostSchema>;
+export type BlogPost = z.output<typeof blogPostSchema>;
 
 /**
  * Blog post with parsed frontmatter data (returned by datasource)
@@ -118,11 +117,11 @@ export type BlogPost = z4.output<typeof blogPostSchema>;
  */
 export const blogPostWithDataSchema = blogPostSchema.extend({
   frontmatter: blogPostFrontmatterParserSchema,
-  body: z4.string(),
-  coverImageUrl: z4.string().optional(), // Resolved data URL from coverImageId
+  body: z.string(),
+  coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId
 });
 
-export type BlogPostWithData = z4.output<typeof blogPostWithDataSchema>;
+export type BlogPostWithData = z.output<typeof blogPostWithDataSchema>;
 
 /**
  * Enriched blog post schema (used for validation)
@@ -130,17 +129,17 @@ export type BlogPostWithData = z4.output<typeof blogPostWithDataSchema>;
  * seriesUrl is optional and only present for posts that belong to a series
  */
 export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
-  url: z4.string().optional(),
-  typeLabel: z4.string().optional(),
-  listUrl: z4.string().optional(),
-  listLabel: z4.string().optional(),
-  seriesUrl: z4.string().optional(),
-  coverImageUrl: z4.string().optional(),
-  ogImageUrl: z4.string().optional(),
-  coverImageWidth: z4.number().optional(),
-  coverImageHeight: z4.number().optional(),
-  coverImageSrcset: z4.string().optional(),
-  coverImageSizes: z4.string().optional(),
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
+  seriesUrl: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
+  coverImageSrcset: z.string().optional(),
+  coverImageSizes: z.string().optional(),
 });
 
 /**
@@ -148,21 +147,21 @@ export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
  * All enrichment fields are required - always present after enrichment
  */
 export const templateBlogPostSchema = blogPostWithDataSchema.extend({
-  url: z4.string(),
-  typeLabel: z4.string(),
-  listUrl: z4.string(),
-  listLabel: z4.string(),
-  seriesUrl: z4.string().optional(), // URL to series detail page (if post is in a series)
-  coverImageUrl: z4.string().optional(),
-  ogImageUrl: z4.string().optional(),
-  coverImageWidth: z4.number().optional(),
-  coverImageHeight: z4.number().optional(),
-  coverImageSrcset: z4.string().optional(),
-  coverImageSizes: z4.string().optional(),
+  url: z.string(),
+  typeLabel: z.string(),
+  listUrl: z.string(),
+  listLabel: z.string(),
+  seriesUrl: z.string().optional(), // URL to series detail page (if post is in a series)
+  coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
+  coverImageSrcset: z.string().optional(),
+  coverImageSizes: z.string().optional(),
 });
 
 /**
  * Enriched blog post type (used by components)
  * All enrichment fields (url, typeLabel, listUrl, listLabel) are required
  */
-export type EnrichedBlogPost = z4.output<typeof templateBlogPostSchema>;
+export type EnrichedBlogPost = z.output<typeof templateBlogPostSchema>;
