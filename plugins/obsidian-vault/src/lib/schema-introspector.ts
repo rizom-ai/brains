@@ -143,8 +143,8 @@ export function introspectSchema(schema: ZodObjectLike): FieldInfo[] {
       required,
     };
 
-    // Merge default values: unwrap default (from ZodDefault) takes precedence,
-    // then classified default (from ZodLiteral)
+    // Merge default values: explicit schema defaults take precedence, then
+    // literal-derived defaults.
     const effectiveDefault =
       unwrapDefault !== undefined ? unwrapDefault : classified.defaultValue;
     if (effectiveDefault !== undefined) {
