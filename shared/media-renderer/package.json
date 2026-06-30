@@ -1,6 +1,6 @@
 {
   "name": "@brains/media-renderer",
-  "version": "0.2.0-alpha.132",
+  "version": "0.2.0-alpha.133",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",

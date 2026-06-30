@@ -1,5 +1,16 @@
 # @brains/playbooks
 
+## 0.2.0-alpha.133
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/playbook@0.2.0-alpha.133
+  - @brains/contracts@0.2.0-alpha.133
+  - @brains/utils@0.2.0-alpha.133
+  - @brains/plugins@0.2.0-alpha.133
+  - @brains/runtime-state@0.2.0-alpha.133
+
 ## 0.2.0-alpha.132
 
 ### Patch Changes

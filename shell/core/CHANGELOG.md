@@ -1,5 +1,20 @@
 # @brains/core
 
+## 0.2.0-alpha.133
+
+### Patch Changes
+
+- [`1660704`](https://github.com/rizom-ai/brains/commit/16607040dd9fd28b8a5463c8a88c6aa7ebe5b099) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Clarify system generation guidance so standalone generated images omit cover-target fields.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.133
+  - @brains/image@0.2.0-alpha.133
+  - @brains/site-composition@0.2.0-alpha.133
+  - @brains/utils@0.2.0-alpha.133
+  - @brains/plugins@0.2.0-alpha.133
+  - @brains/runtime-state@0.2.0-alpha.133
+  - @brains/templates@0.2.0-alpha.133
+
 ## 0.2.0-alpha.132
 
 ### Patch Changes
