@@ -5,6 +5,7 @@ export interface RuntimeStateDbConfig {
 
 export type RuntimeStateServiceConfig = RuntimeStateDbConfig;
 
+/** Intentionally schema-library-neutral parser for persisted runtime values. */
 export interface RuntimeStateValueSchema<T> {
   parse(input: unknown): T;
 }

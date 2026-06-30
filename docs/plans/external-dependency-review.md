@@ -1143,19 +1143,24 @@ Near-term rules for continuing Phase 2:
   when callers are confirmed Zod 4-only, or replace it with an explicit
   domain/schema metadata contract chosen intentionally.
 
+### Structural parser slots resolved as intentional
+
+These parse-only boundaries are intentionally schema-library-neutral because
+their owning packages only call `.parse()` and do not compose schema trees:
+`shell/templates/src/types.ts`, `shell/messaging-service/src/message-validator.ts`,
+`shell/runtime-state/src/types.ts`, `shell/entity-service/src/datasource-types.ts`,
+`plugins/site-builder/src/lib/site-view-template.ts`,
+`shared/content-formatters/src/formatters/structured-content.ts`,
+`shared/media-page-composer/src/types.ts`, and `shell/content-service/src/types.ts`.
+For AI object generation, `shell/core/src/datasources/ai-content-datasource.ts`
+still narrows template schemas to Zod 4 before invoking the AI SDK boundary.
+
 ### Transitional Zod compatibility debt — not endgame
 
 These compatibility points are intentional migration scaffolding only. They must
 be removed or collapsed to the final Zod 4/domain contract before calling the
 migration complete:
 
-- `shell/templates/src/types.ts` keeps `TemplateSchemaParser<T>` as a
-  structural parse-only slot so display/template providers can remain registered
-  without forcing every view parser through the AI-generation contract.
-  `shell/core/src/datasources/ai-content-datasource.ts` now narrows this slot to
-  Zod 4 before AI object generation. Endgame: keep the schema-library-neutral
-  parser contract intentionally, or split display parsing and generation schemas
-  into separate explicit fields.
 - `packages/brain-cli/src/entries/index.ts` now exports Zod 4 from the public
   `@rizom/brain` root, and published package metadata now depends on Zod 4.
   Keep declaration/runtime output aligned with that single public Zod contract.
@@ -1172,19 +1177,14 @@ migration complete:
 - `shared/cms-config/src/index.ts` now introspects Zod 4 internals directly for
   CMS widget generation. Endgame: replace internal-shape reads with explicit
   schema-owned field metadata if CMS behavior grows beyond simple widgets.
-- Structural parser slots added during this migration are compatibility
-  scaffolding when they exist only to bridge historical Zod ownership. Track and
-  revisit: `shell/messaging-service/src/message-validator.ts`,
-  `shell/runtime-state/src/types.ts`, `shell/entity-service/src/datasource-types.ts`,
-  `shell/entity-service/src/types.ts` entity schema parser slots,
-  `shell/job-queue/src/base-job-handler.ts`, `shell/plugins/src/base-plugin.ts`,
-  `shell/plugins/src/entity/entity-plugin.ts`, public service/interface/message
-  and entity plugin delegates, `plugins/site-builder/src/lib/site-view-template.ts`,
-  `shared/content-formatters/src/formatters/structured-content.ts`,
-  `shared/media-page-composer/src/types.ts`, and
-  `shell/content-service/src/types.ts`. Endgame for each is either Zod 4-only
-  ownership or an explicitly schema-library-neutral API chosen for architectural
-  reasons, not accidental legacy support.
+- Remaining structural parser slots added during this migration are
+  compatibility scaffolding where they still exist only to bridge historical Zod
+  ownership. Track and revisit: `shell/entity-service/src/types.ts` entity schema
+  parser slots, `shell/job-queue/src/base-job-handler.ts`,
+  `shell/plugins/src/base-plugin.ts`, `shell/plugins/src/entity/entity-plugin.ts`,
+  and public service/interface/message/entity plugin delegates. Endgame for each
+  is either Zod 4-only ownership or an explicitly schema-library-neutral API
+  chosen for architectural reasons, not accidental legacy support.
 
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 

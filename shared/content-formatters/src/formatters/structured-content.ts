@@ -13,6 +13,7 @@ import type {
 
 const recordSchema = z.record(z.string(), z.unknown());
 
+/** Intentionally schema-library-neutral parser for formatter content. */
 export interface StructuredContentSchema<T> {
   parse(input: unknown): T;
 }
