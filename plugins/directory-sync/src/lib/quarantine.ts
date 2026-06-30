@@ -1,9 +1,17 @@
 import type { Logger } from "@brains/utils";
 import type { ImportResult } from "../types.js";
 import { getErrorMessage } from "@brains/utils";
-import { ZodError } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import { rename, appendFile, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
+
+const validationIssuesErrorSchema = z.looseObject({
+  issues: z.array(
+    z.looseObject({
+      message: z.string(),
+    }),
+  ),
+});
 
 export class Quarantine {
   private logger: Logger;
@@ -14,7 +22,7 @@ export class Quarantine {
   }
 
   isValidationError(error: unknown): boolean {
-    if (error instanceof ZodError) {
+    if (validationIssuesErrorSchema.safeParse(error).success) {
       return true;
     }
     const message = getErrorMessage(error);

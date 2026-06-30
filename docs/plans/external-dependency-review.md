@@ -1173,10 +1173,11 @@ migration complete:
 - `packages/brain-cli/src/entries/index.ts` now exports Zod 4 from the public
   `@rizom/brain` root, and published package metadata now depends on Zod 4.
   Keep declaration/runtime output aligned with that single public Zod contract.
-- `plugins/directory-sync/src/lib/quarantine.ts` still classifies Zod 4
-  `ZodError` instances directly for quarantine reason extraction. Endgame:
-  normalize validation failures through a domain error if callers should not
-  depend on Zod exception classes.
+- `plugins/directory-sync/src/lib/quarantine.ts` no longer depends on the
+  `ZodError` class; it recognizes validation-style issue payloads and existing
+  domain message fragments for quarantine reason extraction. Endgame: replace
+  message-fragment detection with a domain error if callers should not depend
+  on text matching.
 - `plugins/obsidian-vault/src/lib/schema-introspector.ts` now introspects Zod 4
   object internals only. Endgame: replace internal-shape reads with explicit
   schema-owned field metadata if Obsidian generation grows beyond simple field

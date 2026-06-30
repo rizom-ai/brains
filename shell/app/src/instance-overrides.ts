@@ -370,15 +370,22 @@ function nullsToUndefined(value: unknown): unknown {
   return value;
 }
 
+interface ValidationIssueList {
+  issues: readonly {
+    path: readonly PropertyKey[];
+    message: string;
+  }[];
+}
+
 /**
- * Format a Zod error's issues into an operator-readable multi-line
+ * Format validation issues into an operator-readable multi-line
  * message. Example:
  *
  *   invalid brain.yaml:
  *     - anchors: Expected array, received string
  *     - plugins.mcp.port: Expected number, received string
  */
-function formatZodIssues(error: z.ZodError): string {
+function formatValidationIssues(error: ValidationIssueList): string {
   const lines = error.issues.map((issue) => {
     const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
     return `  - ${path}: ${issue.message}`;
@@ -414,7 +421,7 @@ export function parseInstanceOverrides(yamlContent: string): InstanceOverrides {
   const parsed = instanceOverridesSchema.safeParse(normalized);
 
   if (!parsed.success) {
-    throw new InstanceOverridesParseError(formatZodIssues(parsed.error));
+    throw new InstanceOverridesParseError(formatValidationIssues(parsed.error));
   }
 
   return parsed.data;
