@@ -1204,6 +1204,8 @@ declarations that leak inferred Zod object internals. The second pilot enabled
 config/response domain interfaces for its package-local schemas. The third pilot
 enabled `isolatedDeclarations` for `@brains/notifications`, making the public
 notification input/result contracts explicit while keeping parser schemas local.
+The fourth pilot enabled `isolatedDeclarations` for `@brains/newsletter`, adding
+an explicit composite config contract around its exported config schema.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
