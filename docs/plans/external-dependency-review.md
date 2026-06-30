@@ -1199,7 +1199,9 @@ Phase 5 is proceeding one package at a time. The first pilot enabled
 `isolatedDeclarations` for `@brains/email-contracts`, a small public-contract
 package. Its exported email payload schema now has explicit domain input/output
 interfaces and a `z.ZodType<Output, Input>` annotation, avoiding generated
-declarations that leak inferred Zod object internals.
+declarations that leak inferred Zod object internals. The second pilot enabled
+`isolatedDeclarations` for `@brains/email-resend`, using explicit private
+config/response domain interfaces for its package-local schemas.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:

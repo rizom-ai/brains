@@ -10,17 +10,29 @@ import type { FetchLike } from "@brains/utils";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
-const emailResendConfigSchema = z.object({
+interface EmailResendConfig {
+  apiKey?: string | undefined;
+  from?: string | undefined;
+}
+
+type EmailResendConfigInput = EmailResendConfig;
+
+interface ResendEmailResponse {
+  id?: string | undefined;
+}
+
+const emailResendConfigSchema: z.ZodType<
+  EmailResendConfig,
+  EmailResendConfigInput
+> = z.object({
   apiKey: z.string().min(1).optional(),
   from: z.string().min(1).optional(),
 });
 
-const resendEmailResponseSchema = z.looseObject({
-  id: z.string().optional(),
-});
-
-type EmailResendConfig = z.output<typeof emailResendConfigSchema>;
-type EmailResendConfigInput = z.input<typeof emailResendConfigSchema>;
+const resendEmailResponseSchema: z.ZodType<ResendEmailResponse, unknown> =
+  z.looseObject({
+    id: z.string().optional(),
+  });
 
 export type EmailSendResult = SendEmailResult;
 
