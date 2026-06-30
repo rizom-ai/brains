@@ -7,5 +7,5 @@
 import { DASHBOARD_COMPONENT_STYLES } from "./styles/components";
 import { DASHBOARD_TOKENS } from "./styles/tokens";
 
-export const DASHBOARD_STYLES = `${DASHBOARD_TOKENS}
+export const DASHBOARD_STYLES: string = `${DASHBOARD_TOKENS}
 ${DASHBOARD_COMPONENT_STYLES}`;

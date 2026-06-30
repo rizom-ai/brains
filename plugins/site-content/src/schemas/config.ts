@@ -6,11 +6,23 @@ const siteContentDefinitionShapeSchema = z.object({
   sections: z.record(z.string(), z.any()),
 });
 
-const siteContentDefinitionConfigSchema = z.custom<SiteContentDefinition>(
+const siteContentDefinitionConfigSchema: z.ZodType<
+  SiteContentDefinition,
+  SiteContentDefinition
+> = z.custom<SiteContentDefinition>(
   (value) => siteContentDefinitionShapeSchema.safeParse(value).success,
 );
 
-export const siteContentPluginConfigSchema = z.object({
+export interface SiteContentPluginConfig {
+  definitions?: SiteContentDefinition | SiteContentDefinition[] | undefined;
+}
+
+export type SiteContentPluginConfigInput = SiteContentPluginConfig;
+
+export const siteContentPluginConfigSchema: z.ZodType<
+  SiteContentPluginConfig,
+  SiteContentPluginConfigInput
+> = z.object({
   definitions: z
     .union([
       siteContentDefinitionConfigSchema,
@@ -18,10 +30,3 @@ export const siteContentPluginConfigSchema = z.object({
     ])
     .optional(),
 });
-
-export type SiteContentPluginConfig = z.output<
-  typeof siteContentPluginConfigSchema
->;
-export type SiteContentPluginConfigInput = z.input<
-  typeof siteContentPluginConfigSchema
->;

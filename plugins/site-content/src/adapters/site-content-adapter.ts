@@ -32,4 +32,4 @@ export class SiteContentAdapter extends BaseEntityAdapter<
   }
 }
 
-export const siteContentAdapter = new SiteContentAdapter();
+export const siteContentAdapter: SiteContentAdapter = new SiteContentAdapter();

@@ -17,49 +17,85 @@ const CMS_OAUTH_STATE_COOKIE = "brains_cms_oauth_state";
 const CMS_OAUTH_STATE_TTL_SECONDS = 10 * 60;
 const CMS_AUTH_ENDPOINT = "auth";
 
-const entityDisplayEntrySchema = z.looseObject({
+interface CmsEntityDisplayEntry {
+  label?: string | undefined;
+  pluralName?: string | undefined;
+}
+
+interface CmsGithubOAuthConfig {
+  clientId?: string | undefined;
+  clientSecret?: string | undefined;
+  scope?: string | undefined;
+}
+
+interface CmsPasskeyLoginConfig {
+  contentRepoToken?: string | undefined;
+}
+
+interface CmsPluginConfig {
+  entityDisplay?: Record<string, CmsEntityDisplayEntry> | undefined;
+  routePath: string;
+  githubOAuth?: CmsGithubOAuthConfig | undefined;
+  passkeyLogin?: CmsPasskeyLoginConfig | undefined;
+}
+
+interface CmsPluginConfigInput {
+  entityDisplay?: Record<string, CmsEntityDisplayEntry> | undefined;
+  routePath?: string | undefined;
+  githubOAuth?: CmsGithubOAuthConfig | undefined;
+  passkeyLogin?: CmsPasskeyLoginConfig | undefined;
+}
+
+const entityDisplayEntrySchema: z.ZodType<
+  CmsEntityDisplayEntry,
+  CmsEntityDisplayEntry
+> = z.looseObject({
   label: z.string().optional(),
   pluralName: z.string().optional(),
 });
 
-const githubOAuthConfigSchema = z.object({
+const githubOAuthConfigSchema: z.ZodType<
+  CmsGithubOAuthConfig,
+  CmsGithubOAuthConfig
+> = z.object({
   clientId: z.string().optional(),
   clientSecret: z.string().optional(),
   scope: z.string().optional(),
 });
 
-const passkeyLoginConfigSchema = z.object({
+const passkeyLoginConfigSchema: z.ZodType<
+  CmsPasskeyLoginConfig,
+  CmsPasskeyLoginConfig
+> = z.object({
   contentRepoToken: z.string().optional(),
 });
 
-const cmsPluginConfigSchema = z
-  .object({
-    entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
-    routePath: z.string().default("/cms"),
-    githubOAuth: githubOAuthConfigSchema.optional(),
-    passkeyLogin: passkeyLoginConfigSchema.optional(),
-  })
-  // A brain runs a single CMS login method. Enabling both would force a chooser
-  // and mix commit identities (real GitHub user vs shared PAT); keep it to one.
-  .refine(
-    (config) => {
-      const githubEnabled = Boolean(
-        configuredString(config.githubOAuth?.clientId) &&
-        configuredString(config.githubOAuth?.clientSecret),
-      );
-      const passkeyEnabled = Boolean(
-        configuredString(config.passkeyLogin?.contentRepoToken),
-      );
-      return !(githubEnabled && passkeyEnabled);
-    },
-    {
-      message:
-        "CMS login supports a single method per brain: configure githubOAuth or passkeyLogin, not both.",
-    },
-  );
-
-type CmsPluginConfig = z.output<typeof cmsPluginConfigSchema>;
-type CmsPluginConfigInput = z.input<typeof cmsPluginConfigSchema>;
+const cmsPluginConfigSchema: z.ZodType<CmsPluginConfig, CmsPluginConfigInput> =
+  z
+    .object({
+      entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
+      routePath: z.string().default("/cms"),
+      githubOAuth: githubOAuthConfigSchema.optional(),
+      passkeyLogin: passkeyLoginConfigSchema.optional(),
+    })
+    // A brain runs a single CMS login method. Enabling both would force a chooser
+    // and mix commit identities (real GitHub user vs shared PAT); keep it to one.
+    .refine(
+      (config) => {
+        const githubEnabled = Boolean(
+          configuredString(config.githubOAuth?.clientId) &&
+          configuredString(config.githubOAuth?.clientSecret),
+        );
+        const passkeyEnabled = Boolean(
+          configuredString(config.passkeyLogin?.contentRepoToken),
+        );
+        return !(githubEnabled && passkeyEnabled);
+      },
+      {
+        message:
+          "CMS login supports a single method per brain: configure githubOAuth or passkeyLogin, not both.",
+      },
+    );
 
 const githubOAuthErrorResponseSchema = z
   .looseObject({

@@ -1221,7 +1221,11 @@ package-local Zod parsers. The tenth pilot enabled `isolatedDeclarations` for
 explicit input/output contracts while preserving the example runtime behavior.
 The eleventh pilot enabled `isolatedDeclarations` for `@brains/analytics`,
 annotating exported config schemas, the plugin factory alias, and the Cloudflare
-analytics response parser boundary.
+analytics response parser boundary. The next batch enabled `isolatedDeclarations`
+for `@brains/atproto`, `@brains/cms`, `@brains/dashboard`,
+`@brains/obsidian-vault`, and `@brains/site-content`, using explicit config,
+widget, entity, and parser-boundary contracts where declaration emit required
+stable names.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
