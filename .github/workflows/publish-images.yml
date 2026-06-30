@@ -34,6 +34,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -117,4 +118,4 @@ jobs:
             ${{ steps.meta.outputs.labels }}
             service=brain
           cache-from: type=gha,scope=${{ matrix.model }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.model }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.model }},ignore-error=true
