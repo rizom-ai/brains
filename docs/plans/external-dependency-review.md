@@ -1225,7 +1225,10 @@ analytics response parser boundary. The next batch enabled `isolatedDeclarations
 for `@brains/atproto`, `@brains/cms`, `@brains/dashboard`,
 `@brains/obsidian-vault`, and `@brains/site-content`, using explicit config,
 widget, entity, and parser-boundary contracts where declaration emit required
-stable names.
+stable names. The following batch enabled `isolatedDeclarations` for the
+remaining plugin packages: `@brains/content-pipeline`, `@brains/directory-sync`,
+`@brains/playbooks`, and `@brains/site-builder-plugin`. At this point every
+package under `plugins/` has `isolatedDeclarations` enabled.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:

@@ -23,7 +23,8 @@ import type { CoverImageConversionJobData } from "../types";
  * Schema for cover image conversion job data.
  * Alias the canonical schema from types.ts for backward-compatible imports.
  */
-export const coverImageConversionJobDataSchema = coverImageConversionJobSchema;
+export const coverImageConversionJobDataSchema: typeof coverImageConversionJobSchema =
+  coverImageConversionJobSchema;
 export type { CoverImageConversionJobData };
 
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());

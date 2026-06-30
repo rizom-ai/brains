@@ -1,7 +1,12 @@
+import type { Template } from "@brains/plugins";
+import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod-v4";
 import {
   NavigationSlots,
   type EntityDisplayEntry,
+  type RouteDefinition,
+  type RouteDefinitionInput,
+  type SiteMetadata,
 } from "@brains/site-composition";
 import { siteBuilderSiteMetadataSchema } from "./types/site-metadata-schema";
 
@@ -16,6 +21,40 @@ import { siteBuilderSiteMetadataSchema } from "./types/site-metadata-schema";
  */
 export type { EntityDisplayEntry };
 export type EntityDisplayMap = Record<string, EntityDisplayEntry>;
+
+interface SiteBuilderSchemaConfig {
+  previewOutputDir: string;
+  productionOutputDir: string;
+  sharedImagesDir: string;
+  workingDir: string;
+  siteInfo: SiteMetadata;
+  themeCSS?: string | undefined;
+  analyticsScript?: string | undefined;
+  templates?: Record<string, Template> | undefined;
+  routes?: RouteDefinition[] | undefined;
+  layouts?: Record<string, LayoutComponent> | undefined;
+  autoRebuild: boolean;
+  rebuildDebounce: number;
+  entityDisplay?: EntityDisplayMap | undefined;
+  staticAssets?: Record<string, string> | undefined;
+}
+
+interface SiteBuilderSchemaConfigInput {
+  previewOutputDir?: string | undefined;
+  productionOutputDir?: string | undefined;
+  sharedImagesDir?: string | undefined;
+  workingDir?: string | undefined;
+  siteInfo?: SiteMetadata | undefined;
+  themeCSS?: string | undefined;
+  analyticsScript?: string | undefined;
+  templates?: Record<string, Template> | undefined;
+  routes?: RouteDefinitionInput[] | undefined;
+  layouts?: Record<string, LayoutComponent> | undefined;
+  autoRebuild?: boolean | undefined;
+  rebuildDebounce?: number | undefined;
+  entityDisplay?: EntityDisplayMap | undefined;
+  staticAssets?: Record<string, string> | undefined;
+}
 
 const sectionDefinitionSchema = z.object({
   id: z.string(),
@@ -61,7 +100,10 @@ const routeDefinitionSchema = z.object({
   navigation: navigationMetadataSchema,
 });
 
-export const siteBuilderConfigSchema = z.object({
+export const siteBuilderConfigSchema: z.ZodType<
+  SiteBuilderSchemaConfig,
+  SiteBuilderSchemaConfigInput
+> = z.object({
   previewOutputDir: z
     .string()
     .describe("Output directory for preview builds")
@@ -169,11 +211,6 @@ export const siteBuilderConfigSchema = z.object({
       "Static files to write to the output directory at build time. Keys are output paths (e.g. '/canvases/tree.js'), values are file contents as strings. Typically supplied by a SitePackage via text imports.",
     ),
 });
-
-/** Zod-inferred parsed config — serializable fields only. */
-type SiteBuilderSchemaConfig = z.output<typeof siteBuilderConfigSchema>;
-
-type SiteBuilderSchemaConfigInput = z.input<typeof siteBuilderConfigSchema>;
 
 /**
  * Full site-builder config after defaults are applied.

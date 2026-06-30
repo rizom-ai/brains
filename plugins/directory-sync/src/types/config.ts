@@ -3,7 +3,64 @@ import { z } from "@brains/utils/zod-v4";
 /**
  * Configuration schema for directory sync plugin
  */
-export const directorySyncConfigSchema = z.object({
+export interface DirectorySyncGitConfig {
+  repo?: string | undefined;
+  gitUrl?: string | undefined;
+  branch: string;
+  authToken?: string | undefined;
+  authorName: string;
+  authorEmail: string;
+  bootstrapFromSeed: boolean;
+}
+
+export interface DirectorySyncGitConfigInput {
+  repo?: string | undefined;
+  gitUrl?: string | undefined;
+  branch?: string | undefined;
+  authToken?: string | undefined;
+  authorName?: string | undefined;
+  authorEmail?: string | undefined;
+  bootstrapFromSeed?: boolean | undefined;
+}
+
+export interface DirectorySyncConfig {
+  syncPath?: string | undefined;
+  autoSync: boolean;
+  watchInterval: number;
+  includeMetadata: boolean;
+  entityTypes?: string[] | undefined;
+  initialSync: boolean;
+  syncBatchSize: number;
+  syncPriority: number;
+  seedContent: boolean;
+  seedContentPath?: string | undefined;
+  deleteOnFileRemoval: boolean;
+  syncInterval: number;
+  commitDebounce: number;
+  git?: DirectorySyncGitConfig | undefined;
+}
+
+export interface DirectorySyncConfigInput {
+  syncPath?: string | undefined;
+  autoSync?: boolean | undefined;
+  watchInterval?: number | undefined;
+  includeMetadata?: boolean | undefined;
+  entityTypes?: string[] | undefined;
+  initialSync?: boolean | undefined;
+  syncBatchSize?: number | undefined;
+  syncPriority?: number | undefined;
+  seedContent?: boolean | undefined;
+  seedContentPath?: string | undefined;
+  deleteOnFileRemoval?: boolean | undefined;
+  syncInterval?: number | undefined;
+  commitDebounce?: number | undefined;
+  git?: DirectorySyncGitConfigInput | undefined;
+}
+
+export const directorySyncConfigSchema: z.ZodType<
+  DirectorySyncConfig,
+  DirectorySyncConfigInput
+> = z.object({
   syncPath: z
     .string()
     .optional()
@@ -99,8 +156,3 @@ export const directorySyncConfigSchema = z.object({
     })
     .optional(),
 });
-
-export type DirectorySyncConfig = z.output<typeof directorySyncConfigSchema>;
-export type DirectorySyncConfigInput = z.input<
-  typeof directorySyncConfigSchema
->;

@@ -242,4 +242,4 @@ export function directorySync(config: DirectorySyncConfigInput = {}): Plugin {
   return new DirectorySyncPlugin(config);
 }
 
-export const directorySyncPlugin = directorySync;
+export const directorySyncPlugin: typeof directorySync = directorySync;

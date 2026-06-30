@@ -7,7 +7,24 @@ import type { SiteImageLookup } from "@brains/site-engine";
 import type { IEntityService } from "@brains/plugins";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
-const entityWithSlugSchema = z.looseObject({
+interface EntityWithSlug extends Record<string, unknown> {
+  id: string;
+  entityType: string;
+  content: string;
+  metadata: {
+    slug: string;
+  };
+}
+
+interface ImageEntity extends Record<string, unknown> {
+  content: string;
+  metadata: {
+    width?: number | undefined;
+    height?: number | undefined;
+  };
+}
+
+const entityWithSlugSchema: z.ZodType<EntityWithSlug> = z.looseObject({
   id: z.string(),
   entityType: z.string(),
   content: z.string(),
@@ -16,7 +33,7 @@ const entityWithSlugSchema = z.looseObject({
   }),
 });
 
-const imageEntitySchema = z.looseObject({
+const imageEntitySchema: z.ZodType<ImageEntity> = z.looseObject({
   content: z.string(),
   metadata: z.looseObject({
     width: z.number().optional(),
@@ -25,18 +42,18 @@ const imageEntitySchema = z.looseObject({
 });
 
 // Type for enriched entity with url, typeLabel, listUrl, and listLabel
-export type EnrichedEntity = z.output<typeof entityWithSlugSchema> & {
+export interface EnrichedEntity extends EntityWithSlug {
   url: string;
   typeLabel: string;
   listUrl: string;
   listLabel: string;
-  coverImageUrl?: string;
-  ogImageUrl?: string;
-  coverImageWidth?: number;
-  coverImageHeight?: number;
-  coverImageSrcset?: string;
-  coverImageSizes?: string;
-};
+  coverImageUrl?: string | undefined;
+  ogImageUrl?: string | undefined;
+  coverImageWidth?: number | undefined;
+  coverImageHeight?: number | undefined;
+  coverImageSrcset?: string | undefined;
+  coverImageSizes?: string | undefined;
+}
 
 export interface ContentEnrichmentOptions {
   pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;

@@ -1,6 +1,6 @@
 import { extname } from "path";
 
-export const IMAGE_EXTENSIONS = [
+export const IMAGE_EXTENSIONS: readonly string[] = [
   ".png",
   ".jpg",
   ".jpeg",

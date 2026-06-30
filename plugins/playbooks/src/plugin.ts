@@ -41,7 +41,64 @@ import {
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
 
-const lifecycleConfigSchema = z
+export interface LifecyclePlaybookConfig {
+  trigger: string;
+  playbookId: string;
+  once: boolean;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
+
+export interface LifecyclePlaybookConfigInput {
+  trigger: string;
+  playbookId: string;
+  once?: boolean | undefined;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
+
+export interface PlaybooksConfig {
+  lifecycle: Record<string, LifecyclePlaybookConfig>;
+  triggers: Record<string, boolean>;
+}
+
+export interface PlaybooksConfigInput {
+  lifecycle?: Record<string, LifecyclePlaybookConfigInput> | undefined;
+  triggers?: Record<string, boolean> | undefined;
+}
+
+interface LifecycleStartersRequest {
+  lifecycle?: string | undefined;
+  interfaceType: string;
+  userPermissionLevel: "anchor" | "trusted" | "public";
+}
+
+export interface PlaybookEntityMetadata extends Record<string, unknown> {
+  title: string;
+  status: "draft" | "active" | "archived";
+  audience: "anchor" | "trusted" | "public";
+  trigger?: string | undefined;
+  lifecycle?: string | undefined;
+  once?: boolean | undefined;
+  starterText?: string | undefined;
+  description?: string | undefined;
+  starterPrompt?: string | undefined;
+  completionMode: "agent-confirmed" | "manual";
+}
+
+export interface PlaybookEntity extends Record<string, unknown> {
+  id: string;
+  entityType: "playbook";
+  content: string;
+  metadata: PlaybookEntityMetadata;
+}
+
+const lifecycleConfigSchema: z.ZodType<
+  LifecyclePlaybookConfig,
+  LifecyclePlaybookConfigInput
+> = z
   .object({
     trigger: z.string().min(1),
     playbookId: z.string().min(1),
@@ -52,14 +109,18 @@ const lifecycleConfigSchema = z
   })
   .strict();
 
-const playbooksConfigSchema = z
-  .object({
-    lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
-    triggers: z.record(z.string(), z.boolean()).default({}),
-  })
-  .strict();
+const playbooksConfigSchema: z.ZodType<PlaybooksConfig, PlaybooksConfigInput> =
+  z
+    .object({
+      lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
+      triggers: z.record(z.string(), z.boolean()).default({}),
+    })
+    .strict();
 
-const lifecycleStartersRequestSchema = z
+const lifecycleStartersRequestSchema: z.ZodType<
+  LifecycleStartersRequest,
+  LifecycleStartersRequest
+> = z
   .object({
     lifecycle: z.string().min(1).optional(),
     interfaceType: z.string().min(1),
@@ -67,7 +128,7 @@ const lifecycleStartersRequestSchema = z
   })
   .strict();
 
-const playbookEntitySchema = z
+const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
   .object({
     id: z.string().min(1),
     entityType: z.literal("playbook"),
@@ -105,11 +166,6 @@ const sendEventInputSchema = {
   event: z.string().min(1),
   context: z.record(z.string(), z.unknown()).optional(),
 };
-
-export type LifecyclePlaybookConfig = z.output<typeof lifecycleConfigSchema>;
-export type PlaybooksConfig = z.output<typeof playbooksConfigSchema>;
-export type PlaybooksConfigInput = z.input<typeof playbooksConfigSchema>;
-export type PlaybookEntity = z.output<typeof playbookEntitySchema>;
 
 export interface ParsedPlaybook {
   entity: PlaybookEntity;
@@ -234,7 +290,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     );
 
     context.messaging.subscribe<
-      z.output<typeof lifecycleStartersRequestSchema>,
+      LifecycleStartersRequest,
       LifecycleStartersResponse
     >(PLAYBOOKS_LIFECYCLE_STARTERS, async (message) => {
       const input = lifecycleStartersRequestSchema.parse(message.payload);
