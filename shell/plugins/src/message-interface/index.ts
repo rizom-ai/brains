@@ -3,6 +3,8 @@ export {
   type EditMessageRequest,
   type MessageInterfaceOutput,
   type MessageJobTrackingInfo,
+  type NativeArtifactDelivery,
+  type NativeArtifactFile,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   urlCaptureConfigSchema,

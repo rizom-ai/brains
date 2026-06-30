@@ -1,8 +1,11 @@
 import { InterfacePlugin } from "../interface/interface-plugin";
 import type { InterfacePluginContext } from "../interface/context";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
-import type { AgentResponse } from "../contracts/agent";
-import type { PermissionLookupContext } from "@brains/templates";
+import type { AgentResponse, StructuredChatCard } from "../contracts/agent";
+import type {
+  PermissionLookupContext,
+  UserPermissionLevel,
+} from "@brains/templates";
 import type { BaseJobTrackingInfo } from "../interfaces";
 import {
   setupProgressHandler,
@@ -27,6 +30,15 @@ import {
   maxFileUploadBytes,
   urlCaptureConfigSchema,
 } from "./message-content-utils";
+import {
+  canReceiveNativeArtifactFile,
+  resolveMessageArtifactAccess,
+} from "./artifact-access";
+import {
+  getArtifactEntityFilename,
+  parseArtifactDataUrl,
+  resolveArtifactEntityRefFromCard,
+} from "./artifact-entity";
 
 export { urlCaptureConfigSchema };
 
@@ -36,6 +48,18 @@ export type MessageInterfaceOutput =
       card: unknown;
       fallbackText?: string;
     };
+
+export interface NativeArtifactFile {
+  cardId: string;
+  data: Uint8Array;
+  filename: string;
+  mimeType: string;
+}
+
+export interface NativeArtifactDelivery {
+  files: NativeArtifactFile[];
+  deniedCardIds: Set<string>;
+}
 
 export interface SendMessageToChannelRequest {
   /** The channel/room to send to (null for single-channel interfaces like CLI) */
@@ -131,6 +155,79 @@ export abstract class MessageInterfacePlugin<
    */
   protected isLikelyTextContent(bytes: Uint8Array): boolean {
     return isLikelyTextContent(bytes);
+  }
+
+  /**
+   * Resolve generated attachment cards into native files for transports that can
+   * upload inline files. Also returns permission-denied card ids so callers can
+   * suppress inaccessible artifact metadata.
+   */
+  protected async resolveNativeArtifactDelivery(input: {
+    cards: StructuredChatCard[] | undefined;
+    userPermissionLevel: UserPermissionLevel;
+    displayBaseUrl?: string | undefined;
+    maxBytes?: number | undefined;
+  }): Promise<NativeArtifactDelivery> {
+    const files: NativeArtifactFile[] = [];
+    const deniedCardIds = new Set<string>();
+    if (!this.context || !input.cards) return { files, deniedCardIds };
+    const context = this.context;
+
+    for (const card of input.cards) {
+      if (card.kind !== "attachment") continue;
+      const entityRef = resolveArtifactEntityRefFromCard(
+        card,
+        input.displayBaseUrl,
+      );
+      if (!entityRef) continue;
+
+      const access = await resolveMessageArtifactAccess({
+        entityRef,
+        userLevel: input.userPermissionLevel,
+        getEntity: (ref) => context.entityService.getEntity(ref),
+        getVisibleEntity: (ref, visibilityScope) =>
+          context.entityService.getEntity({ ...ref, visibilityScope }),
+      });
+      if (access.status === "denied") {
+        deniedCardIds.add(card.id);
+        continue;
+      }
+      if (access.status !== "visible") continue;
+      if (!canReceiveNativeArtifactFile(input.userPermissionLevel)) continue;
+      if (typeof access.entity.content !== "string") continue;
+
+      const parsed = parseArtifactDataUrl(
+        entityRef.entityType,
+        access.entity.content,
+      );
+      if (!parsed) continue;
+      if (
+        input.maxBytes !== undefined &&
+        parsed.data.byteLength > input.maxBytes
+      ) {
+        this.logger.debug("Skipping oversized native artifact upload", {
+          cardId: card.id,
+          sizeBytes: parsed.data.byteLength,
+        });
+        continue;
+      }
+
+      files.push({
+        cardId: card.id,
+        data: new Uint8Array(parsed.data),
+        filename:
+          card.attachment.filename ??
+          getArtifactEntityFilename(
+            access.entity.metadata,
+            entityRef.id,
+            entityRef.entityType,
+            parsed.mimeType,
+          ),
+        mimeType: parsed.mimeType,
+      });
+    }
+
+    return { files, deniedCardIds };
   }
 
   // ── URL capture ──

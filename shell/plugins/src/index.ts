@@ -370,6 +370,8 @@ export {
   type MessageJobTrackingInfo,
   type MessageProgressDisplay,
   type MessageSourceInput,
+  type NativeArtifactDelivery,
+  type NativeArtifactFile,
   type MessageUploadAttachmentRestorer,
   type MessageUploadContinuityOptions,
   type MessageUploadConversationLoader,
