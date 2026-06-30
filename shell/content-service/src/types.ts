@@ -1,10 +1,10 @@
-import { z } from "@brains/utils/zod-v4";
+import { z, type ZodType } from "@brains/utils/zod-v4";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { ContentVisibility } from "@brains/entity-service";
 
-export interface ContentTemplateSchemaParser<T> {
-  parse(input: unknown): T;
-}
+export type ContentTemplateDataSchema<T> = ZodType<T, unknown>;
+/** @deprecated Use ContentTemplateDataSchema<T>. */
+export type ContentTemplateSchemaParser<T> = ContentTemplateDataSchema<T>;
 
 /**
  * Zod schema for ContentTemplate validation (used in plugin configurations)
@@ -33,7 +33,7 @@ export interface ContentTemplate<T = unknown> extends Omit<
   z.output<typeof ContentTemplateSchema>,
   "schema" | "formatter"
 > {
-  schema: ContentTemplateSchemaParser<T>;
+  schema: ContentTemplateDataSchema<T>;
   formatter?: ContentFormatter<T>;
   dataSourceId?: string;
 }

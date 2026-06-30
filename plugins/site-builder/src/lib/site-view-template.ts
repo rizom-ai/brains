@@ -1,9 +1,8 @@
 import type { VNode } from "preact";
 import type { SiteRuntimeScript } from "@brains/site-engine";
+import type { ZodType } from "@brains/utils/zod-v4";
 
-interface SiteViewTemplateSchema {
-  parse(input: unknown): unknown;
-}
+type SiteViewTemplateSchema = ZodType<unknown, unknown>;
 
 export interface SiteViewTemplate {
   name: string;

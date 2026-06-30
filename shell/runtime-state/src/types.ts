@@ -1,3 +1,5 @@
+import type { ZodType } from "@brains/utils/zod-v4";
+
 export interface RuntimeStateDbConfig {
   url: string;
   authToken?: string | undefined;
@@ -5,9 +7,7 @@ export interface RuntimeStateDbConfig {
 
 export type RuntimeStateServiceConfig = RuntimeStateDbConfig;
 
-export interface RuntimeStateValueSchema<T> {
-  parse(input: unknown): T;
-}
+export type RuntimeStateValueSchema<T> = ZodType<T, unknown>;
 
 export interface RuntimeStateScopeOptions<T> {
   /** Stable consumer namespace, e.g. "chat.discord.subscriptions". */

@@ -1,3 +1,4 @@
+import type { ZodType } from "@brains/utils/zod-v4";
 import type { EntityService as IEntityService } from "./types";
 
 /**
@@ -19,9 +20,7 @@ export interface BaseDataSourceContext {
   entityService: IEntityService;
 }
 
-export interface DataSourceSchema<T> {
-  parse(input: unknown): T;
-}
+export type DataSourceSchema<T> = ZodType<T, unknown>;
 
 /**
  * DataSource Interface

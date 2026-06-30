@@ -11,6 +11,8 @@ export type {
   ContentService as IContentService,
   GenerationContext,
   ContentTemplate,
+  ContentTemplateDataSchema,
+  ContentTemplateSchemaParser,
   ResolutionOptions,
 } from "./types";
 export { ContentTemplateSchema } from "./types";

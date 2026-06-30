@@ -89,8 +89,8 @@ all route to Zod 4; durable entity/frontmatter/CMS boundaries are Zod 4-owned;
 package-local `main-zod` wrappers are removed; direct implementation imports of
 `zod`/`@brains/utils/zod` are gone; and full `typecheck`, `lint`, `deps:check`,
 and `workspace:check` pass. Remaining Phase 4 work is policy/cleanup around
-structural parser slots and schema-introspection metadata, not active Zod 3
-usage.
+validation error normalization and schema-introspection metadata, not active
+Zod 3 usage.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -1153,16 +1153,13 @@ parser interfaces. Entity registration schema slots now use the Zod 4-owned
 schemas on the blessed Zod boundary and removes accidental parser-interface
 duplication.
 
-Some utility-like parse-only boundaries still use small structural parser slots
-because their owning packages only call `.parse()` and do not compose schema
-trees: `shell/templates/src/types.ts`,
-`shell/messaging-service/src/message-validator.ts`, `shell/runtime-state/src/types.ts`,
-`shell/entity-service/src/datasource-types.ts`,
-`plugins/site-builder/src/lib/site-view-template.ts`,
-`shared/content-formatters/src/formatters/structured-content.ts`,
-`shared/media-page-composer/src/types.ts`, and `shell/content-service/src/types.ts`.
-For AI object generation, `shell/core/src/datasources/ai-content-datasource.ts`
-still narrows template schemas to Zod 4 before invoking the AI SDK boundary.
+The remaining template, datasource, runtime-state, messaging, media-template,
+and structured-content schema slots were reviewed and moved to Zod 4-owned
+`ZodType<T, unknown>` aliases where they are real framework validation
+boundaries. Compatibility aliases remain only for previously exported
+`*SchemaParser` type names in template packages. For AI object generation,
+`shell/core/src/datasources/ai-content-datasource.ts` still narrows template
+schemas to Zod 4 before invoking the AI SDK boundary.
 
 ### Transitional Zod compatibility debt — not endgame
 

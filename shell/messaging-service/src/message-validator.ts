@@ -1,12 +1,10 @@
-import { z } from "@brains/utils/zod-v4";
+import { z, type ZodType } from "@brains/utils/zod-v4";
 
 export type MessageValidationResult<T> =
   | { valid: true; data: T }
   | { valid: false; error: string };
 
-export interface MessageValidationSchema<T> {
-  parse(input: unknown): T;
-}
+export type MessageValidationSchema<T> = ZodType<T, unknown>;
 
 const parseErrorSchema = z.looseObject({
   issues: z

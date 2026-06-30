@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z, type ZodType } from "@brains/utils/zod-v4";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { VNode } from "preact";
 
@@ -8,9 +8,9 @@ import type { VNode } from "preact";
  */
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
-export interface TemplateSchemaParser<T> {
-  parse(data: unknown): T;
-}
+export type TemplateDataSchema<T> = ZodType<T, unknown>;
+/** @deprecated Use TemplateDataSchema<T>. */
+export type TemplateSchemaParser<T> = TemplateDataSchema<T>;
 
 /**
  * A runtime script that a template depends on. Site-builder collects
@@ -37,7 +37,7 @@ export interface RuntimeScript {
  * @param TComponent - Type expected by component (e.g., with required url/typeLabel)
  */
 export function createTypedComponent<TSchema, TComponent = TSchema>(
-  schema: TemplateSchemaParser<TSchema>,
+  schema: TemplateDataSchema<TSchema>,
   component: ComponentType<TComponent>,
 ): ComponentType<unknown> {
   return (props: unknown) => {
@@ -55,7 +55,7 @@ export interface Template extends Omit<
   z.output<typeof TemplateSchema>,
   "schema" | "layout" | "formatter"
 > {
-  schema: TemplateSchemaParser<unknown>;
+  schema: TemplateDataSchema<unknown>;
 
   // View rendering capability (optional)
   layout?: {
@@ -90,7 +90,7 @@ export interface Template extends Omit<
  */
 export function createTemplate<TSchema = unknown, TComponent = TSchema>(
   template: Omit<Template, "layout" | "schema"> & {
-    schema: TemplateSchemaParser<TSchema>;
+    schema: TemplateDataSchema<TSchema>;
     layout?: {
       component?: ComponentType<TComponent>;
       fullscreen?: boolean;

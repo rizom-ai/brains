@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import { z } from "@brains/utils/zod-v4";
+import { z, type ZodType } from "@brains/utils/zod-v4";
 import { remark } from "remark";
 import type {
   Root,
@@ -13,9 +13,7 @@ import type {
 
 const recordSchema = z.record(z.string(), z.unknown());
 
-export interface StructuredContentSchema<T> {
-  parse(input: unknown): T;
-}
+export type StructuredContentSchema<T> = ZodType<T, unknown>;
 
 /**
  * Field mapping configuration for structured content formatting
