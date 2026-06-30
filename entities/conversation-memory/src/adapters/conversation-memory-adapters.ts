@@ -2,7 +2,7 @@ import { BaseEntityAdapter } from "@brains/plugins";
 import type {
   BaseEntity,
   BaseEntityFrontmatterSchema,
-  EntitySchemaParser,
+  EntitySchema,
 } from "@brains/plugins";
 import { z as z4 } from "@brains/utils/zod-v4";
 import {
@@ -40,7 +40,7 @@ class ConversationMemoryEntityAdapter<
 
   constructor(config: {
     entityType: string;
-    schema: EntitySchemaParser<TEntity>;
+    schema: EntitySchema<TEntity>;
     metadataSchema: BaseEntityFrontmatterSchema<Record<string, unknown>>;
     parseMetadata: TypedFrontmatterSchema<TMetadata>;
   }) {

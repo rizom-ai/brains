@@ -131,9 +131,11 @@ export const baseEntityParserSchema = z.object({
 /** Shared empty frontmatter schema for entity types with no typed frontmatter. */
 export const emptyFrontmatterSchema = z.object({});
 
-export type EntitySchemaParser<T> = z.ZodType<T, unknown>;
+export type EntitySchema<T> = z.ZodType<T, unknown>;
+/** @deprecated Use EntitySchema<T>. */
+export type EntitySchemaParser<T> = EntitySchema<T>;
 
-export type UnknownEntitySchema = EntitySchemaParser<unknown>;
+export type UnknownEntitySchema = EntitySchema<unknown>;
 export type FrontmatterSchema = z.ZodObject<z.ZodRawShape>;
 
 /**
@@ -324,7 +326,7 @@ export interface EntityAdapter<
   TMetadata = Record<string, unknown>,
 > {
   entityType: string;
-  schema: EntitySchemaParser<TEntity>;
+  schema: EntitySchema<TEntity>;
 
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)
   toMarkdown(entity: TEntity): string;
@@ -552,7 +554,7 @@ export interface IEntitiesNamespace {
   /** Register a new entity type with schema and adapter */
   register<TEntity extends BaseEntity>(
     entityType: string,
-    schema: EntitySchemaParser<TEntity>,
+    schema: EntitySchema<TEntity>,
     adapter: EntityAdapter<TEntity>,
     config?: EntityTypeConfig,
   ): void;

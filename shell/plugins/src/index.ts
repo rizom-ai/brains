@@ -180,6 +180,7 @@ export type {
   ContentVisibility,
   EntityAdapter,
   EntityInput,
+  EntitySchema,
   EntitySchemaParser,
   BaseEntityFrontmatterSchema,
   EntityMutationResult,

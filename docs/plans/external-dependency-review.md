@@ -1148,7 +1148,7 @@ Near-term rules for continuing Phase 2:
 Plugin config schema contracts now use the centralized Zod 4-owned
 `PluginConfigSchema<TConfig>` alias instead of repeated local
 parser interfaces. Entity registration schema slots now use the Zod 4-owned
-`EntitySchemaParser<T>` alias directly, and job handlers now use a Zod 4-owned
+`EntitySchema<T>` alias directly, and job handlers now use a Zod 4-owned
 `JobDataSchema<T>` alias. This keeps public/plugin, entity, and job framework
 schemas on the blessed Zod boundary and removes accidental parser-interface
 duplication.
