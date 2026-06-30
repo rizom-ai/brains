@@ -82,6 +82,9 @@ plugins:
       "After telling the user there are no draft blog posts",
     );
     expect(config.agentInstructions?.join("\n")).toContain(
+      "do not offer to create a brand-new post",
+    );
+    expect(config.agentInstructions?.join("\n")).toContain(
       "do not call system_generate to create a fresh draft",
     );
   });
