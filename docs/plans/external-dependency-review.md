@@ -1147,8 +1147,11 @@ Near-term rules for continuing Phase 2:
 
 Plugin config schema contracts now use the centralized Zod 4-owned
 `PluginConfigSchema<TConfig>` alias instead of repeated local
-parser interfaces. This keeps public/plugin framework config schemas on the
-blessed Zod boundary and removes accidental parser-interface duplication.
+parser interfaces. Entity registration schema slots now use the Zod 4-owned
+`EntitySchemaParser<T>` alias directly, and job handlers now use a Zod 4-owned
+`JobDataSchema<T>` alias. This keeps public/plugin, entity, and job framework
+schemas on the blessed Zod boundary and removes accidental parser-interface
+duplication.
 
 Some utility-like parse-only boundaries still use small structural parser slots
 because their owning packages only call `.parse()` and do not compose schema
@@ -1183,12 +1186,6 @@ migration complete:
 - `shared/cms-config/src/index.ts` now introspects Zod 4 internals directly for
   CMS widget generation. Endgame: replace internal-shape reads with explicit
   schema-owned field metadata if CMS behavior grows beyond simple widgets.
-- Remaining structural parser slots added during this migration are
-  compatibility scaffolding where they still exist only to bridge historical Zod
-  ownership. Track and revisit: `shell/entity-service/src/types.ts` entity schema
-  parser slots and `shell/job-queue/src/base-job-handler.ts`. Endgame for each
-  is either Zod 4-only ownership or an explicit parse-only API chosen for
-  architectural reasons, not accidental legacy support.
 
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 

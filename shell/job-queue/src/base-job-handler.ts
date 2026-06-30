@@ -4,9 +4,7 @@ import type { JobHandler } from "./types";
 
 const logDataSchema = z.record(z.string(), z.unknown());
 
-export interface JobDataSchema<T> {
-  parse(input: unknown): T;
-}
+export type JobDataSchema<T> = z.ZodType<T, unknown>;
 
 /**
  * Configuration options for BaseJobHandler

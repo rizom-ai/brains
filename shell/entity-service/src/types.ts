@@ -131,12 +131,7 @@ export const baseEntityParserSchema = z.object({
 /** Shared empty frontmatter schema for entity types with no typed frontmatter. */
 export const emptyFrontmatterSchema = z.object({});
 
-export interface EntitySchemaParser<T> {
-  parse(data: unknown): T;
-  safeParse(
-    data: unknown,
-  ): { success: true; data: T } | { success: false; error: unknown };
-}
+export type EntitySchemaParser<T> = z.ZodType<T, unknown>;
 
 export type UnknownEntitySchema = EntitySchemaParser<unknown>;
 export type FrontmatterSchema = z.ZodObject<z.ZodRawShape>;
