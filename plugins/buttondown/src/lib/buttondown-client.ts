@@ -15,14 +15,18 @@ const BUTTONDOWN_API_URL = "https://api.buttondown.email/v1";
  * Subscriber status in Buttondown
  * "already_subscribed" is a local status indicating the subscriber already exists
  */
-const subscriberTypeSchema = z.enum([
+export type SubscriberType =
+  | "unactivated"
+  | "regular"
+  | "unsubscribed"
+  | "already_subscribed";
+
+const subscriberTypeSchema: z.ZodType<SubscriberType, SubscriberType> = z.enum([
   "unactivated",
   "regular",
   "unsubscribed",
   "already_subscribed",
 ]);
-
-export type SubscriberType = z.output<typeof subscriberTypeSchema>;
 
 /**
  * Buttondown subscriber
@@ -46,14 +50,14 @@ export interface CreateSubscriberInput {
 /**
  * Buttondown email status
  */
-const emailStatusSchema = z.enum([
+export type EmailStatus = "draft" | "about_to_send" | "scheduled" | "sent";
+
+const emailStatusSchema: z.ZodType<EmailStatus, EmailStatus> = z.enum([
   "draft",
   "about_to_send",
   "scheduled",
   "sent",
 ]);
-
-export type EmailStatus = z.output<typeof emailStatusSchema>;
 
 /**
  * Buttondown email

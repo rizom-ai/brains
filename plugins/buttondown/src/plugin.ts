@@ -14,7 +14,22 @@ import {
 } from "./publish-handler";
 import packageJson from "../package.json";
 
-const buttondownConfigSchema = z.object({
+interface ButtondownConfig {
+  apiKey?: string | undefined;
+  doubleOptIn: boolean;
+  autoSendOnPublish: boolean;
+}
+
+interface ButtondownConfigInput {
+  apiKey?: string | undefined;
+  doubleOptIn?: boolean | undefined;
+  autoSendOnPublish?: boolean | undefined;
+}
+
+const buttondownConfigSchema: z.ZodType<
+  ButtondownConfig,
+  ButtondownConfigInput
+> = z.object({
   apiKey: z.string().optional().describe("Buttondown API key"),
   doubleOptIn: z
     .boolean()
@@ -25,9 +40,6 @@ const buttondownConfigSchema = z.object({
     .default(false)
     .describe("Automatically send newsletter when a blog post is published"),
 });
-
-type ButtondownConfig = z.output<typeof buttondownConfigSchema>;
-type ButtondownConfigInput = z.input<typeof buttondownConfigSchema>;
 
 /**
  * Buttondown integration plugin — subscriber management and API routes.
