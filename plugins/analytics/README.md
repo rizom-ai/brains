@@ -86,23 +86,7 @@ analytics_query({ startDate: "2025-01-01", endDate: "2025-01-31" });
 
 ## Infrastructure Setup
 
-The Cloudflare Web Analytics site is provisioned via Terraform:
-
-```hcl
-module "cloudflare_analytics" {
-  source = "./modules/cloudflare-analytics"
-
-  cloudflare_account_id = var.cloudflare_account_id
-  cloudflare_api_token  = var.cloudflare_api_token
-  domain                = "yourdomain.com"
-}
-```
-
-The module outputs:
-
-- `site_tag` - For API queries
-- `site_token` - For the tracking script
-- `tracking_script` - Ready-to-inject HTML script tag
+Create a Cloudflare Web Analytics site for your domain in the Cloudflare dashboard (Analytics & Logs → Web Analytics), then provide its site tag to the brain via the `CLOUDFLARE_ANALYTICS_SITE_TAG` environment variable. The site tag is used both for the tracking script injected into the site and for the GraphQL metrics queries.
 
 ## Dependencies
 
