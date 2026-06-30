@@ -5,7 +5,19 @@ const graphqlErrorEnvelopeSchema = z.looseObject({
   errors: z.array(z.looseObject({ message: z.string() })).optional(),
 });
 
-const analyticsDataSchema = z.object({
+export interface CloudflareAnalyticsData {
+  viewer: {
+    accounts: Array<{
+      rumPageloadEventsAdaptiveGroups: Array<{
+        count: number;
+        sum: { visits: number };
+        dimensions: { date: string };
+      }>;
+    }>;
+  };
+}
+
+const analyticsDataSchema: z.ZodType<CloudflareAnalyticsData> = z.object({
   viewer: z.object({
     accounts: z.array(
       z.object({
@@ -91,7 +103,7 @@ const validationDataSchema = z.object({
  * Cloudflare Web Analytics GraphQL response
  */
 export interface CloudflareAnalyticsResponse {
-  data: z.output<typeof analyticsDataSchema>;
+  data: CloudflareAnalyticsData;
   errors?: Array<{ message: string }> | undefined;
 }
 

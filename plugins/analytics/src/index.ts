@@ -83,7 +83,8 @@ export function createAnalyticsPlugin(
 /**
  * Convenience function matching other plugin patterns
  */
-export const analyticsPlugin = createAnalyticsPlugin;
+export const analyticsPlugin: typeof createAnalyticsPlugin =
+  createAnalyticsPlugin;
 
 // Export types and schemas
 export type {
