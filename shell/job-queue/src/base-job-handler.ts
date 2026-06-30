@@ -108,21 +108,20 @@ export abstract class BaseJobHandler<
       );
     }
 
-    try {
-      const result = this.schema.parse(data);
-
-      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
-        data: this.summarizeDataForLog(result),
-      });
-
-      return result;
-    } catch (error) {
+    const parsed = this.schema.safeParse(data);
+    if (!parsed.success) {
       this.logger.warn(`Invalid ${this.jobTypeName} job data`, {
         data,
-        validationError: error instanceof z.ZodError ? error.issues : error,
+        validationError: parsed.error.issues,
       });
       return null;
     }
+
+    this.logger.debug(`${this.jobTypeName} job data validation successful`, {
+      data: this.summarizeDataForLog(parsed.data),
+    });
+
+    return parsed.data;
   }
 
   /**

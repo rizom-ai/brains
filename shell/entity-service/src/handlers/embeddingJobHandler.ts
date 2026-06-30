@@ -1,5 +1,5 @@
 import { Logger, type ProgressReporter } from "@brains/utils";
-import { z, ZodError } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import type {
   EntityService as IEntityService,
   EmbeddingJobData,
@@ -234,22 +234,21 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
    * Ensures type safety and data integrity
    */
   public validateAndParse(data: unknown): EmbeddingJobData | null {
-    try {
-      const result = embeddingJobDataSchema.parse(data);
-
-      this.logger.debug("Embedding job data validation successful", {
-        entityId: result.id,
-        entityType: result.entityType,
-        contentHash: result.contentHash,
-      });
-
-      return result;
-    } catch (error) {
+    const parsed = embeddingJobDataSchema.safeParse(data);
+    if (!parsed.success) {
       this.logger.warn("Invalid embedding job data", {
         data,
-        validationError: error instanceof ZodError ? error.issues : error,
+        validationError: parsed.error.issues,
       });
       return null;
     }
+
+    this.logger.debug("Embedding job data validation successful", {
+      entityId: parsed.data.id,
+      entityType: parsed.data.entityType,
+      contentHash: parsed.data.contentHash,
+    });
+
+    return parsed.data;
   }
 }

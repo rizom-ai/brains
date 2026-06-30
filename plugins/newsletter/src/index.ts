@@ -1,4 +1,4 @@
-import type { Plugin } from "@brains/plugins";
+import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
 import { newsletterPlugin } from "@brains/newsletter-entity";
 import { buttondownPlugin } from "@brains/buttondown";
@@ -46,7 +46,18 @@ export type NewsletterCompositeConfigInput = z.input<
 export function newsletter(
   config: NewsletterCompositeConfigInput = {},
 ): Plugin[] {
-  const parsed = newsletterCompositeConfigSchema.parse(config);
+  const parsedConfig = newsletterCompositeConfigSchema.safeParse(config);
+  if (!parsedConfig.success) {
+    throw new PluginConfigValidationError(
+      "newsletter",
+      parsedConfig.error.issues.map((issue) => ({
+        path: issue.path.map(String).join("."),
+        code: issue.code,
+        message: issue.message,
+      })),
+    );
+  }
+  const parsed = parsedConfig.data;
   return [
     newsletterPlugin({}),
     buttondownPlugin({

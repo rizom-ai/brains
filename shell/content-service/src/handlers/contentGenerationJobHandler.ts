@@ -205,23 +205,22 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
    * Ensures type safety and data integrity
    */
   public validateAndParse(data: unknown): ContentGenerationJobData | null {
-    try {
-      const result = contentGenerationJobDataSchema.parse(data);
-
-      this.logger.debug("Content generation job data validation successful", {
-        templateName: result.templateName,
-        hasPrompt: !!result.context.prompt,
-        hasData: !!result.context.data,
-        userId: result.userId,
-      });
-
-      return result;
-    } catch (error) {
+    const parsed = contentGenerationJobDataSchema.safeParse(data);
+    if (!parsed.success) {
       this.logger.warn("Invalid content generation job data", {
         data,
-        validationError: error instanceof z.ZodError ? error.issues : error,
+        validationError: parsed.error.issues,
       });
       return null;
     }
+
+    this.logger.debug("Content generation job data validation successful", {
+      templateName: parsed.data.templateName,
+      hasPrompt: !!parsed.data.context.prompt,
+      hasData: !!parsed.data.context.data,
+      userId: parsed.data.userId,
+    });
+
+    return parsed.data;
   }
 }

@@ -16,7 +16,7 @@ import {
 } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils/zod-v4";
-import type { PluginConfigSchema } from "./config";
+import { PluginConfigValidationError, type PluginConfigSchema } from "./config";
 
 // Message schemas for validation
 const toolExecuteRequestSchema = z.object({
@@ -86,7 +86,18 @@ export abstract class BasePlugin<
     this.description = packageJson.description ?? `${packageJson.name} plugin`;
 
     // Let Zod schema handle defaults during parsing
-    this.config = configSchema.parse(partialConfig);
+    const parsedConfig = configSchema.safeParse(partialConfig);
+    if (!parsedConfig.success) {
+      throw new PluginConfigValidationError(
+        id,
+        parsedConfig.error.issues.map((issue) => ({
+          path: issue.path.map(String).join("."),
+          code: issue.code,
+          message: issue.message,
+        })),
+      );
+    }
+    this.config = parsedConfig.data;
   }
 
   /**
@@ -105,6 +116,16 @@ export abstract class BasePlugin<
       async (message) => {
         try {
           // Validate and parse the message payload
+          const parsedRequest = toolExecuteRequestSchema.safeParse(
+            message.payload,
+          );
+          if (!parsedRequest.success) {
+            return {
+              success: false,
+              error: "Invalid tool execution request format",
+            };
+          }
+
           const {
             toolName,
             args,
@@ -118,7 +139,7 @@ export abstract class BasePlugin<
             runId,
             toolCallId,
             userPermissionLevel,
-          } = toolExecuteRequestSchema.parse(message.payload);
+          } = parsedRequest.data;
 
           const tools = await this.getTools();
           const tool = tools.find((t) => t.name === toolName);
@@ -166,12 +187,6 @@ export abstract class BasePlugin<
             data: result,
           };
         } catch (error) {
-          if (error instanceof z.ZodError) {
-            return {
-              success: false,
-              error: "Invalid tool execution request format",
-            };
-          }
           this.logger.error("Tool execution error", error);
           return {
             success: false,
@@ -187,9 +202,16 @@ export abstract class BasePlugin<
       async (message) => {
         try {
           // Validate and parse the message payload
-          const { resourceUri } = resourceGetRequestSchema.parse(
+          const parsedRequest = resourceGetRequestSchema.safeParse(
             message.payload,
           );
+          if (!parsedRequest.success) {
+            return {
+              success: false,
+              error: "Invalid resource get request format",
+            };
+          }
+          const { resourceUri } = parsedRequest.data;
 
           const resources = await this.getResources();
           const resource = resources.find((r) => r.uri === resourceUri);
@@ -208,12 +230,6 @@ export abstract class BasePlugin<
             data: result,
           };
         } catch (error) {
-          if (error instanceof z.ZodError) {
-            return {
-              success: false,
-              error: "Invalid resource get request format",
-            };
-          }
           this.logger.error("Resource fetch error", error);
           return {
             success: false,

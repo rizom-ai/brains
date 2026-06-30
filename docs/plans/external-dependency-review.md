@@ -1157,9 +1157,12 @@ The remaining template, datasource, runtime-state, messaging, media-template,
 and structured-content schema slots were reviewed and moved to Zod 4-owned
 `ZodType<T, unknown>` aliases where they are real framework validation
 boundaries. Compatibility aliases remain only for previously exported
-`*SchemaParser` type names in template packages. For AI object generation,
-`shell/core/src/datasources/ai-content-datasource.ts` still narrows template
-schemas to Zod 4 before invoking the AI SDK boundary.
+`*SchemaParser` type names in template packages. Job and plugin-message
+validation now uses `safeParse` results instead of classifying thrown Zod
+exceptions. Plugin config constructor failures now surface as
+`PluginConfigValidationError`, with Zod issues normalized at the plugin boundary.
+For AI object generation, `shell/core/src/datasources/ai-content-datasource.ts`
+still narrows template schemas to Zod 4 before invoking the AI SDK boundary.
 
 ### Transitional Zod compatibility debt — not endgame
 
@@ -1170,10 +1173,10 @@ migration complete:
 - `packages/brain-cli/src/entries/index.ts` now exports Zod 4 from the public
   `@rizom/brain` root, and published package metadata now depends on Zod 4.
   Keep declaration/runtime output aligned with that single public Zod contract.
-- `shell/app/src/brain-resolver.ts` and
-  `plugins/directory-sync/src/lib/quarantine.ts` now classify only Zod 4
-  `ZodError` instances directly. Endgame: normalize validation failures through
-  a domain error if callers should not depend on Zod exception classes.
+- `plugins/directory-sync/src/lib/quarantine.ts` still classifies Zod 4
+  `ZodError` instances directly for quarantine reason extraction. Endgame:
+  normalize validation failures through a domain error if callers should not
+  depend on Zod exception classes.
 - `plugins/obsidian-vault/src/lib/schema-introspector.ts` now introspects Zod 4
   object internals only. Endgame: replace internal-shape reads with explicit
   schema-owned field metadata if Obsidian generation grows beyond simple field

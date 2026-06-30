@@ -1,4 +1,4 @@
-import type { Plugin } from "@brains/plugins";
+import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
 import {
   entityActionPolicyConfigSchema,
   type EntityActionPolicyConfig,
@@ -6,7 +6,7 @@ import {
 } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 import { ensureArray, type Logger } from "@brains/utils";
-import { z, ZodError } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod-v4";
 import type {
   BrainDefinition,
   BrainEnvironment,
@@ -264,10 +264,6 @@ function instantiateSitePlugin(
   return isActive(activeIds, "site-builder") ? [sitePlugin] : [];
 }
 
-function isZodError(error: unknown): boolean {
-  return error instanceof ZodError;
-}
-
 function instantiateCapabilities(
   definition: BrainDefinition,
   env: BrainEnvironment,
@@ -291,7 +287,7 @@ function instantiateCapabilities(
       const result = factory(merged);
       capabilities.push(...ensureArray(result));
     } catch (error) {
-      if (isZodError(error)) {
+      if (error instanceof PluginConfigValidationError) {
         logger?.warn(`Skipping capability "${id}": missing required config`);
       } else {
         throw error;
@@ -339,7 +335,7 @@ function instantiateInterfaces(
     try {
       interfaces.push(new ctor(merged));
     } catch (error) {
-      if (isZodError(error)) {
+      if (error instanceof PluginConfigValidationError) {
         logger?.warn(`Skipping interface "${id}": missing required config`);
       } else {
         throw error;

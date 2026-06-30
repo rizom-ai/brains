@@ -15,3 +15,24 @@ export const basePluginConfigSchema = z.object({
 export type PluginConfigSchema<TConfig> = ZodType<TConfig, unknown>;
 export type PluginConfigInput<T extends ZodType> = z.input<T>;
 export type PluginConfig<T extends ZodType> = z.output<T>;
+
+export interface PluginConfigValidationIssue {
+  path: string;
+  code: string;
+  message: string;
+}
+
+export class PluginConfigValidationError extends Error {
+  public readonly pluginId: string;
+  public readonly issues: readonly PluginConfigValidationIssue[];
+
+  constructor(
+    pluginId: string,
+    issues: readonly PluginConfigValidationIssue[],
+  ) {
+    super(`Invalid plugin config for ${pluginId}`);
+    this.name = "PluginConfigValidationError";
+    this.pluginId = pluginId;
+    this.issues = issues;
+  }
+}

@@ -493,9 +493,11 @@ export type {
 
 export {
   basePluginConfigSchema,
+  PluginConfigValidationError,
   type PluginConfig,
   type PluginConfigInput,
   type PluginConfigSchema,
+  type PluginConfigValidationIssue,
 } from "./config";
 
 export type { IAnchorProfileService } from "@brains/identity-service";
