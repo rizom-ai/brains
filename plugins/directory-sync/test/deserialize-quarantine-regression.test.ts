@@ -3,6 +3,7 @@ import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { EntityValidationError } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -17,7 +18,7 @@ import {
  * because the error is transient (adapter not yet registered) rather
  * than a permanent validation failure (malformed frontmatter).
  *
- * Valid quarantine reasons: ZodError, invalid_type, Required, etc.
+ * Valid quarantine reasons: EntityValidationError or Zod issue-shaped errors.
  * Invalid quarantine reasons: "No adapter registered", runtime errors
  */
 describe("Deserialize error quarantine behavior", () => {
@@ -118,13 +119,16 @@ describe("Deserialize error quarantine behavior", () => {
     expect(result.quarantined).toBe(1);
   });
 
-  it("should STILL quarantine files on string validation errors", async () => {
+  it("should STILL quarantine files on domain validation errors", async () => {
     mkdirSync(join(testDir, "post"), { recursive: true });
     const filePath = join(testDir, "post", "bad2.md");
     writeFileSync(filePath, "---\ntitle: bad\n---\n");
 
     spyOn(mockEntityService, "deserializeEntity").mockImplementation(() => {
-      throw new Error("Invalid frontmatter: missing required field");
+      throw new EntityValidationError(
+        "post",
+        new Error("Invalid frontmatter: missing required field"),
+      );
     });
 
     const result = await dirSync.importEntities(["post/bad2.md"]);

@@ -9,6 +9,12 @@ export type {
   DefaultEntityFrontmatter,
 } from "./adapters";
 export { SingletonEntityService } from "./singleton-entity-service";
+export {
+  EntityValidationError,
+  hasValidationIssues,
+  isEntityValidationError,
+  toEntityValidationError,
+} from "./errors";
 
 // Embedding
 export type {

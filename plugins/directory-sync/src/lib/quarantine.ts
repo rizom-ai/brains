@@ -1,17 +1,9 @@
 import type { Logger } from "@brains/utils";
+import { isEntityValidationError } from "@brains/plugins";
 import type { ImportResult } from "../types.js";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
 import { rename, appendFile, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
-
-const validationIssuesErrorSchema = z.looseObject({
-  issues: z.array(
-    z.looseObject({
-      message: z.string(),
-    }),
-  ),
-});
 
 export class Quarantine {
   private logger: Logger;
@@ -22,17 +14,7 @@ export class Quarantine {
   }
 
   isValidationError(error: unknown): boolean {
-    if (validationIssuesErrorSchema.safeParse(error).success) {
-      return true;
-    }
-    const message = getErrorMessage(error);
-    return (
-      message.includes("invalid_type") ||
-      message.includes("invalid_enum_value") ||
-      message.includes("Required") ||
-      message.includes("Invalid frontmatter") ||
-      message.includes("Unknown entity type")
-    );
+    return isEntityValidationError(error);
   }
 
   async quarantineInvalidFile(

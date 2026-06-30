@@ -5,6 +5,7 @@ import {
   generateMarkdownWithFrontmatter,
   generateFrontmatter,
 } from "../frontmatter";
+import { EntityValidationError } from "../errors";
 
 /** Interface for objects that can generate a body template. */
 export interface BodyTemplateProvider {
@@ -134,7 +135,11 @@ export abstract class BaseEntityAdapter<
     markdown: string,
     schema: { parse(data: unknown): T },
   ): T {
-    return parseMarkdownWithFrontmatter(markdown, schema).metadata;
+    try {
+      return parseMarkdownWithFrontmatter(markdown, schema).metadata;
+    } catch (error) {
+      throw new EntityValidationError(this.entityType, error);
+    }
   }
 
   public getBodyTemplate(): string {
@@ -159,7 +164,11 @@ export abstract class BaseEntityAdapter<
 
   /** Parse frontmatter using this adapter's frontmatter schema. */
   protected parseFrontmatter(markdown: string): TFrontmatter {
-    return parseMarkdownWithFrontmatter(markdown, this.fmSchema).metadata;
+    try {
+      return parseMarkdownWithFrontmatter(markdown, this.fmSchema).metadata;
+    } catch (error) {
+      throw new EntityValidationError(this.entityType, error);
+    }
   }
 
   /** Combine body and frontmatter into a markdown string. */

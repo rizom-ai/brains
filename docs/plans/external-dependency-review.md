@@ -88,10 +88,11 @@ root `z`, `@brains/utils`, and the compatibility `@brains/utils/zod` subpath
 all route to Zod 4; durable entity/frontmatter/CMS boundaries are Zod 4-owned;
 package-local `main-zod` wrappers are removed; direct implementation imports of
 `zod`/`@brains/utils/zod` are gone; framework schema slots are Zod 4-owned;
-plugin config validation failures normalize through a domain error; and full
-`typecheck`, `lint`, `deps:check`, and `workspace:check` pass. Residual
-schema-introspection debt is tracked below as future API design work, not active
-Zod 3 usage.
+plugin config validation failures normalize through a domain error; directory
+sync quarantine classification now uses entity validation domain errors instead
+of domain message fragments; and full `typecheck`, `lint`, `deps:check`, and
+`workspace:check` pass. Residual schema-introspection debt is tracked below as
+future API design work, not active Zod 3 usage.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -1178,10 +1179,9 @@ active Zod 3 migration work:
   `@rizom/brain` root, and published package metadata now depends on Zod 4.
   Keep declaration/runtime output aligned with that single public Zod contract.
 - `plugins/directory-sync/src/lib/quarantine.ts` no longer depends on the
-  `ZodError` class; it recognizes validation-style issue payloads and existing
-  domain message fragments for quarantine reason extraction. Future improvement:
-  replace message-fragment detection with a domain error if callers should not
-  depend on text matching.
+  `ZodError` class or domain message fragments; it delegates quarantine reason
+  extraction to the entity validation domain error/issue guard exported through
+  `@brains/plugins`.
 - `plugins/obsidian-vault/src/lib/schema-introspector.ts` now introspects Zod 4
   object internals only. Future improvement: replace internal-shape reads with
   explicit schema-owned field metadata if Obsidian generation grows beyond

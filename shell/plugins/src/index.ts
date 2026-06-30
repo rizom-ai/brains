@@ -203,6 +203,10 @@ export {
   resolveEntityOrError,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  EntityValidationError,
+  hasValidationIssues,
+  isEntityValidationError,
+  toEntityValidationError,
 } from "@brains/entity-service";
 
 // Data source infrastructure
