@@ -83,8 +83,8 @@ Each plugin defines its own entities:
 
 ```typescript
 // entities/link/src/schemas/link.ts
-import { z } from "zod";
 import { nanoid } from "nanoid";
+import { z } from "@brains/utils/zod-v4";
 import { baseEntitySchema } from "@brains/plugins";
 
 // 1. Define entity-specific schema

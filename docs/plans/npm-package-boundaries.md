@@ -121,25 +121,22 @@ These may remain workspace-internal implementation details. They can be used by 
 - promote only proven stable utilities into curated `@rizom/brain/*` subpaths
 - expose a blessed `z` from the root `@rizom/brain` export for plugin/entity schema authoring, avoiding schema-version skew without publishing all utilities
 
-### Zod version policy (decided 2026-06-10)
+### Zod version policy (decided 2026-06-10; updated after Zod 4 migration)
 
 The blessed `z` cannot diverge from the workspace zod: the public
 subpaths re-export schemas built with the workspace `z`, and mixing zod
 majors in author code produces incompatible schema classes. So:
 
-1. The blessed `z` **is** the workspace zod — v3 today. Plugin packages
+1. The blessed `z` **is** the workspace zod — now Zod 4. Plugin packages
    must not declare their own `zod` dependency; they use the blessed
    export exclusively (enforce with the step-4 dependency rules). The
-   zod major becomes an SDK internal that authors inherit.
-2. The repo-wide zod 4 migration is a **release blocker for the first
-   stable (non-alpha) `@rizom/brain`**: during alpha the v3→v4 break is
-   acceptable churn; after a stable release it is a breaking public API
-   change. Do not ship a stable SDK on v3.
+   zod major is an SDK internal that authors inherit.
+2. The repo-wide Zod 4 migration was a **release blocker for the first
+   stable (non-alpha) `@rizom/brain`**; do not reintroduce Zod 3 into
+   repo-owned schema boundaries or external plugin examples.
 3. Sequencing and mechanics live in
-   `external-dependency-review.md` (pin bump to `^3.25.x` first, which
-   every upstream peer accepts and which unlocks zod's incremental
-   `zod/v4` migration path). External plugin packages import `z` from
-   `@rizom/brain`, not from `zod`, so the SDK owns the schema-version
+   `external-dependency-review.md`. External plugin packages import `z`
+   from `@rizom/brain`, not from `zod`, so the SDK owns the schema-version
    boundary.
 
 The internal grab-bag has already been broken up: ops/env/cert moved to `@brains/deploy-support`, shared contracts to `@brains/contracts`, presentation/UI helpers to `@brains/ui-library`, entity URL/preview helpers to `@brains/site-composition`, formatters to `@brains/content-formatters`, and image markdown to `@brains/image`. Remaining boundary work is the curation question below: deciding which of the surviving `@brains/utils` primitives belong on the public `@rizom/brain/*` surface.

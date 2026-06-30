@@ -82,12 +82,15 @@ internal object shapes in public annotations. Do not continue that direction.
 Sequence Zod 4 before retrying `isolatedDeclarations`, then treat declaration
 strictness as public API-boundary cleanup rather than schema-internal type
 annotation work. Remaining outdated entries are deliberate holds/migrations
-from Phase 2b+. As of 2026-06-23, the branch has a clean broad
-stabilization pass after the latest isolated Zod 4 guard chunks:
-`bun run typecheck`, `bun run lint`, and `bun run test` all pass. The
-Zod migration is still incomplete; remaining work should be treated as
-boundary-migration design for a follow-up phase rather than more low-risk
-local guard cleanup.
+from Phase 2b+. As of the latest Phase 4 work, Zod 3 has been replaced in
+repo-owned schema code and dependency resolution: the public `@rizom/brain`
+root `z`, `@brains/utils`, and the compatibility `@brains/utils/zod` subpath
+all route to Zod 4; durable entity/frontmatter/CMS boundaries are Zod 4-owned;
+package-local `main-zod` wrappers are removed; direct implementation imports of
+`zod`/`@brains/utils/zod` are gone; and full `typecheck`, `lint`, `deps:check`,
+and `workspace:check` pass. Remaining Phase 4 work is policy/cleanup around
+structural parser slots and schema-introspection metadata, not active Zod 3
+usage.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -133,7 +136,7 @@ Workspace majors and delete-vs-upgrade decisions:
 
 | Package                                              | Current         | Latest  | Decision / notes                                                                                       |
 | ---------------------------------------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| `zod`                                                | 3.25.76         | 4.4.3   | Lock already resolves to 3.25.76 — Phase 2 aligns declared `^3.23.8` ranges; v4 is Phase 4             |
+| `zod`                                                | 3.25.76         | 4.4.3   | Done in Phase 4: workspace/public schema boundary now resolves to Zod 4                                |
 | `express`, `express-async-handler`, `@types/express` | 4.x             | 5.x     | **Delete** — `interfaces/mcp` imports none of them; HTTP transport uses `createServer`                 |
 | `storybook` + `@storybook/*`                         | 8.6 + 9.1 mixed | 10.4.4  | **Delete** — only `shared/ui-library`, one demo story, no turbo/CI wiring, mixed install cannot launch |
 | `marked`                                             | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                    |
@@ -346,8 +349,8 @@ Done in worktree:
   constructor parameter properties into explicit fields/assignments. Forced
   root typecheck and lint pass.
 - `isolatedDeclarations` was probed and explicitly deferred. The reverted
-  probe showed that enabling it directly on the current Zod 3-heavy public
-  API pushes the repo toward broad, ugly annotations of Zod internals. That
+  probe showed that enabling it directly on the then-Zod-3-heavy public
+  API pushed the repo toward broad, ugly annotations of Zod internals. That
   is the wrong direction. Do not use broad codemods, casts, blanket `as const`,
   invented domain literals, or giant `z.ZodObject<{ ... }>` annotations as the
   migration strategy.
@@ -360,21 +363,19 @@ The big one, and a **release blocker for the first stable
 `shared/atproto-contracts` alone holds 200+ schemas, and v4 changes
 behavior this codebase leans on (`.passthrough()`, error
 customization, record/enum typing — `conversation-service` and the
-entity schemas use passthrough deliberately). Use the `zod/v4` subpath
-for incremental, package-by-package migration behind the
-`@brains/utils` re-export; migrate leaf packages first, contracts last.
-Before changing the repo default, keep the import boundary clean: internal
-implementation packages should import `z` through `@brains/utils`; public
-SDK/contract surfaces that feed generated `@rizom/brain` declarations may
-import `zod` directly to avoid leaking private `@brains/*` packages into
-published declarations. The public `@rizom/brain` root export owns the
+entity schemas use passthrough deliberately). The repo default has now moved
+to Zod 4; keep the import boundary clean by importing through
+`@brains/utils/zod-v4` or the centralized `@brains/utils` export in internal
+code, and through the public `@rizom/brain` root `z` export in external plugin
+authoring docs/examples. The public `@rizom/brain` root export owns the
 external authoring boundary by re-exporting blessed `z`, so external plugins
 should not declare their own `zod` dependency.
 
 Incremental migration progress:
 
 - Added `@brains/utils/zod-v4` as an explicit opt-in wrapper around the
-  `zod/v4` subpath while the repo default remains Zod 3.
+  `zod/v4` subpath during the incremental migration; it is now the canonical
+  Zod 4 helper used by the workspace Zod exports.
 - Migrated self-contained web-chat request/upload/card payload schemas to
   `@brains/utils/zod-v4`. This is intentionally narrow: avoid switching
   APIs that accept schemas from other packages until both sides of that

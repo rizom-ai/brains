@@ -128,13 +128,13 @@ async function getData(id: string): Promise<Data> {
 
 ```typescript
 // ❌ Bad
-import { z } from "zod";
 import { Shell } from "../shell";
 import React from "react";
+import { z } from "@brains/utils/zod-v4";
 
 // ✅ Good
+import { z } from "@brains/utils/zod-v4";
 import React from "react";
-import { z } from "zod";
 
 import { Shell } from "../shell";
 ```
