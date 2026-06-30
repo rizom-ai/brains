@@ -25,7 +25,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
       ? ["  auth-service:", ...renderSetupEmailConfig(user.setup.email)]
       : []),
     ...(user.playbooks?.onboarding
-      ? ["  playbooks:", "    triggers:", "      first-anchor-web-chat: true"]
+      ? ["  rover-onboarding:", "    enabled: true"]
       : []),
     "  directory-sync:",
     "    git:",

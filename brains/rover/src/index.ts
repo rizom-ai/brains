@@ -30,6 +30,7 @@ import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { notificationsPlugin } from "@brains/notifications";
 import { playbookPlugin } from "@brains/playbook";
 import { playbooksPlugin } from "@brains/playbooks";
+import { roverOnboardingPlugin } from "@brains/rover-onboarding";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
@@ -74,6 +75,7 @@ const core = [
   "notifications",
   "playbook",
   "playbooks",
+  "rover-onboarding",
   "email-resend",
   "cms",
   "dashboard-root",
@@ -160,6 +162,7 @@ export default defineBrain({
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, {}],
     ["playbooks", playbooksPlugin, {}],
+    ["rover-onboarding", roverOnboardingPlugin, {}],
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],

@@ -1,62 +1,20 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "bun:test";
 import { playbookAdapter } from "@brains/playbook";
 
-async function expectMissing(path: URL): Promise<void> {
-  let missing = false;
-  try {
-    await access(path);
-  } catch {
-    missing = true;
-  }
-  expect(missing).toBe(true);
+async function readOnboardingPlaybook(fileName: string): Promise<string> {
+  return readFile(
+    new URL(
+      `../../../plugins/rover-onboarding/content/playbook/${fileName}`,
+      import.meta.url,
+    ),
+    "utf8",
+  );
 }
 
-async function readRoverFile(relativePath: string): Promise<string> {
-  return readFile(new URL(relativePath, import.meta.url), "utf8");
-}
-
-describe("Rover onboarding playbook seed", () => {
-  it("uses core seed playbooks as the live onboarding sources", async () => {
-    const playbookFiles = [
-      "rover-onboarding.md",
-      "rover-first-knowledge-loop.md",
-    ];
-
-    for (const file of playbookFiles) {
-      const coreSeed = await readRoverFile(
-        `../seed-content-core/playbook/${file}`,
-      );
-      const defaultLiveSeed = new URL(
-        `../seed-content-default/playbook/${file}`,
-        import.meta.url,
-      );
-      const fullLiveSeed = new URL(
-        `../seed-content-full/playbook/${file}`,
-        import.meta.url,
-      );
-      const coreEvalSeed = await readRoverFile(
-        `../eval-content-core/playbook/${file}`,
-      );
-      const defaultEvalSeed = await readRoverFile(
-        `../eval-content-default/playbook/${file}`,
-      );
-      const fullEvalSeed = await readRoverFile(
-        `../eval-content-full/playbook/${file}`,
-      );
-
-      await expectMissing(defaultLiveSeed);
-      await expectMissing(fullLiveSeed);
-      expect(coreEvalSeed).toBe(coreSeed);
-      expect(defaultEvalSeed).toBe(coreSeed);
-      expect(fullEvalSeed).toBe(coreSeed);
-    }
-  });
-
+describe("Rover onboarding playbook bundle", () => {
   it("compiles readable setup steps into the expected onboarding graph", async () => {
-    const seedMarkdown = await readRoverFile(
-      "../seed-content-core/playbook/rover-onboarding.md",
-    );
+    const seedMarkdown = await readOnboardingPlaybook("rover-onboarding.md");
     const { frontmatter, body } =
       playbookAdapter.parsePlaybookContent(seedMarkdown);
     const statesById = new Map(body.states.map((state) => [state.id, state]));
@@ -121,8 +79,8 @@ describe("Rover onboarding playbook seed", () => {
   });
 
   it("compiles readable first-loop steps into the expected onboarding graph", async () => {
-    const seedMarkdown = await readRoverFile(
-      "../seed-content-core/playbook/rover-first-knowledge-loop.md",
+    const seedMarkdown = await readOnboardingPlaybook(
+      "rover-first-knowledge-loop.md",
     );
     const { frontmatter, body } =
       playbookAdapter.parsePlaybookContent(seedMarkdown);

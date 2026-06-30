@@ -39,6 +39,8 @@ import {
 } from "./run-store";
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
+export const PLAYBOOKS_REGISTER_LIFECYCLE_STARTER =
+  "playbooks:register-lifecycle-starter";
 
 const lifecycleConfigSchema = z
   .object({
@@ -63,6 +65,18 @@ const lifecycleStartersRequestSchema = z
     lifecycle: z.string().min(1).optional(),
     interfaceType: z.string().min(1),
     userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
+  })
+  .strict();
+
+const lifecycleStarterRegistrationSchema = z
+  .object({
+    id: z.string().min(1),
+    trigger: z.string().min(1),
+    playbookId: z.string().min(1),
+    once: z.boolean().default(true),
+    starterText: z.string().min(1),
+    description: z.string().min(1).optional(),
+    starterPrompt: z.string().min(1),
   })
   .strict();
 
@@ -106,6 +120,9 @@ const sendEventInputSchema = {
 };
 
 export type LifecyclePlaybookConfig = z.infer<typeof lifecycleConfigSchema>;
+export type LifecycleStarterRegistration = z.infer<
+  typeof lifecycleStarterRegistrationSchema
+>;
 export type PlaybooksConfig = z.infer<typeof playbooksConfigSchema>;
 export type PlaybookEntity = z.infer<typeof playbookEntitySchema>;
 
@@ -140,6 +157,13 @@ export interface PlaybookStatusResponse {
 
 export interface LifecycleStartersResponse {
   starters: PlaybookStarter[];
+}
+
+export interface LifecycleStarterRegistrationResponse {
+  registered: boolean;
+  id: string;
+  ignored?: boolean | undefined;
+  reason?: string | undefined;
 }
 
 export interface GoalCheckInput {
@@ -206,6 +230,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
   private readonly startLocks = new Map<string, Promise<ToolResponse>>();
+  private readonly registeredLifecycleStarters = new Map<
+    string,
+    { source: string; config: LifecyclePlaybookConfig }
+  >();
 
   constructor(
     config: Partial<PlaybooksConfig> = {},
@@ -236,6 +264,20 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       const input = lifecycleStartersRequestSchema.parse(message.payload);
       const starters = await this.resolveLifecycleStarters(input);
       return { success: true, data: { starters } };
+    });
+
+    context.messaging.subscribe<
+      LifecycleStarterRegistration,
+      LifecycleStarterRegistrationResponse
+    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, async (message) => {
+      const registration = lifecycleStarterRegistrationSchema.parse(
+        message.payload,
+      );
+      const result = this.registerLifecycleStarter(
+        registration,
+        message.source,
+      );
+      return { success: true, data: result };
     });
 
     context.messaging.subscribe<unknown, AgentContextResponse>(
@@ -708,6 +750,18 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       seenLifecycleIds.add(id);
     }
 
+    for (const [id, registration] of this.registeredLifecycleStarters) {
+      if (input.lifecycle && id !== input.lifecycle) continue;
+      if (seenLifecycleIds.has(id)) continue;
+      const starter = await this.resolveConfiguredLifecycleStarter(
+        id,
+        registration.config,
+      );
+      if (!starter) continue;
+      starters.push(starter);
+      seenLifecycleIds.add(id);
+    }
+
     const enabledTriggers = new Set(
       Object.entries(this.config.triggers)
         .filter(([, enabled]) => enabled)
@@ -750,6 +804,47 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     }
 
     return starters;
+  }
+
+  private registerLifecycleStarter(
+    registration: LifecycleStarterRegistration,
+    source: string,
+  ): LifecycleStarterRegistrationResponse {
+    const existing = this.registeredLifecycleStarters.get(registration.id);
+    const config = lifecycleConfigSchema.parse({
+      trigger: registration.trigger,
+      playbookId: registration.playbookId,
+      once: registration.once,
+      starterText: registration.starterText,
+      ...(registration.description
+        ? { description: registration.description }
+        : {}),
+      starterPrompt: registration.starterPrompt,
+    });
+
+    if (existing) {
+      if (
+        existing.source === source &&
+        sameLifecycleConfig(existing.config, config)
+      ) {
+        return { registered: true, id: registration.id };
+      }
+
+      this.logger.warn("Ignoring conflicting playbook lifecycle starter", {
+        id: registration.id,
+        source,
+        existingSource: existing.source,
+      });
+      return {
+        registered: false,
+        id: registration.id,
+        ignored: true,
+        reason: `Lifecycle starter '${registration.id}' is already registered by '${existing.source}'.`,
+      };
+    }
+
+    this.registeredLifecycleStarters.set(registration.id, { source, config });
+    return { registered: true, id: registration.id };
   }
 
   private async resolveConfiguredLifecycleStarter(
@@ -1473,6 +1568,20 @@ function sameGoal(left: string[], right: string[]): boolean {
   return (
     left.length === right.length &&
     left.every((value, index) => value === right[index])
+  );
+}
+
+function sameLifecycleConfig(
+  left: LifecyclePlaybookConfig,
+  right: LifecyclePlaybookConfig,
+): boolean {
+  return (
+    left.trigger === right.trigger &&
+    left.playbookId === right.playbookId &&
+    left.once === right.once &&
+    left.starterText === right.starterText &&
+    left.description === right.description &&
+    left.starterPrompt === right.starterPrompt
   );
 }
 
