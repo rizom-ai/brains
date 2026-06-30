@@ -2,9 +2,8 @@ brain: rover
 preset: core
 
 plugins:
-  playbooks:
-    triggers:
-      first-anchor-web-chat: false
+  rover-onboarding:
+    enabled: false
   directory-sync:
     seedContentPath: ../../eval-content-core
     autoSync: true

@@ -314,6 +314,31 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       });
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
+    createEntityFromMarkdown: async (request: {
+      input: { entityType: string; id: string; markdown: string };
+    }) => {
+      const adapter = entityAdapters.get(request.input.entityType);
+      const parsed = adapter?.fromMarkdown(request.input.markdown) ?? {
+        entityType: request.input.entityType,
+        content: request.input.markdown,
+        metadata: {},
+      };
+      const now = new Date().toISOString();
+      const entity = {
+        ...parsed,
+        id: request.input.id,
+        entityType: request.input.entityType,
+        content: parsed.content ?? request.input.markdown,
+        metadata: parsed.metadata ?? {},
+        visibility: "public" as const,
+        created: now,
+        updated: now,
+        contentHash: computeContentHash(
+          parsed.content ?? request.input.markdown,
+        ),
+      } as BaseEntity;
+      return entityService.createEntity({ entity });
+    },
     updateEntity: async (request: { entity: BaseEntity }) => {
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
