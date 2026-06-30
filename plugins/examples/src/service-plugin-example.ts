@@ -8,8 +8,25 @@ import type {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
 
+interface CalculatorConfig {
+  enabled: boolean;
+  debug: boolean;
+  enableBatchProcessing: boolean;
+  maxBatchSize: number;
+}
+
+interface CalculatorConfigInput {
+  enabled?: boolean | undefined;
+  debug?: boolean | undefined;
+  enableBatchProcessing?: boolean | undefined;
+  maxBatchSize?: number | undefined;
+}
+
 // Define the plugin configuration schema
-const calculatorConfigSchema = z.object({
+const calculatorConfigSchema: z.ZodType<
+  CalculatorConfig,
+  CalculatorConfigInput
+> = z.object({
   enabled: z
     .boolean()
     .describe("Enable the calculator service plugin")
@@ -24,9 +41,6 @@ const calculatorConfigSchema = z.object({
     .describe("Maximum number of calculations in a batch")
     .default(100),
 });
-
-type CalculatorConfig = z.output<typeof calculatorConfigSchema>;
-type CalculatorConfigInput = z.input<typeof calculatorConfigSchema>;
 
 /**
  * Example Calculator Service Plugin

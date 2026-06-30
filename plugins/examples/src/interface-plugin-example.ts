@@ -14,16 +14,31 @@ export interface WebserverTrackingInfo extends BaseJobTrackingInfo {
   requestId: string; // Request identification
 }
 
-// Define the plugin configuration schema
-const webserverConfigSchema = z.object({
-  enabled: z.boolean().describe("Enable the webserver interface").default(true),
-  port: z.number().describe("Port to run the webserver on").default(3000),
-  host: z.string().describe("Host to bind to").default("localhost"),
-  debug: z.boolean().describe("Enable debug logging").default(false),
-});
+interface WebserverConfig {
+  enabled: boolean;
+  port: number;
+  host: string;
+  debug: boolean;
+}
 
-type WebserverConfig = z.output<typeof webserverConfigSchema>;
-type WebserverConfigInput = z.input<typeof webserverConfigSchema>;
+interface WebserverConfigInput {
+  enabled?: boolean | undefined;
+  port?: number | undefined;
+  host?: string | undefined;
+  debug?: boolean | undefined;
+}
+
+// Define the plugin configuration schema
+const webserverConfigSchema: z.ZodType<WebserverConfig, WebserverConfigInput> =
+  z.object({
+    enabled: z
+      .boolean()
+      .describe("Enable the webserver interface")
+      .default(true),
+    port: z.number().describe("Port to run the webserver on").default(3000),
+    host: z.string().describe("Host to bind to").default("localhost"),
+    debug: z.boolean().describe("Enable debug logging").default(false),
+  });
 
 /**
  * Example Webserver Interface Plugin

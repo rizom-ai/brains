@@ -2,13 +2,23 @@ import { ServicePlugin } from "@brains/plugins";
 import type { ServicePluginContext, Tool } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
 
-const calculatorConfigSchema = z.object({
+interface CalculatorConfig {
+  enabled: boolean;
+  debug: boolean;
+}
+
+interface CalculatorConfigInput {
+  enabled?: boolean | undefined;
+  debug?: boolean | undefined;
+}
+
+const calculatorConfigSchema: z.ZodType<
+  CalculatorConfig,
+  CalculatorConfigInput
+> = z.object({
   enabled: z.boolean().describe("Enable the calculator plugin").default(true),
   debug: z.boolean().describe("Enable debug logging").default(false),
 });
-
-type CalculatorConfig = z.output<typeof calculatorConfigSchema>;
-type CalculatorConfigInput = z.input<typeof calculatorConfigSchema>;
 
 /**
  * Example ServicePlugin — demonstrates messaging and tool registration.

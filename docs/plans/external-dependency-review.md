@@ -1216,7 +1216,9 @@ enabled `isolatedDeclarations` for `@brains/buttondown`, replacing exported enum
 schema inference with explicit union contracts and annotating the plugin config
 schema. The ninth pilot enabled `isolatedDeclarations` for `@brains/stock-photo`,
 using explicit config, job payload, and Unsplash response contracts around the
-package-local Zod parsers.
+package-local Zod parsers. The tenth pilot enabled `isolatedDeclarations` for
+`@brains/plugin-examples`, replacing example config-schema inference with
+explicit input/output contracts while preserving the example runtime behavior.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
