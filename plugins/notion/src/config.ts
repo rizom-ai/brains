@@ -4,9 +4,13 @@ import { z } from "@brains/utils/zod-v4";
  * Notion plugin configuration.
  * Only requires a Notion integration token.
  */
-export const notionConfigSchema = z.object({
-  token: z.string().min(1),
-});
+export interface NotionConfig {
+  token: string;
+}
 
-export type NotionConfig = z.output<typeof notionConfigSchema>;
-export type NotionConfigInput = z.input<typeof notionConfigSchema>;
+export type NotionConfigInput = NotionConfig;
+
+export const notionConfigSchema: z.ZodType<NotionConfig, NotionConfigInput> =
+  z.object({
+    token: z.string().min(1),
+  });

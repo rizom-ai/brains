@@ -1209,7 +1209,9 @@ an explicit composite config contract around its exported config schema. The
 fifth pilot enabled `isolatedDeclarations` for `@brains/atproto-registry`, using
 explicit config/tool-input contracts around its exported and local schemas. The
 sixth pilot enabled `isolatedDeclarations` for `@brains/hackmd`, adding an
-explicit config contract around its exported config schema.
+explicit config contract around its exported config schema. The seventh pilot
+enabled `isolatedDeclarations` for `@brains/notion`, mirroring that explicit
+config contract pattern for its MCP bridge config schema.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
