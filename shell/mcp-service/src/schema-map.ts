@@ -14,14 +14,14 @@ interface SchemaInternals {
   removeDefault?: () => ToolSchemaField;
 }
 
-function isZod4SchemaWithInternals(
+function isSchemaWithInternals(
   schema: ToolSchemaField,
 ): schema is ToolSchemaField & SchemaInternals {
   return "_zod" in schema;
 }
 
-function getZod4Internals(schema: ToolSchemaField): SchemaInternals {
-  if (!isZod4SchemaWithInternals(schema)) {
+function getSchemaInternals(schema: ToolSchemaField): SchemaInternals {
+  if (!isSchemaWithInternals(schema)) {
     throw new Error(
       "Tool input schemas must use the blessed Zod 4 export from @rizom/brain.",
     );
@@ -30,11 +30,11 @@ function getZod4Internals(schema: ToolSchemaField): SchemaInternals {
 }
 
 function getTypeName(schema: ToolSchemaField): string | undefined {
-  return getZod4Internals(schema)._zod?.def?.type;
+  return getSchemaInternals(schema)._zod?.def?.type;
 }
 
 function getInnerType(schema: ToolSchemaField): ToolSchemaField | undefined {
-  const internals = getZod4Internals(schema);
+  const internals = getSchemaInternals(schema);
   return (
     internals._zod?.def?.innerType ??
     internals.unwrap?.() ??
