@@ -494,6 +494,7 @@ export {
   basePluginConfigSchema,
   type PluginConfig,
   type PluginConfigInput,
+  type PluginConfigSchema,
 } from "./config";
 
 export type { IAnchorProfileService } from "@brains/identity-service";

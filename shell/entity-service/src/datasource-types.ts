@@ -19,7 +19,6 @@ export interface BaseDataSourceContext {
   entityService: IEntityService;
 }
 
-/** Intentionally schema-library-neutral parser for datasource boundaries. */
 export interface DataSourceSchema<T> {
   parse(input: unknown): T;
 }

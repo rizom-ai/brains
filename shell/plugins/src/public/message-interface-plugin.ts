@@ -12,6 +12,7 @@ import type {
 } from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { PermissionLookupContext } from "@brains/templates";
+import type { PluginConfigSchema } from "../config";
 import { InterfacePlugin } from "./interface-plugin";
 import type {
   InterfacePluginContext,
@@ -20,10 +21,6 @@ import type {
   Resource,
   Tool,
 } from "./types";
-
-interface ConfigSchemaParser<TConfig> {
-  parse(input: unknown): TConfig;
-}
 
 interface MessageInterfacePluginHooks {
   onRegister(context: InterfacePluginContext): Promise<void>;
@@ -53,7 +50,7 @@ class MessageInterfacePluginDelegate<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
     hooks: MessageInterfacePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
@@ -167,7 +164,7 @@ export abstract class MessageInterfacePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     super(id, packageJson, config, configSchema);
     this.messageDelegate = new MessageInterfacePluginDelegate(

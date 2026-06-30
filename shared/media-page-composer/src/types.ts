@@ -5,7 +5,6 @@ export type MediaTemplateFormat = "image" | "pdf";
 
 export type MediaPageRenderer = (props: Record<string, unknown>) => VNode;
 
-/** Intentionally schema-library-neutral parser for media template content. */
 export interface MediaPageContentSchema {
   parse(input: unknown): unknown;
 }

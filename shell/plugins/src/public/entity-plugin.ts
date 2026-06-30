@@ -1,5 +1,6 @@
 import { EntityPlugin as RuntimeEntityPlugin } from "../entity/entity-plugin";
 import type { EntityPluginContext as RuntimeEntityPluginContext } from "../entity/context";
+import type { PluginConfigSchema } from "../config";
 import type {
   IShell,
   PluginCapabilities,
@@ -16,9 +17,6 @@ import type {
 } from "@brains/entity-service";
 import type { EntityPluginContext, Plugin } from "./types";
 
-interface ConfigSchemaParser<TConfig> {
-  parse(input: unknown): TConfig;
-}
 type EntitySchema<TEntity extends BaseEntity> =
   EntityAdapter<TEntity>["schema"];
 
@@ -49,7 +47,7 @@ class EntityPluginDelegate<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
     hooks: EntityPluginHooks<TEntity>,
   ) {
     super(id, packageJson, config, configSchema);
@@ -128,7 +126,7 @@ export abstract class EntityPlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;

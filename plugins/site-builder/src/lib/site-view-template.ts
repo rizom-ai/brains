@@ -1,7 +1,6 @@
 import type { VNode } from "preact";
 import type { SiteRuntimeScript } from "@brains/site-engine";
 
-/** Intentionally schema-library-neutral parser for site view template content. */
 interface SiteViewTemplateSchema {
   parse(input: unknown): unknown;
 }

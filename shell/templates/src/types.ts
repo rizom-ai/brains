@@ -8,7 +8,6 @@ import type { VNode } from "preact";
  */
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
-/** Intentionally schema-library-neutral parser for template props/data. */
 export interface TemplateSchemaParser<T> {
   parse(data: unknown): T;
 }

@@ -1128,10 +1128,10 @@ Incremental migration progress:
 Direct source imports from `@brains/utils/zod` are now eliminated. The
 `shared/utils/src/zod.ts` subpath is retained as a stable internal alias that
 routes to the Zod 4 helper; prefer `@brains/utils/zod-v4` for new internal code
-when the Zod major matters at the call site. The Zod migration is still not
-complete: some structural parser slots remain broader than the final policy
-needs, and those paths stay tracked below as transitional debt rather than final
-architecture.
+when the Zod major matters at the call site. The Zod 3 replacement work is
+complete in repo-owned schema code and dependency resolution. Remaining Phase 4
+items are follow-up policy hardening for validation/domain errors and schema
+field metadata, not active Zod 3 usage.
 
 Near-term rules for continuing Phase 2:
 
@@ -1143,12 +1143,18 @@ Near-term rules for continuing Phase 2:
   when callers are confirmed Zod 4-only, or replace it with an explicit
   domain/schema metadata contract chosen intentionally.
 
-### Structural parser slots resolved as intentional
+### Schema contract cleanup
 
-These parse-only boundaries are intentionally schema-library-neutral because
-their owning packages only call `.parse()` and do not compose schema trees:
-`shell/templates/src/types.ts`, `shell/messaging-service/src/message-validator.ts`,
-`shell/runtime-state/src/types.ts`, `shell/entity-service/src/datasource-types.ts`,
+Plugin config schema contracts now use the centralized Zod 4-owned
+`PluginConfigSchema<TConfig>` alias instead of repeated local
+parser interfaces. This keeps public/plugin framework config schemas on the
+blessed Zod boundary and removes accidental parser-interface duplication.
+
+Some utility-like parse-only boundaries still use small structural parser slots
+because their owning packages only call `.parse()` and do not compose schema
+trees: `shell/templates/src/types.ts`,
+`shell/messaging-service/src/message-validator.ts`, `shell/runtime-state/src/types.ts`,
+`shell/entity-service/src/datasource-types.ts`,
 `plugins/site-builder/src/lib/site-view-template.ts`,
 `shared/content-formatters/src/formatters/structured-content.ts`,
 `shared/media-page-composer/src/types.ts`, and `shell/content-service/src/types.ts`.
@@ -1167,7 +1173,7 @@ migration complete:
 - `shell/app/src/brain-resolver.ts` and
   `plugins/directory-sync/src/lib/quarantine.ts` now classify only Zod 4
   `ZodError` instances directly. Endgame: normalize validation failures through
-  a non-Zod domain error if callers need a schema-library-neutral contract.
+  a domain error if callers should not depend on Zod exception classes.
 - `plugins/obsidian-vault/src/lib/schema-introspector.ts` now introspects Zod 4
   object internals only. Endgame: replace internal-shape reads with explicit
   schema-owned field metadata if Obsidian generation grows beyond simple field
@@ -1180,11 +1186,9 @@ migration complete:
 - Remaining structural parser slots added during this migration are
   compatibility scaffolding where they still exist only to bridge historical Zod
   ownership. Track and revisit: `shell/entity-service/src/types.ts` entity schema
-  parser slots, `shell/job-queue/src/base-job-handler.ts`,
-  `shell/plugins/src/base-plugin.ts`, `shell/plugins/src/entity/entity-plugin.ts`,
-  and public service/interface/message/entity plugin delegates. Endgame for each
-  is either Zod 4-only ownership or an explicitly schema-library-neutral API
-  chosen for architectural reasons, not accidental legacy support.
+  parser slots and `shell/job-queue/src/base-job-handler.ts`. Endgame for each
+  is either Zod 4-only ownership or an explicit parse-only API chosen for
+  architectural reasons, not accidental legacy support.
 
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 

@@ -19,8 +19,7 @@ const parseErrorSchema = z.looseObject({
 });
 
 /**
- * Validate a message-like value against an intentionally schema-library-neutral
- * parse contract.
+ * Validate a message-like value against the configured schema.
  */
 export function validateMessage<T>(
   message: unknown,

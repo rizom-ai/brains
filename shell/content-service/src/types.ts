@@ -2,7 +2,6 @@ import { z } from "@brains/utils/zod-v4";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { ContentVisibility } from "@brains/entity-service";
 
-/** Intentionally schema-library-neutral parser for content template data. */
 export interface ContentTemplateSchemaParser<T> {
   parse(input: unknown): T;
 }

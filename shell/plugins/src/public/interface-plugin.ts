@@ -1,5 +1,6 @@
 import { InterfacePlugin as RuntimeInterfacePlugin } from "../interface/interface-plugin";
 import type { InterfacePluginContext as RuntimeInterfacePluginContext } from "../interface/context";
+import type { PluginConfigSchema } from "../config";
 import type {
   IShell,
   PluginCapabilities,
@@ -13,10 +14,6 @@ import type {
   Resource,
   Tool,
 } from "./types";
-
-interface ConfigSchemaParser<TConfig> {
-  parse(input: unknown): TConfig;
-}
 
 interface InterfacePluginHooks {
   onRegister(context: InterfacePluginContext): Promise<void>;
@@ -39,7 +36,7 @@ class InterfacePluginDelegate<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
     hooks: InterfacePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
@@ -103,7 +100,7 @@ export abstract class InterfacePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;

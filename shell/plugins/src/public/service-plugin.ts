@@ -1,15 +1,12 @@
 import { ServicePlugin as RuntimeServicePlugin } from "../service/service-plugin";
 import type { ServicePluginContext as RuntimeServicePluginContext } from "../service/context";
+import type { PluginConfigSchema } from "../config";
 import type {
   IShell,
   PluginCapabilities,
   PluginRegistrationContext,
 } from "../interfaces";
 import type { Plugin, Resource, ServicePluginContext, Tool } from "./types";
-
-interface ConfigSchemaParser<TConfig> {
-  parse(input: unknown): TConfig;
-}
 
 interface ServicePluginHooks {
   onRegister(context: ServicePluginContext): Promise<void>;
@@ -29,7 +26,7 @@ class ServicePluginDelegate<TConfig, TConfigInput> extends RuntimeServicePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
     hooks: ServicePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
@@ -77,7 +74,7 @@ export abstract class ServicePlugin<TConfig, TConfigInput> implements Plugin {
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;

@@ -16,6 +16,7 @@ import type {
 import type { EntityActionPolicyConfig, Template } from "@brains/templates";
 import type { JobHandler } from "@brains/job-queue";
 import { z } from "@brains/utils/zod-v4";
+import type { PluginConfigSchema } from "../config";
 import type { EntityPluginContext } from "./context";
 import { createEntityPluginContext } from "./context";
 import {
@@ -23,10 +24,6 @@ import {
   type DerivedEntityProjection,
   type DerivedEntityProjectionController,
 } from "./derived-entity-projection";
-
-interface ConfigSchemaParser<TConfig> {
-  parse(input: unknown): TConfig;
-}
 
 export const emptyEntityPluginConfigSchema = z.object({});
 
@@ -58,7 +55,7 @@ export abstract class EntityPlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: TConfigInput,
-    configSchema: ConfigSchemaParser<TConfig>,
+    configSchema: PluginConfigSchema<TConfig>,
     entityActionPolicy?: EntityActionPolicyConfig,
   ) {
     super(id, packageJson, config, configSchema);
