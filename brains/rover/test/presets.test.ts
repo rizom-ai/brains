@@ -75,6 +75,17 @@ plugins:
     );
   });
 
+  it("treats make-one-draft follow-ups as ambiguous after an empty draft list", () => {
+    const config = resolve(rover, {}, { preset: "full" });
+
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "After telling the user there are no draft blog posts",
+    );
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "do not call system_generate to create a fresh draft",
+    );
+  });
+
   it("includes document support in the core preset", () => {
     const config = resolve(rover, {}, { preset: "core" });
     const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
