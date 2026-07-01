@@ -61,6 +61,8 @@ publishedAt?: string
 
 The markdown body remains the canonical long-form content. Frontmatter stores workflow and relationship metadata; the body stores the actual outline or draft. Generated PDFs should follow the existing document attachment convention by storing references in `documents: [{ id }]` rather than introducing a separate single `documentId` field.
 
+A white paper should initially be stored as one entity, not a bundle of section entities. This keeps CRUD, sync, search, generation, and document export simple. If white papers become too long for reliable generation/review, a future optional bundle mode can introduce section references and child section files without changing the default single-entity workflow.
+
 ## Suggested content structure
 
 The entity should not require these headings, but white paper generation prompts and templates can use them as defaults:
@@ -185,6 +187,7 @@ A useful product MVP likely needs more than outline generation. Candidate minimu
 
 - create or import a whitepaper outline
 - expand outline → draft while preserving the same whitepaper entity ID
+- keep the default workflow as a single markdown entity
 - attach or export a generated document/PDF
 - preserve source relationships sufficiently for later review
 
@@ -193,6 +196,7 @@ A useful product MVP likely needs more than outline generation. Candidate minimu
 These should be implemented after the initial entity type is stable:
 
 - outline → draft expansion workflow
+- optional section/bundle mode if single-entity drafts become too large or need section-level review
 - document/PDF generation and attachment
 - cover image generation/attachment
 - public site route and templates
@@ -223,6 +227,7 @@ The implementation should follow the existing entity-type pattern rather than sp
 - Should `sourceEntityType` constraints in `social-post` be expanded beyond `post | deck`, or should derivatives simply omit source references when the source is a note/whitepaper?
 - Should PDF generation attach documents automatically by appending to `documents: [{ id }]` on the whitepaper?
 - Should a whitepaper have a stable slug and public route by default? The initial technical slice should persist `slug` when provided, but public routing can remain template/site-config dependent.
+- If optional bundle mode is added later, should child sections be first-class entities, nested markdown files, or generated assembly artifacts?
 
 ## Acceptance criteria
 
