@@ -5,7 +5,9 @@ Entity type: `whitepaper`.
 
 ## Status
 
-Proposed.
+Technical exploration / foundation branch.
+
+This is **not ready to merge as a product MVP**. The current branch proves the entity foundation and outline-stage generation, but a useful white paper product workflow still needs at least outline → draft expansion and document export/attachment decisions.
 
 ## Context
 
