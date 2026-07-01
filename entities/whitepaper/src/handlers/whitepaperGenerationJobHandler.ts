@@ -1,13 +1,14 @@
 import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { EntityPluginContext, GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { slugify, z } from "@brains/utils";
+import { parseMarkdown, slugify, z } from "@brains/utils";
 import { generationResultSchema } from "@brains/contracts";
 import { whitepaperAdapter } from "../adapters/whitepaper-adapter";
 import type { WhitepaperFrontmatter } from "../schemas/whitepaper";
 
 export const whitepaperGenerationJobSchema = z.object({
   entityId: z.string().optional(),
+  mode: z.enum(["outline", "draft"]).optional(),
   prompt: z.string(),
   title: z.string().optional(),
   content: z.string().optional(),
@@ -47,6 +48,18 @@ export class WhitepaperGenerationJobHandler extends BaseGenerationJobHandler<
       message: "Generating white paper outline with AI",
     });
 
+    const mode = data.mode ?? "outline";
+    const existing = data.entityId
+      ? await this.context.entityService.getEntity({
+          entityType: "whitepaper",
+          id: data.entityId,
+          visibilityScope: "restricted",
+        })
+      : undefined;
+    const existingParsed = existing
+      ? parseMarkdown(existing.content)
+      : undefined;
+    const prompt = this.buildPrompt(data, existingParsed?.content);
     const generated = await this.context.ai.generate<{
       title: string;
       subtitle: string;
@@ -55,17 +68,22 @@ export class WhitepaperGenerationJobHandler extends BaseGenerationJobHandler<
       keywords: string[];
       body: string;
     }>({
-      prompt: data.content
-        ? `${data.prompt}\n\nSource material:\n${data.content}`
-        : data.prompt,
-      templateName: "whitepaper:generation",
+      prompt,
+      templateName:
+        mode === "draft"
+          ? "whitepaper:draft-expansion"
+          : "whitepaper:generation",
     });
 
-    const title = data.title ?? generated.title;
+    const existingTitle =
+      typeof existingParsed?.frontmatter["title"] === "string"
+        ? existingParsed.frontmatter["title"]
+        : undefined;
+    const title = data.title ?? existingTitle ?? generated.title;
     const slug = slugify(data.entityId ?? title);
     const frontmatter: WhitepaperFrontmatter = {
       title,
-      status: "outline",
+      status: mode === "draft" ? "draft" : "outline",
       slug,
       ...(generated.subtitle.trim() && { subtitle: generated.subtitle }),
       thesis: generated.thesis,
@@ -87,11 +105,25 @@ export class WhitepaperGenerationJobHandler extends BaseGenerationJobHandler<
       metadata: {
         title,
         slug,
-        status: "outline",
+        status: frontmatter.status,
       },
       title,
       resultExtras: { title, slug },
     };
+  }
+
+  private buildPrompt(
+    data: WhitepaperGenerationJobData,
+    existingBody?: string,
+  ): string {
+    const parts = [data.prompt];
+    if (existingBody) {
+      parts.push(`Existing white paper content:\n${existingBody}`);
+    }
+    if (data.content) {
+      parts.push(`Additional source material:\n${data.content}`);
+    }
+    return parts.join("\n\n");
   }
 
   protected override summarizeDataForLog(
@@ -100,7 +132,9 @@ export class WhitepaperGenerationJobHandler extends BaseGenerationJobHandler<
     return {
       prompt: data.prompt,
       title: data.title,
+      mode: data.mode,
       hasContent: Boolean(data.content),
+      hasEntityId: Boolean(data.entityId),
     };
   }
 }

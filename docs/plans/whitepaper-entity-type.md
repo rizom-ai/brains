@@ -7,7 +7,7 @@ Entity type: `whitepaper`.
 
 Technical exploration / foundation branch.
 
-This is **not ready to merge as a product MVP**. The current branch proves the entity foundation and outline-stage generation, but a useful white paper product workflow still needs at least outline → draft expansion and document export/attachment decisions.
+This is **not ready to merge as a product MVP**. The current branch proves the entity foundation, outline-stage generation, and outline → draft expansion, but a useful white paper product workflow still needs document export/attachment decisions and review of the end-to-end authoring flow.
 
 ## Context
 
@@ -55,6 +55,9 @@ relatedProjects?: string[]
 coverImageId?: string
 documents?:
   - id: string
+appendices?:
+  - title: string
+    type?: glossary | further-reading | methodology | references | implementation-details | other
 slug?: string
 publishedAt?: string
 ```
@@ -62,6 +65,8 @@ publishedAt?: string
 The markdown body remains the canonical long-form content. Frontmatter stores workflow and relationship metadata; the body stores the actual outline or draft. Generated PDFs should follow the existing document attachment convention by storing references in `documents: [{ id }]` rather than introducing a separate single `documentId` field.
 
 A white paper should initially be stored as one entity, not a bundle of section entities. This keeps CRUD, sync, search, generation, and document export simple. If white papers become too long for reliable generation/review, a future optional bundle mode can introduce section references and child section files without changing the default single-entity workflow.
+
+Optional appendices may include key terms, further reading, methodology, references, or implementation details. The schema should only describe appendix presence and type; appendix content remains in the markdown body.
 
 ## Suggested content structure
 
@@ -87,6 +92,8 @@ The entity should not require these headings, but white paper generation prompts
 ## Implementation Roadmap
 
 ## Conclusion
+
+## Appendix: Key Terms
 ```
 
 For the New Institutions white paper, the default structure can be more specific:
@@ -160,24 +167,24 @@ This is not the product MVP. It is the first technical slice needed to make `whi
 - support directory sync round-tripping through `whitepaper/`
 - include the New Institutions outline as the first fixture/test case
 - add agent evals that map "white paper" / "strategic paper" requests to `entityType: whitepaper`, list whitepapers correctly, and avoid false-positive note captures
-- add a narrow `WhitepaperGenerationJobHandler` for prompt-driven outline generation
-- add plugin generation evals for outline quality and "write white paper" requests staying outline-stage
+- add a narrow `WhitepaperGenerationJobHandler` for prompt-driven outline generation and outline → draft expansion
+- add plugin generation evals for outline quality, "write white paper" requests staying outline-stage, and draft expansion quality
 
 ### Generation handler
 
 The initial `WhitepaperGenerationJobHandler` should stay deliberately narrow:
 
 - prompt/content → outline whitepaper
-- default `status: outline`
+- default new-generation `status: outline`
+- existing outline → draft expansion while preserving the same whitepaper ID
 - generic section structure, not New Institutions-specific sections by default
-- no full-draft generation yet
 - no PDF/social/deck derivatives yet
 
-Prompt-based generation should create an outline that can be expanded later rather than attempting a complete long-form paper in one shot. If source content is provided, the handler may include it in the prompt as grounding material, but structured `sourceEntities` resolution/citation mapping can remain follow-up work.
+Prompt-based creation should create an outline rather than attempting a complete long-form paper in one shot. Draft expansion should be a second step on the existing entity. If source content is provided, the handler may include it in the prompt as grounding material, but structured `sourceEntities` resolution/citation mapping can remain follow-up work.
 
 Open design questions for later generation work:
 
-- Should outline → draft mutate the same entity, create a new revision, or create a separate entity?
+- Should draft expansion keep only the latest draft in the entity body, or should prior outline/draft revisions be preserved elsewhere?
 - Should source-grounded generation require citations/source mapping in the body?
 - How should long draft generation be chunked to avoid one-shot low-quality output?
 
@@ -195,7 +202,7 @@ A useful product MVP likely needs more than outline generation. Candidate minimu
 
 These should be implemented after the initial entity type is stable:
 
-- outline → draft expansion workflow
+- optional revision/history handling for outline → draft expansion beyond normal git history
 - optional section/bundle mode if single-entity drafts become too large or need section-level review
 - document/PDF generation and attachment
 - cover image generation/attachment
@@ -239,11 +246,11 @@ The implementation should follow the existing entity-type pattern rather than sp
 - The New Institutions outline can be saved as a `whitepaper` rather than a generic note.
 - Agent eval coverage verifies that white paper / strategic paper language maps to `entityType: whitepaper`, listing requests use `system_list`, and note/memo captures are not over-mapped to whitepaper.
 - Prompt-driven generation can create an outline whitepaper with `status: outline`.
-- Plugin eval coverage verifies generated outlines are structured, whitepaper-specific, and do not become full prose drafts.
+- Outline → draft expansion preserves the same whitepaper entity ID and changes status to `draft`.
+- Plugin eval coverage verifies generated outlines are structured, whitepaper-specific, do not become full prose drafts, and can be expanded into draft prose.
 
 ### Follow-up acceptance criteria
 
-- Outline → draft expansion preserves the same whitepaper entity ID unless explicitly configured otherwise.
 - Whitepaper entities support cover images and generated document attachments using existing `coverImageId` and `documents: [{ id }]` conventions.
 - Whitepaper can be used as a source for social-post and deck generation, even if the social-post schema does not store it as `sourceEntityType` initially.
 - Whitepaper can render publicly when a site template/config enables a route.

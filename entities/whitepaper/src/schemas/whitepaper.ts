@@ -28,6 +28,20 @@ export const whitepaperDocumentReferenceSchema = z.object({
   id: z.string(),
 });
 
+export const whitepaperAppendixTypeSchema = z.enum([
+  "glossary",
+  "further-reading",
+  "methodology",
+  "references",
+  "implementation-details",
+  "other",
+]);
+
+export const whitepaperAppendixSchema = z.object({
+  title: z.string(),
+  type: whitepaperAppendixTypeSchema.optional(),
+});
+
 export const whitepaperFrontmatterSchema = z.object({
   title: z.string(),
   subtitle: z.string().optional(),
@@ -43,6 +57,7 @@ export const whitepaperFrontmatterSchema = z.object({
   relatedProjects: z.array(z.string()).optional(),
   coverImageId: z.string().optional(),
   documents: z.array(whitepaperDocumentReferenceSchema).optional(),
+  appendices: z.array(whitepaperAppendixSchema).optional(),
   slug: z.string().optional(),
   publishedAt: z.string().datetime().optional(),
 });

@@ -1,0 +1,58 @@
+id: whitepaper-expand-draft
+name: Expand white paper outline into draft
+description: Tests that an outline can be expanded into draft-stage prose without losing white paper structure.
+type: plugin
+tags:
+  - whitepaper
+  - generation
+  - draft
+  - lifecycle
+plugin: whitepaper
+handler: expandWhitepaperDraft
+
+input:
+  prompt: "Expand this outline into a concise first draft for institutional decision makers."
+  outline: |
+    ## Executive Summary
+    - Public-interest AI infrastructure should strengthen democratic capacity.
+
+    ## Problem / Context
+    - Democratic institutions depend on private AI platforms with weak accountability.
+    - Public agencies need shared infrastructure, procurement models, and governance.
+
+    ## Governance / Risks
+    - Capture, opacity, privacy, and brittle vendor dependence.
+
+    ## Implementation Roadmap
+    - Start with shared evaluation infrastructure and accountable pilots.
+
+expectedOutput:
+  validateEach:
+    - path: title
+      matches: ".{10,120}"
+    - path: thesis
+      matches: ".{40,300}"
+    - path: abstract
+      matches: ".{80,800}"
+    - path: body
+      matches: "[\\s\\S]{500,}"
+    - path: body
+      matches: "## Executive Summary"
+    - path: body
+      matches: "## Problem / Context"
+    - path: body
+      matches: "## Governance / Risks"
+    - path: body
+      matches: "## Implementation Roadmap"
+    - path: body
+      matches: "democratic institutions|public-interest|public agencies"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Judge whether the output expands the provided outline into draft prose.
+      It should retain the white paper sections, include paragraphs rather than
+      only bullets, and speak to institutional decision makers. Penalize outputs
+      that remain a bare outline or drift into generic AI marketing copy.

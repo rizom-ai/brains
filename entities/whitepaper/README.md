@@ -25,4 +25,9 @@ sourceEntities:
 coverImageId: cover-image-id
 documents:
   - id: generated-pdf-id
+appendices:
+  - title: Key Terms
+    type: glossary
 ```
+
+Optional appendices can describe body sections such as key terms, further reading, methodology, references, or implementation details. Appendix content remains in the markdown body, for example `## Appendix: Key Terms`.

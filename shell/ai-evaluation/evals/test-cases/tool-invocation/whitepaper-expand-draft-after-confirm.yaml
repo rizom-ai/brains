@@ -1,0 +1,47 @@
+id: shell-whitepaper-expand-draft-after-confirm
+name: White paper outline expands after confirmed create
+description: Tests that draft expansion happens only after the outline create is confirmed, and targets the existing whitepaper.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - shell
+  - tool-invocation
+  - create
+  - confirmation
+  - whitepaper
+  - draft
+  - rover
+  - preset-full
+
+turns:
+  - userMessage: "Create a white paper outline about public-interest AI infrastructure"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: whitepaper
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "Confirm white paper outline creation"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed"
+
+  - userMessage: "Expand that white paper outline into a draft"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: whitepaper
+            targetEntityType: whitepaper
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 7
+  maxTokens: 70000

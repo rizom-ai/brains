@@ -62,7 +62,7 @@ Body.`,
     expect(markdown).toContain("Body.");
   });
 
-  it("parses cover image and document attachment references", () => {
+  it("parses cover image, document, and appendix references", () => {
     const entity = createNewInstitutionsWhitepaper({
       content: `---
 title: New Institutions
@@ -70,6 +70,9 @@ status: published
 coverImageId: cover-1
 documents:
   - id: new-institutions-pdf
+appendices:
+  - title: Key Terms
+    type: glossary
 ---
 
 Body.`,
@@ -79,6 +82,9 @@ Body.`,
 
     expect(frontmatter.coverImageId).toBe("cover-1");
     expect(frontmatter.documents).toEqual([{ id: "new-institutions-pdf" }]);
+    expect(frontmatter.appendices).toEqual([
+      { title: "Key Terms", type: "glossary" },
+    ]);
   });
 
   it("builds generation stubs as idea whitepapers", () => {

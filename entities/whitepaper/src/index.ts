@@ -6,6 +6,8 @@ export {
   whitepaperSourceEntityTypeSchema,
   whitepaperSourceEntitySchema,
   whitepaperDocumentReferenceSchema,
+  whitepaperAppendixTypeSchema,
+  whitepaperAppendixSchema,
   whitepaperFrontmatterSchema,
   whitepaperMetadataSchema,
   whitepaperWithDataSchema,
@@ -31,6 +33,10 @@ export {
 
 export {
   whitepaperGenerationSchema,
+  whitepaperDraftExpansionSchema,
   whitepaperGenerationTemplate,
   type WhitepaperGeneration,
+  type WhitepaperDraftExpansion,
 } from "./templates/generation-template";
+
+export { whitepaperDraftExpansionTemplate } from "./templates/draft-expansion-template";

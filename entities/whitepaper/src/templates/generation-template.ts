@@ -1,7 +1,7 @@
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/plugins";
 
-export const whitepaperGenerationSchema = z.object({
+const whitepaperGeneratedFields = {
   title: z
     .string()
     .trim()
@@ -36,9 +36,18 @@ export const whitepaperGenerationSchema = z.object({
     .trim()
     .min(1)
     .describe("A markdown outline using section headings and concise bullets."),
-});
+};
+
+export const whitepaperGenerationSchema = z.object(whitepaperGeneratedFields);
+
+export const whitepaperDraftExpansionSchema = z.object(
+  whitepaperGeneratedFields,
+);
 
 export type WhitepaperGeneration = z.infer<typeof whitepaperGenerationSchema>;
+export type WhitepaperDraftExpansion = z.infer<
+  typeof whitepaperDraftExpansionSchema
+>;
 
 export const whitepaperGenerationTemplate =
   createTemplate<WhitepaperGeneration>({

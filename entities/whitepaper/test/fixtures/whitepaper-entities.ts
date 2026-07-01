@@ -14,6 +14,9 @@ thesis: New institutions need technology that strengthens memory, sovereignty, a
 sourceEntities:
   - entityType: post
     id: institutional-memory
+appendices:
+  - title: Key Terms
+    type: glossary
 ---
 
 ## Executive Summary
@@ -37,6 +40,8 @@ sourceEntities:
 ## Roadmap / Implementation Path
 
 ## Conclusion: Infrastructure for What Comes Next
+
+## Appendix: Key Terms
 `;
 
 export function createNewInstitutionsWhitepaper(
