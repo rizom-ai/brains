@@ -1,5 +1,5 @@
 import { createTemplate } from "@brains/plugins";
-import { Ecosystem } from "@rizom/ui";
+import { Ecosystem } from "../ui/Ecosystem";
 import { ecosystemContentSchema } from "../schemas/ecosystem-section";
 import { formatEcosystemContent, parseEcosystemContent } from "../lib";
 

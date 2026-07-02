@@ -5,10 +5,10 @@ import type {
   RouteDefinition,
   SectionDefinition,
 } from "@brains/plugins";
-import type { SiteInfoBody } from "@brains/site-info";
+import type { SiteMetadata } from "@brains/site-composition";
 import type { GenerateOptions } from "../schemas/generate-options";
 
-export type SiteGenerationConfig = Pick<SiteInfoBody, "title" | "description">;
+export type SiteGenerationConfig = Pick<SiteMetadata, "title" | "description">;
 
 export class SiteContentOperations {
   constructor(private readonly context: ServicePluginContext) {}

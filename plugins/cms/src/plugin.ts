@@ -5,8 +5,8 @@ import { ServicePlugin } from "@brains/plugins";
 import {
   generateCmsConfig,
   type CmsConfig,
-  type EntityDisplayMap,
-} from "@brains/cms-config";
+  type CmsEntityDisplayMap,
+} from "./config";
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
 import { toYaml, z } from "@brains/utils";
@@ -77,7 +77,7 @@ interface EnabledLoginMethods {
 }
 
 interface CmsConfigBuildOptions {
-  entityDisplay?: EntityDisplayMap;
+  entityDisplay?: CmsEntityDisplayMap;
   authEndpoint?: string;
   baseUrl?: string;
 }
@@ -123,8 +123,8 @@ function getCmsConfigOptions(
   context?: ServicePluginContext,
 ): CmsConfigBuildOptions {
   const entityDisplay =
-    (config.entityDisplay as EntityDisplayMap | undefined) ??
-    (context?.entityDisplay as EntityDisplayMap | undefined);
+    (config.entityDisplay as CmsEntityDisplayMap | undefined) ??
+    (context?.entityDisplay as CmsEntityDisplayMap | undefined);
   return {
     ...(entityDisplay ? { entityDisplay } : {}),
     ...(hasEnabledLogin(loginMethods)

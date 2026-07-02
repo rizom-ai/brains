@@ -2,7 +2,7 @@ import { serializeForScript } from "./script-literal";
 
 // Pin the Sveltia CMS build. This script receives a GitHub write token in the
 // browser, so an unpinned `@latest` would be both a stability and supply-chain
-// risk. Bump deliberately. Keep in sync with @brains/cms-config.
+// risk. Bump deliberately.
 const SVELTIA_CMS_SRC =
   "https://unpkg.com/@sveltia/cms@0.165.1/dist/sveltia-cms.js";
 

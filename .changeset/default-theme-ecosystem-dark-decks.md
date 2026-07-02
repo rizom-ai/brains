@@ -1,6 +1,5 @@
 ---
 "@rizom/brain": patch
-"@rizom/ui": patch
 ---
 
 Fix professional/default site rendering with shared Rizom ecosystem sections and deck views.

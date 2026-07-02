@@ -1,5 +1,7 @@
 import { formatLabel, pluralize, type z } from "@brains/utils";
-import { NOTE_ENTITY_TYPE } from "@brains/entity-service";
+// Base-note entity type id (mirrors NOTE_ENTITY_TYPE in @brains/entity-service,
+// which plugins may not import directly and @brains/plugins does not re-export).
+const NOTE_ENTITY_TYPE = "note";
 
 /**
  * Per-entity-type display metadata accepted by the generator.
@@ -11,7 +13,7 @@ export interface EntityDisplayLabel {
   pluralName?: string;
 }
 
-export type EntityDisplayMap = Partial<Record<string, EntityDisplayLabel>>;
+export type CmsEntityDisplayMap = Partial<Record<string, EntityDisplayLabel>>;
 
 /**
  * CMS field widget descriptor for Sveltia/Decap CMS config
@@ -89,7 +91,7 @@ export interface CmsConfigOptions {
         hasBody?: boolean;
       }
     | undefined;
-  entityDisplay?: EntityDisplayMap;
+  entityDisplay?: CmsEntityDisplayMap;
 }
 
 const LONG_TEXT_FIELDS = new Set([
@@ -291,16 +293,3 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
     collections,
   };
 }
-
-export const CMS_ADMIN_HTML = `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Content Manager</title>
-  </head>
-  <body>
-    <script src="https://unpkg.com/@sveltia/cms@0.165.1/dist/sveltia-cms.js"></script>
-  </body>
-</html>
-`;

@@ -15,6 +15,7 @@
     "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "eval": "brain-eval",
     "eval:core": "brain-eval --suite core",
     "eval:core:coverage": "brain-eval --suite core --tool-coverage",

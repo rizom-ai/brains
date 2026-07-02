@@ -1,5 +1,5 @@
 import type { JSX, ComponentChildren } from "preact";
-import { cn } from "./cn";
+import { cn } from "@brains/ui-library";
 
 export interface SectionProps {
   id?: string;

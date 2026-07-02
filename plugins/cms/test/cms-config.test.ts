@@ -4,7 +4,7 @@ import {
   zodFieldToCmsWidget,
   generateCmsConfig,
   type CmsConfigOptions,
-} from "../src/index";
+} from "../src/config";
 
 describe("zodFieldToCmsWidget", () => {
   it("should map z.string() to string widget", () => {
