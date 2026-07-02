@@ -7,7 +7,9 @@ import { UserPermissionLevelSchema } from "./permission-service";
  * Component type for layouts - using Preact
  * Returns a Preact VNode
  */
-export type ComponentType<P = unknown> = (props: P) => VNode;
+export type ComponentType<P = unknown> = {
+  bivarianceHack(props: P): VNode;
+}["bivarianceHack"];
 
 /**
  * A runtime script that a template depends on. Site-builder collects

@@ -62,6 +62,14 @@ const atprotoSchema = z
   })
   .strict();
 
+const siteOverrideSchema = z
+  .object({
+    package: z.string().min(1),
+    version: exactVersionSchema,
+    theme: z.string().min(1).optional(),
+  })
+  .strict();
+
 const playbooksSchema = z
   .object({
     onboarding: z.boolean().optional(),
@@ -79,6 +87,9 @@ export const userSchema = z
       .strict(),
     aiApiKeyOverride: secretNameSchema.optional(),
     gitSyncTokenOverride: secretNameSchema.optional(),
+    domainOverride: z.string().min(1).optional(),
+    contentRepoOverride: z.string().min(1).optional(),
+    siteOverride: siteOverrideSchema.optional(),
     setup: setupDeliverySchema.optional(),
     atproto: atprotoSchema.optional(),
     playbooks: playbooksSchema.optional(),

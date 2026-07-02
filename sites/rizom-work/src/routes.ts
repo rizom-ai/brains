@@ -1,4 +1,6 @@
-export const workRoutes = [
+import type { RouteDefinitionInput } from "@brains/site-composition";
+
+export const workRoutes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",

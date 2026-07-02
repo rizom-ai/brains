@@ -150,6 +150,46 @@ discord:
     });
   });
 
+  it("loads user-level site and deployment override metadata", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.136
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: default
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/rizom-work.yaml": `handle: rizom-work
+domainOverride: rizom.work
+contentRepoOverride: rizom-ai/rizom-work-content
+siteOverride:
+  package: "@brains/site-rizom-work"
+  version: 0.2.0-alpha.136
+  theme: "@brains/theme-rizom"
+discord:
+  enabled: false
+`,
+      "cohorts/sites.yaml": `members:
+  - rizom-work
+`,
+    });
+
+    const registry = await loadPilotRegistry(root);
+
+    expect(registry.users[0]?.domain).toBe("rizom.work");
+    expect(registry.users[0]?.contentRepo).toBe("rizom-ai/rizom-work-content");
+    expect(registry.users[0]?.siteOverride).toEqual({
+      package: "@brains/site-rizom-work",
+      version: "0.2.0-alpha.136",
+      theme: "@brains/theme-rizom",
+    });
+  });
+
   it("loads user-level ATProto identifier metadata", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1

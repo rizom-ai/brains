@@ -4,7 +4,7 @@
 
 Phase 0 started in worktree `work/sites-controlled-deploy`.
 
-Implementation started with `@brains/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. Publishability of the full runtime dependency chain remains the next gate before hosted-rover can consume it as an installed package.
+Implementation started with `@brains/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@brains/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Publishability of the full runtime dependency chain remains the next gate before hosted-rover can consume it as an installed package.
 
 > **Supersedes prior direction.** The earlier "one shared site + per-app skins in app `src/`, no new published packages" direction is intentionally reversed for this work (confirmed 2026-06-30). Hosted-rover needs npm-resolvable site refs in generated `brain.yaml`, which app-local `src/site.ts` cannot provide, so the Rizom site family now ships as three published per-site packages. The divergence-discipline rule still applies _within_ each package.
 
@@ -89,6 +89,8 @@ Current deploy scripts derive:
 4. Generated `brain.yaml` should reference npm-resolvable package refs, not app-local `src/site.ts` paths.
 5. Hosted deploy installs or otherwise resolves those package refs before boot/build, so Rover can render the requested site without bundling every possible site into the base runtime.
 6. Once hosted deploy is live, retire the old standalone site deploy workflows/images in `rizom-ai`, `rizom-foundation`, and `rizom-work`.
+
+Implemented config slice (2026-07-02): `brains-ops` user registry entries may now set `domainOverride`, `contentRepoOverride`, and `siteOverride`. Generated `brain.yaml` emits `site.package` and `site.theme`; `siteOverride.version` is retained as operator metadata for build/install pinning and is intentionally omitted from runtime YAML.
 
 ## Packaging path
 

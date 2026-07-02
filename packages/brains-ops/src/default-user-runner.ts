@@ -17,6 +17,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     `brain: ${user.model}`,
     `domain: ${user.domain}`,
     `preset: ${user.preset}`,
+    ...renderSiteConfig(user),
     "",
     renderAnchors(user),
     "",
@@ -29,7 +30,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
       : []),
     "  directory-sync:",
     "    git:",
-    `      repo: ${githubOrg}/${user.contentRepo}`,
+    `      repo: ${renderContentRepoRef(user, githubOrg)}`,
     "      authToken: ${GIT_SYNC_TOKEN}",
     ...(user.atproto
       ? [
@@ -54,6 +55,31 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   lines.push("");
 
   return lines.join("\n");
+}
+
+function renderSiteConfig(user: ResolvedUser): string[] {
+  if (!user.siteOverride) {
+    return [];
+  }
+
+  return [
+    "",
+    "site:",
+    `  package: ${quoteYamlString(user.siteOverride.package)}`,
+    ...(user.siteOverride.theme
+      ? [`  theme: ${quoteYamlString(user.siteOverride.theme)}`]
+      : []),
+  ];
+}
+
+function quoteYamlString(value: string): string {
+  return JSON.stringify(value);
+}
+
+function renderContentRepoRef(user: ResolvedUser, githubOrg: string): string {
+  return user.contentRepo.includes("/")
+    ? user.contentRepo
+    : `${githubOrg}/${user.contentRepo}`;
 }
 
 function renderSetupEmailConfig(email: string): string[] {
@@ -128,7 +154,7 @@ function renderAnchorProfile(user: ResolvedUser): string {
 function renderUserEnv(user: ResolvedUser, githubOrg: string): string {
   const lines = [
     `BRAIN_VERSION=${user.brainVersion}`,
-    `CONTENT_REPO=${githubOrg}/${user.contentRepo}`,
+    `CONTENT_REPO=${renderContentRepoRef(user, githubOrg)}`,
     "",
   ];
 

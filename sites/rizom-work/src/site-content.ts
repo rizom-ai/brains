@@ -8,8 +8,9 @@ import { CredibilityLayout } from "./sections/credibility/layout";
 import { OwnershipLayout } from "./sections/ownership/layout";
 import { CloserLayout } from "./sections/closer/layout";
 import { Ecosystem } from "@rizom/ui";
+import type { SiteContentDefinition } from "@brains/site-content";
 
-export default {
+const workSiteContent: SiteContentDefinition = {
   namespace: "landing-page",
   sections: {
     hero: {
@@ -222,3 +223,5 @@ export default {
     },
   },
 };
+
+export default workSiteContent;

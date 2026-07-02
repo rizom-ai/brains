@@ -60,6 +60,12 @@ export interface ResolvedPlaybooksConfig {
   onboarding?: boolean | undefined;
 }
 
+export interface ResolvedSiteOverride {
+  package: string;
+  version: string;
+  theme?: string | undefined;
+}
+
 export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
@@ -68,6 +74,7 @@ export interface ResolvedUserIdentity {
   preset: PilotPreset;
   domain: string;
   contentRepo: string;
+  siteOverride?: ResolvedSiteOverride;
   discordEnabled: boolean;
   discordAnchorUserId?: string;
   effectiveAiApiKey: string;
@@ -155,8 +162,15 @@ export async function loadPilotRegistry(
         brainVersion: cohort.data.brainVersionOverride ?? pilot.brainVersion,
         model: pilot.model,
         preset: cohort.data.presetOverride ?? pilot.preset,
-        domain: `${userFile.data.handle}${pilot.domainSuffix}`,
-        contentRepo: `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
+        domain:
+          userFile.data.domainOverride ??
+          `${userFile.data.handle}${pilot.domainSuffix}`,
+        contentRepo:
+          userFile.data.contentRepoOverride ??
+          `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
+        ...(userFile.data.siteOverride
+          ? { siteOverride: userFile.data.siteOverride }
+          : {}),
         discordEnabled: userFile.data.discord.enabled,
         ...(userFile.data.discord.anchorUserId
           ? { discordAnchorUserId: userFile.data.discord.anchorUserId }
