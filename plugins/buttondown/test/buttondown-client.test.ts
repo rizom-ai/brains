@@ -76,6 +76,66 @@ describe("ButtondownClient", () => {
 
       expect(client.createSubscriber({ email: "invalid" })).rejects.toThrow();
     });
+
+    it("should detect duplicates via error code and look up the existing subscriber", async () => {
+      const requests: Array<{ url: string; method: string | undefined }> = [];
+      mockFetch((url, options) => {
+        requests.push({ url, method: options.method });
+        if (options.method === "POST") {
+          return Promise.resolve({
+            ok: false,
+            status: 400,
+            json: () =>
+              Promise.resolve({
+                code: "email_already_exists",
+                detail:
+                  "That email address already has an associated subscriber.",
+              }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: "sub-existing",
+              email: "existing@example.com",
+              subscriber_type: "regular",
+            }),
+        });
+      });
+
+      const result = await client.createSubscriber({
+        email: "existing@example.com",
+      });
+
+      expect(result.id).toBe("sub-existing");
+      expect(result.subscriber_type).toBe("already_subscribed");
+      expect(requests).toHaveLength(2);
+      expect(requests[1]?.url).toContain("/subscribers/existing%40example.com");
+    });
+  });
+
+  describe("getSubscriberByEmail", () => {
+    it("should fetch a subscriber by email", async () => {
+      let capturedUrl: string | undefined;
+      mockFetch((url) => {
+        capturedUrl = url;
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: "sub-1",
+              email: "a@test.com",
+              subscriber_type: "regular",
+            }),
+        });
+      });
+
+      const result = await client.getSubscriberByEmail("a@test.com");
+
+      expect(result.id).toBe("sub-1");
+      expect(capturedUrl).toContain("/subscribers/a%40test.com");
+    });
   });
 
   describe("unsubscribe", () => {

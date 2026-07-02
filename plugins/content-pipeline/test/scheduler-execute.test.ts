@@ -147,6 +147,7 @@ describe("ContentScheduler - provider execution", () => {
           result: { id: "platform-123", url: "https://example.com/post/123" },
         }),
         sender: "publish-service",
+        broadcast: true,
       });
     });
 
@@ -175,6 +176,7 @@ describe("ContentScheduler - provider execution", () => {
           error: "Network error",
         }),
         sender: "publish-service",
+        broadcast: true,
       });
     });
 

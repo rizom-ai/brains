@@ -70,8 +70,8 @@ const defaultFetch: FetchLike = (input, init): Promise<Response> =>
   fetch(input, init);
 
 async function parseJsonResponse<T>(response: Response): Promise<T> {
-  const body = (await response.json()) as unknown;
   if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as unknown;
     const message =
       typeof body === "object" &&
       body !== null &&
@@ -81,7 +81,7 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
         : `AT Protocol request failed with ${response.status}`;
     throw new Error(message);
   }
-  return body as T;
+  return (await response.json()) as T;
 }
 
 export class AtprotoPdsClient {

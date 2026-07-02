@@ -103,31 +103,56 @@ describe("AtprotoProjectionRegistry", () => {
     expect(registry.list()).toEqual([projection]);
   });
 
-  it("allows equivalent registrations from multiple plugin instances", () => {
+  it("uses the newest implementation for equivalent registrations", () => {
     const registry = AtprotoProjectionRegistry.createFresh();
     const first = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
       lexicon: createLexicon("ai.rizom.brain.post"),
       buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
-        Promise.resolve(createPostRecord()),
+        Promise.resolve(createPostRecord({ instance: "first" })),
     };
     const second = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
       lexicon: createLexicon("ai.rizom.brain.post"),
       buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
-        Promise.resolve(createPostRecord()),
+        Promise.resolve(createPostRecord({ instance: "second" })),
     };
 
     const unregisterFirst = registry.register(first);
     const unregisterSecond = registry.register(second);
 
-    expect(registry.get("post")).toBe(first);
+    expect(registry.get("post")).toBe(second);
+    expect(registry.list()).toEqual([second]);
     unregisterSecond();
     expect(registry.get("post")).toBe(first);
     unregisterFirst();
     expect(registry.get("post")).toBeUndefined();
+  });
+
+  it("restores the newest remaining instance when an older one unregisters", () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const first = {
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord({ instance: "first" })),
+    };
+    const second = {
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord({ instance: "second" })),
+    };
+
+    const unregisterFirst = registry.register(first);
+    registry.register(second);
+
+    unregisterFirst();
+    expect(registry.get("post")).toBe(second);
   });
 
   it("rejects conflicting registrations for the same entity type", () => {

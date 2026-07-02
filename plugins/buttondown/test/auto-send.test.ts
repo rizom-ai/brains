@@ -4,7 +4,9 @@ import {
   createMockEntityService,
   mockFetch,
 } from "@brains/test-utils";
+import { createPluginHarness } from "@brains/plugins/test";
 import { ButtondownClient } from "../src/lib/buttondown-client";
+import { ButtondownPlugin } from "../src/plugin";
 
 const originalFetch = globalThis.fetch;
 
@@ -163,6 +165,34 @@ describe("Newsletter Auto-Send on Publish", () => {
       if (!result.success) {
         expect(result.error).toBeDefined();
       }
+    });
+  });
+
+  describe("publish:completed subscriber", () => {
+    it("should propagate handler failure to the bus response", async () => {
+      const harness = createPluginHarness();
+      await harness.installPlugin(
+        new ButtondownPlugin({ apiKey: "test-key", autoSendOnPublish: true }),
+      );
+
+      const response = await harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: "publish:completed",
+          payload: {
+            entityType: "post",
+            entityId: "missing-post",
+            result: { id: "missing-post" },
+          },
+          sender: "test",
+        });
+
+      expect("success" in response && response.success).toBe(false);
+      if ("error" in response) {
+        expect(response.error).toContain("not found");
+      }
+      harness.reset();
     });
   });
 });

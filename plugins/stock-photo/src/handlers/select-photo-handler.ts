@@ -4,6 +4,7 @@ import type { Logger, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 import { imageAdapter } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
+import { setCoverImage } from "../lib/set-cover-image";
 
 export const selectPhotoJobSchema = z.object({
   photoId: z.string(),
@@ -23,7 +24,8 @@ export type SelectPhotoJobData = z.infer<typeof selectPhotoJobSchema>;
 export interface SelectPhotoJobResult {
   imageEntityId: string;
   alreadyExisted: false;
-  coverSet?: true;
+  coverSet?: boolean;
+  warning?: string;
 }
 
 export interface SelectPhotoHandlerDeps {
@@ -94,13 +96,15 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
     };
 
     if (data.targetEntityType && data.targetEntityId) {
-      await setCoverImage(
+      result.coverSet = await setCoverImage(
         this.deps.entityService,
         data.targetEntityType,
         data.targetEntityId,
         entityId,
       );
-      result.coverSet = true;
+      if (!result.coverSet) {
+        result.warning = `Target entity ${data.targetEntityType}:${data.targetEntityId} not found; cover image not set`;
+      }
     }
 
     await this.reportProgress(progressReporter, {
@@ -119,27 +123,4 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
       hasTarget: data.targetEntityType !== undefined,
     };
   }
-}
-
-async function setCoverImage(
-  entityService: IEntityService,
-  entityType: string,
-  entityId: string,
-  imageEntityId: string,
-): Promise<void> {
-  const target = await entityService.getEntity({
-    entityType,
-    id: entityId,
-  });
-  if (!target) return;
-
-  await entityService.updateEntity({
-    entity: {
-      ...target,
-      metadata: {
-        ...target.metadata,
-        coverImageId: imageEntityId,
-      },
-    },
-  });
 }

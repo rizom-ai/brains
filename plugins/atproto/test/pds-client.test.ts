@@ -257,4 +257,41 @@ describe("AtprotoPdsClient", () => {
       expect((error as Error).message).toBe("Invalid identifier");
     }
   });
+
+  it("surfaces the HTTP status when an error body is not JSON", async () => {
+    const fetchMock: FetchLike = () =>
+      Promise.resolve(
+        new Response("<html>Bad Gateway</html>", {
+          status: 502,
+          headers: { "Content-Type": "text/html" },
+        }),
+      );
+
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: fetchMock,
+    });
+
+    expect(client.createSession()).rejects.toThrow(
+      "AT Protocol request failed with 502",
+    );
+  });
+
+  it("surfaces the HTTP status when an error body is empty", async () => {
+    const fetchMock: FetchLike = () =>
+      Promise.resolve(new Response(null, { status: 503 }));
+
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: fetchMock,
+    });
+
+    expect(client.createSession()).rejects.toThrow(
+      "AT Protocol request failed with 503",
+    );
+  });
 });

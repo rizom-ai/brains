@@ -100,16 +100,29 @@ describe("Buttondown Tools", () => {
     });
 
     it("should detect already subscribed users", async () => {
-      mockFetch(() =>
-        Promise.resolve({
-          ok: false,
-          status: 400,
+      mockFetch((_url, options) => {
+        if (options.method === "POST") {
+          return Promise.resolve({
+            ok: false,
+            status: 400,
+            json: () =>
+              Promise.resolve({
+                code: "email_already_exists",
+                detail:
+                  "That email address already has an associated subscriber.",
+              }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
           json: () =>
             Promise.resolve({
-              detail: "This email is already subscribed (id=sub-existing)",
+              id: "sub-existing",
+              email: "existing@example.com",
+              subscriber_type: "regular",
             }),
-        }),
-      );
+        });
+      });
 
       await harness.installPlugin(
         new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
@@ -121,6 +134,7 @@ describe("Buttondown Tools", () => {
 
       expectSuccess(result);
       expect(result.data).toHaveProperty("message", "already_subscribed");
+      expect(result.data).toHaveProperty("subscriberId", "sub-existing");
     });
   });
 

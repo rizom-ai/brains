@@ -1,21 +1,13 @@
 import type { CloudflareConfig } from "../config";
 
 /**
- * Cloudflare Web Analytics GraphQL response
+ * Cloudflare Web Analytics GraphQL response envelope
  */
-export interface CloudflareAnalyticsResponse {
+interface CloudflareGraphQLResponse<TGroup> {
   data: {
     viewer: {
       accounts: Array<{
-        rumPageloadEventsAdaptiveGroups: Array<{
-          count: number;
-          sum: {
-            visits: number;
-          };
-          dimensions: {
-            date: string;
-          };
-        }>;
+        rumPageloadEventsAdaptiveGroups?: TGroup[];
       }>;
     };
   };
@@ -97,6 +89,58 @@ export class CloudflareClient {
   constructor(private config: CloudflareConfig) {}
 
   /**
+   * Execute a GraphQL query and return the adaptive groups from the
+   * first account in the response.
+   */
+  private async queryGraphQL<TGroup>(
+    query: string,
+    variables: Record<string, unknown>,
+  ): Promise<TGroup[]> {
+    const response = await fetch(this.graphqlUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.config.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Cloudflare API error: ${response.status} - ${errorText}`,
+      );
+    }
+
+    const result = (await response.json()) as CloudflareGraphQLResponse<TGroup>;
+
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(
+        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
+      );
+    }
+
+    return (
+      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? []
+    );
+  }
+
+  /**
+   * Build the common query variables, truncating dates to YYYY-MM-DD
+   */
+  private baseVariables(options: {
+    startDate: string;
+    endDate: string;
+  }): Record<string, unknown> {
+    return {
+      accountTag: this.config.accountId,
+      siteTag: this.config.siteTag,
+      start: options.startDate.split("T")[0],
+      end: options.endDate.split("T")[0],
+    };
+  }
+
+  /**
    * Get aggregated website statistics for a date range
    */
   async getWebsiteStats(
@@ -129,41 +173,11 @@ export class CloudflareClient {
       }
     `;
 
-    // Ensure dates are in YYYY-MM-DD format (truncate any time component)
-    const variables = {
-      accountTag: this.config.accountId,
-      siteTag: this.config.siteTag,
-      start: options.startDate.split("T")[0],
-      end: options.endDate.split("T")[0],
-    };
-
-    const response = await fetch(this.graphqlUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.config.apiToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query, variables }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Cloudflare API error: ${response.status} - ${errorText}`,
-      );
-    }
-
-    const result = (await response.json()) as CloudflareAnalyticsResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
-
-    // Aggregate the results
-    const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+    const groups = await this.queryGraphQL<{
+      count: number;
+      sum: { visits: number };
+      dimensions: { date: string };
+    }>(query, this.baseVariables(options));
 
     let pageviews = 0;
     let visits = 0;
@@ -188,37 +202,19 @@ export class CloudflareClient {
    * Validate that the API credentials are working
    */
   async validateCredentials(): Promise<boolean> {
-    try {
-      const query = `
-        query ValidateCredentials($accountTag: String!) {
-          viewer {
-            accounts(filter: { accountTag: $accountTag }) {
-              accountTag
-            }
+    const query = `
+      query ValidateCredentials($accountTag: String!) {
+        viewer {
+          accounts(filter: { accountTag: $accountTag }) {
+            accountTag
           }
         }
-      `;
-
-      const response = await fetch(this.graphqlUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.config.apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query,
-          variables: { accountTag: this.config.accountId },
-        }),
-      });
-
-      if (!response.ok) {
-        return false;
       }
+    `;
 
-      const result = (await response.json()) as {
-        errors?: Array<{ message: string }>;
-      };
-      return !result.errors || result.errors.length === 0;
+    try {
+      await this.queryGraphQL(query, { accountTag: this.config.accountId });
+      return true;
     } catch {
       return false;
     }
@@ -253,54 +249,13 @@ export class CloudflareClient {
       }
     `;
 
-    const variables = {
-      accountTag: this.config.accountId,
-      siteTag: this.config.siteTag,
-      start: options.startDate.split("T")[0],
-      end: options.endDate.split("T")[0],
+    const groups = await this.queryGraphQL<{
+      count: number;
+      dimensions: { requestPath: string };
+    }>(query, {
+      ...this.baseVariables(options),
       limit: options.limit ?? 20,
-    };
-
-    const response = await fetch(this.graphqlUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.config.apiToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query, variables }),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Cloudflare API error: ${response.status} - ${errorText}`,
-      );
-    }
-
-    interface TopPagesResponse {
-      data: {
-        viewer: {
-          accounts: Array<{
-            rumPageloadEventsAdaptiveGroups: Array<{
-              count: number;
-              dimensions: { requestPath: string };
-            }>;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    }
-
-    const result = (await response.json()) as TopPagesResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
-
-    const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     return groups.map((g) => ({
       path: g.dimensions.requestPath,
@@ -341,54 +296,13 @@ export class CloudflareClient {
       }
     `;
 
-    const variables = {
-      accountTag: this.config.accountId,
-      siteTag: this.config.siteTag,
-      start: options.startDate.split("T")[0],
-      end: options.endDate.split("T")[0],
+    const groups = await this.queryGraphQL<{
+      sum: { visits: number };
+      dimensions: { refererHost: string };
+    }>(query, {
+      ...this.baseVariables(options),
       limit: options.limit ?? 20,
-    };
-
-    const response = await fetch(this.graphqlUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.config.apiToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query, variables }),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Cloudflare API error: ${response.status} - ${errorText}`,
-      );
-    }
-
-    interface TopReferrersResponse {
-      data: {
-        viewer: {
-          accounts: Array<{
-            rumPageloadEventsAdaptiveGroups: Array<{
-              sum: { visits: number };
-              dimensions: { refererHost: string };
-            }>;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    }
-
-    const result = (await response.json()) as TopReferrersResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
-
-    const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     return groups.map((g) => ({
       host: g.dimensions.refererHost || "(direct)",
@@ -428,53 +342,10 @@ export class CloudflareClient {
       }
     `;
 
-    const variables = {
-      accountTag: this.config.accountId,
-      siteTag: this.config.siteTag,
-      start: options.startDate.split("T")[0],
-      end: options.endDate.split("T")[0],
-    };
-
-    const response = await fetch(this.graphqlUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.config.apiToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query, variables }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Cloudflare API error: ${response.status} - ${errorText}`,
-      );
-    }
-
-    interface DeviceBreakdownResponse {
-      data: {
-        viewer: {
-          accounts: Array<{
-            rumPageloadEventsAdaptiveGroups: Array<{
-              sum: { visits: number };
-              dimensions: { deviceType: string };
-            }>;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    }
-
-    const result = (await response.json()) as DeviceBreakdownResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
-
-    const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+    const groups = await this.queryGraphQL<{
+      sum: { visits: number };
+      dimensions: { deviceType: string };
+    }>(query, this.baseVariables(options));
 
     const breakdown: DeviceBreakdownResult = {
       desktop: 0,
@@ -529,54 +400,13 @@ export class CloudflareClient {
       }
     `;
 
-    const variables = {
-      accountTag: this.config.accountId,
-      siteTag: this.config.siteTag,
-      start: options.startDate.split("T")[0],
-      end: options.endDate.split("T")[0],
+    const groups = await this.queryGraphQL<{
+      sum: { visits: number };
+      dimensions: { countryName: string };
+    }>(query, {
+      ...this.baseVariables(options),
       limit: options.limit ?? 20,
-    };
-
-    const response = await fetch(this.graphqlUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.config.apiToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query, variables }),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Cloudflare API error: ${response.status} - ${errorText}`,
-      );
-    }
-
-    interface TopCountriesResponse {
-      data: {
-        viewer: {
-          accounts: Array<{
-            rumPageloadEventsAdaptiveGroups: Array<{
-              sum: { visits: number };
-              dimensions: { countryName: string };
-            }>;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    }
-
-    const result = (await response.json()) as TopCountriesResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
-
-    const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     return groups.map((g) => ({
       country: g.dimensions.countryName,

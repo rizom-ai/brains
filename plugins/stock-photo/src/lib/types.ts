@@ -43,7 +43,7 @@ export interface SelectResult {
     photographerUrl: string;
     sourceUrl: string;
   };
-  coverSet?: true;
+  coverSet?: boolean;
   jobId?: string;
   status?: "generating";
 }

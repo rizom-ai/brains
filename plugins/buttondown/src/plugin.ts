@@ -72,18 +72,27 @@ export class ButtondownPlugin extends ServicePlugin<ButtondownConfig> {
 
       // Auto-send newsletter on blog publish
       if (this.config.autoSendOnPublish) {
-        context.messaging.subscribe<
-          PublishCompletedPayload,
-          { success: boolean }
-        >("publish:completed", async (msg) => {
-          await handlePublishCompleted(
-            msg.payload,
-            client,
-            context.entityService,
-            this.logger,
-          );
-          return { success: true };
-        });
+        context.messaging.subscribe<PublishCompletedPayload>(
+          "publish:completed",
+          async (msg) => {
+            const result = await handlePublishCompleted(
+              msg.payload,
+              client,
+              context.entityService,
+              this.logger,
+            );
+            if (!result.success) {
+              // Broadcast delivery discards handler responses, so log the
+              // failure here in addition to returning it
+              this.logger.error("Buttondown auto-send failed", {
+                entityId: msg.payload.entityId,
+                error: result.error,
+              });
+              return { success: false, error: result.error };
+            }
+            return { success: true };
+          },
+        );
         this.logger.info("Buttondown auto-send on publish enabled");
       }
     }

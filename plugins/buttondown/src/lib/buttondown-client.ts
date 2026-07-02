@@ -79,6 +79,22 @@ export interface ListResponse<T> {
 interface ButtondownError {
   detail?: string;
   message?: string;
+  code?: string;
+}
+
+/**
+ * Error thrown for failed Buttondown API requests, preserving the structured
+ * error code from the response body (e.g. "email_already_exists")
+ */
+export class ButtondownApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code?: string,
+  ) {
+    super(message);
+    this.name = "ButtondownApiError";
+  }
 }
 
 /**
@@ -126,9 +142,14 @@ export class ButtondownClient {
       this.logger.error("Buttondown API error", {
         endpoint,
         status: response.status,
+        code: error.code,
         error: message,
       });
-      throw new Error(`Buttondown API error: ${message}`);
+      throw new ButtondownApiError(
+        `Buttondown API error: ${message}`,
+        response.status,
+        error.code,
+      );
     }
 
     return response.json() as Promise<T>;
@@ -165,21 +186,29 @@ export class ButtondownClient {
         body: JSON.stringify(body),
       });
     } catch (error) {
-      // Handle "already subscribed" - return with special status
+      // Duplicate email - look up the existing subscriber and flag it
       if (
-        error instanceof Error &&
-        error.message.includes("already subscribed")
+        error instanceof ButtondownApiError &&
+        error.code === "email_already_exists"
       ) {
-        const idMatch = error.message.match(/id=([a-f0-9-]+)/);
         this.logger.info("Subscriber already exists", { email: input.email });
+        const existing = await this.getSubscriberByEmail(input.email);
         return {
-          id: idMatch?.[1] ?? "existing",
-          email: input.email,
+          ...existing,
           subscriber_type: "already_subscribed",
         };
       }
       throw error;
     }
+  }
+
+  /**
+   * Get a subscriber by email address
+   */
+  async getSubscriberByEmail(email: string): Promise<Subscriber> {
+    return this.request<Subscriber>(
+      `/subscribers/${encodeURIComponent(email)}`,
+    );
   }
 
   /**
