@@ -54,40 +54,28 @@ Most people spend most of their time in Chat. The CMS becomes useful once you ha
 ---
 
 ## Other ways to chat with Rover
- 
+
 `/chat` is the primary interface, but Rover can also be reached through messaging platforms. Discord is tested and working. Slack, WhatsApp Business, and similar should work out of the box — we'll send setup steps if that's part of your configuration.
 
 **Talking to another Rover**
- 
+
 If you know another Rover user, you can add them to your contacts and call their Rover directly from your chat.
- 
-- To add: *Add jane.rizom.ai to my contacts.*
-- To call: *Call jane.rizom.ai and ask [your question].*
+
+- To add: _Add jane.rizom.ai to my contacts._
+- To call: _Call jane.rizom.ai and ask [your question]._
+
 You'll need their address — in the format `name.rizom.ai` — which they can share with you directly.
- 
+
 ---
- 
+
 ## Connecting Rover to other tools
- 
+
 Rover can connect to external tools via MCP — a standard protocol that works in two directions: agentic AI clients (like Claude Desktop) can use it to talk to Rover, and Rover can use it to talk to productivity tools like Notion or Linear.
- 
+
 Plugins exist for a number of tools already, and new ones can be built quickly in response to what you actually need. If there's a tool you'd want Rover to connect to, tell us.
- 
+
 If MCP is part of your setup, we'll send specific instructions alongside your URL.
- 
----
- 
-## A few common questions
- 
-**How do I access my data?**
-Your primary interface is the CMS (`/cms`), where you can browse and edit everything you've saved. If you're set up with GitHub access, your content also lives in a private repository you can access directly.
- 
-**Does Rover connect to the internet?**
-No — and that's intentional. Rover works with what you've put into it, not with whatever the internet currently says. That means its answers are grounded in your actual knowledge base, not in generic search results.
- 
-**What does this cost?**
-Nothing during the pilot. We cover hosting costs while you're part of the programme.
- 
+
 ---
 
 ## This is a pilot
@@ -101,6 +89,56 @@ There's a ceiling on how much Rover can improve without real people using it on 
 Rover has a built-in wishlist. If you ask it to do something it can't do yet, it should tell you clearly and log the request — that goes back to us as a signal for where the product needs to go next.
 
 When something breaks or falls short, tell us: what you were trying to do, what you expected, and what happened instead.
+
+---
+
+## Presets
+
+Rover is available in three presets: `core`, `default`, and `full`. Most pilot partners are onboarded on `core` — it's the most stable version, which is why we start there.
+
+Some features you may have seen demoed or discussed might not be available in your current preset. If something seems like it should work but doesn't, it may be a preset limitation rather than a bug. Reach out and we'll clarify — and can bump you up if it makes sense.
+
+---
+
+## Common questions
+
+**How do I access my data?**
+Your primary interface is the CMS (`/cms`), where you can browse and edit everything you've saved. If you're set up with GitHub access, your content also lives in a private repository you can access directly.
+
+**Who can see my content?**
+Every piece of content in Rover has a visibility level:
+
+- **Restricted** — visible to you only
+- **Shared** — visible to agents you've connected to (trusted contacts)
+- **Public** — visible to anyone
+
+By default all content is public — this is how knowledge sharing can flourish. However, at any point your content visibility can be granularly updated.
+
+Similarly, every agent in your network has a trust level:
+
+- **Anchor** — you
+- **Trusted** — agents you've explicitly connected to
+- **Public** — everyone else
+
+_Default visibility settings and where to configure them — to be added._
+
+**Does Rover connect to the internet?**
+No — and that's intentional. Rover works with what you've put into it, not with whatever the internet currently says. That means its answers are grounded in your actual knowledge base, not in generic search results.
+
+**What does this cost?**
+Nothing during the pilot. We cover hosting costs while you're part of the programme.
+
+**The CMS isn't showing my latest changes from chat.**
+The CMS syncs automatically every few minutes. If you've just edited something in chat and need it reflected in the CMS immediately, run `sync` in chat and it'll update straight away.
+
+**Rover isn't doing something I think it should be able to do.**
+Some interactions require specific phrasing — Rover is still being fine-tuned to handle natural language variations. A few examples of what works reliably:
+
+- To connect to another agent: _Connect to agent jane.rizom.ai_
+- To call a connected agent: _Call jane.rizom.ai and ask about [topic]_
+- Note that `topic` is a reserved term in Rover — it refers to themes derived from your knowledge base. Using it in a different context may confuse Rover; try rephrasing if that happens.
+
+If something still isn't working, tell us — this list will grow as we identify patterns.
 
 ---
 
