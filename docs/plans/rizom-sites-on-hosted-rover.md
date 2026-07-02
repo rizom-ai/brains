@@ -96,6 +96,8 @@ Skip the temporary bundled-runtime bridge unless direct package resolution prove
 
 Initial publishability spike result (2026-07-02): `npm pack --dry-run` for `@brains/site-rizom-work` succeeds, but installing the packed tarball into a clean project fails with `EUNSUPPORTEDPROTOCOL workspace:*`. The package currently depends on workspace-only/private runtime deps (`@brains/site-rizom`, `@brains/site-content`, `@brains/site-composition`, etc.). Therefore the next gate is dependency-chain publishability or package bundling; hosted-rover cannot yet consume the package as an installed npm dependency.
 
+Follow-up base-package spike result (2026-07-02): naively bundling `@brains/site-rizom` into a `dist/index.js` artifact installs cleanly with only `preact`, but importing it under Bun fails because the root `@brains/plugins` import pulls broad shell/runtime internals, including `libsql` native bindings. So the base package cannot just bundle the current internal graph unchanged. It needs a narrower public dependency boundary: either `@brains/site-rizom` imports only a lightweight public plugin/site API, or the shared site base is refactored to avoid dragging shell persistence/runtime internals into the published site package.
+
 Packaging decision:
 
 - **Yes:** publish one shared base package, `@brains/site-rizom`, and have the three per-site packages depend on/extend it.
