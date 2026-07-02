@@ -69,7 +69,8 @@ If the available library does not cover Ed25519 + the chosen covered components 
 A new shared package at `shared/http-signatures` or `shell/http-signatures`. Owns:
 
 - `signRequest(req, privateKey, keyId)`
-- `verifyRequest(req, jwksResolver) → { keyId, domain } | error`
+- `verifyRequest(req, jwksResolver) → { keyId, domain } | null` — null when
+  no signature is present; throws when a signature is present but invalid
 - `JwksResolver` — TTL-cached fetcher of remote brains' JWKS
 
 Used by `interfaces/a2a` (both inbound and outbound). The keypair lifecycle (generate / persist / load) lives in the same package or in `shell/auth-service` alongside existing auth key custody.
@@ -142,7 +143,7 @@ In `interfaces/a2a/src/a2a-interface.ts`, the existing `resolveCallerPermission(
 
 ```ts
 private async resolveCallerPermission(req: Request): Promise<UserPermissionLevel> {
-  const verified = await verifyRequest(req, this.jwks);
+  const verified = await verifyRequest(req, this.jwks); // absent → null, invalid → throws
   if (!verified) return "public";
   const identity = this.config.trustedAgents?.[verified.domain];
   if (!identity || !this.permissionContext) return "public";
@@ -151,6 +152,13 @@ private async resolveCallerPermission(req: Request): Promise<UserPermissionLevel
 ```
 
 The shape of the function and the downstream `getUserLevel` call are unchanged. Only the input changes: from a bearer token to a verified domain.
+
+Absent and invalid signatures are different cases and must not be conflated:
+
+- **No signature at all** → the caller is anonymous and resolves to `"public"`. Two brains that have never heard of each other keep talking with zero setup; signing only upgrades identity, it is not an admission ticket.
+- **Signature present but invalid** (bad digest, expired freshness window, unresolvable `keyid`, key mismatch) → reject with 401. A failed verification is a forgery attempt or a broken proxy, never silently downgraded to public — downgrading would let an attacker probe with someone else's identity and still get the public surface while masking the failure from both operators.
+
+`verifyRequest` therefore distinguishes "no `Signature` header" (returns null) from "verification failed" (throws), and the handler maps the throw to 401.
 
 ### Config schema change
 
@@ -238,7 +246,7 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 
 1. A brain generates a signing keypair on first boot and publishes it at `/.well-known/jwks.json`
 2. Outbound A2A requests carry `Signature` and `Signature-Input` headers per RFC 9421; no `Authorization: Bearer` header is sent
-3. Inbound A2A requests verify successfully when the sender's JWKS is reachable and the signature is valid; fail with 401 otherwise
+3. Inbound A2A requests verify successfully when the sender's JWKS is reachable and the signature is valid; a request with a present-but-invalid signature fails with 401; a request with no signature resolves to the public permission level (unacquainted brains keep talking with zero setup)
 4. `trustedAgents: Record<domain, identity>` resolves to the same `permissionService.getUserLevel(...)` flow that `trustedTokens` did
 5. Two brains can establish bidirectional A2A trust without exchanging any secret
 6. Key rotation (replacing a brain's signing key) does not require re-approval at peers, as long as the new key is published in JWKS during a grace window
