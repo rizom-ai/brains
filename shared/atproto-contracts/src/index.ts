@@ -716,8 +716,10 @@ export interface AtprotoProjection<
 
 export class AtprotoProjectionRegistry {
   private static instance: AtprotoProjectionRegistry | undefined;
-  private readonly projections = new Map<string, AtprotoProjection>();
-  private readonly registrationCounts = new Map<string, number>();
+  // Stack per entity type: the newest registration wins, so re-registering
+  // plugin instances (with fresh buildRecord/onPublished closures) take
+  // effect instead of being silently discarded.
+  private readonly projections = new Map<string, AtprotoProjection[]>();
 
   static getInstance(): AtprotoProjectionRegistry {
     this.instance ??= new AtprotoProjectionRegistry();
@@ -736,23 +738,17 @@ export class AtprotoProjectionRegistry {
     projection: AtprotoProjection<TRecord>,
   ): () => void {
     this.validateProjection(projection);
-    const existing = this.projections.get(projection.entityType);
-    if (existing) {
-      if (!this.isEquivalentProjection(existing, projection)) {
-        throw new Error(
-          `AT Protocol projection already registered for entity type ${projection.entityType}`,
-        );
-      }
-      this.registrationCounts.set(
-        projection.entityType,
-        (this.registrationCounts.get(projection.entityType) ?? 1) + 1,
+    const current = this.get(projection.entityType);
+    if (current && !this.isEquivalentProjection(current, projection)) {
+      throw new Error(
+        `AT Protocol projection already registered for entity type ${projection.entityType}`,
       );
-      return this.createUnregister(projection.entityType);
     }
 
-    this.projections.set(projection.entityType, projection);
-    this.registrationCounts.set(projection.entityType, 1);
-    return this.createUnregister(projection.entityType);
+    const stack = this.projections.get(projection.entityType) ?? [];
+    stack.push(projection);
+    this.projections.set(projection.entityType, stack);
+    return this.createUnregister(projection.entityType, projection);
   }
 
   get(
@@ -760,33 +756,46 @@ export class AtprotoProjectionRegistry {
   ): AtprotoProjection<AtprotoProjectedPostRecord> | undefined;
   get(entityType: string): AtprotoProjection | undefined;
   get(entityType: string): AtprotoProjection | undefined {
-    return this.projections.get(entityType);
+    const stack = this.projections.get(entityType);
+    return stack?.[stack.length - 1];
   }
 
   has(entityType: string): boolean {
-    return this.projections.has(entityType);
+    return this.get(entityType) !== undefined;
   }
 
   list(): AtprotoProjection[] {
-    return Array.from(this.projections.values());
+    const result: AtprotoProjection[] = [];
+    for (const entityType of this.projections.keys()) {
+      const projection = this.get(entityType);
+      if (projection) {
+        result.push(projection);
+      }
+    }
+    return result;
   }
 
   listLexicons(): AtprotoLexicon[] {
     return this.list().map((projection) => projection.lexicon);
   }
 
-  private createUnregister(entityType: string): () => void {
+  private createUnregister(
+    entityType: string,
+    projection: AtprotoProjection,
+  ): () => void {
     let active = true;
     return () => {
       if (!active) return;
       active = false;
-      const count = this.registrationCounts.get(entityType) ?? 0;
-      if (count <= 1) {
-        this.registrationCounts.delete(entityType);
-        this.projections.delete(entityType);
-        return;
+      const stack = this.projections.get(entityType);
+      if (!stack) return;
+      const index = stack.lastIndexOf(projection);
+      if (index !== -1) {
+        stack.splice(index, 1);
       }
-      this.registrationCounts.set(entityType, count - 1);
+      if (stack.length === 0) {
+        this.projections.delete(entityType);
+      }
     };
   }
 

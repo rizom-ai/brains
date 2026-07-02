@@ -18,9 +18,6 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
-  "dependencies": {
-    "@brains/theme-base": "workspace:*"
-  },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
