@@ -116,6 +116,7 @@
     "a2a-agent-call-instruction-cleanup",
     "agent-approval-frontmatter-sync",
     "agent-connect-approves",
+    "agent-network-expertise-search",
     "align-preview-domain-routing",
     "atproto-discovery-agent-events",
     "atproto-registry-contracts",
