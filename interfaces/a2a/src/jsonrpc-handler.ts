@@ -8,13 +8,20 @@ const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
 
 // -- Zod schemas for request validation --
 
-const messagePartsSchema = z.array(
-  z.object({
-    kind: z.string(),
-    text: z.string().optional(),
-    data: z.record(z.string(), z.unknown()).optional(),
-  }),
-);
+interface MessagePartParams {
+  kind: string;
+  text?: string | undefined;
+  data?: Record<string, unknown> | undefined;
+}
+
+const messagePartsSchema: z.ZodType<MessagePartParams[], MessagePartParams[]> =
+  z.array(
+    z.object({
+      kind: z.string(),
+      text: z.string().optional(),
+      data: z.record(z.string(), z.unknown()).optional(),
+    }),
+  );
 
 const sendMessageParamsSchema = z.object({
   message: z.object({
@@ -69,15 +76,24 @@ function errorResponse(
 
 // -- JSON-RPC request envelope --
 
-export const jsonrpcRequestSchema = z.object({
+export interface JsonRpcRequest {
+  jsonrpc: string;
+  id: string | number;
+  method: string;
+  params?: Record<string, unknown> | undefined;
+}
+
+export type JsonRpcRequestInput = JsonRpcRequest;
+
+export const jsonrpcRequestSchema: z.ZodType<
+  JsonRpcRequest,
+  JsonRpcRequestInput
+> = z.object({
   jsonrpc: z.string(),
   id: z.union([z.string(), z.number()]),
   method: z.string(),
   params: z.record(z.string(), z.unknown()).optional(),
 });
-
-export type JsonRpcRequest = z.output<typeof jsonrpcRequestSchema>;
-export type JsonRpcRequestInput = z.input<typeof jsonrpcRequestSchema>;
 
 // -- Handler context --
 
@@ -187,16 +203,24 @@ function processInBackground(
 
 // -- Streaming (SSE) handler --
 
-export const streamParamsSchema = z.object({
-  message: z.object({
-    kind: z.string(),
-    parts: messagePartsSchema,
-    contextId: z.string().optional(),
-  }),
-});
+export interface StreamParams {
+  message: {
+    kind: string;
+    parts: MessagePartParams[];
+    contextId?: string | undefined;
+  };
+}
 
-export type StreamParams = z.output<typeof streamParamsSchema>;
-export type StreamParamsInput = z.input<typeof streamParamsSchema>;
+export type StreamParamsInput = StreamParams;
+
+export const streamParamsSchema: z.ZodType<StreamParams, StreamParamsInput> =
+  z.object({
+    message: z.object({
+      kind: z.string(),
+      parts: messagePartsSchema,
+      contextId: z.string().optional(),
+    }),
+  });
 
 interface StreamResult {
   taskId: string;

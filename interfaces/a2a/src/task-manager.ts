@@ -6,7 +6,7 @@ const DEFAULT_TTL_MS = 60 * 60 * 1000;
 /** Default processing timeout for working tasks: 5 minutes */
 const DEFAULT_PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
 
-export const TERMINAL_STATES = new Set<string>([
+export const TERMINAL_STATES: Set<string> = new Set<string>([
   "completed",
   "failed",
   "canceled",
@@ -34,7 +34,7 @@ export interface TaskRecord {
  * Terminal tasks are evicted after a configurable TTL (default: 1 hour).
  */
 export class TaskManager {
-  private tasks = new Map<string, TaskRecord>();
+  private tasks: Map<string, TaskRecord> = new Map<string, TaskRecord>();
   private readonly ttlMs: number;
   private readonly processingTimeoutMs: number;
 

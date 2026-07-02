@@ -15,7 +15,7 @@ export class ThreadRegistry {
   private readonly sentMessages = new Map<string, SentMessage>();
   private readonly ttlMs: number;
 
-  constructor(ttlMs = DEFAULT_TTL_MS) {
+  constructor(ttlMs: number = DEFAULT_TTL_MS) {
     this.ttlMs = ttlMs;
   }
 

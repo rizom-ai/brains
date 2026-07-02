@@ -1,9 +1,29 @@
 import { z } from "@brains/utils/zod-v4";
 
+export interface A2AConfig {
+  port: number;
+  organization?: string | undefined;
+  trustedTokens?: Record<string, string> | undefined;
+  outboundTokens?: Record<string, string> | undefined;
+  requestTimeoutMs: number;
+  streamIdleTimeoutMs: number;
+  maxNetworkAttempts: number;
+}
+
+export interface A2AConfigInput {
+  port?: number | undefined;
+  organization?: string | undefined;
+  trustedTokens?: Record<string, string> | undefined;
+  outboundTokens?: Record<string, string> | undefined;
+  requestTimeoutMs?: number | undefined;
+  streamIdleTimeoutMs?: number | undefined;
+  maxNetworkAttempts?: number | undefined;
+}
+
 /**
  * A2A interface configuration schema
  */
-export const a2aConfigSchema = z.object({
+export const a2aConfigSchema: z.ZodType<A2AConfig, A2AConfigInput> = z.object({
   /** Port for the A2A HTTP server */
   port: z.number().default(3334),
 
@@ -25,6 +45,3 @@ export const a2aConfigSchema = z.object({
   /** Network attempts for transient outbound A2A failures. */
   maxNetworkAttempts: z.number().int().positive().default(2),
 });
-
-export type A2AConfig = z.output<typeof a2aConfigSchema>;
-export type A2AConfigInput = z.input<typeof a2aConfigSchema>;

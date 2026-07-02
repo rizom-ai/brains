@@ -3,17 +3,20 @@ import type { IRuntimeStateNamespace } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 
-export const discordThreadSubscriptionStateSchema = z.object({
-  subscribedAt: z.string().datetime(),
-  routingMode: z.enum(["auto", "mention-required"]).optional(),
-  mentionRequiredNoticeSent: z.boolean().optional(),
-});
+export interface DiscordThreadSubscriptionState {
+  subscribedAt: string;
+  routingMode?: "auto" | "mention-required" | undefined;
+  mentionRequiredNoticeSent?: boolean | undefined;
+}
+
+export const discordThreadSubscriptionStateSchema: z.ZodType<DiscordThreadSubscriptionState> =
+  z.object({
+    subscribedAt: z.string().datetime(),
+    routingMode: z.enum(["auto", "mention-required"]).optional(),
+    mentionRequiredNoticeSent: z.boolean().optional(),
+  });
 
 export const discordThreadSubscriptionNamespace = "chat.discord.subscriptions";
-
-export type DiscordThreadSubscriptionState = z.output<
-  typeof discordThreadSubscriptionStateSchema
->;
 
 export interface DiscordThreadSubscriptionStore {
   set(key: string, value: DiscordThreadSubscriptionState): Promise<void>;

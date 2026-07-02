@@ -1,6 +1,6 @@
 import { z } from "@brains/utils/zod-v4";
 
-const blockedUrlDomainsDefault = [
+const blockedUrlDomainsDefault: string[] = [
   "meet.google.com",
   "zoom.us",
   "teams.microsoft.com",
@@ -18,12 +18,66 @@ const blockedUrlDomainsDefault = [
   "file.io",
 ];
 
-const urlCaptureConfigSchema = z.object({
-  captureUrls: z.boolean().default(false),
-  blockedUrlDomains: z.array(z.string()).default(blockedUrlDomainsDefault),
-});
+interface UrlCaptureConfig {
+  captureUrls: boolean;
+  blockedUrlDomains: string[];
+}
 
-const discordAdapterConfigSchema = z.object({
+interface UrlCaptureConfigInput {
+  captureUrls?: boolean | undefined;
+  blockedUrlDomains?: string[] | undefined;
+}
+
+export interface DiscordChatAdapterConfig extends UrlCaptureConfig {
+  botToken: string;
+  publicKey: string;
+  applicationId: string;
+  mentionRoleIds: string[];
+  allowedChannels: string[];
+  requireMention: boolean;
+  allowDMs: boolean;
+  showTypingIndicator: boolean;
+  useThreads: boolean;
+  captureUrlEmoji: string;
+}
+
+interface DiscordChatAdapterConfigInput extends UrlCaptureConfigInput {
+  botToken: string;
+  publicKey: string;
+  applicationId: string;
+  mentionRoleIds?: string[] | undefined;
+  allowedChannels?: string[] | undefined;
+  requireMention?: boolean | undefined;
+  allowDMs?: boolean | undefined;
+  showTypingIndicator?: boolean | undefined;
+  useThreads?: boolean | undefined;
+  captureUrlEmoji?: string | undefined;
+}
+
+export interface ChatConfig {
+  userName: string;
+  adapters: {
+    discord?: DiscordChatAdapterConfig | undefined;
+  };
+  gatewayRunMs: number;
+  gatewayRestartDelayMs: number;
+}
+
+export interface ChatConfigInput {
+  userName?: string | undefined;
+  adapters?:
+    | {
+        discord?: DiscordChatAdapterConfigInput | undefined;
+      }
+    | undefined;
+  gatewayRunMs?: number | undefined;
+  gatewayRestartDelayMs?: number | undefined;
+}
+
+const discordAdapterConfigSchema: z.ZodType<
+  DiscordChatAdapterConfig,
+  DiscordChatAdapterConfigInput
+> = z.object({
   botToken: z.string().min(1).describe("Discord bot token"),
   publicKey: z.string().min(1).describe("Discord application public key"),
   applicationId: z.string().min(1).describe("Discord application ID"),
@@ -33,27 +87,23 @@ const discordAdapterConfigSchema = z.object({
   allowDMs: z.boolean().default(true),
   showTypingIndicator: z.boolean().default(true),
   useThreads: z.boolean().default(true),
-  ...urlCaptureConfigSchema.shape,
+  captureUrls: z.boolean().default(false),
+  blockedUrlDomains: z.array(z.string()).default(blockedUrlDomainsDefault),
   captureUrlEmoji: z.string().default("🔖"),
 });
 
-export const chatConfigSchema = z.object({
-  userName: z.string().default("brain"),
-  adapters: z
-    .object({
-      discord: discordAdapterConfigSchema.optional(),
-    })
-    .default({}),
-  gatewayRunMs: z
-    .number()
-    .int()
-    .positive()
-    .default(9 * 60 * 1000),
-  gatewayRestartDelayMs: z.number().int().nonnegative().default(1_000),
-});
-
-export type ChatConfig = z.output<typeof chatConfigSchema>;
-export type ChatConfigInput = z.input<typeof chatConfigSchema>;
-export type DiscordChatAdapterConfig = z.output<
-  typeof discordAdapterConfigSchema
->;
+export const chatConfigSchema: z.ZodType<ChatConfig, ChatConfigInput> =
+  z.object({
+    userName: z.string().default("brain"),
+    adapters: z
+      .object({
+        discord: discordAdapterConfigSchema.optional(),
+      })
+      .default({}),
+    gatewayRunMs: z
+      .number()
+      .int()
+      .positive()
+      .default(9 * 60 * 1000),
+    gatewayRestartDelayMs: z.number().int().nonnegative().default(1_000),
+  });
