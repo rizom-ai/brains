@@ -15,7 +15,12 @@ import {
 } from "@brains/plugins";
 import { slugify } from "@brains/utils";
 import { z } from "@brains/utils/zod-v4";
-import { imageSchema, imageAdapter, type Image } from "@brains/image";
+import {
+  imageSchema,
+  imageAdapter,
+  type Image,
+  type ImageAdapter,
+} from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
 import { SourceImageRenderJobHandler } from "./handlers/source-image-render-handler";
 import { UploadPromotionJobHandler } from "./handlers/upload-promotion-handler";
@@ -33,15 +38,22 @@ import packageJson from "../package.json";
 const PENDING_IMAGE_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-const imageConfigSchema = z.object({
+type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+
+interface ImageConfig {
+  defaultAspectRatio: ImageAspectRatio;
+}
+
+interface ImageConfigInput {
+  defaultAspectRatio?: ImageAspectRatio | undefined;
+}
+
+const imageConfigSchema: z.ZodType<ImageConfig, ImageConfigInput> = z.object({
   defaultAspectRatio: z
     .enum(["1:1", "16:9", "9:16", "4:3", "3:4"])
     .default("16:9")
     .describe("Default aspect ratio for generated images"),
 });
-
-type ImageConfig = z.output<typeof imageConfigSchema>;
-type ImageConfigInput = z.input<typeof imageConfigSchema>;
 
 function normalizeText(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -168,9 +180,9 @@ export class ImagePlugin extends EntityPlugin<
   ImageConfig,
   ImageConfigInput
 > {
-  readonly entityType = imageAdapter.entityType;
-  readonly schema = imageSchema;
-  readonly adapter = imageAdapter;
+  readonly entityType: typeof imageAdapter.entityType = imageAdapter.entityType;
+  readonly schema: typeof imageSchema = imageSchema;
+  readonly adapter: ImageAdapter = imageAdapter;
 
   constructor(config: ImageConfigInput = {}) {
     super("image", packageJson, config, imageConfigSchema);

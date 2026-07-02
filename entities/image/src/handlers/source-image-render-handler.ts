@@ -17,21 +17,30 @@ import {
   type Image,
 } from "@brains/image";
 
-export const sourceImageRenderJobDataSchema = z.object({
-  sourceEntityType: z.string().min(1),
-  sourceEntityId: z.string().min(1),
-  attachmentType: z.string().min(1),
-  imageId: z.string().min(1),
-  dedupKey: z.string().min(1).optional(),
-  replace: z.boolean().optional(),
-  targetEntityType: z.string().min(1).optional(),
-  targetEntityId: z.string().min(1).optional(),
-  targetImageField: z.enum(["coverImageId", "ogImageId"]).optional(),
-});
+export interface SourceImageRenderJobData {
+  sourceEntityType: string;
+  sourceEntityId: string;
+  attachmentType: string;
+  imageId: string;
+  dedupKey?: string | undefined;
+  replace?: boolean | undefined;
+  targetEntityType?: string | undefined;
+  targetEntityId?: string | undefined;
+  targetImageField?: "coverImageId" | "ogImageId" | undefined;
+}
 
-export type SourceImageRenderJobData = z.output<
-  typeof sourceImageRenderJobDataSchema
->;
+export const sourceImageRenderJobDataSchema: z.ZodType<SourceImageRenderJobData> =
+  z.object({
+    sourceEntityType: z.string().min(1),
+    sourceEntityId: z.string().min(1),
+    attachmentType: z.string().min(1),
+    imageId: z.string().min(1),
+    dedupKey: z.string().min(1).optional(),
+    replace: z.boolean().optional(),
+    targetEntityType: z.string().min(1).optional(),
+    targetEntityId: z.string().min(1).optional(),
+    targetImageField: z.enum(["coverImageId", "ogImageId"]).optional(),
+  });
 
 interface SourceImageRenderResult {
   success: boolean;

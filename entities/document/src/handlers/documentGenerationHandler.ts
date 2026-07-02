@@ -29,7 +29,31 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const DOCUMENT_ID_MAX_LENGTH = 80;
 const DOCUMENT_ID_HASH_LENGTH = 10;
 
-export const documentGenerationJobSchemaBase = z.object({
+type StringOrNumberSchema = z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
+
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- ZodObject shape aliases preserve named property inference without a broad index signature.
+type DocumentGenerationJobSchemaShape = {
+  renderUrl: z.ZodOptional<z.ZodURL>;
+  sourceEntityType: z.ZodString;
+  sourceEntityId: z.ZodString;
+  attachmentType: z.ZodString;
+  documentId: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+  filename: z.ZodOptional<z.ZodString>;
+  dedupKey: z.ZodOptional<z.ZodString>;
+  replace: z.ZodOptional<z.ZodBoolean>;
+  pageCount: z.ZodOptional<z.ZodNumber>;
+  maxPageCount: z.ZodOptional<z.ZodNumber>;
+  maxBytes: z.ZodOptional<z.ZodNumber>;
+  timeoutMs: z.ZodOptional<z.ZodNumber>;
+  width: z.ZodOptional<StringOrNumberSchema>;
+  height: z.ZodOptional<StringOrNumberSchema>;
+  format: z.ZodOptional<z.ZodString>;
+  targetEntityType: z.ZodOptional<z.ZodString>;
+  targetEntityId: z.ZodOptional<z.ZodString>;
+};
+
+const documentGenerationJobSchemaShape: DocumentGenerationJobSchemaShape = {
   renderUrl: z.url().optional(),
   sourceEntityType: z.string().min(1),
   sourceEntityId: z.string().min(1),
@@ -48,9 +72,16 @@ export const documentGenerationJobSchemaBase = z.object({
   format: z.string().optional(),
   targetEntityType: z.string().min(1).optional(),
   targetEntityId: z.string().min(1).optional(),
-});
+};
 
-export const documentGenerationJobSchema =
+export const documentGenerationJobSchemaBase: z.ZodObject<DocumentGenerationJobSchemaShape> =
+  z.object(documentGenerationJobSchemaShape);
+
+export type DocumentGenerationJobDataBase = z.output<
+  typeof documentGenerationJobSchemaBase
+>;
+
+export const documentGenerationJobSchema: z.ZodType<DocumentGenerationJobDataBase> =
   documentGenerationJobSchemaBase.refine(
     (data) =>
       (data.targetEntityType === undefined &&

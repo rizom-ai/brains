@@ -16,13 +16,18 @@ import {
   webChatUploadsScope,
 } from "../lib/upload-promotion";
 
-export const uploadPromotionJobSchema = z.object({
-  uploadId: z.string().min(1),
-  imageId: z.string().min(1).optional(),
-  title: z.string().optional(),
-});
+export interface UploadPromotionJobData {
+  uploadId: string;
+  imageId?: string | undefined;
+  title?: string | undefined;
+}
 
-export type UploadPromotionJobData = z.output<typeof uploadPromotionJobSchema>;
+export const uploadPromotionJobSchema: z.ZodType<UploadPromotionJobData> =
+  z.object({
+    uploadId: z.string().min(1),
+    imageId: z.string().min(1).optional(),
+    title: z.string().optional(),
+  });
 
 export type UploadPromotionJobResult =
   | {

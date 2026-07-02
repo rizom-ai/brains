@@ -28,26 +28,35 @@ const imagePromptSchema = z.object({
 /**
  * Schema for image generation job data
  */
-export const imageGenerationJobDataSchema = z.object({
-  /** Text prompt for image generation (used directly when provided without entityContent) */
-  prompt: z.string(),
-  /** Title for the generated image (derived from prompt if omitted) */
-  title: z.string().optional(),
-  /** Aspect ratio for the generated image */
-  aspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4"]).optional(),
-  /** Target entity type to update with coverImageId (optional) */
-  targetEntityType: z.string().optional(),
-  /** Target entity ID to update with coverImageId (required if targetEntityType is set) */
-  targetEntityId: z.string().optional(),
-  /** Entity title for AI prompt distillation (optional) */
-  entityTitle: z.string().optional(),
-  /** Entity content for AI prompt distillation (optional, triggers AI prompt generation) */
-  entityContent: z.string().optional(),
-});
+export type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 
-export type ImageGenerationJobData = z.output<
-  typeof imageGenerationJobDataSchema
->;
+export interface ImageGenerationJobData {
+  prompt: string;
+  title?: string | undefined;
+  aspectRatio?: ImageAspectRatio | undefined;
+  targetEntityType?: string | undefined;
+  targetEntityId?: string | undefined;
+  entityTitle?: string | undefined;
+  entityContent?: string | undefined;
+}
+
+export const imageGenerationJobDataSchema: z.ZodType<ImageGenerationJobData> =
+  z.object({
+    /** Text prompt for image generation (used directly when provided without entityContent) */
+    prompt: z.string(),
+    /** Title for the generated image (derived from prompt if omitted) */
+    title: z.string().optional(),
+    /** Aspect ratio for the generated image */
+    aspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4"]).optional(),
+    /** Target entity type to update with coverImageId (optional) */
+    targetEntityType: z.string().optional(),
+    /** Target entity ID to update with coverImageId (required if targetEntityType is set) */
+    targetEntityId: z.string().optional(),
+    /** Entity title for AI prompt distillation (optional) */
+    entityTitle: z.string().optional(),
+    /** Entity content for AI prompt distillation (optional, triggers AI prompt generation) */
+    entityContent: z.string().optional(),
+  });
 
 interface ImageGenerationResult {
   success: boolean;

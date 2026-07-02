@@ -11,6 +11,7 @@ import { z } from "@brains/utils/zod-v4";
 import {
   documentAdapter,
   documentSchema,
+  type DocumentAdapter,
   type DocumentEntity,
 } from "@brains/document";
 import {
@@ -25,10 +26,16 @@ const PENDING_PDF_DATA_URL = `data:application/pdf;base64,${Buffer.from(
   "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
 ).toString("base64")}`;
 
-const documentPluginConfigSchema = z.object({});
+type DocumentPluginConfig = Record<string, never>;
+type DocumentPluginConfigInput = Record<string, unknown>;
 
-type DocumentPluginConfig = z.output<typeof documentPluginConfigSchema>;
-type DocumentPluginConfigInput = z.input<typeof documentPluginConfigSchema>;
+const documentPluginConfigSchema: z.ZodType<
+  DocumentPluginConfig,
+  DocumentPluginConfigInput
+> = z
+  .object({})
+  .catchall(z.unknown())
+  .transform((): DocumentPluginConfig => ({}));
 
 const webChatUploadsScope = {
   namespace: "upload",
@@ -79,9 +86,10 @@ export class DocumentPlugin extends ServicePlugin<
   DocumentPluginConfig,
   DocumentPluginConfigInput
 > {
-  readonly entityType = documentAdapter.entityType;
-  readonly schema = documentSchema;
-  readonly adapter = documentAdapter;
+  readonly entityType: typeof documentAdapter.entityType =
+    documentAdapter.entityType;
+  readonly schema: typeof documentSchema = documentSchema;
+  readonly adapter: DocumentAdapter = documentAdapter;
   private pluginContext: ServicePluginContext | undefined;
 
   constructor() {
