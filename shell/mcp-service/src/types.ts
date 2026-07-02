@@ -31,35 +31,79 @@ export interface ToolContext {
   userPermissionLevel?: UserPermissionLevel;
 }
 
+export interface ToolContextRouting {
+  interfaceType: string;
+  userId: string;
+  conversationId?: string | undefined;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  runId?: string | undefined;
+  toolCallId?: string | undefined;
+  userPermissionLevel?: UserPermissionLevel | undefined;
+}
+
+interface ToolContextRoutingSchemaShape extends ZodRawShape {
+  interfaceType: z.ZodString;
+  userId: z.ZodString;
+  conversationId: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodOptional<z.ZodString>;
+  runId: z.ZodOptional<z.ZodString>;
+  toolCallId: z.ZodOptional<z.ZodString>;
+  userPermissionLevel: z.ZodOptional<
+    z.ZodEnum<{
+      anchor: "anchor";
+      trusted: "trusted";
+      public: "public";
+    }>
+  >;
+}
+
 /**
  * Schema for ToolContext routing metadata
  * Used to validate routing information in tool execution requests
  */
-export const ToolContextRoutingSchema = z.object({
-  interfaceType: z.string(),
-  userId: z.string(),
-  conversationId: z.string().optional(),
-  channelId: z.string().optional(),
-  channelName: z.string().optional(),
-  runId: z.string().optional(),
-  toolCallId: z.string().optional(),
-  userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
-});
+export const ToolContextRoutingSchema: z.ZodObject<ToolContextRoutingSchemaShape> =
+  z.object({
+    interfaceType: z.string(),
+    userId: z.string(),
+    conversationId: z.string().optional(),
+    channelId: z.string().optional(),
+    channelName: z.string().optional(),
+    runId: z.string().optional(),
+    toolCallId: z.string().optional(),
+    userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
+  });
+
+export interface ToolSuccessResponse {
+  success: true;
+  data?: unknown;
+  message?: string | undefined;
+  cached?: true | undefined;
+}
 
 /**
  * Success response schema
  */
-export const toolSuccessSchema = z.strictObject({
-  success: z.literal(true),
-  data: z.unknown().optional(),
-  message: z.string().optional(),
-  cached: z.literal(true).optional(),
-});
+export const toolSuccessSchema: z.ZodType<ToolSuccessResponse> = z.strictObject(
+  {
+    success: z.literal(true),
+    data: z.unknown().optional(),
+    message: z.string().optional(),
+    cached: z.literal(true).optional(),
+  },
+);
+
+export interface ToolErrorResponse {
+  success: false;
+  error: string;
+  code?: string | undefined;
+}
 
 /**
  * Error response schema
  */
-export const toolErrorSchema = z.strictObject({
+export const toolErrorSchema: z.ZodType<ToolErrorResponse> = z.strictObject({
   success: z.literal(false),
   error: z.string(),
   code: z.string().optional(),
@@ -70,28 +114,39 @@ export const toolErrorSchema = z.strictObject({
  * Tools return this when an operation needs user approval.
  * The agent service detects this shape and enters the confirmation flow.
  */
-export const toolConfirmationSchema = z.strictObject({
-  needsConfirmation: z.literal(true),
-  toolName: z.string(),
-  summary: z.string(),
-  completionSummary: z.string().optional(),
-  preview: z.string().optional(),
-  args: z.unknown(),
-});
+export interface ToolConfirmation {
+  needsConfirmation: true;
+  toolName: string;
+  summary: string;
+  completionSummary?: string | undefined;
+  preview?: string | undefined;
+  args: unknown;
+}
 
-export type ToolConfirmation = z.output<typeof toolConfirmationSchema>;
+export const toolConfirmationSchema: z.ZodType<ToolConfirmation> =
+  z.strictObject({
+    needsConfirmation: z.literal(true),
+    toolName: z.string(),
+    summary: z.string(),
+    completionSummary: z.string().optional(),
+    preview: z.string().optional(),
+    args: z.unknown(),
+  });
 
 /**
  * Standardized tool response schema
  * All tools return one of: success, error, or confirmation request.
  */
-export const toolResponseSchema = z.union([
+export type ToolResponse =
+  | ToolSuccessResponse
+  | ToolErrorResponse
+  | ToolConfirmation;
+
+export const toolResponseSchema: z.ZodType<ToolResponse> = z.union([
   toolSuccessSchema,
   toolErrorSchema,
   toolConfirmationSchema,
 ]);
-
-export type ToolResponse = z.output<typeof toolResponseSchema>;
 
 export type ToolSideEffects = "none" | "writes" | "external";
 export type ToolInputSchema = ZodRawShape;

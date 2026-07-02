@@ -155,7 +155,7 @@ export class AuthService {
   }
 
   getAuthorizationServerMetadata(
-    issuer = this.issuer,
+    issuer: string = this.issuer,
   ): AuthorizationServerMetadata {
     const normalized = normalizeIssuer(issuer);
     return {
@@ -181,7 +181,7 @@ export class AuthService {
 
   getProtectedResourceMetadata(
     resource: string,
-    issuer = this.issuer,
+    issuer: string = this.issuer,
   ): ProtectedResourceMetadata {
     return {
       resource,
@@ -203,7 +203,7 @@ export class AuthService {
   }
 
   async createOperatorSession(
-    subject = "single-operator",
+    subject: string = "single-operator",
     options: { secure?: boolean } = {},
   ): Promise<CreateOperatorSessionResult> {
     return this.sessionStore.createSession(subject, options);
@@ -236,12 +236,12 @@ export class AuthService {
     });
   }
 
-  getSetupUrl(issuer = this.issuer): string | undefined {
+  getSetupUrl(issuer: string = this.issuer): string | undefined {
     return this.setupFlow.getSetupUrl(issuer);
   }
 
   async getOperatorSetupRequired(
-    issuer = this.issuer,
+    issuer: string = this.issuer,
   ): Promise<OperatorSetupRequired | undefined> {
     return this.setupFlow.getOperatorSetupRequired(issuer);
   }

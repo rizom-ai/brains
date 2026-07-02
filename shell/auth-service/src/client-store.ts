@@ -7,13 +7,44 @@ import type { RegisteredOAuthClient } from "./types";
 
 const DEFAULT_CLIENT_STORE_FILE = "oauth-clients.json";
 
-const tokenEndpointAuthMethodSchema = z.enum([
-  "none",
-  "client_secret_basic",
-  "client_secret_post",
-]);
+type TokenEndpointAuthMethod =
+  | "none"
+  | "client_secret_basic"
+  | "client_secret_post";
 
-const clientRegistrationRequestSchema = z.object({
+const tokenEndpointAuthMethodSchema: z.ZodType<
+  TokenEndpointAuthMethod,
+  TokenEndpointAuthMethod
+> = z.enum(["none", "client_secret_basic", "client_secret_post"]);
+
+export interface ClientRegistrationRequest {
+  redirect_uris: string[];
+  token_endpoint_auth_method?: TokenEndpointAuthMethod | undefined;
+  grant_types?: ("authorization_code" | "refresh_token")[] | undefined;
+  response_types?: "code"[] | undefined;
+  scope?: string | undefined;
+  client_name?: string | undefined;
+  client_uri?: string | undefined;
+  logo_uri?: string | undefined;
+  contacts?: string[] | undefined;
+}
+
+interface ParsedClientRegistrationRequest {
+  redirect_uris: string[];
+  token_endpoint_auth_method: TokenEndpointAuthMethod;
+  grant_types: ("authorization_code" | "refresh_token")[];
+  response_types: "code"[];
+  scope?: string | undefined;
+  client_name?: string | undefined;
+  client_uri?: string | undefined;
+  logo_uri?: string | undefined;
+  contacts?: string[] | undefined;
+}
+
+const clientRegistrationRequestSchema: z.ZodType<
+  ParsedClientRegistrationRequest,
+  ClientRegistrationRequest
+> = z.object({
   redirect_uris: z.array(z.url()).min(1),
   token_endpoint_auth_method: tokenEndpointAuthMethodSchema.default("none"),
   grant_types: z
@@ -26,10 +57,6 @@ const clientRegistrationRequestSchema = z.object({
   logo_uri: z.url().optional(),
   contacts: z.array(z.string()).optional(),
 });
-
-export type ClientRegistrationRequest = z.input<
-  typeof clientRegistrationRequestSchema
->;
 
 interface ClientStoreFile {
   clients: RegisteredOAuthClient[];

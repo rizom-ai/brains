@@ -1,15 +1,17 @@
 import { z } from "@brains/utils/zod-v4";
 
+export interface SectionDataQueryParams {
+  [key: string]: unknown;
+  id?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+}
+
 export interface SectionDataQuery {
+  [key: string]: unknown;
   entityType?: string | undefined;
   template?: string | undefined;
-  query?:
-    | {
-        id?: string | undefined;
-        limit?: number | undefined;
-        offset?: number | undefined;
-      }
-    | undefined;
+  query?: SectionDataQueryParams | undefined;
 }
 
 export interface SectionDefinition {
@@ -97,6 +99,7 @@ export const NavigationMetadataSchema: z.ZodType<
   .optional();
 
 export interface RouteDefinition {
+  [key: string]: unknown;
   id: string;
   path: string;
   title: string;
@@ -113,6 +116,7 @@ export interface RouteDefinition {
 }
 
 export interface RouteDefinitionInput {
+  [key: string]: unknown;
   id: string;
   path: string;
   title?: string | undefined;

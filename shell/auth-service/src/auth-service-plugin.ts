@@ -13,21 +13,52 @@ import { AuthService, type OperatorSetupRequired } from "./auth-service";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
 
-const setupEmailSchema = z.union([
-  z.string().email(),
-  z
-    .object({
-      /** Setup email recipient. */
-      to: z.string().email(),
-      /** Notification subject. */
-      subject: z.string().min(1),
-      /** Notification body template. Supports {{setupUrl}}, {{expiresAt}}, and {{origin}}. */
-      body: z.string().min(1),
-    })
-    .strict(),
-]);
+export type SetupEmailConfig =
+  | string
+  | {
+      to: string;
+      subject: string;
+      body: string;
+    };
 
-const authServiceConfigSchema = z.object({
+const setupEmailSchema: z.ZodType<SetupEmailConfig, SetupEmailConfig> = z.union(
+  [
+    z.string().email(),
+    z
+      .object({
+        /** Setup email recipient. */
+        to: z.string().email(),
+        /** Notification subject. */
+        subject: z.string().min(1),
+        /** Notification body template. Supports {{setupUrl}}, {{expiresAt}}, and {{origin}}. */
+        body: z.string().min(1),
+      })
+      .strict(),
+  ],
+);
+
+export interface AuthServiceConfig {
+  issuer?: string | undefined;
+  trustedIssuers: string[];
+  allowLocalhostIssuers?: boolean | undefined;
+  storageDir: string;
+  setupTokenTtlSeconds: number;
+  setupEmail?: SetupEmailConfig | undefined;
+}
+
+export interface AuthServiceConfigInput {
+  issuer?: string | undefined;
+  trustedIssuers?: string[] | undefined;
+  allowLocalhostIssuers?: boolean | undefined;
+  storageDir?: string | undefined;
+  setupTokenTtlSeconds?: number | undefined;
+  setupEmail?: SetupEmailConfig | undefined;
+}
+
+const authServiceConfigSchema: z.ZodType<
+  AuthServiceConfig,
+  AuthServiceConfigInput
+> = z.object({
   /** Public issuer origin. Defaults to the brain site URL, then localhost dev. */
   issuer: z.string().optional(),
   /** Additional trusted issuer origins, for example a preview host. */
@@ -55,9 +86,6 @@ interface PasskeySetupToolResponse {
   success: true;
   data: PasskeySetupToolData;
 }
-
-export type AuthServiceConfig = z.output<typeof authServiceConfigSchema>;
-export type AuthServiceConfigInput = z.input<typeof authServiceConfigSchema>;
 
 let activeAuthService: AuthService | undefined;
 

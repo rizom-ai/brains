@@ -21,7 +21,8 @@ export const agentCardSkillSchema = z.looseObject({
   tags: z.array(z.string()).optional().default([]),
 });
 
-export const anchorExtensionParamsSchema = anchorProfileBodySchema;
+export const anchorExtensionParamsSchema: z.ZodType<AnchorProfile> =
+  anchorProfileBodySchema;
 
 const extensionSchema = z.looseObject({
   uri: z.string(),

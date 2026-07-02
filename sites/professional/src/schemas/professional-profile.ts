@@ -11,9 +11,11 @@ import {
  */
 export { professionalProfileExtension };
 
-export const professionalProfileSchema = anchorProfileBodySchema.extend(
-  professionalProfileExtension.shape,
-);
+export const professionalProfileSchema: ReturnType<
+  typeof anchorProfileBodySchema.extend<
+    typeof professionalProfileExtension.shape
+  >
+> = anchorProfileBodySchema.extend(professionalProfileExtension.shape);
 
 /**
  * Professional profile type
