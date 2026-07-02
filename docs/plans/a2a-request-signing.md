@@ -83,6 +83,47 @@ The a2a interface already uses a "discovered → approved" lifecycle for peer ag
 
 No secret is exchanged. The `outboundTokens` config field is removed.
 
+### 7. Task access is bound to the verified caller
+
+Today `tasks/get` and `tasks/cancel`
+(`interfaces/a2a/src/jsonrpc-handler.ts`) accept any caller who knows a
+task UUID: tasks are not associated with the identity that created
+them, so a public caller with a leaked ID can read a task's full
+history — including responses produced under a trusted caller's
+permission level — or cancel it. Once decision 2 gives every request a
+verified domain, bind tasks to it:
+
+- `TaskRecord` gains `callerDomain: string | null` (null for
+  public/unverified callers), set at creation in the `message/send` and
+  `message/stream` paths.
+- `tasks/get` and `tasks/cancel` return `-32001` (task not found)
+  unless the requesting verified domain matches the record's
+  `callerDomain`. Deliberately "not found", not "forbidden" — task IDs
+  must not be probeable.
+- Tasks created by unverified callers are readable only by unverified
+  callers of the same session scope; if no session notion exists for
+  public callers, they are simply not readable back (the response
+  already streamed inline).
+
+### 8. Retries are limited to requests that never reached the peer
+
+`isRetryableNetworkError` in `interfaces/a2a/src/client.ts` currently
+treats every `Error` as retryable, so a mid-stream idle timeout —
+which fires _after_ the remote accepted and began processing — re-POSTs
+the same `message/stream` request and produces a duplicate agent turn
+on the peer. Fix in two layers:
+
+- Client: retry only connection-establishment failures (DNS, refused,
+  TLS, reset-before-response). Once any response byte or SSE event has
+  arrived, no automatic retry.
+- Protocol: outbound `message/send` / `message/stream` carry a client
+  idempotency key (`messageId` already exists in the A2A message
+  envelope — reuse it); the receiving handler tracks recently seen
+  message IDs per verified caller (TTL ~10 min, bounded) and returns
+  the existing task instead of starting a duplicate turn. Signed
+  requests make the key trustworthy; that is why this lands here and
+  not as a standalone patch.
+
 ## Design
 
 ### Outbound signing
@@ -170,7 +211,16 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 - add `trustedAgents` config field, remove `trustedTokens`
 - update agent-card / agent-discovery flows to fetch and store peer JWKS at approval time
 
-### Phase 5 — docs and migration
+### Phase 5 — task caller binding and idempotent retry
+
+- add `callerDomain` to `TaskRecord`, set from the verified identity;
+  gate `tasks/get`/`tasks/cancel` on it (decision 7), with tests for
+  cross-caller probing returning `-32001`
+- narrow client retry to connection-establishment failures; add the
+  `messageId`-based dedupe store on the receiving side (decision 8),
+  with a test that a retried send resolves to the same task
+
+### Phase 6 — docs and migration
 
 - update operator docs and example configs
 - document reverse-proxy requirements
@@ -194,7 +244,9 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 6. Key rotation (replacing a brain's signing key) does not require re-approval at peers, as long as the new key is published in JWKS during a grace window
 7. Freshness window rejects requests outside ±60s
 8. `outboundTokens` and `trustedTokens` are removed from the config schema; brains with old config get a clear startup error
-9. Old `2026-03-15-a2a-authentication.md` is deleted; references in other plans updated
+9. A task created by verified peer A cannot be read or cancelled by peer B or by an unverified caller (`-32001`, indistinguishable from a missing task)
+10. Re-sending a `message/send` with the same `messageId` from the same verified caller within the dedupe window returns the original task; the peer runs one agent turn, not two
+11. Old `2026-03-15-a2a-authentication.md` is deleted; references in other plans updated
 
 ## Related
 
