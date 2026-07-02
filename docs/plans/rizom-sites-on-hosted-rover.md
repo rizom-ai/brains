@@ -81,9 +81,11 @@ Current deploy scripts derive:
    - `sites/rizom-ai` → published package for `rizom.ai`
    - `sites/rizom-foundation` → published package for `rizom.foundation`
    - `sites/rizom-work` → published package for `rizom.work`
-2. Each package exports a real site package that composes the shared `@brains/site-rizom` core and carries its own routes, layouts, templates, `themeProfile`, and package-local CSS/theme override.
+2. Publish one shared Rizom site base package and three thin per-site packages:
+   - `@brains/site-rizom` is the public base/core package for Rizom sites: runtime plugin, shared layout primitives, theme-profile behavior, canvas/static assets, and the `createRizomSite` helper.
+   - `@brains/site-rizom-ai`, `@brains/site-rizom-foundation`, and `@brains/site-rizom-work` extend that base and carry only their site-specific routes, layouts, templates, `themeProfile`, and package-local CSS/theme override.
    - **Note: this is new coupling, not a lift-and-shift.** The external sites do not import `@brains/site-rizom` today — `rizom-work/src/site.ts` is a bare default-export object depending only on `@rizom/brain` / `@rizom/ui`. Introducing the shared-core dependency is net-new work per site, not a file move; scope the migration accordingly.
-3. `rover-pilot` / `hosted-rover` registry config chooses the site package and version for each deployed site.
+3. `rover-pilot` / `hosted-rover` registry config chooses the per-site package and version for each deployed site.
 4. Generated `brain.yaml` should reference npm-resolvable package refs, not app-local `src/site.ts` paths.
 5. Hosted deploy installs or otherwise resolves those package refs before boot/build, so Rover can render the requested site without bundling every possible site into the base runtime.
 6. Once hosted deploy is live, retire the old standalone site deploy workflows/images in `rizom-ai`, `rizom-foundation`, and `rizom-work`.
@@ -92,13 +94,22 @@ Current deploy scripts derive:
 
 Skip the temporary bundled-runtime bridge unless direct package resolution proves blocked.
 
+Initial publishability spike result (2026-07-02): `npm pack --dry-run` for `@brains/site-rizom-work` succeeds, but installing the packed tarball into a clean project fails with `EUNSUPPORTEDPROTOCOL workspace:*`. The package currently depends on workspace-only/private runtime deps (`@brains/site-rizom`, `@brains/site-content`, `@brains/site-composition`, etc.). Therefore the next gate is dependency-chain publishability or package bundling; hosted-rover cannot yet consume the package as an installed npm dependency.
+
+Packaging decision:
+
+- **Yes:** publish one shared base package, `@brains/site-rizom`, and have the three per-site packages depend on/extend it.
+- **No:** do not publish the entire low-level `@brains/*` framework dependency chain just to make these sites installable.
+- The base package is the public/stable Rizom-site API boundary. Its own internal framework dependencies should either already be public/stable or be bundled/hidden behind the base package's published artifact.
+- Per-site packages should stay thin and depend only on `@brains/site-rizom`, `preact`, and any intentionally public shared UI/runtime dependencies.
+
 Preferred path:
 
-1. Move each site into a monorepo package.
-2. Make the package publishable.
-3. Make the package's **runtime dependency chain** publishable/resolvable too. If `@brains/site-rizom-work` depends on `@brains/site-rizom`, `@brains/site-content`, `@brains/site-composition`, `@rizom/ui`, etc., hosted-rover must be able to install all runtime deps from the registry, or the site package must bundle the private/internal pieces into its published artifact.
-4. Publish it with the normal monorepo release flow.
-5. Teach hosted-rover to install the exact site package version alongside the pinned Rover/runtime version.
+1. Move shared Rizom site core into a publishable `@brains/site-rizom` base package with a clean public dependency story.
+2. Move each site into a thin monorepo package that extends the base package.
+3. Make the base package and each per-site package publishable.
+4. Publish them with the normal monorepo release flow.
+5. Teach hosted-rover to install the exact per-site package version alongside the pinned Rover/runtime version. Package managers will bring the compatible base package version through normal dependency resolution.
 6. Keep generated `brain.yaml` shaped as package refs from day one.
 
 The bridge — bundling Rizom site packages into the current published runtime/image — is only a fallback if the package install path blocks Phase 1. If used, it must be documented as temporary and removed in a follow-up phase.
@@ -155,8 +166,9 @@ The site package itself owns `themeProfile: "studio"`, routes, layouts, template
 Done when:
 
 - `@brains/site-rizom-work` exists in the monorepo, composes `@brains/site-rizom`, and owns rizom.work's layout/routes/templates/`themeProfile: studio`/local CSS.
-- The package and all runtime dependencies are publishable/resolvable from the hosted-rover build environment, or the package bundles the private/internal pieces needed at runtime.
-- The package is published via the normal release flow at a resolvable version.
+- The shared `@brains/site-rizom` base package has a clean public dependency story: any low-level private/internal dependencies are either hidden/bundled behind it or intentionally made public/stable.
+- `@brains/site-rizom-work` depends on the base package rather than the full internal framework chain.
+- The base package and `@brains/site-rizom-work` are published via the normal release flow at resolvable versions.
 - A generated `brain.yaml` referencing `site.package: @brains/site-rizom-work` boots and renders rizom.work — apex + `www` + `preview` — without bundling all `sites/*` into the image.
 - The old `rizom-work` standalone deploy workflow/image is retired (or explicitly gated behind the temporary bridge if used).
 
