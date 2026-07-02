@@ -28,6 +28,23 @@ export interface RuntimeScript {
   module?: boolean;
 }
 
+export interface TemplateInput {
+  name: string;
+  description: string;
+  schema: unknown;
+  basePrompt?: string | undefined;
+  useKnowledgeContext?: boolean | undefined;
+  requiredPermission: "anchor" | "trusted" | "public";
+  formatter?: unknown;
+  layout?:
+    | {
+        component?: unknown;
+        fullscreen?: boolean | undefined;
+      }
+    | undefined;
+  dataSourceId?: string | undefined;
+}
+
 /**
  * Helper function to create a type-safe component that automatically parses props
  * using the provided Zod schema
@@ -52,7 +69,7 @@ export function createTypedComponent<TSchema, TComponent = TSchema>(
  * This is the single source of truth for what constitutes a template
  */
 export interface Template extends Omit<
-  z.output<typeof TemplateSchema>,
+  TemplateInput,
   "schema" | "layout" | "formatter"
 > {
   schema: TemplateDataSchema<unknown>;
@@ -124,7 +141,7 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
 /**
  * Template schema for validation
  */
-export const TemplateSchema = z.object({
+export const TemplateSchema: z.ZodType<TemplateInput> = z.object({
   name: z.string(),
   description: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime - required
@@ -140,5 +157,3 @@ export const TemplateSchema = z.object({
     .optional(),
   dataSourceId: z.string().optional(),
 });
-
-export type TemplateInput = z.output<typeof TemplateSchema>;

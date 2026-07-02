@@ -4,40 +4,51 @@ import { matchSpaceSelector } from "./space-selector";
 /**
  * User permission level schema
  */
-export const UserPermissionLevelSchema = z.enum([
-  "anchor",
-  "trusted",
-  "public",
-]);
+export type UserPermissionLevel = "anchor" | "trusted" | "public";
 
-export type UserPermissionLevel = z.output<typeof UserPermissionLevelSchema>;
+export const UserPermissionLevelSchema: z.ZodType<
+  UserPermissionLevel,
+  UserPermissionLevel
+> = z.enum(["anchor", "trusted", "public"]);
 
 // Add new actions only when a concrete mutating tool needs them.
-export const EntityActionSchema = z.enum([
-  "create",
-  "update",
-  "delete",
-  "extract",
-  "publish",
-]);
-export type EntityAction = z.output<typeof EntityActionSchema>;
+export type EntityAction =
+  | "create"
+  | "update"
+  | "delete"
+  | "extract"
+  | "publish";
+
+export const EntityActionSchema: z.ZodType<EntityAction, EntityAction> = z.enum(
+  ["create", "update", "delete", "extract", "publish"],
+);
 
 /**
  * Required level for an entity action.
  *
  * `never` forbids the action through system tools regardless of caller level.
  */
-export const EntityActionRequiredLevelSchema = z.enum([
-  "never",
-  "anchor",
-  "trusted",
-  "public",
-]);
-export type EntityActionRequiredLevel = z.output<
-  typeof EntityActionRequiredLevelSchema
->;
+export type EntityActionRequiredLevel = "never" | UserPermissionLevel;
 
-export const entityActionPolicyRuleSchema = z.strictObject({
+export const EntityActionRequiredLevelSchema: z.ZodType<
+  EntityActionRequiredLevel,
+  EntityActionRequiredLevel
+> = z.enum(["never", "anchor", "trusted", "public"]);
+
+export interface EntityActionPolicyRule {
+  create?: EntityActionRequiredLevel | undefined;
+  update?: EntityActionRequiredLevel | undefined;
+  delete?: EntityActionRequiredLevel | undefined;
+  extract?: EntityActionRequiredLevel | undefined;
+  publish?: EntityActionRequiredLevel | undefined;
+}
+
+export type EntityActionPolicyRuleInput = EntityActionPolicyRule;
+
+export const entityActionPolicyRuleSchema: z.ZodType<
+  EntityActionPolicyRule,
+  EntityActionPolicyRuleInput
+> = z.strictObject({
   create: EntityActionRequiredLevelSchema.optional(),
   update: EntityActionRequiredLevelSchema.optional(),
   delete: EntityActionRequiredLevelSchema.optional(),
@@ -45,23 +56,16 @@ export const entityActionPolicyRuleSchema = z.strictObject({
   publish: EntityActionRequiredLevelSchema.optional(),
 });
 
-export const entityActionPolicyConfigSchema = z.record(
-  z.string(),
-  entityActionPolicyRuleSchema,
-);
+export type EntityActionPolicyConfig = Record<string, EntityActionPolicyRule>;
+export type EntityActionPolicyConfigInput = Record<
+  string,
+  EntityActionPolicyRuleInput
+>;
 
-export type EntityActionPolicyRule = z.output<
-  typeof entityActionPolicyRuleSchema
->;
-export type EntityActionPolicyRuleInput = z.input<
-  typeof entityActionPolicyRuleSchema
->;
-export type EntityActionPolicyConfig = z.output<
-  typeof entityActionPolicyConfigSchema
->;
-export type EntityActionPolicyConfigInput = z.input<
-  typeof entityActionPolicyConfigSchema
->;
+export const entityActionPolicyConfigSchema: z.ZodType<
+  EntityActionPolicyConfig,
+  EntityActionPolicyConfigInput
+> = z.record(z.string(), entityActionPolicyRuleSchema);
 export type EntityActionPolicyEntry = EntityActionPolicyRule;
 export type EntityActionPolicy = EntityActionPolicyConfig;
 

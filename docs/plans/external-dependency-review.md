@@ -1236,7 +1236,8 @@ package batch enabled `isolatedDeclarations` for `@brains/atproto-contracts`,
 `@brains/product-site-content`, `@rizom/ui`, `@brains/site-composition`,
 `@brains/site-engine`, `@brains/test-utils`, `@brains/theme-base`, `@brains/theme-default`,
 `@brains/theme-rizom`, `@brains/ui-library`, and `@brains/utils`, adding only
-explicit declarations/annotations where required.
+explicit declarations/annotations where required. The rollout then resumed in
+shell package contracts with `@brains/messaging-service` and `@brains/templates`.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
