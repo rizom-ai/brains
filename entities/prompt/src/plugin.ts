@@ -1,7 +1,7 @@
 import type { Plugin, EntityTypeConfig } from "@brains/plugins";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { promptSchema, type Prompt } from "./schemas/prompt";
-import { promptAdapter } from "./adapters/prompt-adapter";
+import { promptAdapter, type PromptAdapter } from "./adapters/prompt-adapter";
 import packageJson from "../package.json";
 
 /**
@@ -14,14 +14,16 @@ import packageJson from "../package.json";
  * Prompts are excluded from search embeddings — they're system
  * configuration, not user content.
  */
+const promptEntityType = "prompt";
+
 export class PromptPlugin extends EntityPlugin<
   Prompt,
   Record<string, never>,
   Record<string, never>
 > {
-  readonly entityType = promptAdapter.entityType;
-  readonly schema = promptSchema;
-  readonly adapter = promptAdapter;
+  readonly entityType: typeof promptEntityType = promptEntityType;
+  readonly schema: typeof promptSchema = promptSchema;
+  readonly adapter: PromptAdapter = promptAdapter;
 
   constructor() {
     super("prompt", packageJson, {}, emptyEntityPluginConfigSchema);

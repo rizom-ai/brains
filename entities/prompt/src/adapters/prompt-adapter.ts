@@ -49,4 +49,4 @@ export class PromptAdapter extends BaseEntityAdapter<Prompt, PromptMetadata> {
   }
 }
 
-export const promptAdapter = new PromptAdapter();
+export const promptAdapter: PromptAdapter = new PromptAdapter();

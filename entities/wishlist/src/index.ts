@@ -12,19 +12,21 @@ import {
   type WishlistConfig,
   type WishlistConfigInput,
 } from "./schemas/wishlist-config";
-import { wishAdapter } from "./adapters/wish-adapter";
+import { WishAdapter, wishAdapter } from "./adapters/wish-adapter";
 import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
 import packageJson from "../package.json";
+
+const wishEntityType = "wish";
 
 export class WishlistPlugin extends EntityPlugin<
   WishEntity,
   WishlistConfig,
   WishlistConfigInput
 > {
-  readonly entityType = wishAdapter.entityType;
-  readonly schema = wishSchema;
-  readonly adapter = wishAdapter;
+  readonly entityType: typeof wishEntityType = wishEntityType;
+  readonly schema: typeof wishSchema = wishSchema;
+  readonly adapter: WishAdapter = wishAdapter;
 
   constructor(config: WishlistConfigInput = {}) {
     super("wishlist", packageJson, config, wishlistConfigSchema);
@@ -130,7 +132,7 @@ export function createWishlistPlugin(config: WishlistConfigInput = {}): Plugin {
   return new WishlistPlugin(config);
 }
 
-export const wishlistPlugin = createWishlistPlugin;
+export const wishlistPlugin: typeof createWishlistPlugin = createWishlistPlugin;
 
 export type {
   WishEntity,
@@ -151,4 +153,4 @@ export {
   wishPrioritySchema,
 } from "./schemas/wish";
 export { wishlistConfigSchema } from "./schemas/wishlist-config";
-export { WishAdapter } from "./adapters/wish-adapter";
+export { WishAdapter };

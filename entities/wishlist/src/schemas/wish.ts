@@ -9,7 +9,14 @@ import { baseEntityParserSchema } from "@brains/plugins";
  * - done: capability shipped
  * - declined: explicitly declined with reason
  */
-export const wishStatusSchema = z.enum([
+export type WishStatus =
+  | "new"
+  | "planned"
+  | "in-progress"
+  | "done"
+  | "declined";
+
+export const wishStatusSchema: z.ZodType<WishStatus, WishStatus> = z.enum([
   "new",
   "planned",
   "in-progress",
@@ -17,22 +24,48 @@ export const wishStatusSchema = z.enum([
   "declined",
 ]);
 
-export const wishPrioritySchema = z.enum(["low", "medium", "high", "critical"]);
+export type WishPriority = "low" | "medium" | "high" | "critical";
 
-const wishStatusParserSchema = z.enum([
+export const wishPrioritySchema: z.ZodType<WishPriority, WishPriority> = z.enum(
+  ["low", "medium", "high", "critical"],
+);
+
+const wishStatusParserSchema: z.ZodType<WishStatus, WishStatus> = z.enum([
   "new",
   "planned",
   "in-progress",
   "done",
   "declined",
 ]);
-const wishPriorityParserSchema = z.enum(["low", "medium", "high", "critical"]);
+const wishPriorityParserSchema: z.ZodType<WishPriority, WishPriority> = z.enum([
+  "low",
+  "medium",
+  "high",
+  "critical",
+]);
+
+export interface WishFrontmatter {
+  [key: string]: unknown;
+  title: string;
+  status: WishStatus;
+  priority: WishPriority;
+  requested: number;
+  declinedReason?: string | undefined;
+}
 
 /**
  * Wish frontmatter schema (stored in content as YAML frontmatter)
  * Body contains the description of what the user wanted.
  */
-export const wishFrontmatterSchema = z.object({
+type WishFrontmatterSchema = z.ZodObject<{
+  title: z.ZodString;
+  status: z.ZodType<WishStatus, WishStatus>;
+  priority: z.ZodDefault<z.ZodType<WishPriority, WishPriority>>;
+  requested: z.ZodDefault<z.ZodNumber>;
+  declinedReason: z.ZodOptional<z.ZodString>;
+}>;
+
+export const wishFrontmatterSchema: WishFrontmatterSchema = z.object({
   title: z.string(),
   status: wishStatusSchema,
   priority: wishPrioritySchema.default("medium"),
@@ -40,11 +73,28 @@ export const wishFrontmatterSchema = z.object({
   declinedReason: z.string().optional(),
 });
 
+export interface WishMetadata {
+  [key: string]: unknown;
+  title: string;
+  status: WishStatus;
+  priority: WishPriority;
+  requested: number;
+  slug: string;
+}
+
+type WishMetadataSchema = z.ZodObject<{
+  title: z.ZodString;
+  status: z.ZodType<WishStatus, WishStatus>;
+  priority: z.ZodType<WishPriority, WishPriority>;
+  requested: z.ZodNumber;
+  slug: z.ZodString;
+}>;
+
 /**
  * Wish metadata schema - derived from frontmatter via .pick()
  * Only includes fields needed for fast DB queries/filtering.
  */
-export const wishMetadataSchema = z.object({
+export const wishMetadataSchema: WishMetadataSchema = z.object({
   title: z.string(),
   status: wishStatusSchema,
   priority: wishPrioritySchema,
@@ -55,7 +105,7 @@ export const wishMetadataSchema = z.object({
 /**
  * Wish entity schema
  */
-const wishEntityMetadataParserSchema = z.object({
+const wishEntityMetadataParserSchema: WishMetadataSchema = z.object({
   title: z.string(),
   status: wishStatusParserSchema,
   priority: wishPriorityParserSchema,
@@ -63,13 +113,14 @@ const wishEntityMetadataParserSchema = z.object({
   slug: z.string(),
 });
 
-export const wishSchema = baseEntityParserSchema.extend({
+export const wishSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"wish">;
+    metadata: WishMetadataSchema;
+  }>
+> = baseEntityParserSchema.extend({
   entityType: z.literal("wish"),
   metadata: wishEntityMetadataParserSchema,
 });
 
-export type WishStatus = z.output<typeof wishStatusSchema>;
-export type WishPriority = z.output<typeof wishPrioritySchema>;
-export type WishFrontmatter = z.output<typeof wishFrontmatterSchema>;
-export type WishMetadata = z.output<typeof wishMetadataSchema>;
 export type WishEntity = z.output<typeof wishSchema>;
