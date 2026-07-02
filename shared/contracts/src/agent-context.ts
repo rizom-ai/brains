@@ -25,13 +25,19 @@ export interface AgentContextResponse {
   items: AgentContextItem[];
 }
 
-export const agentContextPermissionLevelSchema = z.enum([
-  "anchor",
-  "trusted",
-  "public",
-]);
+export interface AgentContextResponseInput {
+  items?: AgentContextItem[] | undefined;
+}
 
-export const agentContextRequestSchema = z.object({
+export const agentContextPermissionLevelSchema: z.ZodType<
+  AgentContextPermissionLevel,
+  AgentContextPermissionLevel
+> = z.enum(["anchor", "trusted", "public"]);
+
+export const agentContextRequestSchema: z.ZodType<
+  AgentContextRequest,
+  AgentContextRequest
+> = z.object({
   conversationId: z.string().min(1),
   message: z.string(),
   interfaceType: z.string().min(1),
@@ -40,7 +46,10 @@ export const agentContextRequestSchema = z.object({
   userPermissionLevel: agentContextPermissionLevelSchema,
 });
 
-export const agentContextItemSchema = z.object({
+export const agentContextItemSchema: z.ZodType<
+  AgentContextItem,
+  AgentContextItem
+> = z.object({
   id: z.string().min(1),
   source: z.string().min(1),
   title: z.string().optional(),
@@ -48,7 +57,10 @@ export const agentContextItemSchema = z.object({
   provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
-export const agentContextResponseSchema = z.object({
+export const agentContextResponseSchema: z.ZodType<
+  AgentContextResponse,
+  AgentContextResponseInput
+> = z.object({
   items: z.array(agentContextItemSchema).default([]),
 });
 

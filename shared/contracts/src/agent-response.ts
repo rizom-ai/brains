@@ -1,7 +1,20 @@
 import { stripUndefinedDeep } from "@brains/utils";
 import { z } from "@brains/utils/zod-v4";
 
-export const PendingConfirmationSchema = z.object({
+export interface PendingConfirmation {
+  id: string;
+  toolCallId?: string | undefined;
+  toolName: string;
+  summary: string;
+  completionSummary?: string | undefined;
+  preview?: string | undefined;
+  args: unknown;
+}
+
+export const PendingConfirmationSchema: z.ZodType<
+  PendingConfirmation,
+  PendingConfirmation
+> = z.object({
   id: z.string(),
   toolCallId: z.string().optional(),
   toolName: z.string(),
@@ -11,9 +24,17 @@ export const PendingConfirmationSchema = z.object({
   args: z.unknown(),
 });
 
-export type PendingConfirmation = z.output<typeof PendingConfirmationSchema>;
+export type ToolApprovalCardState =
+  | "approval-requested"
+  | "approval-responded"
+  | "output-available"
+  | "output-denied"
+  | "output-error";
 
-export const ToolApprovalCardStateSchema = z.enum([
+export const ToolApprovalCardStateSchema: z.ZodType<
+  ToolApprovalCardState,
+  ToolApprovalCardState
+> = z.enum([
   "approval-requested",
   "approval-responded",
   "output-available",
@@ -21,7 +42,21 @@ export const ToolApprovalCardStateSchema = z.enum([
   "output-error",
 ]);
 
-export const ToolApprovalCardSchema = z.object({
+export interface ToolApprovalCard {
+  kind: "tool-approval";
+  id: string;
+  toolCallId?: string | undefined;
+  toolName: string;
+  input?: Record<string, unknown> | undefined;
+  summary: string;
+  completionSummary?: string | undefined;
+  preview?: string | undefined;
+  state: ToolApprovalCardState;
+  output?: unknown;
+  error?: string | undefined;
+}
+
+const ToolApprovalCardSchemaImpl = z.object({
   kind: z.literal("tool-approval"),
   id: z.string(),
   toolCallId: z.string().optional(),
@@ -35,18 +70,40 @@ export const ToolApprovalCardSchema = z.object({
   error: z.string().optional(),
 });
 
-export type ToolApprovalCardState = z.output<
-  typeof ToolApprovalCardStateSchema
->;
-export type ToolApprovalCard = z.output<typeof ToolApprovalCardSchema>;
+export const ToolApprovalCardSchema: z.ZodType<
+  ToolApprovalCard,
+  ToolApprovalCard
+> = ToolApprovalCardSchemaImpl;
 
-export const AttachmentCardSourceSchema = z.object({
+export interface AttachmentCardSource {
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  attachmentType?: string | undefined;
+}
+
+export const AttachmentCardSourceSchema: z.ZodType<
+  AttachmentCardSource,
+  AttachmentCardSource
+> = z.object({
   entityType: z.string().optional(),
   entityId: z.string().optional(),
   attachmentType: z.string().optional(),
 });
 
-export const AttachmentCardDataSchema = z.object({
+export interface AttachmentCardData {
+  mediaType: string;
+  url: string;
+  downloadUrl?: string | undefined;
+  previewUrl?: string | undefined;
+  filename?: string | undefined;
+  sizeBytes?: number | undefined;
+  source?: AttachmentCardSource | undefined;
+}
+
+export const AttachmentCardDataSchema: z.ZodType<
+  AttachmentCardData,
+  AttachmentCardData
+> = z.object({
   mediaType: z.string().min(1),
   url: z.string().min(1),
   downloadUrl: z.string().min(1).optional(),
@@ -56,7 +113,16 @@ export const AttachmentCardDataSchema = z.object({
   source: AttachmentCardSourceSchema.optional(),
 });
 
-export const AttachmentCardSchema = z.object({
+export interface AttachmentCard {
+  kind: "attachment";
+  id: string;
+  jobId?: string | undefined;
+  title: string;
+  description?: string | undefined;
+  attachment: AttachmentCardData;
+}
+
+const AttachmentCardSchemaImpl = z.object({
   kind: z.literal("attachment"),
   id: z.string(),
   jobId: z.string().optional(),
@@ -65,33 +131,58 @@ export const AttachmentCardSchema = z.object({
   attachment: AttachmentCardDataSchema,
 });
 
-export type AttachmentCardSource = z.output<typeof AttachmentCardSourceSchema>;
-export type AttachmentCardData = z.output<typeof AttachmentCardDataSchema>;
-export type AttachmentCard = z.output<typeof AttachmentCardSchema>;
+export const AttachmentCardSchema: z.ZodType<AttachmentCard, AttachmentCard> =
+  AttachmentCardSchemaImpl;
 
-export const SourceCitationSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1).optional(),
-  source: z.string().min(1),
-  url: z.string().min(1).optional(),
-  entityType: z.string().min(1).optional(),
-  entityId: z.string().min(1).optional(),
-  excerpt: z.string().min(1).optional(),
-  provenance: z.record(z.string(), z.unknown()).optional(),
-});
+export interface SourceCitation {
+  id: string;
+  title?: string | undefined;
+  source: string;
+  url?: string | undefined;
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  excerpt?: string | undefined;
+  provenance?: Record<string, unknown> | undefined;
+}
 
-export type SourceCitation = z.output<typeof SourceCitationSchema>;
+export const SourceCitationSchema: z.ZodType<SourceCitation, SourceCitation> =
+  z.object({
+    id: z.string().min(1),
+    title: z.string().min(1).optional(),
+    source: z.string().min(1),
+    url: z.string().min(1).optional(),
+    entityType: z.string().min(1).optional(),
+    entityId: z.string().min(1).optional(),
+    excerpt: z.string().min(1).optional(),
+    provenance: z.record(z.string(), z.unknown()).optional(),
+  });
 
-export const SourcesCardSchema = z.object({
+export interface SourcesCard {
+  kind: "sources";
+  id: string;
+  title?: string | undefined;
+  sources: SourceCitation[];
+}
+
+const SourcesCardSchemaImpl = z.object({
   kind: z.literal("sources"),
   id: z.string().min(1),
   title: z.string().min(1).optional(),
   sources: z.array(SourceCitationSchema).min(1),
 });
 
-export type SourcesCard = z.output<typeof SourcesCardSchema>;
+export const SourcesCardSchema: z.ZodType<SourcesCard, SourcesCard> =
+  SourcesCardSchemaImpl;
 
-export const PromptChatActionSchema = z.object({
+export interface PromptChatAction {
+  type: "prompt";
+  id: string;
+  label: string;
+  prompt: string;
+  description?: string | undefined;
+}
+
+const PromptChatActionSchemaImpl = z.object({
   type: z.literal("prompt"),
   id: z.string().min(1),
   label: z.string().min(1),
@@ -99,9 +190,20 @@ export const PromptChatActionSchema = z.object({
   description: z.string().min(1).optional(),
 });
 
-export type PromptChatAction = z.output<typeof PromptChatActionSchema>;
+export const PromptChatActionSchema: z.ZodType<
+  PromptChatAction,
+  PromptChatAction
+> = PromptChatActionSchemaImpl;
 
-export const EventChatActionSchema = z.object({
+export interface EventChatAction {
+  type: "event";
+  id: string;
+  label: string;
+  event: string;
+  description?: string | undefined;
+}
+
+const EventChatActionSchemaImpl = z.object({
   type: z.literal("event"),
   id: z.string().min(1),
   label: z.string().min(1),
@@ -109,16 +211,28 @@ export const EventChatActionSchema = z.object({
   description: z.string().min(1).optional(),
 });
 
-export type EventChatAction = z.output<typeof EventChatActionSchema>;
+export const EventChatActionSchema: z.ZodType<
+  EventChatAction,
+  EventChatAction
+> = EventChatActionSchemaImpl;
 
-export const ChatActionSchema = z.discriminatedUnion("type", [
-  PromptChatActionSchema,
-  EventChatActionSchema,
-]);
+export type ChatAction = PromptChatAction | EventChatAction;
 
-export type ChatAction = z.output<typeof ChatActionSchema>;
+export const ChatActionSchema: z.ZodType<ChatAction, ChatAction> =
+  z.discriminatedUnion("type", [
+    PromptChatActionSchemaImpl,
+    EventChatActionSchemaImpl,
+  ]);
 
-export const ActionsCardSchema = z.object({
+export interface ActionsCard {
+  kind: "actions";
+  id: string;
+  title?: string | undefined;
+  defaultOpen?: boolean | undefined;
+  actions: ChatAction[];
+}
+
+const ActionsCardSchemaImpl = z.object({
   kind: z.literal("actions"),
   id: z.string().min(1),
   title: z.string().min(1).optional(),
@@ -126,39 +240,66 @@ export const ActionsCardSchema = z.object({
   actions: z.array(ChatActionSchema).min(1),
 });
 
-export type ActionsCard = z.output<typeof ActionsCardSchema>;
+export const ActionsCardSchema: z.ZodType<ActionsCard, ActionsCard> =
+  ActionsCardSchemaImpl;
 
-export const StructuredChatCardSchema = z.discriminatedUnion("kind", [
-  ToolApprovalCardSchema,
-  AttachmentCardSchema,
-  SourcesCardSchema,
-  ActionsCardSchema,
+export type StructuredChatCard =
+  | ToolApprovalCard
+  | AttachmentCard
+  | SourcesCard
+  | ActionsCard;
+
+export const StructuredChatCardSchema: z.ZodType<
+  StructuredChatCard,
+  StructuredChatCard
+> = z.discriminatedUnion("kind", [
+  ToolApprovalCardSchemaImpl,
+  AttachmentCardSchemaImpl,
+  SourcesCardSchemaImpl,
+  ActionsCardSchemaImpl,
 ]);
 
-export type StructuredChatCard = z.output<typeof StructuredChatCardSchema>;
+export interface ToolResultData {
+  toolName: string;
+  args?: Record<string, unknown> | undefined;
+  jobId?: string | undefined;
+  data?: unknown;
+}
 
-export const ToolResultDataSchema = z.object({
-  toolName: z.string(),
-  args: z.record(z.string(), z.unknown()).optional(),
-  jobId: z.string().optional(),
-  data: z.unknown().optional(),
-});
+export const ToolResultDataSchema: z.ZodType<ToolResultData, ToolResultData> =
+  z.object({
+    toolName: z.string(),
+    args: z.record(z.string(), z.unknown()).optional(),
+    jobId: z.string().optional(),
+    data: z.unknown().optional(),
+  });
 
-export type ToolResultData = z.output<typeof ToolResultDataSchema>;
+export interface AgentResponseUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
 
-export const AgentResponseSchema = z.object({
-  text: z.string(),
-  toolResults: z.array(ToolResultDataSchema).optional(),
-  cards: z.array(StructuredChatCardSchema).optional(),
-  pendingConfirmations: z.array(PendingConfirmationSchema).optional(),
-  usage: z.object({
-    promptTokens: z.number(),
-    completionTokens: z.number(),
-    totalTokens: z.number(),
-  }),
-});
+export interface AgentResponse {
+  text: string;
+  toolResults?: ToolResultData[] | undefined;
+  cards?: StructuredChatCard[] | undefined;
+  pendingConfirmations?: PendingConfirmation[] | undefined;
+  usage: AgentResponseUsage;
+}
 
-export type AgentResponse = z.output<typeof AgentResponseSchema>;
+export const AgentResponseSchema: z.ZodType<AgentResponse, AgentResponse> =
+  z.object({
+    text: z.string(),
+    toolResults: z.array(ToolResultDataSchema).optional(),
+    cards: z.array(StructuredChatCardSchema).optional(),
+    pendingConfirmations: z.array(PendingConfirmationSchema).optional(),
+    usage: z.object({
+      promptTokens: z.number(),
+      completionTokens: z.number(),
+      totalTokens: z.number(),
+    }),
+  });
 
 export function parseAgentResponse(value: unknown): AgentResponse {
   return AgentResponseSchema.parse(stripUndefinedDeep(value));

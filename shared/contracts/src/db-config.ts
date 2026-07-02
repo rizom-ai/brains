@@ -9,7 +9,7 @@ export interface DbConfig {
   authToken?: string | undefined;
 }
 
-export const dbConfigSchema = z.object({
+export const dbConfigSchema: z.ZodType<DbConfig, DbConfig> = z.object({
   url: z.string(),
   authToken: z.string().optional(),
 });
