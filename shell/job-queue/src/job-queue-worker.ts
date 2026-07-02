@@ -27,6 +27,7 @@ export class JobQueueWorker {
   private stats: JobQueueWorkerStats;
   private startTime: number = 0;
   private pollTimeout: NodeJS.Timeout | null = null;
+  private currentPoll: Promise<void> | null = null;
   private processingPromises: Map<string, Promise<void>> = new Map();
 
   /**
@@ -128,6 +129,12 @@ export class JobQueueWorker {
    * Stop the worker gracefully
    */
   public async stop(): Promise<void> {
+    return this.stopWorker({ awaitInFlightPoll: true });
+  }
+
+  private async stopWorker(options: {
+    awaitInFlightPoll: boolean;
+  }): Promise<void> {
     if (!this.isRunning) {
       this.logger.warn("Worker is not running");
       return;
@@ -142,8 +149,16 @@ export class JobQueueWorker {
       this.pollTimeout = null;
     }
 
-    // Wait for all active jobs to complete
-    if (this.processingPromises.size > 0) {
+    // A poll already past its shouldStop check may still claim jobs; wait for
+    // it so those jobs are registered in processingPromises before we drain.
+    // Skipped when the poll itself initiates the stop (maxJobs reached),
+    // which would deadlock on its own promise.
+    if (options.awaitInFlightPoll && this.currentPoll) {
+      await this.currentPoll;
+    }
+
+    // Drain in snapshots — an in-flight poll can add jobs while we await
+    while (this.processingPromises.size > 0) {
       this.logger.debug("Waiting for active jobs to complete", {
         activeJobs: this.processingPromises.size,
       });
@@ -202,7 +217,7 @@ export class JobQueueWorker {
             processedJobs: this.stats.processedJobs,
             failedJobs: this.stats.failedJobs,
           });
-          await this.stop();
+          await this.stopWorker({ awaitInFlightPoll: false });
           return;
         }
 
@@ -212,6 +227,11 @@ export class JobQueueWorker {
       // Get jobs from the queue
       const jobs: JobInfo[] = [];
       for (let i = 0; i < availableSlots; i++) {
+        // Re-check on every iteration — stop() may have been requested
+        // while awaiting a previous dequeue
+        if (this.shouldStop) {
+          break;
+        }
         const job = await this.jobQueueService.dequeue();
         if (job) {
           jobs.push(job);
@@ -286,7 +306,10 @@ export class JobQueueWorker {
     }
 
     this.pollTimeout = setTimeout(async () => {
-      await this.processAvailableJobs();
+      // Track the in-flight poll so stop() can wait for jobs it claims
+      this.currentPoll = this.processAvailableJobs();
+      await this.currentPoll;
+      this.currentPoll = null;
       this.scheduleNextPoll();
     }, this.config.pollInterval);
   }

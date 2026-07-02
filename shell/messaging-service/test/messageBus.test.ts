@@ -735,6 +735,33 @@ describe("MessageBus", () => {
       expect(handler3).toHaveBeenCalledTimes(1);
     });
 
+    it("should invoke broadcast handlers concurrently", async () => {
+      let inFlight = 0;
+      let maxInFlight = 0;
+      const makeSlowHandler = () =>
+        mock(async () => {
+          inFlight++;
+          maxInFlight = Math.max(maxInFlight, inFlight);
+          await new Promise((r) => setTimeout(r, 20));
+          inFlight--;
+          return { noop: true } as const;
+        });
+
+      messageBus.subscribe("test.broadcast", makeSlowHandler());
+      messageBus.subscribe("test.broadcast", makeSlowHandler());
+      messageBus.subscribe("test.broadcast", makeSlowHandler());
+
+      await messageBus.send({
+        type: "test.broadcast",
+        payload: { content: "broadcast message" },
+        sender: "sender",
+        broadcast: true,
+      });
+
+      // One slow subscriber must not serialize delivery to the others
+      expect(maxInFlight).toBe(3);
+    });
+
     it("should stop at first success for non-broadcast messages", async () => {
       const handler1 = mock(() => ({ success: true, data: "first" }));
       const handler2 = mock(() => ({ success: true, data: "second" }));

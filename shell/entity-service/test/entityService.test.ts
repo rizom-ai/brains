@@ -1,4 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
+import { chmod, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { z } from "@brains/utils";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
@@ -256,6 +258,76 @@ describe("EntityService", (): void => {
   });
 });
 
+describe("EntityService > initialize", () => {
+  test("propagates embedding database initialization failures", async () => {
+    EntityService.resetInstance();
+    EntityRegistry.resetInstance();
+
+    const testDb = await createTestEntityDatabase();
+    // Read-only embedding DB file: opening succeeds, but the CREATE TABLE
+    // migration must fail — and that failure must surface via initialize()
+    const embPath = join(dirname(testDb.dbPath), "readonly-emb.db");
+    await writeFile(embPath, "");
+    await chmod(embPath, 0o444);
+
+    const logger = createSilentLogger();
+    const service = EntityService.createFresh({
+      embeddingService: mockEmbeddingService,
+      entityRegistry: EntityRegistry.createFresh(logger),
+      logger,
+      jobQueueService: createMockJobQueueService({
+        returns: { enqueue: "mock-job-id" },
+      }),
+      dbConfig: testDb.config,
+      embeddingDbConfig: { url: `file:${embPath}` },
+    });
+
+    try {
+      expect(service.initialize()).rejects.toThrow();
+    } finally {
+      service.close();
+      EntityService.resetInstance();
+      EntityRegistry.resetInstance();
+      await testDb.cleanup();
+    }
+  });
+});
+
+describe("EntityService > updateEntity", () => {
+  let ctx: EntityServiceTestContext;
+
+  beforeEach(async () => {
+    ctx = await setupEntityService([
+      { name: "note", schema: sharedNoteSchema, adapter: sharedNoteAdapter },
+    ]);
+  });
+
+  afterEach(async () => {
+    await ctx.cleanup();
+  });
+
+  test("throws when the entity does not exist", async () => {
+    const missing = createTestEntity<SharedNote>(
+      "note",
+      createNoteInput(
+        { title: "Ghost", content: "Never persisted", tags: [] },
+        "missing-entity",
+      ),
+    );
+
+    expect(ctx.entityService.updateEntity({ entity: missing })).rejects.toThrow(
+      "Entity not found: note:missing-entity",
+    );
+
+    // Nothing should have been persisted for the phantom row
+    const after = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "missing-entity",
+    });
+    expect(after).toBeNull();
+  });
+});
+
 describe("EntityService > upsertEntity", () => {
   let ctx: EntityServiceTestContext;
 
@@ -267,6 +339,36 @@ describe("EntityService > upsertEntity", () => {
 
   afterEach(async () => {
     await ctx.cleanup();
+  });
+
+  test("concurrent upserts of the same new entity do not throw", async () => {
+    const input = createNoteInput(
+      { title: "Racy Note", content: "Same content", tags: [] },
+      "race-entity",
+    );
+
+    // Both upserts see the entity as missing (check-then-act); the loser of
+    // the insert race must fall through to the update path, not throw.
+    const results = await Promise.all([
+      ctx.entityService.upsertEntity({
+        entity: createTestEntity<SharedNote>("note", input),
+      }),
+      ctx.entityService.upsertEntity({
+        entity: createTestEntity<SharedNote>("note", input),
+      }),
+    ]);
+
+    expect(results.map((r) => r.entityId)).toEqual([
+      "race-entity",
+      "race-entity",
+    ]);
+    expect(results.filter((r) => r.created)).toHaveLength(1);
+
+    const after = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "race-entity",
+    });
+    expect(after).not.toBeNull();
   });
 
   test("creates new entity when it doesn't exist", async () => {

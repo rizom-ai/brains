@@ -392,7 +392,6 @@ export {
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
-  formatConfirmationPrompt,
   formatConfirmationResult,
   formatContentDispositionHeader,
   formatToolStatusLabel,

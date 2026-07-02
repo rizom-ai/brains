@@ -191,6 +191,10 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         return;
       }
 
+      if (job.metadata.silent) {
+        return;
+      }
+
       if (this.isBatchChild(jobId, job.metadata.rootJobId)) {
         this.logger.debug(
           "Skipping individual job progress for batch operation",
@@ -238,6 +242,10 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       const job = await this.jobQueueService.getStatus(jobId);
       if (!job) {
         this.logger.warn(`Cannot emit ${status} for unknown job`, { jobId });
+        return;
+      }
+
+      if (job.metadata.silent) {
         return;
       }
 
@@ -320,6 +328,10 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     status: "completed" | "failed",
     metadata?: JobContext,
   ): Promise<void> {
+    if (metadata?.silent) {
+      return;
+    }
+
     try {
       await this.emitJobStatusEvent(jobId, status);
 

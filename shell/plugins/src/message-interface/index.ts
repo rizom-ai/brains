@@ -43,11 +43,7 @@ export {
   type ToolStatusUpdate,
 } from "./tool-status";
 
-export {
-  parseConfirmationResponse,
-  formatConfirmationPrompt,
-  ConfirmationTracker,
-} from "./confirmation-handler";
+export { parseConfirmationResponse } from "./confirmation-handler";
 
 export {
   containsApprovalIdToken,

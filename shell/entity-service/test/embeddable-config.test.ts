@@ -71,6 +71,35 @@ describe("EntityTypeConfig embeddable flag", () => {
     );
   });
 
+  test("embedding jobs are silent and carry no fake rootJobId", async () => {
+    const noteData = {
+      id: "silent-note",
+      entityType: "note" as const,
+      title: "Test Note",
+      content: "Some text content",
+      tags: [],
+      metadata: {},
+    };
+
+    await ctx.entityService.createEntity({ entity: noteData });
+
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        options: expect.objectContaining({
+          metadata: expect.objectContaining({ silent: true }),
+        }),
+      }),
+    );
+    // No synthetic rootJobId — that would make the monitor treat the job as
+    // a batch child and do guaranteed-miss batch lookups
+    expect(ctx.jobQueueService.enqueue).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ rootJobId: expect.anything() }),
+      }),
+    );
+  });
+
   test("createEntity skips embedding job when embeddable is false", async () => {
     const imageData = {
       entityType: "image" as const,

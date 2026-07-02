@@ -388,6 +388,65 @@ describe("JobProgressMonitor", () => {
     });
   });
 
+  describe("silent jobs", () => {
+    const silentMetadata: JobContext = {
+      rootJobId: "job-123",
+      operationType: "data_processing",
+      silent: true,
+    };
+
+    it("does not emit progress events", async () => {
+      getStatusMock.mockResolvedValue(
+        createMockJob({ metadata: silentMetadata }),
+      );
+
+      const progressReporter = monitor.createProgressReporter("job-123");
+      await progressReporter.report({
+        progress: 5,
+        total: 10,
+        message: "Processing step 5",
+      });
+
+      expect(messageBusSendMock).not.toHaveBeenCalled();
+    });
+
+    it("does not emit completion or failure events", async () => {
+      getStatusMock.mockResolvedValue(
+        createMockJob({
+          status: "completed",
+          completedAt: Date.now(),
+          metadata: silentMetadata,
+        }),
+      );
+
+      await monitor.emitJobCompletion("job-123");
+      await monitor.emitJobFailure("job-123");
+
+      expect(messageBusSendMock).not.toHaveBeenCalled();
+    });
+
+    it("handleJobStatusChange performs no lookups and emits nothing", async () => {
+      getStatusMock.mockResolvedValue(
+        createMockJob({
+          status: "completed",
+          completedAt: Date.now(),
+          metadata: silentMetadata,
+        }),
+      );
+      const getBatchStatusSpy = spyOn(mockBatchJobManager, "getBatchStatus");
+
+      await monitor.handleJobStatusChange(
+        "job-123",
+        "completed",
+        silentMetadata,
+      );
+
+      expect(messageBusSendMock).not.toHaveBeenCalled();
+      expect(getBatchStatusSpy).not.toHaveBeenCalled();
+      expect(getStatusMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe("error handling", () => {
     it("should handle message bus errors gracefully", async () => {
       messageBusSendMock.mockRejectedValue(new Error("Message bus error"));

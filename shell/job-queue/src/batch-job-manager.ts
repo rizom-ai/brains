@@ -119,6 +119,21 @@ export class BatchJobManager {
 
     const jobIds: string[] = [];
 
+    // Register before enqueueing so a fast child completing mid-enqueue can
+    // resolve its batch. jobIds is shared with the entry and fills as jobs
+    // are enqueued; getBatchStatus counts not-yet-enqueued operations as
+    // active so the batch can't look terminal early.
+    this.batches.set(batchId, {
+      jobIds,
+      operations,
+      source: options.source,
+      startedAt: new Date().toISOString(),
+      metadata: {
+        ...options.metadata,
+        rootJobId: batchId,
+      },
+    });
+
     try {
       // Enqueue each operation as an individual job
       for (const operation of operations) {
@@ -141,17 +156,6 @@ export class BatchJobManager {
         jobIds.push(jobId);
       }
 
-      this.batches.set(batchId, {
-        jobIds,
-        operations,
-        source: options.source,
-        startedAt: new Date().toISOString(),
-        metadata: {
-          ...options.metadata,
-          rootJobId: batchId,
-        },
-      });
-
       this.logger.debug("Enqueued batch operations", {
         batchId,
         operationCount: operations.length,
@@ -163,6 +167,7 @@ export class BatchJobManager {
 
       return batchId;
     } catch (error) {
+      this.batches.delete(batchId);
       this.logger.error("Failed to enqueue batch operations", {
         error,
         operationCount: operations.length,
@@ -220,6 +225,10 @@ export class BatchJobManager {
             break;
         }
       }
+
+      // Operations not yet enqueued (registration happens before enqueueing)
+      // count as active so a mid-enqueue batch can't look terminal
+      activeOperations += batch.operations.length - batch.jobIds.length;
 
       let status: (typeof JOB_STATUS)[keyof typeof JOB_STATUS];
       if (activeOperations > 0) {

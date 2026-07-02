@@ -88,7 +88,8 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   public async process(
     data: EmbeddingJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    // Embedding jobs are enqueued silent, so progress is never emitted
+    _progressReporter: ProgressReporter,
   ): Promise<void> {
     try {
       this.logger.debug("Processing embedding job", {
@@ -96,13 +97,6 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         entityId: data.id,
         entityType: data.entityType,
         contentHash: data.contentHash,
-      });
-
-      // Report initial progress
-      await progressReporter.report({
-        progress: 0,
-        total: 2,
-        message: `Generating embedding for ${data.entityType} ${data.id}`,
       });
 
       // Fetch fresh entity - content is NOT stored in job data to avoid
@@ -153,13 +147,6 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         outputTokens: 0,
       });
 
-      // Report progress after embedding generation
-      await progressReporter.report({
-        progress: 1,
-        total: 2,
-        message: `Storing embedding for ${data.entityType} ${data.id}`,
-      });
-
       // Store the embedding in the embeddings table
       await this.entityService.storeEmbedding({
         entityId: data.id,
@@ -186,13 +173,6 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
           broadcast: true,
         });
       }
-
-      // Report completion
-      await progressReporter.report({
-        progress: 2,
-        total: 2,
-        message: `Completed embedding for ${data.entityType} ${data.id}`,
-      });
 
       this.logger.debug("Embedding job completed successfully", {
         jobId,
