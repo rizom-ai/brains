@@ -30,7 +30,7 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
         entity.content,
         noteFrontmatterSchema,
       );
-      if (frontmatter.title) {
+      if (Object.values(frontmatter).some((value) => value !== undefined)) {
         return this.buildMarkdown(body, frontmatter);
       }
     } catch {

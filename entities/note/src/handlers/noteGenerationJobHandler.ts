@@ -1,7 +1,7 @@
-import { BaseGenerationJobHandler } from "@brains/plugins";
+import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { noteAdapter } from "../adapters/note-adapter";
@@ -62,12 +62,22 @@ export class NoteGenerationJobHandler extends BaseGenerationJobHandler<
       message: `Generated note: "${title}"`,
     });
 
-    return {
-      id: title,
-      content: noteAdapter.createNoteContent(title, generated.body),
-      metadata: { title },
+    // Ensure title doesn't collide with an existing entity
+    const finalTitle = await ensureUniqueTitle({
+      entityType: "note",
       title,
-      resultExtras: { title },
+      deriveId: slugify,
+      regeneratePrompt: "Generate a different note title on the same topic.",
+      context: this.context,
+    });
+
+    return {
+      id: slugify(finalTitle),
+      content: noteAdapter.createNoteContent(finalTitle, generated.body),
+      metadata: { title: finalTitle },
+      title: finalTitle,
+      resultExtras: { title: finalTitle },
+      createOptions: { deduplicateId: true },
     };
   }
 

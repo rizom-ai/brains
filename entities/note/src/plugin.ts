@@ -89,10 +89,29 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
         filename: uploadRecord.filename,
         ...(input.title !== undefined ? { title: input.title } : {}),
       });
+      // Create the stub before enqueueing so the returned entityId is the
+      // real (possibly deduplicated) id and exists while "generating".
+      const stub = noteAdapter.buildStub({
+        id: identity.id,
+        title: identity.title,
+      });
+      const now = new Date().toISOString();
+      const created = await context.entityService.createEntity({
+        entity: {
+          id: identity.id,
+          entityType: "note",
+          content: stub.content,
+          metadata: stub.metadata,
+          created: now,
+          updated: now,
+        },
+        options: { deduplicateId: true },
+      });
       const jobId = await context.jobs.enqueue({
         type: "upload-import",
         data: {
           uploadId,
+          entityId: created.entityId,
           ...(input.title !== undefined ? { title: input.title } : {}),
         },
       });
@@ -101,7 +120,7 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
         kind: "handled",
         result: {
           success: true,
-          data: { entityId: identity.id, status: "generating", jobId },
+          data: { entityId: created.entityId, status: "generating", jobId },
         },
       };
     } catch (error) {
