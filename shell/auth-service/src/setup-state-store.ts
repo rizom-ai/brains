@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { JsonFileStore } from "./json-file-store";
 
 const DEFAULT_SETUP_STATE_FILE = "oauth-setup-state.json";
 
@@ -79,15 +79,21 @@ function parseStoreFile(value: unknown): SetupStateFile {
 }
 
 export class SetupStateStore {
-  private readonly storeFile: string;
+  private readonly store: JsonFileStore<SetupStateFile>;
   private loaded: SetupStateFile | undefined;
-  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(options: SetupStateStoreOptions) {
-    this.storeFile = join(
-      options.storageDir,
-      options.storeFile ?? DEFAULT_SETUP_STATE_FILE,
-    );
+    this.store = new JsonFileStore({
+      filePath: join(
+        options.storageDir,
+        options.storeFile ?? DEFAULT_SETUP_STATE_FILE,
+      ),
+      parse: parseStoreFile,
+      empty: emptyState,
+      // Empty setup state can read as "this brain is unclaimed", so a
+      // corrupt file must halt instead of starting empty.
+      onCorrupt: "throw",
+    });
   }
 
   async getValidSetupToken(
@@ -98,7 +104,7 @@ export class SetupStateStore {
     if (state.setupToken.expiresAt <= nowSeconds) {
       delete state.setupToken;
       state.deliveries = [];
-      await this.enqueueWrite(() => this.writeStore(state));
+      await this.store.enqueueWrite(() => this.store.write(state));
       return undefined;
     }
     return state.setupToken;
@@ -111,12 +117,14 @@ export class SetupStateStore {
     state.deliveries = state.deliveries.filter(
       (delivery) => delivery.setupTokenId === activeSetupTokenId,
     );
-    await this.enqueueWrite(() => this.writeStore(state));
+    await this.store.enqueueWrite(() => this.store.write(state));
   }
 
   async clearSetupState(): Promise<void> {
     this.loaded = emptyState();
-    await this.enqueueWrite(() => this.writeStore(this.loaded ?? emptyState()));
+    await this.store.enqueueWrite(() =>
+      this.store.write(this.loaded ?? emptyState()),
+    );
   }
 
   async hasDelivery(
@@ -147,32 +155,11 @@ export class SetupStateStore {
       ...(options.deliveryId ? { deliveryId: options.deliveryId } : {}),
     };
     state.deliveries.push(delivery);
-    await this.enqueueWrite(() => this.writeStore(state));
+    await this.store.enqueueWrite(() => this.store.write(state));
   }
 
   private async ensureLoaded(): Promise<SetupStateFile> {
-    if (this.loaded) return this.loaded;
-    try {
-      this.loaded = parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      this.loaded = emptyState();
-    }
+    this.loaded ??= await this.store.read();
     return this.loaded;
-  }
-
-  private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
-    this.writeQueue = this.writeQueue.then(operation, operation);
-    return this.writeQueue;
-  }
-
-  private async writeStore(store: SetupStateFile): Promise<void> {
-    await mkdir(dirname(this.storeFile), { recursive: true, mode: 0o700 });
-    await writeFile(this.storeFile, `${JSON.stringify(store, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(this.storeFile, 0o600);
   }
 }

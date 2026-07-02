@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { z } from "@brains/utils";
+import { JsonFileStore } from "./json-file-store";
 import type { RegisteredOAuthClient } from "./types";
 
 const DEFAULT_CLIENT_STORE_FILE = "oauth-clients.json";
@@ -76,14 +76,17 @@ function isRegisteredOAuthClient(
 }
 
 export class OAuthClientStore {
-  private readonly storeFile: string;
-  private writeQueue: Promise<void> = Promise.resolve();
+  private readonly store: JsonFileStore<ClientStoreFile>;
 
   constructor(options: OAuthClientStoreOptions) {
-    this.storeFile = join(
-      options.storageDir,
-      options.storeFile ?? DEFAULT_CLIENT_STORE_FILE,
-    );
+    this.store = new JsonFileStore({
+      filePath: join(
+        options.storageDir,
+        options.storeFile ?? DEFAULT_CLIENT_STORE_FILE,
+      ),
+      parse: parseStoreFile,
+      empty: (): ClientStoreFile => ({ clients: [] }),
+    });
   }
 
   async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
@@ -117,10 +120,10 @@ export class OAuthClientStore {
         : {}),
     };
 
-    await this.enqueueWrite(async () => {
-      const store = await this.readStore();
+    await this.store.enqueueWrite(async () => {
+      const store = await this.store.read();
       store.clients.push(client);
-      await this.writeStore(store);
+      await this.store.write(store);
     });
 
     return client;
@@ -129,34 +132,8 @@ export class OAuthClientStore {
   async getClient(
     clientId: string,
   ): Promise<RegisteredOAuthClient | undefined> {
-    const store = await this.readStore();
+    const store = await this.store.read();
     return store.clients.find((client) => client.client_id === clientId);
-  }
-
-  private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
-    this.writeQueue = this.writeQueue.then(operation, operation);
-    return this.writeQueue;
-  }
-
-  private async readStore(): Promise<ClientStoreFile> {
-    try {
-      return parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return { clients: [] };
-      }
-      throw error;
-    }
-  }
-
-  private async writeStore(store: ClientStoreFile): Promise<void> {
-    await mkdir(dirname(this.storeFile), { recursive: true, mode: 0o700 });
-    await writeFile(this.storeFile, `${JSON.stringify(store, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(this.storeFile, 0o600);
   }
 }
 

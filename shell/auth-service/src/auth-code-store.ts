@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { JsonFileStore } from "./json-file-store";
 import { redirectUriMatches } from "./redirect-uri";
 
 const DEFAULT_AUTH_CODE_STORE_FILE = "oauth-auth-codes.json";
@@ -88,14 +88,17 @@ async function pkceS256(verifier: string): Promise<string> {
 }
 
 export class AuthorizationCodeStore {
-  private readonly storeFile: string;
-  private writeQueue: Promise<void> = Promise.resolve();
+  private readonly store: JsonFileStore<AuthCodeStoreFile>;
 
   constructor(options: AuthorizationCodeStoreOptions) {
-    this.storeFile = join(
-      options.storageDir,
-      options.storeFile ?? DEFAULT_AUTH_CODE_STORE_FILE,
-    );
+    this.store = new JsonFileStore({
+      filePath: join(
+        options.storageDir,
+        options.storeFile ?? DEFAULT_AUTH_CODE_STORE_FILE,
+      ),
+      parse: parseStoreFile,
+      empty: (): AuthCodeStoreFile => ({ codes: [] }),
+    });
   }
 
   async createCode(
@@ -114,11 +117,11 @@ export class AuthorizationCodeStore {
       expires_at: issuedAt + AUTH_CODE_TTL_SECONDS,
     };
 
-    await this.enqueueWrite(async () => {
-      const store = await this.readStore();
+    await this.store.enqueueWrite(async () => {
+      const store = await this.store.read();
       store.codes = store.codes.filter((code) => code.expires_at > issuedAt);
       store.codes.push(record);
-      await this.writeStore(store);
+      await this.store.write(store);
     });
 
     return record;
@@ -130,8 +133,8 @@ export class AuthorizationCodeStore {
     const now = nowSeconds();
     let consumed: AuthorizationCodeRecord | undefined;
 
-    await this.enqueueWrite(async () => {
-      const store = await this.readStore();
+    await this.store.enqueueWrite(async () => {
+      const store = await this.store.read();
       const index = store.codes.findIndex(
         (record) => record.code === input.code,
       );
@@ -160,39 +163,13 @@ export class AuthorizationCodeStore {
 
       consumed = { ...record, consumed_at: now };
       store.codes[index] = consumed;
-      await this.writeStore(store);
+      await this.store.write(store);
     });
 
     if (!consumed) {
       throw new InvalidGrantError("Authorization code not consumed");
     }
     return consumed;
-  }
-
-  private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
-    this.writeQueue = this.writeQueue.then(operation, operation);
-    return this.writeQueue;
-  }
-
-  private async readStore(): Promise<AuthCodeStoreFile> {
-    try {
-      return parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return { codes: [] };
-      }
-      throw error;
-    }
-  }
-
-  private async writeStore(store: AuthCodeStoreFile): Promise<void> {
-    await mkdir(dirname(this.storeFile), { recursive: true, mode: 0o700 });
-    await writeFile(this.storeFile, `${JSON.stringify(store, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(this.storeFile, 0o600);
   }
 }
 

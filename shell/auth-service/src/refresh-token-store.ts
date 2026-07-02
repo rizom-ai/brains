@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { JsonFileStore } from "./json-file-store";
 
 const DEFAULT_REFRESH_TOKEN_STORE_FILE = "oauth-refresh-tokens.json";
 const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -86,22 +86,25 @@ function pruneExpired(store: RefreshTokenStoreFile): RefreshTokenStoreFile {
 }
 
 export class RefreshTokenStore {
-  private readonly storeFile: string;
-  private writeQueue: Promise<void> = Promise.resolve();
+  private readonly store: JsonFileStore<RefreshTokenStoreFile>;
 
   constructor(options: RefreshTokenStoreOptions) {
-    this.storeFile = join(
-      options.storageDir,
-      options.storeFile ?? DEFAULT_REFRESH_TOKEN_STORE_FILE,
-    );
+    this.store = new JsonFileStore({
+      filePath: join(
+        options.storageDir,
+        options.storeFile ?? DEFAULT_REFRESH_TOKEN_STORE_FILE,
+      ),
+      parse: parseStoreFile,
+      empty: (): RefreshTokenStoreFile => ({ refreshTokens: [] }),
+    });
   }
 
   async issueToken(input: IssueRefreshTokenInput): Promise<IssuedRefreshToken> {
     const issued = this.createRecord(input);
-    await this.enqueueWrite(async () => {
-      const store = pruneExpired(await this.readStore());
+    await this.store.enqueueWrite(async () => {
+      const store = pruneExpired(await this.store.read());
       store.refreshTokens.push(issued.record);
-      await this.writeStore(store);
+      await this.store.write(store);
     });
     return issued;
   }
@@ -114,8 +117,8 @@ export class RefreshTokenStore {
     const now = nowSeconds();
     let result: ConsumedRefreshToken | undefined;
 
-    await this.enqueueWrite(async () => {
-      const store = pruneExpired(await this.readStore());
+    await this.store.enqueueWrite(async () => {
+      const store = pruneExpired(await this.store.read());
       const existing = store.refreshTokens.find(
         (record) => record.token_hash === tokenHash,
       );
@@ -140,7 +143,7 @@ export class RefreshTokenStore {
       existing.revoked_at = now;
       existing.replaced_by = replacement.record.id;
       store.refreshTokens.push(replacement.record);
-      await this.writeStore(store);
+      await this.store.write(store);
       result = { consumed: existing, replacement };
     });
 
@@ -155,8 +158,8 @@ export class RefreshTokenStore {
     const now = nowSeconds();
     let revoked = false;
 
-    await this.enqueueWrite(async () => {
-      const store = pruneExpired(await this.readStore());
+    await this.store.enqueueWrite(async () => {
+      const store = pruneExpired(await this.store.read());
       const existing = store.refreshTokens.find(
         (record) => record.token_hash === tokenHash,
       );
@@ -164,7 +167,7 @@ export class RefreshTokenStore {
         existing.revoked_at = now;
         revoked = true;
       }
-      await this.writeStore(store);
+      await this.store.write(store);
     });
 
     return revoked;
@@ -183,32 +186,6 @@ export class RefreshTokenStore {
       expires_at: issuedAt + REFRESH_TOKEN_TTL_SECONDS,
     };
     return { token, record };
-  }
-
-  private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
-    this.writeQueue = this.writeQueue.then(operation, operation);
-    return this.writeQueue;
-  }
-
-  private async readStore(): Promise<RefreshTokenStoreFile> {
-    try {
-      return parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return { refreshTokens: [] };
-      }
-      throw error;
-    }
-  }
-
-  private async writeStore(store: RefreshTokenStoreFile): Promise<void> {
-    await mkdir(dirname(this.storeFile), { recursive: true, mode: 0o700 });
-    await writeFile(this.storeFile, `${JSON.stringify(store, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(this.storeFile, 0o600);
   }
 }
 
