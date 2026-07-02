@@ -1867,11 +1867,8 @@
       "version": "0.2.0-alpha.136",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
-        "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
-        "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
-        "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {

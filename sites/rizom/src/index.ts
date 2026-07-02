@@ -10,7 +10,6 @@ export {
   RizomRuntimePlugin,
   rizomBaseSite,
   rizomBaseSite as default,
-  rizomRuntimeConfigSchema,
   rizomRuntimeStaticAssets,
 } from "./runtime";
 export type { RizomRuntimeConfig, RizomThemeProfile } from "./runtime";

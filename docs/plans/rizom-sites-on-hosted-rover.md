@@ -98,6 +98,8 @@ Initial publishability spike result (2026-07-02): `npm pack --dry-run` for `@bra
 
 Follow-up base-package spike result (2026-07-02): naively bundling `@brains/site-rizom` into a `dist/index.js` artifact installs cleanly with only `preact`, but importing it under Bun fails because the root `@brains/plugins` import pulls broad shell/runtime internals, including `libsql` native bindings. So the base package cannot just bundle the current internal graph unchanged. It needs a narrower public dependency boundary: either `@brains/site-rizom` imports only a lightweight public plugin/site API, or the shared site base is refactored to avoid dragging shell persistence/runtime internals into the published site package.
 
+Resolution boundary spike result (2026-07-02): refactoring the Rizom runtime plugin away from runtime `@brains/plugins` imports and using only type-only shell/plugin contracts lets a bundled `@brains/site-rizom` artifact import cleanly in a fresh Bun project with only `preact` installed. This confirms the right direction: published site packages should avoid runtime `@brains/plugins` dependencies; any remaining framework references should be type-only or hidden behind the base package boundary.
+
 Packaging decision:
 
 - **Yes:** publish one shared base package, `@brains/site-rizom`, and have the three per-site packages depend on/extend it.

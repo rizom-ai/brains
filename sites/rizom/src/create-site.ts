@@ -1,4 +1,4 @@
-import type { DataSource, Plugin, ServicePluginContext } from "@brains/plugins";
+import type { DataSource, IShell } from "@brains/plugins";
 import {
   extendSite,
   type RouteDefinitionInput,
@@ -19,13 +19,11 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
     super(packageName, config);
   }
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    context.templates.register(this.extraTemplates, this.contentNamespace);
+  protected override async onRegister(shell: IShell): Promise<void> {
+    await super.onRegister(shell);
+    shell.registerTemplates(this.extraTemplates, this.contentNamespace);
     for (const dataSource of this.dataSources) {
-      context.entities.registerDataSource(dataSource);
+      shell.getDataSourceRegistry().register(dataSource);
     }
   }
 }
@@ -43,10 +41,11 @@ export interface CreateRizomSiteOptions {
 
 export function createRizomSite(
   options: CreateRizomSiteOptions,
-): SitePackage<Record<string, unknown>, Plugin> {
-  const plugin: SitePackage<Record<string, unknown>, Plugin>["plugin"] = (
-    config?: Record<string, unknown>,
-  ): Plugin =>
+): SitePackage<Record<string, unknown>, RizomRuntimePlugin> {
+  const plugin: SitePackage<
+    Record<string, unknown>,
+    RizomRuntimePlugin
+  >["plugin"] = (config?: Record<string, unknown>): RizomRuntimePlugin =>
     new RizomVariantPlugin(
       options.packageName,
       { themeProfile: options.themeProfile, ...(config ?? {}) },
