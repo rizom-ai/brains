@@ -75,7 +75,7 @@ export class PlaybookAdapter extends BaseEntityAdapter<
   }
 }
 
-export const playbookAdapter = new PlaybookAdapter();
+export const playbookAdapter: PlaybookAdapter = new PlaybookAdapter();
 
 interface AuthoredStep {
   title: string;

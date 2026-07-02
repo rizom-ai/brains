@@ -1244,8 +1244,9 @@ and `@brains/templates`. The first interface package batch enabled
 `@brains/webserver`, using explicit transport config and JSON-RPC/streaming
 contracts rather than exported inferred schema internals. The next interface
 batch enabled `isolatedDeclarations` for `@brains/chat-repl` and `@brains/mcp`
-with explicit CLI/MCP config contracts. The first entity package batch enabled
-`isolatedDeclarations` for `@brains/prompt` and `@brains/wishlist`, keeping
+with explicit CLI/MCP config contracts. The first entity package batches enabled
+`isolatedDeclarations` for `@brains/playbook`, `@brains/prompt`,
+`@brains/rizom-ecosystem`, `@brains/site-info`, and `@brains/wishlist`, keeping
 entity/frontmatter schema annotations object-preserving for adapter contracts.
 Drizzle-backed service packages such as `@brains/conversation-service` remain
 separate follow-ups, in the same bucket as the earlier `@brains/runtime-state`

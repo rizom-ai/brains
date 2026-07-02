@@ -30,4 +30,5 @@ export class EcosystemSectionAdapter extends BaseEntityAdapter<
   }
 }
 
-export const ecosystemSectionAdapter = new EcosystemSectionAdapter();
+export const ecosystemSectionAdapter: EcosystemSectionAdapter =
+  new EcosystemSectionAdapter();

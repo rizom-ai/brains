@@ -1,9 +1,12 @@
 import { z } from "@brains/utils/zod-v4";
 
-export const playbookConfigSchema = z
+export type PlaybookConfig = Record<string, never>;
+export type PlaybookConfigInput = Record<string, unknown>;
+
+export const playbookConfigSchema: z.ZodType<
+  PlaybookConfig,
+  PlaybookConfigInput
+> = z
   .object({})
   .catchall(z.unknown())
-  .transform(() => ({}));
-
-export type PlaybookConfig = z.output<typeof playbookConfigSchema>;
-export type PlaybookConfigInput = z.input<typeof playbookConfigSchema>;
+  .transform((): PlaybookConfig => ({}));

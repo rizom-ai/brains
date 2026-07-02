@@ -1,6 +1,9 @@
 import type { Plugin } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { playbookAdapter } from "./adapters/playbook-adapter";
+import {
+  playbookAdapter,
+  type PlaybookAdapter,
+} from "./adapters/playbook-adapter";
 import { playbookSchema, type PlaybookEntity } from "./schemas/playbook";
 import {
   playbookConfigSchema,
@@ -9,14 +12,16 @@ import {
 } from "./schemas/playbook-config";
 import packageJson from "../package.json";
 
+const playbookEntityType = "playbook";
+
 export class PlaybookPlugin extends EntityPlugin<
   PlaybookEntity,
   PlaybookConfig,
   PlaybookConfigInput
 > {
-  readonly entityType = playbookAdapter.entityType;
-  readonly schema = playbookSchema;
-  readonly adapter = playbookAdapter;
+  readonly entityType: typeof playbookEntityType = playbookEntityType;
+  readonly schema: typeof playbookSchema = playbookSchema;
+  readonly adapter: PlaybookAdapter = playbookAdapter;
 
   constructor(config: PlaybookConfigInput = {}) {
     super("playbook", packageJson, config, playbookConfigSchema);

@@ -19,7 +19,8 @@ import { SiteInfoService } from "./services/site-info-service";
 import { SiteInfoDataSource } from "./datasources/site-info-datasource";
 import packageJson from "../package.json";
 
-const siteInfoAdapter = new SiteInfoAdapter();
+const siteInfoAdapter: SiteInfoAdapter = new SiteInfoAdapter();
+const siteInfoEntityType = "site-info";
 
 /**
  * Site-info EntityPlugin — manages the site's metadata (title, description, CTA, etc.).
@@ -32,9 +33,9 @@ export class SiteInfoPlugin extends EntityPlugin<
   Record<string, never>,
   Record<string, never>
 > {
-  readonly entityType = "site-info";
-  readonly schema = siteInfoSchema;
-  readonly adapter = siteInfoAdapter;
+  readonly entityType: typeof siteInfoEntityType = siteInfoEntityType;
+  readonly schema: typeof siteInfoSchema = siteInfoSchema;
+  readonly adapter: SiteInfoAdapter = siteInfoAdapter;
 
   private defaultSiteInfo: Partial<SiteInfoBody>;
 
