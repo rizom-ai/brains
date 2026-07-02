@@ -76,7 +76,6 @@ import { generateShellContent } from "./shell-content";
 import {
   ShellInitializer,
   resetServiceSingletons,
-  type ShellServices,
 } from "./initialization/shellInitializer";
 import {
   ShellBootloader,
@@ -93,7 +92,7 @@ import {
 } from "./plugin-routes";
 import { shutdownShellServices } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
-import type { ShellDependencies } from "./types/shell-types";
+import type { ShellDependencies, ShellServices } from "./types/shell-types";
 
 export type { ShellDependencies };
 

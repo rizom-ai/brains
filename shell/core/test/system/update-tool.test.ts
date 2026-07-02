@@ -384,7 +384,9 @@ describe("system_update tool", () => {
           .passthrough(),
       })
       .passthrough();
-    services.entityService.updateEntity = async (request) => {
+    services.entityService.updateEntity = async (
+      request,
+    ): ReturnType<typeof originalUpdateEntity> => {
       if (request.entity.entityType === "post") {
         postUpdateSchema.parse(request.entity);
       }

@@ -20,7 +20,5 @@ export {
   SHELL_TEMPLATE_NAMES,
 } from "./constants";
 
-export {
-  resetAllSingletons,
-  resetServiceSingletons,
-} from "./initialization/shellInitializer";
+export { resetAllSingletons } from "./initialization/reset";
+export { resetServiceSingletons } from "./initialization/shellInitializer";

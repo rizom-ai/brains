@@ -1,5 +1,5 @@
 import type { ContentGenerationConfig } from "@brains/plugins";
-import type { ShellServices } from "./initialization/shellInitializer";
+import type { ShellServices } from "./types/shell-types";
 
 export async function generateShellContent<T = unknown>(
   services: ShellServices,

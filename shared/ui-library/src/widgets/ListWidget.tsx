@@ -3,7 +3,7 @@
 import { h } from "preact";
 import type { VNode } from "preact";
 import { z } from "@brains/utils";
-import type { BaseWidgetProps } from "./index";
+import type { BaseWidgetProps } from "./types";
 
 const listItemSchema = z.object({
   id: z.string(),

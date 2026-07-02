@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { DataSource, DataSourceCapabilities } from "./datasource-types";
+import type { DataSource, DataSourceCapabilities } from "./types";
 
 /**
  * DataSource Registry

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
-import type { CommandResult } from "../run-command";
+import type { CommandResult } from "../lib/command-result";
 
 interface PinPackageJson {
   name: string;

@@ -1,11 +1,4 @@
-/**
- * Base props shared by all dashboard widgets
- */
-export interface BaseWidgetProps {
-  title: string;
-  description?: string | undefined;
-  data: unknown;
-}
+export type { BaseWidgetProps } from "./types";
 
 export { StatsWidget } from "./StatsWidget";
 export type { StatsWidgetProps } from "./StatsWidget";

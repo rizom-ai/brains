@@ -100,7 +100,7 @@ export type {
   DataSource,
   DataSourceCapabilities,
   BaseDataSourceContext,
-} from "./datasource-types";
+} from "./types";
 export {
   paginationInfoSchema,
   paginateItems,

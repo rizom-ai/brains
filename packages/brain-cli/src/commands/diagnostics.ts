@@ -1,6 +1,6 @@
 import { existsSync } from "fs";
 import { join } from "path";
-import type { CommandResult } from "../run-command";
+import type { CommandResult } from "../lib/command-result";
 import { findRunner } from "./start";
 import { spawnBunRunner } from "../lib/spawn-bun-runner";
 

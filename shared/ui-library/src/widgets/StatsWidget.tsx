@@ -4,7 +4,7 @@ import { h } from "preact";
 import { useState } from "preact/hooks";
 import type { VNode } from "preact";
 import { z } from "@brains/utils";
-import type { BaseWidgetProps } from "./index";
+import type { BaseWidgetProps } from "./types";
 
 const statsDataSchema = z.record(z.unknown());
 

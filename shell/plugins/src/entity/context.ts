@@ -10,6 +10,7 @@ import type {
   IEntitiesNamespace,
 } from "@brains/entity-service";
 import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
+import type { IPromptsNamespace } from "./namespaces";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,
@@ -18,6 +19,7 @@ import type { DefaultQueryResponse } from "@brains/contracts";
 import type { z } from "@brains/utils";
 
 export type { IEntitiesNamespace };
+export type { IPromptsNamespace };
 
 /**
  * AI namespace for entity plugins — includes generation capabilities
@@ -46,14 +48,6 @@ export interface IEntityAINamespace {
 
   /** Check if image generation is available */
   canGenerateImages: () => boolean;
-}
-
-/**
- * Prompts namespace — resolves AI prompts from prompt entities
- */
-export interface IPromptsNamespace {
-  /** Resolve a prompt by target name. Returns entity content if found, fallback otherwise. */
-  resolve: (target: string, fallback: string) => Promise<string>;
 }
 
 /**

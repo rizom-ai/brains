@@ -3,7 +3,7 @@
 import { h } from "preact";
 import type { VNode } from "preact";
 import { z } from "@brains/utils";
-import type { BaseWidgetProps } from "./index";
+import type { BaseWidgetProps } from "./types";
 
 const systemDataSchema = z.object({
   version: z.string(),

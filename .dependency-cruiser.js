@@ -26,6 +26,8 @@ module.exports = {
           "/dist/.*\\.(js|mjs)$", // Build output files
           "/test/fixtures/", // Test fixture files
           "hydration\\.js$", // Client-side hydration entry points
+          "^docs/design/", // Design mockups; scripts are loaded by the sibling .html files
+          "/test-apps/", // Dev fixture apps; src/site.ts is convention-loaded by shell/app
         ],
       },
       to: {},

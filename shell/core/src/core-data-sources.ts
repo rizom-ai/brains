@@ -1,6 +1,6 @@
 import type { ShellConfig } from "./config";
 import { AIContentDataSource, EntityDataSource } from "./datasources";
-import type { ShellServices } from "./initialization/shellInitializer";
+import type { ShellServices } from "./types/shell-types";
 
 export function registerCoreDataSources(
   services: ShellServices,

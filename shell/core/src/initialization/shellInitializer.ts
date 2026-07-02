@@ -158,11 +158,3 @@ export function resetServiceSingletons(): void {
   ShellInitializer.resetInstance();
   resetCoreServiceSingletons();
 }
-
-export async function resetAllSingletons(): Promise<void> {
-  // Import Shell here to avoid circular dependency at module level
-  const { Shell } = await import("../shell");
-
-  await Shell.resetInstance();
-  resetServiceSingletons();
-}

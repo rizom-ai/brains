@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess, type SpawnOptions } from "child_process";
-import type { CommandResult } from "../run-command";
+import type { CommandResult } from "./command-result";
 
 export type SpawnImpl = (
   command: string,

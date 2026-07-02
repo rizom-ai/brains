@@ -28,7 +28,7 @@ import type {
   IMessagingNamespace,
   IPermissionsNamespace,
   TypedMessageHandler,
-} from "./context";
+} from "./context-types";
 
 export function createAppInfoGetter(shell: IShell): () => Promise<AppInfo> {
   return async (): Promise<AppInfo> => {

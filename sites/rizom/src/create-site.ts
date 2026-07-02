@@ -5,7 +5,7 @@ import {
   type SitePackage,
 } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
-import rizomBaseSite from ".";
+import { rizomBaseSite } from "./runtime";
 import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
 
 class RizomVariantPlugin extends RizomRuntimePlugin {

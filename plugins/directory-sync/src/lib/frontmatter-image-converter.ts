@@ -8,7 +8,12 @@ import {
   generateMarkdown,
   z,
 } from "@brains/utils";
-import { getOrCreateImageEntity } from "./image-entity-helper";
+import {
+  getOrCreateImageEntity,
+  type ImageFetcher,
+} from "./image-entity-helper";
+
+export type { ImageFetcher } from "./image-entity-helper";
 
 /**
  * Result of image URL conversion
@@ -53,9 +58,6 @@ export interface CoverImageDetection {
   postSlug: string;
   customAlt?: string | undefined;
 }
-
-/** Function to fetch an image URL and return base64 data URL */
-export type ImageFetcher = (url: string) => Promise<string>;
 
 /**
  * Converts coverImage URLs in frontmatter to coverImageId references

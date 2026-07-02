@@ -5,12 +5,20 @@ import type {
   UploadSaveHandlerRegistration,
   EntityAdapter,
   EntityTypeConfig,
+  IEntitiesNamespace,
   IEntityService,
 } from "@brains/entity-service";
 import type { z } from "@brains/utils";
 import type { IShell } from "../interfaces";
 import { resolvePrompt } from "./prompt-resolver";
-import type { IEntitiesNamespace, IPromptsNamespace } from "./context";
+
+/**
+ * Prompts namespace — resolves AI prompts from prompt entities
+ */
+export interface IPromptsNamespace {
+  /** Resolve a prompt by target name. Returns entity content if found, fallback otherwise. */
+  resolve: (target: string, fallback: string) => Promise<string>;
+}
 
 /**
  * Create the shared entity-management namespace used by entity and service

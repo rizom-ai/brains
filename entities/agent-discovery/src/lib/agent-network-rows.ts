@@ -9,7 +9,7 @@ import type {
   AgentNetworkAgentRow,
   AgentNetworkSkillRow,
   AgentNetworkTagFilter,
-} from "./agent-network-widget";
+} from "./agent-network-schema";
 import { normalizeTags } from "./tag-vocabulary";
 
 export interface ParsedAgentForNetwork {
