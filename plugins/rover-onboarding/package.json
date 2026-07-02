@@ -1,7 +1,7 @@
 {
   "name": "@brains/rover-onboarding",
   "private": true,
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.137",
   "description": "Rover onboarding playbook bundle and activation plugin",
   "type": "module",
   "exports": {

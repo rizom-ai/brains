@@ -1,5 +1,21 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.137
+
+### Patch Changes
+
+- [`d24f6b3`](https://github.com/rizom-ai/brains/commit/d24f6b383383de04e36f4f3447f8ec8c59907ceb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve agent-network recommendation UX by guiding expertise-match questions to search saved agent contacts instead of requiring exact agent ids.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.137
+  - @brains/atproto-contracts@0.2.0-alpha.137
+  - @brains/content-formatters@0.2.0-alpha.137
+  - @brains/contracts@0.2.0-alpha.137
+  - @brains/ui-library@0.2.0-alpha.137
+  - @brains/utils@0.2.0-alpha.137
+  - @brains/plugins@0.2.0-alpha.137
+  - @brains/templates@0.2.0-alpha.137
+
 ## 0.2.0-alpha.136
 
 ### Patch Changes
