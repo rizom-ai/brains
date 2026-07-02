@@ -1,6 +1,18 @@
 import { z } from "@brains/utils/zod-v4";
 
-export const mcpConfigSchema = z.object({
+export interface MCPConfig {
+  transport: "stdio" | "http";
+  httpPort: number;
+  authToken?: string | undefined;
+}
+
+export interface MCPConfigInput {
+  transport?: "stdio" | "http" | undefined;
+  httpPort?: number | undefined;
+  authToken?: string | undefined;
+}
+
+export const mcpConfigSchema: z.ZodType<MCPConfig, MCPConfigInput> = z.object({
   transport: z.enum(["stdio", "http"]).default("http"),
   httpPort: z
     .number()
@@ -11,6 +23,3 @@ export const mcpConfigSchema = z.object({
     .describe("Bearer token for HTTP transport authentication")
     .optional(),
 });
-
-export type MCPConfig = z.output<typeof mcpConfigSchema>;
-export type MCPConfigInput = z.input<typeof mcpConfigSchema>;

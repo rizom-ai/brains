@@ -1242,9 +1242,11 @@ shell package contracts with `@brains/auth-service`, `@brains/content-service`,
 and `@brains/templates`. The first interface package batch enabled
 `isolatedDeclarations` for `@brains/a2a`, `@brains/chat`, `@brains/discord`, and
 `@brains/webserver`, using explicit transport config and JSON-RPC/streaming
-contracts rather than exported inferred schema internals. Drizzle-backed service
-packages such as `@brains/conversation-service` remain separate follow-ups, in
-the same bucket as the earlier `@brains/runtime-state` table annotation issue.
+contracts rather than exported inferred schema internals. The next interface
+batch enabled `isolatedDeclarations` for `@brains/chat-repl` and `@brains/mcp`
+with explicit CLI/MCP config contracts. Drizzle-backed service packages such as
+`@brains/conversation-service` remain separate follow-ups, in the same bucket as
+the earlier `@brains/runtime-state` table annotation issue.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
