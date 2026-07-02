@@ -15,6 +15,12 @@ describe("getAgentDiscoveryInstructions", () => {
     expect(instructions).toContain(
       "List saved agent contacts with system_list on entityType agent",
     );
+    expect(instructions).toContain(
+      "expertise-match or recommendation questions over the user's agent network",
+    );
+    expect(instructions).toContain(
+      "use system_search scoped to entityType agent",
+    );
     expect(instructions).toContain("do not use agent_connect for approval");
     expect(instructions).toContain(
       "Calling remote agents and saving local contact records are separate capabilities.",

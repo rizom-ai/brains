@@ -1,0 +1,34 @@
+id: tool-invocation-agent-recommend-by-expertise
+name: Recommend Agent Contacts By Expertise
+description: Verifies that network/expertise recommendations search saved agent contacts instead of asking for exact agent ids.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - tool-invocation
+  - preset-core
+
+turns:
+  - userMessage: "Who in my network should I approach about a question concerning branding and marketing? I mean other agents."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+      argsContain:
+        scope.kind: type
+        scope.entityType: "agent"
+  responseContains:
+    - "agent"
+  responseNotContains:
+    - "exact agent ids"
+    - "send me the exact agent ids"
+    - "I’m not sure who you want to ask"
+    - "I'm not sure who you want to ask"
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000
