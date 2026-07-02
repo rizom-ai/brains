@@ -112,6 +112,8 @@ Every piece of content in Rover has a visibility level:
 - **Shared** — visible to agents you've connected to (trusted contacts)
 - **Public** — visible to anyone
 
+By default all content is public — this is how knowledge sharing can flourish. However, at any point your content visibility can be granularly updated.
+
 Similarly, every agent in your network has a trust level:
 
 - **Anchor** — you
