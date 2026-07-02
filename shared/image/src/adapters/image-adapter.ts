@@ -1,4 +1,4 @@
-import type { EntityAdapter } from "@brains/entity-service";
+import type { EntityAdapter, EntitySchema } from "@brains/entity-service";
 import {
   imageSchema,
   type Image,
@@ -40,7 +40,7 @@ export interface CreateImageInput {
  */
 export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   public readonly entityType = "image" as const;
-  public readonly schema = imageSchema;
+  public readonly schema: EntitySchema<Image> = imageSchema;
 
   public toMarkdown(entity: Image): string {
     return entity.content;
@@ -121,4 +121,4 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   }
 }
 
-export const imageAdapter = new ImageAdapter();
+export const imageAdapter: ImageAdapter = new ImageAdapter();

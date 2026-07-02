@@ -1,6 +1,8 @@
+import type { RouteDefinitionInput } from "@brains/site-composition";
+
 // Default routes for the site
 // Site-builder will apply proper typing when consuming these
-export const routes = [
+export const routes: RouteDefinitionInput[] = [
   {
     id: "landing",
     path: "/",

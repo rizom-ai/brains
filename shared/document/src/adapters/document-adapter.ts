@@ -27,7 +27,7 @@ export class DocumentAdapter implements EntityAdapter<
   DocumentMetadata
 > {
   public readonly entityType = "document" as const;
-  public readonly schema = documentSchema;
+  public readonly schema: typeof documentSchema = documentSchema;
 
   public toMarkdown(entity: DocumentEntity): string {
     return entity.content;
@@ -82,4 +82,4 @@ export class DocumentAdapter implements EntityAdapter<
   }
 }
 
-export const documentAdapter = new DocumentAdapter();
+export const documentAdapter: DocumentAdapter = new DocumentAdapter();

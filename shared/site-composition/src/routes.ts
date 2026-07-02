@@ -1,7 +1,32 @@
 import { z } from "@brains/utils/zod-v4";
 
+export interface SectionDataQuery {
+  entityType?: string | undefined;
+  template?: string | undefined;
+  query?:
+    | {
+        id?: string | undefined;
+        limit?: number | undefined;
+        offset?: number | undefined;
+      }
+    | undefined;
+}
+
+export interface SectionDefinition {
+  id: string;
+  template: string;
+  content?: unknown;
+  dataQuery?: SectionDataQuery | undefined;
+  order?: number | undefined;
+}
+
+export type SectionDefinitionInput = SectionDefinition;
+
 /** Section definition schema for site routes. */
-export const SectionDefinitionSchema = z.object({
+export const SectionDefinitionSchema: z.ZodType<
+  SectionDefinition,
+  SectionDefinitionInput
+> = z.object({
   id: z.string(),
   template: z.string(),
   content: z.unknown().optional(),
@@ -44,8 +69,25 @@ export interface EntityDisplayEntry {
     | undefined;
 }
 
+export interface NavigationMetadata {
+  show: boolean;
+  label?: string | undefined;
+  slot: NavigationSlot;
+  priority: number;
+}
+
+export interface NavigationMetadataInput {
+  show?: boolean | undefined;
+  label?: string | undefined;
+  slot?: NavigationSlot | undefined;
+  priority?: number | undefined;
+}
+
 /** Navigation metadata schema for route definitions. */
-export const NavigationMetadataSchema = z
+export const NavigationMetadataSchema: z.ZodType<
+  NavigationMetadata | undefined,
+  NavigationMetadataInput | undefined
+> = z
   .object({
     show: z.boolean().default(false),
     label: z.string().optional(),
@@ -54,8 +96,43 @@ export const NavigationMetadataSchema = z
   })
   .optional();
 
+export interface RouteDefinition {
+  id: string;
+  path: string;
+  title: string;
+  /** Bare display label without any page-suffix. Used for visual headings on list pages. */
+  pageLabel?: string | undefined;
+  description: string;
+  sections: SectionDefinition[];
+  layout: string;
+  fullscreen?: boolean | undefined;
+  pluginId?: string | undefined;
+  sourceEntityType?: string | undefined;
+  external?: boolean | undefined;
+  navigation?: NavigationMetadata | undefined;
+}
+
+export interface RouteDefinitionInput {
+  id: string;
+  path: string;
+  title?: string | undefined;
+  /** Bare display label without any page-suffix. Used for visual headings on list pages. */
+  pageLabel?: string | undefined;
+  description?: string | undefined;
+  sections?: SectionDefinitionInput[] | undefined;
+  layout?: string | undefined;
+  fullscreen?: boolean | undefined;
+  pluginId?: string | undefined;
+  sourceEntityType?: string | undefined;
+  external?: boolean | undefined;
+  navigation?: NavigationMetadataInput | undefined;
+}
+
 /** Route definition schema. */
-export const RouteDefinitionSchema = z.object({
+export const RouteDefinitionSchema: z.ZodType<
+  RouteDefinition,
+  RouteDefinitionInput
+> = z.object({
   id: z.string(),
   path: z.string(),
   title: z.string().default(""),
@@ -71,38 +148,44 @@ export const RouteDefinitionSchema = z.object({
   navigation: NavigationMetadataSchema,
 });
 
-export type SectionDefinition = z.output<typeof SectionDefinitionSchema>;
-export type RouteDefinition = z.output<typeof RouteDefinitionSchema>;
-export type RouteDefinitionInput = z.input<typeof RouteDefinitionSchema>;
-export type NavigationMetadata = z.output<typeof NavigationMetadataSchema>;
+export interface RegisterRoutesPayload {
+  routes: RouteDefinition[];
+  pluginId: string;
+}
+
+export interface UnregisterRoutesPayload {
+  paths?: string[] | undefined;
+  pluginId?: string | undefined;
+}
+
+export interface ListRoutesPayload {
+  pluginId?: string | undefined;
+}
+
+export interface GetRoutePayload {
+  path: string;
+}
 
 /** Message payload schemas for route operations. */
-export const RegisterRoutesPayloadSchema = z.object({
-  routes: z.array(RouteDefinitionSchema),
-  pluginId: z.string(),
-});
+export const RegisterRoutesPayloadSchema: z.ZodType<RegisterRoutesPayload> =
+  z.object({
+    routes: z.array(RouteDefinitionSchema),
+    pluginId: z.string(),
+  });
 
-export const UnregisterRoutesPayloadSchema = z.object({
-  paths: z.array(z.string()).optional(),
+export const UnregisterRoutesPayloadSchema: z.ZodType<UnregisterRoutesPayload> =
+  z.object({
+    paths: z.array(z.string()).optional(),
+    pluginId: z.string().optional(),
+  });
+
+export const ListRoutesPayloadSchema: z.ZodType<ListRoutesPayload> = z.object({
   pluginId: z.string().optional(),
 });
 
-export const ListRoutesPayloadSchema = z.object({
-  pluginId: z.string().optional(),
-});
-
-export const GetRoutePayloadSchema = z.object({
+export const GetRoutePayloadSchema: z.ZodType<GetRoutePayload> = z.object({
   path: z.string(),
 });
-
-export type RegisterRoutesPayload = z.output<
-  typeof RegisterRoutesPayloadSchema
->;
-export type UnregisterRoutesPayload = z.output<
-  typeof UnregisterRoutesPayloadSchema
->;
-export type ListRoutesPayload = z.output<typeof ListRoutesPayloadSchema>;
-export type GetRoutePayload = z.output<typeof GetRoutePayloadSchema>;
 
 export interface RouteOperationResponse {
   success: boolean;
@@ -118,11 +201,15 @@ export interface GetRouteResponse {
   route?: RouteDefinition | undefined;
 }
 
+export interface NavigationItem {
+  label: string;
+  href: string;
+  priority: number;
+}
+
 /** Navigation item shape for extracted navigation data. */
-export const NavigationItemSchema = z.object({
+export const NavigationItemSchema: z.ZodType<NavigationItem> = z.object({
   label: z.string(),
   href: z.string(),
   priority: z.number(),
 });
-
-export type NavigationItem = z.output<typeof NavigationItemSchema>;

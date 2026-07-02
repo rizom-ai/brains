@@ -1231,11 +1231,12 @@ remaining plugin packages: `@brains/content-pipeline`, `@brains/directory-sync`,
 package under `plugins/` has `isolatedDeclarations` enabled. The next shared
 package batch enabled `isolatedDeclarations` for `@brains/atproto-contracts`,
 `@brains/cms-config`, `@brains/contracts`, `@brains/content-formatters`,
-`@brains/deploy-support`, `@brains/mcp-bridge`, `@brains/media-page-composer`,
-`@brains/media-renderer`, `@rizom/ui`, `@brains/site-engine`,
-`@brains/test-utils`, `@brains/theme-base`, `@brains/theme-default`,
-`@brains/theme-rizom`, and
-`@brains/utils`, adding only explicit declarations/annotations where required.
+`@brains/deploy-support`, `@brains/document`, `@brains/image`,
+`@brains/mcp-bridge`, `@brains/media-page-composer`, `@brains/media-renderer`,
+`@brains/product-site-content`, `@rizom/ui`, `@brains/site-composition`,
+`@brains/site-engine`, `@brains/test-utils`, `@brains/theme-base`, `@brains/theme-default`,
+`@brains/theme-rizom`, `@brains/ui-library`, and `@brains/utils`, adding only
+explicit declarations/annotations where required.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:

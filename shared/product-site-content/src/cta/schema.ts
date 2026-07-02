@@ -3,7 +3,19 @@ import { z } from "@brains/utils/zod-v4";
 /**
  * Schema for CTA section
  */
-export const ctaSectionSchema = z.object({
+export interface CTAButton {
+  text: string;
+  link: string;
+}
+
+export interface CTASection {
+  headline: string;
+  description: string;
+  primaryButton: CTAButton;
+  secondaryButton?: CTAButton | undefined;
+}
+
+export const ctaSectionSchema: z.ZodType<CTASection> = z.object({
   headline: z.string(),
   description: z.string(),
   primaryButton: z.object({
@@ -17,5 +29,3 @@ export const ctaSectionSchema = z.object({
     })
     .optional(),
 });
-
-export type CTASection = z.output<typeof ctaSectionSchema>;

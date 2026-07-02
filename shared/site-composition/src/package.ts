@@ -143,20 +143,20 @@ export function extendSite<
   };
 }
 
-export const themeCssSchema = z.string();
+export const themeCssSchema: z.ZodString = z.string();
 
 // Runtime gate for site packages loaded dynamically from a package ref at
 // boot. The full structural type is enforced statically by `SitePackage`
 // for in-tree consumers; this only catches dynamic-import shapes.
-const sitePackageRouteShapeSchema = z.looseObject({
+const sitePackageRouteShapeSchema: z.ZodType<{ id: string }> = z.looseObject({
   id: z.string().min(1),
 });
 
-const entityDisplayEntrySchema = z.looseObject({
+const entityDisplayEntrySchema: z.ZodType<{ label: string }> = z.looseObject({
   label: z.string().min(1),
 });
 
-const sitePackageShapeSchema = z.looseObject({
+const sitePackageShapeSchema: z.ZodType<unknown> = z.looseObject({
   layouts: z.record(z.string(), z.unknown()),
   plugin: z.custom<SitePackage["plugin"]>(
     (value) => typeof value === "function",
@@ -166,6 +166,6 @@ const sitePackageShapeSchema = z.looseObject({
   staticAssets: z.record(z.string(), z.string()).optional(),
 });
 
-export const sitePackageSchema = z.custom<SitePackage>(
+export const sitePackageSchema: z.ZodType<SitePackage> = z.custom<SitePackage>(
   (value) => sitePackageShapeSchema.safeParse(value).success,
 );

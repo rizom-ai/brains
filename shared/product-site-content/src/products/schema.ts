@@ -1,6 +1,22 @@
 import { z } from "@brains/utils/zod-v4";
 
-export const productSchema = z.object({
+export type ProductAvailability =
+  | "available"
+  | "early access"
+  | "coming soon"
+  | "planned";
+
+export interface Product {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  availability: ProductAvailability;
+  link?: string | undefined;
+  icon: string;
+}
+
+export const productSchema: z.ZodType<Product> = z.object({
   id: z.string().describe("Unique identifier"),
   name: z.string().describe("Product name"),
   tagline: z.string().describe("Short memorable tagline"),
@@ -12,7 +28,14 @@ export const productSchema = z.object({
   icon: z.string().describe("Icon identifier"),
 });
 
-export const productsSectionSchema = z.object({
+export interface ProductsSection {
+  label: string;
+  headline: string;
+  description: string;
+  products: Product[];
+}
+
+export const productsSectionSchema: z.ZodType<ProductsSection> = z.object({
   label: z.string().describe("Section label"),
   headline: z.string().describe("Section headline"),
   description: z.string().describe("Section description"),
@@ -22,6 +45,3 @@ export const productsSectionSchema = z.object({
     .max(6)
     .describe("Product showcase items"),
 });
-
-export type Product = z.output<typeof productSchema>;
-export type ProductsSection = z.output<typeof productsSectionSchema>;

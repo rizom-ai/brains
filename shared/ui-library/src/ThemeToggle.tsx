@@ -1,8 +1,14 @@
 import type { JSX } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const themeToggleVariants = cva(
+export interface ThemeToggleVariantProps {
+  variant?: VariantValue<"default" | "light" | "dark" | "footer">;
+  size?: VariantValue<"sm" | "md" | "lg">;
+}
+
+const themeToggleVariants: VariantFunction<ThemeToggleVariantProps> = cva(
   "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
   {
     variants: {
@@ -34,9 +40,7 @@ const iconSizeMap = {
   lg: "w-6 h-6",
 } as const;
 
-export interface ThemeToggleProps extends VariantProps<
-  typeof themeToggleVariants
-> {
+export interface ThemeToggleProps extends ThemeToggleVariantProps {
   className?: string;
 }
 

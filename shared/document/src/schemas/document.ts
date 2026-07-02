@@ -1,19 +1,34 @@
 import { baseEntityParserSchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod-v4";
 
-export const documentMimeTypeSchema = z.literal("application/pdf");
-export type DocumentMimeType = z.output<typeof documentMimeTypeSchema>;
+export type DocumentMimeType = "application/pdf";
 
-export const documentIngestionStatusSchema = z.enum([
-  "pending",
-  "draft",
-  "failed",
-]);
-export type DocumentIngestionStatus = z.output<
-  typeof documentIngestionStatusSchema
->;
+export const documentMimeTypeSchema: z.ZodType<DocumentMimeType> =
+  z.literal("application/pdf");
 
-export const documentMetadataSchema = z.object({
+export type DocumentIngestionStatus = "pending" | "draft" | "failed";
+
+export const documentIngestionStatusSchema: z.ZodType<DocumentIngestionStatus> =
+  z.enum(["pending", "draft", "failed"]);
+
+type DocumentMetadataSchema = z.ZodObject<{
+  title: z.ZodOptional<z.ZodString>;
+  mimeType: z.ZodType<DocumentMimeType>;
+  filename: z.ZodString;
+  pageCount: z.ZodOptional<z.ZodNumber>;
+  status: z.ZodOptional<z.ZodType<DocumentIngestionStatus>>;
+  processingJobId: z.ZodOptional<z.ZodString>;
+  processingError: z.ZodOptional<z.ZodString>;
+  sourceEntityType: z.ZodOptional<z.ZodString>;
+  sourceEntityId: z.ZodOptional<z.ZodString>;
+  sourceUploadId: z.ZodOptional<z.ZodString>;
+  sourceFilename: z.ZodOptional<z.ZodString>;
+  sourceMediaType: z.ZodOptional<z.ZodString>;
+  attachmentType: z.ZodOptional<z.ZodString>;
+  dedupKey: z.ZodOptional<z.ZodString>;
+}>;
+
+export const documentMetadataSchema: DocumentMetadataSchema = z.object({
   title: z.string().optional(),
   mimeType: documentMimeTypeSchema,
   filename: z.string().min(1),
@@ -32,7 +47,13 @@ export const documentMetadataSchema = z.object({
 
 export type DocumentMetadata = z.output<typeof documentMetadataSchema>;
 
-export const documentSchema = baseEntityParserSchema.extend({
+export const documentSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"document">;
+    content: z.ZodString;
+    metadata: DocumentMetadataSchema;
+  }>
+> = baseEntityParserSchema.extend({
   entityType: z.literal("document"),
   content: z.string().regex(/^data:application\/pdf;base64,.+$/),
   metadata: documentMetadataSchema,

@@ -1,8 +1,27 @@
 import type { JSX } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const statusBadgeVariants = cva(
+export type StatusBadgeStatus =
+  | "draft"
+  | "generating"
+  | "queued"
+  | "sent"
+  | "failed"
+  | "published"
+  | "pending"
+  | "captured"
+  | "available"
+  | "early access"
+  | "coming soon"
+  | "planned";
+
+export interface StatusBadgeVariantProps {
+  status?: VariantValue<StatusBadgeStatus>;
+}
+
+const statusBadgeVariants: VariantFunction<StatusBadgeVariantProps> = cva(
   "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
   {
     variants: {
@@ -31,9 +50,7 @@ const statusBadgeVariants = cva(
   },
 );
 
-export interface StatusBadgeProps extends VariantProps<
-  typeof statusBadgeVariants
-> {
+export interface StatusBadgeProps extends StatusBadgeVariantProps {
   className?: string;
   /** Override the displayed text (defaults to status value) */
   label?: string;

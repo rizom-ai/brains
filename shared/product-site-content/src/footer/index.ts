@@ -3,9 +3,9 @@ export { FooterSchema, type FooterData } from "./schema";
 
 import { FooterSchema, type FooterData } from "./schema";
 import { FooterLayout } from "./layout";
-import { createTemplate } from "@brains/templates";
+import { createTemplate, type Template } from "@brains/templates";
 
-export const footerTemplate = createTemplate<FooterData>({
+export const footerTemplate: Template = createTemplate<FooterData>({
   name: "footer",
   description: "Footer section with navigation links",
   schema: FooterSchema,

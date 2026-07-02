@@ -1,22 +1,27 @@
 import type { JSX } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import { formatDate } from "./utils/formatDate";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const detailPageHeaderVariants = cva("", {
-  variants: {
-    titleSize: {
-      "3xl": "text-3xl",
-      "4xl": "text-4xl",
+export interface DetailPageHeaderVariantProps {
+  titleSize?: VariantValue<"3xl" | "4xl">;
+}
+
+const detailPageHeaderVariants: VariantFunction<DetailPageHeaderVariantProps> =
+  cva("", {
+    variants: {
+      titleSize: {
+        "3xl": "text-3xl",
+        "4xl": "text-4xl",
+      },
     },
-  },
-  defaultVariants: {
-    titleSize: "4xl",
-  },
-});
+    defaultVariants: {
+      titleSize: "4xl",
+    },
+  });
 
-export interface DetailPageHeaderProps
-  extends VariantProps<typeof detailPageHeaderVariants> {
+export interface DetailPageHeaderProps extends DetailPageHeaderVariantProps {
   title: string;
   created?: string;
   updated?: string;
