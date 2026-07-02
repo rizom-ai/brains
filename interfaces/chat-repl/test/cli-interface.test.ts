@@ -342,6 +342,34 @@ describe("CLIInterface", () => {
       // Interface plugins provide daemon capability
       expect(cliInterface.type).toBe("interface");
     });
+
+    it("should remove SIGINT/SIGTERM listeners on cleanup", async () => {
+      class SignalTestCLIInterface extends CLIInterface {
+        installSignalHandlers(): void {
+          this.registerSignalHandlers();
+        }
+        async teardown(): Promise<void> {
+          await this.cleanup();
+        }
+      }
+      const signalInterface = new SignalTestCLIInterface();
+      await harness.installPlugin(signalInterface);
+
+      const before = {
+        sigint: process.listenerCount("SIGINT"),
+        sigterm: process.listenerCount("SIGTERM"),
+      };
+
+      signalInterface.installSignalHandlers();
+
+      expect(process.listenerCount("SIGINT")).toBe(before.sigint + 1);
+      expect(process.listenerCount("SIGTERM")).toBe(before.sigterm + 1);
+
+      await signalInterface.teardown();
+
+      expect(process.listenerCount("SIGINT")).toBe(before.sigint);
+      expect(process.listenerCount("SIGTERM")).toBe(before.sigterm);
+    });
   });
 
   describe("Plugin Capabilities", () => {

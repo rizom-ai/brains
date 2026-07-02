@@ -382,6 +382,38 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls).toHaveLength(0);
   });
 
+  it("returns 400 for malformed JSON on the chat endpoint", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        body: "{not json",
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toBe("Invalid JSON body");
+  });
+
+  it("returns 400 for malformed JSON on the chat actions endpoint", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/actions", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/actions", {
+        method: "POST",
+        body: "{not json",
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toBe("Invalid JSON body");
+  });
+
   it("requires operator auth for the chat page", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);

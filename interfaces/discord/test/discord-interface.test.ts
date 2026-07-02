@@ -695,6 +695,38 @@ describe("DiscordInterface", () => {
       expect(mockSendTyping).toHaveBeenCalled();
     });
 
+    it("should clear the previous interval when starting again for the same channel", () => {
+      const channel = {
+        id: "channel-typing",
+        sendTyping: mock(async () => {}),
+      };
+
+      const cleared: unknown[] = [];
+      const originalClearInterval = globalThis.clearInterval;
+      globalThis.clearInterval = ((
+        timer: Parameters<typeof clearInterval>[0],
+      ) => {
+        cleared.push(timer);
+        originalClearInterval(timer);
+      }) as typeof clearInterval;
+
+      try {
+        discord["startTypingIndicator"](channel as never);
+        const first = discord["typingIntervals"].get("channel-typing");
+        expect(first).toBeDefined();
+
+        // A concurrent message in the same channel restarts the indicator —
+        // the first interval must be cleared, not orphaned
+        discord["startTypingIndicator"](channel as never);
+        expect(cleared).toContain(first);
+
+        discord["stopTypingIndicator"]("channel-typing");
+        expect(discord["typingIntervals"].size).toBe(0);
+      } finally {
+        globalThis.clearInterval = originalClearInterval;
+      }
+    });
+
     it("should not send typing when disabled", async () => {
       const quietDiscord = new DiscordInterface({
         botToken: "test-token",

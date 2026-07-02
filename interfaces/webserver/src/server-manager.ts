@@ -5,12 +5,17 @@ import type {
   RegisteredWebRoute,
   IMessageBus,
 } from "@brains/plugins";
-import { resolve, join } from "path";
+import { resolve, join, sep } from "path";
 import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
 import { serveStatic } from "hono/bun";
 import { compress } from "@hono/bun-compress";
 import { etag } from "hono/etag";
 import { createApiRouteHandler } from "./api-server";
+
+/** True if filePath resolves inside dir (or is dir itself). */
+export function isPathContained(filePath: string, dir: string): boolean {
+  return filePath === dir || filePath.startsWith(dir + sep);
+}
 
 export interface ServerManagerOptions {
   logger: Logger;
@@ -256,6 +261,12 @@ export class ServerManager {
       return route.fullPath === requestPath && routeMethod === requestMethod;
     });
     if (webRoute) {
+      // `public` is the only auth signal wired for web routes today. Until
+      // real auth exists, non-public routes fail closed rather than serve
+      // their handler unauthenticated.
+      if (webRoute.definition.public !== true) {
+        return c.text("Unauthorized", 401);
+      }
       return webRoute.definition.handler(c.req.raw);
     }
 
@@ -282,7 +293,7 @@ export class ServerManager {
     const fileName = url.pathname.slice("/images/".length);
     const filePath = resolve(this.options.sharedImagesDir, fileName);
     // Prevent directory traversal
-    if (!filePath.startsWith(this.options.sharedImagesDir)) return null;
+    if (!isPathContained(filePath, this.options.sharedImagesDir)) return null;
 
     const file = Bun.file(filePath);
     if (!(await file.exists())) return null;
@@ -303,7 +314,7 @@ export class ServerManager {
       }
 
       const indexPath = resolve(distDir, `.${path}`, "index.html");
-      if (!indexPath.startsWith(distDir)) {
+      if (!isPathContained(indexPath, distDir)) {
         await next();
         return;
       }
@@ -313,7 +324,7 @@ export class ServerManager {
         return c.html(await indexFile.text());
       }
       const htmlPath = resolve(distDir, `.${path}.html`);
-      if (htmlPath.startsWith(distDir)) {
+      if (isPathContained(htmlPath, distDir)) {
         const htmlFile = Bun.file(htmlPath);
         if (await htmlFile.exists()) {
           return c.html(await htmlFile.text());

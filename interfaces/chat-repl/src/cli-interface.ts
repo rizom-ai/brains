@@ -27,6 +27,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   private inkApp: Instance | null = null;
   private responseCallback: ((response: string) => void) | undefined;
   private agentService?: AgentNamespace;
+  private signalHandler: (() => void) | undefined;
 
   // Track pending confirmation approval ids
   private pendingConfirmationIds: string[] = [];
@@ -142,15 +143,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
           });
           this.inkApp = render(element);
 
-          // Handle process termination gracefully
-          process.on("SIGINT", async (): Promise<void> => {
-            this.logger.debug("Received SIGINT, stopping CLI interface");
-            await this.cleanup();
-          });
-          process.on("SIGTERM", async (): Promise<void> => {
-            this.logger.debug("Received SIGTERM, stopping CLI interface");
-            await this.cleanup();
-          });
+          this.registerSignalHandlers();
         } catch (error) {
           this.logger.error("Failed to start CLI interface", { error });
           throw error;
@@ -414,12 +407,32 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   }
 
   /**
+   * Handle process termination gracefully. The handler is stored so it can
+   * be removed on stop — otherwise a listener leaks per daemon start and
+   * Node warns about exceeding the max listener count.
+   */
+  protected registerSignalHandlers(): void {
+    this.signalHandler = (): void => {
+      this.logger.debug("Received termination signal, stopping CLI");
+      void this.cleanup();
+    };
+    process.on("SIGINT", this.signalHandler);
+    process.on("SIGTERM", this.signalHandler);
+  }
+
+  /**
    * Clean up resources
    */
-  private async cleanup(): Promise<void> {
+  protected async cleanup(): Promise<void> {
     // Clean up callbacks
     this.unregisterProgressCallback();
     this.unregisterMessageCallbacks();
+
+    if (this.signalHandler) {
+      process.removeListener("SIGINT", this.signalHandler);
+      process.removeListener("SIGTERM", this.signalHandler);
+      this.signalHandler = undefined;
+    }
 
     if (this.inkApp) {
       this.inkApp.unmount();

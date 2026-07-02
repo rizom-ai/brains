@@ -322,7 +322,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response("Forbidden", { status: 403 });
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Invalid JSON body", { status: 400 });
+    }
     const parsed = chatActionRequestSchema.safeParse(body);
     if (!parsed.success) {
       return new Response("Invalid chat action request", { status: 400 });
@@ -388,7 +393,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
     const permissionLevel = "anchor";
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Invalid JSON body", { status: 400 });
+    }
     const parsed = chatRequestSchema.safeParse(body);
     if (!parsed.success) {
       return new Response("Invalid chat request", { status: 400 });

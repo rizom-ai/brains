@@ -928,6 +928,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
   private startTypingIndicator(channel: SendableChannel): void {
     if (!this.config.showTypingIndicator) return;
+    this.stopTypingIndicator(channel.id);
     channel
       .sendTyping()
       .catch((e: unknown) =>

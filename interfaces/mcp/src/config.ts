@@ -10,6 +10,12 @@ export const mcpConfigSchema = z.object({
     .string()
     .describe("Bearer token for HTTP transport authentication")
     .optional(),
+  sessionIdleTtlMs: z
+    .number()
+    .describe(
+      "Idle time in ms after which an HTTP session is closed and evicted",
+    )
+    .default(30 * 60 * 1000),
 });
 
 export type MCPConfig = z.infer<typeof mcpConfigSchema>;

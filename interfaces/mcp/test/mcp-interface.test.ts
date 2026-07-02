@@ -108,8 +108,7 @@ describe("MCPInterface", () => {
       const response = await route.handler(new Request("http://brain/status"));
       expect(response.status).toBe(200);
       const body = await response.json();
-      expect(body.port).toBe(3001);
-      expect(body.sessions).toBe(0);
+      expect(body).toEqual({ status: "ok", sessions: 0 });
     });
   });
 
