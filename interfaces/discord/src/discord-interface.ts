@@ -1,12 +1,16 @@
 import {
   MessageInterfacePlugin,
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
   parseConfirmationResponse,
   matchSpaceSelector,
   type AgentResponse,
+  type ApprovalResolution,
   type ChatContext,
   type InterfacePluginContext,
   type PermissionLookupContext,
-  type StructuredChatCard,
   type ToolApprovalCard,
   type UserPermissionLevel,
 } from "@brains/plugins";
@@ -28,6 +32,16 @@ import type { DiscordConfig } from "./config";
 import packageJson from "../package.json";
 
 const DISCORD_MAX_LENGTH = 2000;
+const APPROVAL_RESULT_TITLES: Record<ApprovalResolution, string> = {
+  completed: "Action completed",
+  declined: "Action declined",
+  failed: "Action failed",
+};
+const APPROVAL_RESULT_COLORS: Record<ApprovalResolution, number> = {
+  completed: 0x22c55e,
+  declined: 0x94a3b8,
+  failed: 0xef4444,
+};
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
 const TYPING_REFRESH_MS = 8000;
 const THREAD_NAME_MAX_LENGTH = 100;
@@ -574,7 +588,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
       await this.handleAgentResponseToolStatuses(response, conversationId);
 
-      const approvalCards = this.getPendingApprovalCards(response.cards);
+      const approvalCards = getPendingApprovalCards(response.cards);
       if (approvalCards.length > 0) {
         this.pendingConfirmations.set(
           conversationId,
@@ -593,7 +607,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
       const messageId = await this.sendMessageWithId({
         channelId: replyChannelId,
-        message: this.formatAgentResponseText(response.text, approvalCards),
+        message: formatApprovalRequestText(response.text, approvalCards),
         approvalCards,
       });
 
@@ -722,7 +736,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     resolvedApprovalId: string,
     response: AgentResponse,
   ): void {
-    const approvalCards = this.getPendingApprovalCards(response.cards);
+    const approvalCards = getPendingApprovalCards(response.cards);
     const pendingIds =
       approvalCards.length > 0
         ? approvalCards.map((card) => card.id)
@@ -749,7 +763,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       response,
       userPermissionLevel,
     );
-    const resultCard = this.getResolvedApprovalCard(response.cards);
+    const resultCard = getResolvedApprovalCard(response.cards);
     if (!resultCard) {
       if (files.length === 0) {
         return this.sendMessageWithId({ channelId, message: response.text });
@@ -786,19 +800,18 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     approvalCard: ToolApprovalCard,
     files: Array<Record<string, unknown>> = [],
   ): DiscordSendOptions {
-    const failed = approvalCard.state === "output-error";
-    const denied = approvalCard.state === "output-denied";
+    const result = buildApprovalResultView(approvalCard);
     const fields: Array<Record<string, unknown>> = [
       {
         name: "Tool",
-        value: `\`${approvalCard.toolName}\``,
+        value: `\`${result.toolName}\``,
         inline: true,
       },
     ];
-    if (failed && approvalCard.error) {
+    if (result.error) {
       fields.push({
         name: "Error",
-        value: truncateText(approvalCard.error, 1024),
+        value: truncateText(result.error, 1024),
       });
     }
 
@@ -806,52 +819,15 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       content: "",
       embeds: [
         {
-          title: failed
-            ? "Action failed"
-            : denied
-              ? "Action declined"
-              : "Action completed",
-          description: truncateText(approvalCard.summary, 1024),
-          color: failed ? 0xef4444 : denied ? 0x94a3b8 : 0x22c55e,
+          title: APPROVAL_RESULT_TITLES[result.resolution],
+          description: truncateText(result.summary, 1024),
+          color: APPROVAL_RESULT_COLORS[result.resolution],
           fields,
         },
       ],
       components: [],
       ...(files.length > 0 ? { files } : {}),
     };
-  }
-
-  private getPendingApprovalCards(
-    cards: StructuredChatCard[] | undefined,
-  ): ToolApprovalCard[] {
-    return (
-      cards?.filter(
-        (card): card is ToolApprovalCard =>
-          card.kind === "tool-approval" && card.state === "approval-requested",
-      ) ?? []
-    );
-  }
-
-  private getResolvedApprovalCard(
-    cards: StructuredChatCard[] | undefined,
-  ): ToolApprovalCard | undefined {
-    return cards?.find(
-      (card): card is ToolApprovalCard =>
-        card.kind === "tool-approval" &&
-        (card.state === "output-available" ||
-          card.state === "output-error" ||
-          card.state === "output-denied"),
-    );
-  }
-
-  private formatAgentResponseText(
-    text: string,
-    approvalCards: ToolApprovalCard[],
-  ): string {
-    if (approvalCards.length === 0) return text;
-    if (text.trim().length > 0) return text;
-    if (approvalCards.length === 1) return approvalCards[0]?.summary ?? text;
-    return "Multiple approvals required.";
   }
 
   private async handleConfirmationResponse(

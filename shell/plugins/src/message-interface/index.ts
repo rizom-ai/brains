@@ -46,6 +46,15 @@ export {
 export { parseConfirmationResponse } from "./confirmation-handler";
 
 export {
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
+  type ApprovalResolution,
+  type ApprovalResultView,
+} from "./approval-cards";
+
+export {
   containsApprovalIdToken,
   extractApprovalId,
   hasExplicitApprovalReference,

@@ -23,9 +23,6 @@ Inconsistent quality gates; normalize when touching turbo config.
 - `sites/professional` and `sites/personal` homepage datasources share
   ~60% structure; extract a shared datasource helper if a third site
   appears.
-- Approval-card formatting is inlined separately in the Discord and CLI
-  interfaces; a small shared formatter would help — but see
-  checked-and-cleared below, the interfaces are otherwise sound.
 
 ## Checked and cleared (do not re-flag)
 

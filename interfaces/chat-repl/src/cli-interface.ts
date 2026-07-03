@@ -2,7 +2,12 @@ import {
   MessageInterfacePlugin,
   type InterfacePluginContext,
   PluginError,
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
   parseConfirmationResponse,
+  type ApprovalResolution,
   type StructuredChatCard,
   type ToolApprovalCard,
 } from "@brains/plugins";
@@ -12,6 +17,12 @@ import type { AgentNamespace } from "@brains/plugins";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig } from "./config";
 import packageJson from "../package.json";
+
+const APPROVAL_RESULT_MARKERS: Record<ApprovalResolution, string> = {
+  completed: "✓",
+  declined: "○",
+  failed: "✗",
+};
 
 /**
  * CLI Interface - Agent-based architecture
@@ -200,7 +211,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       );
 
       // Track pending confirmations if returned
-      const approvalCards = this.getPendingApprovalCards(response.cards);
+      const approvalCards = getPendingApprovalCards(response.cards);
       if (approvalCards.length > 0) {
         this.pendingConfirmationIds = approvalCards.map((card) => card.id);
       } else if (response.pendingConfirmations) {
@@ -247,50 +258,23 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   }
 
   /**
-   * Get pending approval card from structured agent response cards.
-   */
-  private getPendingApprovalCards(
-    cards: StructuredChatCard[] | undefined,
-  ): ToolApprovalCard[] {
-    return (
-      cards?.filter(
-        (card): card is ToolApprovalCard =>
-          card.kind === "tool-approval" && card.state === "approval-requested",
-      ) ?? []
-    );
-  }
-
-  private getResolvedApprovalCard(
-    cards: StructuredChatCard[] | undefined,
-  ): ToolApprovalCard | undefined {
-    return cards?.find(
-      (card): card is ToolApprovalCard =>
-        card.kind === "tool-approval" &&
-        (card.state === "output-available" ||
-          card.state === "output-error" ||
-          card.state === "output-denied"),
-    );
-  }
-
-  /**
-   * Format CLI response text for structured approval cards.
+   * Format CLI response text for structured approval cards: the shared base
+   * text plus terminal-specific previews and reply instructions.
    */
   private formatAgentResponseText(
     text: string,
     approvalCards: ToolApprovalCard[],
   ): string {
     if (approvalCards.length === 0) return text;
+    const baseText = formatApprovalRequestText(text, approvalCards);
 
     if (approvalCards.length === 1) {
       const approvalCard = approvalCards[0];
       if (!approvalCard) return text;
-      const baseText = text.trim().length > 0 ? text : approvalCard.summary;
       const preview = approvalCard.preview ? `\n\n${approvalCard.preview}` : "";
       return `${baseText}${preview}\n\n_Please reply with **yes** to confirm or **no/cancel** to abort._`;
     }
 
-    const baseText =
-      text.trim().length > 0 ? text : "Multiple approvals required.";
     const approvalList = approvalCards
       .map((card, index) => {
         const preview = card.preview ? `\n   ${card.preview}` : "";
@@ -304,18 +288,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     text: string,
     cards: StructuredChatCard[] | undefined,
   ): string {
-    const resultCard = this.getResolvedApprovalCard(cards);
+    const resultCard = getResolvedApprovalCard(cards);
     if (!resultCard) return text;
 
-    if (resultCard.state === "output-error") {
-      return resultCard.error
-        ? `✗ ${resultCard.summary}\n\n${resultCard.error}`
-        : `✗ ${resultCard.summary}`;
-    }
-    if (resultCard.state === "output-denied") {
-      return `○ ${resultCard.summary}`;
-    }
-    return `✓ ${resultCard.summary}`;
+    const result = buildApprovalResultView(resultCard);
+    const marker = APPROVAL_RESULT_MARKERS[result.resolution];
+    return result.error
+      ? `${marker} ${result.summary}\n\n${result.error}`
+      : `${marker} ${result.summary}`;
   }
 
   private parseIndexedConfirmationResponse(
