@@ -61,6 +61,7 @@ import { toTokenUsage } from "./generation-options";
  */
 const DEFAULT_STEP_LIMIT = 10;
 const MAX_CONVERSATION_OPERATIONS = 10;
+const DEFAULT_CONVERSATION_ACTOR_IDLE_TTL_MS = 30 * 60 * 1000;
 
 const asyncGeneratingToolResultSchema = z
   .object({
@@ -221,6 +222,7 @@ function buildAttachmentOnlyActionsCard(
  * Each conversation gets its own machine actor for independent state tracking.
  */
 type ConversationActor = ReturnType<typeof createActor<typeof agentMachine>>;
+type ConversationEvictionTimer = ReturnType<typeof setTimeout>;
 
 export class AgentService implements IAgentService {
   private static instance: AgentService | null = null;
@@ -233,6 +235,7 @@ export class AgentService implements IAgentService {
   private agentContextProvider: AgentConfig["agentContextProvider"];
   private indexReadiness: AgentConfig["indexReadiness"];
   private uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
+  private conversationActorIdleTtlMs: number;
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -254,6 +257,10 @@ export class AgentService implements IAgentService {
   // while a previous turn is still processing.
   private conversationOperations = new Map<string, Promise<void>>();
   private conversationOperationCounts = new Map<string, number>();
+  private conversationEvictionTimers = new Map<
+    string,
+    ConversationEvictionTimer
+  >();
 
   // Lazy-initialized agent
   private agent: BrainAgent | null = null;
@@ -288,9 +295,13 @@ export class AgentService implements IAgentService {
       for (const actor of AgentService.instance.conversationActors.values()) {
         actor.stop();
       }
+      for (const timer of AgentService.instance.conversationEvictionTimers.values()) {
+        clearTimeout(timer);
+      }
       AgentService.instance.conversationActors.clear();
       AgentService.instance.conversationOperations.clear();
       AgentService.instance.conversationOperationCounts.clear();
+      AgentService.instance.conversationEvictionTimers.clear();
     }
     AgentService.instance = null;
   }
@@ -336,6 +347,9 @@ export class AgentService implements IAgentService {
     this.agentContextProvider = config.agentContextProvider;
     this.indexReadiness = config.indexReadiness;
     this.uploadAttachmentResolver = config.uploadAttachmentResolver;
+    this.conversationActorIdleTtlMs =
+      config.conversationActorIdleTtlMs ??
+      DEFAULT_CONVERSATION_ACTOR_IDLE_TTL_MS;
   }
 
   /**
@@ -371,6 +385,8 @@ export class AgentService implements IAgentService {
    * Get or create a machine actor for a conversation
    */
   private getConversationActor(conversationId: string): ConversationActor {
+    this.clearConversationEvictionTimer(conversationId);
+
     let actor = this.conversationActors.get(conversationId);
     if (!actor) {
       actor = createActor(this.providedMachine);
@@ -378,6 +394,38 @@ export class AgentService implements IAgentService {
       this.conversationActors.set(conversationId, actor);
     }
     return actor;
+  }
+
+  private clearConversationEvictionTimer(conversationId: string): void {
+    const timer = this.conversationEvictionTimers.get(conversationId);
+    if (!timer) return;
+    clearTimeout(timer);
+    this.conversationEvictionTimers.delete(conversationId);
+  }
+
+  private scheduleConversationEviction(conversationId: string): void {
+    this.clearConversationEvictionTimer(conversationId);
+    if (this.conversationActorIdleTtlMs <= 0) return;
+
+    const timer = setTimeout(() => {
+      this.conversationEvictionTimers.delete(conversationId);
+      const actor = this.conversationActors.get(conversationId);
+      if (!actor) return;
+      if ((this.conversationOperationCounts.get(conversationId) ?? 0) > 0) {
+        return;
+      }
+      if (!actor.getSnapshot().matches("idle")) return;
+
+      actor.stop();
+      this.conversationActors.delete(conversationId);
+    }, this.conversationActorIdleTtlMs);
+
+    const unref = Reflect.get(timer, "unref");
+    if (typeof unref === "function") {
+      Reflect.apply(unref, timer, []);
+    }
+
+    this.conversationEvictionTimers.set(conversationId, timer);
   }
 
   private enqueueConversationOperation<T>(
@@ -413,6 +461,8 @@ export class AgentService implements IAgentService {
       if (this.conversationOperations.get(conversationId) === tracked) {
         this.conversationOperations.delete(conversationId);
       }
+
+      this.scheduleConversationEviction(conversationId);
     });
 
     return run;
@@ -479,6 +529,7 @@ export class AgentService implements IAgentService {
           }
 
           return this.resolvePendingConfirmation(
+            conversationId,
             actor,
             confirmation,
             parsedConfirmation.confirmed,
@@ -489,6 +540,7 @@ export class AgentService implements IAgentService {
         if (authorizedConfirmations.length > 0) {
           for (const confirmation of authorizedConfirmations) {
             await this.resolvePendingConfirmation(
+              conversationId,
               actor,
               confirmation,
               false,
@@ -590,6 +642,7 @@ export class AgentService implements IAgentService {
     }
 
     return this.resolvePendingConfirmation(
+      conversationId,
       actor,
       pendingConfirmation,
       confirmed,
@@ -598,6 +651,7 @@ export class AgentService implements IAgentService {
   }
 
   private async resolvePendingConfirmation(
+    conversationId: string,
     actor: ConversationActor,
     pendingConfirmation: RuntimePendingConfirmation,
     confirmed: boolean,
@@ -610,32 +664,36 @@ export class AgentService implements IAgentService {
       source: ConversationMessageSource | null;
     },
   ): Promise<AgentResponse> {
-    actor.send({
-      type: confirmed ? "CONFIRM" : "CANCEL",
-      approvalId: pendingConfirmation.id,
-      interfaceType: confirmationContext.interfaceType,
-      channelId: confirmationContext.channelId,
-      channelName: confirmationContext.channelName,
-      userPermissionLevel: confirmationContext.userPermissionLevel,
-      actor: confirmationContext.actor,
-      source: confirmationContext.source,
-    });
+    try {
+      actor.send({
+        type: confirmed ? "CONFIRM" : "CANCEL",
+        approvalId: pendingConfirmation.id,
+        interfaceType: confirmationContext.interfaceType,
+        channelId: confirmationContext.channelId,
+        channelName: confirmationContext.channelName,
+        userPermissionLevel: confirmationContext.userPermissionLevel,
+        actor: confirmationContext.actor,
+        source: confirmationContext.source,
+      });
 
-    const snapshot = await waitFor(
-      actor,
-      (s) =>
-        (s.matches("idle") || s.matches("awaitingConfirmation")) &&
-        !s.context.pendingConfirmations.some(
-          (confirmation) => confirmation.id === pendingConfirmation.id,
-        ),
-    );
+      const snapshot = await waitFor(
+        actor,
+        (s) =>
+          (s.matches("idle") || s.matches("awaitingConfirmation")) &&
+          !s.context.pendingConfirmations.some(
+            (confirmation) => confirmation.id === pendingConfirmation.id,
+          ),
+      );
 
-    return (
-      snapshot.context.response ?? {
-        text: "Action completed.",
-        usage: emptyUsage,
-      }
-    );
+      return (
+        snapshot.context.response ?? {
+          text: "Action completed.",
+          usage: emptyUsage,
+        }
+      );
+    } finally {
+      this.scheduleConversationEviction(conversationId);
+    }
   }
 
   private resolveConfirmationContext(

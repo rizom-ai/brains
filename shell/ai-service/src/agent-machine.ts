@@ -285,12 +285,14 @@ export const agentMachine = setup({
                 context,
               ),
               activeConfirmation: null,
+              attachments: [],
             })),
           },
           {
             target: "idle",
             actions: assign(({ event }) => ({
               response: event.output,
+              attachments: [],
             })),
           },
         ],
@@ -308,6 +310,7 @@ export const agentMachine = setup({
                   : "An unexpected error occurred.",
               usage: emptyUsage,
             },
+            attachments: [],
           })),
         },
       },

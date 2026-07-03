@@ -67,6 +67,48 @@ function createUploadAttachmentResolver(
   });
 }
 
+function getConversationActors(service: AgentService): Map<unknown, unknown> {
+  const actors = Reflect.get(service, "conversationActors");
+  if (!(actors instanceof Map)) {
+    throw new Error("Expected conversationActors to be a Map");
+  }
+  return actors;
+}
+
+function getConversationActorCount(service: AgentService): number {
+  return getConversationActors(service).size;
+}
+
+function getConversationActorSnapshot(
+  service: AgentService,
+  conversationId: string,
+): unknown {
+  const actor = getConversationActors(service).get(conversationId);
+  if (typeof actor !== "object" || actor === null) {
+    throw new Error(`Expected actor for conversation ${conversationId}`);
+  }
+  const getSnapshot = Reflect.get(actor, "getSnapshot");
+  if (typeof getSnapshot !== "function") {
+    throw new Error("Expected actor to expose getSnapshot");
+  }
+  return Reflect.apply(getSnapshot, actor, []);
+}
+
+function getConversationActorAttachments(
+  service: AgentService,
+  conversationId: string,
+): unknown {
+  const snapshot = getConversationActorSnapshot(service, conversationId);
+  if (typeof snapshot !== "object" || snapshot === null) {
+    throw new Error("Expected actor snapshot object");
+  }
+  const context = Reflect.get(snapshot, "context");
+  if (typeof context !== "object" || context === null) {
+    throw new Error("Expected actor snapshot context object");
+  }
+  return Reflect.get(context, "attachments");
+}
+
 // Mock BrainCharacterService
 const createMockCharacterService = (): IBrainCharacterService => ({
   getCharacter: mock(() => ({
@@ -3481,6 +3523,159 @@ describe("AgentService", () => {
       );
 
       expect(response.text).toContain("No pending");
+    });
+  });
+
+  describe("conversation actor lifecycle", () => {
+    it("clears same-turn attachments from actor context after completion", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("describe this", "test-conversation", {
+        attachments: [
+          {
+            kind: "file",
+            filename: "image.png",
+            mediaType: "image/png",
+            data: new Uint8Array([1, 2, 3]),
+            sizeBytes: 3,
+          },
+        ],
+      });
+
+      expect(
+        getConversationActorAttachments(service, "test-conversation"),
+      ).toEqual([]);
+    });
+
+    it("evicts idle conversation actors after the configured TTL", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, conversationActorIdleTtlMs: 5 },
+      );
+
+      await service.chat("hello", "test-conversation");
+      expect(getConversationActorCount(service)).toBe(1);
+
+      await delay(25);
+
+      expect(getConversationActorCount(service)).toBe(0);
+    });
+
+    it("does not evict actors while awaiting confirmation", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm deleting the note.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-1",
+                toolName: "delete_note",
+                input: { noteId: "123" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-1",
+                toolName: "delete_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "delete_note",
+                  summary: "Delete note 'Meeting Notes'?",
+                  args: { noteId: "123" },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, conversationActorIdleTtlMs: 5 },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+      });
+      await delay(25);
+
+      expect(getConversationActorCount(service)).toBe(1);
+    });
+
+    it("does not evict actors while queued messages are pending", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      mockGenerate.mockImplementation(async () => {
+        await firstTurnGate;
+        return {
+          text: "done",
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, conversationActorIdleTtlMs: 5 },
+      );
+
+      const first = service.chat("first", "test-conversation");
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const second = service.chat("second", "test-conversation");
+      await delay(25);
+
+      expect(getConversationActorCount(service)).toBe(1);
+
+      releaseFirst();
+      await Promise.all([first, second]);
+    });
+
+    it("continues a conversation after its idle actor is evicted", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, conversationActorIdleTtlMs: 5 },
+      );
+
+      await service.chat("hello", "test-conversation");
+      await delay(25);
+      expect(getConversationActorCount(service)).toBe(0);
+
+      mockAgentGenerateResult = {
+        text: "welcome back",
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      };
+      const response = await service.chat("again", "test-conversation");
+
+      expect(response.text).toBe("welcome back");
+      expect(getConversationActorCount(service)).toBe(1);
     });
   });
 

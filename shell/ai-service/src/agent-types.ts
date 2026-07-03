@@ -105,6 +105,8 @@ export interface AgentConfig {
   ) => Promise<AgentContextItem[]>;
   /** Optional resolver for prior uploads stored in conversation metadata. */
   uploadAttachmentResolver?: UploadAttachmentResolver;
+  /** Idle TTL before stopping and removing an unused conversation actor. */
+  conversationActorIdleTtlMs?: number;
 }
 
 /**
