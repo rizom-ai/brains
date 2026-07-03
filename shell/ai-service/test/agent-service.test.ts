@@ -298,7 +298,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -315,9 +315,10 @@ describe("AgentService", () => {
         overflowError = error;
       }
       expect(overflowError).toBeInstanceOf(Error);
-      expect((overflowError as Error).message).toContain(
-        "Conversation is busy",
-      );
+      if (!(overflowError instanceof Error)) {
+        throw new Error("Expected overflow to throw an Error");
+      }
+      expect(overflowError.message).toContain("Conversation is busy");
 
       releaseFirst();
       const responses = await Promise.all(accepted);
@@ -1960,12 +1961,12 @@ describe("AgentService", () => {
       };
     };
 
-    it("does not replay the previous response when chat is called during awaiting confirmation", async () => {
+    it("implicitly declines an authorized pending confirmation before processing a topic change", async () => {
       setupConfirmationResponse("Please confirm deleting the note.");
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1991,14 +1992,197 @@ describe("AgentService", () => {
         anchorConfirmationContext,
       );
 
-      expect(response.text).not.toBe("Confirmation required.");
-      expect(response.text).toContain(
-        "pending action is awaiting confirmation",
-      );
-      expect(response.pendingConfirmations?.map(({ id }) => id)).toEqual([
-        "approval:call-1",
+      expect(response.text).toBe("fresh answer");
+      expect(response.pendingConfirmations).toBeUndefined();
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+    });
+
+    it("confirms from an unclassified plain yes sent through chat", async () => {
+      setupConfirmationResponse("Please confirm deleting the note.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
       ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat(
+        "delete my note",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+      const response = await service.chat(
+        "yes",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+
+      expect(response.text).toBe("Completed: Delete note 'Meeting Notes'");
+      expect(deleteHandler).toHaveBeenCalledTimes(1);
       expect(mockGenerate).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves pending confirmation untouched and queues unauthorized topic changes", async () => {
+      setupConfirmationResponse("Please confirm deleting the note.");
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        actor: {
+          actorId: "eval-anchor-alice",
+          canonicalId: "alice",
+          interfaceType: "evaluation",
+          role: "user",
+        },
+      });
+
+      mockAgentGenerateResult = {
+        text: "answer for bob",
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      };
+      const bobResponse = service.chat(
+        "tell me something else",
+        "test-conversation",
+        {
+          userPermissionLevel: "public",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-public-bob",
+            canonicalId: "bob",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+      await delay(5);
+
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+
+      const cancelResponse = await service.confirmPendingAction(
+        "test-conversation",
+        false,
+        "approval:call-1",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-anchor-alice",
+            canonicalId: "alice",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+      const queuedResponse = await bobResponse;
+
+      expect(cancelResponse.text).toContain("cancelled");
+      expect(queuedResponse.text).toBe("answer for bob");
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+    });
+
+    it("declines for an authorized queued message when the previous turn asks for confirmation", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let callCount = 0;
+      mockGenerate.mockImplementation(async () => {
+        const turn = ++callCount;
+        if (turn === 1) {
+          await firstTurnGate;
+          return {
+            text: "Confirmation required.",
+            steps: [
+              {
+                toolCalls: [
+                  {
+                    toolCallId: "call-1",
+                    toolName: "delete_note",
+                    input: { noteId: "123" },
+                  },
+                ],
+                toolResults: [
+                  {
+                    toolCallId: "call-1",
+                    toolName: "delete_note",
+                    output: {
+                      needsConfirmation: true,
+                      toolName: "delete_note",
+                      summary: "Delete note 'Meeting Notes'?",
+                      args: { noteId: "123" },
+                    },
+                  },
+                ],
+              },
+            ],
+            usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+          };
+        }
+        return {
+          text: "queued answer",
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const first = service.chat(
+        "delete my note",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const second = service.chat(
+        "new topic instead",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+
+      releaseFirst();
+      const [firstResponse, secondResponse] = await Promise.all([
+        first,
+        second,
+      ]);
+
+      expect(firstResponse.text).toBe("Confirmation required.");
+      expect(secondResponse.text).toBe("queued answer");
+      expect(secondResponse.pendingConfirmations).toBeUndefined();
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
     });
 
     it("does not execute the destructive handler before explicit confirmation", async () => {

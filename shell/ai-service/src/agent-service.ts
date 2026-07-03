@@ -1,5 +1,10 @@
 import type { AgentContextItem } from "@brains/contracts";
-import { type Logger, getErrorMessage, z } from "@brains/utils";
+import {
+  type Logger,
+  getErrorMessage,
+  parseConfirmationResponse,
+  z,
+} from "@brains/utils";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
 import type {
@@ -444,11 +449,58 @@ export class AgentService implements IAgentService {
       const currentSnapshot = actor.getSnapshot();
 
       if (currentSnapshot.matches("awaitingConfirmation")) {
-        return {
-          text: "A pending action is awaiting confirmation. Confirm or cancel it before sending a new message.",
-          pendingConfirmations: currentSnapshot.context.pendingConfirmations,
-          usage: emptyUsage,
+        const confirmationContext = {
+          interfaceType,
+          channelId,
+          channelName,
+          userPermissionLevel,
+          actor: context?.actor ?? null,
+          source: context?.source ?? null,
         };
+        const pendingConfirmations =
+          currentSnapshot.context.pendingConfirmations;
+        const parsedConfirmation = parseConfirmationResponse(message);
+        const authorizedConfirmations = pendingConfirmations.filter(
+          (confirmation) =>
+            this.canConfirmPendingAction(confirmation, confirmationContext),
+        );
+
+        if (parsedConfirmation) {
+          const [confirmation] = authorizedConfirmations;
+          if (authorizedConfirmations.length !== 1 || !confirmation) {
+            return {
+              text:
+                authorizedConfirmations.length === 0
+                  ? "You are not authorized to confirm this pending action."
+                  : "Multiple approvals are pending; include one approval id with yes or no/cancel.",
+              pendingConfirmations,
+              usage: emptyUsage,
+            };
+          }
+
+          return this.resolvePendingConfirmation(
+            actor,
+            confirmation,
+            parsedConfirmation.confirmed,
+            confirmationContext,
+          );
+        }
+
+        if (authorizedConfirmations.length > 0) {
+          for (const confirmation of authorizedConfirmations) {
+            await this.resolvePendingConfirmation(
+              actor,
+              confirmation,
+              false,
+              confirmationContext,
+            );
+          }
+        } else {
+          await waitFor(
+            actor,
+            (snapshot) => !snapshot.matches("awaitingConfirmation"),
+          );
+        }
       }
 
       actor.send({
@@ -487,84 +539,103 @@ export class AgentService implements IAgentService {
     approvalId: string,
     context: ChatContext,
   ): Promise<AgentResponse> {
-    return this.enqueueConversationOperation(conversationId, async () => {
-      const actor = this.conversationActors.get(conversationId);
-      if (!actor) {
-        return {
-          text: "No pending action to confirm.",
-          usage: emptyUsage,
-        };
-      }
+    const actor = this.conversationActors.get(conversationId);
+    if (!actor) {
+      return {
+        text: "No pending action to confirm.",
+        usage: emptyUsage,
+      };
+    }
 
-      const snapshotBeforeConfirm = actor.getSnapshot();
+    const snapshotBeforeConfirm = actor.getSnapshot();
 
-      if (!snapshotBeforeConfirm.matches("awaitingConfirmation")) {
-        return {
-          text: "No pending action to confirm.",
-          usage: emptyUsage,
-        };
-      }
+    if (!snapshotBeforeConfirm.matches("awaitingConfirmation")) {
+      return {
+        text: "No pending action to confirm.",
+        usage: emptyUsage,
+      };
+    }
 
-      const pendingConfirmation =
-        snapshotBeforeConfirm.context.pendingConfirmations.find(
-          (confirmation) => confirmation.id === approvalId,
-        ) ?? null;
-      if (!pendingConfirmation) {
-        return {
-          text: `No pending action matches approval id '${approvalId}'.`,
-          usage: emptyUsage,
-        };
-      }
+    const pendingConfirmation =
+      snapshotBeforeConfirm.context.pendingConfirmations.find(
+        (confirmation) => confirmation.id === approvalId,
+      ) ?? null;
+    if (!pendingConfirmation) {
+      return {
+        text: `No pending action matches approval id '${approvalId}'.`,
+        usage: emptyUsage,
+      };
+    }
 
-      const confirmationContext = this.resolveConfirmationContext(
-        context,
-        snapshotBeforeConfirm.context,
-      );
-      if (!confirmationContext) {
-        return {
-          text: "Confirmation requires caller context.",
-          usage: emptyUsage,
-        };
-      }
+    const confirmationContext = this.resolveConfirmationContext(
+      context,
+      snapshotBeforeConfirm.context,
+    );
+    if (!confirmationContext) {
+      return {
+        text: "Confirmation requires caller context.",
+        usage: emptyUsage,
+      };
+    }
 
-      if (
-        !this.canConfirmPendingAction(pendingConfirmation, confirmationContext)
-      ) {
-        return {
-          text: "You are not authorized to confirm this pending action.",
-          pendingConfirmations:
-            snapshotBeforeConfirm.context.pendingConfirmations,
-          usage: emptyUsage,
-        };
-      }
+    if (
+      !this.canConfirmPendingAction(pendingConfirmation, confirmationContext)
+    ) {
+      return {
+        text: "You are not authorized to confirm this pending action.",
+        pendingConfirmations:
+          snapshotBeforeConfirm.context.pendingConfirmations,
+        usage: emptyUsage,
+      };
+    }
 
-      actor.send({
-        type: confirmed ? "CONFIRM" : "CANCEL",
-        approvalId,
-        interfaceType: confirmationContext.interfaceType,
-        channelId: confirmationContext.channelId,
-        channelName: confirmationContext.channelName,
-        userPermissionLevel: confirmationContext.userPermissionLevel,
-        actor: confirmationContext.actor,
-        source: confirmationContext.source,
-      });
+    return this.resolvePendingConfirmation(
+      actor,
+      pendingConfirmation,
+      confirmed,
+      confirmationContext,
+    );
+  }
 
-      const snapshot = await waitFor(
-        actor,
-        (s) =>
-          (s.matches("idle") || s.matches("awaitingConfirmation")) &&
-          !s.context.pendingConfirmations.some(
-            (confirmation) => confirmation.id === approvalId,
-          ),
-      );
-
-      return (
-        snapshot.context.response ?? {
-          text: "Action completed.",
-          usage: emptyUsage,
-        }
-      );
+  private async resolvePendingConfirmation(
+    actor: ConversationActor,
+    pendingConfirmation: RuntimePendingConfirmation,
+    confirmed: boolean,
+    confirmationContext: {
+      interfaceType: string;
+      channelId: string | undefined;
+      channelName: string;
+      userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+      actor: ConversationMessageActor | null;
+      source: ConversationMessageSource | null;
+    },
+  ): Promise<AgentResponse> {
+    actor.send({
+      type: confirmed ? "CONFIRM" : "CANCEL",
+      approvalId: pendingConfirmation.id,
+      interfaceType: confirmationContext.interfaceType,
+      channelId: confirmationContext.channelId,
+      channelName: confirmationContext.channelName,
+      userPermissionLevel: confirmationContext.userPermissionLevel,
+      actor: confirmationContext.actor,
+      source: confirmationContext.source,
     });
+
+    const snapshot = await waitFor(
+      actor,
+      (s) =>
+        (s.matches("idle") || s.matches("awaitingConfirmation")) &&
+        !s.context.pendingConfirmations.some(
+          (confirmation) => confirmation.id === pendingConfirmation.id,
+        ),
+    );
+
+    return (
+      snapshot.context.response ?? {
+        text: "Action completed.",
+        usage: emptyUsage,
+      }
+    );
   }
 
   private resolveConfirmationContext(
