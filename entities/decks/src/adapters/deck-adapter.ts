@@ -21,6 +21,7 @@ export class DeckAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "deck",
+      purpose: "A slide-deck presentation.",
       schema: deckSchema,
       frontmatterSchema: deckFrontmatterSchema,
       supportsCoverImage: true,

@@ -16,6 +16,7 @@ export class EcosystemSectionAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "ecosystem-section",
+      purpose: "A section of the Rizom ecosystem overview.",
       schema: ecosystemSectionSchema,
       frontmatterSchema: ecosystemSectionMetadataSchema,
     });

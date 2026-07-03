@@ -6,12 +6,6 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type { JobHandler } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
 
-class InstructionTestImagePlugin extends ImagePlugin {
-  public getInstructionsForTest(): Promise<string | undefined> {
-    return this.getInstructions();
-  }
-}
-
 describe("ImagePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let plugin: ImagePlugin;
@@ -52,15 +46,6 @@ describe("ImagePlugin", () => {
 
   it("should register image entity type", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("image");
-  });
-
-  it("should keep image discussion note saves off raw upload-save paths in instructions", async () => {
-    const instructions =
-      await new InstructionTestImagePlugin().getInstructionsForTest();
-
-    expect(instructions).toContain(
-      "Saving an image description, discussion, interpretation, or caption as a note should create a note entity with content from the conversation, not system_upload_save or upload/transform.",
-    );
   });
 
   it("should return zero tools", async () => {

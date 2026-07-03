@@ -1,5 +1,33 @@
 # @brains/ops
 
+## 0.2.0-alpha.137
+
+## 0.2.0-alpha.136
+
+## 0.2.0-alpha.135
+
+### Patch Changes
+
+- [`cadc0a6`](https://github.com/rizom-ai/brains/commit/cadc0a661ea7b6704a6b823b596155acf5516874) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a Rover onboarding service plugin that owns bundled onboarding playbooks and registers the first web-chat starter through the playbooks runtime. Playbooks now accepts runtime lifecycle starter registrations, and Rover/ops opt into onboarding through the new plugin config instead of the generic trigger flag.
+
+## 0.2.0-alpha.134
+
+## 0.2.0-alpha.133
+
+## 0.2.0-alpha.132
+
+## 0.2.0-alpha.131
+
+## 0.2.0-alpha.130
+
+## 0.2.0-alpha.129
+
+### Patch Changes
+
+- [`23b84d7`](https://github.com/rizom-ai/brains/commit/23b84d790412efb428a76d8124ea67f4d52a37fc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow rover-pilot users to opt into the Rover onboarding playbook starter with `playbooks.onboarding: true`, rendering the corresponding `playbooks.triggers.first-anchor-web-chat` brain config.
+
+## 0.2.0-alpha.128
+
 ## 0.2.0-alpha.127
 
 ## 0.2.0-alpha.126

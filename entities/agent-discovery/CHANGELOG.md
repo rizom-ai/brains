@@ -1,5 +1,149 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.137
+
+### Patch Changes
+
+- [`d24f6b3`](https://github.com/rizom-ai/brains/commit/d24f6b383383de04e36f4f3447f8ec8c59907ceb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve agent-network recommendation UX by guiding expertise-match questions to search saved agent contacts instead of requiring exact agent ids.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.137
+  - @brains/atproto-contracts@0.2.0-alpha.137
+  - @brains/content-formatters@0.2.0-alpha.137
+  - @brains/contracts@0.2.0-alpha.137
+  - @brains/ui-library@0.2.0-alpha.137
+  - @brains/utils@0.2.0-alpha.137
+  - @brains/plugins@0.2.0-alpha.137
+  - @brains/templates@0.2.0-alpha.137
+
+## 0.2.0-alpha.136
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.136
+  - @brains/atproto-contracts@0.2.0-alpha.136
+  - @brains/content-formatters@0.2.0-alpha.136
+  - @brains/contracts@0.2.0-alpha.136
+  - @brains/ui-library@0.2.0-alpha.136
+  - @brains/utils@0.2.0-alpha.136
+  - @brains/plugins@0.2.0-alpha.136
+  - @brains/templates@0.2.0-alpha.136
+
+## 0.2.0-alpha.135
+
+### Patch Changes
+
+- Updated dependencies [[`37db2bc`](https://github.com/rizom-ai/brains/commit/37db2bc759e606f42efacedd70056e9c2f440a4e)]:
+  - @brains/plugins@0.2.0-alpha.135
+  - @brains/dashboard@0.2.0-alpha.135
+  - @brains/atproto-contracts@0.2.0-alpha.135
+  - @brains/content-formatters@0.2.0-alpha.135
+  - @brains/contracts@0.2.0-alpha.135
+  - @brains/ui-library@0.2.0-alpha.135
+  - @brains/utils@0.2.0-alpha.135
+  - @brains/templates@0.2.0-alpha.135
+
+## 0.2.0-alpha.134
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.134
+  - @brains/atproto-contracts@0.2.0-alpha.134
+  - @brains/content-formatters@0.2.0-alpha.134
+  - @brains/contracts@0.2.0-alpha.134
+  - @brains/ui-library@0.2.0-alpha.134
+  - @brains/utils@0.2.0-alpha.134
+  - @brains/plugins@0.2.0-alpha.134
+  - @brains/templates@0.2.0-alpha.134
+
+## 0.2.0-alpha.133
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.133
+  - @brains/atproto-contracts@0.2.0-alpha.133
+  - @brains/content-formatters@0.2.0-alpha.133
+  - @brains/contracts@0.2.0-alpha.133
+  - @brains/ui-library@0.2.0-alpha.133
+  - @brains/utils@0.2.0-alpha.133
+  - @brains/plugins@0.2.0-alpha.133
+  - @brains/templates@0.2.0-alpha.133
+
+## 0.2.0-alpha.132
+
+### Patch Changes
+
+- [`d70659e`](https://github.com/rizom-ai/brains/commit/d70659ede3ab9247dd8f777a52494073d76c04af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make confirmed `agent_connect` save verified A2A contacts as approved immediately so users do not need a separate approval step before future calls.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.132
+  - @brains/dashboard@0.2.0-alpha.132
+  - @brains/atproto-contracts@0.2.0-alpha.132
+  - @brains/content-formatters@0.2.0-alpha.132
+  - @brains/contracts@0.2.0-alpha.132
+  - @brains/ui-library@0.2.0-alpha.132
+  - @brains/utils@0.2.0-alpha.132
+  - @brains/templates@0.2.0-alpha.132
+
+## 0.2.0-alpha.131
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.131
+  - @brains/dashboard@0.2.0-alpha.131
+  - @brains/atproto-contracts@0.2.0-alpha.131
+  - @brains/content-formatters@0.2.0-alpha.131
+  - @brains/contracts@0.2.0-alpha.131
+  - @brains/ui-library@0.2.0-alpha.131
+  - @brains/utils@0.2.0-alpha.131
+  - @brains/templates@0.2.0-alpha.131
+
+## 0.2.0-alpha.130
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.130
+  - @brains/atproto-contracts@0.2.0-alpha.130
+  - @brains/content-formatters@0.2.0-alpha.130
+  - @brains/contracts@0.2.0-alpha.130
+  - @brains/ui-library@0.2.0-alpha.130
+  - @brains/utils@0.2.0-alpha.130
+  - @brains/plugins@0.2.0-alpha.130
+  - @brains/templates@0.2.0-alpha.130
+
+## 0.2.0-alpha.129
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.129
+  - @brains/atproto-contracts@0.2.0-alpha.129
+  - @brains/content-formatters@0.2.0-alpha.129
+  - @brains/contracts@0.2.0-alpha.129
+  - @brains/ui-library@0.2.0-alpha.129
+  - @brains/utils@0.2.0-alpha.129
+  - @brains/plugins@0.2.0-alpha.129
+  - @brains/templates@0.2.0-alpha.129
+
+## 0.2.0-alpha.128
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.128
+  - @brains/atproto-contracts@0.2.0-alpha.128
+  - @brains/content-formatters@0.2.0-alpha.128
+  - @brains/contracts@0.2.0-alpha.128
+  - @brains/ui-library@0.2.0-alpha.128
+  - @brains/utils@0.2.0-alpha.128
+  - @brains/plugins@0.2.0-alpha.128
+  - @brains/templates@0.2.0-alpha.128
+
 ## 0.2.0-alpha.127
 
 ### Patch Changes

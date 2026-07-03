@@ -1,3 +1,4 @@
+import { parseConversationMessageMetadata } from "@brains/conversation-service";
 import type {
   BaseEntity,
   EntityMutationEventContext,
@@ -10,6 +11,7 @@ import type {
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils";
 import { z } from "@brains/utils/zod-v4";
+import type { SystemServices } from "./types";
 
 const PLUGIN_ID = "system";
 const updateFieldsSchema = z.record(z.string(), z.unknown());
@@ -93,6 +95,31 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
     },
     visibility,
     ...(sideEffects ? { sideEffects } : {}),
+  };
+}
+
+/**
+ * Reject an operation on an entity type that no plugin has registered.
+ *
+ * Without this guard the create tool confirms and (for `prompt` creates) runs a
+ * full generation pass before `EntityRegistry.getAdapter` finally throws
+ * "No adapter registered for entity type", leaking that internal string to the
+ * operator. Validating up front turns a late, cryptic failure into a clean
+ * early rejection, and listing the available types lets the model recover by
+ * choosing a type that actually exists in this brain.
+ */
+export function assertEntityTypeRegistered(
+  services: {
+    entityRegistry: { hasEntityType(type: string): boolean };
+    entityService: { getEntityTypes(): string[] };
+  },
+  entityType: string,
+): ToolResponse | undefined {
+  if (services.entityRegistry.hasEntityType(entityType)) return undefined;
+  const available = services.entityService.getEntityTypes();
+  return {
+    success: false,
+    error: `Entity type "${entityType}" is not available in this brain. Available types: ${available.join(", ")}.`,
   };
 }
 
@@ -196,4 +223,40 @@ export function hasStructuredFrontmatter(
   schema: FrontmatterShapeSchema | undefined,
 ): boolean {
   return !!schema && Object.keys(schema.shape).length > 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * True when the upload ref appears as an attachment on a message in this
+ * conversation. Shared upload-access gate for system_create and
+ * system_create upload sources: a caller must not reference an upload outside the
+ * conversation it belongs to.
+ */
+export async function isUploadRefInConversation(
+  services: SystemServices,
+  input: { kind: string; id: string },
+  conversationId: string | undefined,
+): Promise<boolean> {
+  if (!conversationId) return false;
+  const messages = await services.conversationService.getMessages(
+    conversationId,
+    { limit: 100 },
+  );
+  for (const message of messages) {
+    const metadata = parseConversationMessageMetadata(message.metadata);
+    const attachments = metadata?.["attachments"];
+    if (!Array.isArray(attachments)) continue;
+    for (const attachment of attachments) {
+      if (!isRecord(attachment)) continue;
+      const source = attachment["source"];
+      if (!isRecord(source)) continue;
+      if (source["kind"] === input.kind && source["id"] === input.id) {
+        return true;
+      }
+    }
+  }
+  return false;
 }

@@ -82,9 +82,7 @@ export interface PublishConfirmationOutput {
 }
 
 export type PublishOutput =
-  | PublishSuccessOutput
-  | PublishErrorOutput
-  | PublishConfirmationOutput;
+  PublishSuccessOutput | PublishErrorOutput | PublishConfirmationOutput;
 
 export const publishSuccessSchema: z.ZodType<
   PublishSuccessOutput,
@@ -164,6 +162,7 @@ export function createPublishTool(
     inputSchema: publishInputSchema.shape,
     outputSchema: publishOutputSchema,
     visibility: "anchor",
+    sideEffects: "external",
     handler: async (rawInput, toolContext): Promise<ToolResponse> => {
       const parsed = publishInputParserSchema.safeParse(rawInput);
       if (!parsed.success) {

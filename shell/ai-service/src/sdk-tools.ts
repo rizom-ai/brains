@@ -12,7 +12,6 @@ export interface ToolContextInfo {
   userPermissionLevel?: UserPermissionLevel;
   enableCreateUpload?: boolean | undefined;
   enableCreateTransform?: boolean | undefined;
-  enableCreateSourceAttachment?: boolean | undefined;
 }
 
 const INTERNAL_CONFIRMATION_FIELDS = new Set([
@@ -21,19 +20,18 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
   "contentHash",
 ]);
 
-const CREATE_SOURCE_FIELDS = new Set([
+const MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS = new Set([
+  "content",
+  "prompt",
+  "url",
+  "from",
   "upload",
   "transform",
   "sourceAttachment",
 ]);
 
 type JsonValue =
-  | null
-  | string
-  | number
-  | boolean
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
 
 const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([
@@ -69,25 +67,39 @@ const attachmentToolOutputSchema = z.looseObject({
   }),
 });
 
+type ModelVisibleInputSchema = Record<string, z.ZodType>;
+
+function isModelVisibleInputField(value: unknown): value is z.ZodType {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "safeParse" in value &&
+    typeof value.safeParse === "function"
+  );
+}
+
 export function toModelVisibleInputSchema(
   inputSchema: Tool["inputSchema"],
   options: {
     toolName?: string;
     enableCreateUpload?: boolean;
     enableCreateTransform?: boolean;
-    enableCreateSourceAttachment?: boolean;
   } = {},
-): Tool["inputSchema"] {
-  return Object.fromEntries(
-    Object.entries(inputSchema).filter(([key]) => {
-      if (INTERNAL_CONFIRMATION_FIELDS.has(key)) return false;
-      if (options.toolName !== "system_create") return true;
-      if (!CREATE_SOURCE_FIELDS.has(key)) return true;
-      if (key === "upload") return options.enableCreateUpload === true;
-      if (key === "transform") return options.enableCreateTransform === true;
-      return options.enableCreateSourceAttachment === true;
-    }),
-  );
+): ModelVisibleInputSchema {
+  const visibleSchema: ModelVisibleInputSchema = {};
+  for (const [key, schema] of Object.entries(inputSchema)) {
+    if (INTERNAL_CONFIRMATION_FIELDS.has(key)) continue;
+    if (
+      options.toolName === "system_create" &&
+      MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS.has(key)
+    ) {
+      continue;
+    }
+    if (isModelVisibleInputField(schema)) {
+      visibleSchema[key] = schema;
+    }
+  }
+  return visibleSchema;
 }
 
 export function toModelToolOutput(output: unknown): {
@@ -195,10 +207,6 @@ export function convertToSDKTools(
           }),
           ...(contextInfo.enableCreateTransform !== undefined && {
             enableCreateTransform: contextInfo.enableCreateTransform,
-          }),
-          ...(contextInfo.enableCreateSourceAttachment !== undefined && {
-            enableCreateSourceAttachment:
-              contextInfo.enableCreateSourceAttachment,
           }),
         }),
       ),

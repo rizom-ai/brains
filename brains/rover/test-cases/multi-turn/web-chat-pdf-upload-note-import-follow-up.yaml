@@ -40,16 +40,16 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
-            upload.kind: upload
-            upload.id: upload-00000000-0000-4000-8000-000000000801
-            transform: extract-markdown
+            source.kind: upload
+            source.upload.kind: upload
+            source.upload.id: upload-00000000-0000-4000-8000-000000000801
+            source.transform: extract-markdown
           argsAbsent:
             - from
             - fromUpload
             - sourceAttachment
       responseNotContains:
         - "deck"
-        - "document_generate"
 
 successCriteria:
   expectedTools:
@@ -57,14 +57,15 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: note
-        upload.kind: upload
-        upload.id: upload-00000000-0000-4000-8000-000000000801
-        transform: extract-markdown
+        source.kind: upload
+        source.upload.kind: upload
+        source.upload.id: upload-00000000-0000-4000-8000-000000000801
+        source.transform: extract-markdown
       argsAbsent:
         - from
         - fromUpload
         - sourceAttachment
-    - toolName: document_generate
+    - toolName: system_generate
       shouldBeCalled: false
     - toolName: system_update
       shouldBeCalled: false

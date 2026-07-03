@@ -21,6 +21,7 @@ export class OverviewAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "products-overview",
+      purpose: "A high-level overview of the product portfolio.",
       schema: overviewSchema,
       frontmatterSchema: overviewFrontmatterSchema,
       bodyFormatter: new OverviewBodyFormatter(),

@@ -163,6 +163,7 @@ export function createQueueTool(
           };
       }
     },
+    { sideEffects: "writes" },
   );
 
   return {
@@ -354,8 +355,7 @@ function requireQueueTarget(
 }
 
 type QueuePositionResult =
-  | { success: true; position: number }
-  | { success: false; error: ToolResult };
+  { success: true; position: number } | { success: false; error: ToolResult };
 
 function requirePosition(position?: number): QueuePositionResult {
   if (position === undefined) {

@@ -170,6 +170,7 @@ const createMockConversationService = (): MockConversationService => ({
 const mockReact = mock(() => Promise.resolve());
 const mockDeferUpdate = mock(() => Promise.resolve());
 const mockInteractionReply = mock(() => Promise.resolve());
+const mockInteractionMessageEdit = mock(() => Promise.resolve());
 
 function createDiscordMessage(
   overrides: Record<string, unknown> = {},
@@ -207,6 +208,7 @@ function createDiscordButtonInteraction(
     },
     deferUpdate: mockDeferUpdate,
     reply: mockInteractionReply,
+    message: { edit: mockInteractionMessageEdit },
     ...overrides,
   };
 }
@@ -231,6 +233,7 @@ describe("DiscordInterface", () => {
     mockReact.mockClear();
     mockDeferUpdate.mockClear();
     mockInteractionReply.mockClear();
+    mockInteractionMessageEdit.mockClear();
     messageCreateHandler = null;
     interactionCreateHandler = null;
 
@@ -958,6 +961,131 @@ describe("DiscordInterface", () => {
             }),
           ]),
           components: [],
+        }),
+      );
+    });
+
+    it("should clear approval buttons from the original Discord message after a button response", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Completed: Delete note?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "output-available",
+            output: { success: true },
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      const interaction = createDiscordButtonInteraction();
+      interactionCreateHandler?.(interaction);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockInteractionMessageEdit).toHaveBeenCalledWith(
+        expect.objectContaining({ components: [] }),
+      );
+    });
+
+    it("should send generated image artifacts as Discord files after approval", async () => {
+      harness.addEntities([
+        {
+          id: "image-native",
+          entityType: "image",
+          content: `data:image/png;base64,${Buffer.from("png-bytes").toString("base64")}`,
+          metadata: { filename: "self-portrait.png" },
+          visibility: "restricted",
+        },
+      ]);
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "system_generate",
+            input: { entityType: "image", title: "Self Portrait" },
+            summary: "Generate Self Portrait?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Generated the image.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "system_generate",
+            summary: "Generate Self Portrait?",
+            state: "output-available",
+            output: { success: true },
+          },
+          {
+            kind: "attachment",
+            id: "image-card",
+            title: "Self Portrait",
+            attachment: {
+              mediaType: "image/png",
+              url: "/api/chat/attachments/image?id=image-native",
+              downloadUrl:
+                "/api/chat/attachments/image?id=image-native&download=1",
+              filename: "self-portrait.png",
+              source: { entityType: "image", entityId: "image-native" },
+            },
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
+
+      const interaction = createDiscordButtonInteraction({
+        user: {
+          id: "anchor-user",
+          username: "yeehaa",
+          displayName: "Yeehaa",
+          bot: false,
+        },
+      });
+      interactionCreateHandler?.(interaction);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: expect.arrayContaining([
+            expect.objectContaining({ name: "self-portrait.png" }),
+          ]),
         }),
       );
     });

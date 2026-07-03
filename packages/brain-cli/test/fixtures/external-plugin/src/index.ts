@@ -50,6 +50,7 @@ const exampleEntitySchema: z.ZodSchema<ExampleEntity> = z.object({
 
 const exampleEntityAdapter: EntityAdapter<ExampleEntity, { title: string }> = {
   entityType: "example",
+  purpose: "An example entity demonstrating the external plugin adapter API.",
   schema: exampleEntitySchema,
   toMarkdown: (entity) => entity.content,
   fromMarkdown: (markdown) => ({ content: markdown }),
@@ -211,11 +212,8 @@ export class ExampleExternalPlugin extends ServicePlugin<
 
     const appInfo: AppInfo = AppInfoSchema.parse(await context.appInfo());
     const daemonHealthStatus:
-      | "healthy"
-      | "warning"
-      | "error"
-      | "unknown"
-      | undefined = appInfo.daemons[0]?.health?.status;
+      "healthy" | "warning" | "error" | "unknown" | undefined =
+      appInfo.daemons[0]?.health?.status;
     const daemonLastCheck: string | undefined =
       appInfo.daemons[0]?.health?.lastCheck;
     void daemonHealthStatus;

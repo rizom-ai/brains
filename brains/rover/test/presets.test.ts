@@ -75,6 +75,31 @@ plugins:
     );
   });
 
+  it("treats semantic content search results as candidates", () => {
+    const config = resolve(rover, {}, { preset: "full" });
+
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "use semantic search results as candidates, not proof",
+    );
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "omit weak/tangential candidates",
+    );
+  });
+
+  it("treats make-one-draft follow-ups as ambiguous after an empty draft list", () => {
+    const config = resolve(rover, {}, { preset: "full" });
+
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "After telling the user there are no draft blog posts",
+    );
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "do not offer to create a brand-new post",
+    );
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "do not call system_generate to create a fresh draft",
+    );
+  });
+
   it("includes document support in the core preset", () => {
     const config = resolve(rover, {}, { preset: "core" });
     const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
@@ -82,31 +107,28 @@ plugins:
     expect(pluginIds).toContain("document");
   });
 
-  it("keeps onboarding playbook starters disabled by default", () => {
+  it("keeps Rover onboarding disabled by default", () => {
     const config = resolve(rover, {}, { preset: "core" });
-    const playbooks = config.plugins?.find(
-      (plugin) => plugin.id === "playbooks",
+    const onboarding = config.plugins?.find(
+      (plugin) => plugin.id === "rover-onboarding",
     );
 
-    expect(playbooks?.config).toMatchObject({ lifecycle: {}, triggers: {} });
+    expect(onboarding?.config).toMatchObject({ enabled: false });
   });
 
-  it("allows brain.yaml to opt into onboarding playbook starters", () => {
+  it("allows brain.yaml to opt into Rover onboarding", () => {
     const overrides = parseInstanceOverrides(`brain: rover
 preset: core
 plugins:
-  playbooks:
-    triggers:
-      first-anchor-web-chat: true
+  rover-onboarding:
+    enabled: true
 `);
     const config = resolve(rover, {}, overrides);
-    const playbooks = config.plugins?.find(
-      (plugin) => plugin.id === "playbooks",
+    const onboarding = config.plugins?.find(
+      (plugin) => plugin.id === "rover-onboarding",
     );
 
-    expect(playbooks?.config).toMatchObject({
-      triggers: { "first-anchor-web-chat": true },
-    });
+    expect(onboarding?.config).toMatchObject({ enabled: true });
   });
 
   it("wires CMS passkey login from CMS_CONTENT_REPO_PAT when present", () => {

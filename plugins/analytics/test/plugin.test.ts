@@ -96,6 +96,8 @@ describe("AnalyticsPlugin", () => {
       expect(queryTool).toBeDefined();
       expect(queryTool?.description).toContain("Cloudflare");
       expect(queryTool?.description).toContain("Date range options");
+      expect(queryTool?.visibility).toBe("anchor");
+      expect(queryTool?.sideEffects).toBe("none");
       harness.reset();
     });
   });

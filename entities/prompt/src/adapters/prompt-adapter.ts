@@ -16,6 +16,7 @@ export class PromptAdapter extends BaseEntityAdapter<Prompt, PromptMetadata> {
   constructor() {
     super({
       entityType: "prompt",
+      purpose: "A reusable prompt or instruction template.",
       schema: promptSchema,
       frontmatterSchema: promptFrontmatterSchema,
     });

@@ -204,8 +204,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 ### Containerization
 
 - **[Docker](https://www.docker.com/)** - Container platform
-  - Multi-stage builds via `Dockerfile.model`
-  - Multi-arch images (amd64 + arm64) published to GHCR
+  - Multi-stage app images (standalone + fleet targets) built by Kamal at deploy time from the scaffolded `deploy/Dockerfile`
   - Development environments
   - Production deployment
 
@@ -213,9 +212,8 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - **[GitHub Actions](https://github.com/features/actions)** - Automation
   - Continuous integration (typecheck, test, lint)
-  - Multi-arch image publishing (`publish-images.yml`, fork-safe)
   - Changesets release workflow (`@rizom/brain` to npm)
-  - Deployment pipelines
+  - Deployment pipelines (scaffolded GitHub Actions + Kamal)
 
 ### Deployment
 
@@ -225,7 +223,6 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
   - App serves production and preview hosts directly; `/health` endpoint for healthchecks
   - Cloudflare Origin CA via `brain cert:bootstrap`; secrets via `brain secrets:push` (GitHub Actions or Bitwarden Secrets Manager)
   - Multi-user fleets via `@rizom/ops`
-- **[Terraform](https://www.terraform.io/)** — legacy IaC under `deploy/providers/hetzner/terraform/`, retained but no longer the primary path
 
 ## Architectural Patterns
 

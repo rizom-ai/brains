@@ -21,6 +21,7 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "brain-character",
+      purpose: "The brain's own identity, character, and purpose (singleton).",
       schema: brainCharacterSchema,
       frontmatterSchema: brainCharacterBodySchema,
       isSingleton: true,

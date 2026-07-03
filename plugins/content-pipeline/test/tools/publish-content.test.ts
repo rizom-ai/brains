@@ -21,6 +21,7 @@ import { preparePublishContent } from "../../src/tools/publish-content";
 function createStubAdapter(entityType: string): EntityAdapter<BaseEntity> {
   return {
     entityType,
+    purpose: "Test entity for unit tests.",
     schema: baseEntitySchema,
     toMarkdown: (entity) => entity.content,
     fromMarkdown: (content) => ({ content }),

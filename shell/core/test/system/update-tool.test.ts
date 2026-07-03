@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
+import { updateInputSchema } from "../../src/system/schemas";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import type { BaseEntity } from "@brains/entity-service";
 import { PermissionService } from "@brains/templates";
@@ -22,6 +23,12 @@ const updateEntityRequestSchema = z.looseObject({
 });
 
 describe("system_update tool", () => {
+  it("describes id as accepting entity id, slug, or title", () => {
+    expect(updateInputSchema.shape.id.description).toContain(
+      "Entity ID, slug, or title",
+    );
+  });
+
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 
@@ -237,6 +244,21 @@ describe("system_update tool", () => {
     });
   });
 
+  it("rejects delete for an unregistered entity type without leaking registry internals", async () => {
+    const result = await execDelete({
+      entityType: "blog-post",
+      id: "queens-are-not-invincible",
+    });
+
+    expect(result).toMatchObject({ success: false });
+    const error = (result as { error: string }).error;
+    expect(error).toContain(
+      'Entity type "blog-post" is not available in this brain.',
+    );
+    // The internal registry string must never reach the operator.
+    expect(error).not.toContain("No adapter registered");
+  });
+
   it("does not delete when confirmed is passed without a pending confirmation token", async () => {
     const result = await execDelete({
       entityType: "newsletter",
@@ -244,10 +266,13 @@ describe("system_update tool", () => {
       confirmed: true,
     });
 
-    expect(result).toMatchObject({
-      needsConfirmation: true,
-      toolName: "system_delete",
-    });
+    // A confirmed call with no matching pending approval is rejected outright
+    // (consistent with system_create), and nothing is
+    // deleted.
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain(
+      "No pending delete confirmation",
+    );
     expect(services.getEntities().get("newsletter-1")).toBeDefined();
   });
 
@@ -410,6 +435,21 @@ describe("system_update tool", () => {
       entityType: "social-post",
       id: "linkedin-update",
       fields: { coverImageId: "__PENDING__" },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "coverImageId must reference an existing image id or be null",
+    });
+  });
+
+  it("rejects upload refs as coverImageId updates before confirmation", async () => {
+    const result = await exec({
+      entityType: "social-post",
+      id: "linkedin-update",
+      fields: {
+        coverImageId: "upload-00000000-0000-4000-8000-000000000912",
+      },
     });
 
     expect(result).toMatchObject({
@@ -824,6 +864,53 @@ describe("system_update tool", () => {
       error: "Deleting `newsletter` is not allowed through system tools.",
     });
     expect(services.getEntities().has("newsletter-1")).toBe(true);
+  });
+
+  it("rejects invalid content replacement before requesting confirmation", async () => {
+    services.addEntities([
+      {
+        id: "anchor-profile",
+        entityType: "anchor-profile",
+        content:
+          "---\nname: Alex Chen\nkind: professional\nrole: architect\naudience: builders\nexpertise:\n  - systems\ndesiredTone: clear\n---\n",
+        contentHash: "hash-anchor-profile",
+        visibility: "public",
+        metadata: { name: "Alex Chen", kind: "professional" },
+        created: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+      },
+    ]);
+
+    const originalRegistry = services.entityRegistry;
+    services.entityRegistry = {
+      ...originalRegistry,
+      getEffectiveFrontmatterSchema: (type: string) =>
+        type === "anchor-profile"
+          ? z.object({
+              name: z.string(),
+              kind: z.enum(["professional", "team", "collective"]),
+              role: z.string(),
+              audience: z.string(),
+              expertise: z.array(z.string()),
+              desiredTone: z.string(),
+            })
+          : originalRegistry.getEffectiveFrontmatterSchema(type),
+    } as typeof services.entityRegistry;
+    tools = createSystemTools(services);
+
+    const result = await exec({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      content:
+        "---\nname: Yeehaa\nkind: professional\nrole: \naudience: \nexpertise:\n  - \ndesiredTone: \n---\n",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Invalid content replacement for this entity type. Provide full markdown with valid frontmatter, or use 'fields' for partial updates.",
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
   });
 
   it("rejects blank content replacement for frontmatter entities", async () => {

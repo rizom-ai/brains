@@ -19,6 +19,8 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
   constructor() {
     super({
       entityType: "note",
+      purpose:
+        "A short, free-form captured thought, reference, or snippet the user wants to keep.",
       schema: noteSchema,
       frontmatterSchema: noteFrontmatterSchema,
     });

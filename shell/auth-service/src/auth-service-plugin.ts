@@ -177,6 +177,7 @@ export class AuthServicePlugin extends ServicePlugin<
             },
           };
         },
+        sideEffects: "none",
       } satisfies Tool<PasskeySetupToolResponse>,
     ];
   }

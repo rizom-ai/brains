@@ -290,7 +290,7 @@ A2A calling is directory-aware. Save and approve a remote agent first, then call
 Save an agent by URL:
 
 ```bash
-brain tool system_create '{"entityType":"agent","url":"https://remote.example.com"}'
+brain tool system_create '{"entityType":"agent","source":{"kind":"url","url":"https://remote.example.com"}}'
 ```
 
 List saved agents:

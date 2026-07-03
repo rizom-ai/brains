@@ -1,6 +1,6 @@
 import type { Tool } from "@brains/mcp-service";
 import type { SystemServices } from "./types";
-import { checkJobStatusInputSchema } from "./schemas";
+import { jobStatusInputSchema } from "./schemas";
 import { createSystemTool } from "./tool-helpers";
 
 export function createJobTools(services: SystemServices): Tool[] {
@@ -8,9 +8,9 @@ export function createJobTools(services: SystemServices): Tool[] {
 
   return [
     createSystemTool(
-      "check-job-status",
-      "Check the status of background operations. Use this for ready checks, follow-up questions about queued/background work, and status disputes where the operator says logs or runtime state disagree with the conversation. Inspect runtime job status before answering. Do not argue from the transcript alone when job status is available.",
-      checkJobStatusInputSchema,
+      "job_status",
+      "Get status for background operations. Use this for ready checks, follow-up questions about queued/background work, and status disputes where the operator says logs or runtime state disagree with the conversation. Inspect runtime job status before answering. Do not argue from the transcript alone when job status is available.",
+      jobStatusInputSchema,
       async (input) => {
         if (input.batchId) {
           const batch = await jobs.getBatchStatus(input.batchId);
@@ -76,7 +76,7 @@ export function createJobTools(services: SystemServices): Tool[] {
           },
         };
       },
-      { visibility: "public" },
+      { visibility: "public", sideEffects: "none" },
     ),
   ];
 }

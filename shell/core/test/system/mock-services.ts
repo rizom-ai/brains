@@ -31,6 +31,8 @@ export function createMockSystemServices(
   getEntities: () => Map<string, BaseEntity>;
   /** Seed entities for testing */
   addEntities: (entities: SeedEntity[]) => void;
+  /** Register entity types without seeding entities (mirrors plugin registration) */
+  registerEntityTypes: (types: string[]) => void;
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
   /** Get the last direct create request */
@@ -39,17 +41,30 @@ export function createMockSystemServices(
   getLastUpdateRequest: () => unknown;
   /** Get the last direct markdown create call */
   getLastMarkdownCreate: () =>
-    | { entityType: string; id: string; markdown: string }
-    | undefined;
+    { entityType: string; id: string; markdown: string } | undefined;
 } {
   const entities = new Map<string, BaseEntity>();
+  // Types that have seeded entity data. Drives data-presence behavior such as
+  // getEffectiveFrontmatterSchema (a type only has a frontmatter schema once
+  // it actually carries structured data in these tests).
   const entityTypes = new Set<string>();
+  // Types a plugin has registered. Drives registration semantics
+  // (hasEntityType / getEntityTypes), independent of whether data exists.
+  // Seeding data implies registration, but registration can exist without data.
+  const registeredTypes = new Set<string>();
 
   const addEntities = (ents: SeedEntity[]): void => {
     for (const e of ents) {
       const entity: BaseEntity = { ...e, visibility: e.visibility ?? "public" };
       entities.set(entity.id, entity);
       entityTypes.add(entity.entityType);
+      registeredTypes.add(entity.entityType);
+    }
+  };
+
+  const registerEntityTypes = (types: string[]): void => {
+    for (const type of types) {
+      registeredTypes.add(type);
     }
   };
 
@@ -83,6 +98,7 @@ export function createMockSystemServices(
     getAdapter: (
       type: string,
     ): {
+      purpose: string;
       supportsCoverImage: boolean;
       hasBody: boolean;
       isSingleton: boolean;
@@ -108,6 +124,7 @@ export function createMockSystemServices(
 
       if (type === "link") {
         return {
+          purpose: "Test entity for unit tests.",
           supportsCoverImage: false,
           hasBody: true,
           isSingleton: false,
@@ -159,6 +176,7 @@ export function createMockSystemServices(
       }
 
       return {
+        purpose: "Test entity for unit tests.",
         supportsCoverImage: coverImageEntityTypes.has(type),
         hasBody: true,
         isSingleton: singletonEntityTypes.has(type),
@@ -167,8 +185,8 @@ export function createMockSystemServices(
         fromMarkdown: (): unknown => ({}),
       };
     },
-    hasEntityType: (type: string) => entityTypes.has(type),
-    getAllEntityTypes: () => Array.from(entityTypes),
+    hasEntityType: (type: string) => registeredTypes.has(type),
+    getAllEntityTypes: () => Array.from(registeredTypes),
     getEntityTypeConfig: (type: string) =>
       type === "social-post"
         ? { publish: { publishStatuses: ["queued", "published", "failed"] } }
@@ -249,8 +267,8 @@ export function createMockSystemServices(
         );
       });
     },
-    getEntityTypes: () => Array.from(entityTypes),
-    hasEntityType: (type: string) => entityTypes.has(type),
+    getEntityTypes: () => Array.from(registeredTypes),
+    hasEntityType: (type: string) => registeredTypes.has(type),
     createEntity: async (request: { entity: SeedEntity }) => {
       lastCreateRequest = request;
       const entity = request.entity;
@@ -261,6 +279,7 @@ export function createMockSystemServices(
         visibility: entity.visibility ?? "public",
       });
       entityTypes.add(entity.entityType);
+      registeredTypes.add(entity.entityType);
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
     createEntityFromMarkdown: async (request: {
@@ -280,6 +299,7 @@ export function createMockSystemServices(
         updated: new Date().toISOString(),
       });
       entityTypes.add(input.entityType);
+      registeredTypes.add(input.entityType);
       return { entityId: input.id, jobId: `job-${input.id}`, skipped: false };
     },
     updateEntity: async (request: { entity: BaseEntity }) => {
@@ -361,12 +381,57 @@ export function createMockSystemServices(
     }),
   } as unknown as SystemServices["runtimeUploads"];
 
+  const attachmentProviders = new Map<
+    string,
+    {
+      metadata?: ReturnType<
+        SystemServices["attachments"]["getProviderMetadata"]
+      >;
+      resolve: (...args: unknown[]) => unknown;
+    }
+  >();
+  const attachmentKey = (
+    sourceEntityType: string,
+    attachmentType: string,
+  ): string => `${sourceEntityType}:${attachmentType}`;
+  const attachments = {
+    register: (
+      sourceEntityType: string,
+      attachmentType: string,
+      provider: {
+        metadata?: ReturnType<
+          SystemServices["attachments"]["getProviderMetadata"]
+        >;
+        resolve: (...args: unknown[]) => unknown;
+      },
+    ): (() => boolean) => {
+      const key = attachmentKey(sourceEntityType, attachmentType);
+      attachmentProviders.set(key, provider);
+      return (): boolean => attachmentProviders.delete(key);
+    },
+    resolve: async (request: {
+      sourceEntityType: string;
+      attachmentType: string;
+    }) => {
+      const provider = attachmentProviders.get(
+        attachmentKey(request.sourceEntityType, request.attachmentType),
+      );
+      return provider?.resolve(request);
+    },
+    hasProvider: (sourceEntityType: string, attachmentType: string) =>
+      attachmentProviders.has(attachmentKey(sourceEntityType, attachmentType)),
+    getProviderMetadata: (sourceEntityType: string, attachmentType: string) =>
+      attachmentProviders.get(attachmentKey(sourceEntityType, attachmentType))
+        ?.metadata,
+  } as unknown as SystemServices["attachments"];
+
   return {
     entityService,
     entityRegistry,
     jobs,
     conversationService,
     runtimeUploads,
+    attachments,
     logger: createSilentLogger("system-test"),
     query: async () => ({ message: "Mock response", summary: "Mock" }),
     getIdentity: () => ({
@@ -398,6 +463,7 @@ export function createMockSystemServices(
     // Test helpers
     getEntities: () => entities,
     addEntities,
+    registerEntityTypes,
     getLastEnqueuedJob: () => enqueuedJobs[enqueuedJobs.length - 1],
     getLastCreateRequest: () => lastCreateRequest,
     getLastUpdateRequest: () => lastUpdateRequest,

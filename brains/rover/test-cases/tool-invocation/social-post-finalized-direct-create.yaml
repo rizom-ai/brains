@@ -29,6 +29,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: social-post
+        source.kind: text
       argsAbsent:
         - prompt
         - upload

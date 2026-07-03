@@ -10,6 +10,7 @@ import {
   type InterfacePluginContext,
   type JobContext,
   type JobProgressEvent,
+  type MessageArtifactEntity,
   type MessageInterfaceOutput,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
@@ -117,8 +118,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly resolveOperatorSession: OperatorSessionResolver;
   private readonly resolveCallerPermissionLevel:
-    | PermissionLevelResolver
-    | undefined;
+    PermissionLevelResolver | undefined;
 
   constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
@@ -418,9 +418,10 @@ export class WebChatInterface extends MessageInterfacePlugin<
       return new Response("No user message found", { status: 400 });
     }
 
+    const streamContext = this.getContext();
     const streamDeps = {
       activeStreams: this.activeStreams,
-      agent: this.getContext().agent,
+      agent: streamContext.agent,
       startProcessingInput: (id: string): void => this.startProcessingInput(id),
       endProcessingInput: (): void => this.endProcessingInput(),
       handleAgentResponseToolStatuses: (
@@ -428,6 +429,20 @@ export class WebChatInterface extends MessageInterfacePlugin<
         id: string,
       ): Promise<void> => this.handleAgentResponseToolStatuses(response, id),
       createId: (prefix: string): string => this.createId(prefix),
+      displayBaseUrl:
+        streamContext.preferLocalUrls && streamContext.localSiteUrl
+          ? streamContext.localSiteUrl
+          : (streamContext.siteUrl ?? streamContext.localSiteUrl),
+      entityService: {
+        getEntity: (ref: {
+          entityType: string;
+          id: string;
+          visibilityScope?: unknown;
+        }): Promise<MessageArtifactEntity | null | undefined> =>
+          streamContext.entityService.getEntity(
+            ref as Parameters<typeof streamContext.entityService.getEntity>[0],
+          ),
+      },
     };
     const stream = createUIMessageStream<UIMessage>({
       execute: async ({ writer }) => {

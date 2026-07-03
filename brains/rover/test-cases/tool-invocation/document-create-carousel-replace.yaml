@@ -17,14 +17,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "document"
-        sourceAttachment.sourceEntityType: "deck"
-        sourceAttachment.sourceEntityId: "distributed-systems-primer"
-        sourceAttachment.attachmentType: "carousel"
-        replace: true
+        operation.kind: "attachment"
+        operation.source.entityType: "deck"
+        operation.source.entityId: "distributed-systems-primer"
+        operation.attachmentType: "carousel"
+        operation.replace: true
   responseNotContains:
     - "I cannot"
     - "I don't have access"

@@ -12,6 +12,8 @@ export class WishAdapter extends BaseEntityAdapter<WishEntity, WishMetadata> {
   constructor() {
     super({
       entityType: "wish",
+      purpose:
+        "An explicitly recorded capability or outcome the assistant cannot currently fulfill, kept for future planning.",
       schema: wishSchema,
       frontmatterSchema: wishFrontmatterSchema,
     });

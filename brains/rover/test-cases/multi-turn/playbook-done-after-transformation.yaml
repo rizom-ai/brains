@@ -3,7 +3,7 @@ name: Playbook Done After Transformation
 scope: rover
 category: multi-turn
 priority: high
-description: Verifies Rover finishes onboarding after the first note has been retrieved and transformed, instead of leaving the run in Make something.
+description: Verifies Rover finishes the first knowledge loop after the first note has been retrieved and transformed, instead of leaving the run in Make something.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -58,6 +58,17 @@ turns:
   - userMessage: "Approve saving that profile update."
     confirmPendingAction: true
     successCriteria:
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Start playbook rover-first-knowledge-loop."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-first-knowledge-loop
       responseNotContains:
         - "I cannot"
         - "I don't have access"
@@ -134,5 +145,5 @@ successCriteria:
     - "I cannot"
     - "I don't have access"
 efficiency:
-  maxToolCalls: 22
+  maxToolCalls: 24
   maxTokens: 260000

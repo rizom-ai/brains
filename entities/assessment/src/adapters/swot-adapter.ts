@@ -11,6 +11,8 @@ export class SwotAdapter extends BaseEntityAdapter<SwotEntity, SwotMetadata> {
   constructor() {
     super({
       entityType: "swot",
+      purpose:
+        "A SWOT analysis of strengths, weaknesses, opportunities, and threats.",
       schema: swotEntitySchema,
       frontmatterSchema: swotFrontmatterSchema,
     });

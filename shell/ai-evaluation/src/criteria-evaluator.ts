@@ -39,6 +39,7 @@ export function evaluateCriteria(
     ...evaluateExpectedAnyTool(criteria, toolCalls),
     ...evaluateToolCountRange(criteria, toolCalls),
     ...evaluateResponseContains(criteria, response.text),
+    ...evaluateResponseContainsAny(criteria, response.text),
     ...evaluateResponseNotContains(criteria, response.text),
   ];
 }
@@ -415,6 +416,45 @@ function evaluateResponseContains(
   }
 
   return results;
+}
+
+function evaluateResponseContainsAny(
+  criteria: SuccessCriteria,
+  responseText: string,
+): CriteriaEvaluationResult[] {
+  const results: CriteriaEvaluationResult[] = [];
+
+  if (!criteria.responseContainsAny) return results;
+
+  const normalizedResponse = responseText.toLowerCase();
+  for (const alternatives of criteria.responseContainsAny) {
+    const matched = alternatives.some((expected) =>
+      normalizedResponse.includes(expected.toLowerCase()),
+    );
+    if (matched) {
+      results.push({
+        criterion: "responseContainsAny",
+        expected: `Response should contain one of ${formatAlternatives(alternatives)}`,
+        actual: "Found in response",
+        passed: true,
+      });
+      continue;
+    }
+
+    results.push({
+      criterion: "responseContainsAny",
+      expected: `Response should contain one of ${formatAlternatives(alternatives)}`,
+      actual: "Not found in response",
+      message: `Response does not contain any expected text: ${formatAlternatives(alternatives)}`,
+      passed: false,
+    });
+  }
+
+  return results;
+}
+
+function formatAlternatives(alternatives: string[]): string {
+  return alternatives.map((alternative) => `"${alternative}"`).join(" or ");
 }
 
 function evaluateResponseNotContains(

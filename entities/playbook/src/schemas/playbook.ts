@@ -66,6 +66,7 @@ export interface PlaybookState {
   id: string;
   title: string;
   prompt?: string | undefined;
+  requiredDetails: string[];
   instructions: string[];
   doneWhen: string[];
   transitions: PlaybookTransition[];
@@ -75,6 +76,7 @@ export const playbookStateSchema: z.ZodType<PlaybookState> = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   prompt: optionalTextParserSchema,
+  requiredDetails: z.array(z.string().min(1)).default([]),
   instructions: z.array(z.string().min(1)).default([]),
   doneWhen: z.array(z.string().min(1)).default([]),
   transitions: z.array(playbookTransitionSchema).default([]),

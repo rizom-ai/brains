@@ -15,16 +15,22 @@ turns:
   - userMessage: "Create a LinkedIn post about the future of work and decentralized organizations"
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: system_generate
           shouldBeCalled: true
+          argsContain:
+            operation.entityType: social-post
+            operation.kind: prompt
 
   - userMessage: "Make it shorter and more punchy, remove any hashtags"
 
 successCriteria:
   # First turn must generate
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
+      argsContain:
+        operation.entityType: social-post
+        operation.kind: prompt
   # Agent should respond with confirmation of changes
   responseNotContains:
     - "I cannot"

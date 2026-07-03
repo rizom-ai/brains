@@ -16,7 +16,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
-        url: "https://github.com/anthropics/claude-code"
+        source.kind: "url"
+        source.url: "https://github.com/anthropics/claude-code"
   toolCountRange:
     min: 1
   responseNotContains:

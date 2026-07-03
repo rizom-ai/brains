@@ -1,5 +1,55 @@
 # @rizom/brain
 
+## 0.2.0-alpha.137
+
+## 0.2.0-alpha.136
+
+## 0.2.0-alpha.135
+
+### Patch Changes
+
+- [`37db2bc`](https://github.com/rizom-ai/brains/commit/37db2bc759e606f42efacedd70056e9c2f440a4e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix Discord approval interactions so approve/decline buttons are removed after a response, and deliver generated image artifacts as native Discord files after approved generation actions.
+
+## 0.2.0-alpha.134
+
+### Patch Changes
+
+- [`0738da5`](https://github.com/rizom-ai/brains/commit/0738da59cef4005980bc896a9d6453979fa53348) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stabilize system_generate flows by normalizing model-authored generation operation arguments, preserving publish state during generated updates, and tightening related Rover tool invocation coverage.
+
+## 0.2.0-alpha.133
+
+## 0.2.0-alpha.132
+
+### Patch Changes
+
+- [`d70659e`](https://github.com/rizom-ai/brains/commit/d70659ede3ab9247dd8f777a52494073d76c04af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make confirmed `agent_connect` save verified A2A contacts as approved immediately so users do not need a separate approval step before future calls.
+
+- [`9988510`](https://github.com/rizom-ai/brains/commit/998851097b1606786e0b14a0ef3d2c606fbf08ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split durable content generation into explicit generation tool flows so create/update/save paths can distinguish persisted user content from generated document and image artifacts.
+
+## 0.2.0-alpha.131
+
+### Patch Changes
+
+- [`863421c`](https://github.com/rizom-ai/brains/commit/863421ca34a0e9699133d655ffedd5c1f81ea107) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Rover's A2A agent tools available to trusted users: trusted users can connect/verify agent directory contacts and call exact-domain agents, while public users still cannot access these external agent tools. Also tighten failed remote-agent call guidance so failures do not imply the agent was saved or connected.
+
+- [`2f0854e`](https://github.com/rizom-ai/brains/commit/2f0854ee0e76e2dcef0f8f356d26d034821b8b76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web-chat upload follow-ups so singular references such as “the uploaded image” and “the uploaded PDF” resolve to the newest matching live upload, and hydrate prior PDF uploads for read-only summaries even when a prior assistant response is also saveable.
+
+## 0.2.0-alpha.130
+
+### Minor Changes
+
+- [`6102438`](https://github.com/rizom-ai/brains/commit/6102438752ec2419d14dfa0893230be9de44d41c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - **Breaking (plugin API):** `EntityAdapter` now requires a `purpose: string` — one declarative sentence describing what the entity type is. Any plugin that defines an adapter (via `BaseEntityAdapter`'s config or an `EntityAdapter` object literal) must add `purpose` or it will not compile.
+
+  System instructions now render the available entity types from each adapter's `purpose` instead of hardcoded "phrase → entityType" example mappings, so the model selects `entityType` from what each type is for. Migration: add `purpose: "<one sentence>"` next to `entityType` in your adapter config.
+
+## 0.2.0-alpha.129
+
+## 0.2.0-alpha.128
+
+### Patch Changes
+
+- [`4f3d7c6`](https://github.com/rizom-ai/brains/commit/4f3d7c6661630b5a346a8402cba2de81e4e1aff7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release the canonical `system_create.source` flow so Rover routes direct creates, uploads, and prior-response saves through the preferred source union while preserving legacy compatibility.
+
 ## 0.2.0-alpha.127
 
 ### Patch Changes

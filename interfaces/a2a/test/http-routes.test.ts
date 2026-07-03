@@ -65,7 +65,7 @@ describe("A2A HTTP routes", () => {
 
     const capabilities = await harness.installPlugin(plugin);
 
-    expect(capabilities.tools.map((tool) => tool.name)).toContain("a2a_call");
+    expect(capabilities.tools.map((tool) => tool.name)).toContain("agent_call");
     expect(plugin.getWebRoutes()).toEqual([]);
   });
 

@@ -18,6 +18,7 @@ export class TopicAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: TOPIC_ENTITY_TYPE,
+      purpose: "A recurring theme or subject derived from the user's content.",
       schema: topicEntitySchema,
       frontmatterSchema: topicFrontmatterSchema,
     });

@@ -308,7 +308,9 @@ describe("AgentService", () => {
         expect.objectContaining({ content: "Previous message" }),
       );
       expect(messages[2]).toEqual(
-        expect.objectContaining({ content: "New message" }),
+        expect.objectContaining({
+          content: expect.stringContaining("New message"),
+        }),
       );
     });
 
@@ -393,7 +395,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- robot.png: upload { kind: "upload", id: "upload-123" }; mediaType: image/png; raw-save entityType: "image"',
+              '- robot.png; upload: { kind: "upload", id: "upload-123" }; mediaType: image/png',
             ),
           },
           {
@@ -496,7 +498,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- robot.png: upload { kind: "upload", id: "upload-123" }; mediaType: image/png; raw-save entityType: "image"',
+              '- robot.png; upload: { kind: "upload", id: "upload-123" }; mediaType: image/png',
             ),
           },
           {
@@ -526,6 +528,126 @@ describe("AgentService", () => {
           }),
         }),
       );
+    });
+
+    it("hydrates a prior PDF upload even when a prior assistant response can be saved", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-image-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "flirty-robot.png",
+                  mediaType: "image/png",
+                  sizeBytes: 4,
+                  source: { kind: "upload", id: "upload-image" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-image-intent",
+            conversationId: "test-conversation",
+            role: "assistant",
+            content:
+              "I got `flirty-robot.png`. What would you like me to do with it?",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              cards: [{ kind: "actions", id: "actions:upload-intent" }],
+            }),
+          },
+          {
+            id: "msg-image-description",
+            conversationId: "test-conversation",
+            role: "assistant",
+            content: "It is a retro-futuristic robot illustration.",
+            timestamp: new Date().toISOString(),
+            metadata: null,
+          },
+          {
+            id: "msg-pdf-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "distributed-systems-primer.pdf",
+                  mediaType: "application/pdf",
+                  sizeBytes: 4,
+                  source: { kind: "upload", id: "upload-pdf" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-pdf-intent",
+            conversationId: "test-conversation",
+            role: "assistant",
+            content:
+              "I got `distributed-systems-primer.pdf`. What would you like me to do with it?",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              cards: [{ kind: "actions", id: "actions:upload-intent" }],
+            }),
+          },
+        ]),
+      );
+      const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
+      const uploadAttachmentResolver = mock(async (source) => {
+        if (source.id !== "upload-pdf") return null;
+        return {
+          kind: "file" as const,
+          filename: "distributed-systems-primer.pdf",
+          mediaType: "application/pdf",
+          data: pdfBytes,
+          sizeBytes: pdfBytes.byteLength,
+          source,
+        };
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, uploadAttachmentResolver },
+      );
+
+      await service.chat("Summarize the uploaded PDF.", "test-conversation");
+
+      expect(uploadAttachmentResolver).toHaveBeenCalledWith({
+        kind: "upload",
+        id: "upload-pdf",
+      });
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const lastMessage = callArgs?.messages.at(-1);
+      expect(lastMessage).toEqual({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: expect.stringContaining(
+              '- distributed-systems-primer.pdf; upload: { kind: "upload", id: "upload-pdf" }; mediaType: application/pdf',
+            ),
+          },
+          {
+            type: "file",
+            data: pdfBytes,
+            mediaType: "application/pdf",
+            filename: "distributed-systems-primer.pdf",
+          },
+        ],
+      });
+      expect(JSON.stringify(lastMessage)).toContain("prior-response");
     });
 
     it("keeps multiple pending prior upload refs model-visible without hydrating bytes", async () => {
@@ -650,14 +772,13 @@ describe("AgentService", () => {
       await service.chat("save it as a document", "test-conversation");
 
       const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableUploadSave).toBeUndefined();
       expect(callArgs?.options.enableCreateUpload).toBeUndefined();
       const lastMessage = callArgs?.messages.at(-1);
       expect(lastMessage?.content).not.toContain("Available upload refs");
       expect(lastMessage?.content).not.toContain("upload-missing");
     });
 
-    it("does not ask service-level upload clarification for deck carousel requests", async () => {
+    it("passes recent upload refs as candidates without service-level clarification", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
           {
@@ -723,39 +844,21 @@ describe("AgentService", () => {
       expect(response.text).not.toContain("Which uploaded file should I use?");
       expect(mockGenerate).toHaveBeenCalledTimes(1);
       const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableCreateUpload).toBeUndefined();
-      expect(callArgs?.options.enableUploadSave).toBeUndefined();
-      expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
-      expect(callArgs?.options.disableDocumentGenerate).toBeUndefined();
+      expect(callArgs?.options.enableCreateUpload).toBe(true);
+      expect(callArgs?.options).not.toHaveProperty(
+        "enableCreateSourceAttachment",
+      );
+      expect(callArgs?.options).not.toHaveProperty("disableDocumentGenerate");
       const lastMessage = callArgs?.messages.at(-1);
       expect(lastMessage?.role).toBe("user");
       expect(lastMessage?.content).toContain(
         "Can you generate a preview of the innovation deck carousel for me?",
       );
-      expect(lastMessage?.content).not.toContain('id: "upload-pdf"');
-      expect(lastMessage?.content).not.toContain('id: "upload-image"');
+      expect(lastMessage?.content).toContain('id: "upload-pdf"');
+      expect(lastMessage?.content).toContain('id: "upload-image"');
     });
 
-    it("does not expose create sourceAttachment for ordinary direct create requests", async () => {
-      const service = AgentService.createFresh(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-
-      await service.chat(
-        "Save this as a note: hello world",
-        "test-conversation",
-      );
-
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
-    });
-
-    it("exposes create sourceAttachment for source-derived artifact requests", async () => {
+    it("does not derive tool availability from source wording", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -771,8 +874,10 @@ describe("AgentService", () => {
       );
 
       const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableCreateSourceAttachment).toBe(true);
-      expect(callArgs?.options.disableDocumentGenerate).toBe(true);
+      expect(callArgs?.options).not.toHaveProperty(
+        "enableCreateSourceAttachment",
+      );
+      expect(callArgs?.options).not.toHaveProperty("disableDocumentGenerate");
     });
 
     it("lets the agent handle clarification replies instead of rewriting them", async () => {
@@ -857,8 +962,8 @@ describe("AgentService", () => {
       const lastMessage = messages.at(-1);
       expect(lastMessage?.role).toBe("user");
       expect(lastMessage?.content).toContain("the latest one");
-      expect(lastMessage?.content).not.toContain('id: "upload-first"');
-      expect(lastMessage?.content).not.toContain('id: "upload-second"');
+      expect(lastMessage?.content).toContain('id: "upload-first"');
+      expect(lastMessage?.content).toContain('id: "upload-second"');
     });
 
     it("asks for intent when the user submits only a native file attachment", async () => {
@@ -1018,7 +1123,7 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content: expect.stringContaining(
-          '- durable-notes.md: upload { kind: "upload", id: "upload-123" }; mediaType: text/markdown',
+          '- durable-notes.md; upload: { kind: "upload", id: "upload-123" }; mediaType: text/markdown',
         ),
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
@@ -1628,7 +1733,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- brief.pdf: upload { kind: "upload", id: "upload-pdf" }; mediaType: application/pdf; raw-save entityType: "document"',
+              '- brief.pdf; upload: { kind: "upload", id: "upload-pdf" }; mediaType: application/pdf',
             ),
           },
           {
@@ -3204,18 +3309,22 @@ describe("AgentService", () => {
           {
             toolCalls: [
               {
-                toolName: "document_generate",
+                toolName: "system_generate",
                 toolCallId: "call1",
                 input: {
-                  sourceEntityType: "deck",
-                  sourceEntityId: "deck-1",
-                  attachmentType: "carousel",
+                  entityType: "document",
+                  source: {
+                    kind: "attachment",
+                    sourceEntityType: "deck",
+                    sourceEntityId: "deck-1",
+                    attachmentType: "carousel",
+                  },
                 },
               },
             ],
             toolResults: [
               {
-                toolName: "document_generate",
+                toolName: "system_generate",
                 toolCallId: "call1",
                 output: {
                   success: true,

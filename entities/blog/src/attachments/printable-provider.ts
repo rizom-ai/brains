@@ -31,6 +31,8 @@ export interface BlogPrintableAttachmentProviderDeps {
 }
 
 export class BlogPrintableAttachmentProvider implements AttachmentProvider {
+  readonly metadata = { outputEntityType: "document" } as const;
+
   private readonly context: Pick<
     EntityPluginContext,
     "entityService" | "themeCSS" | "identity" | "domain"

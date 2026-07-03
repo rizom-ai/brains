@@ -15,12 +15,12 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "image"
-        targetEntityType: "post"
-        targetEntityId: "resilience-in-distributed-systems"
+        operation.kind: "cover-image"
+        operation.target.entityType: "post"
+        operation.target.entityId: "resilience-in-distributed-systems"
   responseNotContains:
     - "not found"
     - "I cannot"

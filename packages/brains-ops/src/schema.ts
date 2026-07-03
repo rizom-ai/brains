@@ -52,6 +52,10 @@ const atprotoSchema = z.strictObject({
   identifier: z.string().min(1),
 });
 
+const playbooksSchema = z.strictObject({
+  onboarding: z.boolean().optional(),
+});
+
 export const userSchema = z.strictObject({
   handle: handleSchema,
   discord: z.strictObject({
@@ -62,6 +66,7 @@ export const userSchema = z.strictObject({
   gitSyncTokenOverride: secretNameSchema.optional(),
   setup: setupDeliverySchema.optional(),
   atproto: atprotoSchema.optional(),
+  playbooks: playbooksSchema.optional(),
   anchorProfile: anchorProfileSchema.optional(),
 });
 

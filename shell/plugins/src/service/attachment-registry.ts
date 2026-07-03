@@ -6,7 +6,13 @@ export interface AttachmentResolveRequest {
   attachmentType: string;
 }
 
+export interface AttachmentProviderMetadata {
+  outputEntityType: "image" | "document";
+  targetField?: "coverImageId" | "ogImageId";
+}
+
 export interface AttachmentProvider {
+  metadata?: AttachmentProviderMetadata;
   resolve(
     request: AttachmentResolveRequest,
   ): Promise<PublishMediaData | undefined> | PublishMediaData | undefined;
@@ -31,6 +37,12 @@ export interface IAttachmentsNamespace {
 
   /** Check whether a provider exists for the requested source/attachment type. */
   hasProvider: (sourceEntityType: string, attachmentType: string) => boolean;
+
+  /** Get registered provider capability metadata, if declared. */
+  getProviderMetadata: (
+    sourceEntityType: string,
+    attachmentType: string,
+  ) => AttachmentProviderMetadata | undefined;
 }
 
 export function createAttachmentsNamespace(
@@ -54,6 +66,12 @@ export function createAttachmentsNamespace(
       attachmentType: string,
     ): boolean => {
       return registry.has(sourceEntityType, attachmentType);
+    },
+    getProviderMetadata: (
+      sourceEntityType: string,
+      attachmentType: string,
+    ): AttachmentProviderMetadata | undefined => {
+      return registry.getMetadata(sourceEntityType, attachmentType);
     },
   };
 }
@@ -114,6 +132,13 @@ export class AttachmentRegistry {
 
   public has(sourceEntityType: string, attachmentType: string): boolean {
     return this.get(sourceEntityType, attachmentType) !== undefined;
+  }
+
+  public getMetadata(
+    sourceEntityType: string,
+    attachmentType: string,
+  ): AttachmentProviderMetadata | undefined {
+    return this.get(sourceEntityType, attachmentType)?.metadata;
   }
 
   public unregister(sourceEntityType: string, attachmentType: string): void {

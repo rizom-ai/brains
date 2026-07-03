@@ -1,0 +1,29 @@
+id: tool-invocation-system-job-status
+name: Avoid Job Status for General System Status
+description: Verifies that the agent does not use system_job_status for a general system overview when no job or batch status was requested.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - core
+  - system
+  - jobs
+  - preset-core
+
+turns:
+  - userMessage: "What's the status of my brain? Show me system info, not background job details."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_status
+      shouldBeCalled: true
+    - toolName: system_job_status
+      shouldBeCalled: false
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

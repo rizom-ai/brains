@@ -56,6 +56,10 @@ export interface ResolvedAtprotoConfig {
   identifier: string;
 }
 
+export interface ResolvedPlaybooksConfig {
+  onboarding?: boolean | undefined;
+}
+
 export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
@@ -70,6 +74,7 @@ export interface ResolvedUserIdentity {
   effectiveGitSyncToken: string;
   setup?: ResolvedSetupDelivery;
   atproto?: ResolvedAtprotoConfig;
+  playbooks?: ResolvedPlaybooksConfig;
   anchorProfile: ResolvedAnchorProfile;
   snapshotStatus: SnapshotStatus;
 }
@@ -166,6 +171,9 @@ export async function loadPilotRegistry(
           pilot.gitSyncToken,
         ...(userFile.data.setup ? { setup: userFile.data.setup } : {}),
         ...(userFile.data.atproto ? { atproto: userFile.data.atproto } : {}),
+        ...(userFile.data.playbooks
+          ? { playbooks: userFile.data.playbooks }
+          : {}),
         anchorProfile: resolveAnchorProfile(
           userFile.data.handle,
           userFile.data.anchorProfile,
@@ -226,12 +234,10 @@ async function loadCohortFiles(rootDir: string): Promise<LoadedCohortFile[]> {
   const cohortFiles = await listYamlFiles(cohortDir);
 
   const loaded = await Promise.all(
-    cohortFiles.map(
-      async (filePath): Promise<LoadedCohortFile> => ({
-        id: stripYamlExtension(basename(filePath)),
-        data: await readYamlFile(filePath, cohortSchema),
-      }),
-    ),
+    cohortFiles.map(async (filePath): Promise<LoadedCohortFile> => ({
+      id: stripYamlExtension(basename(filePath)),
+      data: await readYamlFile(filePath, cohortSchema),
+    })),
   );
 
   return loaded.sort((left, right) => left.id.localeCompare(right.id));

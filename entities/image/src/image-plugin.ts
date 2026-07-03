@@ -171,8 +171,8 @@ function buildUploadedImageAttachment(input: {
  * Image EntityPlugin — manages image entities with AI generation.
  *
  * Zero tools. Image operations go through:
- * - system_create { entityType: "image", content: dataUrl } — upload
- * - system_create { entityType: "image", prompt: "..." } — AI generation
+ * - system_create { entityType: "image", source: { kind: "upload", transform: "preserve" } } — upload
+ * - system_generate { entityType: "image", source: { kind: "prompt", prompt: "..." } } — AI generation
  * - system_update { fields: { coverImageId } } — set cover image references
  */
 export class ImagePlugin extends EntityPlugin<
@@ -538,7 +538,7 @@ export class ImagePlugin extends EntityPlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return `For durable raw image saves/promotions from uploaded images, call system_upload_save with the exact upload object shown in the current turn or conversation "Available upload refs" hint. Do this only after the user explicitly asks to save/import/promote the uploaded image file itself. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. Saving an image description, discussion, interpretation, or caption as a note should create a note entity with content from the conversation, not system_upload_save or upload/transform. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images and cover images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely unless the user explicitly asks to reuse the uploaded image file. Cover image and OG/social preview image are separate domain concepts: cover-image changes/removal use coverImageId, while OG/Open Graph/social preview image changes use ogImageId. To remove a cover image, call system_update on the target entity with fields.coverImageId set to null; do not clear ogImageId unless the user explicitly asked to remove an OG/social preview image. For direct requests like "set image X as the cover for entity Y", call system_update with fields.coverImageId set to X; do not stop after looking up either side when the user provided exact IDs.`;
+    return "Image entities store durable images. Standalone generated images are valid system_generate image calls with a prompt source and no target fields. A prompt source creates a new image; never use it to describe, analyze, or discuss an existing uploaded image. For uploaded-image discussion, answer directly from the attachment/context; if the user later asks to save that discussion as a note, create entityType note from prior-response or exact text. targetEntityType and targetEntityId are only for attaching the result to an existing entity as coverImageId. Cover images and OG/social preview images are distinct domain concepts: cover-image fields use coverImageId, while OG/Open Graph/social preview fields use ogImageId. Rendered OG/social preview images are deterministic attachment-source images with attachmentType og-image.";
   }
 
   protected override createGenerationHandler(

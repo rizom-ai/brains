@@ -21,7 +21,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
-        url: "https://this-domain-definitely-does-not-exist-12345.com/page"
+        source.kind: "url"
+        source.url: "https://this-domain-definitely-does-not-exist-12345.com/page"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

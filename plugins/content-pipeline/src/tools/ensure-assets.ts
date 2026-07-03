@@ -131,6 +131,7 @@ export function createEnsureAssetsTool(
         message: `Queued ${enqueued} publish asset job(s)`,
       };
     },
+    { sideEffects: "writes" },
   );
 
   return {

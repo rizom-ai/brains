@@ -52,9 +52,8 @@ permissions:
       publish: anchor
 
 plugins:
-  playbooks:
-    triggers:
-      first-anchor-web-chat: true
+  rover-onboarding:
+    enabled: true
   directory-sync:
     seedContentPath: eval-content-full
     git:

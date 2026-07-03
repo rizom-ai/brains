@@ -53,6 +53,9 @@ describe("buildMessageMetadata", () => {
       entityMemoryRefs: [
         { entityType: "note", entityId: "note-1", operation: "updated" },
       ],
+      agentContactCandidates: [
+        { source: { kind: "url", url: "peer.example" } },
+      ],
     });
 
     expect(metadata.actor).toEqual(actor);
@@ -71,6 +74,9 @@ describe("buildMessageMetadata", () => {
     ]);
     expect(metadata.entityMemoryRefs).toEqual([
       { entityType: "note", entityId: "note-1", operation: "updated" },
+    ]);
+    expect(metadata.agentContactCandidates).toEqual([
+      { source: { kind: "url", url: "peer.example" } },
     ]);
     expect(metadata).not.toHaveProperty("cards");
   });

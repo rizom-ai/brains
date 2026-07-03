@@ -342,6 +342,7 @@ describe("AuthService", () => {
       );
     expect(tool).toBeDefined();
     expect(tool?.visibility).toBe("anchor");
+    expect(tool?.sideEffects).toBe("none");
 
     const response = await harness.executeTool(tool?.name ?? "", {});
     expectSuccess(response);

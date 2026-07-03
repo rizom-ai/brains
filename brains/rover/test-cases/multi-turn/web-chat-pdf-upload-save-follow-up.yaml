@@ -1,6 +1,6 @@
 id: multi-turn-web-chat-pdf-upload-save-follow-up
 name: Web chat PDF upload follow-up promotes document
-description: Verifies a bare web-chat PDF upload is inert, then an explicit save/promote follow-up calls system_upload_save with the prior web-chat upload ref.
+description: Verifies a bare web-chat PDF upload is inert, then an explicit save/promote follow-up uses system_create upload preserve with the prior web-chat upload ref.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -38,14 +38,15 @@ turns:
   - userMessage: "save it as a document"
     successCriteria:
       expectedTools:
-        - toolName: system_upload_save
+        - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            upload.kind: upload
-            upload.id: upload-00000000-0000-4000-8000-000000000501
+            entityType: document
+            source.kind: upload
+            source.transform: preserve
+            source.upload.kind: upload
+            source.upload.id: upload-00000000-0000-4000-8000-000000000501
           argsAbsent:
-            - transform
-            - entityType
             - from
             - fromUpload
             - sourceAttachment
@@ -59,20 +60,19 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_upload_save
+    - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        upload.kind: upload
-        upload.id: upload-00000000-0000-4000-8000-000000000501
+        entityType: document
+        source.kind: upload
+        source.transform: preserve
+        source.upload.kind: upload
+        source.upload.id: upload-00000000-0000-4000-8000-000000000501
       argsAbsent:
-        - transform
-        - entityType
         - from
         - fromUpload
         - sourceAttachment
-    - toolName: system_create
-      shouldBeCalled: false
-    - toolName: document_generate
+    - toolName: system_generate
       shouldBeCalled: false
     - toolName: system_update
       shouldBeCalled: false

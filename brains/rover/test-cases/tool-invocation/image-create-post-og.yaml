@@ -1,6 +1,6 @@
 id: tool-invocation-image-create-post-og
 name: Generate Blog Post OG Image
-description: "Verifies system_create renders a blog post OG/social preview image and targets ogImageId"
+description: "Verifies system_generate renders a blog post OG/social preview image through the attachment provider"
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -17,12 +17,13 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "image"
-        targetEntityType: "post"
-        targetEntityId: "resilience-in-distributed-systems"
+        operation.kind: "attachment"
+        operation.source.entityType: "post"
+        operation.source.entityId: "resilience-in-distributed-systems"
+        operation.attachmentType: "og-image"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

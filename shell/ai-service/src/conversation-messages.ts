@@ -1,14 +1,13 @@
 import type { AgentContextItem } from "@brains/contracts";
-import { z } from "@brains/utils/zod-v4";
-import {
-  coerceConversationMetadata,
-  type Message,
-} from "@brains/conversation-service";
+import type { Message } from "@brains/conversation-service";
 import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
 import {
+  agentContactCandidateSchema,
+  buildAgentContactCandidateContext,
   buildEntityMemoryContext,
   entityMemoryRefSchema,
+  type AgentContactCandidate,
   type EntityMemoryRef,
 } from "./agent-results";
 
@@ -23,42 +22,34 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
               type: "text",
               text:
                 msg.content +
-                getAssistantContentReferentNote(msg) +
-                getEntityMemoryNote(msg.metadata),
+                getEntityMemoryNote(msg.metadata) +
+                getAgentContactCandidateNote(msg.metadata),
             },
           ],
         },
   );
 }
 
-function getAssistantContentReferentNote(message: Message): string {
-  if (message.content.trim().length === 0) return "";
-  if (!isSavableAssistantContent(message.metadata)) return "";
-  return '\n\nInternal conversation content ref: this assistant response is assistant-written conversation content and is the current savable conversation artifact. Supported durable save operation for this response: call system_create with entityType "note" and content copied from this assistant response. No extra clarification is needed when the operator asks to save this assistant-written content. Do not save this assistant-written response as a document, and do not use upload or transform unless the operator explicitly asks to save/import the raw uploaded file itself.';
-}
-
-function isSavableAssistantContent(metadata: Message["metadata"]): boolean {
-  const parsedMetadata = parseMessageMetadata(metadata);
-  if (parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]).length > 0) {
-    return false;
-  }
-  const cards = parsedMetadata?.["cards"];
-  if (!Array.isArray(cards)) return true;
-  return !cards.some((card) => {
-    const parsedCard = metadataCardSchema.safeParse(card);
-    if (!parsedCard.success) return false;
-    if (parsedCard.data.kind === "tool-approval") return true;
-    return (
-      parsedCard.data.kind === "actions" &&
-      parsedCard.data.id === "actions:upload-intent"
-    );
-  });
-}
-
 function getEntityMemoryNote(metadata: Message["metadata"]): string {
   const parsedMetadata = parseMessageMetadata(metadata);
   const refs = parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]);
   return buildEntityMemoryContext(refs);
+}
+
+function getAgentContactCandidateNote(metadata: Message["metadata"]): string {
+  const parsedMetadata = parseMessageMetadata(metadata);
+  const candidates = parseAgentContactCandidates(
+    parsedMetadata?.["agentContactCandidates"],
+  );
+  return buildAgentContactCandidateContext(candidates);
+}
+
+function parseAgentContactCandidates(value: unknown): AgentContactCandidate[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): AgentContactCandidate[] => {
+    const parsed = agentContactCandidateSchema.safeParse(item);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 function parseEntityMemoryRefs(value: unknown): EntityMemoryRef[] {
@@ -72,27 +63,19 @@ function parseEntityMemoryRefs(value: unknown): EntityMemoryRef[] {
 function parseMessageMetadata(
   metadata: Message["metadata"],
 ): Record<string, unknown> | null {
-  return coerceConversationMetadata(metadata);
+  if (isRecord(metadata)) return metadata;
+  if (typeof metadata !== "string") return null;
+  try {
+    const parsed = JSON.parse(metadata) as unknown;
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
-const metadataCardSchema = z.looseObject({
-  kind: z.string().optional(),
-  id: z.string().optional(),
-});
-
-const uploadMetadataSchema = z.looseObject({
-  filename: z.string(),
-  mediaType: z.string(),
-  source: z.looseObject({
-    kind: z.string(),
-    id: z.string(),
-  }),
-});
-
-const uploadIntentCardSchema = z.looseObject({
-  kind: z.literal("actions"),
-  id: z.literal("actions:upload-intent"),
-});
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 export function buildModelMessages(
   historyMessages: Message[],
@@ -113,26 +96,64 @@ export interface ConversationUploadRef {
   };
 }
 
+function uploadRefKey(ref: ConversationUploadRef): string {
+  return `${ref.source.kind}:${ref.source.id}`;
+}
+
+/** Map a typed in-memory attachment to an upload ref (null if it has no source). */
+function chatAttachmentToRef(
+  attachment: ChatAttachment,
+): ConversationUploadRef | null {
+  if (attachment.source === undefined) return null;
+  return {
+    filename: attachment.filename,
+    mediaType: attachment.mediaType,
+    source: attachment.source,
+  };
+}
+
+/** Parse a raw stored-metadata attachment record into an upload ref, or null. */
+function parseStoredAttachmentRef(
+  value: unknown,
+): ConversationUploadRef | null {
+  if (!isRecord(value)) return null;
+  const source = value["source"];
+  if (!isRecord(source)) return null;
+  const kind = source["kind"];
+  const id = source["id"];
+  const filename = value["filename"];
+  const mediaType = value["mediaType"];
+  if (
+    typeof kind !== "string" ||
+    typeof id !== "string" ||
+    typeof filename !== "string" ||
+    typeof mediaType !== "string"
+  ) {
+    return null;
+  }
+  return { filename, mediaType, source: { kind, id } };
+}
+
+function isUploadRef(
+  ref: ConversationUploadRef | null,
+): ref is ConversationUploadRef {
+  return ref !== null;
+}
+
 export function collectUploadRefsFromMessages(
   messages: Message[],
 ): ConversationUploadRef[] {
-  const refs: ConversationUploadRef[] = [];
-  const seen = new Set<string>();
-  for (const message of messages) {
+  const refs = messages.flatMap((message) => {
     const metadata = parseMessageMetadata(message.metadata);
     const attachments = metadata?.["attachments"];
-    if (!Array.isArray(attachments)) continue;
-    for (const attachment of attachments) {
-      const parsed = uploadMetadataSchema.safeParse(attachment);
-      if (!parsed.success) continue;
-      const { filename, mediaType, source } = parsed.data;
-      const key = `${source.kind}:${source.id}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      refs.push({ filename, mediaType, source });
-    }
-  }
-  return refs;
+    if (!Array.isArray(attachments)) return [];
+    return attachments.map(parseStoredAttachmentRef).filter(isUploadRef);
+  });
+  return dedupeUploadRefs(refs);
+}
+
+export interface ConversationPriorResponseRef {
+  messageId: string;
 }
 
 export interface ConversationUploadContinuitySelection {
@@ -140,124 +161,119 @@ export interface ConversationUploadContinuitySelection {
   message: string;
   refs: ConversationUploadRef[];
   attachments: ChatAttachment[];
+  priorResponseRef?: ConversationPriorResponseRef;
 }
+
+const MAX_HISTORICAL_UPLOAD_REFS = 6;
 
 export function resolveConversationUploadContinuity(params: {
   message: string;
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
 }): ConversationUploadContinuitySelection {
-  const pendingRefs = collectPendingUploadRefs(params.historyMessages);
-  const historicalRefs = collectUploadRefsFromMessages(params.historyMessages);
   const refs = selectConversationUploadRefs({
     message: params.message,
-    pendingRefs,
-    historicalRefs,
-    hasCurrentAttachments: params.currentAttachments.length > 0,
+    currentAttachments: params.currentAttachments,
+    historyMessages: params.historyMessages,
   });
+
+  const priorResponseRef =
+    refs.length > 0
+      ? selectPriorResponseRef(params.historyMessages)
+      : undefined;
 
   return {
     kind: "selected",
     message: params.message,
     refs,
     attachments: params.currentAttachments,
+    ...(priorResponseRef ? { priorResponseRef } : {}),
   };
 }
 
 function selectConversationUploadRefs(params: {
   message: string;
-  pendingRefs: ConversationUploadRef[];
-  historicalRefs: ConversationUploadRef[];
-  hasCurrentAttachments: boolean;
+  currentAttachments: ChatAttachment[];
+  historyMessages: Message[];
 }): ConversationUploadRef[] {
-  if (params.hasCurrentAttachments) return [];
-
-  const normalized = normalizeUploadReferenceText(params.message);
-  const refs = namesKnownFile(normalized, params.historicalRefs)
-    ? params.historicalRefs
-    : params.pendingRefs.length > 0
-      ? params.pendingRefs
-      : [];
-
-  return shouldNarrowToLatestUploadRef(params.message, refs)
-    ? refs.slice(-1)
-    : refs;
+  const currentRefs = params.currentAttachments
+    .map(chatAttachmentToRef)
+    .filter(isUploadRef);
+  const historicalRefs = collectUploadRefsFromMessages(params.historyMessages)
+    .slice(-MAX_HISTORICAL_UPLOAD_REFS)
+    .reverse();
+  const refs = dedupeUploadRefs([...currentRefs, ...historicalRefs]);
+  const mediaKind = referencedUploadMediaKind(params.message);
+  if (mediaKind === undefined) return refs;
+  return refs
+    .filter((ref) => uploadRefMatchesMediaKind(ref, mediaKind))
+    .slice(0, 1);
 }
 
-function collectPendingUploadRefs(
-  messages: Message[],
+function referencedUploadMediaKind(
+  message: string,
+): "image" | "pdf" | undefined {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("uploaded image")) return "image";
+  if (normalized.includes("uploaded pdf")) return "pdf";
+  return undefined;
+}
+
+function uploadRefMatchesMediaKind(
+  ref: ConversationUploadRef,
+  mediaKind: "image" | "pdf",
+): boolean {
+  if (mediaKind === "image") return ref.mediaType.startsWith("image/");
+  return ref.mediaType === "application/pdf";
+}
+
+function dedupeUploadRefs(
+  refs: ConversationUploadRef[],
 ): ConversationUploadRef[] {
-  const lastMessage = messages.at(-1);
-  if (lastMessage === undefined) return [];
-
-  if (lastMessage.role === "user" && lastMessage.content.trim().length > 0) {
-    return collectUploadRefsFromMessages([lastMessage]);
+  const seen = new Set<string>();
+  const deduped: ConversationUploadRef[] = [];
+  for (const ref of refs) {
+    const key = uploadRefKey(ref);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(ref);
   }
-
-  if (!hasUploadIntentCard(lastMessage)) return [];
-
-  const previousUserMessage = messages
-    .slice(0, -1)
-    .reverse()
-    .find((message) => message.role === "user");
-
-  return previousUserMessage
-    ? collectUploadRefsFromMessages([previousUserMessage])
-    : [];
+  return deduped;
 }
 
-function hasUploadIntentCard(message: Message): boolean {
-  if (message.role !== "assistant") return false;
+function selectPriorResponseRef(
+  messages: Message[],
+): ConversationPriorResponseRef | undefined {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role !== "assistant") continue;
+    if (message.content.trim().length === 0) continue;
+    if (hasEntityMemoryRefs(message)) continue;
+    if (hasActionCard(message)) continue;
+    return { messageId: message.id };
+  }
+  return undefined;
+}
+
+function hasEntityMemoryRefs(message: Message): boolean {
+  const metadata = parseMessageMetadata(message.metadata);
+  return Array.isArray(metadata?.["entityMemoryRefs"]);
+}
+
+function hasActionCard(message: Message): boolean {
   const metadata = parseMessageMetadata(message.metadata);
   const cards = metadata?.["cards"];
   if (!Array.isArray(cards)) return false;
-  return cards.some((card) => uploadIntentCardSchema.safeParse(card).success);
-}
-
-export function shouldHydrateUploadAttachmentsForMessage(
-  message: string,
-): boolean {
-  return !asksToPersistUpload(normalizeUploadReferenceText(message));
-}
-
-function shouldNarrowToLatestUploadRef(
-  message: string,
-  refs: ConversationUploadRef[],
-): boolean {
-  if (refs.length < 2) return false;
-  const normalized = normalizeUploadReferenceText(message);
-  return (
-    hasSingularUploadReference(normalized) &&
-    asksToPersistUpload(normalized) &&
-    !namesKnownFile(normalized, refs)
-  );
-}
-
-function normalizeUploadReferenceText(message: string): string {
-  return message.trim().toLowerCase();
-}
-
-function hasSingularUploadReference(normalized: string): boolean {
-  return /\b(it|this|that|file|upload|image|pdf|document)\b/.test(normalized);
-}
-
-function asksToPersistUpload(normalized: string): boolean {
-  return /\b(save|store|import|promote|attach|preserve|keep|capture|extract)\b/.test(
-    normalized,
-  );
-}
-
-function namesKnownFile(
-  normalized: string,
-  refs: ConversationUploadRef[],
-): boolean {
-  return refs.some((ref) => normalized.includes(ref.filename.toLowerCase()));
+  return cards.some((card) => isRecord(card) && card["kind"] === "actions");
 }
 
 export function buildMessageWithAttachments(
   message: string,
   attachments: ChatAttachment[] | undefined,
-  options: { uploadRefs?: ConversationUploadRef[] } = {},
+  options: {
+    uploadRefs?: ConversationUploadRef[];
+    priorResponseRef?: ConversationPriorResponseRef;
+  } = {},
 ): UserContent {
   const nativeAttachments = attachments ?? [];
   const textAttachments = nativeAttachments
@@ -266,7 +282,11 @@ export function buildMessageWithAttachments(
   const text = [
     message,
     ...textAttachments,
-    formatUploadRefs(nativeAttachments, options.uploadRefs ?? []),
+    formatUploadRefs(
+      nativeAttachments,
+      options.uploadRefs ?? [],
+      options.priorResponseRef,
+    ),
   ]
     .map((part) => part.trim())
     .filter((part) => part.length > 0)
@@ -297,48 +317,36 @@ function formatTextAttachment(
 function formatUploadRefs(
   attachments: ChatAttachment[],
   uploadRefs: ConversationUploadRef[],
+  priorResponseRef: ConversationPriorResponseRef | undefined,
 ): string {
-  const refs = [
-    ...uploadRefs,
-    ...attachments.flatMap((attachment) =>
-      attachment.source === undefined
-        ? []
-        : [
-            {
-              filename: attachment.filename,
-              mediaType: attachment.mediaType,
-              source: attachment.source,
-            },
-          ],
-    ),
-  ];
-  const seen = new Set<string>();
-  const lines = refs.flatMap((ref) => {
-    const key = `${ref.source.kind}:${ref.source.id}`;
-    if (seen.has(key)) return [];
-    seen.add(key);
-    const rawSaveEntityType = getRawSaveEntityType(ref.mediaType);
-    const noteExtractHint = getNoteExtractHint(ref);
-    return [
-      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }; mediaType: ${ref.mediaType}${rawSaveEntityType ? `; raw-save entityType: "${rawSaveEntityType}"` : ""}${noteExtractHint ? `; note-extract operation: call system_create with entityType "note", upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }, transform "extract-markdown". This is the only valid durable note-import operation for this upload; do not copy attachment bytes into content for note import.` : ""}`,
-    ];
-  });
-  return lines.length > 0
-    ? `Available upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user's request refers to a single upload with words like "it" or "this", use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the previous assistant turn summarized, described, read, or analyzed an uploaded file and the user now says "save it", "save that", "save the note", or "save the summary" without saying upload/file/PDF/document, save the visible assistant summary/notes as a note with content from the conversation; do not use upload or transform. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with sourceAttachment. Do not try to inspect PDF/image bytes before raw file saves; call system_upload_save with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_upload_save with upload: { kind: "upload", id: <upload ID> }. For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create or system_upload_save unless the user explicitly asks to save/store/create/capture/import/promote/attach the upload or summary. For markdown/note extraction, call system_create with entityType: "note", upload, and transform: "extract-markdown" only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text. Never use upload or transform to save an image discussion, image description, caption, interpretation, summary, study notes, or prior assistant answer as a note; create a note entity with content from the conversation instead. For cover-image or generated-image requests, always omit upload and use prompt plus target fields when relevant.\n${lines.join("\n")}`
+  const attachmentRefs = attachments
+    .map(chatAttachmentToRef)
+    .filter(isUploadRef);
+  const lines = dedupeUploadRefs([...uploadRefs, ...attachmentRefs]).map(
+    formatUploadRefLine,
+  );
+  const priorResponseCandidate = priorResponseRef
+    ? [
+        "Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation):",
+        `{ entityType: "note", source: { kind: "prior-response", messageId: "${priorResponseRef.messageId}" } }`,
+      ].join(" ")
     : "";
+  if (lines.length === 0) return priorResponseCandidate;
+
+  const guidance =
+    'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity. In read-only upload summaries, answer the request directly and do not offer to save/import/create unless asked. Upload candidates are file bytes; previous assistant answers are saved separately. If the user says "save it" after your summary/answer about an upload, save the prior assistant response as a note with source.kind "prior-response" unless they explicitly ask to save the uploaded file/document itself. Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. Choose exactly one transform for the user request.';
+
+  return [guidance, priorResponseCandidate, ...lines]
+    .filter((line) => line.length > 0)
+    .join("\n");
 }
 
-function getRawSaveEntityType(mediaType: string): string | undefined {
-  if (mediaType.startsWith("image/")) return "image";
-  if (mediaType === "application/pdf") return "document";
-  return undefined;
-}
-
-function getNoteExtractHint(ref: ConversationUploadRef): boolean {
-  if (ref.mediaType === "application/pdf") return true;
-  if (ref.mediaType.startsWith("text/")) return true;
-  const filename = ref.filename.toLowerCase();
-  return /\.(md|markdown|txt|json)$/u.test(filename);
+function formatUploadRefLine(ref: ConversationUploadRef): string {
+  return [
+    `- ${ref.filename}`,
+    `upload: { kind: "${ref.source.kind}", id: "${ref.source.id}" }`,
+    `mediaType: ${ref.mediaType}`,
+  ].join("; ");
 }
 
 export function buildAgentContextInstructions(

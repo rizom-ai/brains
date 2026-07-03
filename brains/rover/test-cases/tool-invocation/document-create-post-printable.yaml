@@ -1,6 +1,6 @@
 id: tool-invocation-document-create-post-printable
 name: Save Blog Post as Printable PDF
-description: "Verifies system_create persists a blog post printable PDF as a durable document entity"
+description: "Verifies system_generate renders a blog post printable PDF as a durable document artifact"
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -18,13 +18,13 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "document"
-        sourceAttachment.sourceEntityType: "post"
-        sourceAttachment.sourceEntityId: "resilience-in-distributed-systems"
-        sourceAttachment.attachmentType: "printable"
+        operation.kind: "attachment"
+        operation.source.entityType: "post"
+        operation.source.entityId: "resilience-in-distributed-systems"
+        operation.attachmentType: "printable"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

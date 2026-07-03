@@ -477,13 +477,13 @@ describe("initPilotRepo", () => {
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/chat");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/cms");
-    expect(userOnboarding).toContain("Register a passkey");
-    expect(userOnboarding).toContain("Capture → ask back → shape");
-    expect(userOnboarding).toContain("What your Rover holds");
-    expect(userOnboarding).toContain("make a wish");
-    expect(userOnboarding).toContain("Your Rover in the network");
-    expect(userOnboarding).toContain("The other doors");
-    expect(userOnboarding).toContain("<discord-invite>");
+    expect(userOnboarding).toContain("asked to set a passkey");
+    expect(userOnboarding).toContain("## What Rover is");
+    expect(userOnboarding).toContain("## Your first five minutes");
+    expect(userOnboarding).toContain("## The Chat and the CMS");
+    expect(userOnboarding).toContain("## Other ways to chat with Rover");
+    expect(userOnboarding).toContain("## Connecting Rover to other tools");
+    expect(userOnboarding).toContain("## Your access details");
 
     const readme = await readFile(join(repo, "README.md"), "utf8");
     expect(readme).toContain("brains-ops init");

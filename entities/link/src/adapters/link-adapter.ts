@@ -16,6 +16,8 @@ export class LinkAdapter extends BaseEntityAdapter<LinkEntity, LinkMetadata> {
   constructor() {
     super({
       entityType: "link",
+      purpose:
+        "A saved external URL or web resource captured for later reference.",
       schema: linkSchema,
       frontmatterSchema: linkFrontmatterSchema,
     });

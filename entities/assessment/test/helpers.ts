@@ -112,6 +112,7 @@ export class AgentAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "agent",
+      purpose: "Test entity for unit tests.",
       schema: testAgentEntitySchema,
       frontmatterSchema: testAgentFrontmatterSchema,
     });
@@ -151,6 +152,7 @@ export class SkillAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "skill",
+      purpose: "Test entity for unit tests.",
       schema: testSkillEntitySchema,
       frontmatterSchema: testSkillDataSchema,
     });

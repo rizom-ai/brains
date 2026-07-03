@@ -30,6 +30,7 @@ class MarkdownDocAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "markdown-doc",
+      purpose: "Test markdown-doc entity for unit tests.",
       schema: markdownDocSchema,
       frontmatterSchema: markdownDocMetadataSchema,
     });

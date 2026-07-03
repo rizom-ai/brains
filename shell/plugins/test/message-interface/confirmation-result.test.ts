@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   formatConfirmationResult,
   formatStructuredOutputSummary,
+  getConfirmationResultTitle,
 } from "../../src/message-interface/confirmation-result";
 
 describe("formatConfirmationResult", () => {
@@ -128,6 +129,14 @@ describe("formatConfirmationResult", () => {
       variant: "declined",
       label: "Declined",
     });
+  });
+});
+
+describe("getConfirmationResultTitle", () => {
+  it("maps confirmation variants to concise titles", () => {
+    expect(getConfirmationResultTitle("success")).toBe("Approval confirmed");
+    expect(getConfirmationResultTitle("declined")).toBe("Approval declined");
+    expect(getConfirmationResultTitle("error")).toBe("Action failed");
   });
 });
 

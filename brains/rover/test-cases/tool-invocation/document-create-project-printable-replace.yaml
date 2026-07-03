@@ -19,14 +19,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "document"
-        sourceAttachment.sourceEntityType: "project"
-        sourceAttachment.sourceEntityId: "city-pulse"
-        sourceAttachment.attachmentType: "printable"
-        replace: true
+        operation.kind: "attachment"
+        operation.source.entityType: "project"
+        operation.source.entityId: "city-pulse"
+        operation.attachmentType: "printable"
+        operation.replace: true
   responseNotContains:
     - "I cannot"
     - "I don't have access"

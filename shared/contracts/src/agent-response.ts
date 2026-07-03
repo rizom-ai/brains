@@ -244,10 +244,7 @@ export const ActionsCardSchema: z.ZodType<ActionsCard, ActionsCard> =
   ActionsCardSchemaImpl;
 
 export type StructuredChatCard =
-  | ToolApprovalCard
-  | AttachmentCard
-  | SourcesCard
-  | ActionsCard;
+  ToolApprovalCard | AttachmentCard | SourcesCard | ActionsCard;
 
 export const StructuredChatCardSchema: z.ZodType<
   StructuredChatCard,
@@ -259,11 +256,17 @@ export const StructuredChatCardSchema: z.ZodType<
   ActionsCardSchemaImpl,
 ]);
 
+export interface ToolResultErrorData {
+  message: string;
+  code?: string | undefined;
+}
+
 export interface ToolResultData {
   toolName: string;
   args?: Record<string, unknown> | undefined;
   jobId?: string | undefined;
   data?: unknown;
+  error?: ToolResultErrorData | undefined;
 }
 
 export const ToolResultDataSchema: z.ZodType<ToolResultData, ToolResultData> =
@@ -272,6 +275,12 @@ export const ToolResultDataSchema: z.ZodType<ToolResultData, ToolResultData> =
     args: z.record(z.string(), z.unknown()).optional(),
     jobId: z.string().optional(),
     data: z.unknown().optional(),
+    error: z
+      .object({
+        message: z.string(),
+        code: z.string().optional(),
+      })
+      .optional(),
   });
 
 export interface AgentResponseUsage {

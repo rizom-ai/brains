@@ -43,6 +43,7 @@ class VisibilityNoteAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "visibility-note",
+      purpose: "Test visibility-note entity for unit tests.",
       schema: visibilityNoteSchema,
       frontmatterSchema: z.object({
         title: z.string().optional(),

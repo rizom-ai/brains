@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.127",
+  "version": "0.2.0-alpha.137",
   "type": "module",
   "private": true,
   "main": "./src/index.ts",
@@ -55,6 +55,7 @@
     "@brains/portfolio": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/rizom-ecosystem": "workspace:*",
+    "@brains/rover-onboarding": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-default": "workspace:*",

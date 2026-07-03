@@ -2,15 +2,19 @@ import {
   permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
-import type { Tool } from "@brains/mcp-service";
+import { ConfirmationArgsStore, type Tool } from "@brains/mcp-service";
 import { deleteInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
-import { createSystemTool, getEntityDisplayLabel } from "./tool-helpers";
+import {
+  assertEntityTypeRegistered,
+  createSystemTool,
+  getEntityDisplayLabel,
+} from "./tool-helpers";
 
 export function createEntityDeleteTool(services: SystemServices): Tool {
   const { entityService, entityRegistry, logger } = services;
-  const pendingConfirmationTokens = new Set<string>();
+  const confirmationArgsStore = new ConfirmationArgsStore();
 
   return createSystemTool(
     "delete",
@@ -32,6 +36,14 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         context,
       );
       if (policyError) return policyError;
+
+      // Guard before getAdapter below, which would otherwise throw the raw
+      // "No adapter registered" registry string for an unregistered type.
+      const unregisteredError = assertEntityTypeRegistered(
+        services,
+        input.entityType,
+      );
+      if (unregisteredError) return unregisteredError;
 
       if (entityRegistry.getAdapter(input.entityType).isSingleton === true) {
         return {
@@ -55,38 +67,56 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
       const { entity } = resolved;
 
       if (input.confirmed) {
-        const token = input.confirmationToken;
-        if (token && pendingConfirmationTokens.has(token)) {
-          pendingConfirmationTokens.delete(token);
-          try {
-            await entityService.deleteEntity({
-              entityType: input.entityType,
-              id: entity.id,
-            });
-          } catch (error) {
-            return {
-              success: false,
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to delete entity",
-            };
-          }
-          return { success: true, data: { deleted: entity.id } };
+        const validation = confirmationArgsStore.validate(
+          input.confirmationToken,
+          input,
+        );
+        if (validation.status === "missing") {
+          return {
+            success: false,
+            error:
+              "No pending delete confirmation found. Please request deletion again and confirm the new approval.",
+          };
         }
+        if (validation.status === "mismatch") {
+          return {
+            success: false,
+            error:
+              "Confirmed delete arguments do not match the pending approval. Please request deletion again and confirm the new approval.",
+          };
+        }
+        try {
+          await entityService.deleteEntity({
+            entityType: input.entityType,
+            id: entity.id,
+          });
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to delete entity",
+          };
+        }
+        return { success: true, data: { deleted: entity.id } };
       }
 
       const label = getEntityDisplayLabel(entity);
-      const confirmationToken = crypto.randomUUID();
-      pendingConfirmationTokens.add(confirmationToken);
+      const args = confirmationArgsStore.create((confirmationToken) => ({
+        ...input,
+        id: entity.id,
+        confirmed: true,
+        confirmationToken,
+      }));
       return {
         needsConfirmation: true,
         toolName: "system_delete",
         summary: `Delete "${label}"?`,
         preview: entity.content.slice(0, 200),
-        args: { ...input, id: entity.id, confirmed: true, confirmationToken },
+        args,
       };
     },
-    { visibility: "public", sideEffects: "writes" },
+    { visibility: "anchor", sideEffects: "writes" },
   );
 }

@@ -74,6 +74,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<
         async (input) => {
           return this.sync(context, input.entityTypes);
         },
+        { sideEffects: "external" },
       ),
     ];
   }

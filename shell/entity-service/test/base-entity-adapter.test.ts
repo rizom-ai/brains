@@ -35,6 +35,7 @@ class TestAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "test",
+      purpose: "Test entity for unit tests.",
       schema: testEntitySchema,
       frontmatterSchema: testFrontmatterSchema,
     });
@@ -118,6 +119,7 @@ describe("BaseEntityAdapter", () => {
         constructor() {
           super({
             entityType: "test",
+            purpose: "Test entity for unit tests.",
             schema: testEntitySchema,
             frontmatterSchema: testFrontmatterSchema,
             isSingleton: true,
@@ -223,6 +225,7 @@ describe("BaseEntityAdapter", () => {
       constructor() {
         super({
           entityType: "test",
+          purpose: "Test entity for unit tests.",
           schema: testEntitySchema,
           frontmatterSchema: testFrontmatterSchema,
         });

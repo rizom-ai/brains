@@ -28,6 +28,7 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "anchor-profile",
+      purpose: "The profile of the brain's anchor owner (singleton).",
       schema: anchorProfileSchema,
       frontmatterSchema: anchorProfileBodySchema,
       isSingleton: true,

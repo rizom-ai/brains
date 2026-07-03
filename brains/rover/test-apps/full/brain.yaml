@@ -15,9 +15,8 @@ permissions:
       level: public
 
 plugins:
-  playbooks:
-    triggers:
-      first-anchor-web-chat: true
+  rover-onboarding:
+    enabled: true
   chat:
     adapters:
       discord:

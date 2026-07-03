@@ -163,14 +163,12 @@ function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
             .filter(
               ([key]) => keyPrefix === undefined || key.startsWith(keyPrefix),
             )
-            .map(
-              ([key, record]): RuntimeStateRecordValue<T> => ({
-                key,
-                value: options.schema.parse(record.value),
-                createdAt: record.createdAt,
-                updatedAt: record.updatedAt,
-              }),
-            ),
+            .map(([key, record]): RuntimeStateRecordValue<T> => ({
+              key,
+              value: options.schema.parse(record.value),
+              createdAt: record.createdAt,
+              updatedAt: record.updatedAt,
+            })),
         clear: async ({ keyPrefix } = {}): Promise<number> => {
           const keys = Array.from(records.keys()).filter(
             (key) => keyPrefix === undefined || key.startsWith(keyPrefix),
@@ -313,6 +311,31 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         contentHash: computeContentHash(content),
       });
       return { entityId: id, jobId: `job-${id}`, skipped: false };
+    },
+    createEntityFromMarkdown: async (request: {
+      input: { entityType: string; id: string; markdown: string };
+    }) => {
+      const adapter = entityAdapters.get(request.input.entityType);
+      const parsed = adapter?.fromMarkdown(request.input.markdown) ?? {
+        entityType: request.input.entityType,
+        content: request.input.markdown,
+        metadata: {},
+      };
+      const now = new Date().toISOString();
+      const entity = {
+        ...parsed,
+        id: request.input.id,
+        entityType: request.input.entityType,
+        content: parsed.content ?? request.input.markdown,
+        metadata: parsed.metadata ?? {},
+        visibility: "public" as const,
+        created: now,
+        updated: now,
+        contentHash: computeContentHash(
+          parsed.content ?? request.input.markdown,
+        ),
+      } as BaseEntity;
+      return entityService.createEntity({ entity });
     },
     updateEntity: async (request: { entity: BaseEntity }) => {
       const entity = request.entity;

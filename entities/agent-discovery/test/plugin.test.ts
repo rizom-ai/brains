@@ -1,23 +1,20 @@
 import { describe, it, expect } from "bun:test";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  expectConfirmation,
+  expectSuccess,
+} from "@brains/plugins/test";
 import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   ATPROTO_BRAIN_CARD_REFRESHED,
   ATPROTO_BRAIN_DISCOVERED,
 } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod-v4";
+import type { Plugin } from "@brains/plugins";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
+import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
+import type { FetchFn } from "../src/lib/fetch-agent-card";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
-
-const handledJobResultSchema = z.object({
-  kind: z.literal("handled"),
-  result: z.object({
-    data: z.object({
-      jobId: z.string(),
-    }),
-  }),
-});
 
 function makeAgentEntity(status: AgentStatus): AgentEntity {
   return createTestAgent({
@@ -28,6 +25,39 @@ function makeAgentEntity(status: AgentStatus): AgentEntity {
     status,
     about: "A saved agent.",
   });
+}
+
+function createAgentCard(domain: string): Record<string, unknown> {
+  return {
+    name: "Remote Brain",
+    description: "A verified peer brain.",
+    url: `https://${domain}/a2a`,
+    skills: [
+      {
+        id: "research",
+        name: "Research",
+        description: "Research topics for collaborators.",
+        tags: ["research"],
+      },
+    ],
+  };
+}
+
+function createMockAgentCardFetch(
+  cards: Record<string, Record<string, unknown>>,
+): { fetch: FetchFn; calls: string[] } {
+  const calls: string[] = [];
+  return {
+    calls,
+    fetch: async (url: string | URL | Request): Promise<Response> => {
+      const urlString = typeof url === "string" ? url : url.toString();
+      calls.push(urlString);
+      const hostname = new URL(urlString).hostname;
+      const card = cards[hostname];
+      if (!card) return new Response("not found", { status: 404 });
+      return new Response(JSON.stringify(card), { status: 200 });
+    },
+  };
 }
 
 const testBrainCardPayload = {
@@ -86,219 +116,221 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
-  it("should treat explicit agent saves as approved generation jobs", async () => {
+  it("does not register system_create URL interception for agent contacts", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();
 
     await harness.installPlugin(plugin);
 
-    const interceptor = harness
-      .getEntityRegistry()
-      .getCreateInterceptor("agent");
-    if (!interceptor) throw new Error("Expected agent create interceptor");
+    expect(
+      harness.getEntityRegistry().getCreateInterceptor("agent"),
+    ).toBeUndefined();
 
-    const result = await interceptor(
-      {
-        entityType: "agent",
-        url: "https://yeehaa.io",
-      },
-      {
-        interfaceType: "test",
-        userId: "test-user",
-      },
+    harness.reset();
+  });
+
+  it("registers agent_connect as the canonical confirmation-gated A2A verification tool", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({
+      "connect-followup.example": createAgentCard("connect-followup.example"),
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+
+    const tool = harness
+      .getCapabilities()
+      .tools.find((candidate) => candidate.name === "agent_connect");
+    expect(tool?.visibility).toBe("trusted");
+    expect(tool?.sideEffects).toBe("external");
+    expect(tool?.description).toContain("/.well-known/agent-card.json");
+    expect(tool?.description).toContain(
+      "Call this tool without confirmed on the initial request",
+    );
+    expect(tool?.description).not.toContain("prior conversation turn");
+
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "connect-followup.example" },
+    });
+
+    expectConfirmation(confirmation);
+    expect(confirmation.toolName).toBe("agent_connect");
+    expect(confirmation.summary).toBe(
+      "Verify and connect agent connect-followup.example?",
+    );
+    const confirmationArgs = confirmation.args as Record<string, unknown>;
+    expect(confirmationArgs).toMatchObject({
+      source: { kind: "url", url: "connect-followup.example" },
+      confirmed: true,
+    });
+    expect(typeof confirmationArgs["confirmationToken"]).toBe("string");
+
+    const result = await harness.executeTool("agent_connect", confirmationArgs);
+
+    expectSuccess(result);
+    expect(result.data).toMatchObject({
+      status: "approved",
+      entityId: "connect-followup.example",
+      connected: true,
+      created: true,
+      a2aEndpoint: "https://connect-followup.example/a2a",
+      skills: [
+        {
+          name: "Research",
+          description: "Research topics for collaborators.",
+          tags: ["research"],
+        },
+      ],
+    });
+    expect(fetchMock.calls).toEqual([
+      "https://connect-followup.example/.well-known/agent-card.json",
+    ]);
+
+    const saved = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "connect-followup.example",
+    });
+    expect(saved?.metadata.status).toBe("approved");
+    expect(saved?.metadata.a2aEndpoint).toBe(
+      "https://connect-followup.example/a2a",
+    );
+    expect(saved?.content).toContain("Research");
+
+    harness.reset();
+  });
+
+  it("returns not_an_agent when agent_connect cannot verify an Agent Card", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({});
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "missing.example" },
+    });
+    expectConfirmation(confirmation);
+
+    const result = await harness.executeTool(
+      "agent_connect",
+      confirmation.args as Record<string, unknown>,
     );
 
-    expect(result).toMatchObject({
-      kind: "handled",
-      result: {
-        success: true,
-        data: { status: "generating" },
-      },
+    expect(result).toEqual({
+      success: false,
+      error: "Could not verify an A2A Agent Card for missing.example.",
+      code: "not_an_agent",
+    });
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "agent",
+        id: "missing.example",
+      }),
+    ).toBeNull();
+
+    harness.reset();
+  });
+
+  it("rejects confirmed agent_connect args that do not match pending approval", async () => {
+    const harness = createPluginHarness<Plugin>({});
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin());
+
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "connect-original.example" },
+    });
+    expectConfirmation(confirmation);
+
+    const result = await harness.executeTool("agent_connect", {
+      ...(confirmation.args as Record<string, unknown>),
+      source: { kind: "url", url: "connect-changed.example" },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Confirmed agent connection arguments do not match the pending approval. Please request connection again and confirm the new approval.",
     });
 
     harness.reset();
   });
 
-  it("coalesces repeated explicit saves for the same domain and disables retries", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
-    const mockShell = harness.getMockShell();
-    const origJobQueue = mockShell.getJobQueueService();
-    const enqueued: Array<{
-      type: string;
-      options: unknown;
-      jobId: string;
-    }> = [];
-    const coalescedJobs = new Map<string, string>();
+  it("agent_connect approves an existing discovered agent", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({
+      "yeehaa.io": createAgentCard("yeehaa.io"),
+    });
 
-    mockShell.getJobQueueService = (): ReturnType<
-      typeof mockShell.getJobQueueService
-    > => {
-      const jobQueue: ReturnType<typeof mockShell.getJobQueueService> = {
-        ...origJobQueue,
-        enqueue: async (request) => {
-          const jobOptions = request.options;
-          const dedupeKey =
-            jobOptions?.deduplication === "coalesce"
-              ? `${request.type}:${jobOptions.deduplicationKey ?? ""}`
-              : undefined;
-          const existingJobId = dedupeKey
-            ? coalescedJobs.get(dedupeKey)
-            : undefined;
-
-          const jobId = existingJobId ?? (await origJobQueue.enqueue(request));
-          if (dedupeKey && !existingJobId) {
-            coalescedJobs.set(dedupeKey, jobId);
-          }
-
-          enqueued.push({
-            type: request.type,
-            options: request.options,
-            jobId,
-          });
-          return jobId;
-        },
-      };
-      return jobQueue;
-    };
-
-    await harness.installPlugin(plugin);
-
-    const interceptor = harness
-      .getEntityRegistry()
-      .getCreateInterceptor("agent");
-    if (!interceptor) throw new Error("Expected agent create interceptor");
-
-    const first = handledJobResultSchema.parse(
-      await interceptor(
-        {
-          entityType: "agent",
-          url: "https://yeehaa.io",
-        },
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      ),
-    );
-
-    const second = handledJobResultSchema.parse(
-      await interceptor(
-        {
-          entityType: "agent",
-          url: "yeehaa.io",
-        },
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      ),
-    );
-
-    expect(first.result.data.jobId).toBeDefined();
-    expect(second.result.data.jobId).toBe(first.result.data.jobId);
-    expect(enqueued).toHaveLength(2);
-    expect(enqueued[0]?.type).toBe("agent:generation");
-    expect(enqueued[0]?.options).toEqual(
-      expect.objectContaining({
-        deduplication: "coalesce",
-        deduplicationKey: "yeehaa.io",
-        maxRetries: 0,
-      }),
-    );
-    expect(enqueued[1]?.options).toEqual(
-      expect.objectContaining({
-        deduplication: "coalesce",
-        deduplicationKey: "yeehaa.io",
-        maxRetries: 0,
-      }),
-    );
-
-    harness.reset();
-  });
-
-  it("should treat re-saving an existing approved agent as idempotent", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
-
-    await harness.installPlugin(plugin);
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
     await harness
       .getEntityService()
-      .createEntity({ entity: makeAgentEntity("approved") });
+      .createEntity({ entity: makeAgentEntity("discovered") });
 
-    const interceptor = harness
-      .getEntityRegistry()
-      .getCreateInterceptor("agent");
-    if (!interceptor) throw new Error("Expected agent create interceptor");
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "https://yeehaa.io" },
+    });
+    expectConfirmation(confirmation);
 
-    const result = await interceptor(
-      {
-        entityType: "agent",
-        url: "https://yeehaa.io",
-      },
-      {
-        interfaceType: "test",
-        userId: "test-user",
-      },
+    const result = await harness.executeTool(
+      "agent_connect",
+      confirmation.args as Record<string, unknown>,
     );
 
-    expect(result).toEqual({
-      kind: "handled",
-      result: {
-        success: true,
-        data: { status: "created", entityId: "yeehaa.io" },
-      },
+    expectSuccess(result);
+    expect(result.data).toMatchObject({
+      status: "approved",
+      entityId: "yeehaa.io",
+      connected: true,
+      created: false,
     });
 
     const entities = await harness.getEntityService().listEntities({
       entityType: "agent",
     });
     expect(entities).toHaveLength(1);
+    expect(entities[0]?.metadata["status"]).toBe("approved");
+    expect(entities[0]?.content).toContain("status: approved");
 
     harness.reset();
   });
 
-  it("should approve an existing discovered agent instead of enqueueing a duplicate create", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+  it("agent_connect refreshes an existing approved agent without downgrading approval", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({
+      "yeehaa.io": createAgentCard("yeehaa.io"),
+    });
 
-    await harness.installPlugin(plugin);
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
     await harness
       .getEntityService()
-      .createEntity({ entity: makeAgentEntity("discovered") });
+      .createEntity({ entity: makeAgentEntity("approved") });
 
-    const interceptor = harness
-      .getEntityRegistry()
-      .getCreateInterceptor("agent");
-    if (!interceptor) throw new Error("Expected agent create interceptor");
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "https://yeehaa.io" },
+    });
+    expectConfirmation(confirmation);
 
-    const result = await interceptor(
-      {
-        entityType: "agent",
-        url: "https://yeehaa.io",
-      },
-      {
-        interfaceType: "test",
-        userId: "test-user",
-      },
+    const result = await harness.executeTool(
+      "agent_connect",
+      confirmation.args as Record<string, unknown>,
     );
 
-    expect(result).toEqual({
-      kind: "handled",
-      result: {
-        success: true,
-        data: { status: "created", entityId: "yeehaa.io" },
-      },
+    expectSuccess(result);
+    expect(result.data).toMatchObject({
+      status: "approved",
+      entityId: "yeehaa.io",
+      connected: true,
+      created: false,
     });
 
-    const updated = await harness.getEntityService().getEntity<AgentEntity>({
+    const entities = await harness.getEntityService().listEntities({
       entityType: "agent",
-      id: "yeehaa.io",
     });
-    expect(updated?.metadata.status).toBe("approved");
-    // Content is derived from metadata on write via AgentAdapter.toMarkdown
-    // (covered in agent-adapter.test.ts). The mock entityService stores
-    // content verbatim, so asserting on content here would test the mock.
+    expect(entities).toHaveLength(1);
+    expect(entities[0]?.metadata["status"]).toBe("approved");
 
     harness.reset();
   });

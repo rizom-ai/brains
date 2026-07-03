@@ -27,6 +27,8 @@ export class DocumentAdapter implements EntityAdapter<
   DocumentMetadata
 > {
   public readonly entityType = "document" as const;
+  public readonly purpose =
+    "A durable rendered file artifact such as a printable or carousel PDF.";
   public readonly schema: typeof documentSchema = documentSchema;
 
   public toMarkdown(entity: DocumentEntity): string {

@@ -24,7 +24,10 @@ permissions:
     responseNotContains:
       - "Confirmation required"
       - "created"
-      - "saved"
+      - "I've saved"
+      - "I saved"
+      - "saved it"
+      - "successfully saved"
       - "done"
   trusted:
     expectedTools:
@@ -32,10 +35,14 @@ permissions:
         shouldBeCalled: true
         argsContain:
           entityType: note
+          source.kind: text
     responseNotContains:
       - "Confirmation required"
       - "created"
-      - "saved"
+      - "I've saved"
+      - "I saved"
+      - "saved it"
+      - "successfully saved"
       - "done"
   anchor:
     expectedTools:
@@ -43,6 +50,7 @@ permissions:
         shouldBeCalled: true
         argsContain:
           entityType: note
+          source.kind: text
         argsAbsent:
           - upload
           - sourceAttachment

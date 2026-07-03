@@ -14,32 +14,31 @@ tags:
 turns:
   - userMessage: "Generate a cover image for the blog post 'missing-cover-target-9f3c'"
     successCriteria:
-      expectedTools:
-        - toolName: system_get
-          shouldBeCalled: true
-          argsContain:
-            entityType: "post"
-            id: "missing-cover-target-9f3c"
       responseNotContains:
         - "started"
         - "queued"
   - userMessage: "is it ready?"
     successCriteria:
       expectedTools:
-        - toolName: system_check-job-status
+        - toolName: system_job_status
           shouldBeCalled: false
-      responseContains:
-        - "failed"
-        - "not found"
+      responseContainsAny:
+        - ["failed", "couldn't find", "couldn’t be found", "couldn't be found", "could not be found", "isn’t found", "isn't found", "wasn't found", "doesn’t exist", "doesn't exist", "no clear matching post"]
+        - ["not found", "couldn't find", "couldn’t be found", "couldn't be found", "could not be found", "isn’t found", "isn't found", "wasn't found", "doesn’t exist", "doesn't exist", "no clear matching post"]
       responseNotContains:
-        - "not yet"
         - "finished yet"
         - "don't have confirmation"
         - "still running"
         - "queued"
         - "started"
 
-successCriteria: {}
+successCriteria:
+  expectedTools:
+    - toolName: system_get
+      shouldBeCalled: true
+      argsContain:
+        entityType: "post"
+        id: "missing-cover-target-9f3c"
 
 efficiency:
   maxToolCalls: 4

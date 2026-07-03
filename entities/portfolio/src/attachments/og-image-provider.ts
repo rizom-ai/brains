@@ -18,6 +18,11 @@ export interface ProjectOgImageAttachmentProviderDeps {
 }
 
 export class ProjectOgImageAttachmentProvider implements AttachmentProvider {
+  readonly metadata = {
+    outputEntityType: "image",
+    targetField: "ogImageId",
+  } as const;
+
   private readonly context: Pick<
     EntityPluginContext,
     "entityService" | "themeCSS" | "identity" | "domain"

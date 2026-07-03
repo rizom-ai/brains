@@ -22,6 +22,7 @@ export class SocialPostAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "social-post",
+      purpose: "A short post drafted for social media such as LinkedIn or X.",
       schema: socialPostSchema,
       frontmatterSchema: socialPostFrontmatterSchema,
       supportsCoverImage: true,

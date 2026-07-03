@@ -139,14 +139,9 @@ Native dependencies (`sharp` for image processing, `@libsql/client` or `better-s
 
 ## Deployment
 
-`brains` is designed to run as a single self-contained process on a small VM. The shipped deployment recipe builds a Docker image with everything baked in (Bun runtime, your brain code, native deps, embedding model) and runs it behind TLS with one command.
+`brains` is designed to run as a single self-contained process on a small VM. `brain init <dir> --deploy` scaffolds a GitHub Actions + Kamal pipeline that builds a Docker image with everything baked in (Bun runtime, your brain code, native deps, embedding model) and runs it behind TLS, with a Cloudflare Origin CA certificate provisioned via `brain cert:bootstrap`.
 
-```bash
-brain build --model rover
-brain deploy --provider hetzner
-```
-
-See [deploy/README.md](../../deploy/README.md) for the full deployment guide. Reference brains run on Hetzner Cloud at €5–10/month. Other providers (Fly.io, Railway, generic Docker hosts) work with minor recipe edits.
+See the [deployment guide](../../packages/brain-cli/docs/deployment-guide.md) for the full flow. Reference brains run on Hetzner Cloud at €5–10/month.
 
 ---
 
@@ -174,7 +169,7 @@ docs/                 Architecture, plugin development, deployment, theming
 - [Plugin system](../plugin-system.md) and [external plugin authoring](../external-plugin-authoring.md)
 - [`brain.yaml` reference](../../packages/brain-cli/docs/brain-yaml-reference.md)
 - [Theming guide](../theming-guide.md)
-- [Deployment](../../deploy/README.md)
+- [Deployment](../../packages/brain-cli/docs/deployment-guide.md)
 - [Stability commitments](./STABILITY.md)
 - [Roadmap](../roadmap.md)
 

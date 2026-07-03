@@ -1,6 +1,6 @@
 id: tool-invocation-agent-call-unknown-url
-name: Refuse Unknown Agent by URL
-description: Tests that the agent refuses to call an unknown agent even when the user provides a full URL
+name: Call Unknown Agent by HTTPS URL
+description: Tests that an HTTPS agent URL can be canonicalized to its hostname for agent_call, with runtime verification/contact over HTTPS and no auto-save.
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -15,16 +15,25 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: a2a_call
+    - toolName: agent_call
+      shouldBeCalled: true
+      argsContain:
+        agent: unknown-agent.io
+      argsAbsent:
+        - confirmed
+        - confirmationToken
+    - toolName: agent_connect
       shouldBeCalled: false
     - toolName: system_create
       shouldBeCalled: false
-  responseContains:
-    - "directory"
-    - "add"
+  responseContainsAny:
+    - ["could not verify", "couldn’t verify", "could not contact", "couldn’t contact"]
+    - ["unknown-agent.io"]
   responseNotContains:
     - "I called"
     - "I reached out"
+    - "saved"
+    - "connected"
 
 efficiency:
   maxToolCalls: 3

@@ -38,6 +38,13 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+      # Changesets' GitHub changelog lookup currently uses node-fetch@2,
+      # which can fail with ERR_STREAM_PREMATURE_CLOSE on the Node versions
+      # bundled in the ubuntu-24.04 runner image. Pin a fixed Node release
+      # before invoking the changeset CLI through its Node shebang.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.18.0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

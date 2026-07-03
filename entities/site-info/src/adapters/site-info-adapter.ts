@@ -22,6 +22,7 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "site-info",
+      purpose: "Singleton configuration describing the published site.",
       schema: siteInfoSchema,
       frontmatterSchema: siteInfoBodySchema,
       isSingleton: true,

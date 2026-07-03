@@ -35,7 +35,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "link"
-            url: "https://www.planetir.org/welcome"
+            source.kind: "url"
+            source.url: "https://www.planetir.org/welcome"
       responseNotContains:
         - "can't extract content from a bare link"
         - "cannot extract content from a bare link"

@@ -40,6 +40,8 @@ export interface CreateImageInput {
  */
 export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   public readonly entityType = "image" as const;
+  public readonly purpose =
+    "Image assets such as generated covers, social previews, and uploaded images.";
   public readonly schema: EntitySchema<Image> = imageSchema;
 
   public toMarkdown(entity: Image): string {

@@ -40,12 +40,14 @@ class ConversationMemoryEntityAdapter<
 
   constructor(config: {
     entityType: string;
+    purpose: string;
     schema: EntitySchema<TEntity>;
     metadataSchema: BaseEntityFrontmatterSchema<Record<string, unknown>>;
     parseMetadata: TypedFrontmatterSchema<TMetadata>;
   }) {
     super({
       entityType: config.entityType,
+      purpose: config.purpose,
       schema: config.schema,
       frontmatterSchema: config.metadataSchema,
     });
@@ -83,6 +85,7 @@ export class DecisionAdapter extends ConversationMemoryEntityAdapter<
   constructor() {
     super({
       entityType: DECISION_ENTITY_TYPE,
+      purpose: "A decision recorded from a conversation.",
       schema: decisionSchema,
       metadataSchema: decisionMetadataSchema,
       parseMetadata: decisionMetadataSchema,
@@ -97,6 +100,7 @@ export class ActionItemAdapter extends ConversationMemoryEntityAdapter<
   constructor() {
     super({
       entityType: ACTION_ITEM_ENTITY_TYPE,
+      purpose: "An action item captured from a conversation.",
       schema: actionItemSchema,
       metadataSchema: actionItemMetadataSchema,
       parseMetadata: actionItemMetadataSchema,

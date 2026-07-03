@@ -1,6 +1,6 @@
 id: tool-invocation-agent-docs-follow-up
 name: Repeated Docs Agent Request Uses Fresh A2A Call
-description: Tests that follow-up requests to ask the same saved docs agent make a fresh a2a_call and do not recreate the agent or answer from memory.
+description: Tests that follow-up requests to ask the same saved docs agent make a fresh agent_call and do not reconnect the agent or answer from memory.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -16,11 +16,11 @@ turns:
   - userMessage: "Can you ask docs.rizom.ai for help? I want to know how to set up a new rover/"
     successCriteria:
       expectedTools:
-        - toolName: a2a_call
+        - toolName: agent_call
           shouldBeCalled: true
           argsContain:
             agent: "docs.rizom.ai"
-        - toolName: system_create
+        - toolName: agent_connect
           shouldBeCalled: false
       responseNotContains:
         - "I can't contact docs.rizom.ai directly"
@@ -30,11 +30,11 @@ turns:
   - userMessage: "can you ask it my question now?"
     successCriteria:
       expectedTools:
-        - toolName: a2a_call
+        - toolName: agent_call
           shouldBeCalled: true
           argsContain:
             agent: "docs.rizom.ai"
-        - toolName: system_create
+        - toolName: agent_connect
           shouldBeCalled: false
       responseNotContains:
         - "I need to know whether you mean"
@@ -46,11 +46,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: a2a_call
+    - toolName: agent_call
       shouldBeCalled: true
       argsContain:
         agent: "docs.rizom.ai"
-    - toolName: system_create
+    - toolName: agent_connect
       shouldBeCalled: false
   responseNotContains:
     - "I need to know whether you mean"

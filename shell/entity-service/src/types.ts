@@ -197,9 +197,17 @@ export interface CreateFromUploadInput {
   id: string;
 }
 
-export type CreateFromInput = CreateFromAttachmentInput | CreateFromUploadInput;
+export interface CreateFromConversationMessageInput {
+  kind: "conversation-message";
+  messageId?: string | undefined;
+}
 
-export type CreateTransform = "extract-markdown";
+export type CreateFromInput =
+  | CreateFromAttachmentInput
+  | CreateFromUploadInput
+  | CreateFromConversationMessageInput;
+
+export type CreateTransform = "extract-markdown" | "preserve";
 
 export interface CreateInput {
   entityType: string;
@@ -210,6 +218,9 @@ export interface CreateInput {
   from?: CreateFromInput;
   transform?: CreateTransform;
   replace?: boolean;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  sourceEntityIds?: string[];
   targetEntityType?: string;
   targetEntityId?: string;
   coverImage?: boolean | CreateCoverImageInput;
@@ -326,6 +337,14 @@ export interface EntityAdapter<
   TMetadata = Record<string, unknown>,
 > {
   entityType: string;
+
+  /**
+   * One declarative sentence describing what this entity type is. This is the
+   * data the model reads to select `entityType`, replacing hardcoded example
+   * phrasings in system instructions. Required: every type must define itself.
+   */
+  purpose: string;
+
   schema: EntitySchema<TEntity>;
 
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)

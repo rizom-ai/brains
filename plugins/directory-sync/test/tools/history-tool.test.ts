@@ -128,6 +128,11 @@ describe("directory-sync_history tool", () => {
       expect(tool.name).toBe("directory-sync_history");
     });
 
+    it("declares anchor-only read semantics", () => {
+      expect(tool.visibility).toBe("anchor");
+      expect(tool.sideEffects).toBe("none");
+    });
+
     it("should have a description", () => {
       expect(tool.description).toBeDefined();
       expect(tool.description.length).toBeGreaterThan(0);

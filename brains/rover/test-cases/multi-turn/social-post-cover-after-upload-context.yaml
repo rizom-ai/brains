@@ -45,10 +45,11 @@ turns:
       responseContains:
         - "Confirmation required"
       expectedTools:
-        - toolName: system_create
+        - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            entityType: social-post
+            operation.entityType: social-post
+            operation.kind: prompt
 
   - userMessage: "Confirm creation"
     confirmPendingAction: true
@@ -61,11 +62,11 @@ turns:
       responseContains:
         - "Confirmation required"
       expectedTools:
-        - toolName: system_create
+        - toolName: system_generate
           shouldBeCalled: true
           argsContain:
-            entityType: image
-            targetEntityType: social-post
+            operation.kind: "cover-image"
+            operation.target.entityType: social-post
 
   - userMessage: "Confirm creation"
     confirmPendingAction: true
@@ -77,11 +78,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: image
-        targetEntityType: social-post
+        operation.kind: "cover-image"
+        operation.target.entityType: social-post
   responseNotContains:
     - "Upload ref not found"
 

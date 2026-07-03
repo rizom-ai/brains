@@ -1,6 +1,6 @@
 id: tool-invocation-document-create-carousel-attach
-name: Save Deck Carousel and Attach to Social Post
-description: "Verifies system_create saves a deck carousel PDF and attaches it to a target social post"
+name: Generate Deck Carousel PDF from Deck Source
+description: "Verifies system_generate renders the carousel from a resolved deck source"
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -17,15 +17,13 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "document"
-        sourceAttachment.sourceEntityType: "deck"
-        sourceAttachment.sourceEntityId: "distributed-systems-primer"
-        sourceAttachment.attachmentType: "carousel"
-        targetEntityType: "social-post"
-        targetEntityId: "publish-policy-draft"
+        operation.kind: "attachment"
+        operation.source.entityType: "deck"
+        operation.source.entityId: "distributed-systems-primer"
+        operation.attachmentType: "carousel"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

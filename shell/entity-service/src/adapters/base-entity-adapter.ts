@@ -31,6 +31,7 @@ export interface BaseEntityAdapterConfig<
   TFrontmatter = DefaultEntityFrontmatter<TMetadata>,
 > {
   entityType: string;
+  purpose: string;
   schema: EntitySchema<TEntity>;
   frontmatterSchema: BaseEntityFrontmatterSchema<TFrontmatter>;
   isSingleton?: boolean;
@@ -54,6 +55,7 @@ export abstract class BaseEntityAdapter<
   TFrontmatter = DefaultEntityFrontmatter<TMetadata>,
 > implements EntityAdapter<TEntity, TMetadata> {
   public readonly entityType: string;
+  public readonly purpose: string;
   public readonly schema: EntitySchema<TEntity>;
   public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
   public readonly isSingleton?: boolean;
@@ -68,6 +70,7 @@ export abstract class BaseEntityAdapter<
     config: BaseEntityAdapterConfig<TEntity, TMetadata, TFrontmatter>,
   ) {
     this.entityType = config.entityType;
+    this.purpose = config.purpose;
     this.schema = config.schema;
     this.frontmatterSchema = config.frontmatterSchema;
     this.fmSchema = config.frontmatterSchema;

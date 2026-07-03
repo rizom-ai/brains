@@ -1,8 +1,10 @@
 import { z } from "@brains/utils/zod-v4";
 import {
   AttachmentCardSchema,
+  StructuredChatCardSchema,
   ToolApprovalCardSchema,
   type AttachmentCard,
+  type StructuredChatCard,
 } from "../contracts/agent";
 
 const storedAttachmentSourceSchema = z.object({
@@ -51,15 +53,22 @@ export function getStoredMessageAttachments(
 }
 
 export function getStoredAttachmentCards(metadata: unknown): AttachmentCard[] {
+  const attachmentCards = getStoredMessageCards(metadata).filter(
+    (card): card is AttachmentCard => card.kind === "attachment",
+  );
+  const parsedCards = storedAttachmentCardsSchema.safeParse(attachmentCards);
+  return parsedCards.success ? parsedCards.data : [];
+}
+
+export function getStoredMessageCards(metadata: unknown): StructuredChatCard[] {
   const parsedMetadata = parseStoredMessageMetadata(metadata);
   const cards = parsedMetadata?.["cards"];
   if (!Array.isArray(cards)) return [];
 
-  const attachmentCards = cards.filter(
-    (card) => parseMetadataRecord(card)?.["kind"] === "attachment",
-  );
-  const parsedCards = storedAttachmentCardsSchema.safeParse(attachmentCards);
-  return parsedCards.success ? parsedCards.data : [];
+  return cards
+    .map((card) => StructuredChatCardSchema.safeParse(card))
+    .filter((result) => result.success)
+    .map((result) => result.data);
 }
 
 export function collectUploadIdsFromStoredMessages(

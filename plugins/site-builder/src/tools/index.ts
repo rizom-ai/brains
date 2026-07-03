@@ -31,6 +31,7 @@ export function createSiteBuilderTools(
         };
       },
       {
+        sideEffects: "external",
         cli: { name: "build" },
       },
     ),

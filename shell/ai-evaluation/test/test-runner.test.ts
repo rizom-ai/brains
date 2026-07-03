@@ -899,7 +899,10 @@ describe("TestRunner", () => {
             toolResults: [
               {
                 toolName: "system_create",
-                args: { entityType: "image", prompt: "a landscape" },
+                args: {
+                  entityType: "image",
+                  source: { kind: "generate", prompt: "a landscape" },
+                },
                 data: "ok",
               },
             ],
@@ -934,7 +937,10 @@ describe("TestRunner", () => {
             toolResults: [
               {
                 toolName: "system_create",
-                args: { entityType: "deck", content: "# Final deck" },
+                args: {
+                  entityType: "deck",
+                  source: { kind: "text", content: "# Final deck" },
+                },
                 data: "ok",
               },
             ],

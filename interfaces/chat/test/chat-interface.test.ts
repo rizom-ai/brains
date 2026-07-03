@@ -1659,7 +1659,7 @@ describe("ChatInterface", () => {
     ]);
   });
 
-  it("reuses the most recent trusted upload on follow-up requests", async () => {
+  it("passes recent trusted uploads as follow-up candidates without message-text selection", async () => {
     harness.setPermissionService(
       new PermissionService({
         rules: [{ pattern: "discord:*", level: "trusted" }],
@@ -1712,17 +1712,25 @@ describe("ChatInterface", () => {
     expect(agentService.chat.mock.calls[2]?.[0]).toBe(
       "describe the most recent image",
     );
-    expect(agentService.chat.mock.calls[2]?.[2]?.attachments).toEqual([
-      expect.objectContaining({
-        kind: "file",
-        filename: "second-robot.png",
-        mediaType: "image/png",
-        data: secondImage,
-      }),
-    ]);
+    expect(agentService.chat.mock.calls[2]?.[2]?.attachments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "file",
+          filename: "first-robot.png",
+          mediaType: "image/png",
+          data: firstImage,
+        }),
+        expect.objectContaining({
+          kind: "file",
+          filename: "second-robot.png",
+          mediaType: "image/png",
+          data: secondImage,
+        }),
+      ]),
+    );
   });
 
-  it("reuses the first trusted upload on follow-up requests", async () => {
+  it("keeps prior trusted upload candidates even when the follow-up says first", async () => {
     harness.setPermissionService(
       new PermissionService({
         rules: [{ pattern: "discord:*", level: "trusted" }],
@@ -1772,17 +1780,25 @@ describe("ChatInterface", () => {
       }),
     );
 
-    expect(agentService.chat.mock.calls[2]?.[2]?.attachments).toEqual([
-      expect.objectContaining({
-        kind: "file",
-        filename: "first-robot.png",
-        mediaType: "image/png",
-        data: firstImage,
-      }),
-    ]);
+    expect(agentService.chat.mock.calls[2]?.[2]?.attachments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "file",
+          filename: "first-robot.png",
+          mediaType: "image/png",
+          data: firstImage,
+        }),
+        expect.objectContaining({
+          kind: "file",
+          filename: "second-robot.png",
+          mediaType: "image/png",
+          data: secondImage,
+        }),
+      ]),
+    );
   });
 
-  it("selects prior trusted uploads by filename on follow-up requests", async () => {
+  it("passes prior trusted uploads by filename as model-visible candidates", async () => {
     harness.setPermissionService(
       new PermissionService({
         rules: [{ pattern: "discord:*", level: "trusted" }],
@@ -1826,14 +1842,22 @@ describe("ChatInterface", () => {
     expect(agentService.chat.mock.calls[1]?.[0]).toBe(
       "describe first-robot.png",
     );
-    expect(agentService.chat.mock.calls[1]?.[2]?.attachments).toEqual([
-      expect.objectContaining({
-        kind: "file",
-        filename: "first-robot.png",
-        mediaType: "image/png",
-        data: firstImage,
-      }),
-    ]);
+    expect(agentService.chat.mock.calls[1]?.[2]?.attachments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "file",
+          filename: "first-robot.png",
+          mediaType: "image/png",
+          data: firstImage,
+        }),
+        expect.objectContaining({
+          kind: "file",
+          filename: "second-robot.png",
+          mediaType: "image/png",
+          data: secondImage,
+        }),
+      ]),
+    );
   });
 
   it("restores prior uploads from stored conversation metadata after restart", async () => {
@@ -4132,7 +4156,7 @@ describe("ChatInterface", () => {
         });
         expect(statusMessage.edit).not.toHaveBeenCalledWith(
           expect.objectContaining({
-            fallbackText: "Tool completed: system publish",
+            fallbackText: "Tool completed: publish",
           }),
         );
         return {
@@ -4146,13 +4170,13 @@ describe("ChatInterface", () => {
 
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool running: system publish",
+        fallbackText: "Tool running: publish",
         card: expect.objectContaining({ title: "Tool running" }),
       }),
     );
     expect(statusMessage.edit).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool completed: system publish",
+        fallbackText: "Tool completed: publish",
         card: expect.objectContaining({ title: "Tool completed" }),
       }),
     );
@@ -4209,12 +4233,12 @@ describe("ChatInterface", () => {
 
     expect(statusMessage.edit).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool completed: system create",
+        fallbackText: "Tool completed: create",
       }),
     );
     expect(statusMessage.edit).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool awaiting approval: system create",
+        fallbackText: "Tool awaiting approval: create",
         card: expect.objectContaining({ title: "Approval required" }),
       }),
     );
@@ -4264,7 +4288,7 @@ describe("ChatInterface", () => {
 
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallbackText: "Tool failed: system publish: Publish failed",
+        fallbackText: "Tool failed: publish: Publish failed",
         card: expect.objectContaining({ title: "Tool failed" }),
       }),
     );

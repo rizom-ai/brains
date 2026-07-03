@@ -29,6 +29,7 @@ export function createStatusTools(services: SystemServices): Tool[] {
       }),
       {
         visibility: "public",
+        sideEffects: "none",
         cli: {
           name: "status",
         },

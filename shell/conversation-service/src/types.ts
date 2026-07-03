@@ -86,6 +86,45 @@ export type ConversationMessageMetadata = z.output<
   typeof conversationMessageMetadataSchema
 >;
 
+export function parseConversationMessageMetadata(
+  metadata: unknown,
+): Record<string, unknown> | null {
+  if (typeof metadata === "string") {
+    try {
+      const parsed = JSON.parse(metadata) as unknown;
+      return isRecord(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return isRecord(metadata) ? metadata : null;
+}
+
+export function isSavableAssistantMessage(
+  message: Pick<Message, "role" | "content" | "metadata">,
+): boolean {
+  if (message.role !== "assistant") return false;
+  if (message.content.trim().length === 0) return false;
+
+  const metadata = parseConversationMessageMetadata(message.metadata);
+  const entityMemoryRefs = metadata?.["entityMemoryRefs"];
+  if (Array.isArray(entityMemoryRefs) && entityMemoryRefs.length > 0) {
+    return false;
+  }
+
+  const cards = metadata?.["cards"];
+  if (!Array.isArray(cards)) return true;
+  return !cards.some((card) => {
+    if (!isRecord(card)) return false;
+    if (card["kind"] === "tool-approval") return true;
+    return card["kind"] === "actions" && card["id"] === "actions:upload-intent";
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export interface AddConversationMessageRequest {
   conversationId: string;
   role: MessageRole;

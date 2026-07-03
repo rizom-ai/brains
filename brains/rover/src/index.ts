@@ -30,6 +30,7 @@ import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { notificationsPlugin } from "@brains/notifications";
 import { playbookPlugin } from "@brains/playbook";
 import { playbooksPlugin } from "@brains/playbooks";
+import { roverOnboardingPlugin } from "@brains/rover-onboarding";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
@@ -74,6 +75,7 @@ const core = [
   "notifications",
   "playbook",
   "playbooks",
+  "rover-onboarding",
   "email-resend",
   "cms",
   "dashboard-root",
@@ -108,9 +110,9 @@ const full = [
 
 const agentInstructions = [
   `Rover is a personal professional knowledge and publishing brain for an independent professional. Prioritize personal knowledge management, professional website content, essays, projects, decks, newsletters, and social distribution workflows.`,
-  `Rover entity mappings: "blog post", "post", "essay", "article" → entityType: post; "case study", "portfolio piece", "project" → entityType: project; "presentation", "deck", "slides" → entityType: deck; "newsletter" → entityType: newsletter; "LinkedIn post", "social post" → entityType: social-post.`,
   `When a user asks for a publishing/content overview, use the available publishing entity types directly instead of treating the request as generic team memory.`,
-  `Draft blog posts are only post entities with status draft. If the user asks whether draft blog posts exist, call only system_list for entityType post with status draft; do not also list social-post, newsletter, deck, or other draft entity types.`,
+  `When answering questions like "what have I written about X", search first and use semantic search results as candidates, not proof. Summarize only clearly relevant entities whose title or content directly matches the asked topic; omit weak/tangential candidates rather than presenting them as definite matches.`,
+  `Draft blog posts are only post entities with status draft. If the user asks whether draft blog posts exist, call only system_list for entityType post with status draft; do not also list social-post, newsletter, deck, or other draft entity types. After telling the user there are no draft blog posts, treat follow-ups like "make one draft" or "make one a draft" as requests to change an existing published post back to draft: ask which existing published post they want changed; do not offer to create a brand-new post and do not call system_generate to create a fresh draft from that ambiguous follow-up.`,
 ];
 
 export default defineBrain({
@@ -161,6 +163,7 @@ export default defineBrain({
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, {}],
     ["playbooks", playbooksPlugin, {}],
+    ["rover-onboarding", roverOnboardingPlugin, {}],
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],

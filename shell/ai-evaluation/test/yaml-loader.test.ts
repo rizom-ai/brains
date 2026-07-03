@@ -26,7 +26,7 @@ describe("YAMLLoader", () => {
     expect(testCase.turns[0]?.successCriteria?.expectedTools?.[0]).toEqual({
       toolName: "system_create",
       shouldBeCalled: true,
-      argsContain: { entityType: "note" },
+      argsContain: { entityType: "note", "source.kind": "text" },
     });
     expect(testCase.turns[2]?.userMessage).toContain(
       'User uploaded a file "meeting-notes.md":',

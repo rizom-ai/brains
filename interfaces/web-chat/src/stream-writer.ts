@@ -1,50 +1,8 @@
-import type { StructuredChatCard } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import {
+  redactUploadRefsInStructuredCard,
+  type StructuredChatCard,
+} from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
-
-const recordSchema = z.record(z.string(), z.unknown());
-type ParsedRecord = z.output<typeof recordSchema>;
-
-const uploadRefSchema = z.looseObject({
-  kind: z.literal("upload"),
-  id: z.string(),
-});
-
-function parseRecord(value: unknown): ParsedRecord | undefined {
-  const parsed = recordSchema.safeParse(value);
-  return parsed.success ? parsed.data : undefined;
-}
-
-function isUploadRef(value: unknown): boolean {
-  return uploadRefSchema.safeParse(value).success;
-}
-
-export function redactUploadRefs(value: unknown): unknown {
-  if (isUploadRef(value)) return "uploaded file";
-  if (Array.isArray(value)) return value.map((item) => redactUploadRefs(item));
-  const record = parseRecord(value);
-  if (!record) return value;
-  return redactUploadRefsInRecord(record);
-}
-
-function redactUploadRefsInRecord(value: ParsedRecord): ParsedRecord {
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [key, redactUploadRefs(entry)]),
-  );
-}
-
-function redactToolApprovalCard(card: StructuredChatCard): StructuredChatCard {
-  if (card.kind !== "tool-approval") return card;
-  return {
-    ...card,
-    ...(card.input !== undefined
-      ? { input: redactUploadRefsInRecord(card.input) }
-      : {}),
-    ...(card.output !== undefined
-      ? { output: redactUploadRefs(card.output) }
-      : {}),
-  };
-}
 
 export function writeTextPart(
   writer: UIMessageStreamWriter<UIMessage>,
@@ -59,9 +17,15 @@ export function writeTextPart(
 export function writeStructuredCards(
   writer: UIMessageStreamWriter<UIMessage>,
   cards: StructuredChatCard[],
+  deniedCardIds: ReadonlySet<string> = new Set(),
 ): void {
   for (const rawCard of cards) {
-    const card = redactToolApprovalCard(rawCard);
+    // Permission-denied artifacts are not exposed at all — not even their card
+    // metadata — matching the discrete-message interfaces.
+    if (rawCard.kind === "attachment" && deniedCardIds.has(rawCard.id)) {
+      continue;
+    }
+    const card = redactUploadRefsInStructuredCard(rawCard);
     if (card.kind === "attachment") {
       writer.write({
         type: "data-attachment",

@@ -18,6 +18,7 @@ export class NewsletterAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "newsletter",
+      purpose: "An email newsletter issue composed for subscribers.",
       schema: newsletterSchema,
       frontmatterSchema: newsletterFrontmatterSchema,
     });

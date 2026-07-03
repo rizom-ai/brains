@@ -8,6 +8,7 @@ import {
   type PermissionLookupContext,
   type StructuredChatCard,
   type ToolApprovalCard,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 import type { Daemon } from "@brains/plugins";
 import { chunkMessage, truncateText, fetchAsText } from "@brains/utils";
@@ -25,6 +26,7 @@ import type { DiscordConfig, DiscordConstructorConfig } from "./config";
 import packageJson from "../package.json";
 
 const DISCORD_MAX_LENGTH = 2000;
+const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
 const TYPING_REFRESH_MS = 8000;
 const THREAD_NAME_MAX_LENGTH = 100;
 
@@ -32,6 +34,7 @@ interface DiscordSendOptions {
   content: string;
   embeds?: Array<Record<string, unknown>>;
   components?: Array<Record<string, unknown>>;
+  files?: Array<Record<string, unknown>>;
 }
 
 type DiscordSendPayload = string | DiscordSendOptions;
@@ -396,11 +399,15 @@ export class DiscordInterface extends MessageInterfacePlugin<
         this.logger.debug("Failed to defer approval button", { error }),
       );
 
+    await this.clearApprovalInteractionComponents(interaction);
+
+    const confirmationContext =
+      this.buildInteractionConfirmationContext(interaction);
     const response = await this.context.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
       parsed.approvalId,
-      this.buildInteractionConfirmationContext(interaction),
+      confirmationContext,
     );
 
     await this.handleAgentResponseToolStatuses(response, conversationId);
@@ -414,7 +421,18 @@ export class DiscordInterface extends MessageInterfacePlugin<
     await this.sendApprovalResultMessage({
       channelId: interaction.channelId,
       response,
+      userPermissionLevel: confirmationContext.userPermissionLevel ?? "public",
     });
+  }
+
+  private async clearApprovalInteractionComponents(
+    interaction: ButtonInteraction,
+  ): Promise<void> {
+    await interaction.message
+      .edit({ components: [] })
+      .catch((error: unknown) =>
+        this.logger.debug("Failed to clear approval buttons", { error }),
+      );
   }
 
   private buildInteractionConfirmationContext(
@@ -722,23 +740,52 @@ export class DiscordInterface extends MessageInterfacePlugin<
   private async sendApprovalResultMessage({
     channelId,
     response,
+    userPermissionLevel,
   }: {
     channelId: string;
     response: AgentResponse;
+    userPermissionLevel: UserPermissionLevel;
   }): Promise<string | undefined> {
+    const files = await this.resolveDiscordArtifactFiles(
+      response,
+      userPermissionLevel,
+    );
     const resultCard = this.getResolvedApprovalCard(response.cards);
     if (!resultCard) {
-      return this.sendMessageWithId({ channelId, message: response.text });
+      if (files.length === 0) {
+        return this.sendMessageWithId({ channelId, message: response.text });
+      }
+      return this.sendPayloadWithId(channelId, {
+        content: truncateText(response.text, DISCORD_MAX_LENGTH),
+        files,
+      });
     }
 
     return this.sendPayloadWithId(
       channelId,
-      this.buildApprovalResultMessagePayload(resultCard),
+      this.buildApprovalResultMessagePayload(resultCard, files),
     );
+  }
+
+  private async resolveDiscordArtifactFiles(
+    response: AgentResponse,
+    userPermissionLevel: UserPermissionLevel,
+  ): Promise<Array<Record<string, unknown>>> {
+    const delivery = await this.resolveNativeArtifactDelivery({
+      cards: response.cards,
+      userPermissionLevel,
+      displayBaseUrl: this.getPreferredDisplayBaseUrl(),
+      maxBytes: DISCORD_NATIVE_ARTIFACT_MAX_BYTES,
+    });
+    return delivery.files.map((file) => ({
+      attachment: Buffer.from(file.data),
+      name: file.filename,
+    }));
   }
 
   private buildApprovalResultMessagePayload(
     approvalCard: ToolApprovalCard,
+    files: Array<Record<string, unknown>> = [],
   ): DiscordSendOptions {
     const failed = approvalCard.state === "output-error";
     const denied = approvalCard.state === "output-denied";
@@ -771,6 +818,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
         },
       ],
       components: [],
+      ...(files.length > 0 ? { files } : {}),
     };
   }
 
@@ -814,6 +862,8 @@ export class DiscordInterface extends MessageInterfacePlugin<
     discordMessage: Message,
     permissionContext: PermissionLookupContext,
   ): Promise<void> {
+    const context = this.context;
+    if (!context) return;
     const parsed = parseConfirmationResponse(message);
     if (!parsed) {
       this.sendMessageToChannel({
@@ -843,16 +893,17 @@ export class DiscordInterface extends MessageInterfacePlugin<
       return;
     }
     const channelName = this.getChannelName(discordMessage);
-    const response = await this.context?.agent.confirmPendingAction(
+    const userPermissionLevel = context.permissions.getUserLevel(
+      "discord",
+      discordMessage.author.id,
+      permissionContext,
+    );
+    const response = await context.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
       approvalId,
       {
-        userPermissionLevel: this.context.permissions.getUserLevel(
-          "discord",
-          discordMessage.author.id,
-          permissionContext,
-        ),
+        userPermissionLevel,
         interfaceType: "discord",
         channelId,
         channelName,
@@ -863,18 +914,17 @@ export class DiscordInterface extends MessageInterfacePlugin<
         ),
       },
     );
-    if (response) {
-      await this.handleAgentResponseToolStatuses(response, conversationId);
-      this.syncPendingApprovalsAfterResolution(
-        conversationId,
-        approvalId,
-        response,
-      );
-      await this.sendApprovalResultMessage({
-        channelId: channelId,
-        response,
-      });
-    }
+    await this.handleAgentResponseToolStatuses(response, conversationId);
+    this.syncPendingApprovalsAfterResolution(
+      conversationId,
+      approvalId,
+      response,
+    );
+    await this.sendApprovalResultMessage({
+      channelId: channelId,
+      response,
+      userPermissionLevel,
+    });
   }
 
   // ── Typing indicator ──
@@ -916,6 +966,13 @@ export class DiscordInterface extends MessageInterfacePlugin<
 
   private getChannelName(message: Message): string {
     return message.guild?.name ?? "DM";
+  }
+
+  private getPreferredDisplayBaseUrl(): string | undefined {
+    if (this.context?.preferLocalUrls && this.context.localSiteUrl) {
+      return this.context.localSiteUrl;
+    }
+    return this.context?.siteUrl ?? this.context?.localSiteUrl;
   }
 
   private getSpaceChannelId(message: Message): string {

@@ -91,7 +91,11 @@ describe("entity action policy", () => {
   it("allows trusted create for default team-authored entity types after confirmation", async () => {
     const confirmArgs = expectConfirmation(
       await getTool("system_create").handler(
-        { entityType: "note", title: "Team note", content: "Team note body" },
+        {
+          entityType: "note",
+          title: "Fresh team note",
+          source: { kind: "text", content: "Team note body" },
+        },
         baseContext("trusted"),
       ),
     );
@@ -109,7 +113,11 @@ describe("entity action policy", () => {
 
   it("denies public create for default team-authored entity types", async () => {
     const result = await getTool("system_create").handler(
-      { entityType: "note", title: "Public note", content: "Body" },
+      {
+        entityType: "note",
+        title: "Public note",
+        source: { kind: "text", content: "Body" },
+      },
       baseContext("public"),
     );
 
@@ -118,10 +126,10 @@ describe("entity action policy", () => {
     expect(error).toContain("Public/public");
   });
 
-  it("exposes system_delete to public callers but fails closed before lookup", async () => {
+  it("hides system_delete from non-anchor tool surfaces and still fails closed for direct public calls", async () => {
     const tool = getTool("system_delete");
 
-    expect(tool.visibility).toBe("public");
+    expect(tool.visibility).toBe("anchor");
 
     const result = await tool.handler(
       { entityType: "note", id: "missing-note" },
@@ -152,7 +160,7 @@ describe("entity action policy", () => {
       {
         entityType: "summary",
         title: "Weekly summary",
-        content: "Summary body",
+        source: { kind: "text", content: "Summary body" },
       },
       baseContext("trusted"),
     );
@@ -208,6 +216,63 @@ describe("entity action policy", () => {
     );
   });
 
+  it("binds the delete confirmation to the approved entity and rejects a swapped id", async () => {
+    services.addEntities([makeEntity("note", "other-note")]);
+
+    const confirmArgs = expectConfirmation(
+      await getTool("system_delete").handler(
+        { entityType: "note", id: "team-note" },
+        baseContext("anchor"),
+      ),
+    );
+
+    // Resubmit the approved token but point it at a different entity. The
+    // confirmation must be bound to the approved args, not just the token.
+    const swapped = await getTool("system_delete").handler(
+      { ...confirmArgs, id: "other-note" },
+      baseContext("anchor"),
+    );
+    const error = expectError(swapped);
+    expect(error).toContain("do not match the pending approval");
+
+    // Neither entity was deleted.
+    expect(services.getEntities().has("team-note")).toBe(true);
+    expect(services.getEntities().has("other-note")).toBe(true);
+  });
+
+  it("rejects a confirmed delete without a pending approval token", async () => {
+    const result = await getTool("system_delete").handler(
+      {
+        entityType: "note",
+        id: "team-note",
+        confirmed: true,
+        confirmationToken: "bogus-token",
+      },
+      baseContext("anchor"),
+    );
+
+    const error = expectError(result);
+    expect(error).toContain("No pending delete confirmation");
+    expect(services.getEntities().has("team-note")).toBe(true);
+  });
+
+  it("completes deletion when the confirmed args match the pending approval", async () => {
+    const confirmArgs = expectConfirmation(
+      await getTool("system_delete").handler(
+        { entityType: "note", id: "team-note" },
+        baseContext("anchor"),
+      ),
+    );
+
+    const result = await getTool("system_delete").handler(
+      confirmArgs,
+      baseContext("anchor"),
+    );
+    const data = expectSuccess(result, z.object({ deleted: z.string() }));
+    expect(data.deleted).toBe("team-note");
+    expect(services.getEntities().has("team-note")).toBe(false);
+  });
+
   it("rechecks create policy after interceptors change the effective entity type", async () => {
     services.entityRegistry.registerCreateInterceptor(
       "note",
@@ -222,7 +287,7 @@ describe("entity action policy", () => {
         {
           entityType: "note",
           title: "Intercepted Summary",
-          content: "Team note body",
+          source: { kind: "text", content: "Team note body" },
         },
         baseContext("trusted"),
       ),

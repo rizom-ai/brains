@@ -13,6 +13,7 @@ export class FallbackEntityAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {
     super({
       entityType: "note",
+      purpose: "A generic entity with no specialized adapter.",
       schema: baseEntitySchema,
       frontmatterSchema: emptyFrontmatterSchema,
     });

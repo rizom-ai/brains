@@ -33,18 +33,17 @@ function createMockDirectorySync(): {
   queueSyncBatchMock: ReturnType<typeof mock>;
   getStatusMock: ReturnType<typeof mock>;
 } {
-  const queueSyncBatchMock = mock(
-    (): Promise<BatchResult | null> =>
-      Promise.resolve({
-        batchId: "batch-123",
-        operationCount: 5,
-        exportOperationsCount: 0,
-        importOperationsCount: 5,
-        totalFiles: 10,
-      }),
+  const queueSyncBatchMock = mock((): Promise<BatchResult | null> =>
+    Promise.resolve({
+      batchId: "batch-123",
+      operationCount: 5,
+      exportOperationsCount: 0,
+      importOperationsCount: 5,
+      totalFiles: 10,
+    }),
   );
-  const getStatusMock = mock(
-    (): Promise<DirectorySyncStatus> => Promise.resolve(defaultStatus()),
+  const getStatusMock = mock((): Promise<DirectorySyncStatus> =>
+    Promise.resolve(defaultStatus()),
   );
 
   return {
@@ -125,6 +124,20 @@ describe("sync tool", () => {
 
   beforeEach(() => {
     context = createMockServicePluginContext();
+  });
+
+  it("declares anchor-only external side effects", () => {
+    const { directorySync } = createMockDirectorySync();
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+    );
+    const syncTool = findTool(tools, "directory-sync_sync");
+
+    expect(syncTool.visibility).toBe("anchor");
+    expect(syncTool.sideEffects).toBe("external");
   });
 
   it("should call queueSyncBatch (non-blocking)", async () => {
@@ -360,6 +373,20 @@ describe("status tool", () => {
 
   beforeEach(() => {
     context = createMockServicePluginContext();
+  });
+
+  it("declares anchor-only read semantics", () => {
+    const { directorySync } = createMockDirectorySync();
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+    );
+    const statusTool = findTool(tools, "directory-sync_status");
+
+    expect(statusTool.visibility).toBe("anchor");
+    expect(statusTool.sideEffects).toBe("none");
   });
 
   it("should omit git field when not configured", async () => {

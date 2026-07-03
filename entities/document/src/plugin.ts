@@ -19,7 +19,6 @@ import {
   documentGenerationJobSchema,
   getDocumentId,
 } from "./handlers/documentGenerationHandler";
-import { createDocumentTools } from "./tools";
 import packageJson from "../package.json";
 
 const PENDING_PDF_DATA_URL = `data:application/pdf;base64,${Buffer.from(
@@ -146,7 +145,7 @@ export class DocumentPlugin extends ServicePlugin<
       return this.promoteUpload(input, context);
     }
 
-    if (!input.from) {
+    if (input.from?.kind !== "entity-attachment") {
       return { kind: "continue", input };
     }
 
@@ -364,21 +363,11 @@ export class DocumentPlugin extends ServicePlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return `For durable raw PDF saves/promotions from uploaded PDFs, call system_upload_save with the exact upload object shown in the current turn or conversation "Available upload refs" hint. Do this only after the user explicitly asks to save/import/promote the raw PDF as a document. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Uploaded PDFs are not decks; raw upload promotion preserves the PDF as a document. Do not use entityType: "note" or transform: "extract-markdown" unless the user asks to turn the upload into a note/markdown. For generated/source-derived PDFs, call system_create with entityType: "document" and sourceAttachment. Deck carousel PDFs use sourceAttachment: { sourceEntityType: "deck", sourceEntityId: <deck ID>, attachmentType: "carousel" }. Printable PDFs for blog posts, projects, and products use sourceAttachment with attachmentType: "printable" and sourceEntityType "post", "project", or "product". Omit upload and sourceAttachment entirely for ordinary direct document creates that use content, prompt, or url. Include targetEntityType/targetEntityId when the user asks to attach the saved document to another entity. Use replace: true when they ask to regenerate or replace a saved PDF. Only use document_generate for explicit preview/prepare requests where they need an immediate PDF attachment. Do not use generic attachment types like "document".`;
+    return "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks. Source-derived document artifacts are durable documents backed by registered attachment providers such as carousel or printable. Generate saved PDF artifacts through system_generate with source.kind attachment; preserve raw uploaded PDFs with system_create source.kind upload and transform preserve.";
   }
 
   protected override async getTools(): Promise<Tool[]> {
-    const context = this.pluginContext;
-    if (!context) {
-      throw new Error("Plugin context not initialized");
-    }
-    return createDocumentTools(this.id, (input, toolContext) =>
-      context.jobs.enqueue({
-        type: "generate",
-        data: input,
-        toolContext,
-      }),
-    );
+    return [];
   }
 }
 

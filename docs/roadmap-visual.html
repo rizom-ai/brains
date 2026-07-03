@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-06-23 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-06-25 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -106,6 +106,14 @@
           </div>
           <div class="card-desc">provider-neutral <code>web_search</code> capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead <code>webSearch</code> config flag.</div>
           <div class="card-file">web-search-tool.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">System analytics tool</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">rename/reframe <code>system_insights</code> as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.</div>
+          <div class="card-file">system-analytics-tool.md</div>
         </div>
         </div>
       </details>
@@ -172,6 +180,14 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Rover onboarding plugin plan</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.</div>
+          <div class="card-file">rover-onboarding-plugin.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">explicit user offboarding workflow for rover-pilot</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -191,6 +207,14 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§5</span>Interfaces</summary>
         <div class="cards">
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Chat MessageInterface Shared Workflows</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">extraction pass moving Discord/Web-chat-generic workflows into <code>MessageInterface</code> helpers before Slack duplicates them.</div>
+          <div class="card-file">chat-message-interface-shared-workflows.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">First-Party CMS Editor</span>
@@ -328,6 +352,22 @@
           </div>
           <div class="card-desc">reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, <code>@brains/utils</code> split, package-script drift).</div>
           <div class="card-file">codebase-cleanup-backlog.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Agent interpretation boundary — target architecture</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. Deletes the NL guards (<code>call-options.ts</code> regexes, routing prose, source-precedence sniffing) and makes <code>system_create</code> source-only at the model boundary. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.</div>
+          <div class="card-file">system-create-source-architecture.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Upload/attachment visibility — no NL selection</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">sibling of the interpretation-boundary plan: what attachments the model sees is data and cost policy, never message wording. Deletes the wording-based upload/attachment selection (<code>selectReferencedAttachments</code>, <code>conversation-messages.ts</code> narrowing helpers) so the model resolves &quot;it/this/latest&quot; against candidate refs instead of code regexes.</div>
+          <div class="card-file">upload-attachment-visibility.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

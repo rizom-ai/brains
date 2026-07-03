@@ -1,6 +1,6 @@
 id: tool-invocation-newsletter-generate-variations
 name: Newsletter Generate Natural Language Variations
-description: Tests that various phrasings of newsletter generation requests use system_create
+description: Tests that various phrasings of newsletter generation requests use system_generate
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -15,8 +15,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
+      argsContain:
+        operation.entityType: newsletter
+        operation.kind: prompt
   toolCountRange:
     min: 1
   responseNotContains:

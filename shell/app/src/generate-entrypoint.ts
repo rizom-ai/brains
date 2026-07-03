@@ -9,34 +9,6 @@ import {
   type InstanceOverrides,
 } from "./instance-overrides";
 
-/**
- * Generate a static entrypoint for a brain model image (no brain.yaml at build time).
- *
- * The brain model package and any extra packages (site themes, etc.) are
- * statically imported so the bundler includes them. At runtime, brain.yaml
- * is read from disk (mounted volume) and configures the instance.
- *
- * @param brainPackage - The brain model package (e.g. "@brains/rover")
- * @param extraPackages - Additional packages to bundle (site themes, etc.)
- * @returns Generated TypeScript code
- */
-export function generateModelEntrypoint(
-  brainPackage: string,
-  extraPackages: string[],
-): string {
-  const extras = extraPackages.filter((pkg) => pkg !== brainPackage);
-  const packageRefs = buildPackageRefLines(extras);
-  const appImports = buildAppImports({ hasRefs: extras.length > 0 });
-
-  return buildEntrypointSource({
-    brainPackage,
-    appImports,
-    packageImportLines: packageRefs.importLines,
-    registrationLines: packageRefs.registrationLines,
-    configOverridesVariable: "overrides",
-  });
-}
-
 export interface GenerateEntrypointOptions {
   cwd?: string;
 }

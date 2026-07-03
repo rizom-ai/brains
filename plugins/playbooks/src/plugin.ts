@@ -40,6 +40,8 @@ import {
 } from "./run-store";
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
+export const PLAYBOOKS_REGISTER_LIFECYCLE_STARTER =
+  "playbooks:register-lifecycle-starter";
 
 export interface LifecyclePlaybookConfig {
   trigger: string;
@@ -128,6 +130,41 @@ const lifecycleStartersRequestSchema: z.ZodType<
   })
   .strict();
 
+export interface LifecycleStarterRegistration {
+  id: string;
+  trigger: string;
+  playbookId: string;
+  once: boolean;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
+
+export interface LifecycleStarterRegistrationInput {
+  id: string;
+  trigger: string;
+  playbookId: string;
+  once?: boolean | undefined;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
+
+const lifecycleStarterRegistrationSchema: z.ZodType<
+  LifecycleStarterRegistration,
+  LifecycleStarterRegistrationInput
+> = z
+  .object({
+    id: z.string().min(1),
+    trigger: z.string().min(1),
+    playbookId: z.string().min(1),
+    once: z.boolean().default(true),
+    starterText: z.string().min(1),
+    description: z.string().min(1).optional(),
+    starterPrompt: z.string().min(1),
+  })
+  .strict();
+
 const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
   .object({
     id: z.string().min(1),
@@ -200,6 +237,13 @@ export interface LifecycleStartersResponse {
   starters: PlaybookStarter[];
 }
 
+export interface LifecycleStarterRegistrationResponse {
+  registered: boolean;
+  id: string;
+  ignored?: boolean | undefined;
+  reason?: string | undefined;
+}
+
 export interface GoalCheckInput {
   run: PlaybookRun;
   state: PlaybookState;
@@ -235,6 +279,7 @@ const goalCheckStateSchema = z
     id: z.string().min(1),
     title: z.string().min(1),
     instructions: z.array(z.string().min(1)),
+    requiredDetails: z.array(z.string().min(1)).default([]),
     doneWhen: z.array(z.string().min(1)).default([]),
     transitions: z.array(goalCheckTransitionSchema).default([]),
   })
@@ -266,6 +311,10 @@ export class PlaybooksPlugin extends ServicePlugin<
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
   private readonly startLocks = new Map<string, Promise<ToolResponse>>();
+  private readonly registeredLifecycleStarters = new Map<
+    string,
+    { source: string; config: LifecyclePlaybookConfig }
+  >();
 
   constructor(
     config: PlaybooksConfigInput = {},
@@ -296,6 +345,20 @@ export class PlaybooksPlugin extends ServicePlugin<
       const input = lifecycleStartersRequestSchema.parse(message.payload);
       const starters = await this.resolveLifecycleStarters(input);
       return { success: true, data: { starters } };
+    });
+
+    context.messaging.subscribe<
+      LifecycleStarterRegistration,
+      LifecycleStarterRegistrationResponse
+    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, async (message) => {
+      const registration = lifecycleStarterRegistrationSchema.parse(
+        message.payload,
+      );
+      const result = this.registerLifecycleStarter(
+        registration,
+        message.source,
+      );
+      return { success: true, data: result };
     });
 
     context.messaging.subscribe<unknown, AgentContextResponse>(
@@ -342,6 +405,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state.",
         inputSchema: statusInputSchema,
         visibility: "anchor",
+        sideEffects: "none",
         handler: async (
           input: unknown,
           toolContext: ToolContext,
@@ -364,6 +428,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           "Start a playbook run, or resume an existing active run. If the operator asks to start a playbook by title, use the stable slug/id form when known (for example lowercase words joined by hyphens) instead of claiming it is unavailable without calling this tool. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
         inputSchema: startInputSchema,
         visibility: "anchor",
+        sideEffects: "writes",
         handler: async (
           input: unknown,
           toolContext: ToolContext,
@@ -410,6 +475,7 @@ export class PlaybooksPlugin extends ServicePlugin<
           "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
         inputSchema: sendEventInputSchema,
         visibility: "anchor",
+        sideEffects: "writes",
         handler: async (
           input: unknown,
           toolContext: ToolContext,
@@ -765,6 +831,18 @@ export class PlaybooksPlugin extends ServicePlugin<
       seenLifecycleIds.add(id);
     }
 
+    for (const [id, registration] of this.registeredLifecycleStarters) {
+      if (input.lifecycle && id !== input.lifecycle) continue;
+      if (seenLifecycleIds.has(id)) continue;
+      const starter = await this.resolveConfiguredLifecycleStarter(
+        id,
+        registration.config,
+      );
+      if (!starter) continue;
+      starters.push(starter);
+      seenLifecycleIds.add(id);
+    }
+
     const enabledTriggers = new Set(
       Object.entries(this.config.triggers)
         .filter(([, enabled]) => enabled)
@@ -807,6 +885,47 @@ export class PlaybooksPlugin extends ServicePlugin<
     }
 
     return starters;
+  }
+
+  private registerLifecycleStarter(
+    registration: LifecycleStarterRegistration,
+    source: string,
+  ): LifecycleStarterRegistrationResponse {
+    const existing = this.registeredLifecycleStarters.get(registration.id);
+    const config = lifecycleConfigSchema.parse({
+      trigger: registration.trigger,
+      playbookId: registration.playbookId,
+      once: registration.once,
+      starterText: registration.starterText,
+      ...(registration.description
+        ? { description: registration.description }
+        : {}),
+      starterPrompt: registration.starterPrompt,
+    });
+
+    if (existing) {
+      if (
+        existing.source === source &&
+        sameLifecycleConfig(existing.config, config)
+      ) {
+        return { registered: true, id: registration.id };
+      }
+
+      this.logger.warn("Ignoring conflicting playbook lifecycle starter", {
+        id: registration.id,
+        source,
+        existingSource: existing.source,
+      });
+      return {
+        registered: false,
+        id: registration.id,
+        ignored: true,
+        reason: `Lifecycle starter '${registration.id}' is already registered by '${existing.source}'.`,
+      };
+    }
+
+    this.registeredLifecycleStarters.set(registration.id, { source, config });
+    return { registered: true, id: registration.id };
   }
 
   private async resolveConfiguredLifecycleStarter(
@@ -1343,6 +1462,9 @@ export class PlaybooksPlugin extends ServicePlugin<
     const completedStates = run.completedStates
       .map((stateId) => `- ${stateId}`)
       .join("\n");
+    const requiredDetails = state.requiredDetails
+      .map((detail) => `- ${detail}`)
+      .join("\n");
     const goalStatus = this.formatVerifierStatus(run, state);
 
     return {
@@ -1369,7 +1491,7 @@ After a playbook event advances the run, call playbook_status and answer from th
 If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
 Treat setup facts as current-run evidence: unless the operator provided them in this run or they appear in active-run evidence, do not fill missing playbook requirements from ambient memory or existing durable records.
-When the current playbook state asks the operator for information, ask the operator; do not answer the prompt yourself from memory, knowledge search, or existing durable records. If the current operator message appears to answer the current state's operator-facing prompt, use all relevant details in that message as current-run information, then follow the state instructions: act when its requirements are satisfied, or ask only for the next missing required detail instead of repeating the same prompt. If the operator explicitly selects a valid event or operator action such as Skip, send that event instead of asking for the missing information.
+When the current playbook state asks the operator for information, ask the operator; do not answer the prompt yourself from memory, knowledge search, or existing durable records. If the current operator message appears to answer the current state's operator-facing prompt, use all relevant details in that message as current-run information, then follow the state instructions: act when its requirements are satisfied, or ask only for the next missing required detail instead of repeating the same prompt. If the message only partially satisfies the current state's listed requirements, do not call unrelated durable mutation tools such as system_create or system_update for that state yet; ask for the next missing required detail. If the operator explicitly selects a valid event or operator action such as Skip, send that event instead of asking for the missing information.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.
 After meaningful tool actions, explain what happened and why it matters.
@@ -1381,6 +1503,9 @@ ${completedStates || "- none"}
 
 State instructions:
 ${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
+
+Required details:
+${requiredDetails || "- none"}
 
 Done when:
 ${doneWhen || "- none"}
@@ -1524,6 +1649,20 @@ function sameGoal(left: string[], right: string[]): boolean {
   return (
     left.length === right.length &&
     left.every((value, index) => value === right[index])
+  );
+}
+
+function sameLifecycleConfig(
+  left: LifecyclePlaybookConfig,
+  right: LifecyclePlaybookConfig,
+): boolean {
+  return (
+    left.trigger === right.trigger &&
+    left.playbookId === right.playbookId &&
+    left.once === right.once &&
+    left.starterText === right.starterText &&
+    left.description === right.description &&
+    left.starterPrompt === right.starterPrompt
   );
 }
 

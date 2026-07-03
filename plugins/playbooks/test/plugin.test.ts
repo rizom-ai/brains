@@ -18,6 +18,7 @@ import {
   expectSuccess,
 } from "@brains/plugins/test";
 import {
+  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   playbookRunSchema,
   playbooksPlugin,
   type GoalCheck,
@@ -33,6 +34,7 @@ const welcomeState: PlaybookBody["states"][number] = {
   title: "Welcome",
   prompt: "Welcome. Would you like to continue?",
   instructions: ["Explain the playbook."],
+  requiredDetails: [],
   doneWhen: [],
   transitions: [
     {
@@ -59,6 +61,7 @@ const seedState: PlaybookBody["states"][number] = {
   title: "Seed",
   prompt: "What rough idea should Rover remember first?",
   instructions: ["Save a first note."],
+  requiredDetails: [],
   doneWhen: [],
   transitions: [{ event: "NEXT", target: "complete" }],
 };
@@ -67,6 +70,7 @@ const completeState: PlaybookBody["states"][number] = {
   id: "complete",
   title: "Complete",
   instructions: ["Complete the run."],
+  requiredDetails: [],
   doneWhen: ["Run is complete."],
   transitions: [],
 };
@@ -264,6 +268,7 @@ describe("PlaybooksPlugin", () => {
         id: "profile",
         title: "Profile",
         instructions: ["Check the profile."],
+        requiredDetails: [],
         doneWhen: ["The anchor profile is known."],
         transitions: [],
       },
@@ -299,6 +304,26 @@ describe("PlaybooksPlugin", () => {
       "playbook_start",
       "playbook_status",
     ]);
+  });
+
+  it("declares playbook tool visibility and side effects", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+
+    const metadata = Object.fromEntries(
+      capabilities.tools
+        .filter((tool) => tool.name.startsWith("playbook_"))
+        .map((tool) => [
+          tool.name,
+          { visibility: tool.visibility, sideEffects: tool.sideEffects },
+        ]),
+    );
+
+    expect(metadata).toEqual({
+      playbook_send_event: { visibility: "anchor", sideEffects: "writes" },
+      playbook_start: { visibility: "anchor", sideEffects: "writes" },
+      playbook_status: { visibility: "anchor", sideEffects: "none" },
+    });
   });
 
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
@@ -481,6 +506,187 @@ describe("PlaybooksPlugin", () => {
     });
 
     expect(response?.starters).toEqual([]);
+  });
+
+  it("returns registered lifecycle starters without trigger config", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
+      trigger: "first-anchor-web-chat",
+      lifecycle: "onboarding",
+      starterText: "Set up Rover",
+      starterPrompt: "Start the Rover onboarding playbook.",
+    });
+
+    const registration = await harness.sendMessage<
+      {
+        id: string;
+        trigger: string;
+        playbookId: string;
+        once: boolean;
+        starterText: string;
+        description: string;
+        starterPrompt: string;
+      },
+      { registered: boolean; id: string }
+    >(
+      PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+      {
+        id: "onboarding",
+        trigger: "first-anchor-web-chat",
+        playbookId: "rover-onboarding",
+        once: true,
+        starterText: "Set up Rover",
+        description: "Learn Rover by doing real setup work.",
+        starterPrompt: "Start the Rover onboarding playbook.",
+      },
+      "rover-onboarding",
+    );
+
+    expect(registration).toEqual({ registered: true, id: "onboarding" });
+
+    const response = await harness.sendMessage<
+      {
+        lifecycle: string;
+        interfaceType: string;
+        userPermissionLevel: "anchor";
+      },
+      {
+        starters: Array<{
+          id: string;
+          title: string;
+          description?: string;
+          playbookId: string;
+          lifecycle: string;
+          starterPrompt: string;
+        }>;
+      }
+    >("playbooks:lifecycle-starters", {
+      lifecycle: "onboarding",
+      interfaceType: "web-chat",
+      userPermissionLevel: "anchor",
+    });
+
+    expect(response?.starters).toEqual([
+      {
+        id: "onboarding",
+        title: "Set up Rover",
+        description: "Learn Rover by doing real setup work.",
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+        starterPrompt: "Start the Rover onboarding playbook.",
+      },
+    ]);
+  });
+
+  it("treats duplicate lifecycle starter registration from the same source as idempotent", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
+      trigger: "first-anchor-web-chat",
+      lifecycle: "onboarding",
+      starterText: "Set up Rover",
+      starterPrompt: "Start the Rover onboarding playbook.",
+    });
+
+    const payload = {
+      id: "onboarding",
+      trigger: "first-anchor-web-chat",
+      playbookId: "rover-onboarding",
+      once: true,
+      starterText: "Set up Rover",
+      starterPrompt: "Start the Rover onboarding playbook.",
+    };
+
+    const first = await harness.sendMessage<
+      typeof payload,
+      { registered: boolean; id: string }
+    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, payload, "rover-onboarding");
+    const second = await harness.sendMessage<
+      typeof payload,
+      { registered: boolean; id: string }
+    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, payload, "rover-onboarding");
+
+    expect(first).toEqual({ registered: true, id: "onboarding" });
+    expect(second).toEqual({ registered: true, id: "onboarding" });
+
+    const response = await harness.sendMessage<
+      {
+        lifecycle: string;
+        interfaceType: string;
+        userPermissionLevel: "anchor";
+      },
+      { starters: Array<{ id: string }> }
+    >("playbooks:lifecycle-starters", {
+      lifecycle: "onboarding",
+      interfaceType: "web-chat",
+      userPermissionLevel: "anchor",
+    });
+
+    expect(response?.starters).toHaveLength(1);
+  });
+
+  it("ignores conflicting lifecycle starter registration for an existing id", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
+      trigger: "first-anchor-web-chat",
+      lifecycle: "onboarding",
+      starterText: "Set up Rover",
+      starterPrompt: "Start the Rover onboarding playbook.",
+    });
+
+    const firstPayload = {
+      id: "onboarding",
+      trigger: "first-anchor-web-chat",
+      playbookId: "rover-onboarding",
+      once: true,
+      starterText: "Set up Rover",
+      starterPrompt: "Start the Rover onboarding playbook.",
+    };
+    const conflictPayload = {
+      ...firstPayload,
+      starterText: "Conflicting starter",
+      starterPrompt: "Start the conflicting playbook.",
+    };
+
+    await harness.sendMessage(
+      PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+      firstPayload,
+      "rover-onboarding",
+    );
+    const conflict = await harness.sendMessage<
+      typeof conflictPayload,
+      { registered: boolean; id: string; ignored?: boolean; reason?: string }
+    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, conflictPayload, "other-plugin");
+
+    expect(conflict).toEqual(
+      expect.objectContaining({
+        registered: false,
+        id: "onboarding",
+        ignored: true,
+      }),
+    );
+
+    const response = await harness.sendMessage<
+      {
+        lifecycle: string;
+        interfaceType: string;
+        userPermissionLevel: "anchor";
+      },
+      { starters: Array<{ title: string; starterPrompt: string }> }
+    >("playbooks:lifecycle-starters", {
+      lifecycle: "onboarding",
+      interfaceType: "web-chat",
+      userPermissionLevel: "anchor",
+    });
+
+    expect(response?.starters).toEqual([
+      expect.objectContaining({
+        title: "Set up Rover",
+        starterPrompt: "Start the Rover onboarding playbook.",
+      }),
+    ]);
   });
 
   it("derives enabled lifecycle starters from active playbook metadata", async () => {
@@ -800,6 +1006,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -807,6 +1014,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
@@ -857,6 +1065,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -864,6 +1073,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Capture the operator identity."],
+          requiredDetails: [],
           doneWhen: ["The brain knows who the operator is."],
           transitions: [{ event: "NEXT", target: "complete" }],
         },
@@ -912,6 +1122,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -919,6 +1130,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Capture the operator identity."],
+          requiredDetails: [],
           doneWhen: ["The brain knows who the operator is."],
           transitions: [{ event: "NEXT", target: "complete" }],
         },
@@ -967,6 +1179,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Save a seed."],
+          requiredDetails: [],
           doneWhen: ["A first knowledge seed has been saved."],
           transitions: [{ event: "NEXT", target: "complete" }],
         },
@@ -1024,6 +1237,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -1031,6 +1245,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [{ event: "NEXT", target: "seed" }],
         },
@@ -1092,6 +1307,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -1099,6 +1315,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
@@ -1150,6 +1367,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -1157,6 +1375,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [{ event: "NEXT", target: "seed" }],
         },
@@ -1327,7 +1546,7 @@ describe("PlaybooksPlugin", () => {
     expect(content).toContain("- welcome");
   });
 
-  it("injects actionable run identity and unsatisfied Done When gates as agent context", async () => {
+  it("injects actionable run identity, required details, and unsatisfied Done When gates as agent context", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, {
@@ -1337,6 +1556,7 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
+          requiredDetails: [],
           doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
@@ -1344,6 +1564,7 @@ describe("PlaybooksPlugin", () => {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
+          requiredDetails: ["name", "role", "audience"],
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
@@ -1394,7 +1615,14 @@ describe("PlaybooksPlugin", () => {
     expect(content).toContain("Valid continuation events:");
     expect(content).toContain("Available operator actions:");
     expect(content).toContain("SKIP -> seed: Skip for now");
+    expect(content).toContain("Required details:");
+    expect(content).toContain("- name");
+    expect(content).toContain("- role");
+    expect(content).toContain("- audience");
     expect(content).toContain("Blocked events:");
     expect(content).toContain("NEXT -> seed");
+    expect(content).toContain(
+      "do not call unrelated durable mutation tools such as system_create or system_update",
+    );
   });
 });

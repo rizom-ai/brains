@@ -449,7 +449,7 @@ export function getDocumentId(
   // existing document resolves to the same id the caller computed up front —
   // otherwise the attachment URL would point at an id that was never created.
   //
-  // Enqueue-side callers (the create interceptor and the document_generate
+  // Enqueue-side callers (the system_generate create interceptor
   // tool) can't await the content-hashed dedup key, so they omit it; they
   // always supply an explicit documentId/filename, falling through to the
   // identity-only key only as a last resort. The job handler passes the real

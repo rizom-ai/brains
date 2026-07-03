@@ -1,4 +1,0 @@
-
-# Production environment files with secrets
-.env.production
-*.env.production

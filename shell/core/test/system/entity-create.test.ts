@@ -1,6 +1,10 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
-import { createOutputSchema } from "../../src/system/schemas";
+import {
+  createInputSchema,
+  createOutputSchema,
+  generateInputSchema,
+} from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 import type {
   BaseEntity,
@@ -11,41 +15,32 @@ import type {
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
-import { slugify } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z, slugify } from "@brains/utils";
 
-const createEntityRequestSchema = z.looseObject({
-  options: z
-    .object({
-      eventContext: z
-        .object({
-          conversationId: z.string().optional(),
-          channelId: z.string().optional(),
-          runId: z.string().optional(),
-          toolCallId: z.string().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-});
+const createEntityRequestSchema = z
+  .object({
+    options: z
+      .object({
+        eventContext: z
+          .object({
+            conversationId: z.string().optional(),
+            channelId: z.string().optional(),
+            runId: z.string().optional(),
+            toolCallId: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
 
 const enqueuedCreateJobSchema = z.object({
   targetEntityType: z.string(),
   targetEntityId: z.string(),
 });
 
-const enqueuedCoverImageJobSchema = z.object({
-  prompt: z.string(),
-  title: z.string(),
-  aspectRatio: z.string(),
-  targetEntityType: z.string(),
-  targetEntityId: z.string(),
-  entityTitle: z.string().optional(),
-  entityContent: z.string().optional(),
-});
-
 const enqueuedLinkJobSchema = z.object({
-  url: z.url(),
+  url: z.string().url(),
   metadata: z.object({
     interfaceId: z.string(),
     userId: z.string(),
@@ -57,6 +52,31 @@ const enqueuedLinkJobSchema = z.object({
 
 const URL_PATTERN = /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i;
 type MockServices = ReturnType<typeof createMockSystemServices>;
+
+// Entity types these tests treat as registered by an installed plugin. The
+// create tool now rejects unregistered types up front, so every mock must
+// register the types it exercises (mirrors real plugin registration).
+const STANDARD_ENTITY_TYPES = [
+  "base",
+  "note",
+  "post",
+  "deck",
+  "document",
+  "image",
+  "link",
+  "agent",
+  "social-post",
+  "newsletter",
+  "summary",
+];
+
+function createSeededSystemServices(
+  overrides?: Partial<Parameters<typeof createMockSystemServices>[0]>,
+): MockServices {
+  const services = createMockSystemServices(overrides);
+  services.registerEntityTypes(STANDARD_ENTITY_TYPES);
+  return services;
+}
 
 function extractFirstUrl(
   ...values: Array<string | undefined>
@@ -109,8 +129,7 @@ function registerLinkCreateInterceptor(services: MockServices): void {
           const adapter = services.entityRegistry.getAdapter("link");
           const parsed = adapter.fromMarkdown(input.content);
           const parsedMetadata = parsed.metadata as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
           const parsedTitle =
             typeof parsedMetadata?.["title"] === "string"
               ? parsedMetadata["title"]
@@ -246,11 +265,34 @@ function registerImageCreateInterceptor(services: MockServices): void {
 }
 
 describe("system_create tool", () => {
+  it("describes source text as exact user-provided content for direct save requests", () => {
+    const textBranch = createInputSchema.shape.source.options.find(
+      (option) => option.shape.kind.value === "text",
+    );
+    const contentField =
+      textBranch && "content" in textBranch.shape
+        ? textBranch.shape.content
+        : undefined;
+
+    expect(contentField?.description).toContain("direct save request");
+  });
+
+  it("tells models same-message direct save content is sufficient", () => {
+    const services = createMockSystemServices();
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_create",
+    );
+
+    expect(tool?.description).toContain(
+      "If the user includes content in the same direct save request, use source.kind text with that content",
+    );
+  });
+
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 
   beforeEach(() => {
-    services = createMockSystemServices();
+    services = createSeededSystemServices();
     registerLinkCreateInterceptor(services);
     registerImageCreateInterceptor(services);
     tools = createSystemTools(services);
@@ -265,6 +307,54 @@ describe("system_create tool", () => {
     runId?: string;
     toolCallId?: string;
     userPermissionLevel?: UserPermissionLevel;
+  }
+
+  interface EntityRefInput {
+    entityType: string;
+    entityId: string;
+  }
+
+  interface AttachmentRefInput {
+    source: EntityRefInput;
+    attachmentType: string;
+  }
+
+  function toAttachmentRefInput(
+    value: unknown,
+  ): AttachmentRefInput | undefined {
+    if (!value || typeof value !== "object") return undefined;
+    const record = value as Record<string, unknown>;
+    const nestedSource = record["source"];
+    if (nestedSource && typeof nestedSource === "object") {
+      const sourceRecord = nestedSource as Record<string, unknown>;
+      if (
+        typeof sourceRecord["entityType"] === "string" &&
+        typeof sourceRecord["entityId"] === "string" &&
+        typeof record["attachmentType"] === "string"
+      ) {
+        return {
+          source: {
+            entityType: sourceRecord["entityType"],
+            entityId: sourceRecord["entityId"],
+          },
+          attachmentType: record["attachmentType"],
+        };
+      }
+    }
+    if (
+      typeof record["sourceEntityType"] === "string" &&
+      typeof record["sourceEntityId"] === "string" &&
+      typeof record["attachmentType"] === "string"
+    ) {
+      return {
+        source: {
+          entityType: record["sourceEntityType"],
+          entityId: record["sourceEntityId"],
+        },
+        attachmentType: record["attachmentType"],
+      };
+    }
+    return undefined;
   }
 
   function buildContext(context?: CreateToolTestContext): ToolContext {
@@ -284,13 +374,55 @@ describe("system_create tool", () => {
     };
   }
 
+  function withSource(input: Record<string, unknown>): Record<string, unknown> {
+    if (input["source"]) return input;
+    const {
+      content,
+      prompt,
+      url,
+      upload,
+      transform,
+      sourceAttachment,
+      from,
+      ...rest
+    } = input;
+    if (typeof content === "string" && content.trim().length > 0) {
+      return transform === undefined || transform === ""
+        ? { ...rest, source: { kind: "text", content } }
+        : { ...rest, transform, source: { kind: "text", content } };
+    }
+    if (typeof prompt === "string" && prompt.trim().length > 0) {
+      return { ...rest, source: { kind: "generate", prompt } };
+    }
+    if (typeof url === "string" && url.trim().length > 0) {
+      return { ...rest, source: { kind: "url", url } };
+    }
+    if (upload && transform === "extract-markdown") {
+      return { ...rest, source: { kind: "upload", upload, transform } };
+    }
+    if (sourceAttachment && typeof sourceAttachment === "object") {
+      return { ...rest, source: { kind: "attachment", ...sourceAttachment } };
+    }
+    if (from && typeof from === "object") {
+      const messageId = (from as { messageId?: unknown }).messageId;
+      return {
+        ...rest,
+        source: {
+          kind: "prior-response",
+          ...(typeof messageId === "string" ? { messageId } : {}),
+        },
+      };
+    }
+    return input;
+  }
+
   function execRaw(
     input: Record<string, unknown>,
     context?: CreateToolTestContext,
   ): Promise<ToolResponse> {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
-    return tool.handler(input, buildContext(context));
+    return tool.handler(withSource(input), buildContext(context));
   }
 
   async function exec(
@@ -301,6 +433,224 @@ describe("system_create tool", () => {
     if (!("needsConfirmation" in result)) return result;
     return execRaw(result.args as Record<string, unknown>, context);
   }
+
+  function withGenerateSource(
+    input: Record<string, unknown>,
+  ): Record<string, unknown> {
+    if (input["operation"]) return input;
+    const {
+      entityType,
+      title,
+      prompt,
+      source,
+      sourceAttachment,
+      replace,
+      targetEntityType,
+      targetEntityId,
+      ...rest
+    } = input;
+
+    const promptValue = typeof prompt === "string" ? prompt : undefined;
+    let promptSource: EntityRefInput | undefined;
+    if (source && typeof source === "object") {
+      const sourceRecord = source as Record<string, unknown>;
+      if (
+        typeof sourceRecord["entityType"] === "string" &&
+        typeof sourceRecord["entityId"] === "string"
+      ) {
+        promptSource = {
+          entityType: sourceRecord["entityType"],
+          entityId: sourceRecord["entityId"],
+        };
+      }
+      if (sourceRecord["kind"] === "prompt") {
+        const sourcePrompt = sourceRecord["prompt"];
+        if (typeof sourcePrompt === "string") {
+          return withGenerateSource({
+            ...rest,
+            entityType,
+            title,
+            prompt: sourcePrompt,
+            targetEntityType,
+            targetEntityId,
+          });
+        }
+      }
+      if (sourceRecord["kind"] === "attachment") {
+        const attachmentRef = toAttachmentRefInput(sourceRecord);
+        if (attachmentRef) {
+          return {
+            ...rest,
+            operation: {
+              kind: "attachment",
+              ...attachmentRef,
+              ...(typeof title === "string" ? { title } : {}),
+              ...(replace === true ? { replace } : {}),
+            },
+          };
+        }
+      }
+    }
+
+    const attachmentRef = toAttachmentRefInput(sourceAttachment);
+    if (attachmentRef) {
+      return {
+        ...rest,
+        operation: {
+          kind: "attachment",
+          ...attachmentRef,
+          ...(typeof title === "string" ? { title } : {}),
+          ...(replace === true ? { replace } : {}),
+        },
+      };
+    }
+    if (promptValue && promptValue.trim().length > 0) {
+      if (
+        entityType === "image" &&
+        typeof targetEntityType === "string" &&
+        typeof targetEntityId === "string"
+      ) {
+        return {
+          ...rest,
+          operation: {
+            kind: "cover-image",
+            target: {
+              entityType: targetEntityType,
+              entityId: targetEntityId,
+            },
+            ...(typeof title === "string" ? { title } : {}),
+            prompt: promptValue,
+          },
+        };
+      }
+      if (entityType === "image") {
+        return {
+          ...rest,
+          operation: {
+            kind: "standalone-image",
+            ...(typeof title === "string" ? { title } : {}),
+            prompt: promptValue,
+          },
+        };
+      }
+      return {
+        ...rest,
+        operation: {
+          kind: promptSource ? "prompt-from-source" : "prompt",
+          entityType,
+          ...(typeof title === "string" ? { title } : {}),
+          ...(promptSource ? { source: promptSource } : {}),
+          prompt: promptValue,
+        },
+      };
+    }
+    return input;
+  }
+
+  function execGenerateRaw(
+    input: Record<string, unknown>,
+    context?: CreateToolTestContext,
+  ): Promise<ToolResponse> {
+    const tool = tools.find((t) => t.name === "system_generate");
+    if (!tool) throw new Error("system_generate not found");
+    return tool.handler(withGenerateSource(input), buildContext(context));
+  }
+
+  async function execGenerate(
+    input: Record<string, unknown>,
+    context?: CreateToolTestContext,
+  ): Promise<ToolResponse> {
+    const result = await execGenerateRaw(input, context);
+    if (!("needsConfirmation" in result)) return result;
+    return execGenerateRaw(result.args as Record<string, unknown>, context);
+  }
+
+  it("rejects unregistered entity types before confirming or generating", async () => {
+    const result = await execGenerateRaw({
+      entityType: "post",
+      title: "Queens Are Not Invincible",
+      prompt: "Write a fuller article from the outline.",
+    });
+
+    // Sanity: "post" is registered in this suite, so it must NOT be rejected.
+    expect(result).not.toMatchObject({ success: false });
+
+    const unregistered = await execGenerateRaw({
+      entityType: "blog-post",
+      title: "Queens Are Not Invincible",
+      prompt: "Write a fuller article from the outline.",
+    });
+
+    expect(unregistered).toMatchObject({ success: false });
+    expect((unregistered as { error: string }).error).toContain(
+      'Entity type "blog-post" is not available in this brain.',
+    );
+    // No confirmation card and no generation job for an unregistered type.
+    expect(unregistered).not.toHaveProperty("needsConfirmation");
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
+  it("rejects creating an entity that already exists and routes to update", async () => {
+    const now = new Date().toISOString();
+    await services.entityService.createEntity({
+      entity: {
+        id: "resilience-is-not-redundancy",
+        entityType: "post",
+        content: "# Resilience Is Not Redundancy",
+        metadata: {
+          title: "Resilience Is Not Redundancy",
+          status: "published",
+        },
+        created: now,
+        updated: now,
+      },
+    });
+    const before = await services.entityService.listEntities({
+      entityType: "post",
+    });
+
+    // Misrouted status change: "make the Resilience post a draft" reaches
+    // system_create instead of system_update. The derived id resolves to the
+    // existing post, so the tool must refuse and name the right tool — before
+    // any confirmation card — instead of silently minting a deduped copy.
+    const result = await execRaw({
+      entityType: "post",
+      title: "Resilience Is Not Redundancy",
+      content: "# Resilience Is Not Redundancy\n\nMake this a draft.",
+    });
+
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("use system_update");
+    expect(result).not.toHaveProperty("needsConfirmation");
+
+    const after = await services.entityService.listEntities({
+      entityType: "post",
+    });
+    expect(after.length).toBe(before.length);
+  });
+
+  it("allows replace:true to bypass the already-exists guard", async () => {
+    const now = new Date().toISOString();
+    await services.entityService.createEntity({
+      entity: {
+        id: "resilience-is-not-redundancy",
+        entityType: "post",
+        content: "# Resilience Is Not Redundancy",
+        metadata: { title: "Resilience Is Not Redundancy" },
+        created: now,
+        updated: now,
+      },
+    });
+
+    const result = await exec({
+      entityType: "post",
+      title: "Resilience Is Not Redundancy",
+      content: "# A deliberate new copy",
+      replace: true,
+    });
+
+    expect(result).toMatchObject({ success: true });
+  });
 
   it("should require confirmation before creating durable entities", async () => {
     const result = await execRaw({
@@ -349,7 +699,7 @@ describe("system_create tool", () => {
       searchConversations: async () => [],
       close: () => undefined,
     };
-    services = createMockSystemServices({ conversationService });
+    services = createSeededSystemServices({ conversationService });
     tools = createSystemTools(services);
 
     const result = await execRaw(
@@ -363,7 +713,8 @@ describe("system_create tool", () => {
     );
 
     const parsedConfirmation = z
-      .looseObject({ preview: z.string() })
+      .object({ preview: z.string() })
+      .passthrough()
       .parse(result);
     expect(result).toMatchObject({ needsConfirmation: true });
     expect(parsedConfirmation.preview).not.toContain("Upload: uploaded file");
@@ -470,6 +821,33 @@ status: draft
     });
   });
 
+  it("should reject confirmed create calls when the confirmed source is changed", async () => {
+    const confirmation = await execRaw({
+      entityType: "note",
+      title: "Original Source",
+      content: "Create this original content.",
+    });
+
+    expect(confirmation).toMatchObject({ needsConfirmation: true });
+    const confirmationArgs = z
+      .object({
+        confirmationToken: z.string(),
+      })
+      .passthrough()
+      .parse((confirmation as { args: unknown }).args);
+
+    const result = await execRaw({
+      ...confirmationArgs,
+      source: { kind: "text", content: "Create swapped content instead." },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Confirmed create arguments do not match the pending approval. Please request creation again and confirm the new approval.",
+    });
+  });
+
   it("passes separate conversation, channel, run, and tool call provenance to entity creation", async () => {
     const result = await exec(
       {
@@ -497,7 +875,7 @@ status: draft
     });
   });
 
-  it("should pass normalized input and execution context to registered create interceptors", async () => {
+  it("should pass normalized generate input and execution context to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
     let capturedContext: CreateExecutionContext | undefined;
 
@@ -516,14 +894,11 @@ status: draft
       },
     );
 
-    const result = await exec(
+    const result = await execGenerate(
       {
         entityType: "note",
         prompt: "Write about TypeScript.",
         title: "",
-        content: "",
-        targetEntityType: "",
-        targetEntityId: "",
       },
       {
         interfaceType: "matrix",
@@ -549,9 +924,9 @@ status: draft
     });
   });
 
-  it("should pass accessible upload refs to registered create interceptors", async () => {
+  it("should pass accessible upload transform refs to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
-    services = createMockSystemServices({
+    services = createSeededSystemServices({
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -579,27 +954,25 @@ status: draft
       },
     });
     tools = createSystemTools(services);
-    services.entityRegistry.registerCreateInterceptor(
-      "document",
-      async (input) => {
-        capturedInput = input;
-        return {
-          kind: "handled",
-          result: {
-            success: true,
-            data: { status: "created", entityId: "brief" },
-          },
-        };
-      },
-    );
+    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
+      capturedInput = input;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "brief" },
+        },
+      };
+    });
 
     const result = await exec(
       {
-        entityType: "document",
+        entityType: "note",
         upload: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000301",
         },
+        transform: "extract-markdown",
       },
       { interfaceType: "web-chat", channelId: "web-conversation-1" },
     );
@@ -609,17 +982,18 @@ status: draft
       data: { status: "created", entityId: "brief" },
     });
     expect(capturedInput).toEqual({
-      entityType: "document",
+      entityType: "note",
       from: {
         kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000301",
       },
+      transform: "extract-markdown",
     });
   });
 
   it("should pass upload markdown transforms to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
-    services = createMockSystemServices({
+    services = createSeededSystemServices({
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -691,15 +1065,12 @@ status: draft
       transform: "extract-markdown",
     });
 
-    expect(result).toEqual({
-      success: false,
-      error:
-        'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
-    });
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("Unrecognized key");
   });
 
   it("should reject extract-markdown transform for raw document upload promotion", async () => {
-    services = createMockSystemServices({
+    services = createSeededSystemServices({
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -790,9 +1161,9 @@ status: draft
     });
   });
 
-  it("should use conversationId for upload access when channelId is not the conversation id", async () => {
+  it("should use conversationId for upload-transform access when channelId is not the conversation id", async () => {
     let capturedInput: CreateInput | undefined;
-    services = createMockSystemServices({
+    services = createSeededSystemServices({
       conversationService: {
         ...services.conversationService,
         getMessages: async (conversationId: string) =>
@@ -823,27 +1194,25 @@ status: draft
       },
     });
     tools = createSystemTools(services);
-    services.entityRegistry.registerCreateInterceptor(
-      "document",
-      async (input) => {
-        capturedInput = input;
-        return {
-          kind: "handled",
-          result: {
-            success: true,
-            data: { status: "created", entityId: "brief" },
-          },
-        };
-      },
-    );
+    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
+      capturedInput = input;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "brief" },
+        },
+      };
+    });
 
     const result = await exec(
       {
-        entityType: "document",
+        entityType: "note",
         upload: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000303",
         },
+        transform: "extract-markdown",
       },
       {
         interfaceType: "web-chat",
@@ -865,11 +1234,12 @@ status: draft
   it("should reject upload refs outside the current conversation", async () => {
     const result = await exec(
       {
-        entityType: "document",
+        entityType: "note",
         upload: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000302",
         },
+        transform: "extract-markdown",
       },
       { interfaceType: "web-chat", channelId: "web-conversation-1" },
     );
@@ -928,7 +1298,7 @@ status: draft
       }),
     );
 
-    await exec({
+    await execGenerate({
       entityType: "note",
       prompt: "Original prompt",
     });
@@ -1079,7 +1449,7 @@ status: draft
       },
     ]);
 
-    const result = await exec({
+    const result = await execGenerate({
       entityType: "note",
       prompt: "Write about TypeScript.",
     });
@@ -1096,42 +1466,34 @@ status: draft
     expect(stub?.metadata["status"]).toBe("generating");
   });
 
-  it("should require content, prompt, url, upload, or sourceAttachment", async () => {
+  it("should require a create source", async () => {
     const result = await exec({
       entityType: "note",
       title: "Nothing else",
     });
 
     expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain(
+      "Invalid input: source: Invalid input",
+    );
   });
 
   it("should reject url-only create for unsupported entity types", async () => {
     const result = await exec({
       entityType: "note",
-      url: "https://example.com/test",
+      source: { kind: "url", url: "https://example.com/test" },
     });
 
     expect(result).toHaveProperty("success", false);
     expect((result as { error: string }).error).toContain(
-      "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it",
+      "URL or upload source creation is supported only for entity types that explicitly handle it",
     );
   });
 
-  it("should queue agent generation from top-level url", async () => {
-    services.entityRegistry.registerCreateInterceptor(
-      "agent",
-      async (input) => ({
-        kind: "continue",
-        input:
-          input.url && !input.prompt && !input.content
-            ? { ...input, prompt: input.url }
-            : input,
-      }),
-    );
-
-    const result = await exec({
+  it("should queue agent generation from a prompt source", async () => {
+    const result = await execGenerate({
       entityType: "agent",
-      url: "https://yeehaa.io",
+      prompt: "https://yeehaa.io",
     });
 
     expect(result).toHaveProperty("success", true);
@@ -1165,10 +1527,10 @@ status: draft
     expect(jobData.url).toBe("https://anthropic.com/research");
   });
 
-  it("should route prompted link creation with a URL to link capture", async () => {
+  it("should route url-source link creation to link capture", async () => {
     const result = await exec({
       entityType: "link",
-      prompt: "Save this link for me: https://anthropic.com/research",
+      url: "https://anthropic.com/research",
     });
 
     expect(result).toHaveProperty("success", true);
@@ -1253,24 +1615,21 @@ A saved research link.`;
     );
   });
 
-  it("should reject prompted link creation without a URL", async () => {
+  it("should reject direct link content without a URL", async () => {
     const result = await exec({
       entityType: "link",
-      prompt: "Save the article I mentioned earlier",
+      content: "Save the article I mentioned earlier",
     });
 
     expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain("requires a URL");
+    expect((result as { error: string }).error).toContain("provide a URL");
   });
 
   it("should ignore empty optional strings when queuing generation jobs", async () => {
-    await exec({
+    await execGenerate({
       entityType: "post",
       prompt: "Write about TypeScript.",
       title: "",
-      content: "",
-      targetEntityType: "",
-      targetEntityId: "",
     });
 
     const enqueuedJob = services.getLastEnqueuedJob();
@@ -1286,33 +1645,61 @@ A saved research link.`;
     expect(rawJobData["prompt"]).toBe("Write about TypeScript.");
   });
 
-  it("should reject targetEntityType without targetEntityId", async () => {
-    const result = await exec({
-      entityType: "image",
-      prompt: "Generate a cover image",
-      targetEntityType: "post",
-    });
-
-    expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain(
-      "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
-    );
+  it("should reject top-level and invalid operation target fields at parse time", () => {
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "standalone-image",
+          prompt: "Generate a robot image",
+        },
+        targetEntityType: "post",
+      }).success,
+    ).toBe(false);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "standalone-image",
+          prompt: "Generate a robot image",
+          targetEntityType: "post",
+          targetEntityId: "my-post",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "cover-image",
+          targetEntityType: "post",
+          prompt: "Generate a cover image",
+        },
+      }).success,
+    ).toBe(false);
   });
 
-  it("should reject targetEntityId without targetEntityType", async () => {
-    const result = await exec({
-      entityType: "image",
-      prompt: "Generate a cover image",
-      targetEntityId: "my-post",
-    });
-
-    expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain(
-      "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
-    );
+  it("should reject coverImage anywhere on system_generate at parse time", () => {
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "prompt",
+          entityType: "post",
+          prompt: "Write about continuous learning",
+        },
+        coverImage: true,
+      }).success,
+    ).toBe(false);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "cover-image",
+          target: { entityType: "post", entityId: "my-post" },
+          prompt: "Generate a cover image",
+          coverImage: true,
+        },
+      }).success,
+    ).toBe(false);
   });
 
-  it("should resolve image generation targets to canonical entity ids", async () => {
+  it("should resolve image generation targets to canonical entity ids before confirmation", async () => {
     services.addEntities([
       {
         id: "my-blog-post",
@@ -1325,13 +1712,27 @@ A saved research link.`;
       },
     ]);
 
-    await exec({
+    const confirmation = await execGenerateRaw({
       entityType: "image",
       prompt: "Generate a cover image",
       targetEntityType: "post",
       targetEntityId: "My Blog Post",
     });
 
+    expect(confirmation).toMatchObject({ needsConfirmation: true });
+    expect(
+      (confirmation as { args: Record<string, unknown> }).args,
+    ).toMatchObject({
+      operation: {
+        kind: "cover-image",
+        target: { entityType: "post", entityId: "my-blog-post" },
+      },
+    });
+
+    const result = await execGenerateRaw(
+      (confirmation as { args: Record<string, unknown> }).args,
+    );
+    expect(result).toHaveProperty("success", true);
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
     const jobData = enqueuedCreateJobSchema.parse(enqueuedJob.data);
@@ -1339,40 +1740,244 @@ A saved research link.`;
     expect(jobData.targetEntityId).toBe("my-blog-post");
   });
 
-  it("should reject image generation when the target entity does not exist", async () => {
-    const result = await exec({
+  it("should reject image generation when the target entity does not exist before confirmation", async () => {
+    const result = await execGenerateRaw({
       entityType: "image",
       prompt: "Generate a cover image",
       targetEntityType: "post",
       targetEntityId: "missing-post",
     });
 
-    expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain(
-      "Target entity not found: post/missing-post",
-    );
+    expect(result).toEqual({
+      success: false,
+      error: "Entity not found: post/missing-post",
+      code: "target-not-found",
+    });
+    expect("needsConfirmation" in result).toBe(false);
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
 
-  it("should expose top-level url, upload, transform, sourceAttachment, replace, and coverImage, and not include options/from fields in schema", () => {
+  it("should resolve prompt generation source refs before confirmation and forward them to jobs", async () => {
+    services.addEntities([
+      {
+        id: "event-sourcing-sustainability",
+        entityType: "post",
+        content: "Post content",
+        metadata: { title: "Event Sourcing for Sustainability Metrics" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-source-post",
+      },
+    ]);
+
+    const confirmation = await execGenerateRaw({
+      operation: {
+        kind: "prompt-from-source",
+        entityType: "newsletter",
+        source: {
+          entityType: "post",
+          entityId: "Event Sourcing for Sustainability Metrics",
+        },
+        prompt: "Write a newsletter from the source post",
+      },
+    });
+
+    expect(confirmation).toMatchObject({ needsConfirmation: true });
+    expect(
+      (confirmation as { args: Record<string, unknown> }).args,
+    ).toMatchObject({
+      operation: {
+        kind: "prompt-from-source",
+        entityType: "newsletter",
+        source: {
+          entityType: "post",
+          entityId: "event-sourcing-sustainability",
+        },
+      },
+    });
+
+    const result = await execGenerateRaw(
+      (confirmation as { args: Record<string, unknown> }).args,
+    );
+
+    expect(result).toHaveProperty("success", true);
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("newsletter:generation");
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
+    expect(rawJobData["sourceEntityType"]).toBe("post");
+    expect(rawJobData["sourceEntityId"]).toBe("event-sourcing-sustainability");
+    expect(rawJobData["sourceEntityIds"]).toEqual([
+      "event-sourcing-sustainability",
+    ]);
+  });
+
+  it("should expose canonical concrete source and no generation branches on system_create", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
-    expect(tool.inputSchema).toHaveProperty("url");
+    expect(tool.inputSchema).toHaveProperty("source");
+    expect(tool.inputSchema).not.toHaveProperty("content");
+    expect(tool.inputSchema).not.toHaveProperty("prompt");
+    expect(tool.inputSchema).not.toHaveProperty("url");
     expect(tool.inputSchema).not.toHaveProperty("from");
-    expect(tool.inputSchema).toHaveProperty("upload");
-    expect(tool.inputSchema).toHaveProperty("transform");
-    expect(tool.inputSchema).toHaveProperty("sourceAttachment");
+    expect(tool.inputSchema).not.toHaveProperty("upload");
+    expect(tool.inputSchema).not.toHaveProperty("transform");
+    expect(tool.inputSchema).not.toHaveProperty("sourceAttachment");
     expect(tool.inputSchema).not.toHaveProperty("fromUpload");
     expect(tool.inputSchema).toHaveProperty("replace");
-    expect(tool.inputSchema).toHaveProperty("coverImage");
+    expect(tool.inputSchema).not.toHaveProperty("coverImage");
+    expect(tool.inputSchema).not.toHaveProperty("targetEntityType");
+    expect(tool.inputSchema).not.toHaveProperty("targetEntityId");
     expect(tool.inputSchema).not.toHaveProperty("options");
+
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: { kind: "generate", prompt: "Draft" },
+      }).success,
+    ).toBe(false);
+    expect(
+      createInputSchema.safeParse({
+        entityType: "document",
+        source: {
+          kind: "attachment",
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+        },
+      }).success,
+    ).toBe(false);
   });
 
-  it("should let direct content take precedence over stale upload refs", async () => {
+  it("should expose system_generate operation union for generation and source-derived artifacts", () => {
+    const tool = tools.find((t) => t.name === "system_generate");
+    if (!tool) throw new Error("system_generate not found");
+
+    expect(tool.inputSchema).toHaveProperty("operation");
+    expect(tool.inputSchema).toHaveProperty("confirmed");
+    expect(tool.inputSchema).not.toHaveProperty("entityType");
+    expect(tool.inputSchema).not.toHaveProperty("source");
+    expect(tool.inputSchema).not.toHaveProperty("targetEntityType");
+    expect(tool.inputSchema).not.toHaveProperty("targetEntityId");
+    expect(tool.inputSchema).not.toHaveProperty("coverImage");
+    expect(tool.visibility).toBe("trusted");
+    expect(tool.sideEffects).toBe("writes");
+
+    expect(
+      generateInputSchema.safeParse({
+        operation: { kind: "standalone-image", prompt: "Draw a robot" },
+      }).success,
+    ).toBe(true);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "prompt-from-source",
+          entityType: "newsletter",
+          source: { entityType: "post", entityId: "post-1" },
+          prompt: "Write a newsletter from the source post",
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "prompt",
+          entityType: "newsletter",
+          source: { entityType: "post", entityId: "post-1" },
+          prompt: "Write a newsletter from the source post",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "cover-image",
+          target: { entityType: "post", entityId: "post-1" },
+          prompt: "Draw a cover image",
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "attachment",
+          source: { entityType: "deck", entityId: "deck-1" },
+          attachmentType: "carousel",
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "attachment",
+          entityType: "image",
+          source: { entityType: "deck", entityId: "deck-1" },
+          attachmentType: "carousel",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      generateInputSchema.safeParse({
+        entityType: "image",
+        source: { kind: "prompt", prompt: "Draw a robot" },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("should accept every canonical source branch and reject cross-branch fields", () => {
+    const validInputs = [
+      { entityType: "note", source: { kind: "text", content: "Body" } },
+      {
+        entityType: "link",
+        source: { kind: "url", url: "https://example.com" },
+      },
+      {
+        entityType: "note",
+        source: {
+          kind: "upload",
+          upload: { kind: "upload", id: "upload-1" },
+          transform: "extract-markdown",
+        },
+      },
+      { entityType: "note", source: { kind: "prior-response" } },
+    ];
+
+    for (const input of validInputs) {
+      expect(createInputSchema.safeParse(input).success).toBe(true);
+    }
+
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: { kind: "text", content: "Body", prompt: "Nope" },
+      }).success,
+    ).toBe(false);
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        content: "Body",
+      }).success,
+    ).toBe(false);
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: { kind: "text", content: "Body" },
+        content: "Other body",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("should reject direct content combined with stale upload refs", async () => {
     const result = await execRaw({
       entityType: "note",
       title: "Image Discussion",
-      content: "Notes from the image discussion.",
+      source: {
+        kind: "text",
+        content: "Notes from the image discussion.",
+      },
       upload: {
         kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000951",
@@ -1380,22 +1985,17 @@ A saved research link.`;
       transform: "extract-markdown",
     });
 
-    expect(result).toMatchObject({
-      needsConfirmation: true,
-      summary: 'Create "Image Discussion"?',
-    });
-    expect(result).toHaveProperty(
-      "args.content",
-      "Notes from the image discussion.",
-    );
-    expect(result).not.toHaveProperty("args.upload");
-    expect(result).not.toHaveProperty("args.transform");
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("Unrecognized key");
   });
 
-  it("should let image prompts take precedence over stale upload refs", async () => {
+  it("should reject image prompts combined with stale upload refs", async () => {
     const result = await execRaw({
       entityType: "image",
-      prompt: "Editorial cover image for the social post.",
+      source: {
+        kind: "generate",
+        prompt: "Editorial cover image for the social post.",
+      },
       targetEntityType: "social-post",
       targetEntityId: "ecosystems-over-extraction",
       upload: {
@@ -1405,24 +2005,117 @@ A saved research link.`;
       transform: "extract-markdown",
     });
 
-    expect(result).toMatchObject({
-      needsConfirmation: true,
-      summary: "Generate image?",
-    });
-    expect(result).toHaveProperty(
-      "args.prompt",
-      "Editorial cover image for the social post.",
-    );
-    expect(result).toHaveProperty("args.targetEntityType", "social-post");
-    expect(result).toHaveProperty(
-      "args.targetEntityId",
-      "ecosystems-over-extraction",
-    );
-    expect(result).not.toHaveProperty("args.upload");
-    expect(result).not.toHaveProperty("args.transform");
+    expect(result).toMatchObject({ success: false });
+    expect((result as { error: string }).error).toContain("Unrecognized key");
   });
 
-  it("should canonicalize sourceAttachment sourceEntityId before confirmation and create interceptors", async () => {
+  it("should reject attachment generation when the source entity does not exist before confirmation", async () => {
+    services.attachments.register("deck", "carousel", {
+      metadata: { outputEntityType: "document" },
+      resolve: () => undefined,
+    });
+
+    const result = await execGenerateRaw({
+      entityType: "document",
+      source: {
+        kind: "attachment",
+        sourceEntityType: "deck",
+        sourceEntityId: "missing-deck",
+        attachmentType: "carousel",
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      code: "source-not-found",
+      error: "Entity not found: deck/missing-deck",
+    });
+    expect("needsConfirmation" in result).toBe(false);
+  });
+
+  it("should reject attachment generation when no provider exists before confirmation", async () => {
+    services.addEntities([
+      {
+        id: "distributed-systems-primer",
+        entityType: "deck",
+        content: "---\ntitle: Distributed Systems Primer\n---\n# Slide",
+        metadata: { title: "Distributed Systems Primer" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-deck",
+      },
+    ]);
+
+    const result = await execGenerateRaw({
+      entityType: "document",
+      source: {
+        kind: "attachment",
+        sourceEntityType: "deck",
+        sourceEntityId: "distributed-systems-primer",
+        attachmentType: "carousel",
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      code: "no-provider",
+      error: "No attachment provider found for deck/carousel.",
+    });
+    expect("needsConfirmation" in result).toBe(false);
+  });
+
+  it("should reject attachment generation when provider metadata is missing before confirmation", async () => {
+    services.addEntities([
+      {
+        id: "distributed-systems-primer",
+        entityType: "deck",
+        content: "---\ntitle: Distributed Systems Primer\n---\n# Slide",
+        metadata: { title: "Distributed Systems Primer" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-deck",
+      },
+    ]);
+    services.attachments.register("deck", "carousel", {
+      resolve: () => undefined,
+    });
+
+    const result = await execGenerateRaw({
+      entityType: "document",
+      source: {
+        kind: "attachment",
+        sourceEntityType: "deck",
+        sourceEntityId: "distributed-systems-primer",
+        attachmentType: "carousel",
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      code: "provider-missing-metadata",
+      error:
+        "Attachment provider for deck/carousel is missing output metadata.",
+    });
+    expect("needsConfirmation" in result).toBe(false);
+  });
+
+  it("should reject model-supplied output entityType on attachment operations at parse time", () => {
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "attachment",
+          entityType: "image",
+          source: {
+            entityType: "deck",
+            entityId: "distributed-systems-primer",
+          },
+          attachmentType: "carousel",
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("should canonicalize attachment sourceEntityId before system_generate confirmation and create interceptors", async () => {
     services.addEntities([
       {
         id: "resilience-in-distributed-systems",
@@ -1438,6 +2131,10 @@ A saved research link.`;
         contentHash: "hash-resilience-post",
       },
     ]);
+    services.attachments.register("post", "printable", {
+      metadata: { outputEntityType: "document" },
+      resolve: () => undefined,
+    });
     let capturedInput: CreateInput | undefined;
     services.entityRegistry.registerCreateInterceptor(
       "document",
@@ -1453,7 +2150,7 @@ A saved research link.`;
       },
     );
 
-    const confirmation = await execRaw({
+    const confirmation = await execGenerateRaw({
       entityType: "document",
       sourceAttachment: {
         sourceEntityType: "post",
@@ -1464,17 +2161,22 @@ A saved research link.`;
 
     expect(confirmation).toMatchObject({ needsConfirmation: true });
     if (!("needsConfirmation" in confirmation)) {
-      throw new Error("Expected create confirmation");
+      throw new Error("Expected generate confirmation");
     }
-    expect(confirmation).toHaveProperty(
-      "args.sourceAttachment.sourceEntityId",
-      "resilience-in-distributed-systems",
-    );
+    expect(confirmation).toHaveProperty("args.operation", {
+      kind: "attachment",
+      source: {
+        entityType: "post",
+        entityId: "resilience-in-distributed-systems",
+      },
+      attachmentType: "printable",
+    });
+    expect(confirmation).not.toHaveProperty("args.sourceAttachment");
     const confirmationArgs = z
       .record(z.string(), z.unknown())
       .parse(confirmation.args);
 
-    const result = await execRaw(confirmationArgs);
+    const result = await execGenerateRaw(confirmationArgs);
 
     expect(result).toMatchObject({
       success: true,
@@ -1491,7 +2193,32 @@ A saved research link.`;
     });
   });
 
-  it("should let sourceAttachment take precedence over upload and forward normalized from plus replace to create interceptors", async () => {
+  it("should forward normalized attachment source plus replace to create interceptors", async () => {
+    services.addEntities([
+      {
+        id: "launch-post",
+        entityType: "social-post",
+        content: "---\ntitle: Launch Post\nstatus: draft\n---\n",
+        metadata: { title: "Launch Post", status: "draft" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-launch-post",
+      },
+      {
+        id: "distributed-systems-primer",
+        entityType: "deck",
+        content: "---\ntitle: Distributed Systems Primer\n---\n# Slide",
+        metadata: { title: "Distributed Systems Primer" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-deck",
+      },
+    ]);
+    services.attachments.register("deck", "carousel", {
+      metadata: { outputEntityType: "document" },
+      resolve: () => undefined,
+    });
+
     let capturedInput: CreateInput | undefined;
     services.entityRegistry.registerCreateInterceptor(
       "document",
@@ -1511,12 +2238,8 @@ A saved research link.`;
       },
     );
 
-    const result = await exec({
+    const result = await execGenerate({
       entityType: "document",
-      upload: {
-        kind: "upload",
-        id: "upload-00000000-0000-4000-8000-000000000951",
-      },
       sourceAttachment: {
         sourceEntityType: "deck",
         sourceEntityId: "distributed-systems-primer",
@@ -1544,12 +2267,10 @@ A saved research link.`;
         attachmentType: "carousel",
       },
       replace: true,
-      targetEntityType: "social-post",
-      targetEntityId: "launch-post",
     });
   });
 
-  it("should queue cover image generation after direct create with actual entity id", async () => {
+  it("should reject create-time coverImage because covers are generated separately", async () => {
     const result = await exec({
       entityType: "post",
       title: "Cover Ready Post",
@@ -1560,53 +2281,54 @@ A saved research link.`;
       },
     });
 
-    expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
-    expect(data.entityId).toBe("cover-ready-post");
-
-    const enqueuedJob = services.getLastEnqueuedJob();
-    if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("image:image-generate");
-    const jobData = enqueuedCoverImageJobSchema.parse(enqueuedJob.data);
-    expect(jobData).toMatchObject({
-      prompt: "Editorial abstract for a cover-ready post",
-      title: "Cover Ready Post Cover",
-      aspectRatio: "16:9",
-      targetEntityType: "post",
-      targetEntityId: "cover-ready-post",
-      entityTitle: "Cover Ready Post",
-      entityContent: "A post that needs a visual cover.",
-    });
+    expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain("Unrecognized key");
+    expect(services.getEntities().size).toBe(0);
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
 
-  it("should pass normalized coverImage option through generation jobs", async () => {
-    await exec({
-      entityType: "social-post",
-      prompt: "Write a LinkedIn post about continuous learning",
-      coverImage: true,
+  it("should allow coverImage only for generated images targeting an existing entity", async () => {
+    services.addEntities([
+      {
+        id: "cover-ready-post",
+        entityType: "post",
+        content:
+          "---\ntitle: Cover Ready Post\nslug: cover-ready-post\n---\nContent",
+        metadata: { title: "Cover Ready Post", slug: "cover-ready-post" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-cover-ready",
+      },
+    ]);
+
+    await execGenerate({
+      entityType: "image",
+      prompt: "Editorial abstract for a cover-ready post",
+      targetEntityType: "post",
+      targetEntityId: "Cover Ready Post",
     });
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("social-post:generation");
+    expect(enqueuedJob.type).toBe("image:generation");
     const rawJobData = z
       .record(z.string(), z.unknown())
       .parse(enqueuedJob.data);
-    expect(rawJobData["coverImage"]).toEqual({ generate: true });
+    expect(rawJobData["targetEntityType"]).toBe("post");
+    expect(rawJobData["targetEntityId"]).toBe("cover-ready-post");
+    expect(rawJobData["coverImage"]).toBeUndefined();
   });
 
-  it("should reject coverImage for entity types without cover support", async () => {
+  it("should reject coverImage on system_create for all entity types", async () => {
     const result = await exec({
       entityType: "note",
       title: "Plain Note",
-      content: "Notes do not support cover images in this mock registry.",
+      content: "Notes do not support create-time cover images.",
       coverImage: true,
     });
 
     expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain(
-      "Entity type 'note' doesn't support cover images",
-    );
+    expect((result as { error: string }).error).toContain("Unrecognized key");
     expect(services.getEntities().size).toBe(0);
     expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
@@ -1679,7 +2401,7 @@ A saved research link.`;
       },
     ]);
 
-    await exec({
+    await execGenerate({
       entityType: "image",
       prompt: "Generate image",
       targetEntityType: "post",

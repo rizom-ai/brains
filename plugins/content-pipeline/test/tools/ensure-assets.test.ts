@@ -58,6 +58,9 @@ describe("ensure-assets tool", () => {
       preflight,
     );
 
+    expect(tool.visibility).toBe("anchor");
+    expect(tool.sideEffects).toBe("writes");
+
     const result = await tool.handler(
       { entityType: "post", status: "published", assetType: "og-image" },
       {

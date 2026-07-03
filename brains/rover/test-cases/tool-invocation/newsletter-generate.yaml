@@ -1,6 +1,6 @@
 id: tool-invocation-newsletter-generate
-name: Newsletter Generation via system_create
-description: Verifies that the agent uses system_create to generate a newsletter
+name: Newsletter Generation via system_generate
+description: Verifies that the agent uses system_generate to generate a newsletter
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -15,8 +15,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
+      argsContain:
+        operation.entityType: newsletter
+        operation.kind: prompt
   toolCountRange:
     min: 1
   responseNotContains:
