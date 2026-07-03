@@ -20,7 +20,7 @@ export class BlogPostAdapter extends BaseEntityAdapter<
     super({
       entityType: "post",
       purpose:
-        "A long-form published article or blog post written for an audience.",
+        "A long-form published article, essay, or blog post written for an audience.",
       schema: blogPostSchema,
       frontmatterSchema: blogPostFrontmatterSchema,
       supportsCoverImage: true,

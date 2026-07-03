@@ -96,7 +96,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "list",
-      "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests.",
+      "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests. Use system_list to inspect metadata dates such as publishedAt when the user asks for the latest item of a known type, such as latest blog post.",
       listInputSchema,
       async (input, context) => {
         if (!entityService.getEntityTypes().includes(input.entityType)) {
@@ -124,6 +124,17 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,
         );
+        if (input.entityType === "post" && input.status === "published") {
+          items.sort((left, right) => {
+            const leftDate = left.metadata["publishedAt"];
+            const rightDate = right.metadata["publishedAt"];
+            const leftTime =
+              typeof leftDate === "string" ? Date.parse(leftDate) : 0;
+            const rightTime =
+              typeof rightDate === "string" ? Date.parse(rightDate) : 0;
+            return rightTime - leftTime;
+          });
+        }
         return {
           success: true,
           data: { entities: items, count: items.length },

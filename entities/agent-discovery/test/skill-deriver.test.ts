@@ -181,8 +181,8 @@ describe("deriveSkills", () => {
       replaceAll: true,
     });
 
-    expect(result.created).toBe(4);
-    expect(createEntity).toHaveBeenCalledTimes(4);
+    expect(result.created).toBe(8);
+    expect(createEntity).toHaveBeenCalledTimes(8);
   });
 
   it("scopes topic listing and stamps skill visibility to targetVisibility", async () => {
@@ -320,7 +320,7 @@ describe("buildSkillPrompt", () => {
     const prompt = buildSkillPrompt(input);
 
     expect(prompt).toContain("action-oriented");
-    expect(prompt).toContain("Return 2-4 consolidated skills");
+    expect(prompt).toContain("Return 4-8 consolidated skills");
     expect(prompt).toContain(
       "Never return as many skills as there are knowledge domains",
     );

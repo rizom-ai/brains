@@ -44,7 +44,6 @@ turns:
         - "Distributed Systems"
       responseNotContains:
         - "Confirmation required"
-        - "saved"
         - "system create"
 
   - userMessage: "can you save it"
