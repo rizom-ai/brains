@@ -40,6 +40,10 @@ const mockAgentFactory = mock(
   (_config: BrainAgentConfig): BrainAgent => mockAgent,
 );
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function expectNoSystemMessages(messages: ModelMessage[]): void {
   expect(messages.some((message) => message.role === "system")).toBe(false);
 }
@@ -113,6 +117,12 @@ describe("AgentService", () => {
       steps: [],
       usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
     };
+    mockGenerate.mockImplementation(
+      async (_params: {
+        messages: ModelMessage[];
+        options: BrainCallOptions;
+      }) => mockAgentGenerateResult,
+    );
     mockGenerate.mockClear();
     mockAgentFactory.mockClear();
   });
@@ -219,6 +229,53 @@ describe("AgentService", () => {
       expect(response.pendingConfirmations).toBeUndefined();
       expect(response.cards).toBeUndefined();
       expect(mockGenerate).toHaveBeenCalled();
+    });
+
+    it("serializes concurrent messages in the same conversation and returns each caller its own response", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let callCount = 0;
+      mockGenerate.mockImplementation(async () => {
+        const turn = ++callCount;
+        if (turn === 1) {
+          await firstTurnGate;
+        }
+        return {
+          text: `response-${turn}`,
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const first = service.chat("first", "test-conversation");
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const second = service.chat("second", "test-conversation");
+
+      await delay(10);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+
+      releaseFirst();
+      const [firstResponse, secondResponse] = await Promise.all([
+        first,
+        second,
+      ]);
+
+      expect(firstResponse.text).toBe("response-1");
+      expect(secondResponse.text).toBe("response-2");
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
     });
 
     it("should return a warming response without calling the model when the semantic index is not ready", async () => {
@@ -1807,6 +1864,47 @@ describe("AgentService", () => {
         usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
       };
     };
+
+    it("does not replay the previous response when chat is called during awaiting confirmation", async () => {
+      setupConfirmationResponse("Please confirm deleting the note.");
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const pending = await service.chat(
+        "delete my note",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+      expect(pending.text).toBe("Confirmation required.");
+
+      mockAgentGenerateResult = {
+        text: "fresh answer",
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      };
+
+      const response = await service.chat(
+        "actually, tell me something else",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+
+      expect(response.text).not.toBe("Confirmation required.");
+      expect(response.text).toContain(
+        "pending action is awaiting confirmation",
+      );
+      expect(response.pendingConfirmations?.map(({ id }) => id)).toEqual([
+        "approval:call-1",
+      ]);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+    });
 
     it("does not execute the destructive handler before explicit confirmation", async () => {
       setupConfirmationResponse("Deleted.");

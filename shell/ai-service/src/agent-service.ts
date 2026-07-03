@@ -243,6 +243,11 @@ export class AgentService implements IAgentService {
   // Per-conversation machine actors
   private conversationActors = new Map<string, ConversationActor>();
 
+  // Per-conversation operation chain. This keeps service callers from
+  // resolving against another turn's machine state when messages arrive
+  // while a previous turn is still processing.
+  private conversationOperations = new Map<string, Promise<void>>();
+
   // Lazy-initialized agent
   private agent: BrainAgent | null = null;
 
@@ -277,6 +282,7 @@ export class AgentService implements IAgentService {
         actor.stop();
       }
       AgentService.instance.conversationActors.clear();
+      AgentService.instance.conversationOperations.clear();
     }
     AgentService.instance = null;
   }
@@ -366,6 +372,25 @@ export class AgentService implements IAgentService {
     return actor;
   }
 
+  private enqueueConversationOperation<T>(
+    conversationId: string,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const previous =
+      this.conversationOperations.get(conversationId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(operation);
+    const tracked = run.catch(() => undefined).then(() => undefined);
+
+    this.conversationOperations.set(conversationId, tracked);
+    void tracked.then(() => {
+      if (this.conversationOperations.get(conversationId) === tracked) {
+        this.conversationOperations.delete(conversationId);
+      }
+    });
+
+    return run;
+  }
+
   /**
    * Send a message to the agent and get a response
    */
@@ -392,32 +417,43 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    const actor = this.getConversationActor(conversationId);
+    return this.enqueueConversationOperation(conversationId, async () => {
+      const actor = this.getConversationActor(conversationId);
+      const currentSnapshot = actor.getSnapshot();
 
-    actor.send({
-      type: "RECEIVE_MESSAGE",
-      message,
-      conversationId,
-      interfaceType,
-      channelId,
-      channelName,
-      userPermissionLevel,
-      actor: context?.actor ?? null,
-      source: context?.source ?? null,
-      attachments: context?.attachments ?? [],
-    });
-
-    const snapshot = await waitFor(
-      actor,
-      (s) => s.matches("idle") || s.matches("awaitingConfirmation"),
-    );
-
-    return (
-      snapshot.context.response ?? {
-        text: "No response generated.",
-        usage: emptyUsage,
+      if (currentSnapshot.matches("awaitingConfirmation")) {
+        return {
+          text: "A pending action is awaiting confirmation. Confirm or cancel it before sending a new message.",
+          pendingConfirmations: currentSnapshot.context.pendingConfirmations,
+          usage: emptyUsage,
+        };
       }
-    );
+
+      actor.send({
+        type: "RECEIVE_MESSAGE",
+        message,
+        conversationId,
+        interfaceType,
+        channelId,
+        channelName,
+        userPermissionLevel,
+        actor: context?.actor ?? null,
+        source: context?.source ?? null,
+        attachments: context?.attachments ?? [],
+      });
+
+      const snapshot = await waitFor(
+        actor,
+        (s) => s.matches("idle") || s.matches("awaitingConfirmation"),
+      );
+
+      return (
+        snapshot.context.response ?? {
+          text: "No response generated.",
+          usage: emptyUsage,
+        }
+      );
+    });
   }
 
   /**
@@ -429,82 +465,84 @@ export class AgentService implements IAgentService {
     approvalId: string,
     context: ChatContext,
   ): Promise<AgentResponse> {
-    const actor = this.conversationActors.get(conversationId);
-    if (!actor) {
-      return {
-        text: "No pending action to confirm.",
-        usage: emptyUsage,
-      };
-    }
-
-    const snapshotBeforeConfirm = actor.getSnapshot();
-
-    if (!snapshotBeforeConfirm.matches("awaitingConfirmation")) {
-      return {
-        text: "No pending action to confirm.",
-        usage: emptyUsage,
-      };
-    }
-
-    const pendingConfirmation =
-      snapshotBeforeConfirm.context.pendingConfirmations.find(
-        (confirmation) => confirmation.id === approvalId,
-      ) ?? null;
-    if (!pendingConfirmation) {
-      return {
-        text: `No pending action matches approval id '${approvalId}'.`,
-        usage: emptyUsage,
-      };
-    }
-
-    const confirmationContext = this.resolveConfirmationContext(
-      context,
-      snapshotBeforeConfirm.context,
-    );
-    if (!confirmationContext) {
-      return {
-        text: "Confirmation requires caller context.",
-        usage: emptyUsage,
-      };
-    }
-
-    if (
-      !this.canConfirmPendingAction(pendingConfirmation, confirmationContext)
-    ) {
-      return {
-        text: "You are not authorized to confirm this pending action.",
-        pendingConfirmations:
-          snapshotBeforeConfirm.context.pendingConfirmations,
-        usage: emptyUsage,
-      };
-    }
-
-    actor.send({
-      type: confirmed ? "CONFIRM" : "CANCEL",
-      approvalId,
-      interfaceType: confirmationContext.interfaceType,
-      channelId: confirmationContext.channelId,
-      channelName: confirmationContext.channelName,
-      userPermissionLevel: confirmationContext.userPermissionLevel,
-      actor: confirmationContext.actor,
-      source: confirmationContext.source,
-    });
-
-    const snapshot = await waitFor(
-      actor,
-      (s) =>
-        (s.matches("idle") || s.matches("awaitingConfirmation")) &&
-        !s.context.pendingConfirmations.some(
-          (confirmation) => confirmation.id === approvalId,
-        ),
-    );
-
-    return (
-      snapshot.context.response ?? {
-        text: "Action completed.",
-        usage: emptyUsage,
+    return this.enqueueConversationOperation(conversationId, async () => {
+      const actor = this.conversationActors.get(conversationId);
+      if (!actor) {
+        return {
+          text: "No pending action to confirm.",
+          usage: emptyUsage,
+        };
       }
-    );
+
+      const snapshotBeforeConfirm = actor.getSnapshot();
+
+      if (!snapshotBeforeConfirm.matches("awaitingConfirmation")) {
+        return {
+          text: "No pending action to confirm.",
+          usage: emptyUsage,
+        };
+      }
+
+      const pendingConfirmation =
+        snapshotBeforeConfirm.context.pendingConfirmations.find(
+          (confirmation) => confirmation.id === approvalId,
+        ) ?? null;
+      if (!pendingConfirmation) {
+        return {
+          text: `No pending action matches approval id '${approvalId}'.`,
+          usage: emptyUsage,
+        };
+      }
+
+      const confirmationContext = this.resolveConfirmationContext(
+        context,
+        snapshotBeforeConfirm.context,
+      );
+      if (!confirmationContext) {
+        return {
+          text: "Confirmation requires caller context.",
+          usage: emptyUsage,
+        };
+      }
+
+      if (
+        !this.canConfirmPendingAction(pendingConfirmation, confirmationContext)
+      ) {
+        return {
+          text: "You are not authorized to confirm this pending action.",
+          pendingConfirmations:
+            snapshotBeforeConfirm.context.pendingConfirmations,
+          usage: emptyUsage,
+        };
+      }
+
+      actor.send({
+        type: confirmed ? "CONFIRM" : "CANCEL",
+        approvalId,
+        interfaceType: confirmationContext.interfaceType,
+        channelId: confirmationContext.channelId,
+        channelName: confirmationContext.channelName,
+        userPermissionLevel: confirmationContext.userPermissionLevel,
+        actor: confirmationContext.actor,
+        source: confirmationContext.source,
+      });
+
+      const snapshot = await waitFor(
+        actor,
+        (s) =>
+          (s.matches("idle") || s.matches("awaitingConfirmation")) &&
+          !s.context.pendingConfirmations.some(
+            (confirmation) => confirmation.id === approvalId,
+          ),
+      );
+
+      return (
+        snapshot.context.response ?? {
+          text: "Action completed.",
+          usage: emptyUsage,
+        }
+      );
+    });
   }
 
   private resolveConfirmationContext(
