@@ -35,6 +35,20 @@ export {
   siteMetadataSectionSchema,
 } from "./metadata";
 export type { SiteLayoutInfo, SiteMetadata, SiteMetadataCTA } from "./metadata";
+export {
+  createSiteContentTemplate,
+  createSiteContentTemplates,
+} from "./content-definitions";
+export type {
+  SiteContentArrayFieldDefinition,
+  SiteContentDefinition,
+  SiteContentFieldDefinition,
+  SiteContentNumberFieldDefinition,
+  SiteContentObjectFieldDefinition,
+  SiteContentPluginConfig,
+  SiteContentSectionDefinition,
+  SiteContentStringFieldDefinition,
+} from "./content-definitions";
 export { derivePreviewDomain } from "./domain";
 export { EntityUrlGenerator } from "./entity-url-generator";
 export type { EntityDisplayMap } from "./entity-url-generator";

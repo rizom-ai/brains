@@ -102,6 +102,8 @@ Follow-up base-package spike result (2026-07-02): naively bundling `@brains/site
 
 Resolution boundary spike result (2026-07-02): refactoring the Rizom runtime plugin away from runtime `@brains/plugins` imports and using only type-only shell/plugin contracts lets a bundled `@brains/site-rizom` artifact import cleanly in a fresh Bun project with only `preact` installed. This confirms the right direction: published site packages should avoid runtime `@brains/plugins` dependencies; any remaining framework references should be type-only or hidden behind the base package boundary.
 
+Site-content authoring boundary update (2026-07-02): site content definition types and template-construction helpers belong with the shared site-composition contract, not the `@brains/site-content` runtime plugin. The runtime plugin now re-exports/uses that shared contract, and `@brains/site-rizom-work` no longer depends on the site-content plugin package just to define sections.
+
 Packaging decision:
 
 - **Yes:** publish one shared base package, `@brains/site-rizom`, and have the three per-site packages depend on/extend it.

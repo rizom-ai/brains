@@ -13,9 +13,7 @@ describe("@brains/site-rizom-work", () => {
     const plugin = site.plugin();
     expect(plugin.id).toBe("rizom-site");
     expect(plugin.packageName).toBe("@brains/site-rizom-work");
-    expect(
-      (plugin as unknown as { config: Record<string, unknown> }).config,
-    ).toMatchObject({
+    expect(plugin.config).toMatchObject({
       themeProfile: "studio",
     });
   });

@@ -17,6 +17,8 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

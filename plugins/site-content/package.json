@@ -16,6 +16,7 @@
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/utils": "workspace:*"
   },

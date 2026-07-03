@@ -1101,6 +1101,7 @@
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/site-info": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -1352,6 +1353,8 @@
       "name": "@brains/site-composition",
       "version": "0.2.0-alpha.136",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
+        "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
@@ -1884,7 +1887,6 @@
       "version": "0.2.0-alpha.134",
       "dependencies": {
         "@brains/site-composition": "workspace:*",
-        "@brains/site-content": "workspace:*",
         "@brains/site-rizom": "workspace:*",
         "@rizom/ui": "workspace:*",
         "preact": "^10.27.2",

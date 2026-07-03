@@ -1,6 +1,6 @@
 /// <reference types="./types.d.ts" />
 
-import { createSiteContentTemplates } from "@brains/site-content";
+import { createSiteContentTemplates } from "@brains/site-composition";
 import { createRizomSite } from "@brains/site-rizom";
 import { WorkLayout } from "./layout";
 import { workRoutes } from "./routes";
