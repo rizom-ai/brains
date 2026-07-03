@@ -12,12 +12,6 @@ list.
 
 ## Verified findings
 
-### package.json script drift
-
-70+ packages declare lint/typecheck scripts with 5+ glob/flag
-variations (`--ext .ts` vs `.ts,.tsx`, `--max-warnings 0` vs none).
-Inconsistent quality gates; normalize when touching turbo config.
-
 ### Minor (fix opportunistically)
 
 - `sites/professional` and `sites/personal` homepage datasources share
