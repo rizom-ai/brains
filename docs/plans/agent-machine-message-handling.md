@@ -82,21 +82,48 @@ FIFO of pending messages per conversation:
 
 ### 2. A non-confirmation message during `awaitingConfirmation` is an implicit "no"
 
-When a message arrives in `awaitingConfirmation` and interface routing
-did not classify it as a confirmation response, the pending action is
-cancelled exactly as an explicit decline would be (same `CANCEL` event,
-same audit/logging path), and the new message is then processed as a
-normal turn. Matches human expectations: ignoring "are you sure?" and
-saying something else means no. Explicit yes/no keeps flowing through
-the existing `routeConfirmationResponse` path unchanged.
+When a message arrives in `awaitingConfirmation` and is not a
+confirmation response, the pending action is cancelled exactly as an
+explicit decline would be (same `CANCEL` event, same audit/logging
+path), and the new message is then processed as a normal turn. Matches
+human expectations: ignoring "are you sure?" and saying something else
+means no.
+
+Three qualifications that make this safe:
+
+- **The service classifies, not just the interfaces.** Interface-level
+  `routeConfirmationResponse` keeps pre-routing explicit yes/no, but
+  the service cannot assume every caller ran it (A2A and future
+  interfaces don't). Before treating a message as an implicit decline,
+  the service runs the same yes/no classification
+  (`parseConfirmationResponse` in shell/plugins is the existing logic;
+  hoist or share it) as a fallback — a plain "yes" arriving
+  unclassified confirms, it does not decline-then-rerun.
+- **Implicit decline requires decline authority.** The same actor
+  check that gates explicit CONFIRM/CANCEL
+  (`canConfirmPendingAction`) gates the implicit path. A message from
+  an actor who could not cancel the pending action does not touch it —
+  it queues behind the confirmation (bounded by the existing
+  confirmation timeout), so a bystander chatting in the channel cannot
+  kill the anchor's pending action.
+- **Queue drain applies the same rule.** If a turn ends by asking a
+  confirmation and the queue already holds a message (typed before the
+  question was shown), draining it follows this decision: authorized →
+  implicit decline and process; unauthorized → hold until the
+  confirmation resolves or times out. The queue never stalls for an
+  actor who has the authority to move the conversation on; if they
+  wanted the action, they re-trigger it.
 
 ### 3. `waitFor` keyed to the caller's turn, not to machine state
 
 The root of the stale replay is resolving on "machine reached
 `idle|awaitingConfirmation`" — a predicate satisfiable by someone
 else's turn. Each turn gets an id; `chat()` resolves when **its**
-turn's completion is recorded (per-turn promise from decision 1). The
-state-predicate `waitFor` goes away.
+turn's completion is recorded (per-turn promise from decision 1). Both
+state-predicate `waitFor`s go away — the one in `chat()`
+(`agent-service.ts:410`) and the one in the confirmation-resolution
+path (`agent-service.ts:493`), which has the same
+someone-else's-turn exposure.
 
 ### 4. Idle actor eviction
 
@@ -134,9 +161,14 @@ queue survives a turn that errors.
 ### Phase 3 — implicit decline
 
 Non-confirmation message in `awaitingConfirmation` cancels the pending
-action then processes the message. Tests at the service level plus one
-interface-level test (chat harness) proving a topic-change mid-
-confirmation cancels and answers.
+action then processes the message, per decision 2's qualifications.
+Tests at the service level: topic-change from the confirming actor
+cancels and answers; an unclassified plain "yes" confirms (service
+fallback classification); a message from an unauthorized actor leaves
+the pending action untouched and queues; queue drain into a fresh
+confirmation declines for the authorized sender. Plus one
+interface-level test (chat harness) proving the end-to-end
+topic-change path.
 
 ### Phase 4 — actor eviction and attachment hygiene
 
@@ -151,8 +183,11 @@ continues correctly on next message.
 1. Two rapid messages to the same conversation produce two turns, two
    distinct persisted exchanges, and each caller gets its own response
    — across service-level tests and at least one real interface path.
-2. A message during a pending confirmation cancels the action (audit
-   log shows a decline) and is then answered normally.
+2. A message during a pending confirmation from an actor with decline
+   authority cancels the action (audit log shows a decline) and is
+   then answered normally; the same message from a bystander leaves
+   the confirmation pending; an unclassified "yes" from a
+   routing-less interface confirms instead of declining.
 3. The 11th queued message is rejected with the explicit busy error;
    the first 10 all complete.
 4. A brain left running with many one-off conversations holds only
