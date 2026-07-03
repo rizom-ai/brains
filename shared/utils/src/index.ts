@@ -59,6 +59,9 @@ export { stripUndefinedDeep } from "./strip-undefined";
 // Message chunking
 export { chunkMessage } from "./chunk-message";
 
+// Confirmation parsing
+export { parseConfirmationResponse } from "./confirmation-response";
+
 // Hash utilities — import from "@brains/utils/hash" (uses Node crypto)
 
 // Sort utilities

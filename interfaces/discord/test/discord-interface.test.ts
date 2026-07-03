@@ -749,6 +749,50 @@ describe("DiscordInterface", () => {
       );
     });
 
+    it("should pass topic changes during pending confirmation through to chat", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Are you sure?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:dangerous-tool",
+            toolName: "dangerous_tool",
+            summary: "Delete all",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Fresh topic answer.",
+        usage: { promptTokens: 5, completionTokens: 6, totalTokens: 11 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
+
+      const topicChange = createDiscordMessage({
+        content: "actually tell me about Rover",
+      });
+      messageCreateHandler?.(topicChange);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
+      expect(mockAgentService.chat).toHaveBeenNthCalledWith(
+        2,
+        "actually tell me about Rover",
+        expect.stringContaining("discord-"),
+        expect.objectContaining({
+          userPermissionLevel: "public",
+          interfaceType: "discord",
+          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+        }),
+      );
+      expect(mockSend).toHaveBeenCalledWith("Fresh topic answer.");
+    });
+
     it("should render structured approval cards with Discord buttons", async () => {
       mockAgentService.chat.mockResolvedValueOnce({
         text: "Confirmation required.",

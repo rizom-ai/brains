@@ -2016,6 +2016,50 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("passes topic changes during pending confirmation through to chat", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "Please confirm.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        pendingConfirmations: [
+          {
+            id: "approval-1",
+            toolName: "system_delete",
+            summary: "Delete thing",
+            args: {},
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Fresh topic answer.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "actually tell me about Rover", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).not.toHaveBeenCalled();
+    expect(agentService.chat).toHaveBeenNthCalledWith(
+      2,
+      "actually tell me about Rover",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({
+        userPermissionLevel: "public",
+        interfaceType: "discord",
+        channelId: "discord:guild-123:channel-123:thread-456",
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Fresh topic answer.");
+  });
+
   it("resolves approval cards in the matching conversation when approval ids collide", async () => {
     agentService.chat
       .mockResolvedValueOnce({
@@ -2668,67 +2712,54 @@ describe("ChatInterface", () => {
     );
   });
 
-  it("keeps pending confirmations open after unrecognized replies", async () => {
-    agentService.chat.mockResolvedValueOnce({
-      text: "Please confirm.",
-      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-      pendingConfirmations: [
-        {
-          id: "approval-1",
-          toolName: "system_delete",
-          summary: "Delete thing",
-          args: {},
-        },
-      ],
-    });
+  it("passes unrecognized replies during pending confirmation through to chat", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "Please confirm.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        pendingConfirmations: [
+          {
+            id: "approval-1",
+            toolName: "system_delete",
+            summary: "Delete thing",
+            args: {},
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Maybe answer.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
     await chat?.handlers.subscribedMessages[0]?.(
       thread,
       createMessage({ text: "maybe", isMention: false }),
     );
-    await chat?.handlers.subscribedMessages[0]?.(
-      thread,
-      createMessage({
-        id: "confirm-message-1",
-        text: "yes",
-        isMention: false,
-      }),
-    );
 
-    expect(thread.post).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fallbackText: "Please reply with yes to confirm or no/cancel to abort.",
-        card: expect.objectContaining({ title: "Approval notice" }),
-      }),
-    );
-    expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
-    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+    expect(agentService.confirmPendingAction).not.toHaveBeenCalled();
+    expect(agentService.chat).toHaveBeenNthCalledWith(
+      2,
+      "maybe",
       "discord-discord:guild-123:channel-123:thread-456",
-      true,
-      "approval-1",
       expect.objectContaining({
         channelId: "discord:guild-123:channel-123:thread-456",
         channelName: "discord:guild-123:channel-123",
         interfaceType: "discord",
         userPermissionLevel: "public",
-        actor: expect.objectContaining({
-          actorId: "discord:user-789",
-          displayName: "Mira Ops",
-          username: "mira",
-        }),
-        source: expect.objectContaining({
-          messageId: "confirm-message-1",
-          channelId: "discord:guild-123:channel-123:thread-456",
-          threadId: "thread-456",
-          metadata: expect.objectContaining({ guildId: "guild-123" }),
-        }),
       }),
     );
+    expect(thread.post).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Please reply with yes to confirm or no/cancel to abort.",
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Maybe answer.");
   });
 
   it("requires an approval id when multiple confirmations are pending", async () => {
