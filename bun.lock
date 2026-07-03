@@ -1871,9 +1871,10 @@
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/site-composition": "workspace:*",
-        "@brains/ui-library": "workspace:*",
         "@rizom/ui": "workspace:*",
+        "clsx": "^2.1.0",
         "preact": "^10.27.2",
+        "tailwind-merge": "^2.2.0",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",

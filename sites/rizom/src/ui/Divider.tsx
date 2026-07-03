@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { cn } from "@brains/ui-library";
+import { cn } from "./cn";
 
 export interface DividerProps {
   className?: string;
