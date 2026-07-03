@@ -1,6 +1,7 @@
 import {
   BaseEntityDataSource,
   type BaseQuery,
+  type EntityDataSourceConfig,
   type PaginationInfo,
 } from "@brains/plugins";
 import type {
@@ -17,7 +18,22 @@ import {
   newsletterFrontmatterSchema,
 } from "../schemas/newsletter";
 
-const newsletterQuerySchema = z.looseObject({
+interface NewsletterQuery extends BaseQuery {
+  status?:
+    | "generating"
+    | "draft"
+    | "queued"
+    | "published"
+    | "failed"
+    | undefined;
+}
+
+interface NewsletterInput {
+  entityType?: string | undefined;
+  query?: NewsletterQuery | undefined;
+}
+
+const newsletterQuerySchema: z.ZodType<NewsletterQuery> = z.looseObject({
   id: z.string().optional(),
   limit: z.number().optional(),
   page: z.number().optional(),
@@ -28,12 +44,10 @@ const newsletterQuerySchema = z.looseObject({
     .optional(),
 });
 
-const newsletterInputSchema = z.looseObject({
+const newsletterInputSchema: z.ZodType<NewsletterInput> = z.looseObject({
   entityType: z.string().optional(),
   query: newsletterQuerySchema.optional(),
 });
-
-type NewsletterQuery = z.output<typeof newsletterQuerySchema>;
 
 /**
  * Extract body content from newsletter (strips frontmatter).
@@ -81,7 +95,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
   readonly description =
     "Fetches and transforms newsletter entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "newsletter",
     defaultSort: [{ field: "created" as const, direction: "desc" as const }],
     defaultLimit: 10,

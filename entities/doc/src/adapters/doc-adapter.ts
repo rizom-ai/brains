@@ -50,4 +50,4 @@ export class DocAdapter extends BaseEntityAdapter<
   }
 }
 
-export const docAdapter = new DocAdapter();
+export const docAdapter: DocAdapter = new DocAdapter();

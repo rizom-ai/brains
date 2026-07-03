@@ -52,4 +52,4 @@ export class NewsletterAdapter extends BaseEntityAdapter<
   }
 }
 
-export const newsletterAdapter = new NewsletterAdapter();
+export const newsletterAdapter: NewsletterAdapter = new NewsletterAdapter();

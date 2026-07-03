@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
-import { createTemplate } from "@brains/plugins";
+import { createTemplate, type Template } from "@brains/plugins";
 import {
   Head,
   Pagination,
@@ -11,15 +11,19 @@ import {
   CardTitle,
   CardMetadata,
 } from "@brains/ui-library";
-const newsletterStatusSchema = z.enum([
-  "generating",
-  "draft",
-  "queued",
-  "published",
-  "failed",
-]);
+type NewsletterTemplateStatus =
+  | "generating"
+  | "draft"
+  | "queued"
+  | "published"
+  | "failed";
 
-const paginationInfoSchema = z.object({
+const newsletterStatusSchema: z.ZodType<
+  NewsletterTemplateStatus,
+  NewsletterTemplateStatus
+> = z.enum(["generating", "draft", "queued", "published", "failed"]);
+
+const paginationInfoSchema: z.ZodType<PaginationInfo> = z.object({
   currentPage: z.number(),
   totalPages: z.number(),
   totalItems: z.number(),
@@ -31,28 +35,42 @@ const paginationInfoSchema = z.object({
 /**
  * Newsletter list item schema for template data
  */
-export const newsletterListItemSchema = z.object({
-  id: z.string(),
-  subject: z.string(),
-  status: newsletterStatusSchema,
-  excerpt: z.string(),
-  created: z.string(),
-  sentAt: z.string().optional(),
-  url: z.string(),
-});
+export interface NewsletterListItem {
+  id: string;
+  subject: string;
+  status: NewsletterTemplateStatus;
+  excerpt: string;
+  created: string;
+  sentAt?: string | undefined;
+  url: string;
+}
 
-export type NewsletterListItem = z.output<typeof newsletterListItemSchema>;
+export const newsletterListItemSchema: z.ZodType<NewsletterListItem> = z.object(
+  {
+    id: z.string(),
+    subject: z.string(),
+    status: newsletterStatusSchema,
+    excerpt: z.string(),
+    created: z.string(),
+    sentAt: z.string().optional(),
+    url: z.string(),
+  },
+);
 
 /**
  * Newsletter list schema
  */
-export const newsletterListSchema = z.object({
+export interface NewsletterListData {
+  newsletters: NewsletterListItem[];
+  totalCount: number;
+  pagination: PaginationInfo | null;
+}
+
+export const newsletterListSchema: z.ZodType<NewsletterListData> = z.object({
   newsletters: z.array(newsletterListItemSchema),
   totalCount: z.number(),
   pagination: paginationInfoSchema.nullable(),
 });
-
-export type NewsletterListData = z.output<typeof newsletterListSchema>;
 
 export interface NewsletterListProps {
   newsletters: NewsletterListItem[];
@@ -129,7 +147,7 @@ export const NewsletterListTemplate = ({
 /**
  * Newsletter list template definition
  */
-export const newsletterListTemplate = createTemplate<
+export const newsletterListTemplate: Template = createTemplate<
   NewsletterListData,
   NewsletterListProps
 >({

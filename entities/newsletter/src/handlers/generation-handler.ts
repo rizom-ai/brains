@@ -22,7 +22,16 @@ type SourceEntity = BaseEntity<{
 /**
  * Input schema for newsletter generation job
  */
-export const generationJobSchema = z.object({
+export interface GenerationJobData {
+  prompt?: string | undefined;
+  sourceEntityIds?: string[] | undefined;
+  sourceEntityType?: "post" | undefined;
+  content?: string | undefined;
+  subject?: string | undefined;
+  addToQueue?: boolean | undefined;
+}
+
+export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
   prompt: z.string().optional().describe("AI generation prompt"),
   sourceEntityIds: z
     .array(z.string())
@@ -42,8 +51,6 @@ export const generationJobSchema = z.object({
     .optional()
     .describe("Create as queued (true) or draft (false)"),
 });
-
-export type GenerationJobData = z.output<typeof generationJobSchema>;
 
 /**
  * Job handler for newsletter generation

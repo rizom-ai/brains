@@ -1,23 +1,27 @@
 import { z } from "@brains/utils/zod-v4";
-import { createTemplate } from "@brains/plugins";
+import { createTemplate, type Template } from "@brains/plugins";
 
 /**
  * Schema for AI-generated newsletter
  */
-export const newsletterGenerationSchema = z.object({
-  subject: z
-    .string()
-    .describe(
-      "Email subject line, 40-60 characters. MUST reflect the specific topic from the user's prompt. Create curiosity or promise value.",
-    ),
-  content: z
-    .string()
-    .describe(
-      "Newsletter body in markdown. Include: brief personal intro, main content with ## headers, closing with soft CTA. 300-600 words.",
-    ),
-});
+export interface NewsletterGeneration {
+  subject: string;
+  content: string;
+}
 
-export type NewsletterGeneration = z.output<typeof newsletterGenerationSchema>;
+export const newsletterGenerationSchema: z.ZodType<NewsletterGeneration> =
+  z.object({
+    subject: z
+      .string()
+      .describe(
+        "Email subject line, 40-60 characters. MUST reflect the specific topic from the user's prompt. Create curiosity or promise value.",
+      ),
+    content: z
+      .string()
+      .describe(
+        "Newsletter body in markdown. Include: brief personal intro, main content with ## headers, closing with soft CTA. 300-600 words.",
+      ),
+  });
 
 /**
  * Template for AI-powered newsletter generation
@@ -26,14 +30,15 @@ export type NewsletterGeneration = z.output<typeof newsletterGenerationSchema>;
  * - Generation from prompts
  * - Generation based on source content (blog posts)
  */
-export const generationTemplate = createTemplate<NewsletterGeneration>({
-  name: "newsletter:generation",
-  description: "Template for AI to generate newsletter content",
-  schema: newsletterGenerationSchema,
-  dataSourceId: "shell:ai-content",
-  requiredPermission: "public",
-  useKnowledgeContext: true,
-  basePrompt: `You are writing newsletters that engage readers and deliver value.
+export const generationTemplate: Template =
+  createTemplate<NewsletterGeneration>({
+    name: "newsletter:generation",
+    description: "Template for AI to generate newsletter content",
+    schema: newsletterGenerationSchema,
+    dataSourceId: "shell:ai-content",
+    requiredPermission: "public",
+    useKnowledgeContext: true,
+    basePrompt: `You are writing newsletters that engage readers and deliver value.
 
 Your task is to generate a newsletter based on the user's prompt. The prompt specifies WHAT the newsletter should be about - this is your primary directive.
 
@@ -87,4 +92,4 @@ Newsletter-specific guidelines:
    - "Until next time..."
 
 The goal is to build a relationship with readers through valuable, authentic content.`,
-});
+  });

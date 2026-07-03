@@ -13,7 +13,10 @@ import type { PublishProvider } from "@brains/contracts";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
-import { newsletterAdapter } from "./adapters/newsletter-adapter";
+import {
+  newsletterAdapter,
+  type NewsletterAdapter,
+} from "./adapters/newsletter-adapter";
 import { NewsletterDataSource } from "./datasources/newsletter-datasource";
 import { GenerationJobHandler } from "./handlers/generation-handler";
 import { generationTemplate } from "./templates/generation-template";
@@ -21,16 +24,23 @@ import { newsletterListTemplate } from "./templates/newsletter-list";
 import { newsletterDetailTemplate } from "./templates/newsletter-detail";
 import packageJson from "../package.json";
 
-const newsletterConfigSchema = z.looseObject({});
-type NewsletterConfig = z.output<typeof newsletterConfigSchema>;
-type NewsletterConfigInput = z.input<typeof newsletterConfigSchema>;
+type NewsletterConfig = Record<string, unknown>;
+type NewsletterConfigInput = Record<string, unknown>;
 
-const generationEvalInputSchema = z.object({
+const newsletterConfigSchema: z.ZodType<
+  NewsletterConfig,
+  NewsletterConfigInput
+> = z.looseObject({});
+
+interface GenerationEvalInput {
+  prompt?: string | undefined;
+  content?: string | undefined;
+}
+
+const generationEvalInputSchema: z.ZodType<GenerationEvalInput> = z.object({
   prompt: z.string().optional(),
   content: z.string().optional(),
 });
-
-type GenerationEvalInput = z.output<typeof generationEvalInputSchema>;
 
 /**
  * Newsletter EntityPlugin — manages newsletter entities with AI generation.
@@ -43,9 +53,9 @@ export class NewsletterPlugin extends EntityPlugin<
   NewsletterConfig,
   NewsletterConfigInput
 > {
-  readonly entityType = "newsletter";
-  readonly schema = newsletterSchema;
-  readonly adapter = newsletterAdapter;
+  readonly entityType = "newsletter" as const;
+  readonly schema: typeof newsletterSchema = newsletterSchema;
+  readonly adapter: NewsletterAdapter = newsletterAdapter;
 
   constructor(config: NewsletterConfigInput = {}) {
     super("newsletter", packageJson, config, newsletterConfigSchema);

@@ -8,6 +8,7 @@ import type {
   BaseQuery,
   NavigationResult,
   PaginationInfo,
+  EntityDataSourceConfig,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { Doc } from "../schemas/doc";
@@ -58,7 +59,7 @@ export class DocDataSource extends BaseEntityDataSource<Doc, DocWithData> {
   readonly name = "Docs Entity DataSource";
   readonly description = "Fetches and transforms doc entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "doc",
     defaultSort: [
       { field: "order" as const, direction: "asc" as const },
