@@ -13,7 +13,8 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { parseJsonResponse, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { parseJsonResponse } from "@brains/utils/http-response";
 import { type FetchLike } from "@brains/deploy-support/origin-ca";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";

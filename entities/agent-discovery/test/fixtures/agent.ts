@@ -1,4 +1,4 @@
-import { slugifyUrl } from "@brains/utils";
+import { slugifyUrl } from "@brains/utils/string-utils";
 import { AgentAdapter } from "../../src/adapters/agent-adapter";
 import type {
   AgentEntity,

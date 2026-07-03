@@ -9,7 +9,7 @@ import {
   type RegistrationResponseJSON,
   type WebAuthnCredential,
 } from "@simplewebauthn/server";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import {
   base64UrlToBytes,
   bytesToBase64Url,

@@ -3,7 +3,7 @@ import {
   internalFullScope,
   SingletonEntityService,
 } from "@brains/entity-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { AnchorProfile } from "./anchor-profile-schema";
 import { AnchorProfileAdapter } from "./anchor-profile-adapter";
 

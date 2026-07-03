@@ -1,9 +1,9 @@
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
+import type { Logger } from "@brains/utils/logger";
 import type {
-  Logger,
   IJobProgressMonitor,
   ProgressNotification,
-} from "@brains/utils";
+} from "@brains/utils/progress";
 import type { MessageBus } from "@brains/messaging-service";
 import type {
   IBatchJobManager,

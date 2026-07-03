@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { AuthorizationCodeStore } from "./auth-code-store";
 import { OAuthClientStore } from "./client-store";
 import { AuthKeyStore } from "./key-store";

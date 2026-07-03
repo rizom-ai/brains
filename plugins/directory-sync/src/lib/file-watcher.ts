@@ -1,6 +1,6 @@
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { isImageFile } from "./image-file-utils";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 

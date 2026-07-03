@@ -9,12 +9,12 @@ import type {
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { ToolContextRoutingSchema } from "./interfaces";
+import { getErrorMessage } from "@brains/utils/error";
+import { Logger } from "@brains/utils/logger";
 import {
-  getErrorMessage,
-  Logger,
   type ProgressNotification,
   ProgressReporter,
-} from "@brains/utils";
+} from "@brains/utils/progress";
 import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils";
 

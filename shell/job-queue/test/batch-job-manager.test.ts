@@ -7,7 +7,7 @@ import type { JobOptions } from "../src/schema/types";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/test-utils";
-import { createId } from "@brains/utils";
+import { createId } from "@brains/utils/id";
 
 const defaultBatchOptions: JobOptions = {
   source: "test:batch-manager",

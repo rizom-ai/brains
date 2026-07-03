@@ -1,4 +1,5 @@
-import { Logger, toError } from "@brains/utils";
+import { toError } from "@brains/utils/error";
+import { Logger } from "@brains/utils/logger";
 import type {
   Daemon,
   DaemonHealth,

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ConversationService } from "../src/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ConversationDB } from "../src/database";
 import type {
   ConversationServiceConfig,

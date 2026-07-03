@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import type { Server } from "bun";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { toolResultSchema } from "@brains/plugins";
 import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
 

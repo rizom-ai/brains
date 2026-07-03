@@ -5,7 +5,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 export interface VerifiedBearerToken {
   subject: string;

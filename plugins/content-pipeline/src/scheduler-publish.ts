@@ -1,4 +1,4 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 /**
  * Scheduler publish helpers - extracted from ContentScheduler
  *

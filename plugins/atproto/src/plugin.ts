@@ -4,7 +4,8 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { getErrorMessage, type FetchLike } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import { type FetchLike } from "@brains/utils/fetch-like";
 import {
   atprotoConfigSchema,
   type AtprotoConfig,

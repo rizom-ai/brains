@@ -1,10 +1,10 @@
 import { z } from "@brains/utils";
 // Remove ContentGenerationRequest import - we'll define our own schema
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import type { ContentService, GenerationContext } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 
 /**
  * Zod schema for content generation job data validation

@@ -1,4 +1,5 @@
-import type { Logger, ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils";
 import type { JobHandler } from "./types";
 
@@ -58,8 +59,7 @@ export abstract class BaseJobHandler<
   TJobType extends string = string,
   TInput = unknown,
   TOutput = unknown,
-> implements JobHandler<TJobType, TInput, TOutput>
-{
+> implements JobHandler<TJobType, TInput, TOutput> {
   protected readonly logger: Logger;
   protected readonly schema: z.ZodSchema<TInput> | undefined;
   protected readonly jobTypeName: string;

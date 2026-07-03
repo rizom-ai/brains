@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { type JobHandler } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import { SeriesPlugin } from "../src/plugin";
 
 describe("SeriesPlugin", () => {

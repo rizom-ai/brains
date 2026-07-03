@@ -5,7 +5,7 @@ import {
   generateSettingsBase,
 } from "../src/lib/base-generator";
 import type { FieldInfo } from "../src/lib/schema-introspector";
-import { fromYaml } from "@brains/utils";
+import { fromYaml } from "@brains/utils/yaml";
 
 describe("generateBase", () => {
   it("should filter by entity folder", () => {

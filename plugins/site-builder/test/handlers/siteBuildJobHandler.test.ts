@@ -7,7 +7,7 @@ import {
   createSilentLogger,
   createMockMessageSender,
 } from "@brains/test-utils";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 
 describe("SiteBuildJobHandler", () => {
   let handler: SiteBuildJobHandler;

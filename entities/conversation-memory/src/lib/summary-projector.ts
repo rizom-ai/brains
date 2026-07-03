@@ -4,7 +4,9 @@ import {
   type EntityPluginContext,
   type Message,
 } from "@brains/plugins";
-import { pLimit, truncateText, type Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
+import { pLimit } from "@brains/utils/p-limit";
+import { truncateText } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import {
   ACTION_ITEM_ENTITY_TYPE,

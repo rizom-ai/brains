@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, lte, or, sql } from "drizzle-orm";
 import { jobQueue } from "./schema/job-queue";
 import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { JOB_STATUS } from "./schemas";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { JobInfo } from "./types";

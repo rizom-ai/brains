@@ -5,7 +5,8 @@ import {
   type RouteDefinition,
   type RouteDefinitionInput,
 } from "@brains/site-composition";
-import { ensureArray, type Logger } from "@brains/utils";
+import { ensureArray } from "@brains/utils/array";
+import { type Logger } from "@brains/utils/logger";
 
 /**
  * Route Registry - manages route definitions for the site builder

@@ -10,7 +10,7 @@ import {
   conversationMessageSourceSchema,
 } from "@brains/plugins";
 import { messageRoleSchema } from "@brains/contracts";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type {

@@ -1,5 +1,5 @@
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { TopicsPluginConfig } from "../schemas/config";

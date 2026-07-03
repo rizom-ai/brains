@@ -1,5 +1,5 @@
 import { Shell } from "@brains/core";
-import { Logger, LogLevel } from "@brains/utils";
+import { Logger, LogLevel } from "@brains/utils/logger";
 import { appConfigSchema, type AppConfig } from "./types";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";

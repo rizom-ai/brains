@@ -8,7 +8,7 @@ import {
 } from "@brains/plugins";
 import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils";
 import type { SocialPost } from "../schemas/social-post";
 import {

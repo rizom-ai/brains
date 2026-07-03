@@ -1,6 +1,6 @@
 import type { IEntityService } from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { resolveSyncPath } from "./directory-path";
 
 export const directorySyncOptionsSchema = z.object({

@@ -1,7 +1,7 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { parseYamlDocument } from "@brains/utils";
+import { parseYamlDocument } from "@brains/utils/yaml";
 
 import { type CohortConfig, cohortSchema, handleSchema } from "./schema";
 

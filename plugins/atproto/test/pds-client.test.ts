@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { FetchLike } from "@brains/utils";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { AtprotoPdsClient } from "../src";
 
 function jsonResponse(body: unknown, status = 200): Response {

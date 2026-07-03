@@ -6,7 +6,8 @@ import {
 } from "@brains/email-contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { type FetchLike, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { type FetchLike } from "@brains/utils/fetch-like";
 import packageJson from "../package.json";
 
 const emailResendConfigSchema = z.object({

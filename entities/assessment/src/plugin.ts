@@ -8,7 +8,7 @@ import {
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
 import { SwotWidget } from "./widgets/swot-widget";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import packageJson from "../package.json";
 
 const swotAdapter = new SwotAdapter();

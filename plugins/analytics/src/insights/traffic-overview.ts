@@ -1,5 +1,5 @@
 import type { InsightHandler } from "@brains/plugins";
-import { toISODateString, getYesterday, getDaysAgo } from "@brains/utils";
+import { toISODateString, getYesterday, getDaysAgo } from "@brains/utils/date";
 import type { CloudflareClient } from "../lib/cloudflare-client";
 
 const OVERVIEW_DAYS = 7;

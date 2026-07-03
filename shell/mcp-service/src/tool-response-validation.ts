@@ -1,5 +1,6 @@
 import type { MessageResponse } from "@brains/messaging-service";
-import { z, type Logger } from "@brains/utils";
+import { z } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
 import { toolResponseSchema, type Tool, type ToolResponse } from "./types";
 
 interface ToolResponseValidationContext {

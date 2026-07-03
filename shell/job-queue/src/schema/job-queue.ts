@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
-import { createId } from "@brains/utils";
+import { createId } from "@brains/utils/id";
 import type { JobContext } from "./types";
 
 /**

@@ -1,4 +1,4 @@
-import { createPrefixedId } from "@brains/utils";
+import { createPrefixedId } from "@brains/utils/id";
 
 export interface PromptAction {
   threadId: string;

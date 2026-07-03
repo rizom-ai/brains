@@ -1,7 +1,7 @@
 import { resolve as resolvePath } from "path";
 import type { AppConfig } from "@brains/app";
 import { AIService, type IAIService } from "@brains/ai-service";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 
 import type { EvaluationSummary } from "./schemas";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";

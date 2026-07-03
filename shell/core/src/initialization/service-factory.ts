@@ -17,7 +17,7 @@ import {
   RenderService,
   TemplateRegistry,
 } from "@brains/templates";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 import { DaemonRegistry } from "../daemon-registry";
 import type { ShellConfig } from "../config";

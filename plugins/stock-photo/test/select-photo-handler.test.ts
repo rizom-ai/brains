@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
-import { ProgressReporter, type ProgressNotification } from "@brains/utils";
+import {
+  ProgressReporter,
+  type ProgressNotification,
+} from "@brains/utils/progress";
 import type { IEntityService } from "@brains/plugins";
 import { SelectPhotoJobHandler } from "../src/handlers/select-photo-handler";
 import type { SelectPhotoJobData } from "../src/handlers/select-photo-handler";

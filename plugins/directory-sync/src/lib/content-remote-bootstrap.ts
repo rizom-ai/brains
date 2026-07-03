@@ -3,7 +3,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 export interface ContentRemoteBootstrapOptions {
   gitUrl?: string | undefined;

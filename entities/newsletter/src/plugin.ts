@@ -7,7 +7,8 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { getErrorMessage, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { PublishProvider } from "@brains/contracts";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";

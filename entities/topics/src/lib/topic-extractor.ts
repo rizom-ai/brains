@@ -1,6 +1,6 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { EntityPluginContext, BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import {
   buildTopicExtractionPrompt,

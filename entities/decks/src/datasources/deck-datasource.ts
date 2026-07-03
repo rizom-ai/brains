@@ -5,7 +5,7 @@ import type {
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { resolveEntityCoverImage } from "@brains/image";
 import type { DeckEntity, DeckWithData } from "../schemas/deck";
 import { parseDeckData } from "./parse-helpers";

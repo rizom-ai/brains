@@ -1,10 +1,10 @@
 import { readFile, writeFile } from "fs/promises";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { fetchImageAsBase64 } from "@brains/image";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import { PROGRESS_STEPS } from "@brains/contracts";
 import { inlineImageConversionJobSchema } from "../types";
 import type { InlineImageConversionJobData } from "../types";

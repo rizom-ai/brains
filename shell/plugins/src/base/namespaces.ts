@@ -6,7 +6,7 @@ import {
   createRegisterHandlerFn,
 } from "@brains/job-queue";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { EvalHandler, InsightHandler, IShell } from "../interfaces";

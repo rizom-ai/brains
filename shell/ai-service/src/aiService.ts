@@ -1,6 +1,6 @@
 import { generateText, generateObject } from "ai";
 import type { LanguageModel } from "ai";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils";
 import type {
   AIModelConfig,

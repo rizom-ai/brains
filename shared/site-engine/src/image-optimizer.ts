@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { Dirent } from "fs";
 import type SharpModule from "sharp";
 import { createHash } from "crypto";

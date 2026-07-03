@@ -1,6 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { createId } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { DirectorySync } from "./directory-sync";
 import { unlink, access } from "fs/promises";
 import type { DirectorySyncConfig, JobRequest } from "../types";

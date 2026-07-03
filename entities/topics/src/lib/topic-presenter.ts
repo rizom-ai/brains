@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
-import { truncateText } from "@brains/utils";
+import { truncateText } from "@brains/utils/string-utils";
 import type { TopicDetailData } from "../templates/topic-detail/schema";
 import type { TopicSummary } from "../templates/topic-list/schema";
 import { TopicAdapter } from "./topic-adapter";

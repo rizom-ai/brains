@@ -4,7 +4,7 @@ import {
   UserPermissionLevelSchema,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils";
 
 export interface WidgetComponentProps {

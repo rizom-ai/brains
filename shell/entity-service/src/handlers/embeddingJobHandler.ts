@@ -1,4 +1,6 @@
-import { z, Logger, type ProgressReporter } from "@brains/utils";
+import { z } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
+import { type ProgressReporter } from "@brains/utils/progress";
 import type {
   EntityService as IEntityService,
   EmbeddingJobData,

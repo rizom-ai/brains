@@ -1,6 +1,6 @@
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type {
   GitLogEntry,
   GitSyncStatus,

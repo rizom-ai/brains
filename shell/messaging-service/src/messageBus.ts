@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils";
 import type {
   MessageHandler,

@@ -1,4 +1,4 @@
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import type { ExportResult, ImportResult } from "../types";
 import type { ProgressOperations } from "./progress-operations";
 

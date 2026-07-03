@@ -1,6 +1,6 @@
-import { getErrorMessage, toError } from "@brains/utils";
-import type { Logger } from "@brains/utils";
-import type { IJobProgressMonitor } from "@brains/utils";
+import { getErrorMessage, toError } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
+import type { IJobProgressMonitor } from "@brains/utils/progress";
 import { HandlerFailureSchema, type JobResult } from "./schemas";
 import type {
   IJobQueueService,

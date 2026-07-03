@@ -1,4 +1,5 @@
-import type { Logger, ProgressCallback } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressCallback } from "@brains/utils/progress";
 import type {
   ISiteBuilder,
   SiteBuilderOptions,

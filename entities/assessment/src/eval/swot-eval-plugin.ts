@@ -11,7 +11,8 @@ import {
   skillDataSchema,
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { ProgressReporter, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import packageJson from "../../package.json";
 import { SwotAdapter } from "../adapters/swot-adapter";
 import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";

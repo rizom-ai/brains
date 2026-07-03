@@ -8,7 +8,8 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { toYaml, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { toYaml } from "@brains/utils/yaml";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";

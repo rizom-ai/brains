@@ -1,7 +1,7 @@
 import type { IJobQueueService, JobContext, JobOptions } from "./types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import { JOB_STATUS } from "./schemas";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 const TERMINAL_BATCH_RETENTION_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;

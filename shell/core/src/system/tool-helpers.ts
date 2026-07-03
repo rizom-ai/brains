@@ -9,7 +9,8 @@ import type {
   PermissionService,
   UserPermissionLevel,
 } from "@brains/templates";
-import { getErrorMessage, type z } from "@brains/utils";
+import { type z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { SystemServices } from "./types";
 
 const PLUGIN_ID = "system";

@@ -1,6 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { embedMany, embed } from "ai";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type {
   IEmbeddingService,
   EmbeddingResult,

@@ -1,7 +1,10 @@
 import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { getErrorMessage, updateFrontmatterField, z } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import { updateFrontmatterField } from "@brains/utils/markdown";
 import { JobResult } from "@brains/contracts";
 import { noteAdapter } from "../adapters/note-adapter";
 import { extractMarkdownFromUpload } from "../lib/upload-markdown-import";

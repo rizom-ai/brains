@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { join } from "path";
 import { promises as fs } from "fs";
 import postcss from "postcss";

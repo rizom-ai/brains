@@ -1,5 +1,5 @@
-import { getErrorMessage } from "@brains/utils";
-import type { Logger } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 import type { JobRequest } from "../types";
 import type { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import type { MarkdownImageConverter } from "./markdown-image-converter";

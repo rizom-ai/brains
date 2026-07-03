@@ -14,8 +14,11 @@ import {
   createMockServicePluginContext,
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { ProgressReporter, type ProgressNotification } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import {
+  ProgressReporter,
+  type ProgressNotification,
+} from "@brains/utils/progress";
 import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
 
 describe("InlineImageConversionJobHandler", () => {

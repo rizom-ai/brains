@@ -14,7 +14,7 @@ import {
   type Logger,
 } from "@brains/plugins/test";
 import type { EntityMutationResult } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import {
   newsletterMetadataSchema,
   type NewsletterMetadata,

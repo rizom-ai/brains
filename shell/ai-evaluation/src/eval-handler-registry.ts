@@ -1,4 +1,4 @@
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import type { EvalHandler, IEvalHandlerRegistry } from "@brains/plugins";
 
 /**

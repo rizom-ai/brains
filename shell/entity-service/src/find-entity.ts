@@ -3,7 +3,8 @@ import type {
   ContentVisibility,
   ICoreEntityService,
 } from "./types";
-import { slugify, type Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
+import { slugify } from "@brains/utils/string-utils";
 
 export type ResolvedEntity =
   | { ok: true; entity: BaseEntity }

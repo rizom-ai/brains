@@ -9,7 +9,8 @@ import type {
   IEntityService,
   ListEntitiesRequest,
 } from "@brains/entity-service";
-import { pluralize, type Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
+import { pluralize } from "@brains/utils/string-utils";
 import type { RouteRegistry } from "./route-registry";
 
 export type DynamicRouteEntity = Pick<BaseEntity, "id" | "metadata">;

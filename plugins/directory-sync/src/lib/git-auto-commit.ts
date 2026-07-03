@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { LeadingTrailingDebounce } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import type { IGitSync } from "../types";
 
 /**

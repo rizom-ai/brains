@@ -3,16 +3,30 @@
   "version": "0.2.0-alpha.137",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./src/zod.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./src/zod.ts",
+      "default": "./src/zod.ts"
     },
-    "./hash": {
-      "types": "./src/hash.ts",
-      "default": "./src/hash.ts"
-    }
+    "./array": "./src/array.ts",
+    "./chunk-message": "./src/chunk-message.ts",
+    "./date": "./src/date.ts",
+    "./debounce": "./src/debounce.ts",
+    "./error": "./src/error.ts",
+    "./fetch-like": "./src/fetch-like.ts",
+    "./hash": "./src/hash.ts",
+    "./http-response": "./src/http-response.ts",
+    "./http-utils": "./src/http-utils.ts",
+    "./id": "./src/id.ts",
+    "./logger": "./src/logger.ts",
+    "./markdown": "./src/markdown.ts",
+    "./p-limit": "./src/p-limit.ts",
+    "./progress": "./src/progress.ts",
+    "./sort": "./src/sort.ts",
+    "./string-utils": "./src/string-utils.ts",
+    "./strip-undefined": "./src/strip-undefined.ts",
+    "./yaml": "./src/yaml.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

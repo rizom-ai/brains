@@ -1,5 +1,5 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z, type z as zType } from "@brains/utils";
 import { NavigationSlots } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";

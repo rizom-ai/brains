@@ -1,5 +1,6 @@
 import { createSign, generateKeyPairSync } from "node:crypto";
-import { parseJsonResponse, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { parseJsonResponse } from "@brains/utils/http-response";
 
 export interface OriginKeyPair {
   privateKeyPem: string;

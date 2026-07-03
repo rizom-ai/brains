@@ -2,7 +2,7 @@
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { createConversationDatabase } from "./database";
 import type { ConversationDbConfig } from "./types";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 
 export async function migrateConversations(
   config: ConversationDbConfig,

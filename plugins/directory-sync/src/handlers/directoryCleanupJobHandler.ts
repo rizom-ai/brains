@@ -1,6 +1,6 @@
 import { BaseJobHandler } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import type { ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import type { CleanupResult, IDirectorySync } from "../types";
 import { z } from "@brains/utils";
 

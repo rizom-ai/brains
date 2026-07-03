@@ -1,14 +1,11 @@
 import { readFile, writeFile } from "fs/promises";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { fetchImageAsBase64 } from "@brains/image";
-import {
-  getErrorMessage,
-  parseMarkdown,
-  generateMarkdown,
-} from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
   parseDataUrl,

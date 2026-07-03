@@ -1,4 +1,5 @@
-import { formatLabel, pluralize, type z } from "@brains/utils";
+import { type z } from "@brains/utils";
+import { formatLabel, pluralize } from "@brains/utils/string-utils";
 // Base-note entity type id (mirrors NOTE_ENTITY_TYPE in @brains/entity-service,
 // which plugins may not import directly and @brains/plugins does not re-export).
 const NOTE_ENTITY_TYPE = "note";

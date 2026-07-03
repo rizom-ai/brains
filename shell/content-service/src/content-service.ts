@@ -9,7 +9,7 @@ import type {
   ListOptions,
 } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ContentService as IContentService } from "./types";
 import type { TemplateRegistry, Template } from "@brains/templates";
 import { TemplateCapabilities } from "@brains/templates";

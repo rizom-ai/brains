@@ -8,7 +8,7 @@ import type {
   PaginationInfo,
 } from "@brains/entity-service";
 import { buildPaginationInfo } from "@brains/entity-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils";
 
 export type { SortField };

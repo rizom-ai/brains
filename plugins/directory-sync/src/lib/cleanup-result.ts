@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { CleanupResult } from "../types";
 
 interface CleanupLogger {

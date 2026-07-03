@@ -1,5 +1,6 @@
 import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";

@@ -4,12 +4,12 @@ import type {
   SearchResult,
 } from "@brains/plugins";
 import { scopedDerivedId } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { TopicEntity } from "../types";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicMetadata } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
-import { generateIdFromText } from "@brains/utils";
+import { generateIdFromText } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { scoreTopicSimilarity } from "./topic-merge";
 import { TOPIC_ENTITY_TYPE } from "./constants";

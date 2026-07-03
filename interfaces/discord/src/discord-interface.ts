@@ -11,7 +11,9 @@ import {
   type UserPermissionLevel,
 } from "@brains/plugins";
 import type { Daemon } from "@brains/plugins";
-import { chunkMessage, truncateText, fetchAsText } from "@brains/utils";
+import { chunkMessage } from "@brains/utils/chunk-message";
+import { fetchAsText } from "@brains/utils/http-utils";
+import { truncateText } from "@brains/utils/string-utils";
 import {
   Client,
   Events,

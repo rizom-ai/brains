@@ -1,6 +1,6 @@
 import type { SimpleGit } from "simple-git";
-import { getErrorMessage } from "@brains/utils";
-import type { Logger } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 import type { PullResult } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { GitStallError, runGitWithStallTimeout } from "./git-stall";

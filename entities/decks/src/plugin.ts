@@ -9,7 +9,8 @@ import type {
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
-import { getErrorMessage, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import { deckAdapter } from "./adapters/deck-adapter";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { getStandardConfigWithDirectories } from "@brains/core";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 
 async function main(): Promise<void> {
   const config = await getStandardConfigWithDirectories();

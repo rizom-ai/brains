@@ -1,4 +1,4 @@
-import { pluralize } from "@brains/utils";
+import { pluralize } from "@brains/utils/string-utils";
 
 /**
  * Display metadata per entity type used for URL generation.

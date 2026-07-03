@@ -4,7 +4,8 @@ import {
   renderOgImagePng,
   type ScreenshotPng,
 } from "@brains/media-page-composer";
-import { parseMarkdown, slugify } from "@brains/utils";
+import { parseMarkdown } from "@brains/utils/markdown";
+import { slugify } from "@brains/utils/string-utils";
 import type { Project } from "../schemas/project";
 import { projectFrontmatterSchema } from "../schemas/project";
 import {

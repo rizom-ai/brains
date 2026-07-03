@@ -1,4 +1,4 @@
-import { firstSentence } from "@brains/utils";
+import { firstSentence } from "@brains/utils/string-utils";
 import type {
   AgentEntity,
   AgentFrontmatter,

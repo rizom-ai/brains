@@ -8,7 +8,8 @@ import {
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
-import { fromYaml, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { fromYaml } from "@brains/utils/yaml";
 import { cmsPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
 
 function createCmsTestShell(

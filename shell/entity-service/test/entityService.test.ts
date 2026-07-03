@@ -11,7 +11,8 @@ import {
   createMockJobQueueService,
   createTestEntity,
 } from "@brains/test-utils";
-import { type Logger, createId } from "@brains/utils";
+import { createId } from "@brains/utils/id";
+import { type Logger } from "@brains/utils/logger";
 import { mockEmbeddingService } from "./helpers/mock-services";
 import {
   setupEntityService,

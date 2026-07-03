@@ -1,4 +1,6 @@
-import { z, parseYamlDocument, interpolateEnv } from "@brains/utils";
+import { z } from "@brains/utils";
+import { interpolateEnv } from "@brains/utils/string-utils";
+import { parseYamlDocument } from "@brains/utils/yaml";
 import { entityActionPolicyConfigSchema } from "@brains/templates";
 import { presetNameSchema, modeSchema } from "./brain-definition";
 import { logLevelSchema } from "./types";

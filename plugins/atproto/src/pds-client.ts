@@ -1,4 +1,4 @@
-import type { FetchLike } from "@brains/utils";
+import type { FetchLike } from "@brains/utils/fetch-like";
 
 export interface AtprotoSession {
   did: string;

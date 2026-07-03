@@ -1,6 +1,6 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { ensureArray } from "@brains/utils";
+import { ensureArray } from "@brains/utils/array";
 import { siteContentSchema } from "./schemas/site-content";
 import { siteContentAdapter } from "./adapters/site-content-adapter";
 import { SiteContentService } from "./lib/site-content-service";

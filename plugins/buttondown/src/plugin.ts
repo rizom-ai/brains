@@ -4,7 +4,8 @@ import type {
   ApiRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { getErrorMessage, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import { ButtondownClient } from "./lib/buttondown-client";
 import { createButtondownTools } from "./tools";
 import {

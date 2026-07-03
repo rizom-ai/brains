@@ -21,7 +21,7 @@ import {
   createMockBatchJobManager,
 } from "@brains/test-utils";
 import { createMockMessageBus } from "@brains/messaging-service/test";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { MessageBus } from "@brains/messaging-service";
 
 const testRootJobId = "test-root-job-id";

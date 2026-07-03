@@ -43,7 +43,7 @@ import type {
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
 import { sql } from "drizzle-orm";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";

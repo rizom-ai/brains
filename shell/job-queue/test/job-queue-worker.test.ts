@@ -14,8 +14,11 @@ import {
   createMockProgressReporter,
   createMockJobQueueService,
 } from "@brains/test-utils";
-import { createId } from "@brains/utils";
-import type { IJobProgressMonitor, ProgressReporter } from "@brains/utils";
+import { createId } from "@brains/utils/id";
+import type {
+  IJobProgressMonitor,
+  ProgressReporter,
+} from "@brains/utils/progress";
 
 const mockProgressReporter = createMockProgressReporter();
 

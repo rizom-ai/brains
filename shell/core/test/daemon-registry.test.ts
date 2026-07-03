@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import { DaemonRegistry } from "../src/daemon-registry";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 

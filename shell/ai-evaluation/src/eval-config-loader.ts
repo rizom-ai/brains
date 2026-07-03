@@ -358,7 +358,8 @@ async function parseRawBrainEvalYaml(
   content: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const { fromYaml, interpolateEnv } = await import("@brains/utils");
+    const { fromYaml } = await import("@brains/utils/yaml");
+    const { interpolateEnv } = await import("@brains/utils/string-utils");
     const parsed = fromYaml(content);
     if (parsed && typeof parsed === "object") {
       return interpolateEnv(parsed) as Record<string, unknown>;

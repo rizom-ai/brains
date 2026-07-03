@@ -1,5 +1,5 @@
 import type { IShell } from "../interfaces";
-import { type Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
 import { derivePreviewDomain } from "@brains/site-composition";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type { JudgeInput, PluginRegistrationContext } from "../interfaces";

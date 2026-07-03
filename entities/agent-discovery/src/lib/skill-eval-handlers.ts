@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils";
 import { SKILL_ENTITY_TYPE } from "./constants";
 import { deriveSkills } from "./skill-deriver";

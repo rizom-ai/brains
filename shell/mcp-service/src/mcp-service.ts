@@ -1,6 +1,6 @@
 import type { IMessageBus } from "@brains/messaging-service";
 import { type UserPermissionLevel } from "@brains/templates";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   canExposePrompt,

@@ -12,7 +12,7 @@ import {
   type Tool,
   type ToolResponse,
 } from "@brains/mcp-service";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils";
 import { generateInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";

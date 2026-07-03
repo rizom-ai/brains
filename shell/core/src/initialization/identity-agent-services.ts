@@ -25,7 +25,7 @@ import type {
   RuntimeUploadRegistry,
 } from "@brains/plugins";
 import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 import { SHELL_ENTITY_TYPES } from "../constants";
 

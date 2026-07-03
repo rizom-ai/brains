@@ -5,8 +5,10 @@ import {
 } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import { generationResultSchema } from "@brains/contracts";
 
 /**

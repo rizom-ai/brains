@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import type { AppInfo } from "@brains/plugins";
-import { displayLinkLabel, resolveUrl } from "@brains/utils";
+import { displayLinkLabel, resolveUrl } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
 
 function endpointHost(url: string): string {

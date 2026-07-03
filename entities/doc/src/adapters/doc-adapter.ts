@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   docSchema,
   docFrontmatterSchema,

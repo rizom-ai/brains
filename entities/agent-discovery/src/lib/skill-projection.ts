@@ -5,7 +5,7 @@ import type {
   JobOptions,
 } from "@brains/plugins";
 import { contentVisibilitySchema, hasPersistedTargets } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils";
 import {
   SKILL_DERIVATION_JOB_TYPE,

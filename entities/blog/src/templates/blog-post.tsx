@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { calculateReadingTime } from "@brains/utils";
+import { calculateReadingTime } from "@brains/utils/string-utils";
 import { MarkdownContent, Head, CoverImage } from "@brains/ui-library";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
 

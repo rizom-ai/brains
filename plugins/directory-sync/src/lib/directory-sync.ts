@@ -4,7 +4,8 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import type { BatchMetadata, BatchResult } from "../types";
-import type { Logger, ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import type {
   CleanupResult,
   DirectorySyncStatus,

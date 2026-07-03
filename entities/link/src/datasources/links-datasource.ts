@@ -7,7 +7,7 @@ import type {
   IEntityService,
 } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { LinkAdapter } from "../adapters/link-adapter";
 import type { LinkSummary } from "../templates/link-list/schema";
 

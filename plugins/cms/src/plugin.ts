@@ -9,7 +9,8 @@ import {
 } from "./config";
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
-import { toYaml, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { toYaml } from "@brains/utils/yaml";
 import packageJson from "../package.json";
 
 const CMS_OAUTH_STATE_COOKIE = "brains_cms_oauth_state";

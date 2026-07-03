@@ -9,7 +9,7 @@ import {
   createMockShell,
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import type { TopicsPluginConfig } from "../../src/schemas/config";
 import {
   createTopicProjectionHandler,

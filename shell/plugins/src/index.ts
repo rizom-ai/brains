@@ -345,7 +345,7 @@ export type { IAgentService } from "@brains/ai-service";
 export type { IMessageBus } from "@brains/messaging-service";
 
 export type { ContentFormatter } from "@brains/content-formatters";
-export type { ProgressCallback } from "@brains/utils";
+export type { ProgressCallback } from "@brains/utils/progress";
 
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
@@ -484,7 +484,7 @@ export {
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
 
-export { createId } from "@brains/utils";
+export { createId } from "@brains/utils/id";
 
 // ============================================================================
 // Routing & Navigation (Site Builder)

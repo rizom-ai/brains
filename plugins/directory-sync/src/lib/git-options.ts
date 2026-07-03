@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 /**
  * Stall timeout for network git operations (pull/push): if git produces no

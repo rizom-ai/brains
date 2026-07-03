@@ -6,7 +6,7 @@ import {
 } from "@brains/test-utils";
 import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
 import type { GenerationResult } from "@brains/contracts";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import type { EntityPluginContext } from "../../src/entity/context";
 import {
   BaseGenerationJobHandler,

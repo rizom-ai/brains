@@ -18,7 +18,7 @@ import type { IMessageBus } from "@brains/messaging-service";
 import { DaemonStatusInfoSchema, type Daemon } from "./manager/daemon-types";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type {
   ContentVisibility,
   IEntityService,

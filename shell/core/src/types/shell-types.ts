@@ -33,7 +33,8 @@ import type {
   RuntimeUploadRegistry,
 } from "@brains/plugins";
 import type { RuntimeStateService } from "@brains/runtime-state";
-import type { IJobProgressMonitor, Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { IJobProgressMonitor } from "@brains/utils/progress";
 
 export interface ShellServices {
   logger: Logger;

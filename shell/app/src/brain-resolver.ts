@@ -5,7 +5,9 @@ import {
   type EntityActionRequiredLevel,
 } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
-import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
+import { z, ZodError } from "@brains/utils";
+import { ensureArray } from "@brains/utils/array";
+import { type Logger } from "@brains/utils/logger";
 import type {
   BrainDefinition,
   BrainEnvironment,

@@ -1,6 +1,7 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { IEntityService } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils";
 import { imageAdapter } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";

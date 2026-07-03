@@ -1,4 +1,4 @@
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import type { WishEntity } from "../schemas/wish";
 
 export interface WishSearchDeps {

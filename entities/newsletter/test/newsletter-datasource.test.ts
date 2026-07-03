@@ -4,7 +4,7 @@ import { newsletterDetailSchema } from "../src/templates/newsletter-detail";
 import { newsletterListSchema } from "../src/templates/newsletter-list";
 import type { Newsletter } from "../src/schemas/newsletter";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import {
   createMockLogger,
   createMockEntityService,

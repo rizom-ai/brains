@@ -3,7 +3,7 @@ import { compileFilter } from "@/filter-matcher";
 import { MessageBus } from "@/messageBus";
 
 import { createSilentLogger } from "@brains/test-utils";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils";
 
 describe("MessageBus", () => {

@@ -4,7 +4,7 @@ import {
   type IMigrationFunctions,
 } from "../src/migration-manager";
 import { createMockLogger } from "@brains/test-utils";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 describe("MigrationManager", () => {
   let mockLogger: Logger;

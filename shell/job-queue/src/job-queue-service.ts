@@ -1,6 +1,7 @@
 import type { JobQueue } from "./schema/job-queue";
 import type { DeduplicationStrategy } from "./schema/types";
-import { Logger, createId } from "@brains/utils";
+import { createId } from "@brains/utils/id";
+import { Logger } from "@brains/utils/logger";
 import type {
   IJobQueueService,
   JobHandler,

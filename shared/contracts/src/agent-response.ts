@@ -1,4 +1,4 @@
-import { stripUndefinedDeep } from "@brains/utils";
+import { stripUndefinedDeep } from "@brains/utils/strip-undefined";
 import { z } from "zod";
 
 export const PendingConfirmationSchema = z.object({

@@ -1,4 +1,5 @@
-import type { FetchLike, Logger } from "@brains/utils";
+import type { FetchLike } from "@brains/utils/fetch-like";
+import type { Logger } from "@brains/utils/logger";
 import type {
   PublishProvider,
   PublishResult,

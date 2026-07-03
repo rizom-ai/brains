@@ -2,7 +2,8 @@ import { Client } from "@modelcontextprotocol/sdk/client";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ServicePlugin } from "@brains/plugins";
 import type { Tool, ServicePluginContext, ToolResponse } from "@brains/plugins";
-import { z, getErrorMessage } from "@brains/utils";
+import { z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 
 /**
  * Server command configuration for spawning an MCP server child process.

@@ -1,5 +1,5 @@
 import type { IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { SiteInfoEntity, SiteInfoBody } from "../schemas/site-info-schema";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 
