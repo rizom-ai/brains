@@ -12,19 +12,28 @@ import {
   createSeriesBodyFormatter,
 } from "../schemas/series";
 
-const seriesGenerationJobSchema = z.object({
+interface SeriesGenerationJobData {
+  prompt?: string | undefined;
+  title?: string | undefined;
+  seriesId?: string | undefined;
+}
+
+const seriesGenerationJobSchema: z.ZodType<SeriesGenerationJobData> = z.object({
   prompt: z.string().optional(),
   title: z.string().optional(),
   seriesId: z.string().optional(),
 });
 
 /** Member fields used to build the description prompt. */
-const memberSummarySchema = z.object({
+interface MemberSummary {
+  title?: string | undefined;
+  excerpt?: string | undefined;
+}
+
+const memberSummarySchema: z.ZodType<MemberSummary> = z.object({
   title: z.string().optional(),
   excerpt: z.string().optional(),
 });
-
-type SeriesGenerationJobData = z.output<typeof seriesGenerationJobSchema>;
 
 /**
  * Generation handler for series entities.

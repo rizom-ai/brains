@@ -85,4 +85,4 @@ export class SeriesAdapter extends BaseEntityAdapter<Series, SeriesMetadata> {
   }
 }
 
-export const seriesAdapter = new SeriesAdapter();
+export const seriesAdapter: SeriesAdapter = new SeriesAdapter();

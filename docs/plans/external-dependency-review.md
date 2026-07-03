@@ -1246,10 +1246,10 @@ contracts rather than exported inferred schema internals. The next interface
 batch enabled `isolatedDeclarations` for `@brains/chat-repl` and `@brains/mcp`
 with explicit CLI/MCP config contracts. The first entity package batches enabled
 `isolatedDeclarations` for `@brains/doc`, `@brains/document-plugin`,
-`@brains/image-plugin`, `@brains/newsletter-entity`, `@brains/playbook`,
-`@brains/prompt`, `@brains/rizom-ecosystem`, `@brains/site-info`, and
-`@brains/wishlist`, keeping entity/frontmatter schema annotations
-object-preserving for adapter contracts.
+`@brains/image-plugin`, `@brains/newsletter-entity`, `@brains/note`,
+`@brains/playbook`, `@brains/prompt`, `@brains/rizom-ecosystem`,
+`@brains/series`, `@brains/site-info`, and `@brains/wishlist`, keeping
+entity/frontmatter schema annotations object-preserving for adapter contracts.
 Drizzle-backed service packages such as `@brains/conversation-service` remain
 separate follow-ups, in the same bucket as the earlier `@brains/runtime-state`
 table annotation issue.

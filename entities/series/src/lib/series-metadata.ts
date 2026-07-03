@@ -7,12 +7,15 @@ import { z } from "@brains/utils/zod-v4";
  * handler all agree on how `seriesName`/`seriesIndex` are extracted, and so the
  * extraction goes through zod rather than unchecked casts.
  */
-const seriesSourceMetadataSchema = z.object({
+export interface SeriesSourceFields {
+  seriesName?: string | undefined;
+  seriesIndex?: number | undefined;
+}
+
+const seriesSourceMetadataSchema: z.ZodType<SeriesSourceFields> = z.object({
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
 });
-
-export type SeriesSourceFields = z.output<typeof seriesSourceMetadataSchema>;
 
 /** Parse the series fields out of a raw metadata object (or event payload). */
 export function parseSeriesFields(metadata: unknown): SeriesSourceFields {

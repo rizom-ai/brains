@@ -1,7 +1,11 @@
 import { z } from "@brains/utils/zod-v4";
-import { createTemplate } from "@brains/templates";
+import { createTemplate, type Template } from "@brains/templates";
 
-export const seriesDescriptionSchema = z.object({
+export interface SeriesDescription {
+  description: string;
+}
+
+export const seriesDescriptionSchema: z.ZodType<SeriesDescription> = z.object({
   description: z
     .string()
     .describe(
@@ -9,16 +13,15 @@ export const seriesDescriptionSchema = z.object({
     ),
 });
 
-export type SeriesDescription = z.output<typeof seriesDescriptionSchema>;
-
-export const seriesDescriptionTemplate = createTemplate<SeriesDescription>({
-  name: "series:description",
-  description:
-    "Template for AI to generate series descriptions from member summaries",
-  schema: seriesDescriptionSchema,
-  dataSourceId: "shell:ai-content",
-  requiredPermission: "public",
-  basePrompt: `You are an expert at writing compelling content descriptions.
+export const seriesDescriptionTemplate: Template =
+  createTemplate<SeriesDescription>({
+    name: "series:description",
+    description:
+      "Template for AI to generate series descriptions from member summaries",
+    schema: seriesDescriptionSchema,
+    dataSourceId: "shell:ai-content",
+    requiredPermission: "public",
+    basePrompt: `You are an expert at writing compelling content descriptions.
 
 Your task is to write a series description (2-3 sentences) that:
 1. Captures the main theme connecting all the content
@@ -27,4 +30,4 @@ Your task is to write a series description (2-3 sentences) that:
 4. Works well as a series overview on a website
 
 Be concise and focus on what makes this series unique and valuable.`,
-});
+  });

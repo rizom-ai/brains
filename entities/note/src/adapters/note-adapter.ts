@@ -8,7 +8,8 @@ import {
   type NoteMetadata,
 } from "../schemas/note";
 
-const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+const frontmatterRecordSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
+  z.record(z.string(), z.unknown());
 
 /**
  * Entity adapter for note entities
@@ -109,4 +110,4 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
   }
 }
 
-export const noteAdapter = new NoteAdapter();
+export const noteAdapter: NoteAdapter = new NoteAdapter();

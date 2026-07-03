@@ -11,7 +11,7 @@ import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod-v4";
 import { noteSchema, type Note } from "./schemas/note";
-import { noteAdapter } from "./adapters/note-adapter";
+import { noteAdapter, type NoteAdapter } from "./adapters/note-adapter";
 import type { NoteConfig, NoteConfigInput } from "./config";
 import { noteConfigSchema } from "./config";
 import { noteGenerationTemplate } from "./templates/generation-template";
@@ -30,20 +30,22 @@ const webChatUploadsScope = {
   routePath: "/api/chat/uploads",
 } as const;
 
-const generateNoteEvalInputSchema = z.object({
+interface GenerateNoteEvalInput {
+  prompt: string;
+}
+
+const generateNoteEvalInputSchema: z.ZodType<GenerateNoteEvalInput> = z.object({
   prompt: z.string(),
 });
-
-type GenerateNoteEvalInput = z.output<typeof generateNoteEvalInputSchema>;
 
 export class NotePlugin extends EntityPlugin<
   Note,
   NoteConfig,
   NoteConfigInput
 > {
-  readonly entityType = noteAdapter.entityType;
-  readonly schema = noteSchema;
-  readonly adapter = noteAdapter;
+  readonly entityType: typeof noteAdapter.entityType = noteAdapter.entityType;
+  readonly schema: typeof noteSchema = noteSchema;
+  readonly adapter: NoteAdapter = noteAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: NoteConfigInput = {}) {

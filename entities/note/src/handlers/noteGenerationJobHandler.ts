@@ -9,14 +9,22 @@ import { noteAdapter } from "../adapters/note-adapter";
 /**
  * Input schema for note generation job
  */
-export const noteGenerationJobSchema = z.object({
-  prompt: z.string(),
-  title: z.string().optional(),
-});
+export interface NoteGenerationJobData {
+  prompt: string;
+  title?: string | undefined;
+}
 
-export type NoteGenerationJobData = z.output<typeof noteGenerationJobSchema>;
+export const noteGenerationJobSchema: z.ZodType<NoteGenerationJobData> =
+  z.object({
+    prompt: z.string(),
+    title: z.string().optional(),
+  });
 
-export const noteGenerationResultSchema = generationResultSchema.extend({
+export const noteGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    title: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   title: z.string().optional(),
 });
 

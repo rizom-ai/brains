@@ -11,14 +11,16 @@ const webChatUploadsScope = {
   routePath: "/api/chat/uploads",
 } as const;
 
-export const uploadMarkdownImportJobSchema = z.object({
-  uploadId: z.string().min(1),
-  title: z.string().optional(),
-});
+export interface UploadMarkdownImportJobData {
+  uploadId: string;
+  title?: string | undefined;
+}
 
-export type UploadMarkdownImportJobData = z.output<
-  typeof uploadMarkdownImportJobSchema
->;
+export const uploadMarkdownImportJobSchema: z.ZodType<UploadMarkdownImportJobData> =
+  z.object({
+    uploadId: z.string().min(1),
+    title: z.string().optional(),
+  });
 
 export interface UploadMarkdownImportJobResult {
   entityId: string;
