@@ -1,4 +1,4 @@
-import type { RouteDefinitionInput } from "@brains/site-composition";
+import type { RouteDefinitionInput } from "@brains/site-rizom";
 
 export const workRoutes: RouteDefinitionInput[] = [
   {

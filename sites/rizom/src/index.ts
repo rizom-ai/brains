@@ -16,6 +16,11 @@ export type { RizomRuntimeConfig, RizomThemeProfile } from "./runtime";
 
 export { createRizomSite } from "./create-site";
 export type { CreateRizomSiteOptions } from "./create-site";
+export { createSiteContentTemplates } from "@brains/site-composition";
+export type {
+  RouteDefinitionInput,
+  SiteContentDefinition,
+} from "@brains/site-composition";
 
 export {
   Badge,
