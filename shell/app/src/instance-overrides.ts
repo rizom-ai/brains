@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { interpolateEnv } from "@brains/utils/string-utils";
 import { parseYamlDocument } from "@brains/utils/yaml";
 import { entityActionPolicyConfigSchema } from "@brains/templates";

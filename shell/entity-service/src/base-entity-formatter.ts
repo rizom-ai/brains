@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { stripMarkdown } from "@brains/utils/markdown";
 import { type ContentFormatter } from "@brains/content-formatters";
 import type { BaseEntity } from "./types";

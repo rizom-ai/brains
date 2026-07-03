@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { ProgressCallback } from "@brains/utils/progress";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { ComponentType, RuntimeScript } from "./types";

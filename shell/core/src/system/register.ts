@@ -8,7 +8,7 @@ import {
   type ToolContext,
 } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { type Logger } from "@brains/utils/logger";
 import type { SystemServices } from "./types";
 import { createSystemTools } from "./tools";

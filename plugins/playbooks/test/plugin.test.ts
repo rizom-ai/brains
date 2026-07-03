@@ -11,7 +11,7 @@ import {
   type PlaybookBody,
   type PlaybookFrontmatter,
 } from "@brains/playbook";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   createPluginHarness,
   expectError,

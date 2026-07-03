@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 // Remove ContentGenerationRequest import - we'll define our own schema
 import { Logger } from "@brains/utils/logger";
 import type { ContentService, GenerationContext } from "../types";

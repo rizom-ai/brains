@@ -1,5 +1,5 @@
 import { baseEntitySchema } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const playbookStatusSchema = z.enum(["draft", "active", "archived"]);
 export const playbookAudienceSchema = z.enum(["anchor", "trusted", "public"]);

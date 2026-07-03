@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { summaryEntrySchema } from "../../schemas/summary";
 
 export const summaryDetailSchema = z.object({

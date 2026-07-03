@@ -1,5 +1,5 @@
 import { dynamicTool, type ToolSet } from "ai";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";

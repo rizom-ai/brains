@@ -11,7 +11,7 @@ import type {
   JudgeInput,
 } from "@brains/ai-service";
 import { RuntimeUploadRegistry } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { LanguageModel } from "ai";
 
 import { EvaluationService } from "../src/evaluation-service";

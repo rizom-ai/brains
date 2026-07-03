@@ -2,7 +2,7 @@ import type { EntityPluginContext, GeneratedContent } from "@brains/plugins";
 import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 import { fetchAgentCard, extractDomain } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";

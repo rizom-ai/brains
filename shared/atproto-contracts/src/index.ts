@@ -1,5 +1,5 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import cardLexiconJson from "./lexicons/ai.rizom.brain.card.json";
 import deckLexiconJson from "./lexicons/ai.rizom.brain.deck.json";
 import linkLexiconJson from "./lexicons/ai.rizom.brain.link.json";

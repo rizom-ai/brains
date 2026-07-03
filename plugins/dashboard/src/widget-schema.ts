@@ -1,5 +1,5 @@
 import { UserPermissionLevelSchema } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { WidgetComponent } from "./widget-registry";
 
 export const widgetMetaSchema = z.object({

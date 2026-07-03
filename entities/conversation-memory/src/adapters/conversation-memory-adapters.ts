@@ -1,6 +1,6 @@
 import { BaseEntityAdapter } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import {
   actionItemMetadataSchema,
   actionItemSchema,

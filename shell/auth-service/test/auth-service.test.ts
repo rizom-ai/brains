@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { NOTIFICATIONS_SEND } from "@brains/notifications";
 import {

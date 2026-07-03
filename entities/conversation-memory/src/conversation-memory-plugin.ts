@@ -9,7 +9,7 @@ import {
   type DerivedEntityProjection,
   type Template,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
 import {
   summaryConfigSchema,

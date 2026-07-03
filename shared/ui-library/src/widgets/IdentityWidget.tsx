@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { h } from "preact";
 import type { VNode } from "preact";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { BaseWidgetProps } from "./types";
 
 const characterDataSchema = z.object({

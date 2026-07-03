@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z, type ZodRawShape, type ZodType } from "@brains/utils";
+import { z, type ZodRawShape, type ZodType } from "@brains/utils/zod";
 import { type ProgressNotification } from "@brains/utils/progress";
 import type { UserPermissionLevel } from "@brains/templates";
 

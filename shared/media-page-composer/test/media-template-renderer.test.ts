@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { h, type JSX } from "preact";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { renderMediaTemplateHtml, type MediaPageTemplate } from "../src";
 
 function PdfComponent(props: Record<string, unknown>): JSX.Element {

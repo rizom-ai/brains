@@ -5,7 +5,7 @@ import {
   type UserPermissionLevel,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export interface WidgetComponentProps {
   title: string;

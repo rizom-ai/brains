@@ -1,6 +1,6 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { toISODateString, getYesterday } from "@brains/utils/date";
 import { getErrorMessage } from "@brains/utils/error";
 import type { CloudflareClient } from "../lib/cloudflare-client";

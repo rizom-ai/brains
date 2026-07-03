@@ -2,7 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ServicePlugin } from "@brains/plugins";
 import type { Tool, ServicePluginContext, ToolResponse } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 
 /**

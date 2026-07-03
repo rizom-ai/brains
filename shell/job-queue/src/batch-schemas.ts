@@ -2,7 +2,7 @@
  * Batch-related Zod schemas
  * Separated to avoid pulling in all job queue schemas for external consumers
  */
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { JobContextSchema } from "./schema/types";
 
 /**

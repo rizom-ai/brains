@@ -2,7 +2,7 @@ import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";

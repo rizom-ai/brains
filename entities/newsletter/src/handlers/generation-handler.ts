@@ -6,7 +6,7 @@ import {
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
 import { type GenerationResult } from "@brains/contracts";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";

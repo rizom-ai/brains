@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import { useEffect, useState } from "react";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   artifactStatusLabel as attachmentStatusLabel,
   formatArtifactDisplay as formatAttachmentDisplay,

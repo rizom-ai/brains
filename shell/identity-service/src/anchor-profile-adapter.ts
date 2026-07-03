@@ -2,7 +2,7 @@ import {
   BaseEntityAdapter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import {
   anchorProfileSchema,
   anchorProfileBodySchema,

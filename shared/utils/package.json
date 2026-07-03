@@ -3,12 +3,7 @@
   "version": "0.2.0-alpha.137",
   "private": true,
   "type": "module",
-  "main": "./src/zod.ts",
   "exports": {
-    ".": {
-      "types": "./src/zod.ts",
-      "default": "./src/zod.ts"
-    },
     "./array": "./src/array.ts",
     "./chunk-message": "./src/chunk-message.ts",
     "./date": "./src/date.ts",
@@ -26,7 +21,8 @@
     "./sort": "./src/sort.ts",
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",
-    "./yaml": "./src/yaml.ts"
+    "./yaml": "./src/yaml.ts",
+    "./zod": "./src/zod.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

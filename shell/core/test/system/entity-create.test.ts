@@ -15,7 +15,7 @@ import type {
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
 
 const createEntityRequestSchema = z

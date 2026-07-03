@@ -11,7 +11,7 @@ import type {
   BaseEntity,
   EntityEventBus,
 } from "../../src/types";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import { mockEmbeddingService } from "./mock-services";
 import { createTestEntityDatabase } from "./test-entity-db";
 

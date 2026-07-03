@@ -16,7 +16,7 @@ import {
   ProgressReporter,
 } from "@brains/utils/progress";
 import type { UserPermissionLevel } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 // Message schemas for validation
 const toolExecuteRequestSchema = z.object({

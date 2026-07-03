@@ -24,7 +24,7 @@ import type {
   ToolResponse,
 } from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createPrefixedId } from "@brains/utils/id";
 import { computeContentHash } from "@brains/utils/hash";
 import { createActor, createMachine } from "xstate";

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { JsonFileStore } from "./json-file-store";
 import type { RegisteredOAuthClient } from "./types";
 

@@ -10,7 +10,7 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";

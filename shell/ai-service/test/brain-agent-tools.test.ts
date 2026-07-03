@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { Tool } from "@brains/mcp-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { filterToolsForCallOptions } from "../src/brain-agent";
 
 function tool(name: string): Tool {

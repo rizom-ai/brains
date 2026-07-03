@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const extractedSummaryEntrySchema = z.object({
   title: z.string().min(1),

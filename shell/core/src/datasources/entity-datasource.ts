@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/entity-service";
 import type { IEntityService } from "@brains/entity-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { SHELL_DATASOURCE_IDS } from "../constants";
 
 const entityQuerySchema = z.object({

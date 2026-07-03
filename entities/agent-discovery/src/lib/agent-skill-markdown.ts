@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { agentSkillSchema, type AgentSkill } from "../schemas/agent";
 
 const agentSkillsSchema = z.array(agentSkillSchema);

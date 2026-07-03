@@ -5,7 +5,7 @@ import type {
   DataSource,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import {
   productSchema,

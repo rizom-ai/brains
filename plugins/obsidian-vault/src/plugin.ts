@@ -7,7 +7,7 @@ import {
   toolError,
 } from "@brains/plugins";
 import type { ServicePluginContext, Tool, ToolResult } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { obsidianVaultConfigSchema, type ObsidianVaultConfig } from "./config";
 import { introspectSchema } from "./lib/schema-introspector";
 import { generateTemplate } from "./lib/template-generator";

@@ -1,6 +1,6 @@
 import type { Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { UnsplashClient } from "./lib/unsplash-client";
 import { createStockPhotoTools } from "./tools";
 import { SelectPhotoJobHandler } from "./handlers/select-photo-handler";

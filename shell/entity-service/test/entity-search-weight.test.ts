@@ -6,7 +6,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "../src/embedding-types";
 import type { EntityDB } from "../src/db";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";

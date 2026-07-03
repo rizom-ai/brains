@@ -10,7 +10,7 @@ import {
 } from "bun:test";
 import { AIService } from "../src/aiService";
 import { createSilentLogger, createTestLogger } from "@brains/test-utils";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { LogLevel } from "@brains/utils/logger";
 import * as ai from "ai";
 import * as anthropicSdk from "@ai-sdk/anthropic";

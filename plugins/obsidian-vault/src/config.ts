@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const obsidianVaultConfigSchema = z.object({
   baseFolder: z.string().default("_obsidian"),

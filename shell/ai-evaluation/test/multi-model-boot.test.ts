@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { EntityRegistry, baseEntitySchema } from "@brains/entity-service";
 import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const testSchema = baseEntitySchema.extend({
   entityType: z.literal("test"),

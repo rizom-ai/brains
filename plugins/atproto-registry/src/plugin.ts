@@ -10,7 +10,7 @@ import type {
   AtprotoLexicon,
   AtprotoLexiconMetadata,
 } from "@brains/atproto-contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 export const atprotoRegistryConfigSchema = z.object({

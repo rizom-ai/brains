@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { UserPermissionLevelSchema } from "@brains/templates";
 import { ChatContextSchema } from "@brains/plugins";
 

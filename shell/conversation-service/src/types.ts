@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { messageRoleSchema, type MessageRole } from "@brains/contracts";
 import type { Message, Conversation } from "./schema";
 

@@ -14,7 +14,7 @@ import {
   type ToolResponse,
 } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";

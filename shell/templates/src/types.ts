@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { VNode } from "preact";
 import { UserPermissionLevelSchema } from "./permission-service";

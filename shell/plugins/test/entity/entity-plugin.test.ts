@@ -4,7 +4,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { EntityPlugin } from "../../src/entity/entity-plugin";
 import type { EntityPluginContext } from "../../src/entity/context";
 import type { DerivedEntityProjection } from "../../src/entity/derived-entity-projection";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { CreateInterceptionResult } from "@brains/entity-service";
 import { baseEntitySchema, BaseEntityAdapter } from "@brains/entity-service";
 

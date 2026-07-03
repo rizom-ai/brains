@@ -2,7 +2,7 @@ import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { fetchAnchorProfile } from "@brains/plugins";
 import { AnchorProfileAdapter } from "@brains/identity-service";
 import { fetchSiteInfo } from "@brains/site-info";
-import { type z } from "@brains/utils";
+import { type z } from "@brains/utils/zod";
 import { sortByPublicationDate } from "@brains/utils/sort";
 import {
   professionalProfileSchema,

@@ -8,7 +8,7 @@ import {
   ServicePlugin,
   UserPermissionLevelSchema,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   BUILT_IN_WIDGET_RENDERERS,

@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach } from "bun:test";
 import { RenderService } from "../src/render-service";
 import { TemplateRegistry } from "../src/registry";
 import type { Template } from "../src/types";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { h } from "preact";
 
 // Test schemas

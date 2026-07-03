@@ -1,5 +1,5 @@
 import type { IEntityService } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import { resolveSyncPath } from "./directory-path";
 

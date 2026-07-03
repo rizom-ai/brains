@@ -2,7 +2,7 @@ import { BaseJobHandler } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { type z } from "@brains/utils";
+import { type z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   generateMarkdown,

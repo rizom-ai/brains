@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { AgentNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { Task } from "@a2a-js/sdk";

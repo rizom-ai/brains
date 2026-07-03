@@ -5,7 +5,7 @@ import type {
   JudgeInput,
 } from "../src";
 import type { LanguageModel } from "ai";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 
 /**
  * Mock AI Service for testing

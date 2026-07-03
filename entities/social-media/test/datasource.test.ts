@@ -3,7 +3,7 @@ import { SocialPostDataSource } from "../src/datasources/social-post-datasource"
 import type { SocialPost } from "../src/schemas/social-post";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   createMockLogger,
   createMockEntityService,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { ProgressReporter } from "@brains/utils/progress";
 import {
   BaseEntityAdapter,

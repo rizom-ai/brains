@@ -1,7 +1,7 @@
 import type { Tool } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import { ButtondownClient } from "../lib/buttondown-client";
 

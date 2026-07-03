@@ -21,7 +21,7 @@ import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createId } from "@brains/utils/id";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";

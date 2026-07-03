@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { basename, resolve } from "path";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { SecretPair } from "./push-secrets";
 
 export interface BitwardenProject {

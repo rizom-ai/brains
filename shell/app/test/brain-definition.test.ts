@@ -7,7 +7,7 @@ import {
 } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 // Minimal mock plugin factory. Narrower than PluginFactory (always returns a
 // single Plugin, never a composite array) so test callers can use the result

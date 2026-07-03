@@ -1,5 +1,5 @@
 /** @jsxImportSource preact */
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { JSX } from "preact";
 
 const swotItemSchema = z.object({

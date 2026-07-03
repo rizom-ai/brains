@@ -9,7 +9,7 @@ import {
 } from "./config";
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { toYaml } from "@brains/utils/yaml";
 import packageJson from "../package.json";
 

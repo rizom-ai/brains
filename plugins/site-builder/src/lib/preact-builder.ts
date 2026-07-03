@@ -24,7 +24,7 @@ import {
   TailwindCSSProcessor,
   type CSSProcessor,
 } from "@brains/site-engine";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { pLimit } from "@brains/utils/p-limit";
 
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)

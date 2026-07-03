@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { Template } from "@brains/plugins";
 import type { LayoutComponent } from "@brains/site-engine";
 import {

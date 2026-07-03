@@ -1,6 +1,6 @@
 import type { Tool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const buildSiteInputSchema = z.object({
   environment: z

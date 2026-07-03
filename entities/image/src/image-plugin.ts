@@ -13,7 +13,7 @@ import {
   EntityPlugin,
   resolveEntityOrError,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";

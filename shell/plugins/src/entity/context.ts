@@ -16,7 +16,7 @@ import type {
   ImageGenerationResult,
 } from "@brains/ai-service";
 import type { DefaultQueryResponse } from "@brains/contracts";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 
 export type { IEntitiesNamespace };
 export type { IPromptsNamespace };

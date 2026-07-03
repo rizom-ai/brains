@@ -1,7 +1,7 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { fetchImageAsBase64, isHttpUrl } from "@brains/image";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { slugify } from "@brains/utils/string-utils";

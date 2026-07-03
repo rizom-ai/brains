@@ -9,7 +9,7 @@ import type {
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { Doc } from "../schemas/doc";
 import {
   docFrontmatterSchema,

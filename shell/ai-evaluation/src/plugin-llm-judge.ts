@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { Logger } from "@brains/utils/logger";
 import type { IAIService } from "@brains/ai-service";
 

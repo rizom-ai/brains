@@ -5,7 +5,7 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "../provider-registry";
 import {
   PublishExecutor,

@@ -1,7 +1,7 @@
 import { paginationInfoSchema } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { agentStatusSchema, enrichedAgentSchema } from "../schemas/agent";
 import {
   AgentListTemplate,

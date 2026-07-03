@@ -13,7 +13,7 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { parseJsonResponse } from "@brains/utils/http-response";
 import { type FetchLike } from "@brains/deploy-support/origin-ca";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";

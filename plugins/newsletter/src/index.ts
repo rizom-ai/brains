@@ -1,5 +1,5 @@
 import type { Plugin } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { newsletterPlugin } from "@brains/newsletter-entity";
 import { buttondownPlugin } from "@brains/buttondown";
 

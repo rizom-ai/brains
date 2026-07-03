@@ -8,7 +8,7 @@ import {
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { imageAdapter, setCoverImageId } from "@brains/image";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";

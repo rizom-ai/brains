@@ -12,7 +12,7 @@ import type {
   JobInfo,
 } from "./types";
 import type { BatchJobStatus } from "./batch-schemas";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { JobProgressEventSchema } from "./schemas";
 
 /**

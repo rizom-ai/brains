@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { InterfacePlugin } from "../../src/interface/interface-plugin";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import type { BaseJobTrackingInfo } from "../../src/interfaces";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const emptyConfigSchema = z.object({});
 

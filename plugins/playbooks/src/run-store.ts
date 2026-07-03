@@ -2,7 +2,7 @@ import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
 } from "@brains/runtime-state";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createPrefixedId } from "@brains/utils/id";
 
 export const playbookRunStatusSchema = z.enum([

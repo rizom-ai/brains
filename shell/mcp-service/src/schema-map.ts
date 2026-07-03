@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 type ZodRawShape = Record<string, z.ZodTypeAny>;
 

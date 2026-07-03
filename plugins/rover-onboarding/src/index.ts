@@ -6,7 +6,7 @@ import {
 } from "@brains/playbooks";
 import type { Plugin, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 const roverOnboardingConfigSchema = z

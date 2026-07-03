@@ -1,7 +1,7 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 
-import { type ZodType } from "@brains/utils";
+import { type ZodType } from "@brains/utils/zod";
 import { parseYamlDocument } from "@brains/utils/yaml";
 
 import {

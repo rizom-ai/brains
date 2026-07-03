@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export const webChatConfigSchema = z.object({
   routePath: z.string().default("/chat"),

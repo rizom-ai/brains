@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity } from "../schemas/summary";
 import type { SummaryListData } from "../templates/summary-list/schema";

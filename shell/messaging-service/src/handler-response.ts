@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { messageResponseSchema } from "./base-types";
 
 const handlerResponseSchema = z.union([

@@ -6,7 +6,7 @@ import type {
 } from "@brains/plugins";
 import { contentVisibilitySchema, hasPersistedTargets } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   SKILL_DERIVATION_JOB_TYPE,
   SKILL_DERIVATION_PROJECTION_ID,

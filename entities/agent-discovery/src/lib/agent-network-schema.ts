@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { agentFrontmatterSchema, agentStatusSchema } from "../schemas/agent";
 
 const agentKindSchema = agentFrontmatterSchema.shape.kind;

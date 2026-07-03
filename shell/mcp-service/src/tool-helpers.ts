@@ -1,5 +1,5 @@
 import type { Tool, Resource, ToolResponse, ToolContext } from "./types";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import { Logger } from "@brains/utils/logger";
 

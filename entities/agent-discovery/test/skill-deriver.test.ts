@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   buildSkillPrompt,
   deriveSkills,

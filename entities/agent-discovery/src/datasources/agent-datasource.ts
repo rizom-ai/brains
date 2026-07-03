@@ -10,7 +10,7 @@ import type {
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import {
   agentFrontmatterSchema,

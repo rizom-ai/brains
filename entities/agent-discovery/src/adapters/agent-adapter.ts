@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { slugifyUrl } from "@brains/utils/string-utils";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import {

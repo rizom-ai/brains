@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { baseEntitySchema, skillDataSchema } from "@brains/plugins";
 import type { SkillData } from "@brains/plugins";
 import { SKILL_ENTITY_TYPE } from "../lib/constants";

@@ -7,7 +7,7 @@
 import { mock } from "bun:test";
 import type { BaseEntity } from "@brains/plugins/test";
 import { baseEntitySchema, BaseEntityAdapter } from "@brains/plugins/test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type {
   IDirectorySync,
   IGitSync,

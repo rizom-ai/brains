@@ -1,5 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   baseProfileExtension,
   professionalProfileExtension,

@@ -8,7 +8,7 @@ import {
 } from "@brains/plugins";
 import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
 import type { BlogPost } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../schemas/blog-post";

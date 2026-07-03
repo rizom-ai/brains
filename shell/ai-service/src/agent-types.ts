@@ -32,7 +32,7 @@ import type {
 } from "@brains/identity-service";
 import type { Tool } from "@brains/mcp-service";
 import type { ModelMessage } from "ai";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Schema for runtime call options

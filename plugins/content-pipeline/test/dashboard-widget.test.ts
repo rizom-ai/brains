@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import type { UserPermissionLevel } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   createMockShell,
   createServicePluginContext,

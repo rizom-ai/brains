@@ -8,7 +8,7 @@ import {
 } from "fs";
 import { dirname, join } from "path";
 import { homedir } from "os";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   readLocalEnvValues,
   resolveLocalEnvValue,

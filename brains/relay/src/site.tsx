@@ -2,7 +2,7 @@ import type { JSX, ComponentChildren } from "preact";
 import { createTemplate } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { SiteContentDefinition } from "@brains/site-content";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   Button,
   RizomFrame,

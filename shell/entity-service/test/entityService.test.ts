@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
 import { chmod, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import { baseEntitySchema } from "../src/types";

@@ -1,5 +1,5 @@
 import { paginationInfoSchema } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { enrichedSocialPostSchema } from "../schemas/social-post";

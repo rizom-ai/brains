@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 // Schema for topic detail page data
 export const topicDetailSchema = z.object({

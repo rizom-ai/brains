@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 // Import JobContextSchema from types file (no Drizzle dependencies)
 import { JobContextSchema } from "./schema/types";
 

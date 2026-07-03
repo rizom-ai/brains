@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { InterfacePluginContext } from "../interface/context";
 
 const toolActivityEventTypeSchema = z.enum([

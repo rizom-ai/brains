@@ -1,5 +1,5 @@
 /** @jsxImportSource preact */
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { formatLabel } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
 import type { RenderableWidgetData } from "./types";

@@ -6,7 +6,7 @@ import type {
   PluginRegistrationContext,
 } from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type {
   BaseJobTrackingInfo,
   InterfacePluginContext,

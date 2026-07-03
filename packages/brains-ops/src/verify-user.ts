@@ -1,5 +1,5 @@
 import type { FetchLike } from "@brains/deploy-support/origin-ca";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 import { loadPilotRegistry, type ResolvedUser } from "./load-registry";
 

@@ -1,6 +1,6 @@
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult } from "../types.js";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import { rename, appendFile, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";

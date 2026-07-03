@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { fromYaml } from "@brains/utils/yaml";
 import { defineConfig, type AppConfig } from "@brains/app";
 import { pluginMetadataSchema, type Plugin } from "@brains/plugins";

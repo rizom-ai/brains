@@ -1,5 +1,5 @@
 import type { VNode } from "preact";
-import type { z } from "@brains/utils";
+import type { z } from "@brains/utils/zod";
 import type { SiteRuntimeScript } from "@brains/site-engine";
 
 export interface SiteViewTemplate {

@@ -15,7 +15,7 @@ import type {
 } from "@brains/entity-service";
 import type { EntityActionPolicyConfig, Template } from "@brains/templates";
 import type { JobHandler } from "@brains/job-queue";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { EntityPluginContext } from "./context";
 import { createEntityPluginContext } from "./context";
 import {
