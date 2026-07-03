@@ -102,16 +102,13 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                     |
 | `plugins/directory-sync`   | File sync + git operations                                         |
 | `plugins/email-resend`     | Generic email delivery adapter for Resend                          |
-| `plugins/hackmd`           | HackMD MCP bridge                                                  |
 | `plugins/newsletter`       | Composite newsletter capability                                    |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages |
-| `plugins/notion`           | Notion MCP bridge                                                  |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                          |
 | `plugins/site-builder`     | Static site build orchestration                                    |
 | `plugins/site-content`     | Site section content generation                                    |
 | `plugins/stock-photo`      | Stock-photo search and selection                                   |
 | `plugins/cms`              | Browser authoring routes + CMS config                              |
-| `plugins/examples`         | Reference patterns and examples                                    |
 
 ### Interface plugins
 
@@ -176,7 +173,6 @@ Service plugins provide the system's operational surface area:
 - external integrations
 - background job handlers
 - publishing pipelines
-- MCP-bridged services
 - specialized tools such as sync, stock photo search, or analytics insights
 
 ### InterfacePlugin behavior

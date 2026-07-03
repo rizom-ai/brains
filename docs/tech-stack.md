@@ -296,7 +296,6 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - `@brains/site-engine` — renderer-agnostic site build engine utilities
 - `@brains/site-composition` — shared site composition contract and merge helpers
 - `@brains/test-utils` — mock factories, test harnesses, MockShell
-- `@brains/mcp-bridge` — base class for bridging upstream MCP servers
 - `@brains/image` — image schema, adapter, utilities
 - `@brains/deploy-support` — canonical deploy templates, deploy script helpers, env parsing, and cert support
 - `@brains/theme-base` / `@brains/theme-default` / `@brains/theme-rizom` — shared CSS themes

@@ -88,7 +88,6 @@ If you want to extend `brains` without contributing upstream, the plugin system 
 - [Plugin System](../plugin-system.md) — architecture and lifecycle
 - [External Plugin Authoring](../external-plugin-authoring.md) — package shape, factory contract, registration model, `brain.yaml` loading
 - [Plugin Quick Reference](../plugin-quick-reference.md) — API cheat sheet
-- [`plugins/examples/`](../../plugins/examples/) — minimal working examples
 
 Publish your plugin as `@your-org/brain-plugin-cool-thing` on npm and reference it in `brain.yaml`. Your plugin doesn't need to be in this repository to work with `brains`.
 

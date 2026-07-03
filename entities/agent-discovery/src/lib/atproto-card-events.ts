@@ -105,7 +105,7 @@ async function upsertAgentFromCard(
   const name = existing?.metadata.name ?? record.anchor.name;
   const kind = existingParsed?.frontmatter.kind ?? record.anchor.kind;
   const discoveredAt = existing?.metadata.discoveredAt ?? now;
-  const about = record.brain.purpose || existingParsed?.body.about || "";
+  const about = record.brain.purpose || (existingParsed?.body.about ?? "");
   const skills =
     cardSkills.length > 0 ? cardSkills : (existingParsed?.body.skills ?? []);
 

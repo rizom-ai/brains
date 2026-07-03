@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { NotePlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { JobHandler } from "@brains/plugins";
+import type { EntityMutationResult, JobHandler } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils/progress";
 
 const primerPdfBase64 =
@@ -289,7 +289,9 @@ describe("NotePlugin", () => {
       // The mock entity service ignores deduplicateId — emulate the real
       // service's suffix resolution so the interceptor sees a resolved id.
       const originalCreate = entityService.createEntity.bind(entityService);
-      entityService.createEntity = async (request) => {
+      entityService.createEntity = async (
+        request,
+      ): Promise<EntityMutationResult> => {
         const { entity } = request;
         const existing =
           entity.id && entity.entityType

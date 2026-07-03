@@ -441,7 +441,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           entityType: string;
           id: string;
           visibilityScope?: unknown;
-        }) =>
+        }): ReturnType<typeof streamContext.entityService.getEntity> =>
           streamContext.entityService.getEntity(
             ref as Parameters<typeof streamContext.entityService.getEntity>[0],
           ),

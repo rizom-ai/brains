@@ -49,16 +49,13 @@ The first public release of `brains`, after roughly a year of private developmen
 
 - `@brains/site-builder-plugin` — static site generation from entities, with theme + layout composition, image variants, and preview/production modes
 - `@brains/directory-sync` — bidirectional markdown ↔ filesystem sync, optional git auto-commit/push, debounced batching
-- `@brains/notion` — bridge plugin importing from Notion via MCP
 - `@brains/obsidian-vault` — Obsidian vault export with bases and fileClasses
-- `@brains/hackmd` — HackMD bridge plugin
 - `@brains/buttondown` — Buttondown newsletter integration
 - `@brains/analytics` — Cloudflare Web Analytics integration
 - `@brains/dashboard` — admin dashboard interface for entity management
 - `@brains/content-pipeline` — multi-stage content generation flows
 - `@brains/stock-photo` — Unsplash/Pexels integration for image entities
 - `@brains/site-content` — site content (about, contact) as singleton entities
-- `@brains/plugin-examples` — minimal reference implementations
 
 #### Interfaces
 

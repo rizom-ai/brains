@@ -16,6 +16,22 @@
     "./origin-ca": {
       "types": "./src/origin-ca.ts",
       "default": "./src/origin-ca.ts"
+    },
+    "./push-target": {
+      "types": "./src/push-target.ts",
+      "default": "./src/push-target.ts"
+    },
+    "./push-secrets": {
+      "types": "./src/push-secrets.ts",
+      "default": "./src/push-secrets.ts"
+    },
+    "./run-subprocess": {
+      "types": "./src/run-subprocess.ts",
+      "default": "./src/run-subprocess.ts"
+    },
+    "./ssh-key-bootstrap": {
+      "types": "./src/ssh-key-bootstrap.ts",
+      "default": "./src/ssh-key-bootstrap.ts"
     }
   },
   "scripts": {

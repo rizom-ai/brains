@@ -12,23 +12,6 @@ list.
 
 ## Verified findings
 
-### CSS-as-string monoliths
-
-- `interfaces/web-chat/src/chat-page.ts` — 1,981 lines, ~1,600 of them
-  one CSS string literal embedded in TypeScript.
-- `plugins/dashboard/src/render/styles/components.ts` — 1,122 lines of
-  component CSS packed into a single template-string export.
-
-Extract to dedicated style modules (or the shared theme/ui packages)
-next time either surface gets real styling work.
-
-### `@brains/utils` grab-bag split
-
-Long-known: the package mixes zod re-export, Logger, ID generation,
-markdown, YAML, and progress reporting. It needs a deliberate split,
-not more bandages. Related context: `npm-package-boundaries.md` already
-decided not to publish it as the SDK.
-
 ### package.json script drift
 
 70+ packages declare lint/typecheck scripts with 5+ glob/flag

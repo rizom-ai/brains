@@ -50,7 +50,6 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | `shared/theme-default`     | Simplified editorial default theme (warm neutrals)                         |
 | `shared/theme-rizom`       | Rizom brand theme — amber + purple bioluminescent palette                  |
 | `shared/image`             | Image schema, adapter, utilities                                           |
-| `shared/mcp-bridge`        | Base class for upstream MCP integration                                    |
 | `shared/deploy-support`    | Canonical deploy templates, script helpers, env parsing, and cert support  |
 | `shared/test-utils`        | Mock factories, test harnesses                                             |
 | `shared/eslint-config`     | Shared ESLint config                                                       |
@@ -98,15 +97,12 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 | `plugins/dashboard`        | Widget system                                                    |
 | `plugins/directory-sync`   | File + git sync                                                  |
 | `plugins/obsidian-vault`   | Obsidian template generation                                     |
-| `plugins/notion`           | MCP bridge to Notion                                             |
-| `plugins/hackmd`           | MCP bridge to HackMD                                             |
 | `plugins/stock-photo`      | Unsplash stock photo search                                      |
 | `plugins/site-content`     | Site section content generation                                  |
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds               |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                     |
 | `plugins/email-resend`     | Generic email delivery adapter for Resend                        |
 | `plugins/notifications`    | Notification routing for transactional + administrative messages |
-| `plugins/examples`         | Reference plugin patterns (`@brains/plugin-examples`)            |
 
 Note: system tools (create/update/delete/search/status) are registered directly on the shell, not a plugin. See `shell/core/src/system/`.
 

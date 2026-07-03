@@ -14,7 +14,7 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/plugins": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

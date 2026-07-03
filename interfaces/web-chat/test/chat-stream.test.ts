@@ -52,7 +52,7 @@ function createDeps(
       metadata: Record<string, unknown>;
     } | null>;
   },
-) {
+): Parameters<typeof handleStreamedChat>[1] {
   return {
     activeStreams: new Map(),
     agent: agent as never,
@@ -65,7 +65,10 @@ function createDeps(
     entityService: {
       getEntity:
         options?.getEntity ??
-        (async () => ({
+        (async (): Promise<{
+          content: unknown;
+          metadata: Record<string, unknown>;
+        }> => ({
           content: "data:application/pdf;base64,AA==",
           metadata: {},
         })),
