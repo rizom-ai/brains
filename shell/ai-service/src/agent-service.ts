@@ -55,6 +55,7 @@ import { toTokenUsage } from "./generation-options";
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
+const MAX_CONVERSATION_OPERATIONS = 10;
 
 const asyncGeneratingToolResultSchema = z
   .object({
@@ -247,6 +248,7 @@ export class AgentService implements IAgentService {
   // resolving against another turn's machine state when messages arrive
   // while a previous turn is still processing.
   private conversationOperations = new Map<string, Promise<void>>();
+  private conversationOperationCounts = new Map<string, number>();
 
   // Lazy-initialized agent
   private agent: BrainAgent | null = null;
@@ -283,6 +285,7 @@ export class AgentService implements IAgentService {
       }
       AgentService.instance.conversationActors.clear();
       AgentService.instance.conversationOperations.clear();
+      AgentService.instance.conversationOperationCounts.clear();
     }
     AgentService.instance = null;
   }
@@ -376,6 +379,17 @@ export class AgentService implements IAgentService {
     conversationId: string,
     operation: () => Promise<T>,
   ): Promise<T> {
+    const count = this.conversationOperationCounts.get(conversationId) ?? 0;
+    if (count >= MAX_CONVERSATION_OPERATIONS) {
+      return Promise.reject(
+        new Error(
+          "Conversation is busy. Please wait for earlier messages to finish.",
+        ),
+      );
+    }
+
+    this.conversationOperationCounts.set(conversationId, count + 1);
+
     const previous =
       this.conversationOperations.get(conversationId) ?? Promise.resolve();
     const run = previous.catch(() => undefined).then(operation);
@@ -383,6 +397,14 @@ export class AgentService implements IAgentService {
 
     this.conversationOperations.set(conversationId, tracked);
     void tracked.then(() => {
+      const remaining =
+        (this.conversationOperationCounts.get(conversationId) ?? 1) - 1;
+      if (remaining <= 0) {
+        this.conversationOperationCounts.delete(conversationId);
+      } else {
+        this.conversationOperationCounts.set(conversationId, remaining);
+      }
+
       if (this.conversationOperations.get(conversationId) === tracked) {
         this.conversationOperations.delete(conversationId);
       }

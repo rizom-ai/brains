@@ -278,6 +278,56 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalledTimes(2);
     });
 
+    it("rejects messages beyond the bounded per-conversation queue", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let callCount = 0;
+      mockGenerate.mockImplementation(async () => {
+        const turn = ++callCount;
+        if (turn === 1) {
+          await firstTurnGate;
+        }
+        return {
+          text: `response-${turn}`,
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const accepted = Array.from({ length: 10 }, (_, index) =>
+        service.chat(`message-${index + 1}`, "test-conversation"),
+      );
+      let overflowError: unknown;
+      try {
+        await service.chat("overflow", "test-conversation");
+      } catch (error) {
+        overflowError = error;
+      }
+      expect(overflowError).toBeInstanceOf(Error);
+      expect((overflowError as Error).message).toContain(
+        "Conversation is busy",
+      );
+
+      releaseFirst();
+      const responses = await Promise.all(accepted);
+
+      expect(responses.map((response) => response.text)).toEqual(
+        Array.from({ length: 10 }, (_, index) => `response-${index + 1}`),
+      );
+      expect(mockGenerate).toHaveBeenCalledTimes(10);
+    });
+
     it("should return a warming response without calling the model when the semantic index is not ready", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
@@ -1801,6 +1851,51 @@ describe("AgentService", () => {
           },
         ],
       });
+    });
+
+    it("drains queued messages after a turn errors", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let callCount = 0;
+      mockGenerate.mockImplementation(async () => {
+        const turn = ++callCount;
+        if (turn === 1) {
+          await firstTurnGate;
+          throw new Error("Agent error");
+        }
+        return {
+          text: `response-${turn}`,
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const first = service.chat("first", "test-conversation");
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const second = service.chat("second", "test-conversation");
+
+      releaseFirst();
+      const [firstResponse, secondResponse] = await Promise.all([
+        first,
+        second,
+      ]);
+
+      expect(firstResponse.text).toContain("Agent error");
+      expect(secondResponse.text).toBe("response-2");
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
     });
 
     it("should handle empty response from agent", async () => {
