@@ -188,10 +188,15 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     this.startProcessingInput();
 
     try {
-      // Check for confirmation response
+      // Check for explicit confirmation responses. Other messages should fall
+      // through to AgentService; it applies the authoritative implicit-decline
+      // semantics for mid-confirmation topic changes.
       if (this.pendingConfirmationIds.length > 0) {
-        await this.handleConfirmationResponse(input, conversationId);
-        return;
+        const handledConfirmation = await this.handleConfirmationResponse(
+          input,
+          conversationId,
+        );
+        if (handledConfirmation) return;
       }
 
       // Route message to AgentService with anchor permissions (CLI is local)
@@ -214,6 +219,8 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
         this.pendingConfirmationIds = response.pendingConfirmations.map(
           (confirmation) => confirmation.id,
         );
+      } else {
+        this.pendingConfirmationIds = [];
       }
 
       // Build response with tool results
@@ -351,10 +358,6 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   ): { confirmed: boolean; approvalId: string } | undefined {
     const result = this.parseIndexedConfirmationResponse(message);
     if (result === undefined) {
-      this.sendMessageToChannel({
-        channelId: null,
-        message: this.getConfirmationHelpText(),
-      });
       return undefined;
     }
 
@@ -386,9 +389,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   private async handleConfirmationResponse(
     message: string,
     conversationId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const approvalSelection = this.resolvePendingApprovalSelection(message);
-    if (!approvalSelection) return;
+    if (!approvalSelection) return false;
 
     // Clear selected pending confirmation before calling AgentService.
     this.pendingConfirmationIds = this.pendingConfirmationIds.filter(
@@ -411,6 +414,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       channelId: null,
       message: this.formatApprovalResultText(response.text, response.cards),
     });
+    return true;
   }
 
   /**

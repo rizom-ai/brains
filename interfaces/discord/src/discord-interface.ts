@@ -542,14 +542,14 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       }
 
       if (this.pendingConfirmations.has(conversationId)) {
-        await this.handleConfirmationResponse(
+        const handledConfirmation = await this.handleConfirmationResponse(
           message,
           conversationId,
           replyChannelId,
           discordMessage,
           permissionContext,
         );
-        return;
+        if (handledConfirmation) return;
       }
 
       const response = await agentService.chat(message, conversationId, {
@@ -587,6 +587,8 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
             ),
           ),
         );
+      } else {
+        this.pendingConfirmations.delete(conversationId);
       }
 
       const messageId = await this.sendMessageWithId({
@@ -858,18 +860,11 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     channelId: string,
     discordMessage: Message,
     permissionContext: PermissionLookupContext,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const context = this.context;
-    if (!context) return;
+    if (!context) return false;
     const parsed = parseConfirmationResponse(message);
-    if (!parsed) {
-      this.sendMessageToChannel({
-        channelId: channelId,
-        message:
-          "_Please reply with **yes** to confirm or **no/cancel** to abort._",
-      });
-      return;
-    }
+    if (!parsed) return false;
     const approvalIds = this.pendingConfirmations.get(conversationId);
     if (approvalIds && approvalIds.size > 1) {
       this.sendMessageToChannel({
@@ -877,7 +872,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         message:
           "Multiple approvals are pending. Please use the matching Discord button.",
       });
-      return;
+      return true;
     }
 
     const approvalId = approvalIds ? [...approvalIds][0] : undefined;
@@ -887,7 +882,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         channelId,
         message: "No pending approval to resolve.",
       });
-      return;
+      return true;
     }
     const channelName = this.getChannelName(discordMessage);
     const userPermissionLevel = context.permissions.getUserLevel(
@@ -922,6 +917,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       response,
       userPermissionLevel,
     });
+    return true;
   }
 
   // ── Typing indicator ──
