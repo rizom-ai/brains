@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { WorkHeroContent } from "./schema";
-import { Section, renderHighlightedText } from "@rizom/ui";
+import { Section, renderHighlightedText } from "@brains/site-rizom";
 import { WorkButton, newTabProps } from "../../link-targets";
 
 const HIGHLIGHT_CLS = "italic text-accent";

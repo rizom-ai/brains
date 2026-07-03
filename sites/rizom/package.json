@@ -20,6 +20,7 @@
     "@brains/atproto-contracts": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/ui-library": "workspace:*",
+    "@rizom/ui": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

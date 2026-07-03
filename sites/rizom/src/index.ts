@@ -42,3 +42,5 @@ export type {
   RizomLink,
   RizomSideNavItem,
 } from "./ui";
+export { Wordmark, Ecosystem } from "@rizom/ui";
+export type { WordmarkProps, EcosystemCard, EcosystemContent } from "@rizom/ui";

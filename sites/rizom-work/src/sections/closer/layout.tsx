@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { CloserContent } from "./schema";
-import { Section, renderHighlightedText } from "@rizom/ui";
+import { Section, renderHighlightedText } from "@brains/site-rizom";
 import { WorkButton } from "../../link-targets";
 import { WORK_RULE } from "../styles";
 

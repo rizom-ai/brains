@@ -1,5 +1,5 @@
 import type { JSX, ComponentChildren } from "preact";
-import { RizomFrame, SideNav, Wordmark } from "@rizom/ui";
+import { RizomFrame, SideNav, Wordmark } from "@brains/site-rizom";
 import { newTabProps } from "./link-targets";
 
 interface WorkLayoutProps {

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Section } from "@rizom/ui";
+import { Section } from "@brains/site-rizom";
 import { WORK_KICKER, WORK_RULE } from "../styles";
 import type { CredibilityContent } from "./schema";
 
