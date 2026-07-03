@@ -189,6 +189,14 @@ export class JobQueueWorker {
   }
 
   /**
+   * Read `shouldStop` via a call so TS doesn't narrow it to `false` across
+   * awaits — stop() can flip it while a poll is suspended on a dequeue.
+   */
+  private isStopRequested(): boolean {
+    return this.shouldStop;
+  }
+
+  /**
    * Process available jobs from the queue
    */
   private async processAvailableJobs(): Promise<void> {
@@ -229,7 +237,7 @@ export class JobQueueWorker {
       for (let i = 0; i < availableSlots; i++) {
         // Re-check on every iteration — stop() may have been requested
         // while awaiting a previous dequeue
-        if (this.shouldStop) {
+        if (this.isStopRequested()) {
           break;
         }
         const job = await this.jobQueueService.dequeue();

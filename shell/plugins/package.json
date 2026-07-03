@@ -30,8 +30,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "lint": "eslint src test",
-    "lint:fix": "eslint src test --fix"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

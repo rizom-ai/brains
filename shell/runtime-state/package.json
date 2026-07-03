@@ -12,8 +12,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/migrate.ts",
     "db:push": "drizzle-kit push:sqlite",

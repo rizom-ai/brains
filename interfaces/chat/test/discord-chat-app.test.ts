@@ -78,7 +78,7 @@ function makeApp(options?: {
   const buildApp = mock(() => app);
   const discordApp = new DiscordChatApp({
     discord: options && "discord" in options ? options.discord : DISCORD_CONFIG,
-    getUploadStore: () =>
+    getUploadStore: (): RuntimeUploadStore | undefined =>
       options && "uploadStore" in options
         ? options.uploadStore
         : createUploadStore(),

@@ -215,6 +215,9 @@ async function withBrowser<T>(
 ): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   let aborted: boolean = false;
+  // Read via a call so TS doesn't narrow `aborted` to `false` across awaits —
+  // the timeout handler flips it while we're suspended.
+  const isAborted = (): boolean => aborted;
   // Ref object so the timeout handler can see late-arriving browsers without
   // TS narrowing the closed-over `let` to `null`.
   const slot: { browser: MediaBrowser | null } = { browser: null };
@@ -256,7 +259,7 @@ async function withBrowser<T>(
     try {
       return await Promise.race([operation(browser), timeoutPromise]);
     } finally {
-      if (!aborted) {
+      if (!isAborted()) {
         try {
           await browser.close();
         } catch {

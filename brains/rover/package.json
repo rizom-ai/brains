@@ -23,8 +23,8 @@
     "eval:default:coverage": "brain-eval --suite default --tool-coverage",
     "eval:full": "brain-eval --suite full",
     "eval:full:coverage": "brain-eval --suite full --tool-coverage",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@brains/a2a": "workspace:*",

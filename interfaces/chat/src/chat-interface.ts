@@ -21,6 +21,7 @@ import {
   type PendingConfirmation,
   type StructuredChatCard,
   type PermissionLookupContext,
+  type RuntimeUploadStore,
   type ToolActivityEvent,
   type ToolStatusUpdate,
   type UserPermissionLevel,
@@ -115,31 +116,37 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.threadRegistry,
   );
   private readonly cardBuilder = new ChatCardBuilder({
-    getDisplayBaseUrl: () => this.getPreferredDisplayBaseUrl(),
-    registerPromptAction: (threadId, action) =>
+    getDisplayBaseUrl: (): string | undefined =>
+      this.getPreferredDisplayBaseUrl(),
+    registerPromptAction: (threadId, action): string =>
       this.registerPromptAction(threadId, action),
   });
   private readonly artifactDelivery = new ArtifactDeliveryResolver({
-    getContext: () => this.context,
-    getDisplayBaseUrl: () => this.getPreferredDisplayBaseUrl(),
+    getContext: (): InterfacePluginContext | undefined => this.context,
+    getDisplayBaseUrl: (): string | undefined =>
+      this.getPreferredDisplayBaseUrl(),
     logger: this.logger,
   });
   private readonly approvalCards = new ApprovalCardTracker({
     cardBuilder: this.cardBuilder,
-    clearMessageComponents: (threadId, messageId) =>
+    clearMessageComponents: (threadId, messageId): Promise<void> =>
       this.clearDiscordMessageComponents(threadId, messageId),
   });
   private readonly subscriptionRouter = new SubscriptionRouter({
-    getSubscriptions: () => this.discordSubscriptions,
-    getPlatform: (thread) => this.getPlatform(thread),
-    isBotCreatedThread: (thread, message) =>
+    getSubscriptions: (): DiscordThreadSubscriptionStore | undefined =>
+      this.discordSubscriptions,
+    getPlatform: (thread): string => this.getPlatform(thread),
+    isBotCreatedThread: (thread, message): boolean =>
       this.isBotCreatedDiscordThread(thread, message),
     logger: this.logger,
   });
   private readonly chatInputBuilder = new ChatInputBuilder({
-    getUploadStore: () =>
+    getUploadStore: (): RuntimeUploadStore | undefined =>
       this.context?.uploads.scoped(createDiscordChatUploadStoreScope()),
-    getThreadIdParts: (threadId) => this.getThreadIdParts(threadId),
+    getThreadIdParts: (
+      threadId,
+    ): { guildId?: string; channelId?: string; threadId?: string } =>
+      this.getThreadIdParts(threadId),
     logger: this.logger,
   });
   private readonly gatewayLoop: DiscordGatewayLoop;
@@ -149,16 +156,16 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   constructor(config: Partial<ChatConfig> = {}) {
     super("chat", packageJson, config, chatConfigSchema);
     this.gatewayLoop = new DiscordGatewayLoop({
-      getApp: () => this.discordApp.instance,
+      getApp: (): ChatSdkApp | undefined => this.discordApp.instance,
       gatewayRunMs: this.config.gatewayRunMs,
       gatewayRestartDelayMs: this.config.gatewayRestartDelayMs,
       logger: this.logger,
     });
     this.discordApp = new DiscordChatApp({
       discord: this.config.adapters.discord,
-      getUploadStore: () =>
+      getUploadStore: (): RuntimeUploadStore | undefined =>
         this.context?.uploads.scoped(createDiscordChatUploadStoreScope()),
-      buildApp: (runtimeState) =>
+      buildApp: (runtimeState): ChatSdkApp =>
         createDiscordChatSdkApp({
           userName: this.config.userName,
           discord: this.config.adapters.discord,

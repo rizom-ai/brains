@@ -10,8 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",

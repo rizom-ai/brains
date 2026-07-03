@@ -11,8 +11,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src test --ext .ts",
-    "lint:fix": "eslint src test --ext .ts --fix"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@brains/contracts": "workspace:*",

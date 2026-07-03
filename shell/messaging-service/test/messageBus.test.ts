@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, mock } from "bun:test";
+import { describe, expect, it, beforeEach, mock, type Mock } from "bun:test";
 import { compileFilter } from "@/filter-matcher";
 import { MessageBus } from "@/messageBus";
 
@@ -738,7 +738,9 @@ describe("MessageBus", () => {
     it("should invoke broadcast handlers concurrently", async () => {
       let inFlight = 0;
       let maxInFlight = 0;
-      const makeSlowHandler = () =>
+      const makeSlowHandler = (): Mock<
+        () => Promise<{ readonly noop: true }>
+      > =>
         mock(async () => {
           inFlight++;
           maxInFlight = Math.max(maxInFlight, inFlight);

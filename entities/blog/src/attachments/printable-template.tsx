@@ -247,7 +247,7 @@ function renderBlogPrintablePdf(props: Record<string, unknown>): JSX.Element {
         </figure>
       )}
       <MarkdownContent markdown={data.body} className="printable-body" />
-      {(data.canonicalUrl || data.brandLabel) && (
+      {(Boolean(data.canonicalUrl) || Boolean(data.brandLabel)) && (
         <footer className="printable-footer">
           <span>{data.brandLabel ?? "Printable PDF"}</span>
           {data.canonicalUrl && (

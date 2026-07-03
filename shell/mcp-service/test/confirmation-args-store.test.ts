@@ -54,7 +54,10 @@ describe("ConfirmationArgsStore", () => {
 
   it("expires unconsumed confirmations after the TTL", () => {
     let now = 0;
-    const store = new ConfirmationArgsStore({ ttlMs: 1_000, now: () => now });
+    const store = new ConfirmationArgsStore({
+      ttlMs: 1_000,
+      now: (): number => now,
+    });
     const args = store.create((confirmationToken) => ({ confirmationToken }));
 
     now = 999;
