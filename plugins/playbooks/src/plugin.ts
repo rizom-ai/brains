@@ -117,6 +117,7 @@ const startInputSchema = {
 const sendEventInputSchema = {
   runId: z.string().min(1).optional(),
   event: z.string().min(1),
+  fromState: z.string().min(1).optional(),
   context: z.record(z.string(), z.unknown()).optional(),
 };
 
@@ -231,6 +232,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
   private readonly startLocks = new Map<string, Promise<ToolResponse>>();
+  private readonly runLocks = new Map<string, Promise<void>>();
   private readonly registeredLifecycleStarters = new Map<
     string,
     { source: string; config: LifecyclePlaybookConfig }
@@ -369,13 +371,17 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
                 ).find((run) => run.playbookId === parsed.playbookId)
               : await this.store.findActiveByPlaybook(parsed.playbookId);
             const run = existing
-              ? await this.store.upsert({
-                  ...existing,
-                  status: "active",
-                  ...(conversationId ? { conversationId } : {}),
-                  ...(existing.startedAt
-                    ? {}
-                    : { startedAt: new Date().toISOString() }),
+              ? await this.withRunLock(existing.id, async () => {
+                  const current =
+                    (await this.store.findById(existing.id)) ?? existing;
+                  return this.store.upsert({
+                    ...current,
+                    status: "active",
+                    ...(conversationId ? { conversationId } : {}),
+                    ...(current.startedAt
+                      ? {}
+                      : { startedAt: new Date().toISOString() }),
+                  });
                 })
               : await this.createStartedRun({
                   playbookId: parsed.playbookId,
@@ -392,7 +398,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       {
         name: "playbook_send_event",
         description:
-          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
+          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Always pass fromState set to the current state id you are acting on (from playbook_status or the active-playbook context); if the run has advanced past that state, the event is rejected as stale and you must call playbook_status and act on the current state instead. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
         inputSchema: sendEventInputSchema,
         visibility: "anchor",
         sideEffects: "writes",
@@ -406,11 +412,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
             conversationId: toolContext.conversationId,
           });
           if (!run.success) return run;
-          const result = await this.sendEventForRun(
-            run.data,
-            parsed.event,
-            parsed.context,
-          );
+          const result = await this.sendEventForRun(run.data.id, parsed.event, {
+            context: parsed.context,
+            fromState: parsed.fromState,
+          });
           return result.success
             ? { success: true, data: result.data }
             : { success: false, error: result.error };
@@ -433,6 +438,31 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     return pending;
   }
 
+  /**
+   * Serialize the whole read -> transition -> write cycle per run. The run
+   * store only serializes individual writes; without this, the evidence
+   * auto-advance path and operator-sent events can interleave their reads and
+   * silently overwrite each other's state change.
+   */
+  private async withRunLock<T>(
+    runId: string,
+    task: () => Promise<T>,
+  ): Promise<T> {
+    const previous = this.runLocks.get(runId) ?? Promise.resolve();
+    const current = previous.then(task);
+    const tail = current.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.runLocks.set(runId, tail);
+    void tail.then(() => {
+      if (this.runLocks.get(runId) === tail) {
+        this.runLocks.delete(runId);
+      }
+    });
+    return current;
+  }
+
   private async handleAgentAction(
     request: AgentActionRequest,
   ): Promise<AgentResponse | undefined> {
@@ -443,19 +473,22 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     });
     if (!scopedRun.success) return undefined;
 
+    const args = {
+      runId: scopedRun.data.id,
+      event: request.action.event,
+      ...(request.action.fromState
+        ? { fromState: request.action.fromState }
+        : {}),
+    };
     const result = await this.sendEventForRun(
-      scopedRun.data,
+      scopedRun.data.id,
       request.action.event,
+      { fromState: request.action.fromState },
     );
     if (!result.success) {
       return {
         text: `I couldn't continue the playbook: ${result.error}`,
-        toolResults: [
-          {
-            toolName: "playbook_send_event",
-            args: { runId: scopedRun.data.id, event: request.action.event },
-          },
-        ],
+        toolResults: [{ toolName: "playbook_send_event", args }],
         usage: zeroUsage(),
       };
     }
@@ -465,11 +498,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       text: formatActionResponseText(state),
       ...(result.data.cards ? { cards: result.data.cards } : {}),
       toolResults: [
-        {
-          toolName: "playbook_send_event",
-          args: { runId: scopedRun.data.id, event: request.action.event },
-          data: result.data,
-        },
+        { toolName: "playbook_send_event", args, data: result.data },
       ],
       usage: zeroUsage(),
     };
@@ -482,13 +511,42 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   }
 
   private async sendEventForRun(
-    run: PlaybookRun,
+    runId: string,
     event: string,
-    context?: Record<string, unknown>,
+    options: {
+      context?: Record<string, unknown> | undefined;
+      fromState?: string | undefined;
+    } = {},
   ): Promise<
     | { success: true; data: PlaybookStatusResponse }
     | { success: false; error: string }
   > {
+    return this.withRunLock(runId, () =>
+      this.sendEventForRunLocked(runId, event, options),
+    );
+  }
+
+  private async sendEventForRunLocked(
+    runId: string,
+    event: string,
+    options: {
+      context?: Record<string, unknown> | undefined;
+      fromState?: string | undefined;
+    },
+  ): Promise<
+    | { success: true; data: PlaybookStatusResponse }
+    | { success: false; error: string }
+  > {
+    const run = await this.store.findById(runId);
+    if (!run) {
+      return { success: false, error: `Playbook run not found: ${runId}` };
+    }
+    if (options.fromState && options.fromState !== run.currentState) {
+      return {
+        success: false,
+        error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbook_status and act on the current state.`,
+      };
+    }
     const playbook = await this.requirePlaybook(run.playbookId);
     if (run.playbookVersion !== playbook.version) {
       return {
@@ -518,9 +576,8 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...run,
       currentState: result.currentState,
       completedStates: appendUnique(run.completedStates, run.currentState),
-      snapshot: result.snapshot,
       gateVerdicts: result.gateVerdicts,
-      context: { ...run.context, ...(context ?? {}) },
+      context: { ...run.context, ...(options.context ?? {}) },
       ...(reachedFinalState
         ? {
             status: "completed" as const,
@@ -545,19 +602,15 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     lifecycle?: string | undefined;
     conversationId?: string | undefined;
   }): Promise<PlaybookRun> {
-    const run = createPlaybookRun({
-      playbookId: input.playbookId,
-      playbookVersion: input.playbookVersion,
-      initialState: input.body.initialState,
-      lifecycle: input.lifecycle,
-      conversationId: input.conversationId,
-    });
-    const machine = this.buildMachine(input.playbookId, input.body, run);
-    const actor = createActor(machine);
-    actor.start();
-    const snapshot = actor.getPersistedSnapshot();
-    actor.stop();
-    return this.store.upsert({ ...run, snapshot });
+    return this.store.upsert(
+      createPlaybookRun({
+        playbookId: input.playbookId,
+        playbookVersion: input.playbookVersion,
+        initialState: input.body.initialState,
+        lifecycle: input.lifecycle,
+        conversationId: input.conversationId,
+      }),
+    );
   }
 
   private async transitionRun(
@@ -568,7 +621,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     | {
         success: true;
         currentState: string;
-        snapshot: unknown;
         gateVerdicts: PlaybookGateVerdict[];
       }
     | { success: false; error: string; gateVerdicts?: PlaybookGateVerdict[] }
@@ -588,10 +640,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...run,
       gateVerdicts: gateResult.gateVerdicts,
     };
-    const machine = this.buildMachine(run.playbookId, body, candidateRun);
-    const actor = createActor(machine, {
-      ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
-    });
+    const actor = this.createRunActor(body, candidateRun);
     actor.start();
     const snapshot = actor.getSnapshot();
     const eventObject = { type: event };
@@ -605,27 +654,38 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     }
 
     actor.send(eventObject);
-    const nextSnapshot = actor.getSnapshot();
-    const nextState = String(nextSnapshot.value);
+    const nextState = String(actor.getSnapshot().value);
+    actor.stop();
     const expectedTarget = state.transitions.find(
       (transition) => transition.event === event,
     )?.target;
     if (expectedTarget && nextState !== expectedTarget) {
-      actor.stop();
       return {
         success: false,
         error: `Playbook event '${event}' is blocked from state '${run.currentState}'. Complete the state's Done When conditions before sending this event.`,
         gateVerdicts: gateResult.gateVerdicts,
       };
     }
-    const persistedSnapshot = actor.getPersistedSnapshot();
-    actor.stop();
     return {
       success: true,
       currentState: nextState,
-      snapshot: persistedSnapshot,
       gateVerdicts: gateResult.gateVerdicts,
     };
+  }
+
+  /**
+   * The run's currentState is the single source of truth for machine state;
+   * the actor is rehydrated from it on every call. Legacy persisted snapshots
+   * are ignored entirely (they could be corrupt or disagree with currentState).
+   */
+  private createRunActor(
+    body: PlaybookBody,
+    run: PlaybookRun,
+  ): ReturnType<typeof createActor> {
+    const machine = this.buildMachine(run.playbookId, body, run);
+    return createActor(machine, {
+      snapshot: machine.resolveState({ value: run.currentState }),
+    });
   }
 
   private async prepareGateVerdicts(
@@ -907,37 +967,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const conversationRuns = input.conversationId
       ? runs.filter((run) => run.conversationId === input.conversationId)
       : [];
-    const activeConversationRuns = conversationRuns.filter(
-      (run) => run.status === "active" || run.status === "offered",
+    const activeRun = await this.resolveStatusRun(
+      input,
+      runs,
+      conversationRuns,
     );
-    const latestConversationRun = latestRun(
-      conversationRuns.filter(
-        (run) =>
-          (!input.playbookId || run.playbookId === input.playbookId) &&
-          (!input.lifecycle || run.lifecycle === input.lifecycle),
-      ),
-    );
-    const activeRun = input.runId
-      ? (runs.find((run) => run.id === input.runId) ?? latestConversationRun)
-      : input.conversationId && input.lifecycle
-        ? (activeConversationRuns.find(
-            (run) => run.lifecycle === input.lifecycle,
-          ) ?? latestConversationRun)
-        : input.conversationId && input.playbookId
-          ? (activeConversationRuns.find(
-              (run) => run.playbookId === input.playbookId,
-            ) ?? latestConversationRun)
-          : input.conversationId
-            ? activeConversationRuns.length > 0
-              ? await this.requireScopedRun({
-                  conversationId: input.conversationId,
-                })
-              : latestConversationRun
-            : input.lifecycle
-              ? runs.find((run) => run.lifecycle === input.lifecycle)
-              : input.playbookId
-                ? runs.find((run) => run.playbookId === input.playbookId)
-                : undefined;
 
     if (
       input.conversationId &&
@@ -1011,6 +1045,70 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...(actionsCard ? { cards: [actionsCard] } : {}),
       lifecycle: this.config.lifecycle,
     };
+  }
+
+  /**
+   * Resolution precedence: explicit runId, then conversation-scoped lookups
+   * (falling back to the latest matching run in the conversation), then
+   * global lifecycle/playbookId lookups, which prefer the latest active or
+   * offered run over completed ones.
+   */
+  private async resolveStatusRun(
+    input: {
+      runId?: string | undefined;
+      playbookId?: string | undefined;
+      lifecycle?: string | undefined;
+      conversationId?: string | undefined;
+    },
+    runs: PlaybookRun[],
+    conversationRuns: PlaybookRun[],
+  ): Promise<PlaybookRun | undefined> {
+    const activeConversationRuns = conversationRuns.filter(
+      (run) => run.status === "active" || run.status === "offered",
+    );
+    const latestConversationRun = latestRun(
+      conversationRuns.filter(
+        (run) =>
+          (!input.playbookId || run.playbookId === input.playbookId) &&
+          (!input.lifecycle || run.lifecycle === input.lifecycle),
+      ),
+    );
+
+    if (input.runId) {
+      return (
+        runs.find((run) => run.id === input.runId) ?? latestConversationRun
+      );
+    }
+    if (input.conversationId) {
+      if (input.lifecycle) {
+        return (
+          activeConversationRuns.find(
+            (run) => run.lifecycle === input.lifecycle,
+          ) ?? latestConversationRun
+        );
+      }
+      if (input.playbookId) {
+        return (
+          activeConversationRuns.find(
+            (run) => run.playbookId === input.playbookId,
+          ) ?? latestConversationRun
+        );
+      }
+      if (activeConversationRuns.length > 0) {
+        return this.requireScopedRun({ conversationId: input.conversationId });
+      }
+      return latestConversationRun;
+    }
+    if (input.lifecycle) {
+      return preferActiveRun(runs, (run) => run.lifecycle === input.lifecycle);
+    }
+    if (input.playbookId) {
+      return preferActiveRun(
+        runs,
+        (run) => run.playbookId === input.playbookId,
+      );
+    }
+    return undefined;
   }
 
   private buildStateGuidance(
@@ -1108,11 +1206,19 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       },
     };
     const updatedRun = await this.store.appendEvidence(run.id, evidence);
-    await this.evaluateGateAfterEvidence(updatedRun);
+    await this.evaluateGateAfterEvidence(updatedRun.id);
     return { recorded: true };
   }
 
-  private async evaluateGateAfterEvidence(run: PlaybookRun): Promise<void> {
+  private async evaluateGateAfterEvidence(runId: string): Promise<void> {
+    await this.withRunLock(runId, () =>
+      this.evaluateGateAfterEvidenceLocked(runId),
+    );
+  }
+
+  private async evaluateGateAfterEvidenceLocked(runId: string): Promise<void> {
+    const run = await this.store.findById(runId);
+    if (run?.status !== "active") return;
     if (this.hasSatisfiedGateForCurrentState(run)) return;
     const playbook = await this.getPlaybook(run.playbookId);
     if (run.playbookVersion !== playbook?.version) return;
@@ -1152,7 +1258,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         candidateRun.completedStates,
         candidateRun.currentState,
       ),
-      snapshot: transitioned.snapshot,
       gateVerdicts: transitioned.gateVerdicts,
       ...(reachedFinalState
         ? {
@@ -1293,10 +1398,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     body: PlaybookBody,
     event: string,
   ): boolean {
-    const machine = this.buildMachine(run.playbookId, body, run);
-    const actor = createActor(machine, {
-      ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
-    });
+    const actor = this.createRunActor(body, run);
     actor.start();
     const canTransition = actor.getSnapshot().can({ type: event });
     actor.stop();
@@ -1397,6 +1499,7 @@ Current state title: ${state.title}
 Current state id (tool use only): ${state.id}
 ${state.prompt ? `Operator-facing prompt: ${state.prompt}\n` : ""}
 For current-conversation playbook tools, omit runId and let the runtime infer the active run; only include runId when a tool explicitly asks after an ambiguity error.
+When you call playbook_send_event, pass fromState set to the current state id shown above; if the run has advanced past that state in the meantime, the event is rejected as stale instead of being applied to the wrong state.
 Treat this current state as the source of truth. Do not redo completed states or ask for evidence already captured; ask only for what is missing in the current state.
 Do not mention raw playbook state IDs to the operator; use the state title or natural-language task description instead.
 Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat; describe the task or outcome in natural language instead.
@@ -1532,6 +1635,7 @@ function buildPlaybookActionsCard(input: {
         transition.description ??
         transition.event,
       event: transition.event,
+      fromState: input.run.currentState,
       ...((transition.operatorDescription ?? transition.description)
         ? {
             description:
@@ -1553,6 +1657,17 @@ function zeroUsage(): AgentResponse["usage"] {
 
 function appendUnique(values: string[], value: string): string[] {
   return values.includes(value) ? values : [...values, value];
+}
+
+function preferActiveRun(
+  runs: PlaybookRun[],
+  predicate: (run: PlaybookRun) => boolean,
+): PlaybookRun | undefined {
+  const matching = runs.filter(predicate);
+  const active = matching.filter(
+    (run) => run.status === "active" || run.status === "offered",
+  );
+  return latestRun(active) ?? latestRun(matching);
 }
 
 function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {

@@ -779,6 +779,7 @@ describe("PlaybooksPlugin", () => {
             id: `playbook:${data.activeRun.id}:NEXT`,
             label: "Keep going",
             event: "NEXT",
+            fromState: "welcome",
             description: "Continue to the first note.",
           },
           {
@@ -786,6 +787,7 @@ describe("PlaybooksPlugin", () => {
             id: `playbook:${data.activeRun.id}:SKIP`,
             label: "Skip",
             event: "SKIP",
+            fromState: "welcome",
             description: "Skip this playbook.",
           },
         ],
@@ -1408,6 +1410,270 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
+  it("tolerates a corrupt legacy snapshot and derives machine state from currentState", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-corrupt-snapshot");
+
+    const store = harness
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({ namespace: "playbooks.runs", schema: playbookRunSchema });
+    const stored = await store.get(runId);
+    if (!stored) throw new Error("Expected stored run");
+    await store.set(runId, { ...stored, snapshot: { bogus: true } });
+
+    const transitioned = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+    expectSuccess(transitioned);
+    expect(
+      parsePlaybookToolData(transitioned.data).activeRun.currentState,
+    ).toBe("seed");
+  });
+
+  it("treats currentState as the source of truth when a legacy snapshot disagrees", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-drifted-snapshot");
+
+    const store = harness
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({ namespace: "playbooks.runs", schema: playbookRunSchema });
+    const stored = await store.get(runId);
+    if (!stored) throw new Error("Expected stored run");
+    await store.set(runId, {
+      ...stored,
+      currentState: "seed",
+      snapshot: { status: "active", value: "welcome" },
+    });
+
+    const transitioned = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+    expectSuccess(transitioned);
+    const data = parsePlaybookToolData(transitioned.data);
+    expect(data.activeRun.currentState).toBe("complete");
+    expect(data.activeRun.status).toBe("completed");
+  });
+
+  it("prefers the latest active run for global playbook and lifecycle lookups", async () => {
+    const harness = await installHarness();
+
+    const completedRunId = await startRun(harness, "conversation-completed");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId: completedRunId,
+        event: "NEXT",
+      }),
+    );
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId: completedRunId,
+        event: "NEXT",
+      }),
+    );
+
+    const activeRunId = await startRun(harness, "conversation-active");
+
+    const byPlaybook = await harness.executeTool("playbook_status", {
+      playbookId: "rover-onboarding",
+    });
+    expectSuccess(byPlaybook);
+    expect(parsePlaybookToolData(byPlaybook.data).activeRun.id).toBe(
+      activeRunId,
+    );
+
+    const byLifecycle = await harness.executeTool("playbook_status", {
+      lifecycle: "onboarding",
+    });
+    expectSuccess(byLifecycle);
+    expect(parsePlaybookToolData(byLifecycle.data).activeRun.id).toBe(
+      activeRunId,
+    );
+  });
+
+  it("rejects an event whose fromState no longer matches the current run state", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-stale-from-state");
+
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+        fromState: "welcome",
+      }),
+    );
+
+    const stale = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+      fromState: "welcome",
+    });
+
+    expectError(stale);
+    expect(stale.error).toContain("Stale playbook event");
+    expect(stale.error).toContain("seed");
+
+    const status = await harness.executeTool("playbook_status", { runId });
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).activeRun.currentState).toBe(
+      "seed",
+    );
+  });
+
+  it("applies exactly one of two concurrent duplicate events", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-concurrent-duplicate");
+
+    const results = await Promise.all([
+      harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+        fromState: "welcome",
+      }),
+      harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+        fromState: "welcome",
+      }),
+    ]);
+
+    const succeeded = results.filter(
+      (result) => "success" in result && result.success,
+    );
+    expect(succeeded).toHaveLength(1);
+
+    const status = await harness.executeTool("playbook_status", { runId });
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).activeRun.currentState).toBe(
+      "seed",
+    );
+  });
+
+  it("serializes evidence auto-advance against operator events so neither update is lost", async () => {
+    let resolveGoalCheck:
+      | ((result: { met: boolean; reason: string }) => void)
+      | undefined;
+    let signalGoalCheckStarted: (() => void) | undefined;
+    const goalCheckStarted = new Promise<void>((resolve) => {
+      signalGoalCheckStarted = resolve;
+    });
+    const evaluate = mock(async () => {
+      signalGoalCheckStarted?.();
+      return new Promise<{ met: boolean; reason: string }>((resolve) => {
+        resolveGoalCheck = resolve;
+      });
+    });
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          requiredDetails: [],
+          doneWhen: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Create or update the anchor profile."],
+          requiredDetails: [],
+          doneWhen: ["The anchor profile has been created or updated."],
+          transitions: [
+            { event: "NEXT", target: "seed" },
+            { event: "SKIP", target: "complete" },
+          ],
+        },
+        seedState,
+        completeState,
+      ],
+    });
+
+    const conversationId = "web-evidence-operator-race";
+    const runId = await startRun(harness, conversationId);
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const evidencePromise = harness.sendMessage(
+      "entity:updated",
+      {
+        entityType: "anchor-profile",
+        entityId: "anchor-profile",
+        conversationId,
+      },
+      "entity-service",
+      true,
+    );
+    await goalCheckStarted;
+
+    const skipPromise = harness.executeTool("playbook_send_event", {
+      runId,
+      event: "SKIP",
+      fromState: "identity",
+    });
+    resolveGoalCheck?.({ met: true, reason: "Profile updated." });
+    await evidencePromise;
+    const skip = await skipPromise;
+
+    expectError(skip);
+    expect(skip.error).toContain("Stale playbook event");
+
+    const status = await harness.executeTool("playbook_status", { runId });
+    expectSuccess(status);
+    const data = parsePlaybookToolData(status.data);
+    expect(data.activeRun.currentState).toBe("seed");
+    expect(data.activeRun.status).toBe("active");
+    expect(data.activeRun.completedStates).toEqual(["welcome", "identity"]);
+    expect(evaluate).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a stale structured action after the run advanced", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-stale-action");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const response = await harness.sendMessage<
+      {
+        conversationId: string;
+        interfaceType: string;
+        channelName: string;
+        userPermissionLevel: "anchor";
+        action: { type: "event"; event: "NEXT"; fromState: string };
+      },
+      { text: string }
+    >(AGENT_ACTION_REQUEST_CHANNEL, {
+      conversationId: "web-stale-action",
+      interfaceType: "web-chat",
+      channelName: "Web Chat",
+      userPermissionLevel: "anchor",
+      action: { type: "event", event: "NEXT", fromState: "welcome" },
+    });
+
+    expect(response?.text).toContain("I couldn't continue the playbook");
+    expect(response?.text).toContain("Stale playbook event");
+
+    const status = await harness.executeTool("playbook_status", { runId });
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).activeRun.currentState).toBe(
+      "seed",
+    );
+  });
+
   it("resolves run-scoped tools from the active conversation playbook when runId is omitted", async () => {
     const harness = await installHarness();
     await startRun(harness, "web-scoped-tools");
@@ -1505,6 +1771,9 @@ describe("PlaybooksPlugin", () => {
     );
     expect(response?.items[0]?.content).toContain(
       "Do not mention raw playbook state IDs to the operator",
+    );
+    expect(response?.items[0]?.content).toContain(
+      "pass fromState set to the current state id",
     );
     expect(response?.items[0]?.content).toContain("NEXT -> seed");
   });

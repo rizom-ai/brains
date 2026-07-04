@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { type EventChatAction } from "@brains/contracts";
 import { Chat, useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
@@ -502,7 +503,7 @@ export function App(): React.ReactElement {
           key={key}
           data={group.data}
           onPromptAction={(prompt) => void submitMessage(prompt)}
-          onEventAction={(event) => void submitRuntimeEvent(event)}
+          onEventAction={(action) => void submitRuntimeEvent(action)}
         />
       );
     }
@@ -707,7 +708,7 @@ export function App(): React.ReactElement {
       });
   }
 
-  async function submitRuntimeEvent(event: string): Promise<void> {
+  async function submitRuntimeEvent(action: EventChatAction): Promise<void> {
     if (isBusyStatus(status)) return;
     setHistoryError(null);
 
@@ -718,7 +719,11 @@ export function App(): React.ReactElement {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId,
-          action: { type: "event", event },
+          action: {
+            type: "event",
+            event: action.event,
+            ...(action.fromState ? { fromState: action.fromState } : {}),
+          },
         }),
       });
       if (!response.ok) {

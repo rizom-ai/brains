@@ -1,5 +1,6 @@
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
+  agentEventActionSchema,
   parseAgentResponse,
 } from "@brains/contracts";
 import { getActiveAuthService } from "@brains/auth-service";
@@ -63,10 +64,7 @@ const playbooksLifecycleStartersChannel = "playbooks:lifecycle-starters";
 const chatActionRequestSchema = z
   .object({
     conversationId: z.string().min(1),
-    action: z.object({
-      type: z.literal("event"),
-      event: z.string().min(1),
-    }),
+    action: agentEventActionSchema,
   })
   .strict();
 
