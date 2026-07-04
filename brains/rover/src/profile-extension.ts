@@ -3,7 +3,10 @@ import { ServicePlugin, professionalProfileExtension } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json" with { type: "json" };
 
-const emptyConfigSchema = z.looseObject({});
+const emptyConfigSchema: z.ZodType<
+  RoverProfileConfig,
+  RoverProfileConfigInput
+> = z.looseObject({});
 
 /**
  * Rover opts into the professional profile contract.
@@ -12,8 +15,8 @@ const emptyConfigSchema = z.looseObject({});
  * the shared professional profile extension explicitly because Rover is the
  * brain model choosing those durable profile fields for onboarding.
  */
-type RoverProfileConfig = z.output<typeof emptyConfigSchema>;
-type RoverProfileConfigInput = z.input<typeof emptyConfigSchema>;
+type RoverProfileConfig = Record<string, unknown>;
+type RoverProfileConfigInput = Record<string, unknown>;
 
 class RoverProfilePlugin extends ServicePlugin<
   RoverProfileConfig,
