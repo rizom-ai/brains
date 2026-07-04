@@ -1257,9 +1257,9 @@ The next site batch enabled `isolatedDeclarations` for `@brains/site-default`,
 `@brains/site-personal`, `@brains/site-professional`, and `@brains/site-rizom`,
 adding explicit site config contracts and dependency list annotations where
 needed. The next entity follow-up enabled `isolatedDeclarations` for
-`@brains/assessment` and `@brains/topics`, adding explicit SWOT/topic
-schema/domain contracts while keeping frontmatter schemas object-preserving for
-adapter registration.
+`@brains/assessment`, `@brains/topics`, and `@brains/portfolio`, adding explicit
+SWOT/topic/project schema/domain contracts while keeping frontmatter schemas
+object-preserving for adapter registration.
 Drizzle-backed service packages such as `@brains/conversation-service` remain
 separate follow-ups, in the same bucket as the earlier `@brains/runtime-state`
 table annotation issue.

@@ -23,7 +23,10 @@ import {
   projectFrontmatterSchema,
   type Project,
 } from "./schemas/project";
-import { projectAdapter } from "./adapters/project-adapter";
+import {
+  projectAdapter,
+  type ProjectAdapter,
+} from "./adapters/project-adapter";
 import type { PortfolioConfig, PortfolioConfigInput } from "./config";
 import { portfolioConfigSchema } from "./config";
 import {
@@ -150,9 +153,9 @@ export class PortfolioPlugin extends EntityPlugin<
   PortfolioConfig,
   PortfolioConfigInput
 > {
-  readonly entityType = projectAdapter.entityType;
-  readonly schema = projectSchema;
-  readonly adapter = projectAdapter;
+  readonly entityType = "project" as const;
+  readonly schema: typeof projectSchema = projectSchema;
+  readonly adapter: ProjectAdapter = projectAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;

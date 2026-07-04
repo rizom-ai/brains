@@ -10,23 +10,34 @@ import { projectAdapter } from "../adapters/project-adapter";
 /**
  * Input schema for project generation job
  */
-export const projectGenerationJobSchema = z.object({
+export interface ProjectGenerationJobData {
+  prompt: string;
+  year: number;
+  title?: string | undefined;
+}
+
+export const projectGenerationJobSchema: z.ZodType<
+  ProjectGenerationJobData,
+  ProjectGenerationJobData
+> = z.object({
   prompt: z.string(),
   year: z.number(),
   title: z.string().optional(),
 });
 
-export type ProjectGenerationJobData = z.output<
-  typeof projectGenerationJobSchema
->;
+export interface ProjectGenerationResult extends z.output<
+  typeof generationResultSchema
+> {
+  title?: string | undefined;
+}
 
-export const projectGenerationResultSchema = generationResultSchema.extend({
+export const projectGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    title: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   title: z.string().optional(),
 });
-
-export type ProjectGenerationResult = z.output<
-  typeof projectGenerationResultSchema
->;
 
 export function buildProjectGenerationPrompt(
   data: ProjectGenerationJobData,

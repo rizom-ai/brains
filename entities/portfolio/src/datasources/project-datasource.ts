@@ -3,6 +3,7 @@ import type {
   BaseQuery,
   NavigationResult,
   PaginationInfo,
+  EntityDataSourceConfig,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
@@ -61,12 +62,12 @@ export class ProjectDataSource extends BaseEntityDataSource<
   Project,
   ProjectWithData
 > {
-  readonly id = "portfolio:entities";
-  readonly name = "Portfolio Project DataSource";
-  readonly description =
+  readonly id: string = "portfolio:entities";
+  readonly name: string = "Portfolio Project DataSource";
+  readonly description: string =
     "Fetches and transforms project entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "project",
     defaultSort: [
       { field: "year" as const, direction: "desc" as const },
