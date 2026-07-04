@@ -45,8 +45,12 @@ import {
 import { createTopicAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-const topicAdapter = new TopicAdapter();
-const sourceMetadataSchema = z.looseObject({
+interface SourceMetadata {
+  status?: unknown;
+}
+
+const topicAdapter: TopicAdapter = new TopicAdapter();
+const sourceMetadataSchema: z.ZodType<SourceMetadata, unknown> = z.looseObject({
   status: z.unknown().optional(),
 });
 
@@ -55,9 +59,9 @@ export class TopicsPlugin extends EntityPlugin<
   TopicsPluginConfig,
   TopicsPluginConfigInput
 > {
-  readonly entityType = TOPIC_ENTITY_TYPE;
-  readonly schema = topicEntitySchema;
-  readonly adapter = topicAdapter;
+  readonly entityType: typeof TOPIC_ENTITY_TYPE = TOPIC_ENTITY_TYPE;
+  readonly schema: typeof topicEntitySchema = topicEntitySchema;
+  readonly adapter: TopicAdapter = topicAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   declare protected config: TopicsPluginConfig;

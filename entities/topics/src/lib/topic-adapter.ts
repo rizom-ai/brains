@@ -4,11 +4,10 @@ import {
   topicFrontmatterSchema,
   type TopicEntity,
   type TopicBody,
+  type TopicFrontmatter,
   type TopicMetadata,
 } from "../schemas/topic";
 import { TOPIC_ENTITY_TYPE } from "./constants";
-
-type TopicFrontmatter = ReturnType<typeof topicFrontmatterSchema.parse>;
 
 export class TopicAdapter extends BaseEntityAdapter<
   TopicEntity,

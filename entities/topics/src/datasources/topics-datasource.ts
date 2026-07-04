@@ -4,6 +4,7 @@ import type {
   PaginationInfo,
   BaseDataSourceContext,
   DataSourceSchema,
+  EntityDataSourceConfig,
 } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
@@ -23,11 +24,12 @@ export class TopicsDataSource extends BaseEntityDataSource<
   BaseEntity,
   TopicSummary
 > {
-  readonly id = "topics:entities";
-  readonly name = "Topics Entity DataSource";
-  readonly description = "Fetches and transforms topic entities for rendering";
+  readonly id: string = "topics:entities";
+  readonly name: string = "Topics Entity DataSource";
+  readonly description: string =
+    "Fetches and transforms topic entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: TOPIC_ENTITY_TYPE,
     defaultSort: [{ field: "updated" as const, direction: "desc" as const }],
     defaultLimit: 100,
