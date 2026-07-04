@@ -378,6 +378,7 @@ export {
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   PendingApprovalTracker,
+  parseConfirmationIntent,
   parseConfirmationResponse,
   routeConfirmationResponse,
   artifactStatusLabel,

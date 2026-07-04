@@ -10,7 +10,7 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Who in my network should I approach about a question concerning branding and marketing? I mean other agents."
+  - userMessage: "Who in my network should I consult about branding?"
 
 successCriteria:
   expectedTools:
@@ -20,7 +20,7 @@ successCriteria:
         scope.kind: type
         scope.entityType: "agent"
   responseContains:
-    - "agent"
+    - "Brand Studio"
   responseNotContains:
     - "exact agent ids"
     - "send me the exact agent ids"
@@ -28,6 +28,8 @@ successCriteria:
     - "I'm not sure who you want to ask"
     - "I cannot"
     - "I don't have access"
+    - "brand designer, marketer, or creative strategist"
+    - "If you want, I can help narrow it down"
 
 efficiency:
   maxToolCalls: 3

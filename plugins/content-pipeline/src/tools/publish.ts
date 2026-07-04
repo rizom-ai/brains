@@ -98,7 +98,7 @@ export function createPublishTool(
   return {
     name: toolName,
     description:
-      "Publish an entity directly to its platform. Call this when the user asks to publish; the tool will request confirmation itself. Works with any registered entity type (social-post, post, deck, etc.)",
+      "Publish an entity directly to its platform. Call this when the user asks to publish; the tool will request confirmation itself. Works with any registered entity type (social-post, post, deck, etc.). For follow-up requests like 'publish it now', use the entity just read, generated, or updated in the conversation, including a post just changed to draft.",
     inputSchema: publishInputSchema.shape,
     outputSchema: publishOutputSchema,
     visibility: "anchor",

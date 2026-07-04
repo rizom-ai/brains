@@ -126,7 +126,7 @@ describe("Rover onboarding playbook bundle", () => {
       "transform the retrieved note directly in chat",
     );
     expect(retrieveAndTransform?.instructions.join("\n")).toContain(
-      "Do not call system_create for an outline",
+      "Do not call system_create or system_generate for an outline",
     );
 
     for (const state of body.states) {

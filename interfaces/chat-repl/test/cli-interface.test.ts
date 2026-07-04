@@ -223,6 +223,75 @@ describe("CLIInterface", () => {
       expect(responseHandler).toHaveBeenCalledWith("○ Delete note?");
     });
 
+    it("should pass topic changes during pending confirmation through to chat", async () => {
+      const responseHandler = mock(() => {});
+      const chatMock = mock(
+        async (message: string): Promise<MockAgentResponse> => {
+          if (message === "delete it") {
+            return {
+              text: "Approval needed.",
+              cards: [
+                {
+                  kind: "tool-approval",
+                  id: "approval:call-1",
+                  toolName: "delete_note",
+                  summary: "Delete note?",
+                  state: "approval-requested",
+                },
+              ],
+              usage: {
+                promptTokens: 10,
+                completionTokens: 20,
+                totalTokens: 30,
+              },
+            };
+          }
+          return {
+            text: "Fresh topic answer.",
+            usage: { promptTokens: 5, completionTokens: 6, totalTokens: 11 },
+          };
+        },
+      );
+      const confirmMock = mock(
+        async (): Promise<MockAgentResponse> => ({
+          text: "Should not confirm.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        }),
+      );
+      harness.reset();
+      harness = createPluginHarness<CLIInterface>();
+
+      const mockAgentService: MockAgentService = {
+        chat: chatMock,
+        confirmPendingAction: confirmMock,
+        invalidateAgent: (): void => {},
+      };
+      harness.setAgentService(mockAgentService);
+      cliInterface = new CLIInterface();
+      await harness.installPlugin(cliInterface);
+      cliInterface.registerResponseCallback(responseHandler);
+
+      await cliInterface.processInput("delete it");
+      await cliInterface.processInput("actually tell me about Rover");
+
+      expect(confirmMock).not.toHaveBeenCalled();
+      expect(chatMock).toHaveBeenNthCalledWith(
+        2,
+        "actually tell me about Rover",
+        "cli",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "cli",
+          channelId: "cli",
+          channelName: "CLI Terminal",
+        },
+      );
+      expect(responseHandler).not.toHaveBeenCalledWith(
+        "_Please reply with **yes** to confirm or **no/cancel** to abort._",
+      );
+      expect(responseHandler).toHaveBeenCalledWith("Fresh topic answer.");
+    });
+
     it("should route indexed responses when multiple confirmations are pending", async () => {
       const responseHandler = mock(() => {});
       const confirmMock = mock(

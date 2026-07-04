@@ -13,6 +13,7 @@ import {
   formatPendingConfirmationHelp,
   PendingApprovalTracker,
   MessageUploadContinuity,
+  parseConfirmationIntent,
   routeConfirmationResponse,
   type AgentResponse,
   type ChatAttachment,
@@ -716,7 +717,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         const pendingApprovalIds =
           await this.getPendingApprovalIds(conversationId);
         if (pendingApprovalIds.size > 0) {
-          await this.handleConfirmationResponse(
+          const handledConfirmation = await this.handleConfirmationResponse(
             agentInput.message,
             conversationId,
             thread,
@@ -724,7 +725,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
             userPermissionLevel,
             this.buildUserMessageMetadata(platform, thread, message),
           );
-          return;
+          if (handledConfirmation) return;
         }
 
         const coalescedInput = this.buildCoalescedAgentInput(
@@ -874,19 +875,21 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     approvalIds: Set<string>,
     userPermissionLevel: UserPermissionLevel,
     metadata?: Record<string, unknown>,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    if (!parseConfirmationIntent(message, approvalIds)) return false;
+
     const routed = routeConfirmationResponse({ message, approvalIds });
     if (routed.kind === "not-confirmation") {
       this.pendingApprovals.deleteConversation(conversationId);
       await thread.post(
         this.formatNoticePayload("No pending approval to resolve."),
       );
-      return;
+      return true;
     }
 
     if (routed.kind === "notice") {
       await thread.post(this.formatNoticePayload(routed.message));
-      return;
+      return true;
     }
 
     await this.confirmApproval({
@@ -897,6 +900,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       userPermissionLevel,
       ...(metadata ? { metadata } : {}),
     });
+    return true;
   }
 
   private async confirmApproval(input: {

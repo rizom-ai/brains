@@ -40,6 +40,10 @@ const mockAgentFactory = mock(
   (_config: BrainAgentConfig): BrainAgent => mockAgent,
 );
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function expectNoSystemMessages(messages: ModelMessage[]): void {
   expect(messages.some((message) => message.role === "system")).toBe(false);
 }
@@ -61,6 +65,48 @@ function createUploadAttachmentResolver(
       source,
     };
   });
+}
+
+function getConversationActors(service: AgentService): Map<unknown, unknown> {
+  const actors = Reflect.get(service, "conversationActors");
+  if (!(actors instanceof Map)) {
+    throw new Error("Expected conversationActors to be a Map");
+  }
+  return actors;
+}
+
+function getConversationActorCount(service: AgentService): number {
+  return getConversationActors(service).size;
+}
+
+function getConversationActorSnapshot(
+  service: AgentService,
+  conversationId: string,
+): unknown {
+  const actor = getConversationActors(service).get(conversationId);
+  if (typeof actor !== "object" || actor === null) {
+    throw new Error(`Expected actor for conversation ${conversationId}`);
+  }
+  const getSnapshot = Reflect.get(actor, "getSnapshot");
+  if (typeof getSnapshot !== "function") {
+    throw new Error("Expected actor to expose getSnapshot");
+  }
+  return Reflect.apply(getSnapshot, actor, []);
+}
+
+function getConversationActorAttachments(
+  service: AgentService,
+  conversationId: string,
+): unknown {
+  const snapshot = getConversationActorSnapshot(service, conversationId);
+  if (typeof snapshot !== "object" || snapshot === null) {
+    throw new Error("Expected actor snapshot object");
+  }
+  const context = Reflect.get(snapshot, "context");
+  if (typeof context !== "object" || context === null) {
+    throw new Error("Expected actor snapshot context object");
+  }
+  return Reflect.get(context, "attachments");
 }
 
 // Mock BrainCharacterService
@@ -113,6 +159,12 @@ describe("AgentService", () => {
       steps: [],
       usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
     };
+    mockGenerate.mockImplementation(
+      async (_params: {
+        messages: ModelMessage[];
+        options: BrainCallOptions;
+      }) => mockAgentGenerateResult,
+    );
     mockGenerate.mockClear();
     mockAgentFactory.mockClear();
   });
@@ -219,6 +271,104 @@ describe("AgentService", () => {
       expect(response.pendingConfirmations).toBeUndefined();
       expect(response.cards).toBeUndefined();
       expect(mockGenerate).toHaveBeenCalled();
+    });
+
+    it("serializes concurrent messages in the same conversation and returns each caller its own response", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let callCount = 0;
+      mockGenerate.mockImplementation(async () => {
+        const turn = ++callCount;
+        if (turn === 1) {
+          await firstTurnGate;
+        }
+        return {
+          text: `response-${turn}`,
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const first = service.chat("first", "test-conversation");
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const second = service.chat("second", "test-conversation");
+
+      await delay(10);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+
+      releaseFirst();
+      const [firstResponse, secondResponse] = await Promise.all([
+        first,
+        second,
+      ]);
+
+      expect(firstResponse.text).toBe("response-1");
+      expect(secondResponse.text).toBe("response-2");
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+    });
+
+    it("rejects messages beyond the bounded per-conversation queue", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let callCount = 0;
+      mockGenerate.mockImplementation(async () => {
+        const turn = ++callCount;
+        if (turn === 1) {
+          await firstTurnGate;
+        }
+        return {
+          text: `response-${turn}`,
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const accepted = Array.from({ length: 10 }, (_, index) =>
+        service.chat(`message-${index + 1}`, "test-conversation"),
+      );
+      let overflowError: unknown;
+      try {
+        await service.chat("overflow", "test-conversation");
+      } catch (error) {
+        overflowError = error;
+      }
+      expect(overflowError).toBeInstanceOf(Error);
+      if (!(overflowError instanceof Error)) {
+        throw new Error("Expected overflow to throw an Error");
+      }
+      expect(overflowError.message).toContain("Conversation is busy");
+
+      releaseFirst();
+      const responses = await Promise.all(accepted);
+
+      expect(responses.map((response) => response.text)).toEqual(
+        Array.from({ length: 10 }, (_, index) => `response-${index + 1}`),
+      );
+      expect(mockGenerate).toHaveBeenCalledTimes(10);
     });
 
     it("should return a warming response without calling the model when the semantic index is not ready", async () => {
@@ -1746,6 +1896,51 @@ describe("AgentService", () => {
       });
     });
 
+    it("drains queued messages after a turn errors", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let callCount = 0;
+      mockGenerate.mockImplementation(async () => {
+        const turn = ++callCount;
+        if (turn === 1) {
+          await firstTurnGate;
+          throw new Error("Agent error");
+        }
+        return {
+          text: `response-${turn}`,
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const first = service.chat("first", "test-conversation");
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const second = service.chat("second", "test-conversation");
+
+      releaseFirst();
+      const [firstResponse, secondResponse] = await Promise.all([
+        first,
+        second,
+      ]);
+
+      expect(firstResponse.text).toContain("Agent error");
+      expect(secondResponse.text).toBe("response-2");
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+    });
+
     it("should handle empty response from agent", async () => {
       mockAgentGenerateResult = {
         text: "",
@@ -1807,6 +2002,230 @@ describe("AgentService", () => {
         usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
       };
     };
+
+    it("implicitly declines an authorized pending confirmation before processing a topic change", async () => {
+      setupConfirmationResponse("Please confirm deleting the note.");
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const pending = await service.chat(
+        "delete my note",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+      expect(pending.text).toBe("Confirmation required.");
+
+      mockAgentGenerateResult = {
+        text: "fresh answer",
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      };
+
+      const response = await service.chat(
+        "actually, tell me something else",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+
+      expect(response.text).toBe("fresh answer");
+      expect(response.pendingConfirmations).toBeUndefined();
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+    });
+
+    it("confirms from an unclassified plain yes sent through chat", async () => {
+      setupConfirmationResponse("Please confirm deleting the note.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat(
+        "delete my note",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+      const response = await service.chat(
+        "yes",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+
+      expect(response.text).toBe("Completed: Delete note 'Meeting Notes'");
+      expect(deleteHandler).toHaveBeenCalledTimes(1);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves pending confirmation untouched and queues unauthorized topic changes", async () => {
+      setupConfirmationResponse("Please confirm deleting the note.");
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        actor: {
+          actorId: "eval-anchor-alice",
+          canonicalId: "alice",
+          interfaceType: "evaluation",
+          role: "user",
+        },
+      });
+
+      mockAgentGenerateResult = {
+        text: "answer for bob",
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      };
+      const bobResponse = service.chat(
+        "tell me something else",
+        "test-conversation",
+        {
+          userPermissionLevel: "public",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-public-bob",
+            canonicalId: "bob",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+      await delay(5);
+
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+
+      const cancelResponse = await service.confirmPendingAction(
+        "test-conversation",
+        false,
+        "approval:call-1",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-anchor-alice",
+            canonicalId: "alice",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+      const queuedResponse = await bobResponse;
+
+      expect(cancelResponse.text).toContain("cancelled");
+      expect(queuedResponse.text).toBe("answer for bob");
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+    });
+
+    it("declines for an authorized queued message when the previous turn asks for confirmation", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let callCount = 0;
+      mockGenerate.mockImplementation(async () => {
+        const turn = ++callCount;
+        if (turn === 1) {
+          await firstTurnGate;
+          return {
+            text: "Confirmation required.",
+            steps: [
+              {
+                toolCalls: [
+                  {
+                    toolCallId: "call-1",
+                    toolName: "delete_note",
+                    input: { noteId: "123" },
+                  },
+                ],
+                toolResults: [
+                  {
+                    toolCallId: "call-1",
+                    toolName: "delete_note",
+                    output: {
+                      needsConfirmation: true,
+                      toolName: "delete_note",
+                      summary: "Delete note 'Meeting Notes'?",
+                      args: { noteId: "123" },
+                    },
+                  },
+                ],
+              },
+            ],
+            usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+          };
+        }
+        return {
+          text: "queued answer",
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const first = service.chat(
+        "delete my note",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const second = service.chat(
+        "new topic instead",
+        "test-conversation",
+        anchorConfirmationContext,
+      );
+
+      releaseFirst();
+      const [firstResponse, secondResponse] = await Promise.all([
+        first,
+        second,
+      ]);
+
+      expect(firstResponse.text).toBe("Confirmation required.");
+      expect(secondResponse.text).toBe("queued answer");
+      expect(secondResponse.pendingConfirmations).toBeUndefined();
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+    });
 
     it("does not execute the destructive handler before explicit confirmation", async () => {
       setupConfirmationResponse("Deleted.");
@@ -3104,6 +3523,159 @@ describe("AgentService", () => {
       );
 
       expect(response.text).toContain("No pending");
+    });
+  });
+
+  describe("conversation actor lifecycle", () => {
+    it("clears same-turn attachments from actor context after completion", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("describe this", "test-conversation", {
+        attachments: [
+          {
+            kind: "file",
+            filename: "image.png",
+            mediaType: "image/png",
+            data: new Uint8Array([1, 2, 3]),
+            sizeBytes: 3,
+          },
+        ],
+      });
+
+      expect(
+        getConversationActorAttachments(service, "test-conversation"),
+      ).toEqual([]);
+    });
+
+    it("evicts idle conversation actors after the configured TTL", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, conversationActorIdleTtlMs: 5 },
+      );
+
+      await service.chat("hello", "test-conversation");
+      expect(getConversationActorCount(service)).toBe(1);
+
+      await delay(25);
+
+      expect(getConversationActorCount(service)).toBe(0);
+    });
+
+    it("does not evict actors while awaiting confirmation", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm deleting the note.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-1",
+                toolName: "delete_note",
+                input: { noteId: "123" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-1",
+                toolName: "delete_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "delete_note",
+                  summary: "Delete note 'Meeting Notes'?",
+                  args: { noteId: "123" },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, conversationActorIdleTtlMs: 5 },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+      });
+      await delay(25);
+
+      expect(getConversationActorCount(service)).toBe(1);
+    });
+
+    it("does not evict actors while queued messages are pending", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      mockGenerate.mockImplementation(async () => {
+        await firstTurnGate;
+        return {
+          text: "done",
+          steps: [],
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, conversationActorIdleTtlMs: 5 },
+      );
+
+      const first = service.chat("first", "test-conversation");
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const second = service.chat("second", "test-conversation");
+      await delay(25);
+
+      expect(getConversationActorCount(service)).toBe(1);
+
+      releaseFirst();
+      await Promise.all([first, second]);
+    });
+
+    it("continues a conversation after its idle actor is evicted", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, conversationActorIdleTtlMs: 5 },
+      );
+
+      await service.chat("hello", "test-conversation");
+      await delay(25);
+      expect(getConversationActorCount(service)).toBe(0);
+
+      mockAgentGenerateResult = {
+        text: "welcome back",
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      };
+      const response = await service.chat("again", "test-conversation");
+
+      expect(response.text).toBe("welcome back");
+      expect(getConversationActorCount(service)).toBe(1);
     });
   });
 

@@ -22,7 +22,8 @@
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",
     "./yaml": "./src/yaml.ts",
-    "./zod": "./src/zod.ts"
+    "./zod": "./src/zod.ts",
+    "./confirmation-response": "./src/confirmation-response.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

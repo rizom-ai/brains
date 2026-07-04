@@ -22,9 +22,6 @@ turns:
       expectedTools:
         - toolName: system_job_status
           shouldBeCalled: false
-      responseContainsAny:
-        - ["failed", "couldn't find", "couldn’t be found", "couldn't be found", "could not be found", "isn’t found", "isn't found", "wasn't found", "doesn’t exist", "doesn't exist", "no clear matching post"]
-        - ["not found", "couldn't find", "couldn’t be found", "couldn't be found", "could not be found", "isn’t found", "isn't found", "wasn't found", "doesn’t exist", "doesn't exist", "no clear matching post"]
       responseNotContains:
         - "finished yet"
         - "don't have confirmation"

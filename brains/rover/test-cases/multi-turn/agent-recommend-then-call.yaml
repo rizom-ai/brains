@@ -1,0 +1,46 @@
+id: multi-turn-agent-recommend-then-call
+name: Recommend Agent Then Call Them
+description: Verifies that after recommending a saved agent by expertise, a follow-up request to ask them resolves to that same saved agent.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - a2a
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Who in my network should I consult about branding?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_search
+          shouldBeCalled: true
+          argsContain:
+            scope.kind: type
+            scope.entityType: "agent"
+      responseContains:
+        - "Brand Studio"
+      responseNotContains:
+        - "brand designer, marketer, or creative strategist"
+        - "If you want, I can help narrow it down"
+
+  - userMessage: "Ask them what positioning mistakes I should avoid."
+    successCriteria:
+      expectedTools:
+        - toolName: agent_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "brand-studio.example"
+        - toolName: agent_connect
+          shouldBeCalled: false
+      responseNotContains:
+        - "Which agent"
+        - "I need a URL"
+        - "add/save it first"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 35000

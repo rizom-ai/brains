@@ -1,0 +1,33 @@
+id: multi-turn-agent-recommend-followup
+name: Agent Expertise Recommendation Handles Please Follow-up
+description: Regression for vague affirmative follow-ups after an agent-network recommendation request; the assistant must stay on the agent-discovery task and not answer an unrelated prior topic.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "I need branding advice from someone in my network."
+    successCriteria:
+      responseNotContains:
+        - "Distributed Systems"
+        - "PDF"
+        - "If you want, I can help narrow it down"
+
+  - userMessage: "please"
+    successCriteria:
+      responseContainsAny:
+        - ["Brand Studio", "brand-studio.example"]
+      responseNotContains:
+        - "Distributed Systems"
+        - "PDF"
+        - "summary of the PDF"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 35000
