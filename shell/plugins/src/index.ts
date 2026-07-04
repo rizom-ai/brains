@@ -542,6 +542,7 @@ export {
   baseProfileExtension,
   professionalProfileExtension,
   fetchAnchorProfile,
+  fetchAnchorProfileData,
 } from "@brains/identity-service";
 
 // ============================================================================

@@ -5,7 +5,7 @@
 /**
  * Entity with optional metadata containing publishedAt
  */
-interface EntityWithPublishedAt {
+export interface EntityWithPublishedAt {
   created: string;
   metadata: {
     publishedAt?: string | null | undefined;

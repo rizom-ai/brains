@@ -1702,7 +1702,6 @@
       "version": "0.2.0-alpha.137",
       "dependencies": {
         "@brains/blog": "workspace:*",
-        "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/site-engine": "workspace:*",
@@ -1727,7 +1726,6 @@
       "dependencies": {
         "@brains/blog": "workspace:*",
         "@brains/decks": "workspace:*",
-        "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/site-engine": "workspace:*",

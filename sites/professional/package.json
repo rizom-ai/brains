@@ -18,7 +18,6 @@
   "dependencies": {
     "@brains/blog": "workspace:*",
     "@brains/decks": "workspace:*",
-    "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-engine": "workspace:*",

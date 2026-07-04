@@ -4,6 +4,7 @@ import {
   baseProfileExtension,
   professionalProfileExtension,
   fetchAnchorProfile,
+  fetchAnchorProfileData,
 } from "../src/profile-helpers";
 
 // ---- baseProfileExtension ----
@@ -84,5 +85,29 @@ describe("fetchAnchorProfile", () => {
     expect(fetchAnchorProfile(entityService as never)).rejects.toThrow(
       "Profile not found",
     );
+  });
+});
+
+// ---- fetchAnchorProfileData ----
+
+describe("fetchAnchorProfileData", () => {
+  it("fetches the profile entity and parses its body with the schema", async () => {
+    const entityService = {
+      listEntities: mock(() =>
+        Promise.resolve([
+          {
+            id: "anchor-profile",
+            content: "---\ntagline: Hello\n---\nBody",
+          },
+        ]),
+      ),
+    };
+
+    const profile = await fetchAnchorProfileData(
+      entityService as never,
+      baseProfileExtension,
+    );
+
+    expect(profile.tagline).toBe("Hello");
   });
 });

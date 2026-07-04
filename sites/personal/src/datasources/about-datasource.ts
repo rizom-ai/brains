@@ -1,10 +1,7 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import { fetchAnchorProfile } from "@brains/plugins";
-import { AnchorProfileAdapter } from "@brains/identity-service";
+import { fetchAnchorProfileData } from "@brains/plugins";
 import type { z } from "@brains/utils/zod";
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
-
-const adapter = new AnchorProfileAdapter();
 
 interface AboutDataSourceOutput {
   profile: PersonalProfile;
@@ -23,8 +20,10 @@ export class AboutDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const content = await fetchAnchorProfile(context.entityService);
-    const profile = adapter.parseProfileBody(content, personalProfileSchema);
+    const profile = await fetchAnchorProfileData(
+      context.entityService,
+      personalProfileSchema,
+    );
 
     const data: AboutDataSourceOutput = { profile };
     return outputSchema.parse(data);
