@@ -575,7 +575,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...run,
       currentState: result.currentState,
       completedStates: appendUnique(run.completedStates, run.currentState),
-      snapshot: result.snapshot,
       gateVerdicts: result.gateVerdicts,
       context: { ...run.context, ...(options.context ?? {}) },
       ...(reachedFinalState
@@ -602,19 +601,15 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     lifecycle?: string | undefined;
     conversationId?: string | undefined;
   }): Promise<PlaybookRun> {
-    const run = createPlaybookRun({
-      playbookId: input.playbookId,
-      playbookVersion: input.playbookVersion,
-      initialState: input.body.initialState,
-      lifecycle: input.lifecycle,
-      conversationId: input.conversationId,
-    });
-    const machine = this.buildMachine(input.playbookId, input.body, run);
-    const actor = createActor(machine);
-    actor.start();
-    const snapshot = actor.getPersistedSnapshot();
-    actor.stop();
-    return this.store.upsert({ ...run, snapshot });
+    return this.store.upsert(
+      createPlaybookRun({
+        playbookId: input.playbookId,
+        playbookVersion: input.playbookVersion,
+        initialState: input.body.initialState,
+        lifecycle: input.lifecycle,
+        conversationId: input.conversationId,
+      }),
+    );
   }
 
   private async transitionRun(
@@ -625,7 +620,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     | {
         success: true;
         currentState: string;
-        snapshot: unknown;
         gateVerdicts: PlaybookGateVerdict[];
       }
     | { success: false; error: string; gateVerdicts?: PlaybookGateVerdict[] }
@@ -645,10 +639,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...run,
       gateVerdicts: gateResult.gateVerdicts,
     };
-    const machine = this.buildMachine(run.playbookId, body, candidateRun);
-    const actor = createActor(machine, {
-      ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
-    });
+    const actor = this.createRunActor(body, candidateRun);
     actor.start();
     const snapshot = actor.getSnapshot();
     const eventObject = { type: event };
@@ -662,27 +653,38 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     }
 
     actor.send(eventObject);
-    const nextSnapshot = actor.getSnapshot();
-    const nextState = String(nextSnapshot.value);
+    const nextState = String(actor.getSnapshot().value);
+    actor.stop();
     const expectedTarget = state.transitions.find(
       (transition) => transition.event === event,
     )?.target;
     if (expectedTarget && nextState !== expectedTarget) {
-      actor.stop();
       return {
         success: false,
         error: `Playbook event '${event}' is blocked from state '${run.currentState}'. Complete the state's Done When conditions before sending this event.`,
         gateVerdicts: gateResult.gateVerdicts,
       };
     }
-    const persistedSnapshot = actor.getPersistedSnapshot();
-    actor.stop();
     return {
       success: true,
       currentState: nextState,
-      snapshot: persistedSnapshot,
       gateVerdicts: gateResult.gateVerdicts,
     };
+  }
+
+  /**
+   * The run's currentState is the single source of truth for machine state;
+   * the actor is rehydrated from it on every call. Legacy persisted snapshots
+   * are ignored entirely (they could be corrupt or disagree with currentState).
+   */
+  private createRunActor(
+    body: PlaybookBody,
+    run: PlaybookRun,
+  ): ReturnType<typeof createActor> {
+    const machine = this.buildMachine(run.playbookId, body, run);
+    return createActor(machine, {
+      snapshot: machine.resolveState({ value: run.currentState }),
+    });
   }
 
   private async prepareGateVerdicts(
@@ -964,37 +966,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const conversationRuns = input.conversationId
       ? runs.filter((run) => run.conversationId === input.conversationId)
       : [];
-    const activeConversationRuns = conversationRuns.filter(
-      (run) => run.status === "active" || run.status === "offered",
+    const activeRun = await this.resolveStatusRun(
+      input,
+      runs,
+      conversationRuns,
     );
-    const latestConversationRun = latestRun(
-      conversationRuns.filter(
-        (run) =>
-          (!input.playbookId || run.playbookId === input.playbookId) &&
-          (!input.lifecycle || run.lifecycle === input.lifecycle),
-      ),
-    );
-    const activeRun = input.runId
-      ? (runs.find((run) => run.id === input.runId) ?? latestConversationRun)
-      : input.conversationId && input.lifecycle
-        ? (activeConversationRuns.find(
-            (run) => run.lifecycle === input.lifecycle,
-          ) ?? latestConversationRun)
-        : input.conversationId && input.playbookId
-          ? (activeConversationRuns.find(
-              (run) => run.playbookId === input.playbookId,
-            ) ?? latestConversationRun)
-          : input.conversationId
-            ? activeConversationRuns.length > 0
-              ? await this.requireScopedRun({
-                  conversationId: input.conversationId,
-                })
-              : latestConversationRun
-            : input.lifecycle
-              ? runs.find((run) => run.lifecycle === input.lifecycle)
-              : input.playbookId
-                ? runs.find((run) => run.playbookId === input.playbookId)
-                : undefined;
 
     if (
       input.conversationId &&
@@ -1068,6 +1044,70 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...(actionsCard ? { cards: [actionsCard] } : {}),
       lifecycle: this.config.lifecycle,
     };
+  }
+
+  /**
+   * Resolution precedence: explicit runId, then conversation-scoped lookups
+   * (falling back to the latest matching run in the conversation), then
+   * global lifecycle/playbookId lookups, which prefer the latest active or
+   * offered run over completed ones.
+   */
+  private async resolveStatusRun(
+    input: {
+      runId?: string | undefined;
+      playbookId?: string | undefined;
+      lifecycle?: string | undefined;
+      conversationId?: string | undefined;
+    },
+    runs: PlaybookRun[],
+    conversationRuns: PlaybookRun[],
+  ): Promise<PlaybookRun | undefined> {
+    const activeConversationRuns = conversationRuns.filter(
+      (run) => run.status === "active" || run.status === "offered",
+    );
+    const latestConversationRun = latestRun(
+      conversationRuns.filter(
+        (run) =>
+          (!input.playbookId || run.playbookId === input.playbookId) &&
+          (!input.lifecycle || run.lifecycle === input.lifecycle),
+      ),
+    );
+
+    if (input.runId) {
+      return (
+        runs.find((run) => run.id === input.runId) ?? latestConversationRun
+      );
+    }
+    if (input.conversationId) {
+      if (input.lifecycle) {
+        return (
+          activeConversationRuns.find(
+            (run) => run.lifecycle === input.lifecycle,
+          ) ?? latestConversationRun
+        );
+      }
+      if (input.playbookId) {
+        return (
+          activeConversationRuns.find(
+            (run) => run.playbookId === input.playbookId,
+          ) ?? latestConversationRun
+        );
+      }
+      if (activeConversationRuns.length > 0) {
+        return this.requireScopedRun({ conversationId: input.conversationId });
+      }
+      return latestConversationRun;
+    }
+    if (input.lifecycle) {
+      return preferActiveRun(runs, (run) => run.lifecycle === input.lifecycle);
+    }
+    if (input.playbookId) {
+      return preferActiveRun(
+        runs,
+        (run) => run.playbookId === input.playbookId,
+      );
+    }
+    return undefined;
   }
 
   private buildStateGuidance(
@@ -1217,7 +1257,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         candidateRun.completedStates,
         candidateRun.currentState,
       ),
-      snapshot: transitioned.snapshot,
       gateVerdicts: transitioned.gateVerdicts,
       ...(reachedFinalState
         ? {
@@ -1358,10 +1397,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     body: PlaybookBody,
     event: string,
   ): boolean {
-    const machine = this.buildMachine(run.playbookId, body, run);
-    const actor = createActor(machine, {
-      ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
-    });
+    const actor = this.createRunActor(body, run);
     actor.start();
     const canTransition = actor.getSnapshot().can({ type: event });
     actor.stop();
@@ -1620,6 +1656,17 @@ function zeroUsage(): AgentResponse["usage"] {
 
 function appendUnique(values: string[], value: string): string[] {
   return values.includes(value) ? values : [...values, value];
+}
+
+function preferActiveRun(
+  runs: PlaybookRun[],
+  predicate: (run: PlaybookRun) => boolean,
+): PlaybookRun | undefined {
+  const matching = runs.filter(predicate);
+  const active = matching.filter(
+    (run) => run.status === "active" || run.status === "offered",
+  );
+  return latestRun(active) ?? latestRun(matching);
 }
 
 function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {

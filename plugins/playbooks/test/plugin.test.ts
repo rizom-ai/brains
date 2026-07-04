@@ -1410,6 +1410,90 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
+  it("tolerates a corrupt legacy snapshot and derives machine state from currentState", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-corrupt-snapshot");
+
+    const store = harness
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({ namespace: "playbooks.runs", schema: playbookRunSchema });
+    const stored = await store.get(runId);
+    if (!stored) throw new Error("Expected stored run");
+    await store.set(runId, { ...stored, snapshot: { bogus: true } });
+
+    const transitioned = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+    expectSuccess(transitioned);
+    expect(
+      parsePlaybookToolData(transitioned.data).activeRun.currentState,
+    ).toBe("seed");
+  });
+
+  it("treats currentState as the source of truth when a legacy snapshot disagrees", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-drifted-snapshot");
+
+    const store = harness
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({ namespace: "playbooks.runs", schema: playbookRunSchema });
+    const stored = await store.get(runId);
+    if (!stored) throw new Error("Expected stored run");
+    await store.set(runId, {
+      ...stored,
+      currentState: "seed",
+      snapshot: { status: "active", value: "welcome" },
+    });
+
+    const transitioned = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+    expectSuccess(transitioned);
+    const data = parsePlaybookToolData(transitioned.data);
+    expect(data.activeRun.currentState).toBe("complete");
+    expect(data.activeRun.status).toBe("completed");
+  });
+
+  it("prefers the latest active run for global playbook and lifecycle lookups", async () => {
+    const harness = await installHarness();
+
+    const completedRunId = await startRun(harness, "conversation-completed");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId: completedRunId,
+        event: "NEXT",
+      }),
+    );
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId: completedRunId,
+        event: "NEXT",
+      }),
+    );
+
+    const activeRunId = await startRun(harness, "conversation-active");
+
+    const byPlaybook = await harness.executeTool("playbook_status", {
+      playbookId: "rover-onboarding",
+    });
+    expectSuccess(byPlaybook);
+    expect(parsePlaybookToolData(byPlaybook.data).activeRun.id).toBe(
+      activeRunId,
+    );
+
+    const byLifecycle = await harness.executeTool("playbook_status", {
+      lifecycle: "onboarding",
+    });
+    expectSuccess(byLifecycle);
+    expect(parsePlaybookToolData(byLifecycle.data).activeRun.id).toBe(
+      activeRunId,
+    );
+  });
+
   it("rejects an event whose fromState no longer matches the current run state", async () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-stale-from-state");
