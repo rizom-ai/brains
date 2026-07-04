@@ -8,20 +8,27 @@ import constellationCanvas from "./canvases/constellation.canvas.js" with { type
 import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 
-export const rizomThemeProfileSchema = z.enum([
-  "product",
-  "editorial",
-  "studio",
-]);
+export type RizomThemeProfile = "product" | "editorial" | "studio";
 
-export const rizomRuntimeConfigSchema = z.object({
+export interface RizomRuntimeConfig {
+  themeProfile?: RizomThemeProfile | undefined;
+  theme?: string | undefined;
+}
+
+export type RizomRuntimeConfigInput = RizomRuntimeConfig;
+
+export const rizomThemeProfileSchema: z.ZodType<
+  RizomThemeProfile,
+  RizomThemeProfile
+> = z.enum(["product", "editorial", "studio"]);
+
+export const rizomRuntimeConfigSchema: z.ZodType<
+  RizomRuntimeConfig,
+  RizomRuntimeConfigInput
+> = z.object({
   themeProfile: rizomThemeProfileSchema.optional(),
   theme: z.string().optional(),
 });
-
-export type RizomRuntimeConfig = z.output<typeof rizomRuntimeConfigSchema>;
-export type RizomRuntimeConfigInput = z.input<typeof rizomRuntimeConfigSchema>;
-export type RizomThemeProfile = NonNullable<RizomRuntimeConfig["themeProfile"]>;
 
 const CANVAS_BY_THEME_PROFILE: Record<RizomThemeProfile, string> = {
   product: "/canvases/tree.canvas.js",

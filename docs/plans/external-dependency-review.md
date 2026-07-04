@@ -1227,8 +1227,11 @@ for `@brains/atproto`, `@brains/cms`, `@brains/dashboard`,
 widget, entity, and parser-boundary contracts where declaration emit required
 stable names. The following batch enabled `isolatedDeclarations` for the
 remaining plugin packages: `@brains/content-pipeline`, `@brains/directory-sync`,
-`@brains/playbooks`, and `@brains/site-builder-plugin`. At this point every
-package under `plugins/` has `isolatedDeclarations` enabled. The next shared
+`@brains/playbooks`, and `@brains/site-builder-plugin`. After the local `main`
+integration added Rover onboarding, `@brains/rover-onboarding` also enabled
+`isolatedDeclarations` with an explicit config input/output contract and typed
+dependency list. At this point every package under `plugins/` has
+`isolatedDeclarations` enabled. The next shared
 package batch enabled `isolatedDeclarations` for `@brains/atproto-contracts`,
 `@brains/cms-config`, `@brains/contracts`, `@brains/content-formatters`,
 `@brains/deploy-support`, `@brains/document`, `@brains/image`,
@@ -1250,6 +1253,10 @@ with explicit CLI/MCP config contracts. The first entity package batches enabled
 `@brains/playbook`, `@brains/prompt`, `@brains/rizom-ecosystem`,
 `@brains/series`, `@brains/site-info`, and `@brains/wishlist`, keeping
 entity/frontmatter schema annotations object-preserving for adapter contracts.
+The next site batch enabled `isolatedDeclarations` for `@brains/site-default`,
+`@brains/site-personal`, `@brains/site-professional`, and `@brains/site-rizom`,
+adding explicit site config contracts and dependency list annotations where
+needed.
 Drizzle-backed service packages such as `@brains/conversation-service` remain
 separate follow-ups, in the same bucket as the earlier `@brains/runtime-state`
 table annotation issue.

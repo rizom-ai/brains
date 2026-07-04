@@ -14,7 +14,34 @@ import { HomepageLayout, type HomepageData } from "./templates/homepage";
 import { AboutPageLayout, type AboutPageData } from "./templates/about";
 import packageJson from "../package.json";
 
-const personalSiteConfigSchema = z.object({
+interface PersonalSiteEntityDisplayItem {
+  label: string;
+  pluralName?: string | undefined;
+}
+
+interface PersonalSiteEntityDisplayItemInput {
+  label?: string | undefined;
+  pluralName?: string | undefined;
+}
+
+interface PersonalSiteConfig {
+  entityDisplay: {
+    post: PersonalSiteEntityDisplayItem;
+  };
+}
+
+export interface PersonalSiteConfigInput {
+  entityDisplay?:
+    | {
+        post?: PersonalSiteEntityDisplayItemInput | undefined;
+      }
+    | undefined;
+}
+
+const personalSiteConfigSchema: z.ZodType<
+  PersonalSiteConfig,
+  PersonalSiteConfigInput
+> = z.object({
   entityDisplay: z
     .object({
       post: z
@@ -92,10 +119,6 @@ const blogPostSchema = z.looseObject({
   coverImageSizes: z.string().optional(),
 });
 
-type PersonalSiteConfig = z.output<typeof personalSiteConfigSchema>;
-
-export type PersonalSiteConfigInput = z.input<typeof personalSiteConfigSchema>;
-
 /**
  * Personal Site Plugin
  * Simple blog-focused homepage — no decks, no portfolio dependencies
@@ -104,7 +127,7 @@ export class PersonalSitePlugin extends ServicePlugin<
   PersonalSiteConfig,
   PersonalSiteConfigInput
 > {
-  public readonly dependencies = ["blog"];
+  public readonly dependencies: string[] = ["blog"];
 
   constructor(config: PersonalSiteConfigInput = {}) {
     super("personal-site", packageJson, config, personalSiteConfigSchema);

@@ -1,19 +1,45 @@
 import { z } from "@brains/utils/zod-v4";
 
-const entityDisplayItemSchema = z.object({
-  label: z.string().describe("Display label for entity type (e.g., 'Essay')"),
-  pluralName: z
-    .string()
-    .optional()
-    .describe("URL path segment (defaults to label.toLowerCase() + 's')"),
-});
+export interface EntityDisplayItem {
+  label: string;
+  pluralName?: string | undefined;
+}
 
-export const professionalSiteDefaultEntityDisplay = {
-  post: { label: "Post" },
-  deck: { label: "Deck" },
-};
+export interface ProfessionalSiteConfig {
+  entityDisplay: {
+    post: EntityDisplayItem;
+    deck: EntityDisplayItem;
+  };
+}
 
-export const professionalSiteConfigSchema = z.object({
+export interface ProfessionalSiteConfigInput {
+  entityDisplay?:
+    | {
+        post: EntityDisplayItem;
+        deck: EntityDisplayItem;
+      }
+    | undefined;
+}
+
+const entityDisplayItemSchema: z.ZodType<EntityDisplayItem, EntityDisplayItem> =
+  z.object({
+    label: z.string().describe("Display label for entity type (e.g., 'Essay')"),
+    pluralName: z
+      .string()
+      .optional()
+      .describe("URL path segment (defaults to label.toLowerCase() + 's')"),
+  });
+
+export const professionalSiteDefaultEntityDisplay: ProfessionalSiteConfig["entityDisplay"] =
+  {
+    post: { label: "Post" },
+    deck: { label: "Deck" },
+  };
+
+export const professionalSiteConfigSchema: z.ZodType<
+  ProfessionalSiteConfig,
+  ProfessionalSiteConfigInput
+> = z.object({
   entityDisplay: z
     .object({
       post: entityDisplayItemSchema,
@@ -24,11 +50,3 @@ export const professionalSiteConfigSchema = z.object({
       "Display metadata for post and deck entity types used by the homepage",
     ),
 });
-
-export type ProfessionalSiteConfig = z.output<
-  typeof professionalSiteConfigSchema
->;
-
-export type ProfessionalSiteConfigInput = z.input<
-  typeof professionalSiteConfigSchema
->;

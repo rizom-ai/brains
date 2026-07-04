@@ -57,7 +57,7 @@ export class RoverOnboardingPlugin extends ServicePlugin<
   RoverOnboardingConfig,
   RoverOnboardingConfigInput
 > {
-  readonly dependencies = ["playbook", "playbooks"];
+  readonly dependencies: string[] = ["playbook", "playbooks"];
 
   constructor(config: RoverOnboardingConfigInput = {}) {
     super("rover-onboarding", packageJson, config, roverOnboardingConfigSchema);

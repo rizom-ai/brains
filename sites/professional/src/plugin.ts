@@ -137,7 +137,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
   ProfessionalSiteConfig,
   ProfessionalSiteConfigInput
 > {
-  public readonly dependencies = ["blog", "decks"];
+  public readonly dependencies: string[] = ["blog", "decks"];
 
   constructor(config: ProfessionalSiteConfigInput) {
     super(
