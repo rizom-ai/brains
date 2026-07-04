@@ -104,11 +104,15 @@ Resolution boundary spike result (2026-07-02): refactoring the Rizom runtime plu
 
 Site-content authoring boundary update (2026-07-02): site content definition types and template-construction helpers belong with the shared site-composition contract, not the `@brains/site-content` runtime plugin. The runtime plugin now re-exports/uses that shared contract, and `@brains/site-rizom-work` no longer depends on the site-content plugin package just to define sections. `@brains/site-rizom` re-exports the Rizom site authoring helpers/types, so the per-site package consumes them through the base package boundary rather than importing lower-level composition packages directly.
 
+AT Protocol contract boundary update (2026-07-04): AT Protocol lexicon definitions remain owned by the internal `@brains/atproto-contracts` package; `@brains/site-rizom` serves those canonical definitions but does not define or vendor them. This does not require publishing `@brains/atproto-contracts` for hosted Rizom sites: the published `@brains/site-rizom` artifact bundles/hides that internal contract source behind the base package boundary.
+
+Base-package artifact update (2026-07-04): `@brains/site-rizom` is the public base package and now follows the existing built-package convention used by published packages such as `@rizom/ops`: `prepublishOnly` builds `dist/index.js`, package exports point runtime imports at `dist`, and private/internal workspace packages (`@brains/site-composition`, `@brains/atproto-contracts`, and shared Rizom UI source) are build-time/dev dependencies bundled into that artifact. Runtime dependencies are limited to public npm packages (`preact`, `clsx`, `tailwind-merge`).
+
 Packaging decision:
 
 - **Yes:** publish one shared base package, `@brains/site-rizom`, and have the three per-site packages depend on/extend it.
 - **No:** do not publish the entire low-level `@brains/*` framework dependency chain just to make these sites installable.
-- The base package is the public/stable Rizom-site API boundary. Its own internal framework dependencies should either already be public/stable or be bundled/hidden behind the base package's published artifact.
+- The base package is the public/stable Rizom-site API boundary. Its own internal framework dependencies should be bundled/hidden behind the base package's published artifact unless there is an explicit reason to expose them as public packages.
 - Per-site packages should stay thin and depend only on `@brains/site-rizom` and `preact`; shared Rizom UI and site authoring helpers should be exposed through the base package boundary.
 
 Preferred path:
