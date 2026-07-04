@@ -116,6 +116,7 @@ const startInputSchema = {
 const sendEventInputSchema = {
   runId: z.string().min(1).optional(),
   event: z.string().min(1),
+  fromState: z.string().min(1).optional(),
   context: z.record(z.string(), z.unknown()).optional(),
 };
 
@@ -230,6 +231,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
   private readonly startLocks = new Map<string, Promise<ToolResponse>>();
+  private readonly runLocks = new Map<string, Promise<void>>();
   private readonly registeredLifecycleStarters = new Map<
     string,
     { source: string; config: LifecyclePlaybookConfig }
@@ -368,13 +370,17 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
                 ).find((run) => run.playbookId === parsed.playbookId)
               : await this.store.findActiveByPlaybook(parsed.playbookId);
             const run = existing
-              ? await this.store.upsert({
-                  ...existing,
-                  status: "active",
-                  ...(conversationId ? { conversationId } : {}),
-                  ...(existing.startedAt
-                    ? {}
-                    : { startedAt: new Date().toISOString() }),
+              ? await this.withRunLock(existing.id, async () => {
+                  const current =
+                    (await this.store.findById(existing.id)) ?? existing;
+                  return this.store.upsert({
+                    ...current,
+                    status: "active",
+                    ...(conversationId ? { conversationId } : {}),
+                    ...(current.startedAt
+                      ? {}
+                      : { startedAt: new Date().toISOString() }),
+                  });
                 })
               : await this.createStartedRun({
                   playbookId: parsed.playbookId,
@@ -391,7 +397,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       {
         name: "playbook_send_event",
         description:
-          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
+          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Always pass fromState set to the current state id you are acting on (from playbook_status or the active-playbook context); if the run has advanced past that state, the event is rejected as stale and you must call playbook_status and act on the current state instead. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
         inputSchema: sendEventInputSchema,
         visibility: "anchor",
         sideEffects: "writes",
@@ -405,11 +411,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
             conversationId: toolContext.conversationId,
           });
           if (!run.success) return run;
-          const result = await this.sendEventForRun(
-            run.data,
-            parsed.event,
-            parsed.context,
-          );
+          const result = await this.sendEventForRun(run.data.id, parsed.event, {
+            context: parsed.context,
+            fromState: parsed.fromState,
+          });
           return result.success
             ? { success: true, data: result.data }
             : { success: false, error: result.error };
@@ -432,6 +437,31 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     return pending;
   }
 
+  /**
+   * Serialize the whole read -> transition -> write cycle per run. The run
+   * store only serializes individual writes; without this, the evidence
+   * auto-advance path and operator-sent events can interleave their reads and
+   * silently overwrite each other's state change.
+   */
+  private async withRunLock<T>(
+    runId: string,
+    task: () => Promise<T>,
+  ): Promise<T> {
+    const previous = this.runLocks.get(runId) ?? Promise.resolve();
+    const current = previous.then(task);
+    const tail = current.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.runLocks.set(runId, tail);
+    void tail.then(() => {
+      if (this.runLocks.get(runId) === tail) {
+        this.runLocks.delete(runId);
+      }
+    });
+    return current;
+  }
+
   private async handleAgentAction(
     request: AgentActionRequest,
   ): Promise<AgentResponse | undefined> {
@@ -442,19 +472,22 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     });
     if (!scopedRun.success) return undefined;
 
+    const args = {
+      runId: scopedRun.data.id,
+      event: request.action.event,
+      ...(request.action.fromState
+        ? { fromState: request.action.fromState }
+        : {}),
+    };
     const result = await this.sendEventForRun(
-      scopedRun.data,
+      scopedRun.data.id,
       request.action.event,
+      { fromState: request.action.fromState },
     );
     if (!result.success) {
       return {
         text: `I couldn't continue the playbook: ${result.error}`,
-        toolResults: [
-          {
-            toolName: "playbook_send_event",
-            args: { runId: scopedRun.data.id, event: request.action.event },
-          },
-        ],
+        toolResults: [{ toolName: "playbook_send_event", args }],
         usage: zeroUsage(),
       };
     }
@@ -464,11 +497,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       text: formatActionResponseText(state),
       ...(result.data.cards ? { cards: result.data.cards } : {}),
       toolResults: [
-        {
-          toolName: "playbook_send_event",
-          args: { runId: scopedRun.data.id, event: request.action.event },
-          data: result.data,
-        },
+        { toolName: "playbook_send_event", args, data: result.data },
       ],
       usage: zeroUsage(),
     };
@@ -481,13 +510,42 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   }
 
   private async sendEventForRun(
-    run: PlaybookRun,
+    runId: string,
     event: string,
-    context?: Record<string, unknown>,
+    options: {
+      context?: Record<string, unknown> | undefined;
+      fromState?: string | undefined;
+    } = {},
   ): Promise<
     | { success: true; data: PlaybookStatusResponse }
     | { success: false; error: string }
   > {
+    return this.withRunLock(runId, () =>
+      this.sendEventForRunLocked(runId, event, options),
+    );
+  }
+
+  private async sendEventForRunLocked(
+    runId: string,
+    event: string,
+    options: {
+      context?: Record<string, unknown> | undefined;
+      fromState?: string | undefined;
+    },
+  ): Promise<
+    | { success: true; data: PlaybookStatusResponse }
+    | { success: false; error: string }
+  > {
+    const run = await this.store.findById(runId);
+    if (!run) {
+      return { success: false, error: `Playbook run not found: ${runId}` };
+    }
+    if (options.fromState && options.fromState !== run.currentState) {
+      return {
+        success: false,
+        error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbook_status and act on the current state.`,
+      };
+    }
     const playbook = await this.requirePlaybook(run.playbookId);
     if (run.playbookVersion !== playbook.version) {
       return {
@@ -519,7 +577,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       completedStates: appendUnique(run.completedStates, run.currentState),
       snapshot: result.snapshot,
       gateVerdicts: result.gateVerdicts,
-      context: { ...run.context, ...(context ?? {}) },
+      context: { ...run.context, ...(options.context ?? {}) },
       ...(reachedFinalState
         ? {
             status: "completed" as const,
@@ -1107,11 +1165,19 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       },
     };
     const updatedRun = await this.store.appendEvidence(run.id, evidence);
-    await this.evaluateGateAfterEvidence(updatedRun);
+    await this.evaluateGateAfterEvidence(updatedRun.id);
     return { recorded: true };
   }
 
-  private async evaluateGateAfterEvidence(run: PlaybookRun): Promise<void> {
+  private async evaluateGateAfterEvidence(runId: string): Promise<void> {
+    await this.withRunLock(runId, () =>
+      this.evaluateGateAfterEvidenceLocked(runId),
+    );
+  }
+
+  private async evaluateGateAfterEvidenceLocked(runId: string): Promise<void> {
+    const run = await this.store.findById(runId);
+    if (run?.status !== "active") return;
     if (this.hasSatisfiedGateForCurrentState(run)) return;
     const playbook = await this.getPlaybook(run.playbookId);
     if (run.playbookVersion !== playbook?.version) return;
@@ -1396,6 +1462,7 @@ Current state title: ${state.title}
 Current state id (tool use only): ${state.id}
 ${state.prompt ? `Operator-facing prompt: ${state.prompt}\n` : ""}
 For current-conversation playbook tools, omit runId and let the runtime infer the active run; only include runId when a tool explicitly asks after an ambiguity error.
+When you call playbook_send_event, pass fromState set to the current state id shown above; if the run has advanced past that state in the meantime, the event is rejected as stale instead of being applied to the wrong state.
 Treat this current state as the source of truth. Do not redo completed states or ask for evidence already captured; ask only for what is missing in the current state.
 Do not mention raw playbook state IDs to the operator; use the state title or natural-language task description instead.
 Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat; describe the task or outcome in natural language instead.
@@ -1531,6 +1598,7 @@ function buildPlaybookActionsCard(input: {
         transition.description ??
         transition.event,
       event: transition.event,
+      fromState: input.run.currentState,
       ...((transition.operatorDescription ?? transition.description)
         ? {
             description:

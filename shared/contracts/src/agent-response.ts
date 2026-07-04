@@ -104,6 +104,8 @@ export const EventChatActionSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
   event: z.string().min(1),
+  /** State id the action was rendered for; echoed back so stale clicks can be rejected. */
+  fromState: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
 });
 

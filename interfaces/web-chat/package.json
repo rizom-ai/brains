@@ -23,6 +23,7 @@
   "dependencies": {
     "@ai-sdk/react": "^3.0.116",
     "@brains/auth-service": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@streamdown/cjk": "^1.0.3",

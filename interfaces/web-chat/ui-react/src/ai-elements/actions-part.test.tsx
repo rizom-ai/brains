@@ -1,10 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import type { EventChatAction } from "@brains/contracts";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ActionsPart } from "./data-parts";
 
 describe("ActionsPart", () => {
   it("renders prompt and event actions as a collapsible list", () => {
+    const receivedEventActions: EventChatAction[] = [];
     const markup = renderToStaticMarkup(
       createElement(ActionsPart, {
         data: {
@@ -25,14 +27,18 @@ describe("ActionsPart", () => {
               id: "continue",
               label: "Continue",
               event: "NEXT",
+              fromState: "welcome",
               description: "Request the next playbook transition.",
             },
           ],
         },
         onPromptAction: () => {},
-        onEventAction: () => {},
+        onEventAction: (action) => {
+          receivedEventActions.push(action);
+        },
       }),
     );
+    expect(receivedEventActions).toEqual([]);
 
     expect(markup).toContain("<details");
     expect(markup).toContain('open=""');
