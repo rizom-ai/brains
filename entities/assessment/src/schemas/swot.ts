@@ -1,14 +1,40 @@
+import type { BaseEntity } from "@brains/plugins";
 import { z } from "@brains/utils/zod-v4";
 import { baseEntitySchema } from "@brains/plugins";
 
-export const swotItemSchema = z.object({
+export interface SwotItem {
+  title: string;
+  detail?: string | undefined;
+}
+
+type SwotItemSchema = z.ZodObject<{
+  title: z.ZodString;
+  detail: z.ZodOptional<z.ZodString>;
+}>;
+
+export const swotItemSchema: SwotItemSchema = z.object({
   title: z.string(),
   detail: z.string().optional(),
 });
 
-export type SwotItem = z.infer<typeof swotItemSchema>;
+export interface SwotFrontmatter {
+  [key: string]: unknown;
+  strengths: SwotItem[];
+  weaknesses: SwotItem[];
+  opportunities: SwotItem[];
+  threats: SwotItem[];
+  derivedAt: string;
+}
 
-export const swotFrontmatterSchema = z.object({
+type SwotFrontmatterSchema = z.ZodObject<{
+  strengths: z.ZodDefault<z.ZodArray<SwotItemSchema>>;
+  weaknesses: z.ZodDefault<z.ZodArray<SwotItemSchema>>;
+  opportunities: z.ZodDefault<z.ZodArray<SwotItemSchema>>;
+  threats: z.ZodDefault<z.ZodArray<SwotItemSchema>>;
+  derivedAt: z.ZodString;
+}>;
+
+export const swotFrontmatterSchema: SwotFrontmatterSchema = z.object({
   strengths: z.array(swotItemSchema).default([]),
   weaknesses: z.array(swotItemSchema).default([]),
   opportunities: z.array(swotItemSchema).default([]),
@@ -16,17 +42,31 @@ export const swotFrontmatterSchema = z.object({
   derivedAt: z.string().datetime(),
 });
 
-export type SwotFrontmatter = z.infer<typeof swotFrontmatterSchema>;
+export interface SwotMetadata {
+  [key: string]: unknown;
+  derivedAt: string;
+}
 
-export const swotMetadataSchema = swotFrontmatterSchema.pick({
-  derivedAt: true,
-});
+type SwotMetadataSchema = z.ZodObject<{
+  derivedAt: z.ZodString;
+}>;
 
-export type SwotMetadata = z.infer<typeof swotMetadataSchema>;
+export const swotMetadataSchema: SwotMetadataSchema =
+  swotFrontmatterSchema.pick({
+    derivedAt: true,
+  });
 
-export const swotEntitySchema = baseEntitySchema.extend({
+export interface SwotEntity extends BaseEntity {
+  entityType: "swot";
+  metadata: SwotMetadata;
+}
+
+export const swotEntitySchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"swot">;
+    metadata: SwotMetadataSchema;
+  }>
+> = baseEntitySchema.extend({
   entityType: z.literal("swot"),
   metadata: swotMetadataSchema,
 });
-
-export type SwotEntity = z.infer<typeof swotEntitySchema>;

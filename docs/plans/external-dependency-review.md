@@ -1256,7 +1256,9 @@ entity/frontmatter schema annotations object-preserving for adapter contracts.
 The next site batch enabled `isolatedDeclarations` for `@brains/site-default`,
 `@brains/site-personal`, `@brains/site-professional`, and `@brains/site-rizom`,
 adding explicit site config contracts and dependency list annotations where
-needed.
+needed. The next entity follow-up enabled `isolatedDeclarations` for
+`@brains/assessment`, adding explicit SWOT schema/domain contracts while keeping
+frontmatter schemas object-preserving for adapter registration.
 Drizzle-backed service packages such as `@brains/conversation-service` remain
 separate follow-ups, in the same bucket as the earlier `@brains/runtime-state`
 table annotation issue.

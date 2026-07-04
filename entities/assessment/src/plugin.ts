@@ -15,9 +15,9 @@ export class SwotAssessmentPlugin extends EntityPlugin<
   Record<string, never>,
   Record<string, never>
 > {
-  readonly entityType = "swot";
-  readonly schema = swotEntitySchema;
-  readonly adapter = swotAdapter;
+  readonly entityType = "swot" as const;
+  readonly schema: typeof swotEntitySchema = swotEntitySchema;
+  readonly adapter: SwotAdapter = swotAdapter;
 
   private initialSyncComplete = false;
 
