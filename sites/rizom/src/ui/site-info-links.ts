@@ -1,4 +1,4 @@
-import type { SiteLayoutInfo } from "@brains/site-composition";
+import type { SiteLayoutInfo } from "../contracts";
 import type { RizomLink } from "./types";
 
 const DEFAULT_LABELS: Record<string, string> = {

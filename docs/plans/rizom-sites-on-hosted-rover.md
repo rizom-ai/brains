@@ -108,21 +108,35 @@ AT Protocol contract boundary update (2026-07-04): AT Protocol lexicon definitio
 
 Base-package artifact update (2026-07-04): `@brains/site-rizom` is the public base package and now follows the existing built-package convention used by published packages such as `@rizom/ops`: `prepublishOnly` builds `dist/index.js`, package exports point runtime imports at `dist`, and private/internal workspace packages (`@brains/site-composition`, `@brains/atproto-contracts`, and shared Rizom UI source) are build-time/dev dependencies bundled into that artifact. Runtime dependencies are limited to public npm packages (`preact`, `clsx`, `tailwind-merge`).
 
+Packaging correction (2026-07-04): do not generalize from the base-package bundling requirement to all per-site packages. Source-publishing TS/TSX is allowed when the package is self-contained for consumers. The clean-install failure for `@brains/site-rizom-work` (`react/jsx-dev-runtime`) indicates a missing JSX runtime signal or consumer-facing source-publish contract, not proof that every per-site package must emit `dist`. Treat bundling as required only where there is a demonstrated private runtime dependency boundary, currently `@brains/site-rizom`. For per-site packages, first test the smallest self-contained source-publish fix (for example file-level `jsxImportSource` pragmas or package metadata) before choosing a build artifact.
+
+Current packaging matrix:
+
+| Package                     | Runtime dependency boundary                                                                                                                                      | TSX/source-publish boundary                                                                                                                 | Type boundary                                                                                                          | Current direction                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `@brains/site-rizom`        | Has private/internal workspace deps (`@brains/site-composition`, `@brains/atproto-contracts`, shared Rizom UI source) that should not be published transitively. | May contain TSX, but runtime bundling is already justified by private deps.                                                                 | Public declarations must not leak private packages; fix at source/API boundary, not by hand-written declaration blobs. | Bundle runtime; expose an intentional public API and generated declarations. |
+| `@brains/site-rizom-work`   | Should depend only on public `@brains/site-rizom` plus `preact`.                                                                                                 | Clean source import currently fails due JSX runtime resolution; investigate self-contained source-publish fixes before adding build output. | Should be clean once base declarations are clean.                                                                      | Keep thin; prefer source publish if it can be made self-contained.           |
+| `@brains/atproto-contracts` | Internal canonical lexicon source.                                                                                                                               | N/A                                                                                                                                         | N/A                                                                                                                    | Do not publish for hosted Rizom sites; bundle through base.                  |
+| `@brains/site-composition`  | Internal site framework contract used by app/runtime.                                                                                                            | N/A                                                                                                                                         | Would leak if exported directly.                                                                                       | Keep internal; hide behind base.                                             |
+
 Packaging decision:
 
 - **Yes:** publish one shared base package, `@brains/site-rizom`, and have the three per-site packages depend on/extend it.
 - **No:** do not publish the entire low-level `@brains/*` framework dependency chain just to make these sites installable.
 - The base package is the public/stable Rizom-site API boundary. Its own internal framework dependencies should be bundled/hidden behind the base package's published artifact unless there is an explicit reason to expose them as public packages.
 - Per-site packages should stay thin and depend only on `@brains/site-rizom` and `preact`; shared Rizom UI and site authoring helpers should be exposed through the base package boundary.
+- Thin per-site packages may still publish source if their TS/TSX is self-contained for npm consumers. Do not add per-site build artifacts merely because the base package needs one.
 
 Preferred path:
 
-1. Move shared Rizom site core into a publishable `@brains/site-rizom` base package with a clean public dependency story.
-2. Move each site into a thin monorepo package that extends the base package.
-3. Make the base package and each per-site package publishable.
-4. Publish them with the normal monorepo release flow.
-5. Teach hosted-rover to install the exact per-site package version alongside the pinned Rover/runtime version. Package managers will bring the compatible base package version through normal dependency resolution.
-6. Keep generated `brain.yaml` shaped as package refs from day one.
+1. Move shared Rizom site core into a publishable `@brains/site-rizom` base package with a clean public dependency and type story.
+2. Define the `@brains/site-rizom` public API at the source layer: runtime site/plugin contracts, authoring helpers, route/content definition types, and actual UI prop types. Generated declarations should verify this API; they should not be patched by hand-written declaration blobs.
+3. Move each site into a thin monorepo package that extends the base package.
+4. For each per-site package, prove whether source publishing is self-contained before choosing a build artifact. Start with the smallest JSX-runtime/package-metadata fix for TSX source packages.
+5. Make the base package and each per-site package publishable.
+6. Publish them with the normal monorepo release flow.
+7. Teach hosted-rover to install the exact per-site package version alongside the pinned Rover/runtime version. Package managers will bring the compatible base package version through normal dependency resolution.
+8. Keep generated `brain.yaml` shaped as package refs from day one.
 
 The bridge — bundling Rizom site packages into the current published runtime/image — is only a fallback if the package install path blocks Phase 1. If used, it must be documented as temporary and removed in a follow-up phase.
 

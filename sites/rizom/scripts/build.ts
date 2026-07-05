@@ -1,8 +1,32 @@
+import { readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
 const packageDir = join(import.meta.dir, "..");
 const distDir = join(packageDir, "dist");
+
+const internalDeclarationSpecifierPattern =
+  /(?:@brains\/[\w-]+(?:\/[\w./-]+)?|@rizom\/ui(?:\/[\w./-]+)?)/g;
+
+function findInternalDeclarationImports(declaration: string): string[] {
+  return [
+    ...new Set(declaration.match(internalDeclarationSpecifierPattern) ?? []),
+  ].sort();
+}
+
+function formatDeclarationLeakError(
+  declarationPath: string,
+  leakedImports: string[],
+): string {
+  return [
+    "Generated declaration 'index.d.ts' leaks internal site-rizom imports:",
+    ...leakedImports.map((specifier) => `- ${specifier}`),
+    "",
+    `Declaration file: ${declarationPath}`,
+    "",
+    "Inline the source-owned public contract or remove the public export that exposes it.",
+  ].join("\n");
+}
 
 await rm(distDir, { recursive: true, force: true });
 
@@ -24,11 +48,36 @@ if (!result.success) {
   process.exit(1);
 }
 
-await Bun.write(
-  join(distDir, "index.d.ts"),
+const declarationPath = join(distDir, "index.d.ts");
+const declarationProcess = Bun.spawn(
   [
-    'export * from "../src/index";',
-    'export { default } from "../src/index";',
-    "",
-  ].join("\n"),
+    "bun",
+    "x",
+    "rollup",
+    "-c",
+    join(import.meta.dir, "bundle-declarations.mjs"),
+  ],
+  {
+    cwd: packageDir,
+    env: {
+      ...process.env,
+      INPUT: join(packageDir, "src/index.ts"),
+      OUTPUT: declarationPath,
+    },
+    stdout: "inherit",
+    stderr: "inherit",
+  },
 );
+
+const declarationExitCode = await declarationProcess.exited;
+if (declarationExitCode !== 0) {
+  console.error("Declaration generation failed for @brains/site-rizom");
+  process.exit(1);
+}
+
+const declaration = readFileSync(declarationPath, "utf8");
+const leakedImports = findInternalDeclarationImports(declaration);
+if (leakedImports.length > 0) {
+  console.error(formatDeclarationLeakError(declarationPath, leakedImports));
+  process.exit(1);
+}

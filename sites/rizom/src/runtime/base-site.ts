@@ -1,4 +1,4 @@
-import type { SitePackage } from "@brains/site-composition";
+import type { SitePackage } from "../contracts";
 import { DefaultRizomLayout } from "./default-layout";
 import { rizomRuntimeStaticAssets, RizomRuntimePlugin } from "./plugin";
 

@@ -1,0 +1,8 @@
+import { createSiteContentTemplates as createInternalSiteContentTemplates } from "@brains/site-composition";
+import type { SiteContentDefinition, Template } from "./contracts";
+
+export function createSiteContentTemplates(
+  definition: SiteContentDefinition,
+): Record<string, Template> {
+  return createInternalSiteContentTemplates(definition);
+}

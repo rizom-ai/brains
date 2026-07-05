@@ -1,21 +1,17 @@
 import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
-  IShell,
-  PluginCapabilities,
-  PluginRegistrationContext,
-} from "@brains/plugins";
+  RizomPluginCapabilities,
+  RizomRuntimeConfig,
+  RizomSiteShell,
+  RizomThemeProfile,
+} from "../contracts";
 import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
 import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };
 import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 
-export type RizomThemeProfile = "product" | "editorial" | "studio";
-
-export interface RizomRuntimeConfig {
-  themeProfile?: RizomThemeProfile;
-  theme?: string;
-}
+export type { RizomRuntimeConfig, RizomThemeProfile } from "../contracts";
 
 const THEME_PROFILES = new Set<string>(["product", "editorial", "studio"]);
 
@@ -79,14 +75,14 @@ export class RizomRuntimePlugin {
   }
 
   async register(
-    shell: IShell,
-    _context?: PluginRegistrationContext,
-  ): Promise<PluginCapabilities> {
+    shell: RizomSiteShell,
+    _context?: unknown,
+  ): Promise<RizomPluginCapabilities> {
     await this.onRegister(shell);
     return { tools: [], resources: [] };
   }
 
-  protected async onRegister(shell: IShell): Promise<void> {
+  protected async onRegister(shell: RizomSiteShell): Promise<void> {
     const themeProfile = this.getThemeProfile();
     const canvasPath = this.getCanvasPath(themeProfile);
     const messaging = shell.getMessageBus();

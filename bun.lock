@@ -1881,6 +1881,8 @@
         "@rizom/ui": "workspace:*",
         "@types/bun": "latest",
         "eslint": "^8.56.0",
+        "rollup": "^4.60.2",
+        "rollup-plugin-dts": "^6.4.1",
         "typescript": "^5.3.3",
       },
     },

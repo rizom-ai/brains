@@ -1,12 +1,13 @@
-import type { DataSource, IShell } from "@brains/plugins";
-import {
-  extendSite,
-  type RouteDefinitionInput,
-  type SitePackage,
-} from "@brains/site-composition";
-import type { Template } from "@brains/templates";
 import rizomBaseSite from ".";
-import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
+import type {
+  DataSource,
+  RizomSiteShell,
+  RizomThemeProfile,
+  RouteDefinitionInput,
+  SitePackage,
+  Template,
+} from "./contracts";
+import { RizomRuntimePlugin } from "./runtime/plugin";
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
   constructor(
@@ -19,7 +20,7 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
     super(packageName, config);
   }
 
-  protected override async onRegister(shell: IShell): Promise<void> {
+  protected override async onRegister(shell: RizomSiteShell): Promise<void> {
     await super.onRegister(shell);
     shell.registerTemplates(this.extraTemplates, this.contentNamespace);
     for (const dataSource of this.dataSources) {
@@ -54,10 +55,11 @@ export function createRizomSite(
       options.dataSources,
     );
 
-  return extendSite(rizomBaseSite, {
-    layouts: { default: options.layout },
-    routes: options.routes,
+  return {
+    ...rizomBaseSite,
+    layouts: { ...rizomBaseSite.layouts, default: options.layout },
+    routes: [...rizomBaseSite.routes, ...options.routes],
     plugin,
     ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),
-  });
+  };
 }
