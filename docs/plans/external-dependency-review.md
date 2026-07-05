@@ -1262,7 +1262,10 @@ SWOT/topic/project schema/domain contracts while keeping frontmatter schemas
 object-preserving for adapter registration. The first brain-model batch enabled
 `isolatedDeclarations` for `@brains/ranger` and `@brains/rover`, replacing
 inferred default exports with explicit `BrainDefinition` constants and annotating
-Rover's profile-extension config schema. The package-fixture pass enabled
+Rover's profile-extension config schema. The next brain-model follow-up enabled
+`isolatedDeclarations` for `@brains/relay`, adding explicit Relay site/home
+content schema contracts and replacing its inferred default export with a named
+`BrainDefinition`. The package-fixture pass enabled
 `isolatedDeclarations` for `@rizom/brain`'s external plugin, brain definition,
 and site authoring compile fixtures so the public authoring examples exercise
 declaration-safe contracts too. The next test-app pass enabled

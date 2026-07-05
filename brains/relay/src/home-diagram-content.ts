@@ -1,30 +1,85 @@
 import { z } from "@brains/utils/zod-v4";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 
-const ctaLinkSchema = z.object({
+interface CtaLink {
+  label: string;
+  href: string;
+}
+
+interface DiagramNode {
+  label: string;
+  title: string;
+  detail: string;
+}
+
+interface DiagramCore {
+  eyebrow: string;
+  name: string;
+  sub: string;
+}
+
+interface DiagramLegendItem {
+  tone: "capture" | "synthesis" | "share";
+  title: string;
+  text: string;
+}
+
+export interface RelayHomeCounts {
+  captures: number;
+  links: number;
+  topics: number;
+  summaries: number;
+  peers: number;
+}
+
+export interface RelayDiagramBaseContent {
+  eyebrow: string;
+  headline: string;
+  intro: string;
+  primaryCta: CtaLink;
+  secondaryCta: CtaLink;
+  inputs: DiagramNode[];
+  outputs: DiagramNode[];
+  core: DiagramCore;
+  legend: DiagramLegendItem[];
+}
+
+export interface RelayDiagramContent extends RelayDiagramBaseContent {
+  counts: RelayHomeCounts;
+}
+
+const ctaLinkSchema: z.ZodType<CtaLink> = z.object({
   label: z.string(),
   href: z.string(),
 });
 
-const diagramNodeSchema = z.object({
+const diagramNodeSchema: z.ZodType<DiagramNode> = z.object({
   label: z.string(),
   title: z.string(),
   detail: z.string(),
 });
 
-const diagramCoreSchema = z.object({
+const diagramCoreSchema: z.ZodType<DiagramCore> = z.object({
   eyebrow: z.string(),
   name: z.string(),
   sub: z.string(),
 });
 
-const diagramLegendItemSchema = z.object({
+const diagramLegendItemSchema: z.ZodType<DiagramLegendItem> = z.object({
   tone: z.enum(["capture", "synthesis", "share"]),
   title: z.string(),
   text: z.string(),
 });
 
-export const relayHomeCountsSchema = z.object({
+type RelayHomeCountsSchema = z.ZodObject<{
+  captures: z.ZodNumber;
+  links: z.ZodNumber;
+  topics: z.ZodNumber;
+  summaries: z.ZodNumber;
+  peers: z.ZodNumber;
+}>;
+
+export const relayHomeCountsSchema: RelayHomeCountsSchema = z.object({
   captures: z.number(),
   links: z.number(),
   topics: z.number(),
@@ -32,27 +87,38 @@ export const relayHomeCountsSchema = z.object({
   peers: z.number(),
 });
 
-export const relayDiagramBaseContentSchema = z.object({
-  eyebrow: z.string(),
-  headline: z.string(),
-  intro: z.string(),
-  primaryCta: ctaLinkSchema,
-  secondaryCta: ctaLinkSchema,
-  inputs: z.array(diagramNodeSchema).min(1),
-  outputs: z.array(diagramNodeSchema).min(1),
-  core: diagramCoreSchema,
-  legend: z.array(diagramLegendItemSchema).min(1),
-});
+type RelayDiagramBaseContentSchema = z.ZodObject<{
+  eyebrow: z.ZodString;
+  headline: z.ZodString;
+  intro: z.ZodString;
+  primaryCta: z.ZodType<CtaLink>;
+  secondaryCta: z.ZodType<CtaLink>;
+  inputs: z.ZodArray<z.ZodType<DiagramNode>>;
+  outputs: z.ZodArray<z.ZodType<DiagramNode>>;
+  core: z.ZodType<DiagramCore>;
+  legend: z.ZodArray<z.ZodType<DiagramLegendItem>>;
+}>;
 
-export const relayDiagramContentSchema = relayDiagramBaseContentSchema.extend({
+export const relayDiagramBaseContentSchema: RelayDiagramBaseContentSchema =
+  z.object({
+    eyebrow: z.string(),
+    headline: z.string(),
+    intro: z.string(),
+    primaryCta: ctaLinkSchema,
+    secondaryCta: ctaLinkSchema,
+    inputs: z.array(diagramNodeSchema).min(1),
+    outputs: z.array(diagramNodeSchema).min(1),
+    core: diagramCoreSchema,
+    legend: z.array(diagramLegendItemSchema).min(1),
+  });
+
+export const relayDiagramContentSchema: ReturnType<
+  typeof relayDiagramBaseContentSchema.extend<{
+    counts: RelayHomeCountsSchema;
+  }>
+> = relayDiagramBaseContentSchema.extend({
   counts: relayHomeCountsSchema,
 });
-
-export type RelayDiagramBaseContent = z.output<
-  typeof relayDiagramBaseContentSchema
->;
-export type RelayDiagramContent = z.output<typeof relayDiagramContentSchema>;
-export type RelayHomeCounts = z.output<typeof relayHomeCountsSchema>;
 
 export const RELAY_HOME_DIAGRAM_FALLBACK: RelayDiagramBaseContent = {
   eyebrow: "A team brain, diagrammed",
@@ -119,9 +185,8 @@ export const RELAY_HOME_DIAGRAM_FALLBACK: RelayDiagramBaseContent = {
   ],
 };
 
-export const relayDiagramFormatter = new StructuredContentFormatter(
-  relayDiagramBaseContentSchema,
-  {
+export const relayDiagramFormatter: StructuredContentFormatter<RelayDiagramBaseContent> =
+  new StructuredContentFormatter(relayDiagramBaseContentSchema, {
     title: "Home diagram",
     mappings: [
       { key: "eyebrow", label: "Eyebrow", type: "string" },
@@ -189,8 +254,7 @@ export const relayDiagramFormatter = new StructuredContentFormatter(
         ],
       },
     ],
-  },
-);
+  });
 
 export function parseRelayDiagramContent(
   content: string,
