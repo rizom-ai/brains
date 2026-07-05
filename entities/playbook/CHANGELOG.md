@@ -1,5 +1,14 @@
 # @brains/playbook
 
+## 0.2.0-alpha.138
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.138
+  - @brains/utils@0.2.0-alpha.138
+  - @brains/plugins@0.2.0-alpha.138
+
 ## 0.2.0-alpha.137
 
 ### Patch Changes
