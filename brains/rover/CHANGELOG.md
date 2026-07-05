@@ -1,5 +1,54 @@
 # @brains/rover
 
+## 0.2.0-alpha.139
+
+### Patch Changes
+
+- [`8b4587d`](https://github.com/rizom-ai/brains/commit/8b4587db69aac48b8f6966028c953d16225d681b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Clarify note capture and conservative cross-reference guidance for Rover eval stability.
+
+- Updated dependencies []:
+  - @brains/chat@0.2.0-alpha.139
+  - @brains/discord@0.2.0-alpha.139
+  - @brains/app@0.2.0-alpha.139
+  - @brains/blog@0.2.0-alpha.139
+  - @brains/decks@0.2.0-alpha.139
+  - @brains/link@0.2.0-alpha.139
+  - @brains/note@0.2.0-alpha.139
+  - @brains/portfolio@0.2.0-alpha.139
+  - @brains/agent-discovery@0.2.0-alpha.139
+  - @brains/assessment@0.2.0-alpha.139
+  - @brains/document-plugin@0.2.0-alpha.139
+  - @brains/image-plugin@0.2.0-alpha.139
+  - @brains/playbook@0.2.0-alpha.139
+  - @brains/prompt@0.2.0-alpha.139
+  - @brains/rizom-ecosystem@0.2.0-alpha.139
+  - @brains/series@0.2.0-alpha.139
+  - @brains/site-info@0.2.0-alpha.139
+  - @brains/social-media@0.2.0-alpha.139
+  - @brains/topics@0.2.0-alpha.139
+  - @brains/wishlist@0.2.0-alpha.139
+  - @brains/a2a@0.2.0-alpha.139
+  - @brains/mcp@0.2.0-alpha.139
+  - @brains/web-chat@0.2.0-alpha.139
+  - @brains/webserver@0.2.0-alpha.139
+  - @brains/analytics@0.2.0-alpha.139
+  - @brains/atproto@0.2.0-alpha.139
+  - @brains/cms@0.2.0-alpha.139
+  - @brains/content-pipeline@0.2.0-alpha.139
+  - @brains/dashboard@0.2.0-alpha.139
+  - @brains/directory-sync@0.2.0-alpha.139
+  - @brains/email-resend@0.2.0-alpha.139
+  - @brains/newsletter@0.2.0-alpha.139
+  - @brains/notifications@0.2.0-alpha.139
+  - @brains/obsidian-vault@0.2.0-alpha.139
+  - @brains/playbooks@0.2.0-alpha.139
+  - @brains/rover-onboarding@0.2.0-alpha.139
+  - @brains/site-builder-plugin@0.2.0-alpha.139
+  - @brains/stock-photo@0.2.0-alpha.139
+  - @brains/theme-default@0.2.0-alpha.139
+  - @brains/auth-service@0.2.0-alpha.139
+  - @brains/site-default@0.2.0-alpha.139
+
 ## 0.2.0-alpha.138
 
 ### Patch Changes
