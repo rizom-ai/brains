@@ -6,16 +6,20 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const PRODUCT_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const PRODUCT_PRINTABLE_TEMPLATE_NAME = "products:product-printable";
 
-export const productPrintableTemplateSchema = z.object({
-  name: z.string().min(1),
-  availability: z.string().optional(),
-  body: z.string(),
-  brandLabel: z.string().optional(),
-});
+export interface ProductPrintableTemplateData {
+  name: string;
+  availability?: string | undefined;
+  body: string;
+  brandLabel?: string | undefined;
+}
 
-export type ProductPrintableTemplateData = z.output<
-  typeof productPrintableTemplateSchema
->;
+export const productPrintableTemplateSchema: z.ZodType<ProductPrintableTemplateData> =
+  z.object({
+    name: z.string().min(1),
+    availability: z.string().optional(),
+    body: z.string(),
+    brandLabel: z.string().optional(),
+  });
 
 export const productPrintableTemplate: MediaPageTemplate = {
   name: PRODUCT_PRINTABLE_TEMPLATE_NAME,

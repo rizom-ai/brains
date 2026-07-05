@@ -151,9 +151,10 @@ export class ProductsPlugin extends EntityPlugin<
   ProductsConfig,
   ProductsConfigInput
 > {
-  readonly entityType = productAdapter.entityType;
-  readonly schema = productSchema;
-  readonly adapter = productAdapter;
+  readonly entityType: typeof productAdapter.entityType =
+    productAdapter.entityType;
+  readonly schema: typeof productSchema = productSchema;
+  readonly adapter: typeof productAdapter = productAdapter;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
 
