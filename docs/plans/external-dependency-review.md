@@ -1265,7 +1265,10 @@ inferred default exports with explicit `BrainDefinition` constants and annotatin
 Rover's profile-extension config schema. The package-fixture pass enabled
 `isolatedDeclarations` for `@rizom/brain`'s external plugin, brain definition,
 and site authoring compile fixtures so the public authoring examples exercise
-declaration-safe contracts too.
+declaration-safe contracts too. The next test-app pass enabled
+`isolatedDeclarations` for Rover and Relay preset test-app tsconfigs, with
+explicit Relay local-site override declarations for the authored `src/site.ts`
+fixtures.
 Drizzle-backed service packages such as `@brains/conversation-service` remain
 separate follow-ups, in the same bucket as the earlier `@brains/runtime-state`
 table annotation issue.
