@@ -1262,7 +1262,10 @@ SWOT/topic/project schema/domain contracts while keeping frontmatter schemas
 object-preserving for adapter registration. The first brain-model batch enabled
 `isolatedDeclarations` for `@brains/ranger` and `@brains/rover`, replacing
 inferred default exports with explicit `BrainDefinition` constants and annotating
-Rover's profile-extension config schema.
+Rover's profile-extension config schema. The package-fixture pass enabled
+`isolatedDeclarations` for `@rizom/brain`'s external plugin, brain definition,
+and site authoring compile fixtures so the public authoring examples exercise
+declaration-safe contracts too.
 Drizzle-backed service packages such as `@brains/conversation-service` remain
 separate follow-ups, in the same bucket as the earlier `@brains/runtime-state`
 table annotation issue.

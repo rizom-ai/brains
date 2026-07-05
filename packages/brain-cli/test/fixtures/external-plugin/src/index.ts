@@ -60,12 +60,16 @@ const exampleEntityAdapter: EntityAdapter<ExampleEntity, { title: string }> = {
   getBodyTemplate: () => "",
 };
 
-const configSchema = z.object({
-  greeting: z.optional(z.string()),
-});
+interface ExamplePluginConfig {
+  greeting?: string | undefined;
+}
 
-type ExamplePluginConfig = z.output<typeof configSchema>;
-type ExamplePluginConfigInput = z.input<typeof configSchema>;
+type ExamplePluginConfigInput = ExamplePluginConfig;
+
+const configSchema: z.ZodType<ExamplePluginConfig, ExamplePluginConfigInput> =
+  z.object({
+    greeting: z.optional(z.string()),
+  });
 
 const extensionMetadata = ExtensionMetadataSchema.parse({ source: "fixture" });
 
@@ -92,9 +96,9 @@ export class ExampleEntityPlugin extends EntityPlugin<
   Record<string, never>,
   Record<string, never>
 > {
-  readonly entityType = "example";
-  readonly schema = exampleEntitySchema;
-  readonly adapter = exampleEntityAdapter;
+  readonly entityType = "example" as const;
+  readonly schema: typeof exampleEntitySchema = exampleEntitySchema;
+  readonly adapter: typeof exampleEntityAdapter = exampleEntityAdapter;
 
   constructor() {
     super("example-entity", packageJson, {}, z.object({}));
