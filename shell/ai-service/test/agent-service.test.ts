@@ -2079,7 +2079,7 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalledTimes(1);
     });
 
-    it("leaves pending confirmation untouched and queues unauthorized topic changes", async () => {
+    it("leaves pending confirmation untouched and rejects unauthorized bystander messages", async () => {
       setupConfirmationResponse("Please confirm deleting the note.");
 
       const service = AgentService.createFresh(
@@ -2107,7 +2107,10 @@ describe("AgentService", () => {
         steps: [],
         usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
       };
-      const bobResponse = service.chat(
+      // Bob is not authorized to resolve the anchor's pending confirmation, so
+      // his message is rejected promptly rather than held in the serialized
+      // queue — no generation runs for him and the pending action is intact.
+      const bobResponse = await service.chat(
         "tell me something else",
         "test-conversation",
         {
@@ -2121,8 +2124,13 @@ describe("AgentService", () => {
           },
         },
       );
-      await delay(5);
 
+      expect(bobResponse.text).toBe(
+        "A pending action is awaiting confirmation. Please try again once it has been resolved.",
+      );
+      expect(bobResponse.pendingConfirmations?.map(({ id }) => id)).toEqual([
+        "approval:call-1",
+      ]);
       expect(mockGenerate).toHaveBeenCalledTimes(1);
 
       const cancelResponse = await service.confirmPendingAction(
@@ -2140,11 +2148,9 @@ describe("AgentService", () => {
           },
         },
       );
-      const queuedResponse = await bobResponse;
 
       expect(cancelResponse.text).toContain("cancelled");
-      expect(queuedResponse.text).toBe("answer for bob");
-      expect(mockGenerate).toHaveBeenCalledTimes(2);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
     });
 
     it("declines for an authorized queued message when the previous turn asks for confirmation", async () => {
@@ -2396,6 +2402,104 @@ describe("AgentService", () => {
       ]);
       expect(deleteHandler).not.toHaveBeenCalled();
 
+      const anchorResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-anchor-alice",
+            canonicalId: "alice",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+
+      expect(anchorResponse.text).toBe(
+        "Completed: Delete note 'Meeting Notes'",
+      );
+      expect(deleteHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns promptly for a bystander message during a pending confirmation without stalling the queue", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "anchor",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock((level) =>
+        level === "anchor" ? [{ pluginId: "test", tool: deleteTool }] : [],
+      );
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        actor: {
+          actorId: "eval-anchor-alice",
+          canonicalId: "alice",
+          interfaceType: "evaluation",
+          role: "user",
+        },
+      });
+
+      // A public bystander sends an arbitrary (non-yes/no) message while a
+      // confirmation is pending. It must not block the serialized queue while
+      // waiting for the anchor to resolve the pending action.
+      const bystander = service.chat(
+        "what's the weather?",
+        "test-conversation",
+        {
+          userPermissionLevel: "public",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-public-bob",
+            canonicalId: "bob",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+
+      const timeout = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error("bystander chat stalled the queue")),
+          1000,
+        );
+      });
+
+      const bystanderResponse = (await Promise.race([
+        bystander,
+        timeout,
+      ])) as Awaited<typeof bystander>;
+
+      // The bystander gets an informative response and the confirmation is
+      // left intact for the authorized actor.
+      expect(bystanderResponse.text).toBe(
+        "A pending action is awaiting confirmation. Please try again once it has been resolved.",
+      );
+      expect(
+        bystanderResponse.pendingConfirmations?.map(({ id }) => id),
+      ).toEqual(["approval:call-1"]);
+      expect(deleteHandler).not.toHaveBeenCalled();
+
+      // The anchor can still confirm afterward through the serialized queue.
       const anchorResponse = await service.confirmPendingAction(
         "test-conversation",
         true,

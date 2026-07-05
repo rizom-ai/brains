@@ -546,10 +546,15 @@ export class AgentService implements IAgentService {
             );
           }
         } else {
-          await waitFor(
-            actor,
-            (snapshot) => !snapshot.matches("awaitingConfirmation"),
-          );
+          // A caller who is not authorized for any pending confirmation cannot
+          // resolve it and must not implicitly decline someone else's action.
+          // Return promptly so the serialized queue stays free for the actor
+          // who can confirm; the pending action is left intact.
+          return {
+            text: "A pending action is awaiting confirmation. Please try again once it has been resolved.",
+            pendingConfirmations,
+            usage: emptyUsage,
+          };
         }
       }
 
@@ -584,6 +589,24 @@ export class AgentService implements IAgentService {
    * Confirm or cancel a pending approval-gated action
    */
   public async confirmPendingAction(
+    conversationId: string,
+    confirmed: boolean,
+    approvalId: string,
+    context: ChatContext,
+  ): Promise<AgentResponse> {
+    // Route through the serialized queue so confirmations cannot race an
+    // in-flight chat() operation on the same conversation actor.
+    return this.enqueueConversationOperation(conversationId, () =>
+      this.runConfirmPendingAction(
+        conversationId,
+        confirmed,
+        approvalId,
+        context,
+      ),
+    );
+  }
+
+  private async runConfirmPendingAction(
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
