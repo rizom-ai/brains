@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { NewsletterPlugin } from "../src/plugin";
+import { NewsletterPlugin } from "../src/entity/plugin";
 
 describe("NewsletterPlugin - Publish Pipeline Integration", () => {
   it("declares newsletter publish statuses", async () => {

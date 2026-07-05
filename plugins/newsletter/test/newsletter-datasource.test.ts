@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { NewsletterDataSource } from "../src/datasources/newsletter-datasource";
-import { newsletterDetailSchema } from "../src/templates/newsletter-detail";
-import { newsletterListSchema } from "../src/templates/newsletter-list";
-import type { Newsletter } from "../src/schemas/newsletter";
+import { NewsletterDataSource } from "../src/entity/datasources/newsletter-datasource";
+import { newsletterDetailSchema } from "../src/entity/templates/newsletter-detail";
+import { newsletterListSchema } from "../src/entity/templates/newsletter-list";
+import type { Newsletter } from "../src/entity/schemas/newsletter";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {

@@ -10,7 +10,6 @@
     "@brains/decks": "0.2.0",
     "@brains/image-plugin": "0.2.0",
     "@brains/link": "0.2.0",
-    "@brains/newsletter-entity": "0.2.0",
     "@brains/note": "0.2.0",
     "@brains/portfolio": "0.2.0",
     "@brains/products": "0.2.0",
@@ -30,7 +29,6 @@
     "@brains/layout-professional": "0.2.0",
     "@rizom/brain": "0.2.0",
     "@brains/analytics": "0.2.0",
-    "@brains/buttondown": "0.2.0",
     "@brains/content-pipeline": "0.2.0",
     "@brains/dashboard": "0.2.0",
     "@brains/directory-sync": "0.2.0",
@@ -104,7 +102,6 @@
     "@brains/atproto-contracts": "0.2.0-alpha.94",
     "@brains/runtime-state": "0.2.0-alpha.123",
     "@brains/chat": "0.2.0-alpha.78",
-    "@brains/playbook": "0.2.0-alpha.107",
     "@brains/playbooks": "0.2.0-alpha.107",
     "@brains/rover-onboarding": "0.2.0-alpha.133"
   },

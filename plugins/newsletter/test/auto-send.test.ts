@@ -5,8 +5,8 @@ import {
   mockFetch,
 } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
-import { ButtondownClient } from "../src/lib/buttondown-client";
-import { ButtondownPlugin } from "../src/plugin";
+import { ButtondownClient } from "../src/provider/lib/buttondown-client";
+import { ButtondownPlugin } from "../src/provider/plugin";
 
 const originalFetch = globalThis.fetch;
 
@@ -33,7 +33,8 @@ describe("Newsletter Auto-Send on Publish", () => {
         });
       });
 
-      const { handlePublishCompleted } = await import("../src/publish-handler");
+      const { handlePublishCompleted } =
+        await import("../src/provider/publish-handler");
 
       const mockEntityService = createMockEntityService();
       spyOn(mockEntityService, "getEntity").mockResolvedValue({
@@ -74,7 +75,8 @@ describe("Newsletter Auto-Send on Publish", () => {
     });
 
     it("should skip non-post entity types", async () => {
-      const { handlePublishCompleted } = await import("../src/publish-handler");
+      const { handlePublishCompleted } =
+        await import("../src/provider/publish-handler");
 
       const mockEntityService = createMockEntityService();
 
@@ -100,7 +102,8 @@ describe("Newsletter Auto-Send on Publish", () => {
     });
 
     it("should handle missing post gracefully", async () => {
-      const { handlePublishCompleted } = await import("../src/publish-handler");
+      const { handlePublishCompleted } =
+        await import("../src/provider/publish-handler");
 
       const mockEntityService = createMockEntityService();
 
@@ -133,7 +136,8 @@ describe("Newsletter Auto-Send on Publish", () => {
         }),
       );
 
-      const { handlePublishCompleted } = await import("../src/publish-handler");
+      const { handlePublishCompleted } =
+        await import("../src/provider/publish-handler");
 
       const mockEntityService = createMockEntityService();
       spyOn(mockEntityService, "getEntity").mockResolvedValue({

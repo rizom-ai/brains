@@ -57,7 +57,7 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 
 ## Entities (EntityPlugin — content type definitions)
 
-Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`.
+Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`. If an entity type has exactly one operating service plugin and is not independently reused, it may live inside that service plugin as a compound package under `plugins/` instead of appearing here.
 
 | Package                        | Purpose                                                           |
 | ------------------------------ | ----------------------------------------------------------------- |
@@ -71,7 +71,6 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/conversation-memory` | Conversation summaries, decisions, and action items               |
 | `entities/social-media`        | Social media posts                                                |
 | `entities/wishlist`            | Feature request tracking                                          |
-| `entities/newsletter`          | Email newsletters                                                 |
 | `entities/image`               | AI-generated images                                               |
 | `entities/series`              | Derived from posts                                                |
 | `entities/prompt`              | Editable AI prompts                                               |
@@ -91,8 +90,8 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 | `plugins/site-builder`     | SSR static site generation                                       |
 | `plugins/cms`              | Browser authoring routes + CMS config                            |
 | `plugins/content-pipeline` | Publish orchestration, scheduling                                |
-| `plugins/buttondown`       | Buttondown subscriber + newsletter                               |
-| `plugins/newsletter`       | Composite plugin bundling the newsletter entity + buttondown     |
+| `plugins/newsletter`       | Compound newsletter entity + Buttondown-backed service           |
+| `plugins/playbooks`        | Compound playbook entity + runtime orchestration service         |
 | `plugins/analytics`        | Cloudflare analytics + query tool                                |
 | `plugins/dashboard`        | Widget system                                                    |
 | `plugins/directory-sync`   | File + git sync                                                  |

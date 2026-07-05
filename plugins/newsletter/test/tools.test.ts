@@ -5,7 +5,7 @@ import {
   expectError,
 } from "@brains/plugins/test";
 import { mockFetch } from "@brains/test-utils";
-import { ButtondownPlugin } from "../src/plugin";
+import { ButtondownPlugin } from "../src/provider/plugin";
 
 // Save original fetch to restore after tests
 const originalFetch = globalThis.fetch;

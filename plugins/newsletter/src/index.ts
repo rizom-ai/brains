@@ -1,7 +1,31 @@
 import type { Plugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { newsletterPlugin } from "@brains/newsletter-entity";
-import { buttondownPlugin } from "@brains/buttondown";
+import { newsletterPlugin } from "./entity";
+import { buttondownPlugin } from "./provider";
+
+export { NewsletterPlugin, newsletterPlugin } from "./entity";
+export type {
+  Newsletter,
+  NewsletterMetadata,
+  NewsletterStatus,
+  CreateNewsletterInput,
+} from "./entity";
+export {
+  newsletterSchema,
+  newsletterMetadataSchema,
+  newsletterStatusSchema,
+  createNewsletter,
+} from "./entity";
+export { ButtondownPlugin, buttondownPlugin } from "./provider";
+export { ButtondownClient } from "./provider";
+export type {
+  Subscriber,
+  SubscriberType,
+  CreateSubscriberInput,
+  ButtondownEmail,
+  EmailStatus,
+  CreateEmailInput,
+} from "./provider";
 
 /**
  * Composite config for the newsletter feature.

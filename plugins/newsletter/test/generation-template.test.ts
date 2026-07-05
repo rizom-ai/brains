@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   newsletterGenerationSchema,
   generationTemplate,
-} from "../src/templates/generation-template";
+} from "../src/entity/templates/generation-template";
 
 describe("Newsletter Generation Template", () => {
   describe("schema validation", () => {

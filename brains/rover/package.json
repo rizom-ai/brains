@@ -51,7 +51,6 @@
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/obsidian-vault": "workspace:*",
-    "@brains/playbook": "workspace:*",
     "@brains/playbooks": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/prompt": "workspace:*",

@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   newsletterListSchema,
   newsletterListTemplate,
-} from "../src/templates/newsletter-list";
+} from "../src/entity/templates/newsletter-list";
 
 describe("Newsletter List Template", () => {
   describe("schema validation", () => {

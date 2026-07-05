@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { ButtondownClient } from "../src/lib/buttondown-client";
+import { ButtondownClient } from "../src/provider/lib/buttondown-client";
 import { createSilentLogger, mockFetch } from "@brains/test-utils";
 
 const originalFetch = globalThis.fetch;

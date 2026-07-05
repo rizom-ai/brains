@@ -12,7 +12,7 @@ import {
   handlePublishCompleted,
   type PublishCompletedPayload,
 } from "./publish-handler";
-import packageJson from "../package.json";
+import packageJson from "../../package.json";
 
 const buttondownConfigSchema = z.object({
   apiKey: z.string().optional().describe("Buttondown API key"),
@@ -30,7 +30,7 @@ type ButtondownConfig = z.infer<typeof buttondownConfigSchema>;
 
 /**
  * Buttondown integration plugin — subscriber management and API routes.
- * Newsletter entity management is in entities/newsletter.
+ * Newsletter entity management is in this package's entity module.
  */
 export class ButtondownPlugin extends ServicePlugin<ButtondownConfig> {
   constructor(config: Partial<ButtondownConfig> = {}) {

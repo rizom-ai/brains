@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { NewsletterAdapter } from "../src/adapters/newsletter-adapter";
-import type { Newsletter } from "../src/schemas/newsletter";
+import { NewsletterAdapter } from "../src/entity/adapters/newsletter-adapter";
+import type { Newsletter } from "../src/entity/schemas/newsletter";
 import { createTestEntity } from "@brains/test-utils";
 
 function createMockNewsletter(overrides: Partial<Newsletter> = {}): Newsletter {

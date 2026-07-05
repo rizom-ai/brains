@@ -1,13 +1,16 @@
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
   AGENT_CONTEXT_REQUEST_CHANNEL,
+  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   agentActionRequestSchema,
   agentContextRequestSchema,
+  lifecycleStarterRegistrationSchema,
   type AgentActionRequest,
   type AgentContextItem,
   type AgentContextResponse,
   type AgentResponse,
   type ActionsCard,
+  type LifecycleStarterRegistration,
 } from "@brains/contracts";
 import {
   assertValidPlaybookBody,
@@ -16,7 +19,7 @@ import {
   type PlaybookEntity as RegisteredPlaybookEntity,
   type PlaybookState,
   type PlaybookTransition,
-} from "@brains/playbook";
+} from "./entity";
 import type {
   ServicePluginContext,
   Tool,
@@ -40,8 +43,6 @@ import {
 } from "./run-store";
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
-export const PLAYBOOKS_REGISTER_LIFECYCLE_STARTER =
-  "playbooks:register-lifecycle-starter";
 
 const lifecycleConfigSchema = z
   .object({
@@ -66,18 +67,6 @@ const lifecycleStartersRequestSchema = z
     lifecycle: z.string().min(1).optional(),
     interfaceType: z.string().min(1),
     userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
-  })
-  .strict();
-
-const lifecycleStarterRegistrationSchema = z
-  .object({
-    id: z.string().min(1),
-    trigger: z.string().min(1),
-    playbookId: z.string().min(1),
-    once: z.boolean().default(true),
-    starterText: z.string().min(1),
-    description: z.string().min(1).optional(),
-    starterPrompt: z.string().min(1),
   })
   .strict();
 
@@ -122,9 +111,6 @@ const sendEventInputSchema = {
 };
 
 export type LifecyclePlaybookConfig = z.infer<typeof lifecycleConfigSchema>;
-export type LifecycleStarterRegistration = z.infer<
-  typeof lifecycleStarterRegistrationSchema
->;
 export type PlaybooksConfig = z.infer<typeof playbooksConfigSchema>;
 export type PlaybookEntity = z.infer<typeof playbookEntitySchema>;
 

@@ -19,7 +19,7 @@ import { GenerationJobHandler } from "./handlers/generation-handler";
 import { generationTemplate } from "./templates/generation-template";
 import { newsletterListTemplate } from "./templates/newsletter-list";
 import { newsletterDetailTemplate } from "./templates/newsletter-detail";
-import packageJson from "../package.json";
+import packageJson from "../../package.json";
 
 const newsletterConfigSchema = z.object({});
 type NewsletterConfig = z.infer<typeof newsletterConfigSchema>;
@@ -28,7 +28,7 @@ type NewsletterConfig = z.infer<typeof newsletterConfigSchema>;
  * Newsletter EntityPlugin — manages newsletter entities with AI generation.
  *
  * Zero tools. Newsletter CRUD goes through system_create/update/delete.
- * Subscriber management (subscribe, unsubscribe) is in plugins/buttondown.
+ * Subscriber management (subscribe, unsubscribe) is in the provider service.
  */
 export class NewsletterPlugin extends EntityPlugin<
   Newsletter,

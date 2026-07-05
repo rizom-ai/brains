@@ -7,7 +7,7 @@ import {
   type PlaybookConfig,
   type PlaybookEntity,
 } from "./schemas/playbook";
-import packageJson from "../package.json";
+import packageJson from "../../package.json";
 
 export class PlaybookPlugin extends EntityPlugin<
   PlaybookEntity,

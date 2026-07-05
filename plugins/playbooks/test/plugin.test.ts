@@ -10,7 +10,7 @@ import {
   playbookAdapter,
   type PlaybookBody,
   type PlaybookFrontmatter,
-} from "@brains/playbook";
+} from "../src";
 import { z } from "@brains/utils/zod";
 import {
   createPluginHarness,

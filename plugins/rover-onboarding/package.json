@@ -14,13 +14,13 @@
     "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
-    "@brains/playbooks": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
-    "@brains/playbook": "workspace:*",
+    "@brains/playbooks": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",

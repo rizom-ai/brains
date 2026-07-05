@@ -48,7 +48,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `deck`              | `@brains/decks`               | default, full | full        | —           | Presentation decks.                                                              |
 | `project`           | `@brains/portfolio`           | full          | —           | —           | Portfolio/case-study projects.                                                   |
 | `social-post`       | `@brains/social-media`        | full          | —           | default     | Social publishing drafts and history.                                            |
-| `newsletter`        | `@brains/newsletter-entity`   | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
+| `newsletter`        | `@brains/newsletter`          | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
 | `ecosystem-section` | `@brains/rizom-ecosystem`     | all presets   | all presets | —           | Rizom ecosystem section content block (eyebrow, headline, cards).                |
 | `product`           | `@brains/products`            | —             | —           | default     | Product detail pages.                                                            |
 | `products-overview` | `@brains/products`            | —             | —           | default     | Products landing/overview page.                                                  |
@@ -427,7 +427,7 @@ For LinkedIn, social posts support text-only posts, image posts via `coverImageI
 
 ### `newsletter`
 
-Newsletter entities store email drafts and delivery metadata. The entity type is defined in `@brains/newsletter-entity`; the `@brains/newsletter` package (`plugins/newsletter`) is a composite plugin that re-exports it alongside the generation and send workflows.
+Newsletter entities store email drafts and delivery metadata. The entity type is defined by the compound `@brains/newsletter` package (`plugins/newsletter`) alongside the generation and Buttondown send workflows.
 
 Key frontmatter:
 

@@ -3,7 +3,7 @@ import {
   GenerationJobHandler,
   generationJobSchema,
   type GenerationJobData,
-} from "../src/handlers/generation-handler";
+} from "../src/entity/handlers/generation-handler";
 
 import { createSilentLogger } from "@brains/test-utils";
 import {
@@ -18,7 +18,7 @@ import { ProgressReporter } from "@brains/utils/progress";
 import {
   newsletterMetadataSchema,
   type NewsletterMetadata,
-} from "../src/schemas/newsletter";
+} from "../src/entity/schemas/newsletter";
 
 describe("GenerationJobHandler", () => {
   let handler: GenerationJobHandler;

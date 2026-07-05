@@ -3,7 +3,7 @@ import { join } from "node:path";
 import {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   type LifecycleStarterRegistration,
-} from "@brains/playbooks";
+} from "@brains/contracts";
 import type { Plugin, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";

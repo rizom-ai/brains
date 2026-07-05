@@ -14,8 +14,8 @@
     "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/playbook": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
     "@brains/utils": "workspace:*",

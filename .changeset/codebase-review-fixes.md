@@ -1,5 +1,5 @@
 ---
-"@brains/buttondown": patch
+"@brains/newsletter": patch
 "@brains/content-pipeline": patch
 "@brains/atproto": patch
 "@brains/stock-photo": patch

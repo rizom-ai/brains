@@ -2,8 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "bun:test";
-import { playbookPlugin } from "@brains/playbook";
-import { playbooksPlugin } from "@brains/playbooks";
+import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { createPluginHarness } from "@brains/plugins/test";
 import { roverOnboardingPlugin } from "../src";
 

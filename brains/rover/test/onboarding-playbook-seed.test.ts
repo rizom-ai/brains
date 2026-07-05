@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "bun:test";
-import { playbookAdapter } from "@brains/playbook";
+import { playbookAdapter } from "@brains/playbooks";
 
 async function readOnboardingPlaybook(fileName: string): Promise<string> {
   return readFile(
