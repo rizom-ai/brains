@@ -87,6 +87,9 @@ plugins:
     expect(config.agentInstructions?.join("\n")).toContain(
       "only an isolated shared term or pattern",
     );
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "list only the strongest clear match",
+    );
   });
 
   it("treats make-one-draft follow-ups as ambiguous after an empty draft list", () => {
