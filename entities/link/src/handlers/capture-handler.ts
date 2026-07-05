@@ -12,25 +12,45 @@ import type { LinkExtractionResult } from "../templates/extraction-template";
 /**
  * Input schema for link capture job
  */
-export const linkCaptureJobSchema = z.object({
-  url: z.url(),
-  metadata: z
-    .object({
-      interfaceId: z.string().optional(),
-      userId: z.string().optional(),
-      channelId: z.string().optional(),
-      channelName: z.string().optional(),
-      timestamp: z.string().optional(),
-    })
-    .optional(),
+export interface LinkCaptureMetadata {
+  interfaceId?: string | undefined;
+  userId?: string | undefined;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  timestamp?: string | undefined;
+}
+
+export interface LinkCaptureJobData {
+  url: string;
+  metadata?: LinkCaptureMetadata | undefined;
+}
+
+const linkCaptureMetadataSchema: z.ZodType<LinkCaptureMetadata> = z.object({
+  interfaceId: z.string().optional(),
+  userId: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  timestamp: z.string().optional(),
 });
 
-export type LinkCaptureJobData = z.output<typeof linkCaptureJobSchema>;
+export const linkCaptureJobSchema: z.ZodType<LinkCaptureJobData> = z.object({
+  url: z.url(),
+  metadata: linkCaptureMetadataSchema.optional(),
+});
 
 /**
  * Result schema for link capture job
  */
-export const linkCaptureResultSchema = z.object({
+export interface LinkCaptureResult {
+  success: boolean;
+  entityId?: string | undefined;
+  title?: string | undefined;
+  url?: string | undefined;
+  status?: LinkStatus | undefined;
+  error?: string | undefined;
+}
+
+export const linkCaptureResultSchema: z.ZodType<LinkCaptureResult> = z.object({
   success: z.boolean(),
   entityId: z.string().optional(),
   title: z.string().optional(),
@@ -38,8 +58,6 @@ export const linkCaptureResultSchema = z.object({
   status: z.enum(["pending", "draft", "published"]).optional(),
   error: z.string().optional(),
 });
-
-export type LinkCaptureResult = z.output<typeof linkCaptureResultSchema>;
 
 export interface LinkCaptureJobHandlerOptions {
   jinaApiKey?: string;

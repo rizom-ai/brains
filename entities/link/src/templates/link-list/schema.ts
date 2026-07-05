@@ -1,11 +1,34 @@
 import { z } from "@brains/utils/zod-v4";
+import type { LinkStatus } from "../../schemas/link";
 
-const linkSourceSchema = z.object({
+export interface LinkSummarySource {
+  ref: string;
+  label: string;
+}
+
+export interface LinkSummary {
+  status: LinkStatus;
+  title: string;
+  url: string;
+  description?: string | undefined;
+  domain: string;
+  capturedAt: string;
+  source: LinkSummarySource;
+  id: string;
+  summary?: string | undefined;
+}
+
+export interface LinkListData {
+  links: LinkSummary[];
+  totalCount: number;
+}
+
+const linkSourceSchema: z.ZodType<LinkSummarySource> = z.object({
   ref: z.string(),
   label: z.string(),
 });
 
-const linkFrontmatterSchema = z.object({
+const linkSummarySchema: z.ZodType<LinkSummary> = z.object({
   status: z.enum(["pending", "draft", "published"]),
   title: z.string(),
   url: z.url(),
@@ -13,19 +36,12 @@ const linkFrontmatterSchema = z.object({
   domain: z.string(),
   capturedAt: z.string().datetime(),
   source: linkSourceSchema,
-});
-
-// Schema for link summary - frontmatter fields plus id
-const linkSummarySchema = linkFrontmatterSchema.extend({
   id: z.string(),
   summary: z.string().optional(),
 });
 
 // Schema for link list page data
-export const linkListSchema = z.object({
+export const linkListSchema: z.ZodType<LinkListData> = z.object({
   links: z.array(linkSummarySchema),
   totalCount: z.number(),
 });
-
-export type LinkSummary = z.output<typeof linkSummarySchema>;
-export type LinkListData = z.output<typeof linkListSchema>;

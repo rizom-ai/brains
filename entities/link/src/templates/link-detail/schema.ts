@@ -1,11 +1,35 @@
 import { z } from "@brains/utils/zod-v4";
+import type { LinkStatus } from "../../schemas/link";
 
-const linkSourceSchema = z.object({
+export interface LinkDetailSource {
+  ref: string;
+  label: string;
+}
+
+export interface LinkDetail {
+  status: LinkStatus;
+  title: string;
+  url: string;
+  description?: string | undefined;
+  domain: string;
+  capturedAt: string;
+  source: LinkDetailSource;
+  id: string;
+  summary?: string | undefined;
+}
+
+export interface LinkDetailData {
+  link: LinkDetail;
+  prevLink: LinkDetail | null;
+  nextLink: LinkDetail | null;
+}
+
+const linkSourceSchema: z.ZodType<LinkDetailSource> = z.object({
   ref: z.string(),
   label: z.string(),
 });
 
-const linkFrontmatterSchema = z.object({
+const linkDetailSchema: z.ZodType<LinkDetail> = z.object({
   status: z.enum(["pending", "draft", "published"]),
   title: z.string(),
   url: z.url(),
@@ -13,20 +37,13 @@ const linkFrontmatterSchema = z.object({
   domain: z.string(),
   capturedAt: z.string().datetime(),
   source: linkSourceSchema,
-});
-
-// Schema for link detail - frontmatter fields plus id and summary
-const linkDetailSchema = linkFrontmatterSchema.extend({
   id: z.string(),
   summary: z.string().optional(),
 });
 
 // Schema for link detail page data
-export const linkDetailDataSchema = z.object({
+export const linkDetailDataSchema: z.ZodType<LinkDetailData> = z.object({
   link: linkDetailSchema,
   prevLink: linkDetailSchema.nullable(),
   nextLink: linkDetailSchema.nullable(),
 });
-
-export type LinkDetail = z.output<typeof linkDetailSchema>;
-export type LinkDetailData = z.output<typeof linkDetailDataSchema>;

@@ -6,7 +6,17 @@ import { baseEntityParserSchema } from "@brains/plugins";
  * - ref: URI-style reference for backlinking (e.g., "matrix:!roomid:server", "mcp:stdio", "cli:local")
  * - label: Human-readable display name (e.g., "#engineering", "MCP", "CLI")
  */
-export const linkSourceSchema = z.object({
+export interface LinkSource {
+  ref: string;
+  label: string;
+}
+
+type LinkSourceSchema = z.ZodObject<{
+  ref: z.ZodString;
+  label: z.ZodString;
+}>;
+
+export const linkSourceSchema: LinkSourceSchema = z.object({
   ref: z.string(),
   label: z.string(),
 });
@@ -17,15 +27,46 @@ export const linkSourceSchema = z.object({
  * - draft: extraction complete, awaiting review/publication
  * - published: user explicitly published the link
  */
-export const linkStatusSchema = z.enum(["pending", "draft", "published"]);
+export type LinkStatus = "pending" | "draft" | "published";
 
-const linkStatusParserSchema = z.enum(["pending", "draft", "published"]);
+export const linkStatusSchema: z.ZodType<LinkStatus, LinkStatus> = z.enum([
+  "pending",
+  "draft",
+  "published",
+]);
+
+const linkStatusParserSchema: z.ZodType<LinkStatus, LinkStatus> = z.enum([
+  "pending",
+  "draft",
+  "published",
+]);
 
 /**
  * Link frontmatter schema (stored in content as YAML frontmatter)
  * Contains all structured data - the body is just the summary text
  */
-export const linkFrontmatterSchema = z.object({
+export interface LinkFrontmatter {
+  [key: string]: unknown;
+  status: LinkStatus;
+  title: string;
+  url: string;
+  description?: string | undefined;
+  domain: string;
+  capturedAt: string;
+  source: LinkSource;
+}
+
+type LinkFrontmatterSchema = z.ZodObject<{
+  status: z.ZodType<LinkStatus, LinkStatus>;
+  title: z.ZodString;
+  url: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  domain: z.ZodString;
+  capturedAt: z.ZodString;
+  source: LinkSourceSchema;
+}>;
+
+export const linkFrontmatterSchema: LinkFrontmatterSchema = z.object({
   status: linkStatusSchema,
   title: z.string(),
   url: z.string().url(),
@@ -40,26 +81,39 @@ export const linkFrontmatterSchema = z.object({
  * Only includes fields needed for fast DB queries/filtering
  * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const linkMetadataSchema = linkFrontmatterSchema.pick({
-  title: true,
-  status: true,
-});
+export interface LinkMetadata {
+  [key: string]: unknown;
+  title: string;
+  status: LinkStatus;
+}
+
+type LinkMetadataSchema = z.ZodObject<{
+  title: z.ZodString;
+  status: z.ZodType<LinkStatus, LinkStatus>;
+}>;
+
+export const linkMetadataSchema: LinkMetadataSchema =
+  linkFrontmatterSchema.pick({
+    title: true,
+    status: true,
+  });
 
 /**
  * Link entity schema
  */
-const linkEntityMetadataParserSchema = z.object({
+const linkEntityMetadataParserSchema: LinkMetadataSchema = z.object({
   title: z.string(),
   status: linkStatusParserSchema,
 });
 
-export const linkSchema = baseEntityParserSchema.extend({
+export const linkSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"link">;
+    metadata: LinkMetadataSchema;
+  }>
+> = baseEntityParserSchema.extend({
   entityType: z.literal("link"),
   metadata: linkEntityMetadataParserSchema,
 });
 
-export type LinkSource = z.output<typeof linkSourceSchema>;
-export type LinkStatus = z.output<typeof linkStatusSchema>;
-export type LinkFrontmatter = z.output<typeof linkFrontmatterSchema>;
 export type LinkEntity = z.output<typeof linkSchema>;
-export type LinkMetadata = z.output<typeof linkMetadataSchema>;

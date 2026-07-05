@@ -34,20 +34,23 @@ import { LinkCaptureJobHandler } from "./handlers/capture-handler";
 import { createLinkAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-const extractContentEvalInputSchema = z.object({
-  url: z.url(),
-});
+interface ExtractContentEvalInput {
+  url: string;
+}
 
-type ExtractContentEvalInput = z.output<typeof extractContentEvalInputSchema>;
+const extractContentEvalInputSchema: z.ZodType<ExtractContentEvalInput> =
+  z.object({
+    url: z.url(),
+  });
 
 export class LinkPlugin extends EntityPlugin<
   LinkEntity,
   LinkConfig,
   LinkConfigInput
 > {
-  readonly entityType = linkAdapter.entityType;
-  readonly schema = linkSchema;
-  readonly adapter = linkAdapter;
+  readonly entityType: typeof linkAdapter.entityType = linkAdapter.entityType;
+  readonly schema: typeof linkSchema = linkSchema;
+  readonly adapter: typeof linkAdapter = linkAdapter;
   private shell?: IShell;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
@@ -97,8 +100,7 @@ export class LinkPlugin extends EntityPlugin<
       try {
         const parsed = this.adapter.fromMarkdown(input.content);
         const parsedMetadata = parsed.metadata as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const parsedTitle =
           typeof parsedMetadata?.["title"] === "string"
             ? parsedMetadata["title"]
@@ -362,4 +364,4 @@ export function createLinkPlugin(config: LinkConfigInput = {}): Plugin {
   return new LinkPlugin(config);
 }
 
-export const linkPlugin = createLinkPlugin;
+export const linkPlugin: typeof createLinkPlugin = createLinkPlugin;
