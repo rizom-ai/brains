@@ -3,6 +3,7 @@ import {
   type BaseQuery,
   type NavigationResult,
   type PaginationInfo,
+  type EntityDataSourceConfig,
 } from "@brains/plugins";
 import type {
   BaseDataSourceContext,
@@ -21,7 +22,23 @@ export type { BlogPostWithData };
 
 type BlogPostTransformed = BlogPostWithData & { seriesUrl?: string };
 
-const blogQuerySchema = z.looseObject({
+interface BlogQuery {
+  [key: string]: unknown;
+  id?: string | undefined;
+  limit?: number | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+  baseUrl?: string | undefined;
+  latest?: boolean | undefined;
+  "metadata.seriesName"?: string | undefined;
+}
+
+interface BlogInput {
+  entityType?: string | undefined;
+  query?: BlogQuery | undefined;
+}
+
+const blogQuerySchema: z.ZodType<BlogQuery> = z.looseObject({
   id: z.string().optional(),
   limit: z.number().optional(),
   page: z.number().optional(),
@@ -31,12 +48,10 @@ const blogQuerySchema = z.looseObject({
   "metadata.seriesName": z.string().optional(),
 });
 
-const blogInputSchema = z.looseObject({
+const blogInputSchema: z.ZodType<BlogInput> = z.looseObject({
   entityType: z.string().optional(),
   query: blogQuerySchema.optional(),
 });
-
-type BlogQuery = z.output<typeof blogQuerySchema>;
 
 interface BlogDetailData {
   post: BlogPostTransformed;
@@ -71,7 +86,7 @@ export class BlogDataSource extends BaseEntityDataSource<
   readonly description =
     "Fetches and transforms blog post entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "post",
     defaultSort: [
       { field: "publishedAt" as const, direction: "desc" as const },

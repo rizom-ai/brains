@@ -33,9 +33,10 @@ export class BlogPlugin extends EntityPlugin<
   BlogConfig,
   BlogConfigInput
 > {
-  readonly entityType = blogPostAdapter.entityType;
-  readonly schema = blogPostSchema;
-  readonly adapter = blogPostAdapter;
+  readonly entityType: typeof blogPostAdapter.entityType =
+    blogPostAdapter.entityType;
+  readonly schema: typeof blogPostSchema = blogPostSchema;
+  readonly adapter: typeof blogPostAdapter = blogPostAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;

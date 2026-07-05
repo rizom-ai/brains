@@ -113,4 +113,4 @@ export class BlogPostAdapter extends BaseEntityAdapter<
 }
 
 // Create default instance
-export const blogPostAdapter = new BlogPostAdapter();
+export const blogPostAdapter: BlogPostAdapter = new BlogPostAdapter();

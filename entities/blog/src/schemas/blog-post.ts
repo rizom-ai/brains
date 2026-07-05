@@ -4,28 +4,61 @@ import { baseEntityParserSchema } from "@brains/plugins";
 /**
  * Blog post status
  */
-export const blogPostStatusSchema = z.enum([
-  "generating",
-  "draft",
-  "queued",
-  "published",
-  "failed",
-]);
-export type BlogPostStatus = z.output<typeof blogPostStatusSchema>;
+export type BlogPostStatus =
+  "generating" | "draft" | "queued" | "published" | "failed";
 
-const blogPostStatusParserSchema = z.enum([
-  "generating",
-  "draft",
-  "queued",
-  "published",
-  "failed",
-]);
+export const blogPostStatusSchema: z.ZodType<BlogPostStatus, BlogPostStatus> =
+  z.enum(["generating", "draft", "queued", "published", "failed"]);
+
+const blogPostStatusParserSchema: z.ZodType<BlogPostStatus, BlogPostStatus> =
+  z.enum(["generating", "draft", "queued", "published", "failed"]);
 
 /**
  * Blog post frontmatter schema (stored in content as YAML frontmatter)
  * Contains all blog post data for human editing
  */
-export const blogPostFrontmatterSchema = z.object({
+export interface BlogPostFrontmatter {
+  [key: string]: unknown;
+  title: string;
+  slug?: string | undefined;
+  status: BlogPostStatus;
+  publishedAt?: string | undefined;
+  excerpt: string;
+  author: string;
+  coverImageId?: string | undefined;
+  ogImageId?: string | undefined;
+  seriesName?: string | undefined;
+  seriesIndex?: number | undefined;
+  ogImage?: string | undefined;
+  ogDescription?: string | undefined;
+  twitterCard?: "summary" | "summary_large_image" | undefined;
+  canonicalUrl?: string | undefined;
+  atprotoUri?: string | undefined;
+}
+
+type TwitterCardSchema = z.ZodOptional<
+  z.ZodEnum<{ summary: "summary"; summary_large_image: "summary_large_image" }>
+>;
+
+type BlogPostFrontmatterSchema = z.ZodObject<{
+  title: z.ZodString;
+  slug: z.ZodOptional<z.ZodString>;
+  status: z.ZodType<BlogPostStatus, BlogPostStatus>;
+  publishedAt: z.ZodOptional<z.ZodString>;
+  excerpt: z.ZodString;
+  author: z.ZodString;
+  coverImageId: z.ZodOptional<z.ZodString>;
+  ogImageId: z.ZodOptional<z.ZodString>;
+  seriesName: z.ZodOptional<z.ZodString>;
+  seriesIndex: z.ZodOptional<z.ZodNumber>;
+  ogImage: z.ZodOptional<z.ZodString>;
+  ogDescription: z.ZodOptional<z.ZodString>;
+  twitterCard: TwitterCardSchema;
+  canonicalUrl: z.ZodOptional<z.ZodString>;
+  atprotoUri: z.ZodOptional<z.ZodString>;
+}>;
+
+export const blogPostFrontmatterSchema: BlogPostFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(), // Auto-generated from title if not provided
   status: blogPostStatusSchema,
@@ -44,30 +77,48 @@ export const blogPostFrontmatterSchema = z.object({
   atprotoUri: z.string().optional(),
 });
 
-export type BlogPostFrontmatter = z.output<typeof blogPostFrontmatterSchema>;
-
 /**
  * Blog post metadata schema - derived from frontmatter
  * Only includes fields needed for fast DB queries/filtering
  * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const blogPostMetadataSchema = blogPostFrontmatterSchema
-  .pick({
-    title: true,
-    status: true,
-    publishedAt: true,
-    seriesName: true,
-    seriesIndex: true,
-  })
-  .extend({
-    // slug is required in metadata (auto-generated from title if not in frontmatter)
-    slug: z.string(),
-    error: z.string().optional(),
-  });
+export interface BlogPostMetadata {
+  [key: string]: unknown;
+  title: string;
+  status: BlogPostStatus;
+  publishedAt?: string | undefined;
+  seriesName?: string | undefined;
+  seriesIndex?: number | undefined;
+  slug: string;
+  error?: string | undefined;
+}
 
-export type BlogPostMetadata = z.output<typeof blogPostMetadataSchema>;
+type BlogPostMetadataSchema = z.ZodObject<{
+  title: z.ZodString;
+  status: z.ZodType<BlogPostStatus, BlogPostStatus>;
+  publishedAt: z.ZodOptional<z.ZodString>;
+  seriesName: z.ZodOptional<z.ZodString>;
+  seriesIndex: z.ZodOptional<z.ZodNumber>;
+  slug: z.ZodString;
+  error: z.ZodOptional<z.ZodString>;
+}>;
 
-const blogPostEntityMetadataParserSchema = z.object({
+export const blogPostMetadataSchema: BlogPostMetadataSchema =
+  blogPostFrontmatterSchema
+    .pick({
+      title: true,
+      status: true,
+      publishedAt: true,
+      seriesName: true,
+      seriesIndex: true,
+    })
+    .extend({
+      // slug is required in metadata (auto-generated from title if not in frontmatter)
+      slug: z.string(),
+      error: z.string().optional(),
+    });
+
+const blogPostEntityMetadataParserSchema: BlogPostMetadataSchema = z.object({
   title: z.string(),
   status: blogPostStatusParserSchema,
   publishedAt: z.string().datetime().optional(),
@@ -77,7 +128,7 @@ const blogPostEntityMetadataParserSchema = z.object({
   error: z.string().optional(),
 });
 
-const blogPostFrontmatterParserSchema = z.object({
+const blogPostFrontmatterParserSchema: BlogPostFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(),
   status: blogPostStatusParserSchema,
@@ -88,10 +139,10 @@ const blogPostFrontmatterParserSchema = z.object({
   ogImageId: z.string().optional(),
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
-  ogImage: z.url().optional(),
+  ogImage: z.string().url().optional(),
   ogDescription: z.string().optional(),
   twitterCard: z.enum(["summary", "summary_large_image"]).optional(),
-  canonicalUrl: z.url().optional(),
+  canonicalUrl: z.string().url().optional(),
   atprotoUri: z.string().optional(),
 });
 
@@ -100,7 +151,12 @@ const blogPostFrontmatterParserSchema = z.object({
  * Content field contains markdown with frontmatter + blog post body
  * Metadata field duplicates key fields from frontmatter for fast queries
  */
-export const blogPostSchema = baseEntityParserSchema.extend({
+export const blogPostSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"post">;
+    metadata: BlogPostMetadataSchema;
+  }>
+> = baseEntityParserSchema.extend({
   entityType: z.literal("post"),
   metadata: blogPostEntityMetadataParserSchema,
 });
@@ -115,7 +171,13 @@ export type BlogPost = z.output<typeof blogPostSchema>;
  * Extends BlogPost with parsed frontmatter and body (markdown without frontmatter)
  * coverImageUrl is resolved from coverImageId and contains the actual image data URL
  */
-export const blogPostWithDataSchema = blogPostSchema.extend({
+export const blogPostWithDataSchema: ReturnType<
+  typeof blogPostSchema.extend<{
+    frontmatter: BlogPostFrontmatterSchema;
+    body: z.ZodString;
+    coverImageUrl: z.ZodOptional<z.ZodString>;
+  }>
+> = blogPostSchema.extend({
   frontmatter: blogPostFrontmatterParserSchema,
   body: z.string(),
   coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId
@@ -128,7 +190,21 @@ export type BlogPostWithData = z.output<typeof blogPostWithDataSchema>;
  * url, typeLabel, listUrl, listLabel are optional to allow validation before enrichment
  * seriesUrl is optional and only present for posts that belong to a series
  */
-export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
+export const enrichedBlogPostSchema: ReturnType<
+  typeof blogPostWithDataSchema.extend<{
+    url: z.ZodOptional<z.ZodString>;
+    typeLabel: z.ZodOptional<z.ZodString>;
+    listUrl: z.ZodOptional<z.ZodString>;
+    listLabel: z.ZodOptional<z.ZodString>;
+    seriesUrl: z.ZodOptional<z.ZodString>;
+    coverImageUrl: z.ZodOptional<z.ZodString>;
+    ogImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageWidth: z.ZodOptional<z.ZodNumber>;
+    coverImageHeight: z.ZodOptional<z.ZodNumber>;
+    coverImageSrcset: z.ZodOptional<z.ZodString>;
+    coverImageSizes: z.ZodOptional<z.ZodString>;
+  }>
+> = blogPostWithDataSchema.extend({
   url: z.string().optional(),
   typeLabel: z.string().optional(),
   listUrl: z.string().optional(),
@@ -146,7 +222,21 @@ export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
  * Template blog post schema (used for template validation)
  * All enrichment fields are required - always present after enrichment
  */
-export const templateBlogPostSchema = blogPostWithDataSchema.extend({
+export const templateBlogPostSchema: ReturnType<
+  typeof blogPostWithDataSchema.extend<{
+    url: z.ZodString;
+    typeLabel: z.ZodString;
+    listUrl: z.ZodString;
+    listLabel: z.ZodString;
+    seriesUrl: z.ZodOptional<z.ZodString>;
+    coverImageUrl: z.ZodOptional<z.ZodString>;
+    ogImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageWidth: z.ZodOptional<z.ZodNumber>;
+    coverImageHeight: z.ZodOptional<z.ZodNumber>;
+    coverImageSrcset: z.ZodOptional<z.ZodString>;
+    coverImageSizes: z.ZodOptional<z.ZodString>;
+  }>
+> = blogPostWithDataSchema.extend({
   url: z.string(),
   typeLabel: z.string(),
   listUrl: z.string(),

@@ -6,18 +6,24 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const BLOG_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const BLOG_OG_IMAGE_TEMPLATE_NAME = "blog:og-image";
 
-export const blogOgImageTemplateSchema = z.object({
-  title: z.string().min(1),
-  excerpt: z.string().optional(),
-  author: z.string().optional(),
-  publishedAt: z.string().optional(),
-  brandLabel: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-});
+export interface BlogOgImageTemplateData {
+  title: string;
+  excerpt?: string | undefined;
+  author?: string | undefined;
+  publishedAt?: string | undefined;
+  brandLabel?: string | undefined;
+  coverImageUrl?: string | undefined;
+}
 
-export type BlogOgImageTemplateData = z.output<
-  typeof blogOgImageTemplateSchema
->;
+export const blogOgImageTemplateSchema: z.ZodType<BlogOgImageTemplateData> =
+  z.object({
+    title: z.string().min(1),
+    excerpt: z.string().optional(),
+    author: z.string().optional(),
+    publishedAt: z.string().optional(),
+    brandLabel: z.string().optional(),
+    coverImageUrl: z.string().optional(),
+  });
 
 export const blogOgImageTemplate: MediaPageTemplate = {
   name: BLOG_OG_IMAGE_TEMPLATE_NAME,

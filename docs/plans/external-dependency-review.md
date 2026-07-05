@@ -1260,9 +1260,9 @@ needed. The next entity follow-up enabled `isolatedDeclarations` for
 `@brains/assessment`, `@brains/topics`, and `@brains/portfolio`, adding explicit
 SWOT/topic/project schema/domain contracts while keeping frontmatter schemas
 object-preserving for adapter registration. The next entity follow-up enabled
-`isolatedDeclarations` for `@brains/products` and `@brains/link`, adding
-explicit product/overview/link schema contracts plus typed template and
-attachment-template contracts. The first brain-model batch enabled
+`isolatedDeclarations` for `@brains/products`, `@brains/link`, and
+`@brains/blog`, adding explicit product/overview/link/blog schema contracts plus
+typed job, template, and attachment-template contracts. The first brain-model batch enabled
 `isolatedDeclarations` for `@brains/ranger` and `@brains/rover`, replacing
 inferred default exports with explicit `BrainDefinition` constants and annotating
 Rover's profile-extension config schema. The next brain-model follow-up enabled

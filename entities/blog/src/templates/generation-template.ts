@@ -4,7 +4,13 @@ import { createTemplate } from "@brains/plugins";
 /**
  * Schema for AI-generated blog post
  */
-export const blogGenerationSchema = z.object({
+export interface BlogGeneration {
+  title: string;
+  content: string;
+  excerpt: string;
+}
+
+export const blogGenerationSchema: z.ZodType<BlogGeneration> = z.object({
   title: z
     .string()
     .trim()
@@ -29,12 +35,12 @@ export const blogGenerationSchema = z.object({
     ),
 });
 
-export type BlogGeneration = z.output<typeof blogGenerationSchema>;
-
 /**
  * Template for AI-powered blog post generation
  */
-export const blogGenerationTemplate = createTemplate<BlogGeneration>({
+export const blogGenerationTemplate: ReturnType<
+  typeof createTemplate<BlogGeneration>
+> = createTemplate<BlogGeneration>({
   name: "blog:generation",
   description: "Template for AI to generate complete blog posts from prompts",
   schema: blogGenerationSchema,

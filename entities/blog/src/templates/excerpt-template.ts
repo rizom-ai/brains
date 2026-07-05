@@ -4,7 +4,11 @@ import { createTemplate } from "@brains/plugins";
 /**
  * Schema for AI-generated excerpt
  */
-export const blogExcerptSchema = z.object({
+export interface BlogExcerpt {
+  excerpt: string;
+}
+
+export const blogExcerptSchema: z.ZodType<BlogExcerpt> = z.object({
   excerpt: z
     .string()
     .describe(
@@ -12,12 +16,12 @@ export const blogExcerptSchema = z.object({
     ),
 });
 
-export type BlogExcerpt = z.output<typeof blogExcerptSchema>;
-
 /**
  * Template for AI-powered excerpt generation
  */
-export const blogExcerptTemplate = createTemplate<BlogExcerpt>({
+export const blogExcerptTemplate: ReturnType<
+  typeof createTemplate<BlogExcerpt>
+> = createTemplate<BlogExcerpt>({
   name: "blog:excerpt",
   description:
     "Template for AI to generate excerpts/summaries from blog post content",
