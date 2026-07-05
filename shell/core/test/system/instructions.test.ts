@@ -62,6 +62,21 @@ describe("system instructions", () => {
     );
   });
 
+  it("tells agents to create pending confirmations by calling mutating tools", () => {
+    const services = createMockSystemServices();
+    const instructions = createSystemInstructions(services);
+
+    expect(instructions).toContain(
+      "call system_create without `confirmed` to request that confirmation",
+    );
+    expect(instructions).toContain(
+      "call system_update without `confirmed` to request that confirmation",
+    );
+    expect(instructions).toContain(
+      "Do not ask for prose confirmation instead of calling the applicable mutating tool",
+    );
+  });
+
   it("describes source-derived artifacts with the canonical source attachment branch", () => {
     const services = createMockSystemServices();
     const instructions = createSystemInstructions(services);
