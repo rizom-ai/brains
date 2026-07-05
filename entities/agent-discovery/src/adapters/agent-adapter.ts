@@ -67,7 +67,8 @@ export interface CreateAgentContentInput {
 
 export class AgentAdapter extends BaseEntityAdapter<
   AgentEntity,
-  AgentMetadata
+  AgentMetadata,
+  AgentFrontmatter
 > {
   constructor() {
     super({

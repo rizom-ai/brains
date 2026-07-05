@@ -14,7 +14,8 @@ import {
  */
 export class BlogPostAdapter extends BaseEntityAdapter<
   BlogPost,
-  BlogPostMetadata
+  BlogPostMetadata,
+  BlogPostFrontmatter
 > {
   constructor() {
     super({

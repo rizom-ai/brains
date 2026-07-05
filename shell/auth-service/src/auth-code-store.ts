@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { nowSeconds } from "@brains/utils/date";
 import { JsonFileStore } from "./json-file-store";
 import { redirectUriMatches } from "./redirect-uri";
 
@@ -41,10 +42,6 @@ export interface ConsumeAuthorizationCodeInput {
 export interface AuthorizationCodeStoreOptions {
   storageDir: string;
   storeFile?: string;
-}
-
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
 }
 
 function isAuthorizationCodeRecord(

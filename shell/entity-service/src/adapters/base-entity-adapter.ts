@@ -18,11 +18,20 @@ const defaultBodyFormatter: BodyTemplateProvider = {
 export interface BaseEntityAdapterConfig<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata extends object,
+  TFrontmatter extends object = TMetadata,
 > {
   entityType: string;
   purpose: string;
   schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
-  frontmatterSchema: z.ZodObject<z.ZodRawShape>;
+  // A ZodObject (so callers can extend its shape) whose parsed output is
+  // TFrontmatter — this preserves the output type through to parseFrontmatter
+  // without a cast.
+  frontmatterSchema: z.ZodObject<
+    z.ZodRawShape,
+    z.UnknownKeysParam,
+    z.ZodTypeAny,
+    TFrontmatter
+  >;
   isSingleton?: boolean;
   hasBody?: boolean;
   supportsCoverImage?: boolean;
@@ -41,7 +50,7 @@ export interface BaseEntityAdapterConfig<
 export abstract class BaseEntityAdapter<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata extends object = Record<string, unknown>,
-  TFrontmatter = TMetadata,
+  TFrontmatter extends object = TMetadata,
 > implements EntityAdapter<TEntity, TMetadata> {
   public readonly entityType: string;
   public readonly purpose: string;
@@ -52,19 +61,19 @@ export abstract class BaseEntityAdapter<
   public readonly supportsCoverImage?: boolean;
 
   // Stored separately with output type preserved for type-safe parsing.
-  // ZodObject<ZodRawShape> erases the output type; this recovers it.
-  private readonly fmSchema: z.ZodSchema<TFrontmatter>;
+  // The public `frontmatterSchema` widens to ZodObject<ZodRawShape> (so it can
+  // be extended/merged), while this keeps the TFrontmatter output type.
+  private readonly fmSchema: z.ZodType<TFrontmatter, z.ZodTypeDef, unknown>;
   private readonly bodyFormatter: BodyTemplateProvider;
 
-  constructor(config: BaseEntityAdapterConfig<TEntity, TMetadata>) {
+  constructor(
+    config: BaseEntityAdapterConfig<TEntity, TMetadata, TFrontmatter>,
+  ) {
     this.entityType = config.entityType;
     this.purpose = config.purpose;
     this.schema = config.schema;
     this.frontmatterSchema = config.frontmatterSchema;
-    // ZodObject<ZodRawShape> erases the output type; recover it via cast.
-    // Safe because the runtime object IS a ZodSchema<TFrontmatter>.
-    this.fmSchema =
-      config.frontmatterSchema as unknown as z.ZodSchema<TFrontmatter>;
+    this.fmSchema = config.frontmatterSchema;
     this.bodyFormatter = config.bodyFormatter ?? defaultBodyFormatter;
     if (config.isSingleton !== undefined) this.isSingleton = config.isSingleton;
     if (config.hasBody !== undefined) this.hasBody = config.hasBody;

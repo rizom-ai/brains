@@ -794,6 +794,9 @@ function resolveConventionalSitePackage(
   const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
   if (!parsedOverrides.success) return undefined;
 
+  // The schema validates the override shape loosely (plugin as a bare
+  // function, layouts/routes as records), so its output type does not overlap
+  // the precise override type — bridge it once at this parse boundary.
   const conventionalOverrides =
     parsedOverrides.data as unknown as ConventionalSiteOverrides;
   const { pluginConfig, ...siteOverrides } = conventionalOverrides;

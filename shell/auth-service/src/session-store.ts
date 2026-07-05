@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { nowSeconds } from "@brains/utils/date";
 import { JsonFileStore } from "./json-file-store";
 
 const DEFAULT_SESSION_STORE_FILE = "oauth-sessions.json";
@@ -27,10 +28,6 @@ export interface CreateOperatorSessionResult {
 export interface OperatorSessionStoreOptions {
   storageDir: string;
   storeFile?: string;
-}
-
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
 }
 
 function hashToken(token: string): string {

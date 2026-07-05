@@ -754,7 +754,7 @@ function webauthnBrowserHelpers(): string {
     async function fetchJSON(url, init) {
       const response = await fetch(url, init);
       let payload = null;
-      try { payload = await response.json(); } catch {}
+      try { payload = await response.json(); } catch { /* non-JSON body; fall through to status check */ }
       if (!response.ok) {
         const message = payload && (payload.error_description || payload.error) ? (payload.error_description || payload.error) : response.statusText;
         throw new Error(message);

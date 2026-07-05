@@ -8,7 +8,11 @@ import {
   type WishMetadata,
 } from "../schemas/wish";
 
-export class WishAdapter extends BaseEntityAdapter<WishEntity, WishMetadata> {
+export class WishAdapter extends BaseEntityAdapter<
+  WishEntity,
+  WishMetadata,
+  WishFrontmatter
+> {
   constructor() {
     super({
       entityType: "wish",

@@ -124,6 +124,7 @@ export function listCanonicalAtprotoLexicons(): AtprotoLexicon[] {
 export function getCanonicalAtprotoLexicon(
   id: string,
 ): AtprotoLexicon | undefined {
+  if (!(id in canonicalAtprotoLexicons)) return undefined;
   return canonicalAtprotoLexicons[id as CanonicalAtprotoLexiconId];
 }
 

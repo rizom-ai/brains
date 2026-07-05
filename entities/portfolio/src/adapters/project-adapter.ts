@@ -18,7 +18,8 @@ const bodyFormatter = new ProjectBodyFormatter();
  */
 export class ProjectAdapter extends BaseEntityAdapter<
   Project,
-  ProjectMetadata
+  ProjectMetadata,
+  ProjectFrontmatter
 > {
   constructor() {
     super({

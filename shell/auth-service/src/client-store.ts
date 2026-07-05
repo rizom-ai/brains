@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "@brains/utils/zod";
+import { nowSeconds } from "@brains/utils/date";
 import { JsonFileStore } from "./json-file-store";
 import type { RegisteredOAuthClient } from "./types";
 
@@ -37,10 +38,6 @@ interface ClientStoreFile {
 export interface OAuthClientStoreOptions {
   storageDir: string;
   storeFile?: string;
-}
-
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
 }
 
 function createClientSecret(): string {

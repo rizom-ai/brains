@@ -102,7 +102,8 @@ const agentBodyFormatter = new StructuredContentFormatter<TestAgentBody>(
 
 export class AgentAdapter extends BaseEntityAdapter<
   TestAgentEntity,
-  TestAgentEntity["metadata"]
+  TestAgentEntity["metadata"],
+  TestAgentFrontmatter
 > {
   constructor() {
     super({

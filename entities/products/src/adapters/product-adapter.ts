@@ -5,6 +5,7 @@ import {
   productFrontmatterSchema,
   type Product,
   type ProductMetadata,
+  type ProductFrontmatter,
 } from "../schemas/product";
 import { ProductBodyFormatter } from "../formatters/product-formatter";
 
@@ -16,7 +17,8 @@ import { ProductBodyFormatter } from "../formatters/product-formatter";
  */
 export class ProductAdapter extends BaseEntityAdapter<
   Product,
-  ProductMetadata
+  ProductMetadata,
+  ProductFrontmatter
 > {
   constructor() {
     super({

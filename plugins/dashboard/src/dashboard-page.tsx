@@ -50,7 +50,7 @@ const THEME_TOGGLE_SCRIPT = `(function () {
   var root = document.documentElement;
   var btn = document.getElementById("themeToggle");
   var stored = null;
-  try { stored = localStorage.getItem("brain:dashboard:theme"); } catch (e) {}
+  try { stored = localStorage.getItem("brain:dashboard:theme"); } catch (e) { /* storage unavailable */ }
   if (stored === "light" || stored === "dark") {
     root.setAttribute("data-theme", stored);
   }
@@ -62,7 +62,7 @@ const THEME_TOGGLE_SCRIPT = `(function () {
     btn.addEventListener("click", function () {
       var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
       root.setAttribute("data-theme", next);
-      try { localStorage.setItem("brain:dashboard:theme", next); } catch (e) {}
+      try { localStorage.setItem("brain:dashboard:theme", next); } catch (e) { /* storage unavailable */ }
       sync();
     });
   }

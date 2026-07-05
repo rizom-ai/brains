@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
+import { nowSeconds } from "@brains/utils/date";
 import { JsonFileStore } from "./json-file-store";
 
 const DEFAULT_PASSKEY_STORE_FILE = "oauth-passkeys.json";
@@ -34,10 +35,6 @@ interface PasskeyStoreFile {
 export interface PasskeyStoreOptions {
   storageDir: string;
   storeFile?: string;
-}
-
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
 }
 
 function isCredential(value: unknown): value is StoredPasskeyCredential {

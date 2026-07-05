@@ -12,7 +12,11 @@ import {
  * Entity adapter for note entities
  * Handles notes with or without frontmatter
  */
-export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
+export class NoteAdapter extends BaseEntityAdapter<
+  Note,
+  NoteMetadata,
+  NoteFrontmatter
+> {
   constructor() {
     super({
       entityType: "note",

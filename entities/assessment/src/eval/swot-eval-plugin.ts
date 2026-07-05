@@ -113,7 +113,8 @@ const agentBodyFormatter = new StructuredContentFormatter<EvalAgentBody>(
 
 class EvalAgentAdapter extends BaseEntityAdapter<
   z.infer<typeof evalAgentEntitySchema>,
-  z.infer<typeof evalAgentEntitySchema>["metadata"]
+  z.infer<typeof evalAgentEntitySchema>["metadata"],
+  z.infer<typeof evalAgentFrontmatterSchema>
 > {
   constructor() {
     super({

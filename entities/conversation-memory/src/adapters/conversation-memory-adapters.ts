@@ -26,13 +26,20 @@ class ConversationMemoryEntityAdapter<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata extends object,
 > extends BaseEntityAdapter<TEntity, TMetadata> {
-  private readonly metadataSchema: z.ZodSchema<TMetadata>;
+  private readonly metadataSchema: z.ZodType<TMetadata, z.ZodTypeDef, unknown>;
 
   constructor(config: {
     entityType: string;
     purpose: string;
     schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
-    metadataSchema: z.ZodObject<z.ZodRawShape>;
+    // A ZodObject whose parsed output is TMetadata, preserved so both the base
+    // frontmatterSchema and this.metadataSchema stay typed without a cast.
+    metadataSchema: z.ZodObject<
+      z.ZodRawShape,
+      z.UnknownKeysParam,
+      z.ZodTypeAny,
+      TMetadata
+    >;
   }) {
     super({
       entityType: config.entityType,
@@ -40,8 +47,7 @@ class ConversationMemoryEntityAdapter<
       schema: config.schema,
       frontmatterSchema: config.metadataSchema,
     });
-    this.metadataSchema =
-      config.metadataSchema as unknown as z.ZodSchema<TMetadata>;
+    this.metadataSchema = config.metadataSchema;
   }
 
   public composeContent(

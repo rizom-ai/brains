@@ -5,6 +5,7 @@ import {
   overviewFrontmatterSchema,
   type Overview,
   type OverviewMetadata,
+  type OverviewFrontmatter,
 } from "../schemas/overview";
 import { OverviewBodyFormatter } from "../formatters/overview-formatter";
 
@@ -16,7 +17,8 @@ import { OverviewBodyFormatter } from "../formatters/overview-formatter";
  */
 export class OverviewAdapter extends BaseEntityAdapter<
   Overview,
-  OverviewMetadata
+  OverviewMetadata,
+  OverviewFrontmatter
 > {
   constructor() {
     super({

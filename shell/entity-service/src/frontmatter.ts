@@ -144,7 +144,7 @@ function convertDatesToStrings(obj: unknown): unknown {
  */
 export function parseMarkdownWithFrontmatter<T>(
   markdown: string,
-  schema: z.ZodSchema<T>,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
 ): {
   content: string;
   metadata: T;
