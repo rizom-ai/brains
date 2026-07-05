@@ -84,6 +84,9 @@ plugins:
     expect(config.agentInstructions?.join("\n")).toContain(
       "omit weak/tangential candidates",
     );
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "only an isolated shared term or pattern",
+    );
   });
 
   it("treats make-one-draft follow-ups as ambiguous after an empty draft list", () => {

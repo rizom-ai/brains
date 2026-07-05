@@ -34,6 +34,8 @@ describe("system instructions", () => {
     );
     expect(instructions).toContain("summarize my blog posts");
     expect(instructions).toContain("short sentence or fragment after a colon");
+    expect(instructions).toContain("memo about the launch timeline");
+    expect(instructions).toContain("pasted uploaded-file transcript");
     expect(instructions).toContain(
       "even when the prior answer says there was limited readable content",
     );
