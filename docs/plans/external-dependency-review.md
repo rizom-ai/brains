@@ -1268,10 +1268,11 @@ and site authoring compile fixtures so the public authoring examples exercise
 declaration-safe contracts too. The next test-app pass enabled
 `isolatedDeclarations` for Rover and Relay preset test-app tsconfigs, with
 explicit Relay local-site override declarations for the authored `src/site.ts`
-fixtures.
+fixtures. The next service follow-up enabled `isolatedDeclarations` for
+`@brains/runtime-state`, adding an explicit Drizzle table contract for the
+package-owned runtime state records table.
 Drizzle-backed service packages such as `@brains/conversation-service` remain
-separate follow-ups, in the same bucket as the earlier `@brains/runtime-state`
-table annotation issue.
+separate follow-ups.
 
 The objective is clean public declarations, not making every exported runtime
 schema expose its inferred implementation type. Preferred fixes, in order:
