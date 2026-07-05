@@ -29,7 +29,6 @@ import {
   themeCssSchema,
   type ConventionalSiteOverrides,
   type SitePackage,
-  type SitePackageOverrides,
 } from "./site-package";
 import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
@@ -758,7 +757,7 @@ const entityDisplayEntryOverrideSchema = z
   })
   .passthrough();
 
-const sitePackageOverridesSchema = z
+const sitePackageOverridesShapeSchema = z
   .object({
     layouts: z.record(z.unknown()).optional(),
     plugin: z.function().optional(),
@@ -768,6 +767,13 @@ const sitePackageOverridesSchema = z
     staticAssets: z.record(z.string()).optional(),
   })
   .passthrough();
+
+// Validate the shape loosely (plugin as a bare function, layouts/routes as
+// records) but declare the trusted output type once here at the parse
+// boundary — same idiom as sitePackageSchema in site-package.ts.
+const conventionalSiteOverridesSchema = z.custom<ConventionalSiteOverrides>(
+  (value) => sitePackageOverridesShapeSchema.safeParse(value).success,
+);
 
 function applySitePluginConfig(
   site: SitePackage,
@@ -791,19 +797,11 @@ function resolveConventionalSitePackage(
 ): SitePackage | undefined {
   if (!definition.site) return undefined;
 
-  const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
+  const parsedOverrides = conventionalSiteOverridesSchema.safeParse(pkg);
   if (!parsedOverrides.success) return undefined;
 
-  // The schema validates the override shape loosely (plugin as a bare
-  // function, layouts/routes as records), so its output type does not overlap
-  // the precise override type — bridge it once at this parse boundary.
-  const conventionalOverrides =
-    parsedOverrides.data as unknown as ConventionalSiteOverrides;
-  const { pluginConfig, ...siteOverrides } = conventionalOverrides;
-  const siteWithStructure = extendSite(
-    definition.site,
-    siteOverrides as SitePackageOverrides,
-  );
+  const { pluginConfig, ...siteOverrides } = parsedOverrides.data;
+  const siteWithStructure = extendSite(definition.site, siteOverrides);
 
   return applySitePluginConfig(siteWithStructure, pluginConfig);
 }
