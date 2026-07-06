@@ -1,10 +1,14 @@
 import { z } from "@brains/utils/zod-v4";
-import { createTemplate } from "@brains/plugins";
+import { createTemplate, type Template } from "@brains/plugins";
 
 /**
  * Schema for AI-generated slide deck
  */
-export const deckGenerationSchema = z.object({
+export const deckGenerationSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+  description: z.ZodString;
+}> = z.object({
   title: z
     .string()
     .max(80)
@@ -28,7 +32,7 @@ export type DeckGeneration = z.output<typeof deckGenerationSchema>;
 /**
  * Template for AI-powered slide deck generation
  */
-export const deckGenerationTemplate = createTemplate<DeckGeneration>({
+export const deckGenerationTemplate: Template = createTemplate<DeckGeneration>({
   name: "decks:generation",
   description: "Template for AI to generate complete slide decks from prompts",
   schema: deckGenerationSchema,

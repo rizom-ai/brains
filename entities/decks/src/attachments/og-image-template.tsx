@@ -6,7 +6,14 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const DECK_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const DECK_OG_IMAGE_TEMPLATE_NAME = "decks:og-image";
 
-export const deckOgImageTemplateSchema = z.object({
+export const deckOgImageTemplateSchema: z.ZodObject<{
+  title: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  event: z.ZodOptional<z.ZodString>;
+  brandLabel: z.ZodOptional<z.ZodString>;
+  slideCount: z.ZodOptional<z.ZodNumber>;
+  coverImageUrl: z.ZodOptional<z.ZodString>;
+}> = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   event: z.string().optional(),

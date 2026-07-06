@@ -29,12 +29,18 @@ import { DeckOgImageAttachmentProvider } from "./attachments/og-image-provider";
 import { createDeckAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-const generateDeckEvalInputSchema = z.object({
+const generateDeckEvalInputSchema: z.ZodObject<{
+  prompt: z.ZodString;
+  event: z.ZodOptional<z.ZodString>;
+}> = z.object({
   prompt: z.string(),
   event: z.string().optional(),
 });
 
-const generateDescriptionEvalInputSchema = z.object({
+const generateDescriptionEvalInputSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+}> = z.object({
   title: z.string(),
   content: z.string(),
 });
@@ -52,9 +58,9 @@ export class DecksPlugin extends EntityPlugin<
   Record<string, never>
 > {
   private readonly deps: DecksPluginDeps;
-  readonly entityType = deckAdapter.entityType;
-  readonly schema = deckAdapter.schema;
-  readonly adapter = deckAdapter;
+  readonly entityType: typeof deckAdapter.entityType = deckAdapter.entityType;
+  readonly schema: typeof deckAdapter.schema = deckAdapter.schema;
+  readonly adapter: typeof deckAdapter = deckAdapter;
   private unregisterCarouselAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
   private unregisterAtprotoProjection: (() => void) | undefined;
