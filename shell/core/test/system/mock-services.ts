@@ -235,7 +235,18 @@ export function createMockSystemServices(
           if (allowed && !allowed.has(e.visibility)) return false;
           return true;
         })
-        .map((entity) => ({ entity, score: 1, excerpt: entity.content }));
+        .map((entity) => ({
+          entity,
+          score:
+            typeof entity.metadata["searchScore"] === "number"
+              ? entity.metadata["searchScore"]
+              : 1,
+          excerpt: entity.content,
+        }))
+        .filter((result) => {
+          const minScore = request.options?.minScore;
+          return minScore === undefined || result.score >= minScore;
+        });
     },
     getEntity: async (request: {
       entityType: string;

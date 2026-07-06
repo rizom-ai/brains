@@ -406,6 +406,8 @@ export interface SearchOptions {
   visibilityScope?: ContentVisibility;
   /** Include queued/failed generation stubs in search results (default: false) */
   includeUngenerated?: boolean;
+  /** Minimum relevance score to return. Omit for no score cutoff. */
+  minScore?: number;
 }
 
 /**
