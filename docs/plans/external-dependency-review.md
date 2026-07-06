@@ -1264,7 +1264,9 @@ object-preserving for adapter registration. The next entity follow-up enabled
 `@brains/conversation-memory`, `@brains/agent-discovery`, and `@brains/decks`,
 adding explicit product/overview/link/blog/conversation-memory/agent/skill/deck
 schema contracts plus typed job, template, datasource, widget, and
-attachment-template contracts. The
+attachment-template contracts. A shell follow-up enabled `isolatedDeclarations`
+for `@brains/ai-evaluation`, adding explicit evaluation/test-case schema
+contracts while preserving discriminated attachment validation. The
 first brain-model batch enabled
 `isolatedDeclarations` for `@brains/ranger` and `@brains/rover`, replacing
 inferred default exports with explicit `BrainDefinition` constants and annotating

@@ -4,12 +4,19 @@ import { defineConfig, type AppConfig } from "@brains/app";
 import { pluginMetadataSchema, type Plugin } from "@brains/plugins";
 import { resolveProviderKey } from "./multi-model";
 
-const evalYamlSchema = z.object({
+const evalYamlSchema: z.ZodObject<{
+  plugin: z.ZodString;
+  model: z.ZodOptional<z.ZodString>;
+  config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.object({
   plugin: z.string(),
   model: z.string().optional(),
   config: z.record(z.string(), z.unknown()).optional(),
 });
-const moduleExportsSchema = z.record(z.string(), z.unknown());
+const moduleExportsSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> = z.record(
+  z.string(),
+  z.unknown(),
+);
 
 export type EvalYamlConfig = z.output<typeof evalYamlSchema>;
 export type EvalYamlConfigInput = z.input<typeof evalYamlSchema>;

@@ -1,32 +1,49 @@
 import { z } from "@brains/utils/zod-v4";
 
+export interface FailureDetail {
+  criterion: string;
+  expected: unknown;
+  actual: unknown;
+  message?: string | undefined;
+}
+
 /**
  * Failure detail for a single criterion
  */
-export const failureDetailSchema = z.object({
+export const failureDetailSchema: z.ZodType<FailureDetail> = z.object({
   criterion: z.string(),
   expected: z.unknown(),
   actual: z.unknown(),
   message: z.string().optional(),
 });
 
-export type FailureDetail = z.output<typeof failureDetailSchema>;
+export interface ToolCallRecord {
+  toolName: string;
+  args?: Record<string, unknown> | undefined;
+  result?: unknown;
+}
 
 /**
  * Tool call record from agent response
  */
-export const toolCallRecordSchema = z.object({
+export const toolCallRecordSchema: z.ZodType<ToolCallRecord> = z.object({
   toolName: z.string(),
   args: z.record(z.string(), z.unknown()).optional(),
   result: z.unknown().optional(),
 });
 
-export type ToolCallRecord = z.output<typeof toolCallRecordSchema>;
+export interface TurnMetrics {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  toolCallCount: number;
+  durationMs: number;
+}
 
 /**
  * Metrics for a single turn
  */
-export const turnMetricsSchema = z.object({
+export const turnMetricsSchema: z.ZodType<TurnMetrics> = z.object({
   promptTokens: z.number(),
   completionTokens: z.number(),
   totalTokens: z.number(),
@@ -34,12 +51,25 @@ export const turnMetricsSchema = z.object({
   durationMs: z.number(),
 });
 
-export type TurnMetrics = z.output<typeof turnMetricsSchema>;
+export interface CriteriaResult {
+  criterion: string;
+  passed: boolean;
+  details?: string | undefined;
+}
+
+export interface TurnResult {
+  turnIndex: number;
+  userMessage: string;
+  assistantResponse: string;
+  toolCalls: ToolCallRecord[];
+  metrics: TurnMetrics;
+  criteriaResults?: CriteriaResult[] | undefined;
+}
 
 /**
  * Result for a single conversation turn
  */
-export const turnResultSchema = z.object({
+export const turnResultSchema: z.ZodType<TurnResult> = z.object({
   turnIndex: z.number(),
   userMessage: z.string(),
   assistantResponse: z.string(),
@@ -56,12 +86,18 @@ export const turnResultSchema = z.object({
     .optional(),
 });
 
-export type TurnResult = z.output<typeof turnResultSchema>;
+export interface QualityScores {
+  helpfulness: number;
+  accuracy: number;
+  instructionFollowing: number;
+  appropriateToolUse?: number | undefined;
+  reasoning?: string | undefined;
+}
 
 /**
  * Quality scores from LLM-as-judge
  */
-export const qualityScoresSchema = z.object({
+export const qualityScoresSchema: z.ZodType<QualityScores> = z.object({
   helpfulness: z.number().min(0).max(5),
   accuracy: z.number().min(0).max(5),
   instructionFollowing: z.number().min(0).max(5),
@@ -69,12 +105,19 @@ export const qualityScoresSchema = z.object({
   reasoning: z.string().optional(),
 });
 
-export type QualityScores = z.output<typeof qualityScoresSchema>;
+export interface TotalMetrics {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  toolCallCount: number;
+  durationMs: number;
+  turnCount: number;
+}
 
 /**
  * Aggregated metrics across all turns
  */
-export const totalMetricsSchema = z.object({
+export const totalMetricsSchema: z.ZodType<TotalMetrics> = z.object({
   promptTokens: z.number(),
   completionTokens: z.number(),
   totalTokens: z.number(),
@@ -83,12 +126,24 @@ export const totalMetricsSchema = z.object({
   turnCount: z.number(),
 });
 
-export type TotalMetrics = z.output<typeof totalMetricsSchema>;
+export interface EvaluationResult {
+  testCaseId: string;
+  testCaseName: string;
+  passed: boolean;
+  timestamp: string;
+  turnResults: TurnResult[];
+  totalMetrics: TotalMetrics;
+  qualityScores?: QualityScores | undefined;
+  failures: FailureDetail[];
+  efficiencyPassed?: boolean | undefined;
+  efficiencyFailures?: FailureDetail[] | undefined;
+  pluginOutput?: unknown;
+}
 
 /**
  * Complete evaluation result
  */
-export const evaluationResultSchema = z.object({
+export const evaluationResultSchema: z.ZodType<EvaluationResult> = z.object({
   testCaseId: z.string(),
   testCaseName: z.string(),
   passed: z.boolean(),
@@ -114,12 +169,27 @@ export const evaluationResultSchema = z.object({
   pluginOutput: z.unknown().optional(),
 });
 
-export type EvaluationResult = z.output<typeof evaluationResultSchema>;
+export interface EvaluationSummaryMetrics {
+  totalTokens: number;
+  toolCallCount: number;
+  durationMs: number;
+}
+
+export interface EvaluationSummary {
+  timestamp: string;
+  totalTests: number;
+  passedTests: number;
+  failedTests: number;
+  passRate: number;
+  avgMetrics: EvaluationSummaryMetrics;
+  avgQualityScores?: QualityScores | undefined;
+  results: EvaluationResult[];
+}
 
 /**
  * Summary of multiple evaluation runs
  */
-export const evaluationSummarySchema = z.object({
+export const evaluationSummarySchema: z.ZodType<EvaluationSummary> = z.object({
   timestamp: z.string().datetime(),
   totalTests: z.number(),
   passedTests: z.number(),
@@ -139,5 +209,3 @@ export const evaluationSummarySchema = z.object({
   // Individual results
   results: z.array(evaluationResultSchema),
 });
-
-export type EvaluationSummary = z.output<typeof evaluationSummarySchema>;
