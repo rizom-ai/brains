@@ -10,12 +10,27 @@ const WIDGET_RENDERER = "RecentConversationMemoryWidget";
 
 const summaryAdapter = new SummaryAdapter();
 
-const summaryTimeRangeRowSchema = z.object({
+interface SummaryTimeRangeRow {
+  start: string;
+  end: string;
+}
+
+const summaryTimeRangeRowSchema: z.ZodType<SummaryTimeRangeRow> = z.object({
   start: z.string().datetime(),
   end: z.string().datetime(),
 });
 
-export const summaryEntryRowSchema = z.object({
+export interface SummaryEntryRow {
+  id: string;
+  title: string;
+  keyPoint?: string | undefined;
+  channelName: string;
+  channelId: string;
+  timeRange: SummaryTimeRangeRow;
+  messageCount: number;
+}
+
+export const summaryEntryRowSchema: z.ZodType<SummaryEntryRow> = z.object({
   id: z.string(),
   title: z.string(),
   keyPoint: z.string().optional(),
@@ -25,16 +40,16 @@ export const summaryEntryRowSchema = z.object({
   messageCount: z.number().int().min(0),
 });
 
-export type SummaryEntryRow = z.output<typeof summaryEntryRowSchema>;
+export interface RecentConversationMemoryData {
+  all: SummaryEntryRow[];
+  byChannel: SummaryEntryRow[];
+}
 
-export const recentConversationMemoryDataSchema = z.object({
-  all: z.array(summaryEntryRowSchema),
-  byChannel: z.array(summaryEntryRowSchema),
-});
-
-export type RecentConversationMemoryData = z.output<
-  typeof recentConversationMemoryDataSchema
->;
+export const recentConversationMemoryDataSchema: z.ZodType<RecentConversationMemoryData> =
+  z.object({
+    all: z.array(summaryEntryRowSchema),
+    byChannel: z.array(summaryEntryRowSchema),
+  });
 
 interface ExpandedEntry {
   id: string;
@@ -101,5 +116,6 @@ export async function buildRecentConversationMemoryData(
   return { all, byChannel };
 }
 
-export const RECENT_MEMORY_WIDGET_ID = WIDGET_ID;
-export const RECENT_MEMORY_WIDGET_RENDERER = WIDGET_RENDERER;
+export const RECENT_MEMORY_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;
+export const RECENT_MEMORY_WIDGET_RENDERER: typeof WIDGET_RENDERER =
+  WIDGET_RENDERER;

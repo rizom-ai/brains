@@ -1,6 +1,22 @@
 import { z } from "@brains/utils/zod-v4";
 
-const summaryItemSchema = z.object({
+export interface SummaryItem {
+  conversationId: string;
+  channelName: string;
+  id: string;
+  entryCount: number;
+  messageCount: number;
+  latestEntry: string;
+  updated: string;
+  created: string;
+}
+
+export interface SummaryListData {
+  summaries: SummaryItem[];
+  totalCount: number;
+}
+
+const summaryItemSchema: z.ZodType<SummaryItem> = z.object({
   conversationId: z.string(),
   channelName: z.string(),
   id: z.string(),
@@ -11,10 +27,7 @@ const summaryItemSchema = z.object({
   created: z.string(),
 });
 
-export const summaryListSchema = z.object({
+export const summaryListSchema: z.ZodType<SummaryListData> = z.object({
   summaries: z.array(summaryItemSchema),
   totalCount: z.number(),
 });
-
-export type SummaryItem = z.output<typeof summaryItemSchema>;
-export type SummaryListData = z.output<typeof summaryListSchema>;

@@ -47,22 +47,27 @@ import {
 } from "./lib/constants";
 import packageJson from "../package.json";
 
-const summaryAdapter = new SummaryAdapter();
-const decisionAdapter = new DecisionAdapter();
-const actionItemAdapter = new ActionItemAdapter();
+const summaryAdapter: SummaryAdapter = new SummaryAdapter();
+const decisionAdapter: DecisionAdapter = new DecisionAdapter();
+const actionItemAdapter: ActionItemAdapter = new ActionItemAdapter();
 
-const conversationMessageAddedSchema = z.object({
-  conversationId: z.string(),
-});
+interface ConversationMessageAddedPayload {
+  conversationId: string;
+}
+
+const conversationMessageAddedSchema: z.ZodType<ConversationMessageAddedPayload> =
+  z.object({
+    conversationId: z.string(),
+  });
 
 export class ConversationMemoryPlugin extends EntityPlugin<
   SummaryEntity,
   SummaryConfig,
   SummaryConfigInput
 > {
-  readonly entityType = SUMMARY_ENTITY_TYPE;
-  readonly schema = summarySchema;
-  readonly adapter = summaryAdapter;
+  readonly entityType: typeof SUMMARY_ENTITY_TYPE = SUMMARY_ENTITY_TYPE;
+  readonly schema: typeof summarySchema = summarySchema;
+  readonly adapter: typeof summaryAdapter = summaryAdapter;
 
   declare protected config: SummaryConfig;
 

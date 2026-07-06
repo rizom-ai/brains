@@ -11,27 +11,37 @@ import type { SummaryListData } from "../templates/summary-list/schema";
 import type { SummaryDetailData } from "../templates/summary-detail/schema";
 import { SUMMARY_DATASOURCE_ID, SUMMARY_ENTITY_TYPE } from "../lib/constants";
 
-const entityFetchQuerySchema = z.object({
-  entityType: z.literal(SUMMARY_ENTITY_TYPE),
-  query: z
-    .object({
-      id: z.string().optional(),
-      conversationId: z.string().optional(),
-      limit: z.number().optional(),
-    })
-    .optional(),
-});
+interface SummaryDataSourceQuery {
+  id?: string | undefined;
+  conversationId?: string | undefined;
+  limit?: number | undefined;
+}
 
-type EntityFetchQuery = z.output<typeof entityFetchQuerySchema>;
+interface EntityFetchQuery {
+  entityType: typeof SUMMARY_ENTITY_TYPE;
+  query?: SummaryDataSourceQuery | undefined;
+}
+
+const summaryDataSourceQuerySchema: z.ZodType<SummaryDataSourceQuery> =
+  z.object({
+    id: z.string().optional(),
+    conversationId: z.string().optional(),
+    limit: z.number().optional(),
+  });
+
+const entityFetchQuerySchema: z.ZodType<EntityFetchQuery> = z.object({
+  entityType: z.literal(SUMMARY_ENTITY_TYPE),
+  query: summaryDataSourceQuerySchema.optional(),
+});
 
 export class SummaryDataSource implements DataSource {
   private readonly logger: Logger;
-  public readonly id = SUMMARY_DATASOURCE_ID;
-  public readonly name = "Summary Entity DataSource";
-  public readonly description =
+  public readonly id: typeof SUMMARY_DATASOURCE_ID = SUMMARY_DATASOURCE_ID;
+  public readonly name: string = "Summary Entity DataSource";
+  public readonly description: string =
     "Fetches and transforms summary entities for rendering";
 
-  private readonly adapter = new SummaryAdapter();
+  private readonly adapter: SummaryAdapter = new SummaryAdapter();
 
   constructor(logger: Logger) {
     this.logger = logger;

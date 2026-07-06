@@ -184,4 +184,5 @@ export function registerSummaryCoverageWidget(params: {
   );
 }
 
-export const SUMMARY_COVERAGE_WIDGET_ID = COVERAGE_WIDGET_ID;
+export const SUMMARY_COVERAGE_WIDGET_ID: typeof COVERAGE_WIDGET_ID =
+  COVERAGE_WIDGET_ID;

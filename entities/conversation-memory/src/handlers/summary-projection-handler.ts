@@ -9,21 +9,32 @@ import {
 } from "../lib/summary-projector";
 import type { SUMMARY_PROJECTION_JOB_TYPE } from "../lib/constants";
 
-export const summaryProjectionJobDataSchema = z.discriminatedUnion("mode", [
-  z.object({
-    mode: z.literal("conversation"),
-    conversationId: z.string(),
-    reason: z.string().optional(),
-  }),
-  z.object({
-    mode: z.literal("rebuild-all"),
-    reason: z.string().optional(),
-  }),
-]);
+export interface SummaryProjectionConversationJobData {
+  mode: "conversation";
+  conversationId: string;
+  reason?: string | undefined;
+}
 
-export type SummaryProjectionJobData = z.output<
-  typeof summaryProjectionJobDataSchema
->;
+export interface SummaryProjectionRebuildAllJobData {
+  mode: "rebuild-all";
+  reason?: string | undefined;
+}
+
+export type SummaryProjectionJobData =
+  SummaryProjectionConversationJobData | SummaryProjectionRebuildAllJobData;
+
+export const summaryProjectionJobDataSchema: z.ZodType<SummaryProjectionJobData> =
+  z.discriminatedUnion("mode", [
+    z.object({
+      mode: z.literal("conversation"),
+      conversationId: z.string(),
+      reason: z.string().optional(),
+    }),
+    z.object({
+      mode: z.literal("rebuild-all"),
+      reason: z.string().optional(),
+    }),
+  ]);
 
 export interface SummaryProjectionResult {
   projected: number;
