@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import type { JSX, ComponentChildren } from "preact";
 import { RizomFrame, SideNav, Wordmark } from "@brains/site-rizom";
 import { newTabProps } from "./link-targets";

@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import type { ComponentChildren, JSX } from "preact";
 
 export const QUIZ_HREF = "https://form.typeform.com/to/NGqo9Fnf";

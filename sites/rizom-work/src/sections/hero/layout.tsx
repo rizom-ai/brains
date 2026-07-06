@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import type { JSX } from "preact";
 import type { WorkHeroContent } from "./schema";
 import { Section, renderHighlightedText } from "@brains/site-rizom";

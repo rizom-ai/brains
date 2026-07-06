@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import type { JSX } from "preact";
 import { Section, renderHighlightedText } from "@brains/site-rizom";
 import { WORK_KICKER, WORK_SECTION_HEADLINE } from "../styles";
