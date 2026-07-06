@@ -27,10 +27,10 @@ before touching — not opportunistic edits.
   routing + approval tracking + artifact delivery + upload management.
   Candidate extracts: message router (strategy map), approval handler,
   artifact delivery, upload manager.
-- **`shell/ai-service/src/agent-service.ts` (~1224 lines)** —
-  conversation-actor lifecycle + message/context building +
-  confirmation handling. First thin slice: extract a
-  `ConversationActorFactory` (actor creation + TTL/eviction).
+- ~~`shell/ai-service/src/agent-service.ts`~~ — DONE 2026-07-06:
+  decomposed into ConversationActorRegistry, attachment-intake,
+  ConfirmationCoordinator, and TurnProcessor; the service is now a
+  ~330-line façade.
 - **`interfaces/discord/src/discord-interface.ts` (~1048 lines)** —
   Discord SDK management + message parsing + card rendering +
   subscription tracking + uploads. Mirror the chat-interface split.
