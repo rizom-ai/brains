@@ -1,4 +1,5 @@
 import { toYaml } from "@brains/utils";
+import { renderContentRepoRef as renderRepoRef } from "./content-repo-ref";
 import type { ResolvedUser } from "./load-registry";
 import type { ContentRepoFile, UserRunResult } from "./user-runner";
 
@@ -77,9 +78,7 @@ function quoteYamlString(value: string): string {
 }
 
 function renderContentRepoRef(user: ResolvedUser, githubOrg: string): string {
-  return user.contentRepo.includes("/")
-    ? user.contentRepo
-    : `${githubOrg}/${user.contentRepo}`;
+  return renderRepoRef(user.contentRepo, githubOrg);
 }
 
 function renderSetupEmailConfig(email: string): string[] {

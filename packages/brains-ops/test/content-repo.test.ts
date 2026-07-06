@@ -193,6 +193,75 @@ describe("content repo seeding", () => {
     ).toBe(true);
   });
 
+  it("resolves org-qualified contentRepoOverride refs against the override org", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "users/bob.yaml": `handle: bob
+contentRepoOverride: acme-co/rizom-work-content
+discord:
+  enabled: false
+anchorProfile:
+  name: Bob Example
+  description: Runs rizom.work.
+  website: https://bob.example
+  story: |
+    Bob uses Rover for the rizom.work site.
+`,
+      "cohorts/canary.yaml": `members:
+  - alice
+  - bob
+`,
+    });
+    const fetchCalls: Array<{ url: string; method: string }> = [];
+    const commandCalls: Array<{ command: string; args: string[] }> = [];
+
+    await onboardUser(root, "bob", undefined, {
+      env: {
+        ...process.env,
+        GIT_SYNC_TOKEN: "sync-token",
+        CONTENT_REPO_ADMIN_TOKEN: "admin-token",
+      },
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        fetchCalls.push({ url, method });
+
+        if (
+          url === "https://api.github.com/repos/acme-co/rizom-work-content" &&
+          method === "GET"
+        ) {
+          return new Response("Not Found", { status: 404 });
+        }
+
+        if (
+          url === "https://api.github.com/orgs/acme-co/repos" &&
+          method === "POST"
+        ) {
+          return new Response(JSON.stringify({ private: true }), {
+            status: 201,
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        throw new Error(`Unexpected fetch: ${method} ${url}`);
+      },
+      runCommand: async (command, args) => {
+        commandCalls.push({ command, args });
+      },
+    });
+
+    expect(fetchCalls).toEqual([
+      {
+        url: "https://api.github.com/repos/acme-co/rizom-work-content",
+        method: "GET",
+      },
+      { url: "https://api.github.com/orgs/acme-co/repos", method: "POST" },
+    ]);
+    expect(commandCalls[0]?.args[1]).toBe(
+      "https://x-access-token:sync-token@github.com/acme-co/rizom-work-content.git",
+    );
+  });
+
   it("fails before checking GitHub when the admin token env var is missing", async () => {
     const root = await createPilotRepo(baseFiles);
     const fetchCalls: string[] = [];
