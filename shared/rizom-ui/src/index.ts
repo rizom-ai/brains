@@ -37,3 +37,5 @@ export type {
   RizomLink,
   RizomSideNavItem,
 } from "./types";
+
+export { cn } from "./cn";

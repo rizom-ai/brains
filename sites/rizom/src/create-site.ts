@@ -1,3 +1,4 @@
+import { extendSite } from "@brains/site-composition";
 import rizomBaseSite from ".";
 import type {
   DataSource,
@@ -55,11 +56,10 @@ export function createRizomSite(
       options.dataSources,
     );
 
-  return {
-    ...rizomBaseSite,
-    layouts: { ...rizomBaseSite.layouts, default: options.layout },
-    routes: [...rizomBaseSite.routes, ...options.routes],
+  return extendSite(rizomBaseSite, {
+    layouts: { default: options.layout },
+    routes: options.routes,
     plugin,
     ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),
-  };
+  });
 }

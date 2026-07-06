@@ -25,9 +25,20 @@ function parseRuntimeConfig(
   const themeProfile = config["themeProfile"];
   const theme = config["theme"];
 
+  if (themeProfile !== undefined && !isRizomThemeProfile(themeProfile)) {
+    throw new Error(
+      `Invalid rizom site themeProfile ${JSON.stringify(themeProfile)}; expected one of: ${[...THEME_PROFILES].join(", ")}`,
+    );
+  }
+  if (theme !== undefined && typeof theme !== "string") {
+    throw new Error(
+      `Invalid rizom site theme ${JSON.stringify(theme)}; expected a package name string`,
+    );
+  }
+
   return {
-    ...(isRizomThemeProfile(themeProfile) ? { themeProfile } : {}),
-    ...(typeof theme === "string" ? { theme } : {}),
+    ...(themeProfile !== undefined ? { themeProfile } : {}),
+    ...(theme !== undefined ? { theme } : {}),
   };
 }
 

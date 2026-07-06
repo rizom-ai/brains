@@ -1,6 +1,7 @@
 export type {
   SiteContentArrayFieldDefinition,
   SiteContentDefinition,
+  SiteContentEnumFieldDefinition,
   SiteContentFieldDefinition,
   SiteContentNumberFieldDefinition,
   SiteContentObjectFieldDefinition,

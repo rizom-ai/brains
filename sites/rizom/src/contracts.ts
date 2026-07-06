@@ -120,33 +120,37 @@ export interface SectionDefinitionInput {
   id: string;
   template: string;
   content?: unknown;
-  dataQuery?: {
-    entityType?: string;
-    template?: string;
-    query?: Record<string, unknown>;
-    [key: string]: unknown;
-  };
-  order?: number;
+  dataQuery?:
+    | {
+        entityType?: string | undefined;
+        template?: string | undefined;
+        query?: Record<string, unknown> | undefined;
+        [key: string]: unknown;
+      }
+    | undefined;
+  order?: number | undefined;
 }
 
 export interface RouteDefinitionInput {
   id: string;
   path: string;
-  title?: string;
-  pageLabel?: string;
-  description?: string;
-  sections?: SectionDefinitionInput[];
-  layout?: string;
-  fullscreen?: boolean;
-  pluginId?: string;
-  sourceEntityType?: string;
-  external?: boolean;
-  navigation?: {
-    show?: boolean;
-    label?: string;
-    slot?: NavigationSlot;
-    priority?: number;
-  };
+  title?: string | undefined;
+  pageLabel?: string | undefined;
+  description?: string | undefined;
+  sections?: SectionDefinitionInput[] | undefined;
+  layout?: string | undefined;
+  fullscreen?: boolean | undefined;
+  pluginId?: string | undefined;
+  sourceEntityType?: string | undefined;
+  external?: boolean | undefined;
+  navigation?:
+    | {
+        show?: boolean | undefined;
+        label?: string | undefined;
+        slot?: NavigationSlot | undefined;
+        priority?: number | undefined;
+      }
+    | undefined;
 }
 
 export interface SitePackage<
