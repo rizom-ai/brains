@@ -3,7 +3,6 @@ import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import { parseConfirmationResponse } from "@brains/utils/confirmation-response";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
-import { PermissionService } from "@brains/templates";
 import type {
   ConversationMessageActor,
   ConversationMessageSource,
@@ -27,11 +26,13 @@ import {
   emptyUsage,
   type ProcessMessageInput,
   type ExecuteActionInput,
-  type RuntimePendingConfirmation,
-  type AgentMachineContext,
 } from "./agent-machine";
 import { createActor, fromPromise, waitFor } from "xstate";
 import { ConversationActorRegistry } from "./conversation-actor-registry";
+import {
+  ConfirmationCoordinator,
+  canConfirmPendingAction,
+} from "./confirmation-coordinator";
 import {
   buildAsyncGenerationFallback,
   buildAttachmentOnlyResponse,
@@ -104,6 +105,7 @@ export class AgentService implements IAgentService {
   // that keep service callers from resolving against another turn's
   // machine state.
   private conversationActors: ConversationActorRegistry<ConversationActor>;
+  private confirmations: ConfirmationCoordinator;
 
   // Lazy-initialized agent
   private agent: BrainAgent | null = null;
@@ -190,6 +192,7 @@ export class AgentService implements IAgentService {
         config.conversationActorIdleTtlMs ??
         DEFAULT_CONVERSATION_ACTOR_IDLE_TTL_MS,
     });
+    this.confirmations = new ConfirmationCoordinator(this.conversationActors);
   }
 
   /**
@@ -265,7 +268,7 @@ export class AgentService implements IAgentService {
         const parsedConfirmation = parseConfirmationResponse(message);
         const authorizedConfirmations = pendingConfirmations.filter(
           (confirmation) =>
-            this.canConfirmPendingAction(confirmation, confirmationContext),
+            canConfirmPendingAction(confirmation, confirmationContext),
         );
 
         if (parsedConfirmation) {
@@ -281,7 +284,7 @@ export class AgentService implements IAgentService {
             };
           }
 
-          return this.resolvePendingConfirmation(
+          return this.confirmations.resolve(
             conversationId,
             actor,
             confirmation,
@@ -292,7 +295,7 @@ export class AgentService implements IAgentService {
 
         if (authorizedConfirmations.length > 0) {
           for (const confirmation of authorizedConfirmations) {
-            await this.resolvePendingConfirmation(
+            await this.confirmations.resolve(
               conversationId,
               actor,
               confirmation,
@@ -352,174 +355,8 @@ export class AgentService implements IAgentService {
     // Route through the serialized queue so confirmations cannot race an
     // in-flight chat() operation on the same conversation actor.
     return this.conversationActors.enqueue(conversationId, () =>
-      this.runConfirmPendingAction(
-        conversationId,
-        confirmed,
-        approvalId,
-        context,
-      ),
+      this.confirmations.run(conversationId, confirmed, approvalId, context),
     );
-  }
-
-  private async runConfirmPendingAction(
-    conversationId: string,
-    confirmed: boolean,
-    approvalId: string,
-    context: ChatContext,
-  ): Promise<AgentResponse> {
-    const actor = this.conversationActors.peek(conversationId);
-    if (!actor) {
-      return {
-        text: "No pending action to confirm.",
-        usage: emptyUsage,
-      };
-    }
-
-    const snapshotBeforeConfirm = actor.getSnapshot();
-
-    if (!snapshotBeforeConfirm.matches("awaitingConfirmation")) {
-      return {
-        text: "No pending action to confirm.",
-        usage: emptyUsage,
-      };
-    }
-
-    const pendingConfirmation =
-      snapshotBeforeConfirm.context.pendingConfirmations.find(
-        (confirmation) => confirmation.id === approvalId,
-      ) ?? null;
-    if (!pendingConfirmation) {
-      return {
-        text: `No pending action matches approval id '${approvalId}'.`,
-        usage: emptyUsage,
-      };
-    }
-
-    const confirmationContext = this.resolveConfirmationContext(
-      context,
-      snapshotBeforeConfirm.context,
-    );
-    if (!confirmationContext) {
-      return {
-        text: "Confirmation requires caller context.",
-        usage: emptyUsage,
-      };
-    }
-
-    if (
-      !this.canConfirmPendingAction(pendingConfirmation, confirmationContext)
-    ) {
-      return {
-        text: "You are not authorized to confirm this pending action.",
-        pendingConfirmations:
-          snapshotBeforeConfirm.context.pendingConfirmations,
-        usage: emptyUsage,
-      };
-    }
-
-    return this.resolvePendingConfirmation(
-      conversationId,
-      actor,
-      pendingConfirmation,
-      confirmed,
-      confirmationContext,
-    );
-  }
-
-  private async resolvePendingConfirmation(
-    conversationId: string,
-    actor: ConversationActor,
-    pendingConfirmation: RuntimePendingConfirmation,
-    confirmed: boolean,
-    confirmationContext: {
-      interfaceType: string;
-      channelId: string | undefined;
-      channelName: string;
-      userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
-      actor: ConversationMessageActor | null;
-      source: ConversationMessageSource | null;
-    },
-  ): Promise<AgentResponse> {
-    try {
-      actor.send({
-        type: confirmed ? "CONFIRM" : "CANCEL",
-        approvalId: pendingConfirmation.id,
-        interfaceType: confirmationContext.interfaceType,
-        channelId: confirmationContext.channelId,
-        channelName: confirmationContext.channelName,
-        userPermissionLevel: confirmationContext.userPermissionLevel,
-        actor: confirmationContext.actor,
-        source: confirmationContext.source,
-      });
-
-      const snapshot = await waitFor(
-        actor,
-        (s) =>
-          (s.matches("idle") || s.matches("awaitingConfirmation")) &&
-          !s.context.pendingConfirmations.some(
-            (confirmation) => confirmation.id === pendingConfirmation.id,
-          ),
-      );
-
-      return (
-        snapshot.context.response ?? {
-          text: "Action completed.",
-          usage: emptyUsage,
-        }
-      );
-    } finally {
-      this.conversationActors.scheduleEviction(conversationId);
-    }
-  }
-
-  private resolveConfirmationContext(
-    context: ChatContext | undefined,
-    previousContext: AgentMachineContext,
-  ): {
-    interfaceType: string;
-    channelId: string | undefined;
-    channelName: string;
-    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
-    actor: ConversationMessageActor | null;
-    source: ConversationMessageSource | null;
-  } | null {
-    if (!context?.userPermissionLevel) return null;
-
-    return {
-      interfaceType: context.interfaceType ?? previousContext.interfaceType,
-      channelId: context.channelId ?? previousContext.channelId,
-      channelName: context.channelName ?? previousContext.channelName,
-      userPermissionLevel: context.userPermissionLevel,
-      actor: context.actor ?? null,
-      source: context.source ?? null,
-    };
-  }
-
-  private canConfirmPendingAction(
-    pendingConfirmation: RuntimePendingConfirmation,
-    context: {
-      userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
-      actor: ConversationMessageActor | null;
-    },
-  ): boolean {
-    if (context.userPermissionLevel === "anchor") return true;
-
-    const requesterActorKey = pendingConfirmation.requester.actorKey;
-    if (requesterActorKey) {
-      const callerActorKey = this.actorKey(context.actor);
-      if (callerActorKey !== requesterActorKey) return false;
-    }
-
-    return PermissionService.hasPermission(
-      context.userPermissionLevel,
-      pendingConfirmation.requester.userPermissionLevel,
-    );
-  }
-
-  private actorKey(
-    actor: ConversationMessageActor | null | undefined,
-  ): string | undefined {
-    return actor?.canonicalId ?? actor?.actorId;
   }
 
   private async processMessage(
