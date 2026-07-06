@@ -1,20 +1,39 @@
 import { z } from "@brains/utils/zod-v4";
 
-const exactVersionPattern =
+const exactVersionPattern: RegExp =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-const handlePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const handlePattern: RegExp = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export const presetSchema = z.enum(["core", "default", "pro"]);
-export const exactVersionSchema = z
+export const presetSchema: z.ZodEnum<{
+  core: "core";
+  default: "default";
+  pro: "pro";
+}> = z.enum(["core", "default", "pro"]);
+export const exactVersionSchema: z.ZodString = z
   .string()
   .regex(exactVersionPattern, "expected exact pinned version");
-export const handleSchema = z
+export const handleSchema: z.ZodString = z
   .string()
   .regex(handlePattern, "expected lowercase handle slug");
-export const secretNameSchema = z.string().min(1);
-export const agePublicKeySchema = z.string().startsWith("age1").min(1);
+export const secretNameSchema: z.ZodString = z.string().min(1);
+export const agePublicKeySchema: z.ZodString = z
+  .string()
+  .startsWith("age1")
+  .min(1);
 
-export const pilotSchema = z.strictObject({
+export const pilotSchema: z.ZodObject<{
+  schemaVersion: z.ZodLiteral<1>;
+  brainVersion: z.ZodString;
+  model: z.ZodLiteral<"rover">;
+  githubOrg: z.ZodString;
+  contentRepoPrefix: z.ZodString;
+  domainSuffix: z.ZodString;
+  preset: typeof presetSchema;
+  aiApiKey: z.ZodString;
+  gitSyncToken: z.ZodString;
+  contentRepoAdminToken: z.ZodString;
+  agePublicKey: z.ZodString;
+}> = z.strictObject({
   schemaVersion: z.literal(1),
   brainVersion: exactVersionSchema,
   model: z.literal("rover"),
@@ -28,13 +47,30 @@ export const pilotSchema = z.strictObject({
   agePublicKey: agePublicKeySchema,
 });
 
-const anchorProfileSocialLinkSchema = z.strictObject({
+const anchorProfileSocialLinkSchema: z.ZodObject<{
+  platform: z.ZodEnum<{
+    github: "github";
+    instagram: "instagram";
+    linkedin: "linkedin";
+    email: "email";
+    website: "website";
+  }>;
+  url: z.ZodString;
+  label: z.ZodOptional<z.ZodString>;
+}> = z.strictObject({
   platform: z.enum(["github", "instagram", "linkedin", "email", "website"]),
   url: z.string().min(1),
   label: z.string().min(1).optional(),
 });
 
-const anchorProfileSchema = z.strictObject({
+const anchorProfileSchema: z.ZodObject<{
+  name: z.ZodOptional<z.ZodString>;
+  description: z.ZodOptional<z.ZodString>;
+  website: z.ZodOptional<z.ZodString>;
+  email: z.ZodOptional<z.ZodString>;
+  story: z.ZodOptional<z.ZodString>;
+  socialLinks: z.ZodOptional<z.ZodArray<typeof anchorProfileSocialLinkSchema>>;
+}> = z.strictObject({
   name: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   website: z.string().min(1).optional(),
@@ -43,20 +79,39 @@ const anchorProfileSchema = z.strictObject({
   socialLinks: z.array(anchorProfileSocialLinkSchema).optional(),
 });
 
-const setupDeliverySchema = z.strictObject({
+const setupDeliverySchema: z.ZodObject<{
+  delivery: z.ZodLiteral<"email">;
+  email: z.ZodString;
+}> = z.strictObject({
   delivery: z.literal("email"),
   email: z.string().email(),
 });
 
-const atprotoSchema = z.strictObject({
+const atprotoSchema: z.ZodObject<{
+  identifier: z.ZodString;
+}> = z.strictObject({
   identifier: z.string().min(1),
 });
 
-const playbooksSchema = z.strictObject({
+const playbooksSchema: z.ZodObject<{
+  onboarding: z.ZodOptional<z.ZodBoolean>;
+}> = z.strictObject({
   onboarding: z.boolean().optional(),
 });
 
-export const userSchema = z.strictObject({
+export const userSchema: z.ZodObject<{
+  handle: z.ZodString;
+  discord: z.ZodObject<{
+    enabled: z.ZodBoolean;
+    anchorUserId: z.ZodOptional<z.ZodString>;
+  }>;
+  aiApiKeyOverride: z.ZodOptional<z.ZodString>;
+  gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
+  setup: z.ZodOptional<typeof setupDeliverySchema>;
+  atproto: z.ZodOptional<typeof atprotoSchema>;
+  playbooks: z.ZodOptional<typeof playbooksSchema>;
+  anchorProfile: z.ZodOptional<typeof anchorProfileSchema>;
+}> = z.strictObject({
   handle: handleSchema,
   discord: z.strictObject({
     enabled: z.boolean(),
@@ -70,7 +125,13 @@ export const userSchema = z.strictObject({
   anchorProfile: anchorProfileSchema.optional(),
 });
 
-export const cohortSchema = z
+export const cohortSchema: z.ZodObject<{
+  members: z.ZodArray<z.ZodString>;
+  brainVersionOverride: z.ZodOptional<z.ZodString>;
+  presetOverride: z.ZodOptional<typeof presetSchema>;
+  aiApiKeyOverride: z.ZodOptional<z.ZodString>;
+  gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
+}> = z
   .strictObject({
     members: z.array(handleSchema).min(1),
     brainVersionOverride: exactVersionSchema.optional(),

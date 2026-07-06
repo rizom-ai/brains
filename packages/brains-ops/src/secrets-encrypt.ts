@@ -14,7 +14,12 @@ import { z } from "@brains/utils/zod-v4";
 import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";
 
-const encryptedUserSecretsSchema = z.strictObject({
+const encryptedUserSecretsSchema: z.ZodObject<{
+  gitSyncToken: z.ZodOptional<z.ZodString>;
+  discordBotToken: z.ZodOptional<z.ZodString>;
+  aiApiKey: z.ZodOptional<z.ZodString>;
+  atprotoAppPassword: z.ZodOptional<z.ZodString>;
+}> = z.strictObject({
   gitSyncToken: z.string().min(1).optional(),
   discordBotToken: z.string().min(1).optional(),
   aiApiKey: z.string().min(1).optional(),
