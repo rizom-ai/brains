@@ -28,17 +28,12 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { createPrefixedId } from "@brains/utils/id";
 import { computeContentHash } from "@brains/utils/hash";
 import packageJson from "../package.json";
 import {
-  createRunActor,
-  evidenceForState,
   getBlockedTransitions,
   getState,
   getValidTransitions,
-  hasSatisfiedGateVerdicts,
-  transitionRequiresGateVerdict,
 } from "./lib/run-machine";
 import {
   buildInstructions,
@@ -53,18 +48,30 @@ import {
   type LifecycleStartersResponse,
 } from "./lib/lifecycle-starters";
 
+import {
+  RunEngine,
+  appendUnique,
+  errorMessage,
+  type GoalCheck,
+  type GoalCheckInput,
+  type GoalCheckResult,
+} from "./lib/run-engine";
+
 export type {
   LifecyclePlaybookConfig,
   LifecycleStarterRegistrationResponse,
   LifecycleStartersResponse,
   PlaybookStarter,
 } from "./lib/lifecycle-starters";
+export type {
+  GoalCheck,
+  GoalCheckInput,
+  GoalCheckResult,
+} from "./lib/run-engine";
 import {
   PlaybookRunStore,
-  createPlaybookRun,
   playbookRunEvidenceSchema,
   playbookRunSchema,
-  type PlaybookGateVerdict,
   type PlaybookRun,
   type PlaybookRunEvidence,
 } from "./run-store";
@@ -149,18 +156,6 @@ export interface PlaybookStatusResponse {
   lifecycle: Record<string, LifecyclePlaybookConfig>;
 }
 
-export interface GoalCheckInput {
-  run: PlaybookRun;
-  state: PlaybookState;
-  goal: string[];
-  evidence: PlaybookRunEvidence[];
-}
-
-export interface GoalCheckResult {
-  met: boolean;
-  reason: string;
-}
-
 const goalCheckResultSchema = z
   .object({
     met: z.boolean(),
@@ -199,10 +194,6 @@ const goalCheckInputSchema = z
   })
   .strict();
 
-export interface GoalCheck {
-  evaluate(input: GoalCheckInput): Promise<GoalCheckResult>;
-}
-
 export interface PlaybooksPluginDeps {
   goalCheck?: GoalCheck | undefined;
 }
@@ -215,6 +206,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private readonly startLocks = new Map<string, Promise<ToolResponse>>();
   private readonly runLocks = new Map<string, Promise<void>>();
   private lifecycleStarters!: LifecycleStarterRegistry;
+  private runs!: RunEngine;
 
   constructor(
     config: Partial<PlaybooksConfig> = {},
@@ -232,6 +224,16 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     this.ctx = context;
     this.store = new PlaybookRunStore(context.runtimeState);
     this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
+    this.runs = new RunEngine({
+      store: this.store,
+      goalCheck: this.goalCheck,
+      getPlaybook: (playbookId): Promise<ParsedPlaybook | undefined> =>
+        this.getPlaybook(playbookId),
+      withRunLock: <T>(
+        runId: string,
+        operation: () => Promise<T>,
+      ): Promise<T> => this.withRunLock(runId, operation),
+    });
     this.lifecycleStarters = new LifecycleStarterRegistry({
       logger: this.logger,
       configuredLifecycle: this.config.lifecycle,
@@ -295,14 +297,20 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       "entity:created",
       async (message) => ({
         success: true,
-        data: await this.recordEntityEventEvidence("created", message.payload),
+        data: await this.runs.recordEntityEventEvidence(
+          "created",
+          message.payload,
+        ),
       }),
     );
     context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
       "entity:updated",
       async (message) => ({
         success: true,
-        data: await this.recordEntityEventEvidence("updated", message.payload),
+        data: await this.runs.recordEntityEventEvidence(
+          "updated",
+          message.payload,
+        ),
       }),
     );
   }
@@ -371,7 +379,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
                       : { startedAt: new Date().toISOString() }),
                   });
                 })
-              : await this.createStartedRun({
+              : await this.runs.createStartedRun({
                   playbookId: parsed.playbookId,
                   playbookVersion: playbook.version,
                   body: playbook.body,
@@ -546,7 +554,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const selectedTransition = sourceState?.transitions.find(
       (transition) => transition.event === event,
     );
-    const result = await this.transitionRun(run, playbook.body, event);
+    const result = await this.runs.transitionRun(run, playbook.body, event);
     if (!result.success) {
       if (result.gateVerdicts) {
         await this.store.upsert({
@@ -581,126 +589,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           ? withOperatorActionGuidance(data, sourceState, selectedTransition)
           : data,
     };
-  }
-
-  private async createStartedRun(input: {
-    playbookId: string;
-    playbookVersion: string;
-    body: PlaybookBody;
-    lifecycle?: string | undefined;
-    conversationId?: string | undefined;
-  }): Promise<PlaybookRun> {
-    return this.store.upsert(
-      createPlaybookRun({
-        playbookId: input.playbookId,
-        playbookVersion: input.playbookVersion,
-        initialState: input.body.initialState,
-        lifecycle: input.lifecycle,
-        conversationId: input.conversationId,
-      }),
-    );
-  }
-
-  private async transitionRun(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    event: string,
-  ): Promise<
-    | {
-        success: true;
-        currentState: string;
-        gateVerdicts: PlaybookGateVerdict[];
-      }
-    | { success: false; error: string; gateVerdicts?: PlaybookGateVerdict[] }
-  > {
-    const state = getState(body, run.currentState);
-    if (!state) {
-      return {
-        success: false,
-        error: `Playbook state not found: ${run.currentState}`,
-      };
-    }
-
-    const gateResult = await this.prepareGateVerdicts(run, state, event);
-    if (!gateResult.success) return gateResult;
-
-    const candidateRun: PlaybookRun = {
-      ...run,
-      gateVerdicts: gateResult.gateVerdicts,
-    };
-    const actor = createRunActor(body, candidateRun);
-    actor.start();
-    const snapshot = actor.getSnapshot();
-    const eventObject = { type: event };
-    if (!snapshot.can(eventObject)) {
-      actor.stop();
-      return {
-        success: false,
-        error: `Invalid playbook event '${event}' from state '${run.currentState}'.`,
-        gateVerdicts: gateResult.gateVerdicts,
-      };
-    }
-
-    actor.send(eventObject);
-    const nextState = String(actor.getSnapshot().value);
-    actor.stop();
-    const expectedTarget = state.transitions.find(
-      (transition) => transition.event === event,
-    )?.target;
-    if (expectedTarget && nextState !== expectedTarget) {
-      return {
-        success: false,
-        error: `Playbook event '${event}' is blocked from state '${run.currentState}'. Complete the state's Done When conditions before sending this event.`,
-        gateVerdicts: gateResult.gateVerdicts,
-      };
-    }
-    return {
-      success: true,
-      currentState: nextState,
-      gateVerdicts: gateResult.gateVerdicts,
-    };
-  }
-
-  private async prepareGateVerdicts(
-    run: PlaybookRun,
-    state: PlaybookState,
-    event: string,
-  ): Promise<
-    | { success: true; gateVerdicts: PlaybookGateVerdict[] }
-    | { success: false; error: string }
-  > {
-    if (!transitionRequiresGateVerdict(state, event)) {
-      return { success: true, gateVerdicts: run.gateVerdicts };
-    }
-    if (hasSatisfiedGateVerdicts(state, run)) {
-      return { success: true, gateVerdicts: run.gateVerdicts };
-    }
-
-    const evidence = evidenceForState(run, state.id);
-    let result: GoalCheckResult;
-    try {
-      result = await this.goalCheck.evaluate({
-        run,
-        state,
-        goal: state.doneWhen,
-        evidence,
-      });
-    } catch (error) {
-      result = {
-        met: false,
-        reason: `Playbook goal check failed: ${errorMessage(error)}`,
-      };
-    }
-
-    const gateVerdict: PlaybookGateVerdict = {
-      stateId: state.id,
-      goal: state.doneWhen,
-      met: result.met,
-      reason: result.reason,
-      evaluatedAt: new Date().toISOString(),
-    };
-    const nextVerdicts = upsertGateVerdicts(run.gateVerdicts, [gateVerdict]);
-    return { success: true, gateVerdicts: nextVerdicts };
   }
 
   private async listPlaybooks(): Promise<ParsedPlaybook[]> {
@@ -874,108 +762,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       );
     }
     return undefined;
-  }
-
-  private async recordEntityEventEvidence(
-    operation: "created" | "updated",
-    payload: Record<string, unknown>,
-  ): Promise<{ recorded: boolean }> {
-    const entityType = stringFromPayload(payload, "entityType");
-    const entityId = stringFromPayload(payload, "entityId");
-    if (!entityType || !entityId) return { recorded: false };
-
-    const explicitRunId = stringFromPayload(payload, "runId");
-    const conversationId = stringFromPayload(payload, "conversationId");
-    const run = explicitRunId
-      ? await this.store.findById(explicitRunId)
-      : conversationId
-        ? await this.store.findActiveByConversation(conversationId)
-        : undefined;
-    if (run?.status !== "active") return { recorded: false };
-
-    const evidence: PlaybookRunEvidence = {
-      id: createPrefixedId("playbook_evidence"),
-      kind: "entity_event",
-      stateId: run.currentState,
-      observedAt: new Date().toISOString(),
-      data: {
-        entityType,
-        entityId,
-        operation,
-        ...entityEvidenceDetails(payload),
-        ...(conversationId ? { conversationId } : {}),
-        ...(stringFromPayload(payload, "toolCallId")
-          ? { toolCallId: stringFromPayload(payload, "toolCallId") }
-          : {}),
-      },
-    };
-    const updatedRun = await this.store.appendEvidence(run.id, evidence);
-    await this.evaluateGateAfterEvidence(updatedRun.id);
-    return { recorded: true };
-  }
-
-  private async evaluateGateAfterEvidence(runId: string): Promise<void> {
-    await this.withRunLock(runId, () =>
-      this.evaluateGateAfterEvidenceLocked(runId),
-    );
-  }
-
-  private async evaluateGateAfterEvidenceLocked(runId: string): Promise<void> {
-    const run = await this.store.findById(runId);
-    if (run?.status !== "active") return;
-    if (this.hasSatisfiedGateForCurrentState(run)) return;
-    const playbook = await this.getPlaybook(run.playbookId);
-    if (run.playbookVersion !== playbook?.version) return;
-    const state = getState(playbook.body, run.currentState);
-    if (!state?.doneWhen.length) return;
-    const nextTransitions = state.transitions.filter(
-      (transition) => transition.event === "NEXT",
-    );
-    if (nextTransitions.length !== 1) return;
-
-    const result = await this.prepareGateVerdicts(run, state, "NEXT");
-    if (!result.success) return;
-
-    const candidateRun = { ...run, gateVerdicts: result.gateVerdicts };
-    if (!hasSatisfiedGateVerdicts(state, candidateRun)) {
-      await this.store.upsert(candidateRun);
-      return;
-    }
-
-    const transitioned = await this.transitionRun(
-      candidateRun,
-      playbook.body,
-      "NEXT",
-    );
-    if (!transitioned.success) {
-      await this.store.upsert(candidateRun);
-      return;
-    }
-
-    const reachedFinalState = playbook.body.finalStates.includes(
-      transitioned.currentState,
-    );
-    await this.store.upsert({
-      ...candidateRun,
-      currentState: transitioned.currentState,
-      completedStates: appendUnique(
-        candidateRun.completedStates,
-        candidateRun.currentState,
-      ),
-      gateVerdicts: transitioned.gateVerdicts,
-      ...(reachedFinalState
-        ? {
-            status: "completed" as const,
-            completedAt: new Date().toISOString(),
-          }
-        : {}),
-    });
-  }
-
-  private hasSatisfiedGateForCurrentState(run: PlaybookRun): boolean {
-    return run.gateVerdicts.some(
-      (verdict) => verdict.stateId === run.currentState && verdict.met,
-    );
   }
 
   private async getPlaybook(
@@ -1153,10 +939,6 @@ function zeroUsage(): AgentResponse["usage"] {
   return { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 }
 
-function appendUnique(values: string[], value: string): string[] {
-  return values.includes(value) ? values : [...values, value];
-}
-
 function preferActiveRun(
   runs: PlaybookRun[],
   predicate: (run: PlaybookRun) => boolean,
@@ -1172,79 +954,6 @@ function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {
   return [...runs].sort((a, b) =>
     (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt),
   )[0];
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function upsertGateVerdicts(
-  existing: PlaybookGateVerdict[],
-  next: PlaybookGateVerdict[],
-): PlaybookGateVerdict[] {
-  const nextKeys = new Set(next.map(gateVerdictKey));
-  return [
-    ...existing.filter((verdict) => !nextKeys.has(gateVerdictKey(verdict))),
-    ...next,
-  ];
-}
-
-function gateVerdictKey(verdict: PlaybookGateVerdict): string {
-  return [verdict.stateId, ...verdict.goal].join("\u0000");
-}
-
-function stringFromPayload(
-  payload: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = payload[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function entityEvidenceDetails(
-  payload: Record<string, unknown>,
-): Record<string, string> {
-  const entity = recordFromUnknown(payload["entity"]);
-  if (!entity) return {};
-
-  const metadata = recordFromUnknown(entity["metadata"]);
-  const title = firstNonEmptyString(
-    metadata?.["title"],
-    metadata?.["name"],
-    entity["title"],
-  );
-  const content = firstNonEmptyString(entity["content"]);
-  const contentPreview = content ? previewText(content) : undefined;
-
-  return {
-    ...(title ? { title } : {}),
-    ...(contentPreview ? { contentPreview } : {}),
-  };
-}
-
-function recordFromUnknown(
-  value: unknown,
-): Record<string, unknown> | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return undefined;
-  }
-  return value as Record<string, unknown>;
-}
-
-function firstNonEmptyString(...values: unknown[]): string | undefined {
-  return values
-    .find(
-      (value): value is string =>
-        typeof value === "string" && value.trim().length > 0,
-    )
-    ?.trim();
-}
-
-function previewText(value: string): string {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  return normalized.length > 500
-    ? `${normalized.slice(0, 497)}...`
-    : normalized;
 }
 
 function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
