@@ -21,6 +21,6 @@ export type ConventionalSiteOverrides<TPluginConfig = Record<string, unknown>> =
     pluginConfig?: TPluginConfig;
   };
 
-export const sitePackageSchema = z.custom<SitePackage>(
+export const sitePackageSchema: z.ZodType<SitePackage> = z.custom<SitePackage>(
   (value) => baseSitePackageSchema.safeParse(value).success,
 );

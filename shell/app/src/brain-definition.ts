@@ -8,11 +8,16 @@ import { z } from "@brains/utils/zod-v4";
 /**
  * Standard preset names.
  */
-export const presetNameSchema = z.enum(["core", "default", "full"]);
-export const PresetNames = presetNameSchema.options;
+export const presetNameSchema: z.ZodEnum<{
+  core: "core";
+  default: "default";
+  full: "full";
+}> = z.enum(["core", "default", "full"]);
+export const PresetNames: typeof presetNameSchema.options =
+  presetNameSchema.options;
 export type PresetName = z.output<typeof presetNameSchema>;
 
-export const modeSchema = z.enum(["eval"]);
+export const modeSchema: z.ZodEnum<{ eval: "eval" }> = z.enum(["eval"]);
 export type BrainMode = z.output<typeof modeSchema>;
 
 /**

@@ -10,15 +10,21 @@ import { z } from "@brains/utils/zod-v4";
  * aggregated statistics.
  */
 
-const usageEntrySchema = z.looseObject({
+export interface UsageEntry {
+  operation: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+const usageEntrySchema: z.ZodType<UsageEntry> = z.looseObject({
   operation: z.string(),
   provider: z.string(),
   model: z.string(),
   inputTokens: z.number(),
   outputTokens: z.number(),
 });
-
-export type UsageEntry = z.output<typeof usageEntrySchema>;
 
 export interface UsageEvent {
   ts: string;

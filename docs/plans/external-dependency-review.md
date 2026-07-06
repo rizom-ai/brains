@@ -1266,10 +1266,13 @@ adding explicit product/overview/link/blog/conversation-memory/agent/skill/deck
 schema contracts plus typed job, template, datasource, widget, and
 attachment-template contracts. A shell follow-up enabled `isolatedDeclarations`
 for `@brains/ai-evaluation`, adding explicit evaluation/test-case schema
-contracts while preserving discriminated attachment validation. The package
-follow-up enabled `isolatedDeclarations` for `@rizom/ops`, adding explicit
-pilot/user/cohort and encrypted-secret schema contracts and including package
-metadata in the composite project for declaration emit. The
+contracts while preserving discriminated attachment validation. The next shell
+follow-up enabled `isolatedDeclarations` for `@brains/app`, adding explicit
+brain definition, instance override, site package, app config, deployment, and
+usage aggregation schema contracts. The package follow-up enabled
+`isolatedDeclarations` for `@rizom/ops`, adding explicit pilot/user/cohort and
+encrypted-secret schema contracts and including package metadata in the
+composite project for declaration emit. The
 first brain-model batch enabled
 `isolatedDeclarations` for `@brains/ranger` and `@brains/rover`, replacing
 inferred default exports with explicit `BrainDefinition` constants and annotating
