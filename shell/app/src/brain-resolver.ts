@@ -825,8 +825,14 @@ function resolveSitePackage(
   overrides?: Omit<InstanceOverrides, "brain">,
 ): SitePackage | undefined {
   const pkgRef = overrides?.site?.package;
-  if (!pkgRef || !hasPackage(pkgRef)) {
+  if (!pkgRef) {
     return definition.site;
+  }
+
+  if (!hasPackage(pkgRef)) {
+    throw new Error(
+      `brain.yaml site.package "${pkgRef}" could not be resolved — the package is not installed or failed to import. Refusing to fall back to the default site.`,
+    );
   }
 
   const sitePackage = resolveRegisteredSitePackage(
