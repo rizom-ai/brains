@@ -1247,7 +1247,11 @@ and `@brains/templates`. The first interface package batch enabled
 `@brains/webserver`, using explicit transport config and JSON-RPC/streaming
 contracts rather than exported inferred schema internals. The next interface
 batch enabled `isolatedDeclarations` for `@brains/chat-repl` and `@brains/mcp`
-with explicit CLI/MCP config contracts. The first entity package batches enabled
+with explicit CLI/MCP config contracts. The next interface follow-up enabled
+`isolatedDeclarations` for `@brains/web-chat`, adding explicit chat request,
+upload, history-message, config, and React bridge contracts while leaving the
+standalone React UI tsconfig for a later component-wide pass. The first entity
+package batches enabled
 `isolatedDeclarations` for `@brains/doc`, `@brains/document-plugin`,
 `@brains/image-plugin`, `@brains/newsletter-entity`, `@brains/note`,
 `@brains/playbook`, `@brains/prompt`, `@brains/rizom-ecosystem`,

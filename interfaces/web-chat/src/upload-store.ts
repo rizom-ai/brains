@@ -10,10 +10,11 @@ import {
   type SaveRuntimeUploadInput,
 } from "@brains/plugins";
 
-export const webChatUploadRefKind = "upload";
-export const webChatUploadIdPattern = runtimeUploadIdPattern;
-export const defaultWebChatUploadRetentionMs = 24 * 60 * 60 * 1000;
-export const defaultWebChatUploadMaxCount = 200;
+export const webChatUploadRefKind = "upload" as const;
+export const webChatUploadIdPattern: typeof runtimeUploadIdPattern =
+  runtimeUploadIdPattern;
+export const defaultWebChatUploadRetentionMs: number = 24 * 60 * 60 * 1000;
+export const defaultWebChatUploadMaxCount: number = 200;
 
 export type WebChatUploadRecord = RuntimeUploadRecord & {
   ref: { kind: typeof webChatUploadRefKind; id: string };

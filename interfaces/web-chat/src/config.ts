@@ -1,6 +1,11 @@
 import { z } from "@brains/utils/zod-v4";
 
-export const webChatConfigSchema = z.object({
+type WebChatConfigSchema = z.ZodObject<{
+  routePath: z.ZodDefault<z.ZodString>;
+  apiPath: z.ZodDefault<z.ZodString>;
+}>;
+
+export const webChatConfigSchema: WebChatConfigSchema = z.object({
   routePath: z.string().default("/chat"),
   apiPath: z.string().default("/api/chat"),
 });

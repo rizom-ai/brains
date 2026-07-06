@@ -1,11 +1,11 @@
 /** @jsxImportSource react */
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
 
 export type ToolProps = ComponentProps<"details">;
 
-export const Tool = ({ className, ...props }: ToolProps) => {
+export const Tool = ({ className, ...props }: ToolProps): ReactElement => {
   const composed = className
     ? `web-chat-data-part ${className}`
     : "web-chat-data-part";
@@ -42,7 +42,7 @@ export const ToolHeader = ({
   type,
   state,
   toolName,
-}: ToolHeaderProps) => {
+}: ToolHeaderProps): ReactElement => {
   const derivedName =
     type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
   const composed = className
@@ -65,7 +65,10 @@ export const ToolHeader = ({
 
 export type ToolContentProps = ComponentProps<"div">;
 
-export const ToolContent = ({ className, ...props }: ToolContentProps) => {
+export const ToolContent = ({
+  className,
+  ...props
+}: ToolContentProps): ReactElement => {
   const composed = className
     ? `web-chat-data-part-body ${className}`
     : "web-chat-data-part-body";
@@ -76,7 +79,11 @@ export type ToolInputProps = ComponentProps<"div"> & {
   input: ToolPart["input"];
 };
 
-export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
+export const ToolInput = ({
+  className,
+  input,
+  ...props
+}: ToolInputProps): ReactElement => (
   <div className={className} {...props}>
     <h4 className="web-chat-data-part-label">Parameters</h4>
     <pre>{JSON.stringify(input, null, 2)}</pre>
@@ -93,7 +100,7 @@ export const ToolOutput = ({
   output,
   errorText,
   ...props
-}: ToolOutputProps) => {
+}: ToolOutputProps): ReactElement | null => {
   if (!(output || errorText)) {
     return null;
   }

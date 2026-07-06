@@ -6,34 +6,71 @@ import {
   resolveReferencedUpload as resolveReferencedUploadPart,
 } from "./upload-handlers";
 
-const textPartSchema = z.object({
+interface TextPart {
+  type: "text";
+  text: string;
+}
+
+interface FilePart {
+  type: "file";
+  mediaType?: string | undefined;
+  filename?: string | undefined;
+  url: string;
+}
+
+export interface ApprovalResponse {
+  id: string;
+  approved: boolean;
+}
+
+interface ApprovalResponsePart {
+  [key: string]: unknown;
+  state: "approval-responded";
+  approval: ApprovalResponse;
+}
+
+interface UiMessage {
+  id?: string | undefined;
+  role: string;
+  parts?: unknown[] | undefined;
+  content?: string | undefined;
+}
+
+export interface ChatRequest {
+  id?: string | undefined;
+  messages: UiMessage[];
+  trigger?: string | undefined;
+}
+
+const textPartSchema: z.ZodType<TextPart> = z.object({
   type: z.literal("text"),
   text: z.string(),
 });
 
-const filePartSchema = z.object({
+const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal("file"),
   mediaType: z.string().optional(),
   filename: z.string().optional(),
   url: z.string(),
 });
 
-const approvalResponsePartSchema = z.looseObject({
-  state: z.literal("approval-responded"),
-  approval: z.object({
-    id: z.string(),
-    approved: z.boolean(),
-  }),
-});
+const approvalResponsePartSchema: z.ZodType<ApprovalResponsePart> =
+  z.looseObject({
+    state: z.literal("approval-responded"),
+    approval: z.object({
+      id: z.string(),
+      approved: z.boolean(),
+    }),
+  });
 
-const uiMessageSchema = z.object({
+const uiMessageSchema: z.ZodType<UiMessage> = z.object({
   id: z.string().optional(),
   role: z.string(),
   parts: z.array(z.unknown()).optional(),
   content: z.string().optional(),
 });
 
-export const chatRequestSchema = z.object({
+export const chatRequestSchema: z.ZodType<ChatRequest> = z.object({
   id: z.string().optional(),
   messages: z.array(uiMessageSchema).min(1),
   trigger: z.string().optional(),
@@ -50,11 +87,6 @@ const uploadRefPartSchema = z.object({
     ref: uploadRefSchema,
   }),
 });
-
-export type ChatRequest = z.infer<typeof chatRequestSchema>;
-export type ApprovalResponse = z.infer<
-  typeof approvalResponsePartSchema
->["approval"];
 
 export interface ParsedUserInput {
   message: string;
