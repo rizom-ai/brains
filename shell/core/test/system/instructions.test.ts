@@ -34,6 +34,8 @@ describe("system instructions", () => {
     );
     expect(instructions).toContain("summarize my blog posts");
     expect(instructions).toContain("short sentence or fragment after a colon");
+    expect(instructions).toContain("memo about the launch timeline");
+    expect(instructions).toContain("pasted uploaded-file transcript");
     expect(instructions).toContain(
       "even when the prior answer says there was limited readable content",
     );
@@ -59,6 +61,21 @@ describe("system instructions", () => {
     expect(instructions).toContain("system_update");
     expect(instructions).toContain(
       "For explicit publish requests, use the publishing tool",
+    );
+  });
+
+  it("tells agents to create pending confirmations by calling mutating tools", () => {
+    const services = createMockSystemServices();
+    const instructions = createSystemInstructions(services);
+
+    expect(instructions).toContain(
+      "call system_create without `confirmed` to request that confirmation",
+    );
+    expect(instructions).toContain(
+      "call system_update without `confirmed` to request that confirmation",
+    );
+    expect(instructions).toContain(
+      "Do not ask for prose confirmation instead of calling the applicable mutating tool",
     );
   });
 
