@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createTestEntity } from "@brains/test-utils";
 import { createEntityDatabase } from "../src/db";
 import { entities } from "../src/schema/entities";

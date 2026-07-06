@@ -18,7 +18,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { EntitySerializer } from "./entity-serializer";
 import { normalizeEntityRow, type EntityData } from "./entity-data";
 

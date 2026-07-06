@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type AgentTestCaseType =
   "tool_invocation" | "response_quality" | "multi_turn";

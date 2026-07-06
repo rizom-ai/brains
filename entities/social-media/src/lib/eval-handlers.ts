@@ -1,6 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { GenerationJobHandler } from "../handlers/generationHandler";
 
 const generationInputSchema = z.object({

@@ -5,7 +5,7 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { getErrorMessage, type FetchLike } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   atprotoConfigSchema,
   type AtprotoConfig,

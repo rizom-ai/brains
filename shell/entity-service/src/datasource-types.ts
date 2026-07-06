@@ -1,4 +1,4 @@
-import type { ZodType } from "@brains/utils/zod-v4";
+import type { ZodType } from "@brains/utils/zod";
 import type { EntityService as IEntityService } from "./types";
 
 /**

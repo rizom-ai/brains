@@ -10,7 +10,7 @@ import {
 } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import { fromYaml } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { cmsPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
 
 function createCmsTestShell(

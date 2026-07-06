@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export interface ArtifactDisplay {
   jobId?: string;
@@ -13,11 +13,7 @@ export interface ArtifactDisplay {
 }
 
 export type ArtifactJobStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "unknown";
+  "pending" | "processing" | "completed" | "failed" | "unknown";
 
 export interface ArtifactCardState {
   status: ArtifactJobStatus | "ready";

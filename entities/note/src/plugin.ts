@@ -9,7 +9,7 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter, type NoteAdapter } from "./adapters/note-adapter";
 import type { NoteConfig, NoteConfigInput } from "./config";

@@ -1,5 +1,5 @@
 import type { UIMessage } from "ai";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { stripInternalEntityMemoryNote } from "../../src/display-content";
 import { createUploadPart, type WebChatUploadResponse } from "./uploads";
 

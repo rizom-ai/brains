@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export const AGENT_ACTION_REQUEST_CHANNEL = "agent:action:request";
 

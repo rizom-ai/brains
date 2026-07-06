@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export const BrainCharacterSchema = z.object({
   name: z.string(),

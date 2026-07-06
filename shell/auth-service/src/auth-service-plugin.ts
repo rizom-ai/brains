@@ -8,7 +8,7 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { AuthService, type OperatorSetupRequired } from "./auth-service";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";

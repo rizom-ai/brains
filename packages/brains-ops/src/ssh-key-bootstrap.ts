@@ -14,7 +14,7 @@ import {
   resolveLocalPath,
 } from "@brains/deploy-support";
 import { parseJsonResponse } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { type FetchLike } from "@brains/deploy-support/origin-ca";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";

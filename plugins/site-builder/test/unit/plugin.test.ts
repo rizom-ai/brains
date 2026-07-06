@@ -3,7 +3,7 @@ import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { h } from "preact";
 import { createTestConfig } from "../test-helpers";
 import { mkdtemp } from "fs/promises";

@@ -6,7 +6,7 @@ import type {
   ToolResponse,
   MessageWithPayload,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 interface CalculatorConfig {
   enabled: boolean;

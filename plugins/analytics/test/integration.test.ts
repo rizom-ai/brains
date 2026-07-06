@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { Tool, ToolResponse } from "@brains/plugins";
 import { expectSuccess, expectError } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { AnalyticsPlugin } from "../src/index";
 import packageJson from "../package.json";
 
@@ -60,8 +60,7 @@ async function executeTool(
   input: Record<string, unknown>,
 ): Promise<ToolResponse> {
   const tool = capabilities.tools.find((t) => t.name === toolName) as
-    | Tool
-    | undefined;
+    Tool | undefined;
   if (!tool) {
     throw new Error(`Tool ${toolName} not found`);
   }

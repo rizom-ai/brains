@@ -7,7 +7,7 @@ import {
   type EntitySearchRequest,
   type ListEntitiesRequest,
 } from "@brains/entity-service";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { PermissionService } from "@brains/templates";
 
 type SeedEntity = Omit<BaseEntity, "visibility"> & {

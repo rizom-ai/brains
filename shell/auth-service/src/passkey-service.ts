@@ -10,7 +10,7 @@ import {
   type WebAuthnCredential,
 } from "@simplewebauthn/server";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   base64UrlToBytes,
   bytesToBase64Url,

@@ -11,7 +11,7 @@ import {
 import { AIService } from "../src/aiService";
 import { createSilentLogger, createTestLogger } from "@brains/test-utils";
 import { LogLevel } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import * as ai from "ai";
 import * as anthropicSdk from "@ai-sdk/anthropic";
 

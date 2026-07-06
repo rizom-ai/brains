@@ -1,6 +1,6 @@
 import type { Plugin, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin, professionalProfileExtension } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json" with { type: "json" };
 
 const emptyConfigSchema: z.ZodType<

@@ -6,7 +6,7 @@ import type {
   JobContext,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 // Define tracking info for webserver interface jobs
 export interface WebserverTrackingInfo extends BaseJobTrackingInfo {

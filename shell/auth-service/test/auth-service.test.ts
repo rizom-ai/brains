@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
 import { Logger, LogLevel } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { NOTIFICATIONS_SEND } from "@brains/notifications";
 import {
   AuthService,

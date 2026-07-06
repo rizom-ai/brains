@@ -1,5 +1,5 @@
 import { baseEntityParserSchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type PlaybookStatus = "draft" | "active" | "archived";
 export type PlaybookAudience = "anchor" | "trusted" | "public";

@@ -1,6 +1,6 @@
 import type { Tool, ToolResult } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { IGitSync } from "../types";
 
 /**

@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import { z, type ZodType } from "@brains/utils/zod-v4";
+import { z, type ZodType } from "@brains/utils/zod";
 import { remark } from "remark";
 import type {
   Root,

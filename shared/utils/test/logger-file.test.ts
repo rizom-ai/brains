@@ -3,7 +3,7 @@ import { Logger, LogLevel } from "../src/logger";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { z } from "../src/zod-v4";
+import { z } from "../src/zod";
 
 const logRecordSchema = z.record(z.string(), z.unknown());
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { MCPService, type IMCPService, type Tool } from "@brains/mcp-service";
 import type {
   IBrainCharacterService,

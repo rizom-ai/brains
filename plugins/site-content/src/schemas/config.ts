@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { SiteContentDefinition } from "../definitions";
 
 const siteContentDefinitionShapeSchema = z.object({

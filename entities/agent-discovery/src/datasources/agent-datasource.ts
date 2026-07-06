@@ -11,7 +11,7 @@ import type {
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { agentFrontmatterSchema, agentWithDataSchema } from "../schemas/agent";
 import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
 import { AgentAdapter } from "../adapters/agent-adapter";

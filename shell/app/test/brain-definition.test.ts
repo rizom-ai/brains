@@ -12,7 +12,7 @@ import {
   type IShell,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 // Minimal mock plugin factory. Narrower than PluginFactory (always returns a
 // single Plugin, never a composite array) so test callers can use the result

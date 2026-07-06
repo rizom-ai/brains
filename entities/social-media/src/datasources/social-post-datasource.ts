@@ -12,7 +12,7 @@ import type {
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { SocialPost } from "../schemas/social-post";
 import {
   socialPostFrontmatterSchema,

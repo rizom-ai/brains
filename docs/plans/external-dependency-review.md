@@ -367,7 +367,7 @@ behavior this codebase leans on (`.passthrough()`, error
 customization, record/enum typing — `conversation-service` and the
 entity schemas use passthrough deliberately). The repo default has now moved
 to Zod 4; keep the import boundary clean by importing through
-`@brains/utils/zod-v4` or the centralized `@brains/utils` export in internal
+`@brains/utils/zod` or the centralized `@brains/utils` export in internal
 code, and through the public `@rizom/brain` root `z` export in external plugin
 authoring docs/examples. The public `@rizom/brain` root export owns the
 external authoring boundary by re-exporting blessed `z`, so external plugins
@@ -375,11 +375,11 @@ should not declare their own `zod` dependency.
 
 Incremental migration progress:
 
-- Added `@brains/utils/zod-v4` as an explicit opt-in wrapper around the
+- Added `@brains/utils/zod` as an explicit opt-in wrapper around the
   `zod/v4` subpath during the incremental migration; it is now the canonical
   Zod 4 helper used by the workspace Zod exports.
 - Migrated self-contained web-chat request/upload/card payload schemas to
-  `@brains/utils/zod-v4`. This is intentionally narrow: avoid switching
+  `@brains/utils/zod`. This is intentionally narrow: avoid switching
   APIs that accept schemas from other packages until both sides of that
   boundary move together.
 - Split more defaulted plugin configs into parsed output and caller input:
@@ -465,12 +465,12 @@ Incremental migration progress:
   input and runtime `PluginConfig<T>` is schema output.
 - Completed the originally identified config-boundary `z.infer` inventory. The
   remaining `z.infer` uses are mostly domain DTOs, tool payloads, and exported
-  schemas composed across package boundaries; explicit `@brains/utils/zod-v4`
+  schemas composed across package boundaries; explicit `@brains/utils/zod`
   migration should happen at those composition boundaries instead of mixing v3
   and v4 schemas inside a single schema tree.
 - Started safe explicit Zod 4 islands beyond web chat by migrating local
   `ai-service` agent-result and SDK tool-output parsing schemas to
-  `@brains/utils/zod-v4`, using `z.looseObject` for intentional passthrough
+  `@brains/utils/zod`, using `z.looseObject` for intentional passthrough
   shapes and Zod 4 record syntax.
 - Migrated notification message payload/result schemas to explicit Zod 4 while
   keeping the plugin config schema on the main Zod export until plugin base
@@ -764,103 +764,103 @@ Incremental migration progress:
   an unused direct `zod` dependency.
 - Started Phase 2 boundary migration with `shared/atproto-contracts`: the whole
   package now authors its generated ATProto lexicon/record/event schemas on
-  explicit `@brains/utils/zod-v4`, uses Zod 4 record/loose/strict/url helpers,
+  explicit `@brains/utils/zod`, uses Zod 4 record/loose/strict/url helpers,
   removes the prior typed record-schema cast, and validates its only direct
   runtime consumer (`agent-discovery`) without mixing schema trees.
 - Migrated the shared agent action/response contract boundary to explicit
-  `@brains/utils/zod-v4` after the local-main merge introduced new direct
+  `@brains/utils/zod` after the local-main merge introduced new direct
   `zod` imports. The slice keeps unrelated shared-contract config/template
   schemas on the current main Zod boundary, switches contract parsed types to
   `z.output<typeof schema>`, updates Zod 4 records to two-argument form, and
   moves stored message metadata card parsing to the same Zod 4 tree to avoid
   mixed schemas.
 - Migrated the shared default query/simple text/create/update response schemas
-  to `@brains/utils/zod-v4`. These response schemas are passed through parse or
+  to `@brains/utils/zod`. These response schemas are passed through parse or
   template structural boundaries and are not composed into main-Zod schema
   trees.
 - Migrated the shared agent-context request/response parser boundary to
-  `@brains/utils/zod-v4`. Consumers only parse message payloads or coerce agent
+  `@brains/utils/zod`. Consumers only parse message payloads or coerce agent
   context items, so the schemas are not composed into the remaining main-Zod
   contract/config trees.
 - Migrated the plugin public identity DTO parser boundary to
-  `@brains/utils/zod-v4`. Runtime identity/profile data is converted through
+  `@brains/utils/zod`. Runtime identity/profile data is converted through
   standalone parse helpers and is not composed into plugin config/tool schemas.
 - Migrated the shared generation-result base schema and downstream generation
   job/result schemas for agent-discovery, blog, decks, note, portfolio, and
-  social-media to `@brains/utils/zod-v4` where their handler boundary is
+  social-media to `@brains/utils/zod` where their handler boundary is
   structural. Agent-discovery keeps its status-bearing job input on main Zod to
   avoid composing with the still-main entity status schema.
 - Migrated additional internal job-input parser boundaries to
-  `@brains/utils/zod-v4`: newsletter generation, content generation,
+  `@brains/utils/zod`: newsletter generation, content generation,
   conversation summary projection, topics projection, and the remaining
   directory-sync job schemas. These handlers validate through structural
   `.parse()`/`.safeParse()` contracts rather than composing with framework/tool
   schemas.
 - Migrated additional standalone parser/generation-output boundaries to
-  `@brains/utils/zod-v4`: directory-sync status/result schemas, content-service
+  `@brains/utils/zod`: directory-sync status/result schemas, content-service
   query-response template schema, AI-evaluation judge output schemas, and the
   AI-service async-generation tool-result guard. Plugin config/tool schemas in
   those packages remain on the current main-Zod boundary.
 - Migrated standalone deck, blog, portfolio, products, newsletter,
   social-media, link, and topics AI/media parser schemas to
-  `@brains/utils/zod-v4`; entity, config, and route/data template schemas that
+  `@brains/utils/zod`; entity, config, and route/data template schemas that
   compose remaining main-Zod entity/template trees stay on the current boundary.
 - Migrated additional standalone AI parser schemas for note generation, series
   descriptions, agent-discovery skill derivation, and conversation-memory
-  summary extraction/projection decisions to `@brains/utils/zod-v4`; note
+  summary extraction/projection decisions to `@brains/utils/zod`; note
   frontmatter record probing now uses the Zod 4 record helper through the
   structural frontmatter parser. The entity plugin AI namespace now accepts the
   same main-Zod/Zod 4 generation schema union as the shell AI service, while
   still-main entity/config/template-list schemas stay unmixed.
 - Migrated the AI-service brain call-options schema, AI-service object
   generation test fixture, and template/content-service structural schema test
-  fixtures to `@brains/utils/zod-v4`; the production template/config schemas
+  fixtures to `@brains/utils/zod`; the production template/config schemas
   that define framework metadata remain on the current main-Zod boundary.
 - Migrated assessment SWOT derivation job/AI-output schemas and the newsletter
-  composite factory config parser to `@brains/utils/zod-v4`; assessment keeps
+  composite factory config parser to `@brains/utils/zod`; assessment keeps
   the Zod 4 job/AI parser schemas in a separate module from the durable SWOT
   entity schema, and service-plugin config schemas that compose framework
   boundaries remain on the current main-Zod boundary.
 - Migrated additional structural test fixture schemas for datasource outputs,
   insight result parsing, and dynamic site-route template placeholders to
-  `@brains/utils/zod-v4`; production entity/template schemas that still compose
+  `@brains/utils/zod`; production entity/template schemas that still compose
   main-Zod framework trees remain unmixed.
 - Migrated more entity-owned structural test fixtures for agent-discovery,
   decks, and site-info datasource outputs and parser assertions to
-  `@brains/utils/zod-v4`; these tests exercise structural `.parse()`/datasource
+  `@brains/utils/zod`; these tests exercise structural `.parse()`/datasource
   contracts without composing with production entity schema trees.
 - Migrated auth-service, analytics, ai-evaluation, and site-builder
   parser-only test assertions plus site-builder structural template/datasource
-  test fixtures to `@brains/utils/zod-v4`; the schemas validate
+  test fixtures to `@brains/utils/zod`; the schemas validate
   response/notification/config/enrichment payloads or flow through structural
   template/data-source slots rather than plugin config or tool definitions.
 - Decoupled typed plugin message channels from main-Zod nominal types by using
   a structural `safeParse(input)` schema contract and moved the channel guard
-  plus channel/judge/runtime-state context tests to `@brains/utils/zod-v4`.
+  plus channel/judge/runtime-state context tests to `@brains/utils/zod`.
   Existing main-Zod channel schemas remain compatible because the messaging
   namespace only calls `safeParse`; the public plugin-author channel type now
   mirrors that structural contract. Entity plugin entity-schema typing now
   derives from `EntityAdapter` instead of spelling main-Zod generics locally.
 - Migrated MCP bridge remote-tool and call-result response guards to
-  `@brains/utils/zod-v4` while keeping generated tool input schemas on the
+  `@brains/utils/zod` while keeping generated tool input schemas on the
   current main-Zod boundary required by tool registration.
 - Migrated shell core structural test fixtures for AI/entity datasource output
   parsing, runtime-state shutdown validation, mock system frontmatter parsing,
-  and system tool response/request assertions to `@brains/utils/zod-v4`;
+  and system tool response/request assertions to `@brains/utils/zod`;
   production system tool schemas and route/config registration boundaries remain
   on the current main-Zod boundary.
 - Migrated the entity-service frontmatter utility test parser fixtures to
-  `@brains/utils/zod-v4`; entity adapter/frontmatter production schemas remain
+  `@brains/utils/zod`; entity adapter/frontmatter production schemas remain
   on the current entity-schema boundary.
 - Migrated the site-content dynamic template schema builder plus standalone
   topic and conversation-memory list template data schemas to
-  `@brains/utils/zod-v4`; entity/frontmatter schemas they do not own remain on
+  `@brains/utils/zod`; entity/frontmatter schemas they do not own remain on
   their existing boundaries.
 - Migrated Relay's local homepage diagram/content schemas and counts datasource
-  query/output parsing to `@brains/utils/zod-v4`; Rover's profile-extension
+  query/output parsing to `@brains/utils/zod`; Rover's profile-extension
   plugin config remains on the current plugin-constructor schema boundary.
 - Migrated additional standalone template/widget parser boundaries to
-  `@brains/utils/zod-v4` for agent-discovery network widget data,
+  `@brains/utils/zod` for agent-discovery network widget data,
   conversation-memory recent/detail views, blog/doc/series/social-media
   list/detail views, deck list/detail views, and link/newsletter list/detail
   view data, agent-discovery skill markdown formatting guards, and playbooks
@@ -869,26 +869,26 @@ Incremental migration progress:
 - Decoupled `@brains/media-page-composer`'s template contract from main-Zod
   type imports by replacing the public template schema field with a structural
   `parse(input: unknown): unknown` interface. Its tests now author template
-  schemas with `@brains/utils/zod-v4`, while existing main-Zod template
+  schemas with `@brains/utils/zod`, while existing main-Zod template
   providers remain structurally compatible because the package only calls
   `.parse()` and does not compose schema trees.
 - Decoupled `@brains/runtime-state` from main-Zod type imports by replacing its
   scoped store schema type with a structural `parse(input: unknown): T`
-  contract. Runtime-state tests now use `@brains/utils/zod-v4`; existing
+  contract. Runtime-state tests now use `@brains/utils/zod`; existing
   callers that pass main-Zod schemas remain compatible because runtime-state
   only invokes `.parse()` at the persistence boundary.
 - Decoupled `@brains/content-formatters` structured body formatting from
   main-Zod type imports by replacing `StructuredContentFormatter`'s constructor
   schema type with a structural `parse(input: unknown): T` contract. The
-  formatter package's owned schemas/tests now use `@brains/utils/zod-v4`, while
+  formatter package's owned schemas/tests now use `@brains/utils/zod`, while
   callers may still pass existing main-Zod schemas without composing schema
   trees.
 - Migrated the Discord thread subscription runtime-state boundary in
-  `@brains/chat` to `@brains/utils/zod-v4`. The interface package's remaining
+  `@brains/chat` to `@brains/utils/zod`. The interface package's remaining
   main-Zod import is now its plugin config schema; subscription persistence and
   related tests use the runtime-state structural parser contract.
 - Migrated `@brains/content-pipeline` publishable metadata and publish-asset
-  registry schemas to `@brains/utils/zod-v4`. These schemas are internal
+  registry schemas to `@brains/utils/zod`. These schemas are internal
   metadata/message validation boundaries used for publish-state parsing,
   publish asset registration, and type definitions, separate from the package's
   plugin config and tool-facing schemas that remain on main Zod.
@@ -896,88 +896,88 @@ Incremental migration progress:
   the `DataSource`/`BaseEntityDataSource` schema parameters with a structural
   `parse(input: unknown): T` contract. Existing main-Zod data source callers
   remain compatible, and downstream query parser schemas can continue migrating
-  to `@brains/utils/zod-v4` without composing mixed schema trees.
+  to `@brains/utils/zod` without composing mixed schema trees.
 - Decoupled template/content-service schema slots from main-Zod-only nominal
-  types by accepting either current main-Zod schemas or `@brains/utils/zod-v4`
+  types by accepting either current main-Zod schemas or `@brains/utils/zod`
   schemas at template/AI-generation/view-render boundaries. This enabled the
   self-contained `@brains/product-site-content` landing-section schemas to move
-  to `@brains/utils/zod-v4` while template config/permission schemas remain on
+  to `@brains/utils/zod` while template config/permission schemas remain on
   the current main-Zod boundary.
 - Migrated `@brains/messaging-service`'s owned base message, handler response,
-  and internal response schemas to `@brains/utils/zod-v4`. The message
+  and internal response schemas to `@brains/utils/zod`. The message
   validation helper now accepts a structural parser so callers can validate with
   either Zod generation without composing mixed schema trees.
 - Migrated `@brains/job-queue`'s job context/status/result/progress, batch,
-  job info, and test schemas to `@brains/utils/zod-v4`. `BaseJobHandler` and
+  job info, and test schemas to `@brains/utils/zod`. `BaseJobHandler` and
   the generation job handler config now take a structural `.parse()` parser, so
   job input schemas can remain on either Zod generation without mixed schema
   composition.
 - Migrated the first downstream `BaseJobHandler` job-input schemas to
-  `@brains/utils/zod-v4` now that the handler boundary is structural: stock
+  `@brains/utils/zod` now that the handler boundary is structural: stock
   photo selection, link capture, note upload import, image generation/source
   render/upload promotion, and directory cleanup. Tool/config and AI-generation
   schemas that still sit on main-Zod framework boundaries were left there.
 - Migrated `@brains/dashboard` widget registry/data-source output schemas to
-  `@brains/utils/zod-v4` while leaving the plugin config and message payload
+  `@brains/utils/zod` while leaving the plugin config and message payload
   schemas on the current main-Zod plugin/tool boundary. Dashboard data continues
   through the structural data-source parser boundary.
 - Migrated `@brains/ai-evaluation` test-case YAML schemas and the
-  conversation-memory eval-handler input parsers to `@brains/utils/zod-v4` with
+  conversation-memory eval-handler input parsers to `@brains/utils/zod` with
   local chat-context/provenance/visibility parser shapes, avoiding mixed
   composition with plugin/framework schemas.
 - Decoupled the internal base plugin constructor to accept any typed parser with
   `parse(input)`, then migrated standalone service plugin config schemas for
   analytics, ATProto, Buttondown, email-resend, HackMD, notifications, Notion,
-  and stock-photo to `@brains/utils/zod-v4`. Durable entity schemas and
+  and stock-photo to `@brains/utils/zod`. Durable entity schemas and
   tool-facing framework schemas stay on their current boundaries.
 - Decoupled the public plugin-author interface/message-interface/service
   delegates to accept structural config parsers, then migrated interface plugin
   config schemas for A2A, chat-repl, chat, Discord, MCP, web-chat, and
-  webserver to `@brains/utils/zod-v4`. Chat/Discord duplicated the tiny URL
+  webserver to `@brains/utils/zod`. Chat/Discord duplicated the tiny URL
   capture config shape locally to avoid composing main-Zod plugin schemas into
   Zod 4 config trees.
 - Decoupled the entity plugin constructors and public entity delegate to accept
   structural config parsers, then migrated standalone entity plugin config
   schemas for blog, note, portfolio, products, social-media, topics, link,
   wishlist, and conversation-memory summary projection to
-  `@brains/utils/zod-v4`. Durable entity/frontmatter schemas remain on their
+  `@brains/utils/zod`. Durable entity/frontmatter schemas remain on their
   current main-Zod entity-service registration boundary.
-- Migrated another standalone config-schema batch to `@brains/utils/zod-v4`:
+- Migrated another standalone config-schema batch to `@brains/utils/zod`:
   content-pipeline, directory-sync, Obsidian vault, site-content, CMS,
   newsletter, rizom-ecosystem, Rover profile extension, professional site, and
   Rizom runtime. Tool-facing and durable entity schemas in those packages remain
   on existing boundaries where applicable.
 - Migrated the site-builder plugin config, build-option, and site-build job
-  parser boundaries to `@brains/utils/zod-v4` using local route/site metadata
+  parser boundaries to `@brains/utils/zod` using local route/site metadata
   parser shapes, keeping the shared site-composition and site-info entity
   schemas on their existing main-Zod boundaries.
 - Migrated additional service/internal parser boundaries to
-  `@brains/utils/zod-v4`: dashboard plugin config/widget message payloads,
+  `@brains/utils/zod`: dashboard plugin config/widget message payloads,
   auth-service plugin config, and playbook runtime-state/run/config parser
   schemas. Playbooks keeps durable entity/frontmatter schemas on main Zod.
 - Migrated the agent-discovery, portfolio, and products list/detail template
-  parser boundaries to `@brains/utils/zod-v4` by defining local view-only
+  parser boundaries to `@brains/utils/zod` by defining local view-only
   entity, singleton, and pagination shapes. Durable entity/frontmatter schemas
   remain on main Zod.
 - Migrated the agent-discovery skill projection job-data parser to
-  `@brains/utils/zod-v4` with a local content-visibility parser; entity,
+  `@brains/utils/zod` with a local content-visibility parser; entity,
   config, and projection registration boundaries remain on existing contracts.
 - Migrated `@brains/web-chat` internal bootstrap/action request parsers to
-  `@brains/utils/zod-v4`; the interface plugin config schema remains on the
+  `@brains/utils/zod`; the interface plugin config schema remains on the
   current constructor/config boundary.
 - Migrated another plugin/template framework-adjacent parser batch to
-  `@brains/utils/zod-v4`: base-plugin internal tool/resource request parsers,
+  `@brains/utils/zod`: base-plugin internal tool/resource request parsers,
   API route definition parsing, content-service template validation,
   templates render/build schemas, and plugin/core/mcp-bridge example tests.
   Template schema parser types still explicitly accept both main-Zod and Zod 4
   generation schemas; tool-facing raw shape schemas remain on main Zod.
 - Migrated shared message-role, conversation message metadata/digest, and
   public plugin contract parsers (agent, conversation, messaging, metadata)
-  to `@brains/utils/zod-v4`, plus the small plugin config/message-content and
+  to `@brains/utils/zod`, plus the small plugin config/message-content and
   title-regeneration helper schemas. The migration keeps binary attachment
   types broad enough for Buffer-backed upload flows.
 - Migrated site composition route/site-package runtime parser boundaries and
-  the app-level dynamic site-package gate to `@brains/utils/zod-v4`. Site
+  the app-level dynamic site-package gate to `@brains/utils/zod`. Site
   composition layout metadata has also moved to Zod 4; main-Zod site-info and
   professional-site template schemas duplicate their small local CTA/section
   shapes instead of composing the shared Zod 4 metadata schemas into durable
@@ -989,24 +989,24 @@ Incremental migration progress:
   from the entity packages. The agent-discovery adapter body formatter now uses
   a local Zod 4 body parser instead of composing durable agent schema pieces.
 - Migrated brain definition preset/mode schemas, app `brain.yaml` instance
-  override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod-v4`.
+  override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod`.
   The app parser duplicates the small permission/action-policy validation
   shapes locally so it does not compose main-Zod template schemas.
 - Migrated shared DB config, shell config, and app config parser boundaries to
-  `@brains/utils/zod-v4`. The app/core config schemas now use local plugin and
+  `@brains/utils/zod`. The app/core config schemas now use local plugin and
   identity metadata validators to avoid composing plugin/template main-Zod
   schemas; nested defaults use Zod 4 prefaults where defaults must still be
   parsed through child object schemas.
 - Migrated plugin runtime app-info/daemon-status parser boundaries to
-  `@brains/utils/zod-v4`, using a local public permission enum for endpoint and
+  `@brains/utils/zod`, using a local public permission enum for endpoint and
   interaction metadata so the plugin interfaces boundary does not compose the
   templates permission schema.
 - Migrated Playbooks' remaining model-facing tool input and judge-result
-  schemas to `@brains/utils/zod-v4` now MCP tools and AI generation accept
+  schemas to `@brains/utils/zod` now MCP tools and AI generation accept
   Zod 4 parser boundaries. Also migrated plugin example schemas and AI-service
   tool-schema tests to Zod 4.
 - Migrated core system tool schemas and helper validation to
-  `@brains/utils/zod-v4`, using a local attachment result shape to avoid
+  `@brains/utils/zod`, using a local attachment result shape to avoid
   composing the entity-service main-Zod schema. Also migrated document and
   image plugin config/job/tool parser boundaries to Zod 4 while leaving their
   durable entity schemas on main Zod.
@@ -1020,7 +1020,7 @@ Incremental migration progress:
   guard/test parser, content-pipeline mock entity test schemas, entity
   pagination parser, entity frontmatter visibility parsing, assessment
   capability-profile parsing helpers, and public URL-capture config parser to
-  `@brains/utils/zod-v4` without touching durable entity/frontmatter schemas.
+  `@brains/utils/zod` without touching durable entity/frontmatter schemas.
 - Removed more nominal main-Zod type slots from complete parse-only boundaries:
   Obsidian Vault frontmatter introspection now accepts both main-Zod and Zod 4
   object shapes structurally, its introspector tests use Zod 4 schemas, and
@@ -1049,9 +1049,9 @@ Incremental migration progress:
   used by generation-stub merging. Service/CMS-facing entity namespaces still
   expose the main-Zod schema object for CMS field introspection, while the
   generation handler test now validates its local required-frontmatter guard
-  with `@brains/utils/zod-v4`.
+  with `@brains/utils/zod`.
 - Migrated assessment eval/test body and input parser schemas to
-  `@brains/utils/zod-v4`, duplicating small agent skill/status shapes locally
+  `@brains/utils/zod`, duplicating small agent skill/status shapes locally
   so parser-only eval inputs do not compose with main-Zod durable agent/skill
   entity schemas used by the in-test adapters.
 - Centralized entity-service registry Zod helper type aliases in
@@ -1059,7 +1059,7 @@ Incremental migration progress:
   to those aliases. This removes a local main-Zod type-only import without
   changing durable entity/frontmatter schema ownership.
 - Migrated the runtime `EntityPlugin` empty config schema to
-  `@brains/utils/zod-v4` and made no-config entity plugins pass the shared empty
+  `@brains/utils/zod` and made no-config entity plugins pass the shared empty
   config schema explicitly. Durable entity/frontmatter schemas remain on their
   current main-Zod boundary; this only removes the entity-plugin base class's
   nominal main-Zod config parser slot.
@@ -1074,7 +1074,7 @@ Incremental migration progress:
   imports while preserving the rule that durable entity/frontmatter schema trees
   do not mix Zod generations.
 - Migrated the public A2A `skillDataSchema` parser contract to
-  `@brains/utils/zod-v4`. Durable skill entity schemas in agent-discovery and
+  `@brains/utils/zod`. Durable skill entity schemas in agent-discovery and
   assessment now duplicate the small SkillData shape locally on their main-Zod
   entity boundaries instead of composing the Zod 4 public parser into main-Zod
   entity schemas.
@@ -1082,7 +1082,7 @@ Incremental migration progress:
   `shared/cms-config/src/main-zod.ts`, without adding a Zod 4 compatibility
   layer for CMS schema introspection.
 - Migrated the public `@rizom/brain` root Zod re-export to
-  `@brains/utils/zod-v4`, removed the public plugin-author judge input's
+  `@brains/utils/zod`, removed the public plugin-author judge input's
   main-Zod alias, and changed template schema storage to a structural parser
   slot. Core now explicitly narrows template schemas before using them for AI
   object generation so display-only main-Zod templates can remain registered
@@ -1102,7 +1102,7 @@ Incremental migration progress:
   `BaseEntityAdapter` frontmatter schemas, `EntityRegistry.extendFrontmatterSchema`,
   identity/profile schemas, assessment/agent-discovery durable schemas, all
   split entity frontmatter schemas, CMS config generation, and CMS/Obsidian test
-  fixtures now use `@brains/utils/zod-v4`. Deleted the package-local `main-zod`
+  fixtures now use `@brains/utils/zod`. Deleted the package-local `main-zod`
   modules rather than leaving renamed compatibility wrappers.
 - Trimmed legacy Zod compatibility branches after the durable migration: app
   config handling and directory quarantine now classify Zod 4 errors directly,
@@ -1129,7 +1129,7 @@ Incremental migration progress:
 
 Direct source imports from `@brains/utils/zod` are now eliminated. The
 `shared/utils/src/zod.ts` subpath is retained as a stable internal alias that
-routes to the Zod 4 helper; prefer `@brains/utils/zod-v4` for new internal code
+routes to the Zod 4 helper; prefer `@brains/utils/zod` for new internal code
 when the Zod major matters at the call site. Local Zod bindings have been
 normalized back to `z`; transitional `z4` aliases are removed from repo-owned
 schema code. The Zod 3 replacement and Phase 4 schema-boundary hardening work is

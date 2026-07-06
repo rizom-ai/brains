@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { isFileNotFoundError } from "./fs-errors";
 
 const DEFAULT_SESSION_STORE_FILE = "oauth-sessions.json";

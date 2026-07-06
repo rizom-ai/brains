@@ -5,7 +5,7 @@ import {
 } from "@brains/email-contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 export const NOTIFICATIONS_SEND = "notifications:send" as const;
@@ -40,8 +40,7 @@ interface ParsedSendNotification {
 }
 
 export type SendNotificationResult =
-  | { status: "sent"; deliveryId?: string | undefined }
-  | { status: "failed" };
+  { status: "sent"; deliveryId?: string | undefined } | { status: "failed" };
 
 const notificationsConfigSchema: z.ZodType<
   NotificationsConfig,

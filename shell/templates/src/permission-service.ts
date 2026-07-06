@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { matchSpaceSelector } from "./space-selector";
 
 /**
@@ -13,11 +13,7 @@ export const UserPermissionLevelSchema: z.ZodType<
 
 // Add new actions only when a concrete mutating tool needs them.
 export type EntityAction =
-  | "create"
-  | "update"
-  | "delete"
-  | "extract"
-  | "publish";
+  "create" | "update" | "delete" | "extract" | "publish";
 
 export const EntityActionSchema: z.ZodType<EntityAction, EntityAction> = z.enum(
   ["create", "update", "delete", "extract", "publish"],

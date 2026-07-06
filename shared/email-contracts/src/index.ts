@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export const EMAIL_SEND = "email:send";
 
@@ -32,5 +32,4 @@ export const sendEmailPayloadSchema: z.ZodType<
 });
 
 export type SendEmailResult =
-  | { status: "sent"; id?: string }
-  | { status: "failed" };
+  { status: "sent"; id?: string } | { status: "failed" };

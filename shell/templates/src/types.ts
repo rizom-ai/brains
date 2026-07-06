@@ -1,4 +1,4 @@
-import { z, type ZodType } from "@brains/utils/zod-v4";
+import { z, type ZodType } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { VNode } from "preact";
 

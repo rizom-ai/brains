@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { FileUIPart, UIMessage } from "ai";
 import { defaultWebChatUploadFilename } from "../../src/upload-policy";
 

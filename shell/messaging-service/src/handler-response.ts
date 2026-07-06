@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { messageResponseSchema, type MessageResponse } from "./base-types";
 
 export type HandlerResponse = MessageResponse;

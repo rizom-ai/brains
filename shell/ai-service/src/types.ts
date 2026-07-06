@@ -1,5 +1,5 @@
 import type { LanguageModel } from "ai";
-import type { ZodType } from "@brains/utils/zod-v4";
+import type { ZodType } from "@brains/utils/zod";
 
 /**
  * AI model configuration

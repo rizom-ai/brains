@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 const validationIssuesErrorSchema = z.looseObject({
   issues: z.array(

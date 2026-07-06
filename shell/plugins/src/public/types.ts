@@ -15,7 +15,7 @@ import type {
   OutputFormat,
   UserPermissionLevel,
 } from "@brains/templates";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
@@ -33,8 +33,7 @@ export interface SafeParserSchema<T> {
   safeParse(
     input: unknown,
   ):
-    | { success: true; data: T }
-    | { success: false; error: { message: string } };
+    { success: true; data: T } | { success: false; error: { message: string } };
 }
 
 export interface JudgeInput<T> {
@@ -158,10 +157,7 @@ export interface MessageJobTrackingInfo extends BaseJobTrackingInfo {
 }
 
 export type JobProgressStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed";
+  "pending" | "processing" | "completed" | "failed";
 
 export interface JobProgressContext {
   rootJobId: string;

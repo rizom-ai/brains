@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join, relative, sep } from "path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 const packageRoot = join(import.meta.dir, "..");
 const packageJsonPath = join(packageRoot, "package.json");

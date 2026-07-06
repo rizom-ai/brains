@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { InterfacePluginContext } from "../interface/context";
 
 const toolActivityEventTypeSchema = z.enum([
@@ -18,9 +18,7 @@ const toolActivityPayloadSchema = z.object({
 });
 
 export type ToolActivityEventType =
-  | "tool:invoking"
-  | "tool:completed"
-  | "tool:failed";
+  "tool:invoking" | "tool:completed" | "tool:failed";
 
 export interface ToolActivityEvent {
   type: ToolActivityEventType;

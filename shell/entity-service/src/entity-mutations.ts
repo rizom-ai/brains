@@ -22,7 +22,7 @@ import type { EntityQueries } from "./entity-queries";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";

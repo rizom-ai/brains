@@ -1,6 +1,6 @@
 import type { Plugin, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createAgentConnectTool } from "../tools/agent-connect";
 import type { FetchFn } from "../lib/fetch-agent-card";
 import packageJson from "../../package.json";

@@ -1,5 +1,5 @@
 import matter from "gray-matter";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { BaseEntity, ContentVisibility } from "./types";
 
 /**

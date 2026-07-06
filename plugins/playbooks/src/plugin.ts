@@ -25,7 +25,7 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
 import { createPrefixedId } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import { createActor, createMachine } from "xstate";
 import packageJson from "../package.json";

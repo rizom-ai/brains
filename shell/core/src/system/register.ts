@@ -9,7 +9,7 @@ import {
 } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { SystemServices } from "./types";
 import { createSystemTools } from "./tools";
 import { createSystemResources } from "./resources";

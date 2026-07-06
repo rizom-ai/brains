@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createTemplate, type Template } from "@brains/plugins";
 import {
   Head,
@@ -11,11 +11,7 @@ import {
   type BreadcrumbItem,
 } from "@brains/ui-library";
 type NewsletterTemplateStatus =
-  | "generating"
-  | "draft"
-  | "queued"
-  | "published"
-  | "failed";
+  "generating" | "draft" | "queued" | "published" | "failed";
 
 const newsletterStatusSchema: z.ZodType<
   NewsletterTemplateStatus,

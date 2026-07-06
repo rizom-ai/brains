@@ -24,7 +24,7 @@ import {
   type CSSProcessor,
 } from "@brains/site-engine";
 import { pLimit } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
 

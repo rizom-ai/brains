@@ -4,7 +4,7 @@ import {
   createMockShell,
   createServicePluginContext,
 } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { ProviderRegistry } from "../src/provider-registry";
 import { PublishExecutor } from "../src/publish-executor";
 

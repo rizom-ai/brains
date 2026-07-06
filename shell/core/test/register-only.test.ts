@@ -19,7 +19,7 @@ import {
 } from "@brains/job-queue";
 import { DataSourceRegistry } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 async function resetAllSingletons(): Promise<void> {
   await Shell.resetInstance();

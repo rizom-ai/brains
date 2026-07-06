@@ -10,7 +10,7 @@ import {
   generateMarkdown,
 } from "@brains/utils";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   parseDataUrl,
   detectImageFormat,

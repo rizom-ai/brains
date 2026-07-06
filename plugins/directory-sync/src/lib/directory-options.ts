@@ -1,6 +1,6 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { resolveSyncPath } from "./directory-path";
 
 export interface DirectorySyncOptionsInput {

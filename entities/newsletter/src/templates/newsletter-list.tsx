@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createTemplate, type Template } from "@brains/plugins";
 import {
   Head,
@@ -12,11 +12,7 @@ import {
   CardMetadata,
 } from "@brains/ui-library";
 type NewsletterTemplateStatus =
-  | "generating"
-  | "draft"
-  | "queued"
-  | "published"
-  | "failed";
+  "generating" | "draft" | "queued" | "published" | "failed";
 
 const newsletterStatusSchema: z.ZodType<
   NewsletterTemplateStatus,

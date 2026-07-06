@@ -1,5 +1,5 @@
 import { baseEntityParserSchema } from "@brains/entity-service";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type DocumentMimeType = "application/pdf";
 

@@ -13,7 +13,7 @@ import {
   slugify,
   updateFrontmatterField,
 } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   countPdfPages,
   createPdfDataUrl,

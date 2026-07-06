@@ -4,7 +4,7 @@ import type {
   BaseDataSourceContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 import type { SiteInfoBody } from "../schemas/site-info-schema";
 
@@ -71,8 +71,7 @@ export class SiteInfoDataSource implements DataSource {
 
     // Get profile socialLinks from entity
     let socialLinks:
-      | Array<{ platform: string; url: string; label?: string }>
-      | undefined;
+      Array<{ platform: string; url: string; label?: string }> | undefined;
     try {
       const profileEntity = await entityService.getEntity({
         entityType: "anchor-profile",

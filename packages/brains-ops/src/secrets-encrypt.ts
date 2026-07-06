@@ -9,7 +9,7 @@ import {
   resolveLocalPath,
 } from "@brains/deploy-support";
 import { toYaml } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";

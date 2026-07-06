@@ -12,7 +12,7 @@ import type {
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { truncateText } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   type Newsletter,
   newsletterFrontmatterSchema,
@@ -20,12 +20,7 @@ import {
 
 interface NewsletterQuery extends BaseQuery {
   status?:
-    | "generating"
-    | "draft"
-    | "queued"
-    | "published"
-    | "failed"
-    | undefined;
+    "generating" | "draft" | "queued" | "published" | "failed" | undefined;
 }
 
 interface NewsletterInput {

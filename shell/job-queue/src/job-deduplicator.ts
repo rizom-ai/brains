@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { DeduplicationStrategy } from "./schema/types";
 import { JOB_STATUS } from "./schemas";
 import type { JobInfo } from "./types";

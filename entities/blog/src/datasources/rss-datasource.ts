@@ -4,7 +4,7 @@ import type {
   BaseDataSourceContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { BlogPost } from "../schemas/blog-post";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";

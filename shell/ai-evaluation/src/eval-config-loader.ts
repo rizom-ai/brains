@@ -8,7 +8,7 @@ import {
   type InstanceOverrides,
   type PresetName,
 } from "@brains/app";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 import { parseModelsField, parseJudgeField } from "./multi-model";
 

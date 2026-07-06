@@ -1,5 +1,5 @@
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { JobHandler } from "./types";
 
 const logDataSchema = z.record(z.string(), z.unknown());

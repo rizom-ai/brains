@@ -73,8 +73,8 @@ export { isHttpUrl, fetchAsBase64DataUrl, fetchAsText } from "./http-utils";
 
 // Zod 4 exports - centralized for the monorepo
 // NOTE: No wildcard exports to avoid loading all Zod types (causes 5M+ type instantiations)
-export { z, ZodError } from "./zod-v4";
-export type { ZodType, ZodSchema } from "./zod-v4";
+export { z, ZodError } from "./zod";
+export type { ZodType, ZodSchema } from "./zod";
 
 // Additional Zod type exports
 export type {
@@ -83,7 +83,7 @@ export type {
   ZodInput,
   ZodOutput,
   ZodTypeAny,
-} from "./zod-v4";
+} from "./zod";
 
 // Error utilities
 export { getErrorMessage, toError } from "./error";

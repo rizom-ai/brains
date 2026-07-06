@@ -1,7 +1,7 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { createId } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { DirectorySync } from "./directory-sync";
 import { unlink, access } from "fs/promises";
 import type { DirectorySyncConfig, JobRequest } from "../types";

@@ -15,7 +15,7 @@ import {
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { PublishProvider, PublishResult } from "@brains/contracts";
 import { createTemplate } from "@brains/templates";
 import {

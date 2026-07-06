@@ -1,6 +1,6 @@
 import type { Tool, Resource, ToolResponse, ToolContext } from "./types";
 import { getErrorMessage, Logger } from "@brains/utils";
-import { z, type ZodRawShape } from "@brains/utils/zod-v4";
+import { z, type ZodRawShape } from "@brains/utils/zod";
 
 export interface ToolSuccessResult<T = unknown> {
   success: true;

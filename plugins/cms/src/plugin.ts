@@ -10,7 +10,7 @@ import {
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
 import { toYaml } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 const CMS_OAUTH_STATE_COOKIE = "brains_cms_oauth_state";

@@ -4,7 +4,7 @@ import type {
   BaseDataSourceContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { NavigationSlots } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 

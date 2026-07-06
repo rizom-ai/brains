@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type WishlistConfig = Record<string, never>;
 export type WishlistConfigInput = Record<string, unknown>;

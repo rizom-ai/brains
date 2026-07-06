@@ -3,7 +3,7 @@ import { NavigationDataSource } from "../../src/datasources/navigation-datasourc
 import { RouteRegistry } from "@brains/site-engine";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 // Test schema for navigation data (matches what NavigationDataSource returns)
 const testNavigationSchema = z.object({

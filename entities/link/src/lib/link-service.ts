@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlUtils } from "./url-utils";
 import { UrlFetcher } from "./url-fetcher";

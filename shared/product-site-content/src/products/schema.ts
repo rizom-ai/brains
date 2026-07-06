@@ -1,10 +1,7 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type ProductAvailability =
-  | "available"
-  | "early access"
-  | "coming soon"
-  | "planned";
+  "available" | "early access" | "coming soon" | "planned";
 
 export interface Product {
   id: string;

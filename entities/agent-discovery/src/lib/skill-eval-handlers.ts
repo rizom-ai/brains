@@ -1,6 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { SKILL_ENTITY_TYPE } from "./constants";
 import { deriveSkills } from "./skill-deriver";
 

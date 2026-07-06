@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { OgCard } from "@brains/ui-library";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 

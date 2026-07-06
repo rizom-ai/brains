@@ -3,7 +3,7 @@ import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { ToolResponse } from "@brains/mcp-service";
 import { join } from "path";
 import { tmpdir } from "os";

@@ -1,5 +1,5 @@
 import type { SiteMetadata, SiteMetadataCTA } from "@brains/site-composition";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 interface SiteMetadataSection {
   blurb?: string | undefined;

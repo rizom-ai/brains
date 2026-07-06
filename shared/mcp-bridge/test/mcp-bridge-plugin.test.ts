@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { MCPBridgePlugin } from "../src/mcp-bridge-plugin";
 import type { ServerCommand } from "../src/mcp-bridge-plugin";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 // ============================================================================
 // Concrete test subclass
@@ -96,12 +96,11 @@ interface MockToolResult {
   isError: boolean;
 }
 
-const mockCallTool = mock(
-  (): Promise<MockToolResult> =>
-    Promise.resolve({
-      content: [{ type: "text", text: "mock result" }],
-      isError: false,
-    }),
+const mockCallTool = mock((): Promise<MockToolResult> =>
+  Promise.resolve({
+    content: [{ type: "text", text: "mock result" }],
+    isError: false,
+  }),
 );
 
 const mockListTools = mock(() => Promise.resolve({ tools: REMOTE_TOOLS }));

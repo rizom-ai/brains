@@ -10,7 +10,7 @@ import type {
 } from "@brains/entity-service";
 import { buildPaginationInfo } from "@brains/entity-service";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type { SortField };
 

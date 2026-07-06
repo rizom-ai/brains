@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z, type ZodRawShape } from "@brains/utils/zod-v4";
+import { z, type ZodRawShape } from "@brains/utils/zod";
 import type { ProgressNotification } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/templates";
 
@@ -138,9 +138,7 @@ export const toolConfirmationSchema: z.ZodType<ToolConfirmation> =
  * All tools return one of: success, error, or confirmation request.
  */
 export type ToolResponse =
-  | ToolSuccessResponse
-  | ToolErrorResponse
-  | ToolConfirmation;
+  ToolSuccessResponse | ToolErrorResponse | ToolConfirmation;
 
 export const toolResponseSchema: z.ZodType<ToolResponse> = z.union([
   toolSuccessSchema,

@@ -1,5 +1,5 @@
 import type { ProgressCallback } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { ComponentType, RuntimeScript, TemplateDataSchema } from "./types";
 
@@ -7,8 +7,7 @@ import type { ComponentType, RuntimeScript, TemplateDataSchema } from "./types";
  * Site content entity types
  */
 export type SiteContentEntityType =
-  | "site-content-preview"
-  | "site-content-production";
+  "site-content-preview" | "site-content-production";
 
 export const SiteContentEntityTypeSchema: z.ZodType<SiteContentEntityType> =
   z.enum(["site-content-preview", "site-content-production"]);

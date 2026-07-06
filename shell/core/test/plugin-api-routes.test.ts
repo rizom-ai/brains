@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { ServicePlugin, type ApiRouteDefinition } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 // Test plugin with API routes
 class PluginWithRoutes extends ServicePlugin<

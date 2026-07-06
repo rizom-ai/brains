@@ -6,7 +6,7 @@ import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { ChatContextSchema, type AgentNamespace } from "@brains/plugins";
 
 export interface VerifiedBearerToken {

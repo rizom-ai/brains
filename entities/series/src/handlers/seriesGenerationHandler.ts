@@ -4,7 +4,7 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import type { Series } from "../schemas/series";
 import {

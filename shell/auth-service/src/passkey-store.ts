@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { isFileNotFoundError } from "./fs-errors";
 
 const DEFAULT_PASSKEY_STORE_FILE = "oauth-passkeys.json";
@@ -59,22 +59,20 @@ const credentialSchema = z
     created_at: z.number(),
     updated_at: z.number(),
   })
-  .transform(
-    (credential): StoredPasskeyCredential => ({
-      id: credential.id,
-      public_key: credential.public_key,
-      counter: credential.counter,
-      ...(credential.transports !== undefined
-        ? { transports: credential.transports }
-        : {}),
-      subject: credential.subject,
-      user_name: credential.user_name,
-      credential_device_type: credential.credential_device_type ?? "unknown",
-      credential_backed_up: credential.credential_backed_up ?? false,
-      created_at: credential.created_at,
-      updated_at: credential.updated_at,
-    }),
-  );
+  .transform((credential): StoredPasskeyCredential => ({
+    id: credential.id,
+    public_key: credential.public_key,
+    counter: credential.counter,
+    ...(credential.transports !== undefined
+      ? { transports: credential.transports }
+      : {}),
+    subject: credential.subject,
+    user_name: credential.user_name,
+    credential_device_type: credential.credential_device_type ?? "unknown",
+    credential_backed_up: credential.credential_backed_up ?? false,
+    created_at: credential.created_at,
+    updated_at: credential.updated_at,
+  }));
 
 const challengeSchema = z.looseObject({
   challenge: z.string(),

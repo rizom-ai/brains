@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export interface ButtondownConfig {
   apiKey: string;
@@ -16,10 +16,7 @@ const BUTTONDOWN_API_URL = "https://api.buttondown.email/v1";
  * "already_subscribed" is a local status indicating the subscriber already exists
  */
 export type SubscriberType =
-  | "unactivated"
-  | "regular"
-  | "unsubscribed"
-  | "already_subscribed";
+  "unactivated" | "regular" | "unsubscribed" | "already_subscribed";
 
 const subscriberTypeSchema: z.ZodType<SubscriberType, SubscriberType> = z.enum([
   "unactivated",

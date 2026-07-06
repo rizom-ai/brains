@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { isFileNotFoundError } from "./fs-errors";
 import type { PrivateJwk, PublicJwk } from "./types";
 
@@ -30,16 +30,14 @@ const privateJwkMaterialSchema = z
     d: z.string(),
     kid: z.string().optional(),
   })
-  .transform(
-    (jwk): PrivateJwkMaterial => ({
-      kty: jwk.kty,
-      crv: jwk.crv,
-      x: jwk.x,
-      y: jwk.y,
-      d: jwk.d,
-      ...(jwk.kid !== undefined ? { kid: jwk.kid } : {}),
-    }),
-  );
+  .transform((jwk): PrivateJwkMaterial => ({
+    kty: jwk.kty,
+    crv: jwk.crv,
+    x: jwk.x,
+    y: jwk.y,
+    d: jwk.d,
+    ...(jwk.kid !== undefined ? { kid: jwk.kid } : {}),
+  }));
 
 function thumbprint(
   publicJwk: Pick<PublicJwk, "crv" | "kty" | "x" | "y">,

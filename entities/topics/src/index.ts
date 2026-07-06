@@ -10,7 +10,7 @@ import {
   isVisibleWithinScope,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,

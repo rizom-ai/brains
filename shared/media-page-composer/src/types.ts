@@ -1,6 +1,6 @@
 import type { VNode } from "preact";
 import type { SiteImageRendererService } from "@brains/site-engine";
-import type { ZodType } from "@brains/utils/zod-v4";
+import type { ZodType } from "@brains/utils/zod";
 
 export type MediaTemplateFormat = "image" | "pdf";
 

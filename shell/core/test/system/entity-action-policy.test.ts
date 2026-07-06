@@ -7,7 +7,7 @@ import type {
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 

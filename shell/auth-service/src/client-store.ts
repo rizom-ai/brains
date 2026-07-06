@@ -1,16 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { isFileNotFoundError } from "./fs-errors";
 import type { RegisteredOAuthClient } from "./types";
 
 const DEFAULT_CLIENT_STORE_FILE = "oauth-clients.json";
 
 type TokenEndpointAuthMethod =
-  | "none"
-  | "client_secret_basic"
-  | "client_secret_post";
+  "none" | "client_secret_basic" | "client_secret_post";
 
 const tokenEndpointAuthMethodSchema: z.ZodType<
   TokenEndpointAuthMethod,
@@ -78,34 +76,29 @@ const persistedOAuthClientSchema = z
     client_secret: z.string().optional(),
     client_secret_expires_at: z.number().optional(),
   })
-  .transform(
-    (client): RegisteredOAuthClient => ({
-      client_id: client.client_id,
-      client_id_issued_at: client.client_id_issued_at,
-      redirect_uris: client.redirect_uris,
-      token_endpoint_auth_method: client.token_endpoint_auth_method ?? "none",
-      grant_types: client.grant_types ?? [
-        "authorization_code",
-        "refresh_token",
-      ],
-      response_types: client.response_types ?? ["code"],
-      ...(client.scope !== undefined ? { scope: client.scope } : {}),
-      ...(client.client_name !== undefined
-        ? { client_name: client.client_name }
-        : {}),
-      ...(client.client_uri !== undefined
-        ? { client_uri: client.client_uri }
-        : {}),
-      ...(client.logo_uri !== undefined ? { logo_uri: client.logo_uri } : {}),
-      ...(client.contacts !== undefined ? { contacts: client.contacts } : {}),
-      ...(client.client_secret !== undefined
-        ? { client_secret: client.client_secret }
-        : {}),
-      ...(client.client_secret_expires_at !== undefined
-        ? { client_secret_expires_at: client.client_secret_expires_at }
-        : {}),
-    }),
-  );
+  .transform((client): RegisteredOAuthClient => ({
+    client_id: client.client_id,
+    client_id_issued_at: client.client_id_issued_at,
+    redirect_uris: client.redirect_uris,
+    token_endpoint_auth_method: client.token_endpoint_auth_method ?? "none",
+    grant_types: client.grant_types ?? ["authorization_code", "refresh_token"],
+    response_types: client.response_types ?? ["code"],
+    ...(client.scope !== undefined ? { scope: client.scope } : {}),
+    ...(client.client_name !== undefined
+      ? { client_name: client.client_name }
+      : {}),
+    ...(client.client_uri !== undefined
+      ? { client_uri: client.client_uri }
+      : {}),
+    ...(client.logo_uri !== undefined ? { logo_uri: client.logo_uri } : {}),
+    ...(client.contacts !== undefined ? { contacts: client.contacts } : {}),
+    ...(client.client_secret !== undefined
+      ? { client_secret: client.client_secret }
+      : {}),
+    ...(client.client_secret_expires_at !== undefined
+      ? { client_secret_expires_at: client.client_secret_expires_at }
+      : {}),
+  }));
 
 const clientStoreFileSchema = z.looseObject({
   clients: z.array(z.unknown()).optional(),

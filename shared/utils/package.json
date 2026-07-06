@@ -16,10 +16,6 @@
     "./zod": {
       "types": "./src/zod.ts",
       "default": "./src/zod.ts"
-    },
-    "./zod-v4": {
-      "types": "./src/zod-v4.ts",
-      "default": "./src/zod-v4.ts"
     }
   },
   "scripts": {

@@ -3,7 +3,7 @@ import type { AIGenerationSchema, IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 import { EntityUrlGenerator } from "@brains/site-composition";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { resolvePrompt } from "@brains/plugins";
 
 export const GenerationContextSchema = z.object({

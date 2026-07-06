@@ -1,5 +1,5 @@
 import { stripUndefinedDeep } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export interface PendingConfirmation {
   id: string;

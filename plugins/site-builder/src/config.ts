@@ -1,6 +1,6 @@
 import type { Template } from "@brains/plugins";
 import type { LayoutComponent } from "@brains/site-engine";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   NavigationSlots,
   type EntityDisplayEntry,

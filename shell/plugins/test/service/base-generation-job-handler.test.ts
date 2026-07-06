@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   createMockEntityPluginContext,
   createMockEntityService,

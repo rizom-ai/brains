@@ -1,6 +1,6 @@
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import type { TopicsPluginConfig } from "../schemas/config";
 import { TopicExtractor, type ExtractedTopic } from "./topic-extractor";

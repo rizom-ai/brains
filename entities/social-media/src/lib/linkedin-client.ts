@@ -1,5 +1,5 @@
 import type { FetchLike, Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type {
   PublishProvider,
   PublishResult,

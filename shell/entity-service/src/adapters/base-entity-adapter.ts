@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { BaseEntity, EntityAdapter, EntitySchema } from "../types";
 import {
   parseMarkdownWithFrontmatter,

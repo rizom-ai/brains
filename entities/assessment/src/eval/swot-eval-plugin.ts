@@ -11,7 +11,7 @@ import {
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import packageJson from "../../package.json";
 import { SwotAdapter } from "../adapters/swot-adapter";
 import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";

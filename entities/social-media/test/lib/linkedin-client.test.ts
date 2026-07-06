@@ -3,7 +3,7 @@ import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import { createMockLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";

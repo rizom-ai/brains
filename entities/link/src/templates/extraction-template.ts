@@ -1,5 +1,5 @@
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 // Schema for the AI response
 export interface LinkExtractionResult {

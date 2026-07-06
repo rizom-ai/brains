@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/chat-repl";

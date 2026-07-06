@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 import {
   bootstrapPilotOriginCertificate,

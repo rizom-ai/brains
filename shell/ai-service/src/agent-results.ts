@@ -2,7 +2,7 @@ import {
   StructuredChatCardSchema,
   type AgentContextItem,
 } from "@brains/contracts";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   toolConfirmationSchema,
   toolErrorSchema,

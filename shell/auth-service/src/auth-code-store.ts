@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { isFileNotFoundError } from "./fs-errors";
 import { redirectUriMatches } from "./redirect-uri";
 
@@ -62,22 +62,20 @@ const authorizationCodeRecordSchema = z
     expires_at: z.number(),
     consumed_at: z.number().optional(),
   })
-  .transform(
-    (code): AuthorizationCodeRecord => ({
-      code: code.code,
-      client_id: code.client_id,
-      redirect_uri: code.redirect_uri,
-      code_challenge: code.code_challenge,
-      code_challenge_method: code.code_challenge_method,
-      ...(code.scope !== undefined ? { scope: code.scope } : {}),
-      subject: code.subject,
-      created_at: code.created_at,
-      expires_at: code.expires_at,
-      ...(code.consumed_at !== undefined
-        ? { consumed_at: code.consumed_at }
-        : {}),
-    }),
-  );
+  .transform((code): AuthorizationCodeRecord => ({
+    code: code.code,
+    client_id: code.client_id,
+    redirect_uri: code.redirect_uri,
+    code_challenge: code.code_challenge,
+    code_challenge_method: code.code_challenge_method,
+    ...(code.scope !== undefined ? { scope: code.scope } : {}),
+    subject: code.subject,
+    created_at: code.created_at,
+    expires_at: code.expires_at,
+    ...(code.consumed_at !== undefined
+      ? { consumed_at: code.consumed_at }
+      : {}),
+  }));
 
 const authCodeStoreFileSchema = z.looseObject({
   codes: z.array(z.unknown()).optional(),

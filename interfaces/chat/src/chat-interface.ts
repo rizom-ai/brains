@@ -42,7 +42,7 @@ import {
   type SentMessage,
   type Thread,
 } from "chat";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createPrefixedId } from "@brains/utils";
 import {
   chatConfigSchema,

@@ -10,7 +10,7 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   bootstrapOriginCertificate,
   runCertBootstrap,

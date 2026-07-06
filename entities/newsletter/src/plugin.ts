@@ -8,7 +8,7 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { PublishProvider } from "@brains/contracts";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";

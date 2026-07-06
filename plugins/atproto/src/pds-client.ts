@@ -1,5 +1,5 @@
 import type { FetchLike } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export interface AtprotoSession {
   did: string;
@@ -92,14 +92,12 @@ const blobRefSchema = z
     mimeType: z.string(),
     size: z.number().int().nonnegative(),
   })
-  .transform(
-    (blob): AtprotoBlobRef => ({
-      ...(blob.$type !== undefined ? { $type: blob.$type } : {}),
-      ref: { $link: blob.ref.$link },
-      mimeType: blob.mimeType,
-      size: blob.size,
-    }),
-  );
+  .transform((blob): AtprotoBlobRef => ({
+    ...(blob.$type !== undefined ? { $type: blob.$type } : {}),
+    ref: { $link: blob.ref.$link },
+    mimeType: blob.mimeType,
+    size: blob.size,
+  }));
 
 const uploadBlobResultSchema = z.looseObject({
   blob: blobRefSchema,

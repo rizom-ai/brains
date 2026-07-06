@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type PlaybookConfig = Record<string, never>;
 export type PlaybookConfigInput = Record<string, unknown>;

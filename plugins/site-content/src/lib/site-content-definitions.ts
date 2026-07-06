@@ -1,6 +1,6 @@
 import type { Template } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type {
   SiteContentArrayFieldDefinition,
   SiteContentDefinition,

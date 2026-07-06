@@ -4,7 +4,7 @@ import type {
   BaseEntityFrontmatterSchema,
   EntitySchema,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   actionItemMetadataSchema,
   actionItemSchema,

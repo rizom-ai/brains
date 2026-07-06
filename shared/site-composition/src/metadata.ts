@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";

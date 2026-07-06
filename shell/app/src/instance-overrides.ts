@@ -1,5 +1,5 @@
 import { parseYamlDocument, interpolateEnv } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.

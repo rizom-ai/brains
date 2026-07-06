@@ -1,5 +1,5 @@
 import { baseEntitySchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { SKILL_ENTITY_TYPE } from "../lib/constants";
 
 type SkillFrontmatterSchema = z.ZodObject<{

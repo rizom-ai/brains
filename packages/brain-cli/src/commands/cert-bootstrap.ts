@@ -1,6 +1,6 @@
 import { writeFile } from "fs/promises";
 import { join } from "path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { normalizePushTarget } from "../lib/push-target";
 import { runSubprocess, type RunCommand } from "../lib/run-subprocess";

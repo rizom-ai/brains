@@ -1,4 +1,4 @@
-import { z, type ZodType } from "@brains/utils/zod-v4";
+import { z, type ZodType } from "@brains/utils/zod";
 
 /**
  * Base configuration schema that all plugins should extend

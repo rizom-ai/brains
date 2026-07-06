@@ -130,10 +130,10 @@ async function getData(id: string): Promise<Data> {
 // ❌ Bad
 import { Shell } from "../shell";
 import React from "react";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 // ✅ Good
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import React from "react";
 
 import { Shell } from "../shell";

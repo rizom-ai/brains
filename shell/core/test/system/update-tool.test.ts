@@ -5,7 +5,7 @@ import { updateInputSchema } from "../../src/system/schemas";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import type { BaseEntity } from "@brains/entity-service";
 import { PermissionService } from "@brains/templates";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 const updateEntityRequestSchema = z.looseObject({
   options: z

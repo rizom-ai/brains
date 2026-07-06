@@ -7,7 +7,7 @@ import {
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import type { FetchLike } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 interface EmailResendConfig {

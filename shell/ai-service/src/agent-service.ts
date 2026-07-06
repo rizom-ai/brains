@@ -1,6 +1,6 @@
 import type { AgentContextItem } from "@brains/contracts";
 import { type Logger, getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
 import type {

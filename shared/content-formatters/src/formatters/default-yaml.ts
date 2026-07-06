@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import * as yaml from "js-yaml";
 
 /**

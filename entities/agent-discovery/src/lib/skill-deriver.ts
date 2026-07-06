@@ -6,7 +6,7 @@ import {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { generateIdFromText, getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { SkillAdapter } from "../adapters/skill-adapter";
 import type { SkillEntity, SkillFrontmatter } from "../schemas/skill";
 import {

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { isFileNotFoundError } from "./fs-errors";
 
 const DEFAULT_SETUP_STATE_FILE = "oauth-setup-state.json";
@@ -54,16 +54,14 @@ const storedSetupDeliverySchema = z
     deliveredAt: z.number(),
     deliveryId: z.string().optional(),
   })
-  .transform(
-    (delivery): StoredSetupDelivery => ({
-      setupTokenId: delivery.setupTokenId,
-      recipientHash: delivery.recipientHash,
-      deliveredAt: delivery.deliveredAt,
-      ...(delivery.deliveryId !== undefined
-        ? { deliveryId: delivery.deliveryId }
-        : {}),
-    }),
-  );
+  .transform((delivery): StoredSetupDelivery => ({
+    setupTokenId: delivery.setupTokenId,
+    recipientHash: delivery.recipientHash,
+    deliveredAt: delivery.deliveredAt,
+    ...(delivery.deliveryId !== undefined
+      ? { deliveryId: delivery.deliveryId }
+      : {}),
+  }));
 
 const setupStateFileSchema = z.looseObject({
   setupToken: z.unknown().optional(),

@@ -1,6 +1,6 @@
 import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
 import { fromYaml, updateFrontmatterField } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { Image, ResolvedImage } from "../schemas/image";
 
 // Matches the leading `---\n…\n---` frontmatter block. Capture group 1 is

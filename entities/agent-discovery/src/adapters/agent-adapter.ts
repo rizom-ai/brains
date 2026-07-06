@@ -1,6 +1,6 @@
 import { BaseEntityAdapter } from "@brains/plugins";
 import { slugifyUrl } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import {
   agentEntitySchema,

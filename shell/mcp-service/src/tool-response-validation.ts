@@ -1,6 +1,6 @@
 import type { MessageResponse } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { toolResponseSchema, type Tool, type ToolResponse } from "./types";
 
 interface ToolResponseValidationContext {

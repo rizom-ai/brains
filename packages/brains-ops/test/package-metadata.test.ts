@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 import packageJson from "../package.json";
 

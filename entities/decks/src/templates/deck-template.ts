@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { PresentationLayout } from "@brains/ui-library";
 import { createTemplate, type Template } from "@brains/templates";
 import { enrichedDeckSchema } from "./deck-list/schema";

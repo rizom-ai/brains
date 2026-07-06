@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";

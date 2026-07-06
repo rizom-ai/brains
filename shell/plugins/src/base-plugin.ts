@@ -15,7 +15,7 @@ import {
   ProgressReporter,
 } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/templates";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { PluginConfigValidationError, type PluginConfigSchema } from "./config";
 
 // Message schemas for validation

@@ -10,7 +10,7 @@ import type {
   AtprotoLexicon,
   AtprotoLexiconMetadata,
 } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 export interface AtprotoRegistryConfig {
@@ -75,14 +75,12 @@ export class AtprotoRegistryPlugin extends ServicePlugin<
         public: true,
         handler: (): Response => jsonResponse(this.getIndex()),
       },
-      ...listCanonicalAtprotoLexicons().map(
-        (lexicon): WebRouteDefinition => ({
-          path: `${BASE_PATH}/${lexicon.id}.json`,
-          method: "GET",
-          public: true,
-          handler: (): Response => jsonResponse(lexicon),
-        }),
-      ),
+      ...listCanonicalAtprotoLexicons().map((lexicon): WebRouteDefinition => ({
+        path: `${BASE_PATH}/${lexicon.id}.json`,
+        method: "GET",
+        public: true,
+        handler: (): Response => jsonResponse(lexicon),
+      })),
     ];
   }
 

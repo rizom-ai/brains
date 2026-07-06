@@ -1,5 +1,5 @@
 import { toolSuccessSchema } from "@brains/mcp-service";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type {
   PendingConfirmation,
   StructuredChatCard,

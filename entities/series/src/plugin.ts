@@ -10,7 +10,7 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter, type SeriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
@@ -36,8 +36,7 @@ interface SeriesProjectionSourceJobData {
 }
 
 type SeriesProjectionJobData =
-  | SeriesProjectionDeriveJobData
-  | SeriesProjectionSourceJobData;
+  SeriesProjectionDeriveJobData | SeriesProjectionSourceJobData;
 
 const seriesProjectionJobDataSchema: z.ZodType<SeriesProjectionJobData> =
   z.discriminatedUnion("mode", [

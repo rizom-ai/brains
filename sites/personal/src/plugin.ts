@@ -5,7 +5,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { personalProfileExtension } from "./schemas";
 import { HomepageDataSource } from "./datasources/homepage-datasource";

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type ConfirmationDecision = "approved" | "declined" | null;
 export type ConfirmationResultVariant = "success" | "error" | "declined";

@@ -1,5 +1,5 @@
 import { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { IAIService } from "@brains/ai-service";
 
 import type { LLMJudgeOptions } from "./types";

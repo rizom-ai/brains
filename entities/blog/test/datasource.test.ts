@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BlogDataSource } from "../src/datasources/blog-datasource";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { createMockPost } from "./fixtures/blog-entities";
 

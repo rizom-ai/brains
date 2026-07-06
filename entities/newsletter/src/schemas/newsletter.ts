@@ -1,17 +1,13 @@
 import { baseEntityParserSchema } from "@brains/plugins";
 import { slugify } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 /**
  * Newsletter status enum
  */
 export type NewsletterStatus =
-  | "generating"
-  | "draft"
-  | "queued"
-  | "published"
-  | "failed";
+  "generating" | "draft" | "queued" | "published" | "failed";
 
 export const newsletterStatusSchema: z.ZodType<
   NewsletterStatus,

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 const fsErrorSchema = z.looseObject({
   code: z.string().optional(),

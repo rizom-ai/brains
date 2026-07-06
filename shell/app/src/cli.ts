@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { AppConfig } from "./types";
 import type { App as AppClass } from "./app";
 import type { ToolResponse } from "@brains/mcp-service";

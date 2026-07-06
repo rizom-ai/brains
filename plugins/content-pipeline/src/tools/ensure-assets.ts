@@ -1,6 +1,6 @@
 import type { BaseEntity, ServicePluginContext, Tool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
 import type { PublishAssetRegistry } from "../publish-assets";
 

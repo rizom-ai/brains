@@ -1,5 +1,5 @@
 import { ResponseFormatter } from "./base";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 interface SimpleTextResponse {
   message: string;

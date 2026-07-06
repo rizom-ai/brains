@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { basename, dirname, join } from "path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export const runtimeUploadIdPattern =
   /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -57,9 +57,7 @@ export interface ResolvedRuntimeUpload {
 }
 
 export type RuntimeUploadStoreErrorCode =
-  | "invalid_ref"
-  | "not_found"
-  | "invalid_metadata";
+  "invalid_ref" | "not_found" | "invalid_metadata";
 
 export class RuntimeUploadStoreError extends Error {
   public readonly code: RuntimeUploadStoreErrorCode;

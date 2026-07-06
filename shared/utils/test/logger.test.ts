@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { Logger, LogLevel } from "../src/logger";
-import { z } from "../src/zod-v4";
+import { z } from "../src/zod";
 
 const logRecordSchema = z.record(z.string(), z.unknown());
 

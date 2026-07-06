@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { AnchorProfileAdapter } from "../src/anchor-profile-adapter";
 import type { AnchorProfileEntity } from "../src/anchor-profile-schema";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createTestEntity } from "@brains/test-utils";
 
 describe("AnchorProfileAdapter", () => {

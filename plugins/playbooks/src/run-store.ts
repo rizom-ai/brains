@@ -3,13 +3,10 @@ import type {
   IRuntimeStateStore,
 } from "@brains/runtime-state";
 import { createPrefixedId } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 export type PlaybookRunStatus =
-  | "offered"
-  | "active"
-  | "completed"
-  | "dismissed";
+  "offered" | "active" | "completed" | "dismissed";
 
 export interface PlaybookRunEvidence {
   id: string;

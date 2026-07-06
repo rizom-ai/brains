@@ -4,7 +4,7 @@ import {
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 function targetToEntityId(target: string): string {
   return target.replace(/:/g, "-");

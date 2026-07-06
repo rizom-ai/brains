@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { SummaryEntity, SummaryTimeRange } from "../../schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { SummaryAdapter } from "../../adapters/summary-adapter";

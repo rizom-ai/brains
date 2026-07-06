@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
 import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 

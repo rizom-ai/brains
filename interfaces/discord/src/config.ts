@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 const blockedUrlDomainsDefault: string[] = [
   "meet.google.com",

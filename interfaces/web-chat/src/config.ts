@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 type WebChatConfigSchema = z.ZodObject<{
   routePath: z.ZodDefault<z.ZodString>;

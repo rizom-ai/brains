@@ -3,7 +3,7 @@ import { ProjectDataSource } from "../src/datasources/project-datasource";
 import type { Project } from "../src/schemas/project";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   createMockLogger,
   createMockEntityService,

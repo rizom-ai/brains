@@ -1,8 +1,7 @@
-import { z, type ZodType } from "@brains/utils/zod-v4";
+import { z, type ZodType } from "@brains/utils/zod";
 
 export type MessageValidationResult<T> =
-  | { valid: true; data: T }
-  | { valid: false; error: string };
+  { valid: true; data: T } | { valid: false; error: string };
 
 export type MessageValidationSchema<T> = ZodType<T, unknown>;
 

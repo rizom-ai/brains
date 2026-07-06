@@ -1,5 +1,5 @@
 import { type ChatAttachment, type RuntimeUploadStore } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { webChatUploadIdPattern, webChatUploadRefKind } from "./upload-store";
 import {
   resolveInlineUploadPart as resolveInlineUploadFilePart,

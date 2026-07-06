@@ -1,5 +1,5 @@
 import { createTemplate, type Template } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { skillFrontmatterSchema } from "../schemas/skill";
 
 type SkillDerivationResultSchema = z.ZodObject<{

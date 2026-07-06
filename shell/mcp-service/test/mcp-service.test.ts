@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
 
@@ -780,8 +780,7 @@ describe("MCPService", () => {
     it("should pass completion context to resource template completers", async () => {
       let observedValue: string | undefined;
       let observedContext:
-        | { arguments?: Partial<{ type: string; id: string }> }
-        | undefined;
+        { arguments?: Partial<{ type: string; id: string }> } | undefined;
 
       const template: ResourceTemplate<"type" | "id"> = {
         name: "entity-detail-complete",

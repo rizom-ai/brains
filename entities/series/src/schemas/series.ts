@@ -1,6 +1,6 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { baseEntityParserSchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- ZodObject shape aliases preserve named property inference without a broad index signature.
 type SeriesFrontmatterShape = {

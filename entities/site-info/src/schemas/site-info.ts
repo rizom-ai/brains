@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { siteInfoBodySchema, type SiteInfoBody } from "./site-info-schema";
 
 export interface SiteInfoNavigationItem {

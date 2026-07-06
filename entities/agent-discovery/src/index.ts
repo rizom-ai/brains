@@ -1,5 +1,5 @@
 import type { Plugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { agentDiscoveryPlugin } from "./plugins/agent-plugin";
 import { agentToolsPlugin } from "./plugins/agent-tools-plugin";
 import { skillPlugin } from "./plugins/skill-plugin";

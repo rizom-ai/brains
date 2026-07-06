@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { NotionPlugin, notionPlugin, notionConfigSchema } from "../src/index";
 
 const openApiMcpHeadersSchema = z.record(z.string(), z.string());

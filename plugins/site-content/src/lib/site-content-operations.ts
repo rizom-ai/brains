@@ -4,7 +4,7 @@ import type {
   JobOptions,
 } from "@brains/plugins";
 import type { SiteInfoBody } from "@brains/site-info";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { GenerateOptions } from "../schemas/generate-options";
 
 export type SiteGenerationConfig = Pick<SiteInfoBody, "title" | "description">;

@@ -1,5 +1,5 @@
 import type { Entity } from "./schema/entities";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { normalizeContentVisibility, type ContentVisibility } from "./types";
 
 const metadataSchema = z.record(z.string(), z.unknown());

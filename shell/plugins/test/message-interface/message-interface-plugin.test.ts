@@ -5,7 +5,7 @@ import type {
   ToolStatusUpdate,
 } from "../../src/message-interface";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 const testConfigSchema = z.object({
   testOption: z.string().default("default"),

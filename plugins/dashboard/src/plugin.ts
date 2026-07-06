@@ -5,7 +5,7 @@ import type {
 } from "@brains/plugins";
 import { PermissionService, ServicePlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   BUILT_IN_WIDGET_RENDERERS,
   DashboardWidgetRegistry,

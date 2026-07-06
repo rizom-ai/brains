@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { baseEntityParserSchema, baseEntitySchema } from "@brains/plugins";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 

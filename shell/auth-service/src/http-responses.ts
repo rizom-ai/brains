@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { RegisteredOAuthClient } from "./types";
 
 const jsonRequestBodySchema = z.record(z.string(), z.unknown());

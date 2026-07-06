@@ -10,7 +10,7 @@ import type {
   UserPermissionLevel,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { SystemServices } from "./types";
 
 const PLUGIN_ID = "system";

@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { Chat, useChat } from "@ai-sdk/react";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,

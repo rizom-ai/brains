@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { baseEntityParserSchema } from "@brains/plugins";
 
 /**
@@ -10,11 +10,7 @@ import { baseEntityParserSchema } from "@brains/plugins";
  * - declined: explicitly declined with reason
  */
 export type WishStatus =
-  | "new"
-  | "planned"
-  | "in-progress"
-  | "done"
-  | "declined";
+  "new" | "planned" | "in-progress" | "done" | "declined";
 
 export const wishStatusSchema: z.ZodType<WishStatus, WishStatus> = z.enum([
   "new",

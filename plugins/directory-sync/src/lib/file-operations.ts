@@ -13,7 +13,7 @@ import {
   parseEntityPath,
 } from "./entity-paths";
 import { mkdir, readFile, writeFile, stat, utimes } from "fs/promises";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
 import {

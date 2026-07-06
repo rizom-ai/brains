@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { baseEntitySchema } from "@brains/plugins";
 
 export interface SwotItem {

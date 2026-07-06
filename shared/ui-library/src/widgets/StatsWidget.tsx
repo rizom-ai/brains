@@ -3,7 +3,7 @@
 import { h } from "preact";
 import { useState } from "preact/hooks";
 import type { VNode } from "preact";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { BaseWidgetProps } from "./index";
 
 const statsDataSchema = z.record(z.string(), z.unknown());

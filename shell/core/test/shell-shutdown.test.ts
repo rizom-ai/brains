@@ -9,7 +9,7 @@ import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {

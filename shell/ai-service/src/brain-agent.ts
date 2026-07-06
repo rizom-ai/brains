@@ -7,7 +7,7 @@
  * - activeTools for permission-based tool filtering
  */
 import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";

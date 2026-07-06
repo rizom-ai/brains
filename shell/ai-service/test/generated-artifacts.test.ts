@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createSilentLogger } from "@brains/test-utils";
 import { MCPService, type Tool } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";

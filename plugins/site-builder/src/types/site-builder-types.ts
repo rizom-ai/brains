@@ -1,6 +1,6 @@
 import type { SiteMetadata } from "@brains/site-composition";
 import type { ProgressCallback } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
 import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
 

@@ -3,7 +3,7 @@ import type { PermissionConfig } from "@brains/templates";
 import type { DeploymentConfigInput } from "./types";
 import type { SitePackage } from "./site-package";
 
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 /**
  * Standard preset names.

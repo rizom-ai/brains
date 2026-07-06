@@ -6,7 +6,7 @@ import {
   HeadCollector,
   type SiteImageRendererService,
 } from "@brains/site-engine";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import type {
   MediaPageRenderer,
   MediaPageTemplate,

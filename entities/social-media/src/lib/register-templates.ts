@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { linkedinTemplate } from "../templates/linkedin-template";

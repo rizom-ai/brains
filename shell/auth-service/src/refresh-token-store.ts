@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { isFileNotFoundError } from "./fs-errors";
 
 const DEFAULT_REFRESH_TOKEN_STORE_FILE = "oauth-refresh-tokens.json";
@@ -68,23 +68,19 @@ const refreshTokenRecordSchema = z
     revoked_at: z.number().optional(),
     replaced_by: z.string().optional(),
   })
-  .transform(
-    (token): RefreshTokenRecord => ({
-      id: token.id,
-      token_hash: token.token_hash,
-      client_id: token.client_id,
-      subject: token.subject,
-      ...(token.scope !== undefined ? { scope: token.scope } : {}),
-      created_at: token.created_at,
-      expires_at: token.expires_at,
-      ...(token.revoked_at !== undefined
-        ? { revoked_at: token.revoked_at }
-        : {}),
-      ...(token.replaced_by !== undefined
-        ? { replaced_by: token.replaced_by }
-        : {}),
-    }),
-  );
+  .transform((token): RefreshTokenRecord => ({
+    id: token.id,
+    token_hash: token.token_hash,
+    client_id: token.client_id,
+    subject: token.subject,
+    ...(token.scope !== undefined ? { scope: token.scope } : {}),
+    created_at: token.created_at,
+    expires_at: token.expires_at,
+    ...(token.revoked_at !== undefined ? { revoked_at: token.revoked_at } : {}),
+    ...(token.replaced_by !== undefined
+      ? { replaced_by: token.replaced_by }
+      : {}),
+  }));
 
 const refreshTokenStoreFileSchema = z.looseObject({
   refreshTokens: z.array(z.unknown()).optional(),

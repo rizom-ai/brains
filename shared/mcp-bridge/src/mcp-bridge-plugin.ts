@@ -3,7 +3,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { ServicePlugin } from "@brains/plugins";
 import type { Tool, ServicePluginContext, ToolResponse } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 
 const recordSchema = z.record(z.string(), z.unknown());
 

@@ -8,7 +8,7 @@ import {
 } from "fs";
 import { dirname, join } from "path";
 import { homedir } from "os";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import {
   readLocalEnvValues,
   resolveLocalEnvValue,

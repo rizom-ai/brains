@@ -13,7 +13,7 @@ import type {
 import { createPendingEntity, EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { slugify } from "@brains/utils";
-import { z } from "@brains/utils/zod-v4";
+import { z } from "@brains/utils/zod";
 import { linkSchema, type LinkEntity, type LinkSource } from "./schemas/link";
 import {
   linkConfigSchema,
