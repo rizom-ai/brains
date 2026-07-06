@@ -66,11 +66,10 @@ confirmations) — that **both** chat and web-chat consume, each rendering the p
 its own mechanism (Discord `CardElement`s vs web streaming/SSE). That fully lifts
 sequencing/selection up to the base and leaves each interface with only presentation.
 
-This is a larger cross-package change (touches `@brains/plugins` + `interfaces/chat`
-
-- `interfaces/web-chat`). The within-chat decomposition (now complete) was its
-  prerequisite: with chat's delivery split into focused collaborators, the shared
-  `ResponsePlan` boundary becomes mechanical to lift.
+This is a larger cross-package change (touches `@brains/plugins`,
+`interfaces/chat`, and `interfaces/web-chat`). The within-chat decomposition
+(now complete) was its prerequisite: with chat's delivery split into focused
+collaborators, the shared `ResponsePlan` boundary becomes mechanical to lift.
 
 ## Why not lift the whole pipeline to MessageInterfacePlugin
 
