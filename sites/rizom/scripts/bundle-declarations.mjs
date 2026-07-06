@@ -1,11 +1,11 @@
-import { resolve } from "node:path";
+import { createRequire } from "node:module";
 import dts from "rollup-plugin-dts";
 
-const root = resolve(import.meta.dirname, "../../..");
+const require = createRequire(import.meta.url);
 
-const aliases = new Map([
-  ["@rizom/ui", resolve(root, "shared/rizom-ui/src/index.ts")],
-]);
+// dts must see @rizom/ui's TypeScript source; the package exports it
+// directly, so workspace resolution lands on src/index.ts.
+const aliases = new Map([["@rizom/ui", require.resolve("@rizom/ui")]]);
 
 export default {
   input: process.env.INPUT,
