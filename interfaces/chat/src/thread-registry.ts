@@ -1,10 +1,11 @@
-import type { SentMessage, Thread } from "chat";
+import type { SentMessage } from "chat";
+import type { ChatThread } from "./types";
 
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
 
 interface ThreadEntry {
   expiresAt: number;
-  thread: Thread;
+  thread: ChatThread;
 }
 
 /**
@@ -16,7 +17,7 @@ export class ThreadRegistry {
 
   constructor(private readonly ttlMs = DEFAULT_TTL_MS) {}
 
-  set(thread: Thread): void {
+  set(thread: ChatThread): void {
     this.cleanup();
     this.threads.set(thread.id, {
       thread,
@@ -24,7 +25,7 @@ export class ThreadRegistry {
     });
   }
 
-  get(threadId: string | null): Thread | undefined {
+  get(threadId: string | null): ChatThread | undefined {
     if (!threadId) return undefined;
     const entry = this.threads.get(threadId);
     if (!entry) return undefined;

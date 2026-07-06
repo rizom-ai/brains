@@ -22,7 +22,15 @@ Done:
 - **ApprovalCardTracker** (`approval-card-tracker.ts`) — extracted approval-card
   bookkeeping (post the request card, edit in place to resolved on confirm/cancel,
   keyed by conversation+approval). Owns its map; injected with `cardBuilder` and a
-  `clearMessageComponents` callback. `ChatInterface` is now ~1822 lines (from ~2349).
+  `clearMessageComponents` callback.
+- **Discord glue** (2026-07-06) — `discord-routing.ts` (pure policy/ID parsing:
+  `getThreadIdParts`, allow-list/DM checks, bot-created-thread detection, over
+  narrow structural types) and `discord-message-components.ts` (the raw REST
+  call clearing approval buttons, with injected fetch). Also replaced the
+  package's `Thread` signatures with `ChatThread = Thread<unknown>` (state is
+  never touched here), which removed the two `event.thread as Thread` casts
+  that papered over the SDK's `ActionEvent` generic bug. `ChatInterface` is now
+  ~1300 lines (from ~2349) and purely a composition root + orchestration.
 
 ## Correction to the original "AgentResponseRenderer" plan
 
@@ -37,15 +45,10 @@ base protected methods is the plugin's legitimate role.
 
 ## Remaining within-chat steps
 
-- **Discord glue** — the Discord-specific cluster (gateway loop, thread subscription
-  state, upload store/request handling, channel-id parsing, config builders,
-  `clearDiscordMessageComponents`). Largest and most entangled; do last. The
-  orchestration (`renderAgentResponse` / `confirmApproval` / `sendAgentResponseWithFiles`)
-  stays in `ChatInterface` — coordinating the now-extracted collaborators via base
-  protected methods is the plugin's legitimate role.
-- **Discord glue** — extract the Discord-specific cluster (upload store, thread
-  subscription, routing, gateway loop, config builders, `clearDiscordMessageComponents`).
-  Largest and most entangled; do last.
+None — the within-chat decomposition is complete. The orchestration
+(`renderAgentResponse` / `confirmApproval` / `sendAgentResponseWithFiles`)
+stays in `ChatInterface` — coordinating the extracted collaborators via base
+protected methods is the plugin's legitimate role.
 
 ## Follow-on: shared `ResponsePlan` (cross-interface, lifts logic UP)
 
@@ -64,9 +67,10 @@ its own mechanism (Discord `CardElement`s vs web streaming/SSE). That fully lift
 sequencing/selection up to the base and leaves each interface with only presentation.
 
 This is a larger cross-package change (touches `@brains/plugins` + `interfaces/chat`
-+ `interfaces/web-chat`). The within-chat `AgentResponseRenderer` extraction is its
-prerequisite: once chat's delivery consumes a clean plan-shaped input, the shared
-`ResponsePlan` boundary becomes mechanical to lift.
+
+- `interfaces/web-chat`). The within-chat decomposition (now complete) was its
+  prerequisite: with chat's delivery split into focused collaborators, the shared
+  `ResponsePlan` boundary becomes mechanical to lift.
 
 ## Why not lift the whole pipeline to MessageInterfacePlugin
 

@@ -23,17 +23,22 @@ before touching — not opportunistic edits.
   into src/lib/ run-machine (pure transition semantics), render,
   lifecycle-starters, and run-engine; the plugin is down to ~1050 lines
   of plugin surface (tools, subscriptions, locks, status assembly).
-- **`interfaces/chat/src/chat-interface.ts` (~1386 lines)** — message
-  routing + approval tracking + artifact delivery + upload management.
-  Candidate extracts: message router (strategy map), approval handler,
-  artifact delivery, upload manager.
+- ~~`interfaces/chat/src/chat-interface.ts`~~ — DONE 2026-07-06: the
+  within-chat decomposition is complete (see
+  `docs/plans/chat-response-rendering-decomposition.md`); the final step
+  extracted discord-routing (pure policy/ID parsing) and
+  discord-message-components (REST call), leaving a ~1300-line
+  composition root + orchestration. The plan's cross-package
+  `ResponsePlan` follow-on remains open there.
 - ~~`shell/ai-service/src/agent-service.ts`~~ — DONE 2026-07-06:
   decomposed into ConversationActorRegistry, attachment-intake,
   ConfirmationCoordinator, and TurnProcessor; the service is now a
   ~330-line façade.
-- **`interfaces/discord/src/discord-interface.ts` (~1048 lines)** —
-  Discord SDK management + message parsing + card rendering +
-  subscription tracking + uploads. Mirror the chat-interface split.
+- ~~`interfaces/discord/src/discord-interface.ts`~~ — SUPERSEDED
+  2026-07-06: `@brains/chat` is the replacement Discord implementation
+  (per its README, pending live validation before Rover/Ranger/Relay
+  switch over). Don't decompose a package slated for deletion; effort
+  goes into `@brains/chat` instead.
 
 ### Minor (fix opportunistically)
 
