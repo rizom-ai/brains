@@ -21,7 +21,9 @@ export {
  * silently dropped. Add fields here when shared config (e.g. a card cache TTL
  * or discovery toggle) is introduced.
  */
-export const agentDiscoveryCompositeConfigSchema = z.object({}).strict();
+export const agentDiscoveryCompositeConfigSchema: z.ZodObject<
+  Record<string, never>
+> = z.object({}).strict();
 
 export type AgentDiscoveryCompositeConfig = z.output<
   typeof agentDiscoveryCompositeConfigSchema

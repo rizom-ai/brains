@@ -20,16 +20,16 @@ import { getSkillDerivedEntityProjections } from "../lib/skill-projection";
 import { registerSkillEvalHandlers } from "../lib/skill-eval-handlers";
 import packageJson from "../../package.json";
 
-const skillAdapter = new SkillAdapter();
+const skillAdapter: SkillAdapter = new SkillAdapter();
 
 export class SkillPlugin extends EntityPlugin<
   SkillEntity,
   Record<string, never>,
   Record<string, never>
 > {
-  readonly entityType = SKILL_ENTITY_TYPE;
-  readonly schema = skillEntitySchema;
-  readonly adapter = skillAdapter;
+  readonly entityType: typeof SKILL_ENTITY_TYPE = SKILL_ENTITY_TYPE;
+  readonly schema: typeof skillEntitySchema = skillEntitySchema;
+  readonly adapter: SkillAdapter = skillAdapter;
 
   constructor() {
     super(SKILL_PLUGIN_ID, packageJson, {}, emptyEntityPluginConfigSchema);

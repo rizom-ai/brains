@@ -6,6 +6,7 @@ import type {
   BaseDataSourceContext,
   DataSourceSchema,
   BaseQuery,
+  EntityDataSourceConfig,
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
@@ -16,7 +17,7 @@ import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 
-const agentAdapter = new AgentAdapter();
+const agentAdapter: AgentAdapter = new AgentAdapter();
 
 interface AgentDetailData {
   agent: AgentWithData;
@@ -24,9 +25,26 @@ interface AgentDetailData {
   nextAgent: AgentWithData | null;
 }
 
-const agentStatusQuerySchema = z.enum(["discovered", "approved"]);
+type AgentStatusQuerySchema = z.ZodEnum<{
+  discovered: "discovered";
+  approved: "approved";
+}>;
 
-const agentQuerySchema = z.looseObject({
+const agentStatusQuerySchema: AgentStatusQuerySchema = z.enum([
+  "discovered",
+  "approved",
+]);
+
+type AgentQuerySchema = z.ZodObject<{
+  id: z.ZodOptional<z.ZodString>;
+  limit: z.ZodOptional<z.ZodNumber>;
+  page: z.ZodOptional<z.ZodNumber>;
+  pageSize: z.ZodOptional<z.ZodNumber>;
+  baseUrl: z.ZodOptional<z.ZodString>;
+  status: z.ZodOptional<AgentStatusQuerySchema>;
+}>;
+
+const agentQuerySchema: AgentQuerySchema = z.looseObject({
   id: z.string().optional(),
   limit: z.number().optional(),
   page: z.number().optional(),
@@ -35,7 +53,12 @@ const agentQuerySchema = z.looseObject({
   status: agentStatusQuerySchema.optional(),
 });
 
-const agentInputSchema = z.looseObject({
+type AgentInputSchema = z.ZodObject<{
+  entityType: z.ZodOptional<z.ZodString>;
+  query: z.ZodOptional<AgentQuerySchema>;
+}>;
+
+const agentInputSchema: AgentInputSchema = z.looseObject({
   entityType: z.string().optional(),
   query: agentQuerySchema.optional(),
 });
@@ -79,11 +102,12 @@ export class AgentDataSource extends BaseEntityDataSource<
   AgentEntity,
   AgentWithData
 > {
-  readonly id = AGENT_DATASOURCE_ID;
-  readonly name = "Agent Directory DataSource";
-  readonly description = "Fetches and transforms agent entities for rendering";
+  readonly id: typeof AGENT_DATASOURCE_ID = AGENT_DATASOURCE_ID;
+  readonly name: string = "Agent Directory DataSource";
+  readonly description: string =
+    "Fetches and transforms agent entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: AGENT_ENTITY_TYPE,
     defaultSort: [
       { field: "discoveredAt" as const, direction: "desc" as const },

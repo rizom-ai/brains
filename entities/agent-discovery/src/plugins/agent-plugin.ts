@@ -17,16 +17,16 @@ import { getTemplates } from "../lib/register-templates";
 import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import packageJson from "../../package.json";
 
-const agentAdapter = new AgentAdapter();
+const agentAdapter: AgentAdapter = new AgentAdapter();
 
 export class AgentDiscoveryPlugin extends EntityPlugin<
   AgentEntity,
   Record<string, never>,
   Record<string, never>
 > {
-  readonly entityType = AGENT_ENTITY_TYPE;
-  readonly schema = agentEntitySchema;
-  readonly adapter = agentAdapter;
+  readonly entityType: typeof AGENT_ENTITY_TYPE = AGENT_ENTITY_TYPE;
+  readonly schema: typeof agentEntitySchema = agentEntitySchema;
+  readonly adapter: AgentAdapter = agentAdapter;
 
   constructor() {
     super(
