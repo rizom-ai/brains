@@ -3,7 +3,14 @@ import { z } from "@brains/utils/zod-v4";
 /**
  * LinkedIn provider configuration
  */
-export const linkedinConfigSchema = z.object({
+type LinkedinConfigSchema = z.ZodObject<{
+  accessToken: z.ZodOptional<z.ZodString>;
+  refreshToken: z.ZodOptional<z.ZodString>;
+  organizationId: z.ZodOptional<z.ZodString>;
+  apiVersion: z.ZodOptional<z.ZodString>;
+}>;
+
+export const linkedinConfigSchema: LinkedinConfigSchema = z.object({
   accessToken: z.string().optional(),
   refreshToken: z.string().optional(),
   /** LinkedIn organization ID for posting as an organization (requires w_organization_social scope) */
@@ -18,7 +25,16 @@ export const linkedinConfigSchema = z.object({
 /**
  * Social media plugin configuration schema
  */
-export const socialMediaConfigSchema = z.object({
+type SocialMediaConfigSchema = z.ZodObject<{
+  linkedin: z.ZodOptional<LinkedinConfigSchema>;
+  publishInterval: z.ZodDefault<z.ZodNumber>;
+  enabled: z.ZodDefault<z.ZodBoolean>;
+  defaultPrompt: z.ZodDefault<z.ZodString>;
+  maxRetries: z.ZodDefault<z.ZodNumber>;
+  autoGenerateOnBlogPublish: z.ZodDefault<z.ZodBoolean>;
+}>;
+
+export const socialMediaConfigSchema: SocialMediaConfigSchema = z.object({
   /** LinkedIn provider configuration */
   linkedin: linkedinConfigSchema.optional(),
   /** Interval between publish checks in milliseconds (default: 1 hour) */

@@ -4,7 +4,12 @@ import { createTemplate } from "@brains/plugins";
 /**
  * Schema for AI-generated LinkedIn post
  */
-export const linkedinPostSchema = z.object({
+export interface LinkedInPost {
+  title: string;
+  content: string;
+}
+
+export const linkedinPostSchema: z.ZodType<LinkedInPost> = z.object({
   title: z
     .string()
     .max(80)
@@ -18,8 +23,6 @@ export const linkedinPostSchema = z.object({
     ),
 });
 
-export type LinkedInPost = z.output<typeof linkedinPostSchema>;
-
 /**
  * Unified template for AI-powered LinkedIn post generation
  *
@@ -30,14 +33,15 @@ export type LinkedInPost = z.output<typeof linkedinPostSchema>;
  * The AI datasource provides relevant entity context with URLs,
  * so the AI can naturally reference and link to related content.
  */
-export const linkedinTemplate = createTemplate<LinkedInPost>({
-  name: "social-media:linkedin",
-  description: "Template for AI to generate LinkedIn posts",
-  schema: linkedinPostSchema,
-  dataSourceId: "shell:ai-content",
-  requiredPermission: "public",
-  useKnowledgeContext: true,
-  basePrompt: `You are writing LinkedIn posts that drive engagement and build professional credibility.
+export const linkedinTemplate: ReturnType<typeof createTemplate<LinkedInPost>> =
+  createTemplate<LinkedInPost>({
+    name: "social-media:linkedin",
+    description: "Template for AI to generate LinkedIn posts",
+    schema: linkedinPostSchema,
+    dataSourceId: "shell:ai-content",
+    requiredPermission: "public",
+    useKnowledgeContext: true,
+    basePrompt: `You are writing LinkedIn posts that drive engagement and build professional credibility.
 
 Your task is to generate a LinkedIn post based on the provided context.
 
@@ -69,4 +73,4 @@ LinkedIn-specific guidelines:
 12. POLISH: Keep the post tight and purposeful. Avoid tangential analogies, citation-like links, or source references unless they directly serve the prompt.
 
 The goal is to provide value first - build trust through useful content, not self-promotion.`,
-});
+  });

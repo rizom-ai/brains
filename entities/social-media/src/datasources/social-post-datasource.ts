@@ -1,6 +1,7 @@
 import {
   BaseEntityDataSource,
   type BaseQuery,
+  type EntityDataSourceConfig,
   type NavigationResult,
   type PaginationInfo,
 } from "@brains/plugins";
@@ -19,7 +20,26 @@ import {
   type SocialPostWithData,
 } from "../schemas/social-post";
 
-const socialPostQuerySchema = z.looseObject({
+interface SocialPostQuery {
+  [key: string]: unknown;
+  id?: string | undefined;
+  limit?: number | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+  baseUrl?: string | undefined;
+  platform?: "linkedin" | undefined;
+  status?:
+    "generating" | "draft" | "queued" | "published" | "failed" | undefined;
+  sortByQueue?: boolean | undefined;
+  nextInQueue?: boolean | undefined;
+}
+
+interface SocialPostInput {
+  entityType?: string | undefined;
+  query?: SocialPostQuery | undefined;
+}
+
+const socialPostQuerySchema: z.ZodType<SocialPostQuery> = z.looseObject({
   id: z.string().optional(),
   limit: z.number().optional(),
   page: z.number().optional(),
@@ -33,12 +53,10 @@ const socialPostQuerySchema = z.looseObject({
   nextInQueue: z.boolean().optional(),
 });
 
-const socialPostInputSchema = z.looseObject({
+const socialPostInputSchema: z.ZodType<SocialPostInput> = z.looseObject({
   entityType: z.string().optional(),
   query: socialPostQuerySchema.optional(),
 });
-
-type SocialPostQuery = z.output<typeof socialPostQuerySchema>;
 
 /**
  * Parse frontmatter and extract body from entity.
@@ -75,12 +93,12 @@ export class SocialPostDataSource extends BaseEntityDataSource<
   SocialPost,
   SocialPostWithData
 > {
-  readonly id = "social-media:posts";
-  readonly name = "Social Post DataSource";
-  readonly description =
+  readonly id: string = "social-media:posts";
+  readonly name: string = "Social Post DataSource";
+  readonly description: string =
     "Fetches and transforms social post entities for queue management and publishing";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "social-post",
     defaultSort: [
       {
@@ -161,9 +179,10 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     if (parsedQuery.status) metadataFilter["status"] = parsedQuery.status;
     const hasFilter = Object.keys(metadataFilter).length > 0;
 
-    const sortFields = parsedQuery.sortByQueue
-      ? [{ field: "queueOrder" as const, direction: "asc" as const }]
-      : this.config.defaultSort;
+    const sortFields: EntityDataSourceConfig["defaultSort"] =
+      parsedQuery.sortByQueue
+        ? [{ field: "queueOrder" as const, direction: "asc" as const }]
+        : this.config.defaultSort;
 
     const { items, pagination } = await this.fetchList(
       parsedQuery,

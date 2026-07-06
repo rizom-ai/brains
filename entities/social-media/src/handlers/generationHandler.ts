@@ -12,7 +12,14 @@ import { getTemplateName } from "../templates";
 /**
  * Input schema for social post generation job
  */
-const coverImageJobSchema = z.union([
+interface CoverImageJobOptions {
+  generate?: boolean | undefined;
+  prompt?: string | undefined;
+}
+
+type CoverImageJobData = boolean | CoverImageJobOptions;
+
+const coverImageJobSchema: z.ZodType<CoverImageJobData> = z.union([
   z.boolean(),
   z.object({
     generate: z.boolean().optional(),
@@ -20,7 +27,19 @@ const coverImageJobSchema = z.union([
   }),
 ]);
 
-export const generationJobSchema = z.object({
+export interface GenerationJobData {
+  prompt?: string | undefined;
+  platform?: "linkedin" | undefined;
+  sourceEntityType?: "post" | "deck" | undefined;
+  sourceEntityId?: string | undefined;
+  title?: string | undefined;
+  content?: string | undefined;
+  addToQueue?: boolean | undefined;
+  generateImage?: boolean | undefined;
+  coverImage?: CoverImageJobData | undefined;
+}
+
+export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
   prompt: z.string().optional(),
   platform: z.enum(["linkedin"]).optional(),
   sourceEntityType: z.enum(["post", "deck"]).optional(),
@@ -40,9 +59,11 @@ export const generationJobSchema = z.object({
     .describe("Generic cover image generation request"),
 });
 
-export type GenerationJobData = z.output<typeof generationJobSchema>;
-
-export const socialMediaGenerationResultSchema = generationResultSchema.extend({
+export const socialMediaGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    slug: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   slug: z.string().optional(),
 });
 

@@ -135,4 +135,4 @@ export class SocialPostAdapter extends BaseEntityAdapter<
 }
 
 // Create default instance
-export const socialPostAdapter = new SocialPostAdapter();
+export const socialPostAdapter: SocialPostAdapter = new SocialPostAdapter();

@@ -1264,8 +1264,12 @@ object-preserving for adapter registration. The next entity follow-up enabled
 `@brains/conversation-memory`, `@brains/agent-discovery`, and `@brains/decks`,
 adding explicit product/overview/link/blog/conversation-memory/agent/skill/deck
 schema contracts plus typed job, template, datasource, widget, and
-attachment-template contracts. A shell follow-up enabled `isolatedDeclarations`
-for `@brains/ai-evaluation`, adding explicit evaluation/test-case schema
+attachment-template contracts. The next entity follow-up enabled
+`isolatedDeclarations` for `@brains/social-media`, adding explicit social-post
+schema, config, generation job, datasource, and LinkedIn template contracts
+while keeping object schemas composable for adapters/templates. A shell follow-up
+enabled `isolatedDeclarations` for `@brains/ai-evaluation`, adding explicit
+evaluation/test-case schema
 contracts while preserving discriminated attachment validation. The next shell
 follow-up enabled `isolatedDeclarations` for `@brains/app`, adding explicit
 brain definition, instance override, site package, app config, deployment, and

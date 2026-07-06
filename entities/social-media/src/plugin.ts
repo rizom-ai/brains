@@ -34,9 +34,9 @@ export class SocialMediaPlugin extends EntityPlugin<
   SocialMediaConfig,
   SocialMediaConfigInput
 > {
-  readonly entityType = socialPostAdapter.entityType;
-  readonly schema = socialPostSchema;
-  readonly adapter = socialPostAdapter;
+  readonly entityType: string = socialPostAdapter.entityType;
+  readonly schema: typeof socialPostSchema = socialPostSchema;
+  readonly adapter: typeof socialPostAdapter = socialPostAdapter;
 
   private providers = new Map<string, PublishProvider>();
   private unregisterAtprotoProjection: (() => void) | undefined;
