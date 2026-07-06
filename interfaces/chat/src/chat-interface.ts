@@ -1,15 +1,12 @@
 import {
   MessageInterfacePlugin,
-  buildAgentResponseTextParts,
   buildCoalescedInput,
   buildConfirmationResponseParts,
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
+  buildResponsePlan,
   formatArtifactDisplay,
   getConfirmationResultTitle,
-  getDeliverableArtifactCards,
-  getResponseJobIds,
-  getSupplementalCards,
   formatPendingConfirmationHelp,
   PendingApprovalTracker,
   MessageUploadContinuity,
@@ -19,8 +16,7 @@ import {
   type ChatAttachment,
   type InterfacePluginContext,
   type MessageInterfaceOutput,
-  type PendingConfirmation,
-  type StructuredChatCard,
+  type ResponsePlan,
   type RuntimeUploadStore,
   type ToolActivityEvent,
   type ToolStatusUpdate,
@@ -783,6 +779,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       input.response.cards,
       input.userPermissionLevel,
     );
+    const plan = buildResponsePlan(input.response, {
+      deniedCardIds: artifactDelivery.deniedCardIds,
+    });
     if (input.confirmation) {
       await this.approvalCards.resolve(
         input.conversationId,
@@ -797,37 +796,27 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           this.getRemainingApprovalHelp(input.conversationId, input.response),
           artifactDelivery.deniedCardIds,
         )
-      : this.formatAgentResponseText(
-          input.response.text,
-          input.response.cards,
-          input.response.pendingConfirmations,
-          artifactDelivery.deniedCardIds,
-        );
+      : this.formatAgentResponseText(plan, artifactDelivery.deniedCardIds);
     const messageId = await this.sendAgentResponseWithFiles({
       thread: input.thread,
       channelId: input.channelId,
       message,
       files: artifactDelivery.files,
     });
-    const artifactMessageId = await this.sendArtifactCards(
-      input.thread,
-      input.response.cards,
-      artifactDelivery.deniedCardIds,
-    );
-    await this.sendSupplementalCards(
-      input.thread,
-      input.response.cards,
-      input.response.pendingConfirmations,
+    const artifactMessageId = await this.sendArtifactCards(input.thread, plan);
+    await this.sendSupplementalCards(input.thread, plan);
+    const approvals = plan.directives.find(
+      (directive) => directive.kind === "approvals",
     );
     await this.approvalCards.trackPendingConfirmations(
       input.thread,
       input.conversationId,
-      input.response.pendingConfirmations,
+      approvals?.confirmations,
     );
 
     const progressMessageId = artifactMessageId ?? messageId;
     if (progressMessageId) {
-      for (const jobId of getResponseJobIds(input.response)) {
+      for (const jobId of plan.jobIds) {
         this.trackAgentResponseForJob(
           jobId,
           progressMessageId,
@@ -948,19 +937,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private formatAgentResponseText(
-    text: string,
-    cards: StructuredChatCard[] | undefined,
-    pendingConfirmations?: PendingConfirmation[],
+    plan: ResponsePlan,
     deniedCardIds?: Set<string>,
   ): string {
-    return buildAgentResponseTextParts({
-      text,
-      cards,
-      pendingConfirmations,
-      deniedCardIds,
-      formatCard: (card): string =>
-        this.cardBuilder.formatStructuredCard(card, deniedCardIds),
-    }).join("\n\n");
+    return plan.directives
+      .flatMap((directive): string[] => {
+        if (directive.kind === "text") return [directive.text];
+        if (directive.kind === "denied-artifact") {
+          return [
+            this.cardBuilder.formatStructuredCard(
+              directive.card,
+              deniedCardIds,
+            ),
+          ];
+        }
+        return [];
+      })
+      .filter((part) => part.trim().length > 0)
+      .join("\n\n");
   }
 
   private formatConfirmationResponsePayload(
@@ -1045,12 +1039,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private async sendArtifactCards(
     thread: ChatThread,
-    cards: StructuredChatCard[] | undefined,
-    deniedCardIds?: Set<string>,
+    plan: ResponsePlan,
   ): Promise<string | undefined> {
     let lastMessageId: string | undefined;
-    for (const card of getDeliverableArtifactCards(cards, deniedCardIds)) {
-      const display = formatArtifactDisplay(card);
+    for (const directive of plan.directives) {
+      if (directive.kind !== "artifact") continue;
+      const display = formatArtifactDisplay(directive.card);
       if (!display) continue;
       const sent = await thread.post({
         card: this.cardBuilder.buildArtifactCard(display),
@@ -1064,15 +1058,18 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private async sendSupplementalCards(
     thread: ChatThread,
-    cards: StructuredChatCard[] | undefined,
-    pendingConfirmations?: PendingConfirmation[],
+    plan: ResponsePlan,
   ): Promise<void> {
-    for (const card of getSupplementalCards(cards, pendingConfirmations)) {
-      const built = this.cardBuilder.buildSupplementalCard(thread.id, card);
+    for (const directive of plan.directives) {
+      if (directive.kind !== "supplemental") continue;
+      const built = this.cardBuilder.buildSupplementalCard(
+        thread.id,
+        directive.card,
+      );
       if (!built) continue;
       const sent = await thread.post({
         card: built,
-        fallbackText: this.cardBuilder.formatStructuredCard(card),
+        fallbackText: this.cardBuilder.formatStructuredCard(directive.card),
       });
       this.threadRegistry.trackMessage(thread.id, sent);
     }

@@ -24,12 +24,13 @@ before touching — not opportunistic edits.
   lifecycle-starters, and run-engine; the plugin is down to ~1050 lines
   of plugin surface (tools, subscriptions, locks, status assembly).
 - ~~`interfaces/chat/src/chat-interface.ts`~~ — DONE 2026-07-06: the
-  within-chat decomposition is complete (see
-  `docs/plans/chat-response-rendering-decomposition.md`); the final step
-  extracted discord-routing (pure policy/ID parsing) and
+  within-chat decomposition is complete; the final step extracted
+  discord-routing (pure policy/ID parsing) and
   discord-message-components (REST call), leaving a ~1300-line
-  composition root + orchestration. The plan's cross-package
-  `ResponsePlan` follow-on remains open there.
+  composition root + orchestration. The cross-package follow-on also
+  shipped: `buildResponsePlan(response, access)` in `@brains/plugins`
+  now owns response selection/sequencing, consumed by both chat and
+  web-chat (plan file deleted on completion).
 - ~~`shell/ai-service/src/agent-service.ts`~~ — DONE 2026-07-06:
   decomposed into ConversationActorRegistry, attachment-intake,
   ConfirmationCoordinator, and TurnProcessor; the service is now a

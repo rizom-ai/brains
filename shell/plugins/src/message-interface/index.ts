@@ -71,18 +71,17 @@ export {
 } from "./pending-approval-tracker";
 
 export {
-  buildAgentResponseTextParts,
   buildConfirmationResponseParts,
+  buildResponsePlan,
   formatPendingConfirmationHelp,
   formatPendingConfirmationsFallback,
-  getDeniedAttachmentCards,
-  getDeliverableArtifactCards,
-  getMainResponseSummaryCards,
-  getResponseJobIds,
-  getSupplementalCards,
-  type AgentResponseTextPartsInput,
+  type AttachmentChatCard,
   type ConfirmationResponseParts,
   type ConfirmationResponsePartsInput,
+  type ResponsePlan,
+  type ResponseRenderDirective,
+  type SupplementalChatCard,
+  type ToolApprovalChatCard,
 } from "./response-render-plan";
 
 export {

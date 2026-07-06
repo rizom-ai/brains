@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
-  buildAgentResponseTextParts,
   buildConfirmationResponseParts,
+  buildResponsePlan,
   formatPendingConfirmationHelp,
   formatPendingConfirmationsFallback,
   getDeniedAttachmentCards,
@@ -44,51 +44,6 @@ const approvalCard: StructuredChatCard = {
 function formatCard(card: StructuredChatCard): string {
   return `${card.kind}:${card.id}`;
 }
-
-describe("buildAgentResponseTextParts", () => {
-  it("keeps response text and denied attachment summaries", () => {
-    expect(
-      buildAgentResponseTextParts({
-        text: "Done",
-        cards: [deniedAttachmentCard, visibleAttachmentCard],
-        pendingConfirmations: undefined,
-        deniedCardIds: new Set(["card-1"]),
-        formatCard,
-      }),
-    ).toEqual(["Done", "attachment:card-1"]);
-  });
-
-  it("suppresses approval cards when pending confirmations exist", () => {
-    expect(
-      buildAgentResponseTextParts({
-        text: "Need approval",
-        cards: [approvalCard],
-        pendingConfirmations: [
-          {
-            id: "approval:call-1",
-            toolName: "system_publish",
-            summary: "Publish report",
-            args: {},
-          },
-        ],
-        deniedCardIds: undefined,
-        formatCard,
-      }),
-    ).toEqual(["Need approval"]);
-  });
-
-  it("drops empty parts", () => {
-    expect(
-      buildAgentResponseTextParts({
-        text: " ",
-        cards: [],
-        pendingConfirmations: undefined,
-        deniedCardIds: undefined,
-        formatCard,
-      }),
-    ).toEqual([]);
-  });
-});
 
 describe("buildConfirmationResponseParts", () => {
   it("includes confirmation label, denied attachment summaries, and remaining help", () => {
@@ -230,6 +185,105 @@ describe("card bucketing helpers", () => {
         ],
       }),
     ).toEqual(["job-1", "job-2"]);
+  });
+});
+
+describe("buildResponsePlan", () => {
+  const sourcesCard: StructuredChatCard = {
+    kind: "sources",
+    id: "sources-1",
+    sources: [],
+  };
+  const confirmation = {
+    id: "approval:call-1",
+    toolName: "system_publish",
+    summary: "Publish report",
+    args: {},
+  };
+
+  it("orders text, denied, deliverable, supplemental directives and collects job ids", () => {
+    const plan = buildResponsePlan(
+      {
+        text: "Done",
+        cards: [
+          sourcesCard,
+          { ...deniedAttachmentCard, jobId: "job-2" },
+          visibleAttachmentCard,
+        ],
+        toolResults: [{ toolName: "system_create", jobId: "job-1" }],
+      },
+      { deniedCardIds: new Set(["card-1"]) },
+    );
+
+    expect(plan.directives).toEqual([
+      { kind: "text", text: "Done" },
+      {
+        kind: "denied-artifact",
+        card: { ...deniedAttachmentCard, jobId: "job-2" },
+      },
+      { kind: "artifact", card: visibleAttachmentCard },
+      { kind: "supplemental", card: sourcesCard },
+    ]);
+    expect(plan.jobIds).toEqual(["job-1", "job-2"]);
+  });
+
+  it("moves requested approval cards into the approvals directive when confirmations exist", () => {
+    const plan = buildResponsePlan(
+      {
+        text: "Need approval",
+        cards: [approvalCard, sourcesCard],
+        pendingConfirmations: [confirmation],
+      },
+      {},
+    );
+
+    expect(plan.directives).toEqual([
+      { kind: "text", text: "Need approval" },
+      { kind: "supplemental", card: sourcesCard },
+      {
+        kind: "approvals",
+        cards: [approvalCard],
+        confirmations: [confirmation],
+      },
+    ]);
+  });
+
+  it("keeps requested approval cards supplemental when no confirmations exist", () => {
+    const plan = buildResponsePlan({ text: "", cards: [approvalCard] }, {});
+
+    expect(plan.directives).toEqual([
+      { kind: "text", text: "" },
+      { kind: "supplemental", card: approvalCard },
+    ]);
+  });
+
+  it("keeps resolved approval cards supplemental alongside the approvals directive", () => {
+    const resolvedCard: StructuredChatCard = {
+      kind: "tool-approval",
+      id: "approval:call-0",
+      toolName: "system_publish",
+      summary: "Publish earlier report",
+      state: "output-available",
+      output: "ok",
+    };
+    const plan = buildResponsePlan(
+      {
+        text: "One resolved, one pending",
+        cards: [resolvedCard, approvalCard],
+        pendingConfirmations: [confirmation],
+      },
+      {},
+    );
+
+    expect(plan.directives).toEqual([
+      { kind: "text", text: "One resolved, one pending" },
+      { kind: "supplemental", card: resolvedCard },
+      {
+        kind: "approvals",
+        cards: [approvalCard],
+        confirmations: [confirmation],
+      },
+    ]);
   });
 });
 
