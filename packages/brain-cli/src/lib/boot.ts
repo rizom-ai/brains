@@ -1,4 +1,5 @@
 import type { BootMode } from "@brains/core";
+import type { Tool } from "@brains/mcp-service";
 
 /**
  * In-process brain boot.
@@ -13,12 +14,20 @@ import type { BootMode } from "@brains/core";
  * a function that imports @brains/app and boots the brain in-process.
  */
 
+export interface BootedBrain {
+  getShell(): {
+    getMCPService(): {
+      getCliTools(): Array<{ pluginId: string; tool: Tool }>;
+    };
+  };
+}
+
 type BootFn = (
   cwd: string,
   modelName: string,
   definition: unknown,
   flags: { chat: boolean; mode?: BootMode },
-) => Promise<void>;
+) => Promise<BootedBrain | void>;
 
 let registeredBootFn: BootFn | undefined;
 
@@ -37,13 +46,13 @@ export async function bootBrain(
   modelName: string,
   definition: unknown,
   flags: { chat: boolean; mode?: BootMode },
-): Promise<void> {
+): Promise<BootedBrain | void> {
   if (!registeredBootFn) {
     throw new Error(
       "In-process boot not available. Run from the monorepo or install @rizom/brain globally.",
     );
   }
-  await registeredBootFn(cwd, modelName, definition, flags);
+  return registeredBootFn(cwd, modelName, definition, flags);
 }
 
 /**
