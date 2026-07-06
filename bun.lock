@@ -43,11 +43,11 @@
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-content": "workspace:*",
         "@brains/site-info": "workspace:*",
-        "@brains/site-rizom": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/theme-rizom": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
+        "@rizom/site-rizom": "workspace:*",
       },
       "devDependencies": {
         "@brains/typescript-config": "workspace:*",
@@ -84,12 +84,12 @@
         "@brains/site-composition": "workspace:*",
         "@brains/site-content": "workspace:*",
         "@brains/site-info": "workspace:*",
-        "@brains/site-rizom": "workspace:*",
         "@brains/theme-rizom": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/web-chat": "workspace:*",
         "@brains/webserver": "workspace:*",
+        "@rizom/site-rizom": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -1866,7 +1866,7 @@
       },
     },
     "sites/rizom": {
-      "name": "@brains/site-rizom",
+      "name": "@rizom/site-rizom",
       "version": "0.2.0-alpha.136",
       "dependencies": {
         "clsx": "^2.1.0",
@@ -1887,10 +1887,10 @@
       },
     },
     "sites/rizom-work": {
-      "name": "@brains/site-rizom-work",
+      "name": "@rizom/site-rizom-work",
       "version": "0.2.0-alpha.134",
       "dependencies": {
-        "@brains/site-rizom": "workspace:*",
+        "@rizom/site-rizom": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -2096,10 +2096,6 @@
     "@brains/site-personal": ["@brains/site-personal@workspace:sites/personal"],
 
     "@brains/site-professional": ["@brains/site-professional@workspace:sites/professional"],
-
-    "@brains/site-rizom": ["@brains/site-rizom@workspace:sites/rizom"],
-
-    "@brains/site-rizom-work": ["@brains/site-rizom-work@workspace:sites/rizom-work"],
 
     "@brains/social-media": ["@brains/social-media@workspace:entities/social-media"],
 
@@ -2590,6 +2586,10 @@
     "@rizom/brain": ["@rizom/brain@workspace:packages/brain-cli"],
 
     "@rizom/ops": ["@rizom/ops@workspace:packages/brains-ops"],
+
+    "@rizom/site-rizom": ["@rizom/site-rizom@workspace:sites/rizom"],
+
+    "@rizom/site-rizom-work": ["@rizom/site-rizom-work@workspace:sites/rizom-work"],
 
     "@rizom/ui": ["@rizom/ui@workspace:shared/rizom-ui"],
 

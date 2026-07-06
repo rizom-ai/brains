@@ -77,7 +77,7 @@
     "@brains/site-default": "0.2.0",
     "@brains/site-mylittlephoney": "0.2.0",
     "@brains/site-ranger": "0.2.0",
-    "@brains/site-rizom": "0.2.0",
+    "@rizom/site-rizom": "0.2.0",
     "@brains/site-yeehaa": "0.2.0",
     "@brains/site-personal": "0.2.0",
     "@brains/site-professional": "0.2.0",

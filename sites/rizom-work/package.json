@@ -1,5 +1,5 @@
 {
-  "name": "@brains/site-rizom-work",
+  "name": "@rizom/site-rizom-work",
   "version": "0.2.0-alpha.134",
   "description": "Rizom Work site package for hosted Rover deployments",
   "type": "module",
@@ -11,12 +11,12 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun run --filter @brains/site-rizom build && bun test",
+    "test": "bun test",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
-    "@brains/site-rizom": "workspace:*",
+    "@rizom/site-rizom": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

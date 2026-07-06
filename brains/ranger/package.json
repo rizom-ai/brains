@@ -29,11 +29,11 @@
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-content": "workspace:*",
     "@brains/site-info": "workspace:*",
-    "@brains/site-rizom": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/theme-rizom": "workspace:*",
     "@brains/webserver": "workspace:*",
-    "@brains/wishlist": "workspace:*"
+    "@brains/wishlist": "workspace:*",
+    "@rizom/site-rizom": "workspace:*"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",

@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
-import { Section, renderHighlightedText } from "@brains/site-rizom";
+import { Section, renderHighlightedText } from "@rizom/site-rizom";
 import { WorkButton } from "../../link-targets";
 import { WORK_KICKER, WORK_RULE } from "../styles";
 import type { WorkshopContent } from "./schema";

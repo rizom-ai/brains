@@ -1,5 +1,5 @@
 {
-  "name": "@brains/site-rizom",
+  "name": "@rizom/site-rizom",
   "version": "0.2.0-alpha.136",
   "description": "Shared Rizom site core — structural base for rizom.ai, rizom.foundation, and rizom.work",
   "type": "module",
@@ -17,16 +17,21 @@
   ],
   "scripts": {
     "build": "bun scripts/build.ts",
-    "prepublishOnly": "bun scripts/build.ts",
-    "typecheck": "bun run build && tsc --noEmit",
-    "test": "bun run build && bun test",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "postpack": "bun scripts/publish-peers.ts restore",
+    "prepack": "bun scripts/publish-peers.ts inject",
+    "prepublishOnly": "bun scripts/build.ts",
+    "test": "bun test",
+    "typecheck": "bun run build && tsc --noEmit"
   },
   "dependencies": {
     "clsx": "^2.1.0",
     "preact": "^10.27.2",
     "tailwind-merge": "^2.2.0"
+  },
+  "publishPeerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.136 <0.3.0"
   },
   "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",

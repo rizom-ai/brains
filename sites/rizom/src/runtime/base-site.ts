@@ -11,7 +11,7 @@ export const rizomBaseSite: SitePackage<
   },
   routes: [],
   plugin: (config?: Record<string, unknown>): RizomRuntimePlugin =>
-    new RizomRuntimePlugin("@brains/site-rizom", config ?? {}),
+    new RizomRuntimePlugin("@rizom/site-rizom", config ?? {}),
   entityDisplay: {},
   staticAssets: rizomRuntimeStaticAssets,
 };

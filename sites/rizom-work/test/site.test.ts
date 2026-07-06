@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import site from "../src";
 
-describe("@brains/site-rizom-work", () => {
+describe("@rizom/site-rizom-work", () => {
   test("exports a Rizom site package for the work site", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual(["home"]);
@@ -12,7 +12,7 @@ describe("@brains/site-rizom-work", () => {
   test("owns the studio theme profile in site plugin config", () => {
     const plugin = site.plugin();
     expect(plugin.id).toBe("rizom-site");
-    expect(plugin.packageName).toBe("@brains/site-rizom-work");
+    expect(plugin.packageName).toBe("@rizom/site-rizom-work");
     expect(plugin.config).toMatchObject({
       themeProfile: "studio",
     });

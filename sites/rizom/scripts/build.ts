@@ -71,7 +71,7 @@ const declarationProcess = Bun.spawn(
 
 const declarationExitCode = await declarationProcess.exited;
 if (declarationExitCode !== 0) {
-  console.error("Declaration generation failed for @brains/site-rizom");
+  console.error("Declaration generation failed for @rizom/site-rizom");
   process.exit(1);
 }
 

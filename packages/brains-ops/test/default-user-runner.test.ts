@@ -22,7 +22,7 @@ const baseUser: ResolvedUser = {
   preset: "default",
   serverStatus: "unknown",
   siteOverride: {
-    package: "@brains/site-rizom-work",
+    package: "@rizom/site-rizom-work",
     version: "0.2.0-alpha.136",
     theme: "@brains/theme-rizom",
   },
@@ -36,7 +36,7 @@ describe("createDefaultUserRunner", () => {
     const result = await runner(baseUser);
 
     expect(result.brainYaml).toContain(
-      `site:\n  package: "@brains/site-rizom-work"\n  theme: "@brains/theme-rizom"`,
+      `site:\n  package: "@rizom/site-rizom-work"\n  theme: "@brains/theme-rizom"`,
     );
     expect(result.brainYaml).not.toContain("0.2.0-alpha.136");
     expect(result.brainYaml).toContain(

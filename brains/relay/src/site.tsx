@@ -9,7 +9,7 @@ import {
   Section,
   createRizomSite,
   type RizomLayoutProps,
-} from "@brains/site-rizom";
+} from "@rizom/site-rizom";
 import {
   formatRelayDiagramContent,
   parseRelayDiagramContent,

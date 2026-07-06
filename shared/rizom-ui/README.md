@@ -5,7 +5,7 @@ Shared Rizom UI primitives for app-owned Rizom site variants.
 ## Purpose
 
 This package holds the app-facing Rizom UI layer used by extracted or app-local Rizom sites.
-It is intentionally narrower than `@brains/site-rizom` and excludes site/runtime composition concerns.
+It is intentionally narrower than `@rizom/site-rizom` and excludes site/runtime composition concerns.
 
 ## Includes
 

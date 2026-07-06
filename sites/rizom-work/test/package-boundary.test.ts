@@ -1,4 +1,12 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
@@ -38,8 +46,13 @@ async function findPackedTarball(
   packagePrefix: string,
 ): Promise<string> {
   const entries = await readdir(packDir);
+  // Require a version digit right after the prefix so the base package
+  // prefix cannot match the work package tarball.
   const tarball = entries.find(
-    (entry) => entry.startsWith(packagePrefix) && entry.endsWith(".tgz"),
+    (entry) =>
+      entry.startsWith(packagePrefix) &&
+      /^\d/.test(entry.slice(packagePrefix.length)) &&
+      entry.endsWith(".tgz"),
   );
 
   if (!tarball) {
@@ -49,27 +62,49 @@ async function findPackedTarball(
   return join(packDir, tarball);
 }
 
-describe("@brains/site-rizom-work package boundary", () => {
+describe("@rizom/site-rizom-work package boundary", () => {
   test("source-published TSX imports cleanly from a packed install", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "site-rizom-work-pack-"));
 
     try {
+      // Pack the base package from a copy: its prepack step temporarily
+      // rewrites package.json, which must never touch the live manifest
+      // while other workspace tasks run in parallel.
+      const baseCopyDir = join(tempDir, "base-copy");
+      await cp(basePackageDir, baseCopyDir, {
+        recursive: true,
+        filter: (source) =>
+          !source.includes("node_modules") && !source.includes(".turbo"),
+      });
+      // bun pm pack cannot resolve workspace:* refs outside the
+      // workspace, and devDependencies are irrelevant to the artifact.
+      const copyManifestPath = join(baseCopyDir, "package.json");
+      const copyManifest = JSON.parse(await readFile(copyManifestPath, "utf8"));
+      delete copyManifest.devDependencies;
+      await writeFile(
+        copyManifestPath,
+        `${JSON.stringify(copyManifest, null, 2)}\n`,
+      );
       await run(
         ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
-        basePackageDir,
+        baseCopyDir,
       );
       await run(
         ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
         packageDir,
       );
 
-      const baseTarball = await findPackedTarball(
-        tempDir,
-        "brains-site-rizom-",
-      );
+      const baseTarball = await findPackedTarball(tempDir, "rizom-site-rizom-");
       const workTarball = await findPackedTarball(
         tempDir,
-        "brains-site-rizom-work-",
+        "rizom-site-rizom-work-",
+      );
+
+      const brainPeerDir = join(tempDir, "brain-peer");
+      await mkdir(brainPeerDir);
+      await writeFile(
+        join(brainPeerDir, "package.json"),
+        JSON.stringify({ name: "@rizom/brain", version: "0.2.0-alpha.136" }),
       );
 
       await writeFile(
@@ -78,10 +113,11 @@ describe("@brains/site-rizom-work package boundary", () => {
           {
             type: "module",
             dependencies: {
-              "@brains/site-rizom-work": `file:${workTarball}`,
+              "@rizom/brain": `file:${brainPeerDir}`,
+              "@rizom/site-rizom-work": `file:${workTarball}`,
             },
             overrides: {
-              "@brains/site-rizom": `file:${baseTarball}`,
+              "@rizom/site-rizom": `file:${baseTarball}`,
             },
           },
           null,
@@ -95,7 +131,7 @@ describe("@brains/site-rizom-work package boundary", () => {
         [
           "bun",
           "-e",
-          'const site = await import("@brains/site-rizom-work"); console.log(site.default.routes[0].id)',
+          'const site = await import("@rizom/site-rizom-work"); console.log(site.default.routes[0].id)',
         ],
         tempDir,
       );
@@ -103,10 +139,30 @@ describe("@brains/site-rizom-work package boundary", () => {
       expect(output.trim()).toBe("home");
 
       const packedPackageJson = await readFile(
-        join(tempDir, "node_modules/@brains/site-rizom-work/package.json"),
+        join(tempDir, "node_modules/@rizom/site-rizom-work/package.json"),
         "utf8",
       );
       expect(packedPackageJson).not.toContain("workspace:*");
+
+      // The runtime peer range must reach the published manifest even
+      // though the repo manifest omits it (it would close a workspace
+      // dependency cycle through @rizom/brain).
+      const sourceBaseManifest = JSON.parse(
+        await readFile(join(basePackageDir, "package.json"), "utf8"),
+      );
+      const installedBaseManifest = JSON.parse(
+        await readFile(
+          join(tempDir, "node_modules/@rizom/site-rizom/package.json"),
+          "utf8",
+        ),
+      );
+      expect(sourceBaseManifest.peerDependencies).toBeUndefined();
+      expect(installedBaseManifest.peerDependencies).toEqual(
+        sourceBaseManifest.publishPeerDependencies,
+      );
+      expect(
+        installedBaseManifest.peerDependencies?.["@rizom/brain"],
+      ).toBeDefined();
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }

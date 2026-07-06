@@ -4,9 +4,11 @@
 
 Phase 0 started in worktree `work/sites-controlled-deploy`.
 
-Implementation started with `@brains/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@brains/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Packed-install smoke coverage now verifies `@brains/site-rizom-work` can remain thin/source-published and that the installed-package dynamic import path boots; full rendered-site verification remains the next gate.
+Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@rizom/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Packed-install smoke coverage now verifies `@rizom/site-rizom-work` can remain thin/source-published and that the installed-package dynamic import path boots. Remaining gate: full rendered-site verification from a packed install.
 
 > **Supersedes prior direction.** The earlier "one shared site + per-app skins in app `src/`, no new published packages" direction is intentionally reversed for this work (confirmed 2026-06-30). Hosted-rover needs npm-resolvable site refs in generated `brain.yaml`, which app-local `src/site.ts` cannot provide, so the Rizom site family now ships as three published per-site packages. The divergence-discipline rule still applies _within_ each package.
+>
+> **Why published packages, not build-time workspace inclusion (2026-07-06).** The resolver alone does not force publishing — `site.package` resolves by name, and the monorepo build could include a pinned workspace package in the image. The real justification is the product thesis: hosted-rover treats a site as an installable product selected by package ref, and the monorepo is the _first_ site author, not the only possible one. Build-time inclusion can never serve a site the platform repo does not contain, so published packages are the target boundary, and the packaging work (public base API, bundled artifact, self-contained source publish) is load-bearing for that future rather than transport overhead.
 
 Clarified target architecture:
 
@@ -70,10 +72,10 @@ Current deploy scripts derive:
 
 ## Tracked monorepo findings
 
-- `sites/rizom` is `@brains/site-rizom`: shared Rizom site core, not a full per-domain site.
-- `brains/ranger` imports `@brains/site-rizom` and `@brains/theme-rizom` directly.
+- `sites/rizom` is `@rizom/site-rizom`: shared Rizom site core, not a full per-domain site.
+- `brains/ranger` imports `@rizom/site-rizom` and `@brains/theme-rizom` directly.
 - `brains/relay/src/site.tsx` defines `relaySite` via `createRizomSite({ packageName: "@brains/relay/site", themeProfile: "studio", ... })` with custom routes/templates/data source. This is not the same as `rizom.foundation`'s app-local site.
-- `shell/app/scripts/build-model.ts` currently bundles every package under monorepo `sites/` into every model image. That is useful as an intermediary but not the final package-resolution model.
+- Correction (2026-07-06): `shell/app/scripts/build-model.ts` no longer exists. The current image path (`shell/app/scripts/build.ts` + `shell/app/src/generate-entrypoint.ts`) generates a static entrypoint from `brain.yaml` that imports and registers exactly the `@`-prefixed package refs found in the overrides (including `site.package`).
 
 ## Target architecture
 
@@ -82,9 +84,9 @@ Current deploy scripts derive:
    - `sites/rizom-foundation` → published package for `rizom.foundation`
    - `sites/rizom-work` → published package for `rizom.work`
 2. Publish one shared Rizom site base package and three thin per-site packages:
-   - `@brains/site-rizom` is the public base/core package for Rizom sites: runtime plugin, shared layout primitives, theme-profile behavior, canvas/static assets, and the `createRizomSite` helper.
-   - `@brains/site-rizom-ai`, `@brains/site-rizom-foundation`, and `@brains/site-rizom-work` extend that base and carry only their site-specific routes, layouts, templates, `themeProfile`, and package-local CSS/theme override.
-   - **Note: this is new coupling, not a lift-and-shift.** The external sites do not import `@brains/site-rizom` today — `rizom-work/src/site.ts` is a bare default-export object depending only on `@rizom/brain` / `@rizom/ui`. Introducing the shared-core dependency is net-new work per site, not a file move; scope the migration accordingly.
+   - `@rizom/site-rizom` is the public base/core package for Rizom sites: runtime plugin, shared layout primitives, theme-profile behavior, canvas/static assets, and the `createRizomSite` helper.
+   - `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`, and `@rizom/site-rizom-work` extend that base and carry only their site-specific routes, layouts, templates, `themeProfile`, and package-local CSS/theme override.
+   - **Note: this is new coupling, not a lift-and-shift.** The external sites do not import `@rizom/site-rizom` today — `rizom-work/src/site.ts` is a bare default-export object depending only on `@rizom/brain` / `@rizom/ui`. Introducing the shared-core dependency is net-new work per site, not a file move; scope the migration accordingly.
 3. `rover-pilot` / `hosted-rover` registry config chooses the per-site package and version for each deployed site.
 4. Generated `brain.yaml` should reference npm-resolvable package refs, not app-local `src/site.ts` paths.
 5. Hosted deploy installs or otherwise resolves those package refs before boot/build, so Rover can render the requested site without bundling every possible site into the base runtime.
@@ -96,43 +98,47 @@ Implemented config slice (2026-07-02): `brains-ops` user registry entries may no
 
 Skip the temporary bundled-runtime bridge unless direct package resolution proves blocked.
 
-Initial publishability spike result (2026-07-02): `npm pack --dry-run` for `@brains/site-rizom-work` succeeds, but installing the packed tarball into a clean project fails with `EUNSUPPORTEDPROTOCOL workspace:*`. The package currently depends on workspace-only/private runtime deps (`@brains/site-rizom`, `@brains/site-content`, `@brains/site-composition`, etc.). Therefore the next gate is dependency-chain publishability or package bundling; hosted-rover cannot yet consume the package as an installed npm dependency.
+Initial publishability spike result (2026-07-02): `npm pack --dry-run` for `@rizom/site-rizom-work` succeeds, but installing the packed tarball into a clean project fails with `EUNSUPPORTEDPROTOCOL workspace:*`. The package currently depends on workspace-only/private runtime deps (`@rizom/site-rizom`, `@brains/site-content`, `@brains/site-composition`, etc.). Therefore the next gate is dependency-chain publishability or package bundling; hosted-rover cannot yet consume the package as an installed npm dependency.
 
-Follow-up base-package spike result (2026-07-02): naively bundling `@brains/site-rizom` into a `dist/index.js` artifact installs cleanly with only `preact`, but importing it under Bun fails because the root `@brains/plugins` import pulls broad shell/runtime internals, including `libsql` native bindings. So the base package cannot just bundle the current internal graph unchanged. It needs a narrower public dependency boundary: either `@brains/site-rizom` imports only a lightweight public plugin/site API, or the shared site base is refactored to avoid dragging shell persistence/runtime internals into the published site package.
+Follow-up base-package spike result (2026-07-02): naively bundling `@rizom/site-rizom` into a `dist/index.js` artifact installs cleanly with only `preact`, but importing it under Bun fails because the root `@brains/plugins` import pulls broad shell/runtime internals, including `libsql` native bindings. So the base package cannot just bundle the current internal graph unchanged. It needs a narrower public dependency boundary: either `@rizom/site-rizom` imports only a lightweight public plugin/site API, or the shared site base is refactored to avoid dragging shell persistence/runtime internals into the published site package.
 
-Resolution boundary spike result (2026-07-02): refactoring the Rizom runtime plugin away from runtime `@brains/plugins` imports and using only type-only shell/plugin contracts lets a bundled `@brains/site-rizom` artifact import cleanly in a fresh Bun project with only `preact` installed. This confirms the right direction: published site packages should avoid runtime `@brains/plugins` dependencies; any remaining framework references should be type-only or hidden behind the base package boundary.
+Resolution boundary spike result (2026-07-02): refactoring the Rizom runtime plugin away from runtime `@brains/plugins` imports and using only type-only shell/plugin contracts lets a bundled `@rizom/site-rizom` artifact import cleanly in a fresh Bun project with only `preact` installed. This confirms the right direction: published site packages should avoid runtime `@brains/plugins` dependencies; any remaining framework references should be type-only or hidden behind the base package boundary.
 
-Site-content authoring boundary update (2026-07-02): site content definition types and template-construction helpers belong with the shared site-composition contract, not the `@brains/site-content` runtime plugin. The runtime plugin now re-exports/uses that shared contract, and `@brains/site-rizom-work` no longer depends on the site-content plugin package just to define sections. `@brains/site-rizom` re-exports the Rizom site authoring helpers/types, so the per-site package consumes them through the base package boundary rather than importing lower-level composition packages directly.
+Site-content authoring boundary update (2026-07-02): site content definition types and template-construction helpers belong with the shared site-composition contract, not the `@brains/site-content` runtime plugin. The runtime plugin now re-exports/uses that shared contract, and `@rizom/site-rizom-work` no longer depends on the site-content plugin package just to define sections. `@rizom/site-rizom` re-exports the Rizom site authoring helpers/types, so the per-site package consumes them through the base package boundary rather than importing lower-level composition packages directly.
 
-AT Protocol contract boundary update (2026-07-04): AT Protocol lexicon definitions remain owned by the internal `@brains/atproto-contracts` package; `@brains/site-rizom` serves those canonical definitions but does not define or vendor them. This does not require publishing `@brains/atproto-contracts` for hosted Rizom sites: the published `@brains/site-rizom` artifact bundles/hides that internal contract source behind the base package boundary.
+AT Protocol contract boundary update (2026-07-04): AT Protocol lexicon definitions remain owned by the internal `@brains/atproto-contracts` package; `@rizom/site-rizom` serves those canonical definitions but does not define or vendor them. This does not require publishing `@brains/atproto-contracts` for hosted Rizom sites: the published `@rizom/site-rizom` artifact bundles/hides that internal contract source behind the base package boundary.
 
-Base-package artifact update (2026-07-04): `@brains/site-rizom` is the public base package and now follows the existing built-package convention used by published packages such as `@rizom/ops`: `prepublishOnly` builds `dist/index.js`, package exports point runtime imports at `dist`, and private/internal workspace packages (`@brains/site-composition`, `@brains/atproto-contracts`, and shared Rizom UI source) are build-time/dev dependencies bundled into that artifact. Runtime dependencies are limited to public npm packages (`preact`, `clsx`, `tailwind-merge`).
+Base-package artifact update (2026-07-04): `@rizom/site-rizom` is the public base package and now follows the existing built-package convention used by published packages such as `@rizom/ops`: `prepublishOnly` builds `dist/index.js`, package exports point runtime imports at `dist`, and private/internal workspace packages (`@brains/site-composition`, `@brains/atproto-contracts`, and shared Rizom UI source) are build-time/dev dependencies bundled into that artifact. Runtime dependencies are limited to public npm packages (`preact`, `clsx`, `tailwind-merge`).
 
-Packaging correction (2026-07-04): do not generalize from the base-package bundling requirement to all per-site packages. Source-publishing TS/TSX is allowed when the package is self-contained for consumers. The clean-install failure for `@brains/site-rizom-work` (`react/jsx-dev-runtime`) indicated a missing JSX runtime signal or consumer-facing source-publish contract, not proof that every per-site package must emit `dist`. Treat bundling as required only where there is a demonstrated private runtime dependency boundary, currently `@brains/site-rizom`. For per-site packages, first test the smallest self-contained source-publish fix before choosing a build artifact.
+Packaging correction (2026-07-04): do not generalize from the base-package bundling requirement to all per-site packages. Source-publishing TS/TSX is allowed when the package is self-contained for consumers. The clean-install failure for `@rizom/site-rizom-work` (`react/jsx-dev-runtime`) indicated a missing JSX runtime signal or consumer-facing source-publish contract, not proof that every per-site package must emit `dist`. Treat bundling as required only where there is a demonstrated private runtime dependency boundary, currently `@rizom/site-rizom`. For per-site packages, first test the smallest self-contained source-publish fix before choosing a build artifact.
 
-Source-published TSX update (2026-07-06): `@brains/site-rizom-work` now uses file-level `@jsxImportSource preact` pragmas on package-owned TSX files and has a package-boundary smoke test that packs `@brains/site-rizom` + `@brains/site-rizom-work`, installs them into a clean temp project, and imports the site package successfully. This keeps `@brains/site-rizom-work` thin/source-published for now.
+Source-published TSX update (2026-07-06): `@rizom/site-rizom-work` now uses file-level `@jsxImportSource preact` pragmas on package-owned TSX files and has a package-boundary smoke test that packs `@rizom/site-rizom` + `@rizom/site-rizom-work`, installs them into a clean temp project, and imports the site package successfully. This keeps `@rizom/site-rizom-work` thin/source-published for now.
 
 Current packaging matrix:
 
 | Package                     | Runtime dependency boundary                                                                                                                                      | TSX/source-publish boundary                                                                                                 | Type boundary                                                                                                          | Current direction                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `@brains/site-rizom`        | Has private/internal workspace deps (`@brains/site-composition`, `@brains/atproto-contracts`, shared Rizom UI source) that should not be published transitively. | May contain TSX, but runtime bundling is already justified by private deps.                                                 | Public declarations must not leak private packages; fix at source/API boundary, not by hand-written declaration blobs. | Bundle runtime; expose an intentional public API and generated declarations. |
-| `@brains/site-rizom-work`   | Depends only on public `@brains/site-rizom` plus `preact`.                                                                                                       | Source-published TSX imports cleanly with file-level `@jsxImportSource preact` pragmas and package-boundary smoke coverage. | Clean through the base public declaration boundary.                                                                    | Keep thin/source-published unless a new private runtime boundary appears.    |
+| `@rizom/site-rizom`         | Has private/internal workspace deps (`@brains/site-composition`, `@brains/atproto-contracts`, shared Rizom UI source) that should not be published transitively. | May contain TSX, but runtime bundling is already justified by private deps.                                                 | Public declarations must not leak private packages; fix at source/API boundary, not by hand-written declaration blobs. | Bundle runtime; expose an intentional public API and generated declarations. |
+| `@rizom/site-rizom-work`    | Depends only on public `@rizom/site-rizom` plus `preact`.                                                                                                        | Source-published TSX imports cleanly with file-level `@jsxImportSource preact` pragmas and package-boundary smoke coverage. | Clean through the base public declaration boundary.                                                                    | Keep thin/source-published unless a new private runtime boundary appears.    |
 | `@brains/atproto-contracts` | Internal canonical lexicon source.                                                                                                                               | N/A                                                                                                                         | N/A                                                                                                                    | Do not publish for hosted Rizom sites; bundle through base.                  |
 | `@brains/site-composition`  | Internal site framework contract used by app/runtime.                                                                                                            | N/A                                                                                                                         | Would leak if exported directly.                                                                                       | Keep internal; hide behind base.                                             |
 
 Packaging decision:
 
-- **Yes:** publish one shared base package, `@brains/site-rizom`, and have the three per-site packages depend on/extend it.
+- **Yes:** publish one shared base package, `@rizom/site-rizom`, and have the three per-site packages depend on/extend it.
 - **No:** do not publish the entire low-level `@brains/*` framework dependency chain just to make these sites installable.
 - The base package is the public/stable Rizom-site API boundary. Its own internal framework dependencies should be bundled/hidden behind the base package's published artifact unless there is an explicit reason to expose them as public packages.
-- Per-site packages should stay thin and depend only on `@brains/site-rizom` and `preact`; shared Rizom UI and site authoring helpers should be exposed through the base package boundary.
+- Per-site packages should stay thin and depend only on `@rizom/site-rizom` and `preact`; shared Rizom UI and site authoring helpers should be exposed through the base package boundary.
 - Thin per-site packages may still publish source if their TS/TSX is self-contained for npm consumers. Do not add per-site build artifacts merely because the base package needs one.
+
+Publish-scope correction (2026-07-06): we do not own the `@brains` scope on npm — the org publishes under `@rizom` (the runtime already ships as `@rizom/*`), and nothing is published under `@brains/*` today. Because `site.package` resolves by the literal package name, the published name and the `package.json` name must match, so the publishable packages got a mechanical scope swap before first publish: `@brains/site-rizom` → `@rizom/site-rizom`, `@brains/site-rizom-work` → `@rizom/site-rizom-work` (no semantic renames). The rename ripples into workspace `package.json` names and internal deps, generated `brain.yaml` refs, `brains-ops` `siteOverride` rendering, and the package-boundary test.
+
+Runtime-compatibility decision (2026-07-06): the published base package bundles a _copy_ of the `@brains/site-composition` contracts, and nothing at install time links that copy to the runtime version hosted-rover pins — first-party CI would catch drift, but an externally authored site package would only fail at runtime. Decision: the base package declares a `peerDependencies` range on the published runtime package (`@rizom/brain`) covering the versions its bundled contracts are compatible with; per-site packages inherit the constraint through the base. Hosted-rover installs the site package alongside the pinned runtime, so the package manager enforces compatibility at install time. Bump the peer range whenever the bundled contract copy changes incompatibly.
 
 Preferred path:
 
-1. Move shared Rizom site core into a publishable `@brains/site-rizom` base package with a clean public dependency and type story.
-2. Define the `@brains/site-rizom` public API at the source layer: runtime site/plugin contracts, authoring helpers, route/content definition types, and actual UI prop types. Generated declarations should verify this API; they should not be patched by hand-written declaration blobs.
+1. Move shared Rizom site core into a publishable `@rizom/site-rizom` base package with a clean public dependency and type story.
+2. Define the `@rizom/site-rizom` public API at the source layer: runtime site/plugin contracts, authoring helpers, route/content definition types, and actual UI prop types. Generated declarations should verify this API; they should not be patched by hand-written declaration blobs.
 3. Move each site into a thin monorepo package that extends the base package.
 4. For each per-site package, prove whether source publishing is self-contained before choosing a build artifact. Start with the smallest JSX-runtime/package-metadata fix for TSX source packages.
 5. Make the base package and each per-site package publishable.
@@ -151,7 +157,7 @@ handle: rizom-work
 domainOverride: rizom.work
 contentRepoOverride: rizom-ai/rizom-work-content
 siteOverride:
-  package: "@brains/site-rizom-work"
+  package: "@rizom/site-rizom-work"
   version: "<exact-version-or-dist-tag>"
   theme: "@brains/theme-rizom"
 ```
@@ -165,7 +171,7 @@ logLevel: info
 domain: rizom.work
 
 site:
-  package: "@brains/site-rizom-work"
+  package: "@rizom/site-rizom-work"
   theme: "@brains/theme-rizom"
 
 plugins:
@@ -181,23 +187,23 @@ The site package itself owns `themeProfile: "studio"`, routes, layouts, template
 
 ## Phase 1 implications
 
-1. A Rover `brain.yaml` with only `site.package: @brains/site-rizom` will not reproduce any of the three sites. It would miss each site's package-specific layout, route list, sections/templates, and local CSS.
+1. A Rover `brain.yaml` with only `site.package: @rizom/site-rizom` will not reproduce any of the three sites. It would miss each site's package-specific layout, route list, sections/templates, and local CSS.
 2. First package to migrate should be `rizom.work` because it is a concrete Ranger-based site and has clear `themeProfile: studio` plus local `theme.css`.
 3. `themeProfile` should remain site plugin config owned by the site package, not a new top-level `site.themeProfile` deploy field.
 4. Site-specific CSS should live in the site package and be layered by the package/runtime, not copied into operator config. This needs an explicit site-package CSS contract before implementation, preferably `SitePackage.themeOverride` layered after the selected base theme and before any instance override.
 5. Hosted deploy needs **per-domain** custom-domain support — each rizom site is its own apex domain in its own Cloudflare zone, with its own Origin CA cert covering apex + `www` + `preview`. The current pilot is single-zone: `brain cert:bootstrap` (`packages/brains-ops/src/cert-bootstrap.ts`) resolves one domain from `registry.pilot.domainSuffix`, uses one `CF_ZONE_ID`, issues one shared `*.domain` cert, and pushes one `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` pair. That must become per-domain — see "TLS / certificates" below.
-6. Bundle cleanup remains required: the final Rover/base runtime should not permanently bundle all monorepo `sites/*` packages into every image/package.
+6. Bundle cleanup is already done (verified 2026-07-06): entrypoint generation imports only the packages referenced by the target `brain.yaml`, and no build path bundles all `sites/*` into an image. "No all-sites bundling" stays in the acceptance bar as a check, not as remaining work.
 7. `rizom.ai` currently carries extra behavior (`add: [atproto-registry]` and `plugins.atproto-registry: {}`). Its migration phase must explicitly decide whether to preserve that via Rover `add:` or accept Rover-default behavior.
 
 ### Phase 1 acceptance bar (rizom.work)
 
 Done when:
 
-- `@brains/site-rizom-work` exists in the monorepo, composes `@brains/site-rizom`, and owns rizom.work's layout/routes/templates/`themeProfile: studio`/local CSS.
-- The shared `@brains/site-rizom` base package has a clean public dependency story: any low-level private/internal dependencies are either hidden/bundled behind it or intentionally made public/stable.
-- `@brains/site-rizom-work` depends on the base package rather than the full internal framework chain.
-- The base package and `@brains/site-rizom-work` are published via the normal release flow at resolvable versions.
-- A generated `brain.yaml` referencing `site.package: @brains/site-rizom-work` boots and renders rizom.work — apex + `www` + `preview` — without bundling all `sites/*` into the image.
+- `@rizom/site-rizom-work` exists in the monorepo, composes `@rizom/site-rizom`, and owns rizom.work's layout/routes/templates/`themeProfile: studio`/local CSS.
+- The shared `@rizom/site-rizom` base package has a clean public dependency story: any low-level private/internal dependencies are either hidden/bundled behind it or intentionally made public/stable.
+- `@rizom/site-rizom-work` depends on the base package rather than the full internal framework chain.
+- The base package and `@rizom/site-rizom-work` are published via the normal release flow at resolvable versions.
+- A generated `brain.yaml` referencing `site.package: @rizom/site-rizom-work` boots and renders rizom.work — apex + `www` + `preview` — without bundling all `sites/*` into the image.
 - The old `rizom-work` standalone deploy workflow/image is retired (or explicitly gated behind the temporary bridge if used).
 
 Tests (written before impl, per TDD):
@@ -210,18 +216,18 @@ Tests (written before impl, per TDD):
 Repo facts to keep separate from decisions:
 
 - `shell/app/src/package-registry.ts` is a name-keyed registry: `registerPackage(name, value)` / `getPackage(name)`. `brain.yaml`'s `site.package` ultimately resolves by package name from that registry.
-- The monorepo model-image path (`shell/app/scripts/build-model.ts` + `shell/app/src/generate-entrypoint.ts`) populates the registry with static imports baked into the bundle. Today it imports every monorepo `sites/*` package; this is exactly the behavior we want to replace with explicit package selection.
+- Correction (2026-07-06): `shell/app/scripts/build-model.ts` no longer exists, and no build path bundles all `sites/*`. The current image path (`shell/app/scripts/build.ts` + `shell/app/src/generate-entrypoint.ts`) generates a static entrypoint from `brain.yaml` that imports and registers exactly the `@`-prefixed package refs found in the overrides (including `site.package`) — selection is already explicit. The open question is not selection but _source_: the generated entrypoint resolves refs from the monorepo workspace at build time, whereas a hosted build must resolve the pinned site package as an installed npm dependency.
 - The published `@rizom/brain` CLI path also has an override-package hook (`registerOverridePackages`) that attempts to import `@` package refs from the installed environment before resolving config. This may allow hosted-rover to install the exact site package version into the image and let existing dynamic import registration handle `site.package`.
 
 Phase 1 should not assume either path without a smoke test. The resolution spike comes before custom bundling work:
 
-1. Publish or locally pack a minimal `@brains/site-rizom-work` package and its runtime dependency chain.
+1. Publish or locally pack a minimal `@rizom/site-rizom-work` package and its runtime dependency chain.
 2. Build a hosted-rover/fleet-style image with pinned runtime + pinned site package installed.
-3. Boot a Rover `brain.yaml` containing `site.package: "@brains/site-rizom-work"`.
+3. Boot a Rover `brain.yaml` containing `site.package: "@rizom/site-rizom-work"`.
 4. If dynamic import registration works, use that as the first implementation because it keeps package refs as package refs and avoids custom entrypoint generation.
 5. If it does not work, use selective build-time bundling as the fallback: hosted-rover reads `siteOverride.package` + version, installs that package during build, and generates an entrypoint that statically imports only that selected package.
 
-Resolution smoke update (2026-07-06): a clean temp project with packed `@rizom/brain`, packed `@brains/site-rizom-work`, and packed `@brains/site-rizom` booted `brain start --startup-check` with `site.package: "@brains/site-rizom-work"` and `site.theme: "@brains/theme-rizom"`. That verifies the installed-package dynamic import/registration path is viable for boot. A full rendered-site rebuild from the packed install remains a separate verification step.
+Resolution smoke update (2026-07-06): a clean temp project with packed `@rizom/brain`, packed `@rizom/site-rizom-work`, and packed `@rizom/site-rizom` booted `brain start --startup-check` with `site.package: "@rizom/site-rizom-work"` and `site.theme: "@brains/theme-rizom"`. That verifies the installed-package dynamic import/registration path is viable for boot. A full rendered-site rebuild from the packed install remains a separate verification step.
 
 Decision after spike, not before:
 
@@ -267,6 +273,6 @@ Net: custom onboarding = subdomain onboarding **plus** an upfront NS-delegation 
 
 ## Remaining open questions
 
-- Package scope/name: **decided — `@brains/site-rizom-*`** (matches the `@brains/site-rizom` core the packages depend on). Note the published runtime ships as `@rizom/*`, so hosted-rover must resolve a `@brains/*` site dep alongside the `@rizom/*` runtime.
-- Version resolution: **pending a spike, decision after — not before.** Preferred if verified: install the pinned site package into the image and let the existing `registerOverridePackages` dynamic-import hook resolve `site.package`. Fallback: selective build-time bundling of exactly the pinned package. The bundled-_runtime_ bridge (cram all sites into the published runtime) is not needed either way, and bundling all `sites/*` into every image is not acceptable as the final state. See "Site package resolution model" above.
+- Package scope/name: **revised 2026-07-06 — `@rizom/site-rizom-*`.** The earlier `@brains/site-rizom-*` decision was wrong: the `@brains` scope is not ours on npm, and the mixed-scope note it carried ("hosted-rover must resolve a `@brains/*` site dep alongside the `@rizom/*` runtime") was the symptom. See the publish-scope correction under "Packaging decision"; after the rename, site packages and runtime resolve from the same `@rizom` scope.
+- Version resolution: **boot leg verified 2026-07-06** — packed runtime + packed site packages boot via the `registerOverridePackages` dynamic-import hook (see "Resolution smoke update"). Remaining before final decision: full rendered-site verification from a packed install in a hosted-style image. Fallback unchanged: selective build-time bundling of exactly the pinned package. The bundled-_runtime_ bridge (cram all sites into the published runtime) is not needed either way.
 - `www` alias and `preview.<domain>`: **decided — preserve both.** Hosted-rover must support apex + `www.<domain>` + `preview.<domain>` per site; dropping them regresses current standalone-deploy behavior.

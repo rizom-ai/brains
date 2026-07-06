@@ -168,7 +168,7 @@ agePublicKey: age1testpublickey
 domainOverride: rizom.work
 contentRepoOverride: rizom-ai/rizom-work-content
 siteOverride:
-  package: "@brains/site-rizom-work"
+  package: "@rizom/site-rizom-work"
   version: 0.2.0-alpha.136
   theme: "@brains/theme-rizom"
 discord:
@@ -184,7 +184,7 @@ discord:
     expect(registry.users[0]?.domain).toBe("rizom.work");
     expect(registry.users[0]?.contentRepo).toBe("rizom-ai/rizom-work-content");
     expect(registry.users[0]?.siteOverride).toEqual({
-      package: "@brains/site-rizom-work",
+      package: "@rizom/site-rizom-work",
       version: "0.2.0-alpha.136",
       theme: "@brains/theme-rizom",
     });

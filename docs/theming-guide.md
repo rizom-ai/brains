@@ -313,7 +313,7 @@ A shared site package can still choose a shared theme alongside its site package
 
 ```yaml
 site:
-  package: "@brains/site-rizom"
+  package: "@rizom/site-rizom"
   theme: "@brains/theme-rizom"
 ```
 

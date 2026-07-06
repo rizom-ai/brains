@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
-import { Section } from "@brains/site-rizom";
+import { Section } from "@rizom/site-rizom";
 import { WORK_KICKER, WORK_RULE } from "../styles";
 import type { PersonasContent } from "./schema";
 
