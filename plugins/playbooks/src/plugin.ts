@@ -46,6 +46,20 @@ import {
   renderAgentContextItem,
 } from "./lib/render";
 import {
+  LifecycleStarterRegistry,
+  lifecycleConfigSchema,
+  type LifecyclePlaybookConfig,
+  type LifecycleStarterRegistrationResponse,
+  type LifecycleStartersResponse,
+} from "./lib/lifecycle-starters";
+
+export type {
+  LifecyclePlaybookConfig,
+  LifecycleStarterRegistrationResponse,
+  LifecycleStartersResponse,
+  PlaybookStarter,
+} from "./lib/lifecycle-starters";
+import {
   PlaybookRunStore,
   createPlaybookRun,
   playbookRunEvidenceSchema,
@@ -56,17 +70,6 @@ import {
 } from "./run-store";
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
-
-const lifecycleConfigSchema = z
-  .object({
-    trigger: z.string().min(1),
-    playbookId: z.string().min(1),
-    once: z.boolean().default(true),
-    starterText: z.string().min(1),
-    description: z.string().min(1).optional(),
-    starterPrompt: z.string().min(1),
-  })
-  .strict();
 
 const playbooksConfigSchema = z
   .object({
@@ -123,7 +126,6 @@ const sendEventInputSchema = {
   context: z.record(z.string(), z.unknown()).optional(),
 };
 
-export type LifecyclePlaybookConfig = z.infer<typeof lifecycleConfigSchema>;
 export type PlaybooksConfig = z.infer<typeof playbooksConfigSchema>;
 export type PlaybookEntity = z.infer<typeof playbookEntitySchema>;
 
@@ -131,15 +133,6 @@ export interface ParsedPlaybook {
   entity: PlaybookEntity;
   body: PlaybookBody;
   version: string;
-}
-
-export interface PlaybookStarter {
-  id: string;
-  title: string;
-  description?: string | undefined;
-  playbookId: string;
-  lifecycle: string;
-  starterPrompt: string;
 }
 
 export interface PlaybookStatusResponse {
@@ -154,17 +147,6 @@ export interface PlaybookStatusResponse {
   guidance?: string | undefined;
   cards?: ActionsCard[] | undefined;
   lifecycle: Record<string, LifecyclePlaybookConfig>;
-}
-
-export interface LifecycleStartersResponse {
-  starters: PlaybookStarter[];
-}
-
-export interface LifecycleStarterRegistrationResponse {
-  registered: boolean;
-  id: string;
-  ignored?: boolean | undefined;
-  reason?: string | undefined;
 }
 
 export interface GoalCheckInput {
@@ -232,10 +214,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private readonly injectedGoalCheck: GoalCheck | undefined;
   private readonly startLocks = new Map<string, Promise<ToolResponse>>();
   private readonly runLocks = new Map<string, Promise<void>>();
-  private readonly registeredLifecycleStarters = new Map<
-    string,
-    { source: string; config: LifecyclePlaybookConfig }
-  >();
+  private lifecycleStarters!: LifecycleStarterRegistry;
 
   constructor(
     config: Partial<PlaybooksConfig> = {},
@@ -253,6 +232,16 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     this.ctx = context;
     this.store = new PlaybookRunStore(context.runtimeState);
     this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
+    this.lifecycleStarters = new LifecycleStarterRegistry({
+      logger: this.logger,
+      configuredLifecycle: this.config.lifecycle,
+      triggers: this.config.triggers,
+      findRunByLifecycle: (lifecycle): Promise<PlaybookRun | undefined> =>
+        this.store.findByLifecycle(lifecycle),
+      getPlaybook: (playbookId): Promise<ParsedPlaybook | undefined> =>
+        this.getPlaybook(playbookId),
+      listPlaybooks: (): Promise<ParsedPlaybook[]> => this.listPlaybooks(),
+    });
 
     context.registerInstructions(buildInstructions(this.config.lifecycle));
     context.eval.registerHandler("goalCheck", async (input: unknown) =>
@@ -264,7 +253,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       LifecycleStartersResponse
     >(PLAYBOOKS_LIFECYCLE_STARTERS, async (message) => {
       const input = lifecycleStartersRequestSchema.parse(message.payload);
-      const starters = await this.resolveLifecycleStarters(input);
+      const starters = await this.lifecycleStarters.resolveStarters(input);
       return { success: true, data: { starters } };
     });
 
@@ -275,7 +264,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       const registration = lifecycleStarterRegistrationSchema.parse(
         message.payload,
       );
-      const result = this.registerLifecycleStarter(
+      const result = this.lifecycleStarters.register(
         registration,
         message.source,
       );
@@ -712,158 +701,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     };
     const nextVerdicts = upsertGateVerdicts(run.gateVerdicts, [gateVerdict]);
     return { success: true, gateVerdicts: nextVerdicts };
-  }
-
-  private async resolveLifecycleStarters(input: {
-    lifecycle?: string | undefined;
-    interfaceType: string;
-    userPermissionLevel: "anchor" | "trusted" | "public";
-  }): Promise<PlaybookStarter[]> {
-    if (
-      input.interfaceType !== "web-chat" ||
-      input.userPermissionLevel !== "anchor"
-    ) {
-      return [];
-    }
-
-    const starters: PlaybookStarter[] = [];
-    const seenLifecycleIds = new Set<string>();
-
-    const entries = Object.entries(this.config.lifecycle).filter(
-      ([id]) => !input.lifecycle || id === input.lifecycle,
-    );
-
-    for (const [id, lifecycle] of entries) {
-      const starter = await this.resolveConfiguredLifecycleStarter(
-        id,
-        lifecycle,
-      );
-      if (!starter) continue;
-      starters.push(starter);
-      seenLifecycleIds.add(id);
-    }
-
-    for (const [id, registration] of this.registeredLifecycleStarters) {
-      if (input.lifecycle && id !== input.lifecycle) continue;
-      if (seenLifecycleIds.has(id)) continue;
-      const starter = await this.resolveConfiguredLifecycleStarter(
-        id,
-        registration.config,
-      );
-      if (!starter) continue;
-      starters.push(starter);
-      seenLifecycleIds.add(id);
-    }
-
-    const enabledTriggers = new Set(
-      Object.entries(this.config.triggers)
-        .filter(([, enabled]) => enabled)
-        .map(([trigger]) => trigger),
-    );
-    if (enabledTriggers.size === 0) return starters;
-
-    for (const playbook of await this.listPlaybooks()) {
-      const metadata = playbook.entity.metadata;
-      if (metadata.status !== "active" || metadata.audience !== "anchor") {
-        continue;
-      }
-      const trigger = metadata.trigger;
-      if (!trigger || !enabledTriggers.has(trigger)) continue;
-      const lifecycle = metadata.lifecycle ?? playbook.entity.id;
-      if (seenLifecycleIds.has(lifecycle)) continue;
-      if (input.lifecycle && lifecycle !== input.lifecycle) continue;
-
-      const existingRun = await this.store.findByLifecycle(lifecycle);
-      if (
-        (metadata.once ?? true) &&
-        (existingRun?.status === "completed" ||
-          existingRun?.status === "dismissed")
-      ) {
-        continue;
-      }
-
-      starters.push({
-        id: lifecycle,
-        title: metadata.starterText ?? metadata.title,
-        ...((metadata.description ?? playbook.body.purpose)
-          ? { description: metadata.description ?? playbook.body.purpose }
-          : {}),
-        playbookId: playbook.entity.id,
-        lifecycle,
-        starterPrompt:
-          metadata.starterPrompt ?? `Start the ${metadata.title} playbook.`,
-      });
-      seenLifecycleIds.add(lifecycle);
-    }
-
-    return starters;
-  }
-
-  private registerLifecycleStarter(
-    registration: LifecycleStarterRegistration,
-    source: string,
-  ): LifecycleStarterRegistrationResponse {
-    const existing = this.registeredLifecycleStarters.get(registration.id);
-    const config = lifecycleConfigSchema.parse({
-      trigger: registration.trigger,
-      playbookId: registration.playbookId,
-      once: registration.once,
-      starterText: registration.starterText,
-      ...(registration.description
-        ? { description: registration.description }
-        : {}),
-      starterPrompt: registration.starterPrompt,
-    });
-
-    if (existing) {
-      if (
-        existing.source === source &&
-        sameLifecycleConfig(existing.config, config)
-      ) {
-        return { registered: true, id: registration.id };
-      }
-
-      this.logger.warn("Ignoring conflicting playbook lifecycle starter", {
-        id: registration.id,
-        source,
-        existingSource: existing.source,
-      });
-      return {
-        registered: false,
-        id: registration.id,
-        ignored: true,
-        reason: `Lifecycle starter '${registration.id}' is already registered by '${existing.source}'.`,
-      };
-    }
-
-    this.registeredLifecycleStarters.set(registration.id, { source, config });
-    return { registered: true, id: registration.id };
-  }
-
-  private async resolveConfiguredLifecycleStarter(
-    id: string,
-    lifecycle: LifecyclePlaybookConfig,
-  ): Promise<PlaybookStarter | undefined> {
-    const existingRun = await this.store.findByLifecycle(id);
-    if (
-      lifecycle.once &&
-      (existingRun?.status === "completed" ||
-        existingRun?.status === "dismissed")
-    ) {
-      return undefined;
-    }
-
-    const playbook = await this.getPlaybook(lifecycle.playbookId);
-    if (playbook?.entity.metadata.status !== "active") return undefined;
-
-    return {
-      id,
-      title: lifecycle.starterText,
-      ...(lifecycle.description ? { description: lifecycle.description } : {}),
-      playbookId: lifecycle.playbookId,
-      lifecycle: id,
-      starterPrompt: lifecycle.starterPrompt,
-    };
   }
 
   private async listPlaybooks(): Promise<ParsedPlaybook[]> {
@@ -1339,20 +1176,6 @@ function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function sameLifecycleConfig(
-  left: LifecyclePlaybookConfig,
-  right: LifecyclePlaybookConfig,
-): boolean {
-  return (
-    left.trigger === right.trigger &&
-    left.playbookId === right.playbookId &&
-    left.once === right.once &&
-    left.starterText === right.starterText &&
-    left.description === right.description &&
-    left.starterPrompt === right.starterPrompt
-  );
 }
 
 function upsertGateVerdicts(
