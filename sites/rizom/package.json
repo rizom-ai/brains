@@ -23,7 +23,7 @@
     "prepack": "bun scripts/publish-peers.ts inject",
     "prepublishOnly": "bun scripts/build.ts",
     "test": "bun test",
-    "typecheck": "bun run build && tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "clsx": "^2.1.0",

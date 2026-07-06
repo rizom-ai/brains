@@ -40,7 +40,7 @@
       "cache": true
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^typecheck", "^build", "build"],
       "inputs": ["src/**", "test/**", "tsconfig.json", "package.json"],
       "outputs": [],
       "cache": true
