@@ -30,8 +30,19 @@ import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { createPrefixedId } from "@brains/utils/id";
 import { computeContentHash } from "@brains/utils/hash";
-import { createActor, createMachine } from "xstate";
 import packageJson from "../package.json";
+import {
+  createRunActor,
+  evidenceForState,
+  formatTransition,
+  formatVerifierStatus,
+  getBlockedTransitions,
+  getState,
+  getValidTransitions,
+  hasSatisfiedGateVerdicts,
+  sameGoal,
+  transitionRequiresGateVerdict,
+} from "./lib/run-machine";
 import {
   PlaybookRunStore,
   createPlaybookRun,
@@ -540,7 +551,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         error: `Playbook definition changed for '${run.playbookId}'. Run version ${run.playbookVersion} does not match current version ${playbook.version}.`,
       };
     }
-    const sourceState = this.getState(playbook.body, run.currentState);
+    const sourceState = getState(playbook.body, run.currentState);
     const selectedTransition = sourceState?.transitions.find(
       (transition) => transition.event === event,
     );
@@ -611,7 +622,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       }
     | { success: false; error: string; gateVerdicts?: PlaybookGateVerdict[] }
   > {
-    const state = this.getState(body, run.currentState);
+    const state = getState(body, run.currentState);
     if (!state) {
       return {
         success: false,
@@ -626,7 +637,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...run,
       gateVerdicts: gateResult.gateVerdicts,
     };
-    const actor = this.createRunActor(body, candidateRun);
+    const actor = createRunActor(body, candidateRun);
     actor.start();
     const snapshot = actor.getSnapshot();
     const eventObject = { type: event };
@@ -659,21 +670,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     };
   }
 
-  /**
-   * The run's currentState is the single source of truth for machine state;
-   * the actor is rehydrated from it on every call. Legacy persisted snapshots
-   * are ignored entirely (they could be corrupt or disagree with currentState).
-   */
-  private createRunActor(
-    body: PlaybookBody,
-    run: PlaybookRun,
-  ): ReturnType<typeof createActor> {
-    const machine = this.buildMachine(run.playbookId, body, run);
-    return createActor(machine, {
-      snapshot: machine.resolveState({ value: run.currentState }),
-    });
-  }
-
   private async prepareGateVerdicts(
     run: PlaybookRun,
     state: PlaybookState,
@@ -682,14 +678,14 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     | { success: true; gateVerdicts: PlaybookGateVerdict[] }
     | { success: false; error: string }
   > {
-    if (!this.transitionRequiresGateVerdict(state, event)) {
+    if (!transitionRequiresGateVerdict(state, event)) {
       return { success: true, gateVerdicts: run.gateVerdicts };
     }
-    if (this.hasSatisfiedGateVerdicts(state, run)) {
+    if (hasSatisfiedGateVerdicts(state, run)) {
       return { success: true, gateVerdicts: run.gateVerdicts };
     }
 
-    const evidence = this.evidenceForState(run, state.id);
+    const evidence = evidenceForState(run, state.id);
     let result: GoalCheckResult;
     try {
       result = await this.goalCheck.evaluate({
@@ -714,58 +710,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     };
     const nextVerdicts = upsertGateVerdicts(run.gateVerdicts, [gateVerdict]);
     return { success: true, gateVerdicts: nextVerdicts };
-  }
-
-  private evidenceForState(
-    run: PlaybookRun,
-    stateId: string,
-  ): PlaybookRunEvidence[] {
-    return run.evidence.filter(
-      (evidence) => !evidence.stateId || evidence.stateId === stateId,
-    );
-  }
-
-  private buildMachine(
-    playbookId: string,
-    body: PlaybookBody,
-    run: PlaybookRun,
-  ): ReturnType<typeof createMachine> {
-    return createMachine({
-      id: playbookId,
-      initial: body.initialState,
-      states: Object.fromEntries(
-        body.states.map((state) => {
-          const isFinal = body.finalStates.includes(state.id);
-          return [
-            state.id,
-            {
-              ...(isFinal ? { type: "final" as const } : {}),
-              ...(isFinal
-                ? {}
-                : {
-                    on: Object.fromEntries(
-                      state.transitions.map((transition) => [
-                        transition.event,
-                        {
-                          target: transition.target,
-                          ...(this.transitionRequiresGateVerdict(
-                            state,
-                            transition.event,
-                          )
-                            ? {
-                                guard: (): boolean =>
-                                  this.hasSatisfiedGateVerdicts(state, run),
-                              }
-                            : {}),
-                        },
-                      ]),
-                    ),
-                  }),
-            },
-          ];
-        }),
-      ),
-    });
   }
 
   private async resolveLifecycleStarters(input: {
@@ -982,11 +926,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       : undefined;
     const currentState =
       parsedPlaybook && activeRun
-        ? this.getState(parsedPlaybook.body, activeRun.currentState)
+        ? getState(parsedPlaybook.body, activeRun.currentState)
         : undefined;
     const allValidTransitions =
       currentState && activeRun && parsedPlaybook
-        ? this.getValidTransitions(activeRun, parsedPlaybook.body, currentState)
+        ? getValidTransitions(activeRun, parsedPlaybook.body, currentState)
         : (currentState?.transitions ?? []);
     const validEvents = allValidTransitions.filter(
       (transition) => transition.operatorAction !== true,
@@ -996,11 +940,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     );
     const blockedEvents =
       currentState && activeRun && parsedPlaybook
-        ? this.getBlockedTransitions(
-            activeRun,
-            parsedPlaybook.body,
-            currentState,
-          )
+        ? getBlockedTransitions(activeRun, parsedPlaybook.body, currentState)
         : [];
     const guidance =
       currentState && activeRun && parsedPlaybook
@@ -1102,14 +1042,14 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     body: PlaybookBody,
     state: PlaybookState,
   ): string {
-    const allValidTransitions = this.getValidTransitions(run, body, state);
+    const allValidTransitions = getValidTransitions(run, body, state);
     const validTransitions = allValidTransitions.filter(
       (transition) => transition.operatorAction !== true,
     );
     const operatorActions = allValidTransitions.filter(
       (transition) => transition.operatorAction === true,
     );
-    const blockedTransitions = this.getBlockedTransitions(run, body, state);
+    const blockedTransitions = getBlockedTransitions(run, body, state);
     const verdict = run.gateVerdicts.find(
       (candidate) =>
         candidate.stateId === state.id &&
@@ -1141,19 +1081,15 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       "- A Skip-style operator action is never a default continuation; send it only when the operator positively selects or asks to skip.",
       "Valid continuation events:",
       ...(validTransitions.length > 0
-        ? validTransitions.map((transition) =>
-            this.formatTransition(transition),
-          )
+        ? validTransitions.map((transition) => formatTransition(transition))
         : ["- none"]),
       "Available operator actions:",
       ...(operatorActions.length > 0
-        ? operatorActions.map((transition) => this.formatTransition(transition))
+        ? operatorActions.map((transition) => formatTransition(transition))
         : ["- none"]),
       "Blocked events:",
       ...(blockedTransitions.length > 0
-        ? blockedTransitions.map((transition) =>
-            this.formatTransition(transition),
-          )
+        ? blockedTransitions.map((transition) => formatTransition(transition))
         : ["- none"]),
     ].join("\n");
   }
@@ -1208,7 +1144,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     if (this.hasSatisfiedGateForCurrentState(run)) return;
     const playbook = await this.getPlaybook(run.playbookId);
     if (run.playbookVersion !== playbook?.version) return;
-    const state = this.getState(playbook.body, run.currentState);
+    const state = getState(playbook.body, run.currentState);
     if (!state?.doneWhen.length) return;
     const nextTransitions = state.transitions.filter(
       (transition) => transition.event === "NEXT",
@@ -1219,7 +1155,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     if (!result.success) return;
 
     const candidateRun = { ...run, gateVerdicts: result.gateVerdicts };
-    if (!this.hasSatisfiedGateVerdicts(state, candidateRun)) {
+    if (!hasSatisfiedGateVerdicts(state, candidateRun)) {
       await this.store.upsert(candidateRun);
       return;
     }
@@ -1334,95 +1270,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     return run;
   }
 
-  private transitionRequiresGateVerdict(
-    state: PlaybookState,
-    event: string,
-  ): boolean {
-    return event === "NEXT" && state.doneWhen.length > 0;
-  }
-
-  private hasSatisfiedGateVerdicts(
-    state: PlaybookState,
-    run: PlaybookRun,
-  ): boolean {
-    return run.gateVerdicts.some(
-      (verdict) =>
-        verdict.stateId === state.id &&
-        sameGoal(verdict.goal, state.doneWhen) &&
-        verdict.met,
-    );
-  }
-
-  private getValidTransitions(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    state: PlaybookState,
-  ): PlaybookTransition[] {
-    return state.transitions.filter((transition) =>
-      this.canTransition(run, body, transition.event),
-    );
-  }
-
-  private getBlockedTransitions(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    state: PlaybookState,
-  ): PlaybookTransition[] {
-    const validKeys = new Set(
-      this.getValidTransitions(run, body, state).map(
-        (transition) => `${transition.event}\u0000${transition.target}`,
-      ),
-    );
-    return state.transitions.filter(
-      (transition) =>
-        !validKeys.has(`${transition.event}\u0000${transition.target}`),
-    );
-  }
-
-  private canTransition(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    event: string,
-  ): boolean {
-    const actor = this.createRunActor(body, run);
-    actor.start();
-    const canTransition = actor.getSnapshot().can({ type: event });
-    actor.stop();
-    return canTransition;
-  }
-
-  private formatTransition(transition: PlaybookTransition): string {
-    const description =
-      transition.operatorDescription ??
-      transition.description ??
-      transition.label;
-    return description
-      ? `- ${transition.event} -> ${transition.target}: ${description}`
-      : `- ${transition.event} -> ${transition.target}`;
-  }
-
-  private getState(
-    body: PlaybookBody,
-    stateId: string,
-  ): PlaybookState | undefined {
-    return body.states.find((state) => state.id === stateId);
-  }
-
-  private formatVerifierStatus(run: PlaybookRun, state: PlaybookState): string {
-    if (state.doneWhen.length === 0) return "- no gated Done When conditions";
-    const verdict = run.gateVerdicts.find(
-      (candidate) =>
-        candidate.stateId === state.id &&
-        sameGoal(candidate.goal, state.doneWhen),
-    );
-    if (!verdict) {
-      return `- Not yet met: ${state.doneWhen.join("; ")}`;
-    }
-    return verdict.met
-      ? `- Met: ${verdict.reason}`
-      : `- Not yet met: ${verdict.reason}`;
-  }
-
   private async buildAgentContextItem(
     conversationId: string,
   ): Promise<AgentContextItem | undefined> {
@@ -1430,14 +1277,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     if (!run) return undefined;
     const playbook = await this.getPlaybook(run.playbookId);
     if (!playbook) return undefined;
-    const state = this.getState(playbook.body, run.currentState);
+    const state = getState(playbook.body, run.currentState);
     if (!state) return undefined;
 
-    const allValidTransitions = this.getValidTransitions(
-      run,
-      playbook.body,
-      state,
-    );
+    const allValidTransitions = getValidTransitions(run, playbook.body, state);
     const validTransitions = allValidTransitions.filter(
       (transition) => transition.operatorAction !== true,
     );
@@ -1456,13 +1299,13 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         ),
     );
     const validEvents = validTransitions
-      .map((transition) => this.formatTransition(transition))
+      .map((transition) => formatTransition(transition))
       .join("\n");
     const operatorActionEvents = operatorActions
-      .map((transition) => this.formatTransition(transition))
+      .map((transition) => formatTransition(transition))
       .join("\n");
     const blockedEvents = blockedTransitions
-      .map((transition) => this.formatTransition(transition))
+      .map((transition) => formatTransition(transition))
       .join("\n");
     const doneWhen = state.doneWhen
       .map((condition) => `- ${condition}`)
@@ -1473,7 +1316,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const requiredDetails = state.requiredDetails
       .map((detail) => `- ${detail}`)
       .join("\n");
-    const goalStatus = this.formatVerifierStatus(run, state);
+    const goalStatus = formatVerifierStatus(run, state);
 
     return {
       id: run.id,
@@ -1664,13 +1507,6 @@ function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function sameGoal(left: string[], right: string[]): boolean {
-  return (
-    left.length === right.length &&
-    left.every((value, index) => value === right[index])
-  );
 }
 
 function sameLifecycleConfig(
