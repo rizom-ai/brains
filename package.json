@@ -48,6 +48,8 @@
     "docs:manifest": "bun scripts/check-docs-manifest.ts",
     "roadmap:build": "bun scripts/build-roadmap-visual.ts",
     "roadmap:check": "bun scripts/build-roadmap-visual.ts --check",
+    "env-schema:sync": "bun scripts/sync-env-templates.ts",
+    "env-schema:check": "bun scripts/sync-env-templates.ts --check",
     "docs:check": "bun run docs:links && bun run docs:manifest && bun run roadmap:check",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",

@@ -101,9 +101,9 @@ Pilot one service end-to-end before fanning out. `ai-service` is a good first ca
 
 ### Pilot
 
-1. Move `ai-service` env declarations into a co-located schema file (A).
-2. Add `shell/core/src/env-schema.ts` with just `ai-service` (A).
-3. Update `brain-cli/src/lib/env-schema.ts` to call `shellEnvVars()` for the model-specific section, replacing the `ai-service` portion of `bundled-model-env-schemas.ts` (A).
+1. ~~Move `ai-service` env declarations into a co-located schema file (A).~~ DONE 2026-07-07: `shell/ai-service/src/env-schema.ts` with `EnvVarDecl`/renderer in `@brains/utils/env-schema`.
+2. ~~Add `shell/core/src/env-schema.ts` with just `ai-service` (A).~~ DONE 2026-07-07: `shellEnvVars(model)` aggregator.
+3. ~~Update `brain-cli` composition (A).~~ DONE 2026-07-07, with a mechanism change: instead of the CLI splicing rendered sections at runtime (which would break composition for custom models and change published-CLI behavior), `scripts/sync-env-templates.ts` **generates the shell-owned section into each `brains/*/env.schema.template`** between explicit markers — the same sync-plus-check pattern as the roadmap visual. `env-schema:check` runs in pre-commit whenever an env-schema or template changes; the existing bundle generator then picks the synced templates up unchanged. One edit per var still holds: edit the service's `env-schema.ts`, run `bun run env-schema:sync`.
 4. Add the app/deploy XDG helper and wire `ai-service`-relevant paths through it (B).
 5. Confirm Docker/Kamal still produce `/data/*.db` for `ai-service` resources.
 

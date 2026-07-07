@@ -36,6 +36,13 @@ if git diff --cached --name-only | grep -qE '^docs/(roadmap\.md|plans/)'; then
   bun run roadmap:check
 fi
 
+# Keep brains/*/env.schema.template in sync with the shell env declarations.
+# Only runs when env schemas or templates changed, so normal commits stay fast.
+if git diff --cached --name-only | grep -qE '(env-schema\.ts|env\.schema\.template)'; then
+  echo "🔧 Checking env schema templates are in sync..."
+  bun run env-schema:check
+fi
+
 # Skip lint/typecheck/test for docs-only commits — they cannot break code correctness
 if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; then
   # Run linting on all packages (cached by turbo).

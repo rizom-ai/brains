@@ -10,6 +10,7 @@ export {
   STANDARD_PATHS,
 } from "./config";
 export type { ShellConfig, StandardConfig } from "./config";
+export { shellEnvVars } from "./env-schema";
 
 export type { IEmbeddingService } from "@brains/entity-service";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
