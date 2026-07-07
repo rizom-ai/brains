@@ -4,11 +4,62 @@
 
 Phase 0 started in worktree `work/sites-controlled-deploy`.
 
-Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@rizom/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Packed-install smoke coverage now verifies `@rizom/site-rizom-work` can remain thin/source-published, the installed-package dynamic import path boots, and a hosted-style preview rebuild renders from installed packages. The `@rizom/site` SDK walking skeleton is in place, all three Rizom family per-site packages (`@rizom/site-rizom-work`, `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`) have been added on that boundary, and `docs.rizom.ai` now has a separate `@rizom/site-docs` package that renders on Rover with `add: [docs]`. Remaining gates are release/publish and hosted deploy wiring.
+Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@rizom/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Packed-install smoke coverage now verifies `@rizom/site-rizom-work` can remain thin/source-published, the installed-package dynamic import path boots, and a hosted-style preview rebuild renders from installed packages. The `@rizom/site` SDK walking skeleton is in place, all three Rizom family per-site packages (`@rizom/site-rizom-work`, `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`) have been added on that boundary, and `docs.rizom.ai` now has a separate `@rizom/site-docs` package that renders on Rover with `add: [docs]`. The rover-pilot fleet image path can now install exact selected site package refs into hash-tagged images. Remaining gates are release/publish, pilot registry rollout, per-domain DNS/TLS, and Ranger/Relay sunset cleanup.
 
 > **Supersedes prior direction.** The earlier "one shared site + per-app skins in app `src/`, no new published packages" direction is intentionally reversed for this work (confirmed 2026-06-30). Hosted-rover needs npm-resolvable site refs in generated `brain.yaml`, which app-local `src/site.ts` cannot provide, so the Rizom site family now ships as three published per-site packages. The divergence-discipline rule still applies _within_ each package.
 >
 > **Why published packages, not build-time workspace inclusion (2026-07-06).** The resolver alone does not force publishing — `site.package` resolves by name, and the monorepo build could include a pinned workspace package in the image. The real justification is the product thesis: hosted-rover treats a site as an installable product selected by package ref, and the monorepo is the _first_ site author, not the only possible one. Build-time inclusion can never serve a site the platform repo does not contain, so published packages are the target boundary, and the packaging work (public base API, bundled artifact, self-contained source publish) is load-bearing for that future rather than transport overhead.
+
+## Next execution plan
+
+1. **Publish the package set from this branch through the normal changesets release path.** Required public packages are `@rizom/site`, `@rizom/site-rizom`, `@rizom/site-rizom-work`, `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`, `@rizom/site-docs`, `@rizom/brain`, and `@rizom/ops`.
+2. **Update the hosted rover-pilot registry** to pin the released versions. The generated image build now derives `SITE_PACKAGES` from those pins and tags the image with the package-set hash, so the registry is the source of truth for both runtime YAML and installed site packages.
+3. **Before deploying `rizom.ai`, resolve the protocol-registry capability gap.** The old Ranger app used `add: [atproto-registry]`; Rover does not yet expose that capability. Either add `atproto-registry` as a Rover opt-in capability (preferred if `rizom.ai` remains the canonical protocol registry) or explicitly decide to drop/replace that behavior before launch.
+4. **Run staged hosted deploys on Rover** in this order: `rizom.work`, `rizom.foundation`, `rizom.ai`, then `docs.rizom.ai`. For each site: reconcile generated config, build the hash-tagged fleet image, deploy preview/apex, trigger/verify preview rebuild, and inspect site-specific markers.
+5. **Finish per-domain TLS/DNS automation** for custom apex domains before production cutover. Each domain needs its own Cloudflare zone handling, Origin CA cert pair, proxy hosts, and apex/`www`/`preview` DNS records.
+6. **Only after live Rover deploys pass, retire legacy standalone deploys and Ranger/Relay site paths.** Keep old repos/workflows available until cutover rollback is no longer needed.
+
+Target hosted registry entries after publish should have this shape:
+
+```yaml
+# rizom.work
+handle: rizom-work
+domainOverride: rizom.work
+contentRepoOverride: rizom-ai/rizom-work-content
+siteOverride:
+  package: "@rizom/site-rizom-work"
+  version: "<released-version>"
+  theme: "@brains/theme-rizom"
+
+# rizom.foundation
+handle: rizom-foundation
+domainOverride: rizom.foundation
+contentRepoOverride: rizom-ai/rizom-foundation-content
+siteOverride:
+  package: "@rizom/site-rizom-foundation"
+  version: "<released-version>"
+  theme: "@brains/theme-rizom"
+
+# rizom.ai
+handle: rizom-ai
+domainOverride: rizom.ai
+contentRepoOverride: rizom-ai/rizom-ai-content
+# addOverride may need atproto-registry once Rover exposes it.
+siteOverride:
+  package: "@rizom/site-rizom-ai"
+  version: "<released-version>"
+  theme: "@brains/theme-rizom"
+
+# docs.rizom.ai
+handle: docs
+domainOverride: docs.rizom.ai
+contentRepoOverride: rizom-ai/doc-brain-content
+addOverride:
+  - docs
+siteOverride:
+  package: "@rizom/site-docs"
+  version: "<released-version>"
+```
 
 Clarified target architecture:
 
@@ -305,6 +356,7 @@ Net: custom onboarding = subdomain onboarding **plus** an upfront NS-delegation 
 
 ## Remaining open questions
 
+- `rizom.ai` protocol registry on Rover: Ranger currently owns the opt-in `atproto-registry` capability used by the standalone `rizom.ai` site. Because this migration sunsets Ranger/Relay site deploys, Rover must either expose that capability as an opt-in (`addOverride: [atproto-registry]`) or the deployment must explicitly accept dropping/replacing the canonical protocol registry behavior.
 - Package scope/name: **revised 2026-07-06 — `@rizom/site-rizom-*`.** The earlier `@brains/site-rizom-*` decision was wrong: the `@brains` scope is not ours on npm, and the mixed-scope note it carried ("hosted-rover must resolve a `@brains/*` site dep alongside the `@rizom/*` runtime") was the symptom. See the publish-scope correction under "Packaging decision"; after the rename, site packages and runtime resolve from the same `@rizom` scope.
 - Version resolution: **installed-package path verified 2026-07-06** — packed runtime + packed site packages boot via the `registerOverridePackages` dynamic-import hook and render preview output after a remote build-site request (see "Resolution smoke update" and "Rendered-site smoke update"). Preferred path is installed package + dynamic import registration. Fallback unchanged if hosted image constraints later require it: selective build-time bundling of exactly the pinned package. The bundled-_runtime_ bridge (cram all sites into the published runtime) is not needed either way.
 - `www` alias and `preview.<domain>`: **decided — preserve both.** Hosted-rover must support apex + `www.<domain>` + `preview.<domain>` per site; dropping them regresses current standalone-deploy behavior.
