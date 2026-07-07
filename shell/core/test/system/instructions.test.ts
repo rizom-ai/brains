@@ -48,6 +48,10 @@ describe("system instructions", () => {
     );
     expect(instructions).toContain("bare upload receipt");
     expect(instructions).toContain("image uploads as entityType image");
+    expect(instructions).toContain("approve/archive an agent");
+    expect(instructions).toContain(
+      "Never call system_create for a status follow-up",
+    );
     expect(instructions).toContain(
       "Never pass `confirmed: true` on the initial user request",
     );
