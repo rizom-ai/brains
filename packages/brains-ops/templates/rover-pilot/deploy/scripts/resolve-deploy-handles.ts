@@ -43,6 +43,7 @@ const handles = [
       .map((path) => {
         const match =
           path.match(/^users\/([^/]+)\/(?:\.env|brain\.yaml|content\/.*)$/) ??
+          path.match(/^users\/([^/]+)\.yaml$/) ??
           path.match(/^users\/([^/]+)\.secrets\.yaml\.age$/);
         return match?.[1] ?? null;
       })

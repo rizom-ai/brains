@@ -103,7 +103,7 @@ Current deploy scripts derive:
 7. Migrate `docs.rizom.ai` through a separate docs-site package (`@rizom/site-docs`) rather than the Rizom family marketing-site base. Its hosted wiring must run on Rover (`brain: rover`) with opt-in docs capability (`add: [docs]`), docs content repo sync, and optional Discord.
 8. After the four public sites run on Rover, retire the old Ranger/Relay site deployment paths rather than carrying model-specific hosted site variants forward.
 
-Implemented config slice (2026-07-02): `brains-ops` user registry entries may now set `domainOverride`, `contentRepoOverride`, and `siteOverride`. Generated `brain.yaml` emits `site.package` and `site.theme`; `siteOverride.version` is retained as operator metadata for build/install pinning and is intentionally omitted from runtime YAML. Follow-up (2026-07-07): user entries may also set `addOverride` so hosted Rover can opt selected deployments into capabilities such as `docs` without switching brain models.
+Implemented config slice (2026-07-02): `brains-ops` user registry entries may now set `domainOverride`, `contentRepoOverride`, and `siteOverride`. Generated `brain.yaml` emits `site.package` and `site.theme`; `siteOverride.version` is retained as operator metadata for build/install pinning and is intentionally omitted from runtime YAML. Follow-up (2026-07-07): user entries may also set `addOverride` so hosted Rover can opt selected deployments into capabilities such as `docs` without switching brain models. The rover-pilot build workflow now resolves the exact `siteOverride.package@version` refs for the selected brain image version, passes them to the fleet Docker build as `SITE_PACKAGES`, and tags the image with a hash of that package set. Installed hosted images therefore contain the selected public site packages instead of relying on monorepo source, and a site package version bump produces a distinct image tag even when `brainVersion` is unchanged. User registry changes also trigger deploy handle resolution so a site package version bump can roll out even when generated runtime YAML stays unchanged.
 
 ## Packaging path
 
@@ -173,7 +173,7 @@ Preferred path:
 4. For each per-site package, prove whether source publishing is self-contained before choosing a build artifact. Start with the smallest JSX-runtime/package-metadata fix for TSX source packages.
 5. Make the SDK, base package, and each per-site package publishable.
 6. Publish them with the normal monorepo release flow.
-7. Teach hosted-rover/hosted docs deploy to install the exact per-site package version alongside the pinned runtime version. Package managers will bring the compatible base package version through normal dependency resolution where applicable.
+7. Teach hosted-rover/hosted docs deploy to install the exact per-site package version alongside the pinned runtime version. Package managers will bring the compatible base package version through normal dependency resolution where applicable. _(Implemented for rover-pilot image builds via `deploy/scripts/resolve-build-config.ts` + Docker `SITE_PACKAGES`; image tags include a package-set hash to avoid stale `brainVersion` tags.)_
 8. Keep generated `brain.yaml` shaped as package refs from day one.
 
 The bridge — bundling Rizom site packages into the current published runtime/image — is only a fallback if the package install path blocks Phase 1. If used, it must be documented as temporary and removed in a follow-up phase.

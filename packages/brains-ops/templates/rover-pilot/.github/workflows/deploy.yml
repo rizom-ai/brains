@@ -10,6 +10,7 @@ on:
   push:
     branches: ["main"]
     paths:
+      - users/*.yaml
       - users/*/.env
       - users/*/brain.yaml
       - users/*/content/**
@@ -137,7 +138,7 @@ jobs:
 
       - name: Wait for shared image tag
         run: |
-          IMAGE_TAG="${{ steps.user_config.outputs.image_repository }}:brain-${{ steps.user_config.outputs.brain_version }}"
+          IMAGE_TAG="${{ steps.user_config.outputs.image_repository }}:${{ steps.user_config.outputs.image_tag }}"
           for attempt in $(seq 1 24); do
             if docker manifest inspect "$IMAGE_TAG" >/dev/null 2>&1; then
               exit 0
@@ -227,7 +228,7 @@ jobs:
       - name: Deploy
         env:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
-          VERSION: brain-${{ steps.user_config.outputs.brain_version }}
+          VERSION: ${{ steps.user_config.outputs.image_tag }}
           IMAGE_REPOSITORY: ${{ steps.user_config.outputs.image_repository }}
           REGISTRY_USERNAME: ${{ steps.user_config.outputs.registry_username }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
