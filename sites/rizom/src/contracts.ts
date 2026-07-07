@@ -262,6 +262,8 @@ export type RizomBrandSuffix = "ai" | "foundation" | "work";
 export interface RizomLink {
   href: string;
   label: string;
+  /** Open in a new tab with rel="noopener noreferrer". */
+  external?: boolean;
 }
 
 export interface RizomSideNavItem {

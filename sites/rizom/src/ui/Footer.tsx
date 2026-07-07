@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import { cn } from "./cn";
+import { externalLinkProps } from "./external-link";
 import type { RizomBrandSuffix, RizomFooterTagline, RizomLink } from "./types";
 import { GUTTER } from "./Section";
 
@@ -54,7 +55,12 @@ export const Footer = ({
     </div>
     <div className="flex flex-wrap items-center justify-center gap-4 md:justify-end md:gap-6">
       {links.map((link) => (
-        <a key={link.href + link.label} href={link.href} className={LINK_CLS}>
+        <a
+          key={link.href + link.label}
+          href={link.href}
+          {...externalLinkProps(link)}
+          className={LINK_CLS}
+        >
           {link.label}
         </a>
       ))}

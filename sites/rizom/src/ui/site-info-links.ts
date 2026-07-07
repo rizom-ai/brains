@@ -10,7 +10,7 @@ const DEFAULT_LABELS: Record<string, string> = {
 };
 
 export function socialLinksToRizomLinks(
-  siteInfo: SiteLayoutInfo,
+  siteInfo: Pick<SiteLayoutInfo, "socialLinks">,
   allowedPlatforms?: string[],
 ): RizomLink[] {
   const allowed = allowedPlatforms ? new Set(allowedPlatforms) : undefined;

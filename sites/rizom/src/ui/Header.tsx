@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { externalLinkProps } from "./external-link";
 import type { RizomBrandSuffix, RizomLink } from "./types";
 
 const LINK_CLS =
@@ -23,12 +24,18 @@ export const Header = ({
     </div>
     <div className="flex items-center gap-3 md:gap-8">
       {navLinks.map((link) => (
-        <a key={link.href} href={link.href} className={LINK_CLS}>
+        <a
+          key={link.href}
+          href={link.href}
+          {...externalLinkProps(link)}
+          className={LINK_CLS}
+        >
           {link.label}
         </a>
       ))}
       <a
         href={primaryCta.href}
+        {...externalLinkProps(primaryCta)}
         className="font-body text-[13px] font-semibold text-theme border border-theme rounded-[8px] px-4 py-2 transition-colors hover:border-accent hover:text-accent md:px-6 md:py-2.5 md:text-[15px]"
       >
         {primaryCta.label}
