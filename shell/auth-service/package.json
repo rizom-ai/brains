@@ -19,7 +19,9 @@
     "@brains/notifications": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@libsql/client": "^0.15.7",
     "@simplewebauthn/server": "^13.3.0",
+    "drizzle-orm": "^0.44.4",
     "jose": "^6.2.3"
   },
   "devDependencies": {

@@ -15,6 +15,8 @@ export {
 export type { AuthServiceConfig } from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
+export { AuthRuntimeDatabase } from "./runtime-db";
+export type { AuthRuntimeDatabaseOptions, AuthRuntimeDB } from "./runtime-db";
 export { InvalidClientMetadataError, OAuthClientStore } from "./client-store";
 export type {
   ClientRegistrationRequest,
