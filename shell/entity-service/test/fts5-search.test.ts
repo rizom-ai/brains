@@ -125,6 +125,42 @@ describe("FTS5 full-text search", () => {
     }
   });
 
+  test("search filters results by minimum score", async () => {
+    const entity = createTestEntity("test", {
+      content: "Relevance threshold search content",
+    });
+    await ctx.entityService.createEntity({ entity: entity });
+    await ctx.entityService.storeEmbedding({
+      entityId: entity.id,
+      entityType: "test",
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+      contentHash: entity.contentHash,
+    });
+
+    const baseline = await ctx.entityService.search({ query: "relevance" });
+    const score = baseline.find(
+      (result) => result.entity.id === entity.id,
+    )?.score;
+    expect(score).toBeNumber();
+    if (score === undefined) throw new Error("Expected search result score");
+
+    const belowCutoff = await ctx.entityService.search({
+      query: "relevance",
+      options: { minScore: score + 0.001 },
+    });
+    expect(belowCutoff.find((result) => result.entity.id === entity.id)).toBe(
+      undefined,
+    );
+
+    const aboveCutoff = await ctx.entityService.search({
+      query: "relevance",
+      options: { minScore: score - 0.001 },
+    });
+    expect(
+      aboveCutoff.find((result) => result.entity.id === entity.id),
+    ).toBeDefined();
+  });
+
   test("search parameterizes caller-provided weight keys", async () => {
     const entity = createTestEntity("test", {
       content: "Weighted search content",

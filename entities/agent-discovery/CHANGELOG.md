@@ -1,5 +1,19 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.141
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.141
+  - @brains/plugins@0.2.0-alpha.141
+  - @brains/dashboard@0.2.0-alpha.141
+  - @brains/content-formatters@0.2.0-alpha.141
+  - @brains/contracts@0.2.0-alpha.141
+  - @brains/ui-library@0.2.0-alpha.141
+  - @brains/utils@0.2.0-alpha.141
+  - @brains/templates@0.2.0-alpha.141
+
 ## 0.2.0-alpha.140
 
 ### Patch Changes

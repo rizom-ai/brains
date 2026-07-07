@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-composition",
   "private": true,
-  "version": "0.2.0-alpha.140",
+  "version": "0.2.0-alpha.141",
   "description": "Shared site composition contract and merge helpers",
   "type": "module",
   "exports": {

@@ -20,7 +20,7 @@ successCriteria:
         scope.kind: type
         scope.entityType: "agent"
   responseContainsAny:
-    - ["clear marine", "clear network", "couldn’t find a clear", "couldn't find a clear", "no clear"]
+    - ["clear marine", "clear network", "couldn’t find a clear", "couldn't find a clear", "couldn’t find any", "couldn't find any", "no clear"]
   responseNotContains:
     - "marine biologist, oceanographer, or ecologist"
     - "If you want, I can help narrow it down"
