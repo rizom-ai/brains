@@ -1,4 +1,4 @@
-import type { FetchLike } from "@brains/utils";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 
 export interface AtprotoSession {
@@ -114,7 +114,17 @@ async function parseJsonResponse<T>(
   response: Response,
   schema: z.ZodType<T>,
 ): Promise<T> {
-  const body: unknown = await response.json();
+  const text = await response.text();
+  let body: unknown;
+  try {
+    body = text.length > 0 ? JSON.parse(text) : undefined;
+  } catch {
+    if (!response.ok) {
+      throw new Error(`AT Protocol request failed with ${response.status}`);
+    }
+    throw new Error("Failed to parse JSON");
+  }
+
   if (!response.ok) {
     const error = atprotoErrorResponseSchema.safeParse(body);
     throw new Error(

@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import * as fs from "fs/promises";
 import * as path from "path";
 

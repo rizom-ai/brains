@@ -8,7 +8,7 @@ import {
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
-import type { Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { sql, and, desc, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";

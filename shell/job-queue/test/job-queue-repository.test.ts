@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
-import { createId } from "@brains/utils";
+import { createId } from "@brains/utils/id";
 import { createJobQueueDatabase } from "../src/db";
 import { JobQueueRepository } from "../src/job-queue-repository";
 import { JOB_STATUS } from "../src/schemas";

@@ -1,6 +1,6 @@
 import { readdir, mkdir, copyFile } from "fs/promises";
 import { join, resolve } from "path";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "./fs-utils";
 import { hasGitHead } from "./git-state";
 

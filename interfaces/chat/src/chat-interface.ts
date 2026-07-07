@@ -13,6 +13,7 @@ import {
   formatPendingConfirmationHelp,
   PendingApprovalTracker,
   MessageUploadContinuity,
+  parseConfirmationIntent,
   routeConfirmationResponse,
   type AgentResponse,
   type ChatAttachment,
@@ -43,13 +44,13 @@ import {
   type Thread,
 } from "chat";
 import { z } from "@brains/utils/zod";
-import { createPrefixedId } from "@brains/utils";
 import {
   chatConfigSchema,
   type ChatConfig,
   type ChatConfigInput,
   type DiscordChatAdapterConfig,
 } from "./config";
+import { PromptActionStore } from "./prompt-action-store";
 import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
 import {
@@ -81,6 +82,8 @@ import packageJson from "../package.json";
 const URL_PATTERN = /https?:\/\/\S+/i;
 const ANY_MESSAGE_PATTERN = /[\s\S]+/;
 const DISCORD_API_BASE = "https://discord.com/api/v10";
+/** Cap on retained prompt-action tokens; oldest never-clicked ones evict. */
+const MAX_PROMPT_ACTIONS = 1000;
 
 interface DiscordCardOutput {
   card: CardElement;
@@ -115,10 +118,7 @@ export class ChatInterface extends MessageInterfacePlugin<
   private readonly threadRegistry = new ThreadRegistry();
   private readonly pendingApprovals: PendingApprovalTracker;
   private readonly uploadContinuity: MessageUploadContinuity;
-  private readonly promptActions = new Map<
-    string,
-    { threadId: string; label: string; prompt: string }
-  >();
+  private readonly promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
   private readonly toolStatusMessenger = new ToolStatusMessenger(
     this.threadRegistry,
   );
@@ -500,6 +500,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       );
       return;
     }
+    this.promptActions.consume(event.value);
 
     const ids = this.getThreadIdParts(thread.id);
     const userPermissionLevel = this.context.permissions.getUserLevel(
@@ -720,7 +721,7 @@ export class ChatInterface extends MessageInterfacePlugin<
         const pendingApprovalIds =
           await this.getPendingApprovalIds(conversationId);
         if (pendingApprovalIds.size > 0) {
-          await this.handleConfirmationResponse(
+          const handledConfirmation = await this.handleConfirmationResponse(
             agentInput.message,
             conversationId,
             thread,
@@ -728,7 +729,7 @@ export class ChatInterface extends MessageInterfacePlugin<
             userPermissionLevel,
             this.buildUserMessageMetadata(platform, thread, message),
           );
-          return;
+          if (handledConfirmation) return;
         }
 
         const coalescedInput = this.buildCoalescedAgentInput(
@@ -878,19 +879,21 @@ export class ChatInterface extends MessageInterfacePlugin<
     approvalIds: Set<string>,
     userPermissionLevel: UserPermissionLevel,
     metadata?: Record<string, unknown>,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    if (!parseConfirmationIntent(message, approvalIds)) return false;
+
     const routed = routeConfirmationResponse({ message, approvalIds });
     if (routed.kind === "not-confirmation") {
       this.pendingApprovals.deleteConversation(conversationId);
       await thread.post(
         this.formatNoticePayload("No pending approval to resolve."),
       );
-      return;
+      return true;
     }
 
     if (routed.kind === "notice") {
       await thread.post(this.formatNoticePayload(routed.message));
-      return;
+      return true;
     }
 
     await this.confirmApproval({
@@ -901,6 +904,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       userPermissionLevel,
       ...(metadata ? { metadata } : {}),
     });
+    return true;
   }
 
   private async confirmApproval(input: {
@@ -1100,9 +1104,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     threadId: string,
     action: { label: string; prompt: string },
   ): string {
-    const token = createPrefixedId("action");
-    this.promptActions.set(token, { threadId, ...action });
-    return token;
+    return this.promptActions.register(threadId, action);
   }
 
   private async clearDiscordMessageComponents(

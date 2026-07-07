@@ -1,4 +1,4 @@
-import { fetchAsBase64DataUrl, isHttpUrl } from "@brains/utils";
+import { fetchAsBase64DataUrl, isHttpUrl } from "@brains/utils/http-utils";
 import type { ImageFormat } from "../schemas/image";
 
 /**

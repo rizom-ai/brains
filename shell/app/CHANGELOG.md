@@ -1,5 +1,41 @@
 # @brains/app
 
+## 0.2.0-alpha.140
+
+### Patch Changes
+
+- Updated dependencies [[`070541b`](https://github.com/rizom-ai/brains/commit/070541b535e3977c8fe2d590ae7ad114cee09417), [`a30edc7`](https://github.com/rizom-ai/brains/commit/a30edc7ac66807c66cba2bc94e78206f133710d6), [`cea906c`](https://github.com/rizom-ai/brains/commit/cea906c689d40dee5f06ab949d5289c2660bfd37)]:
+  - @brains/plugins@0.2.0-alpha.140
+  - @brains/utils@0.2.0-alpha.140
+  - @brains/core@0.2.0-alpha.140
+  - @brains/templates@0.2.0-alpha.140
+  - @brains/site-composition@0.2.0-alpha.140
+  - @brains/runtime-state@0.2.0-alpha.140
+
+## 0.2.0-alpha.139
+
+### Patch Changes
+
+- Updated dependencies [[`8b4587d`](https://github.com/rizom-ai/brains/commit/8b4587db69aac48b8f6966028c953d16225d681b)]:
+  - @brains/core@0.2.0-alpha.139
+  - @brains/site-composition@0.2.0-alpha.139
+  - @brains/utils@0.2.0-alpha.139
+  - @brains/plugins@0.2.0-alpha.139
+  - @brains/runtime-state@0.2.0-alpha.139
+  - @brains/templates@0.2.0-alpha.139
+
+## 0.2.0-alpha.138
+
+### Patch Changes
+
+- Updated dependencies [[`a3f50f4`](https://github.com/rizom-ai/brains/commit/a3f50f44ec466620f8f1f4d27f71318773fd1614)]:
+  - @brains/core@0.2.0-alpha.138
+  - @brains/site-composition@0.2.0-alpha.138
+  - @brains/utils@0.2.0-alpha.138
+  - @brains/plugins@0.2.0-alpha.138
+  - @brains/runtime-state@0.2.0-alpha.138
+  - @brains/templates@0.2.0-alpha.138
+
 ## 0.2.0-alpha.137
 
 ### Patch Changes

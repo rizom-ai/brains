@@ -7,10 +7,10 @@ import {
 } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
 import {
-  PluginConfigValidationError,
-  type Plugin,
   type IShell,
+  type Plugin,
   type PluginCapabilities,
+  PluginConfigValidationError,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 

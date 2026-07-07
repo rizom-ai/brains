@@ -106,6 +106,7 @@ describe("read tool model contracts", () => {
     expect(tool?.description).toContain(
       "Use system_search, not system_list, for broad or vague lookup requests",
     );
+    expect(tool?.description).toContain("latest blog post");
   });
 });
 
@@ -241,6 +242,49 @@ describe("read tools enforce caller visibility scope", () => {
         "doc-public",
         "doc-restricted",
         "doc-shared",
+      ]);
+    });
+
+    it("sorts published posts by publishedAt descending", async () => {
+      services.addEntities([
+        {
+          id: "older-post",
+          entityType: "post",
+          content: "older",
+          contentHash: "hash-older",
+          visibility: "public",
+          metadata: {
+            title: "Older",
+            status: "published",
+            publishedAt: "2025-01-01T00:00:00.000Z",
+          },
+          created: "2026-05-01T00:00:00.000Z",
+          updated: "2026-05-02T00:00:00.000Z",
+        },
+        {
+          id: "newer-post",
+          entityType: "post",
+          content: "newer",
+          contentHash: "hash-newer",
+          visibility: "public",
+          metadata: {
+            title: "Newer",
+            status: "published",
+            publishedAt: "2025-02-01T00:00:00.000Z",
+          },
+          created: "2026-05-01T00:00:00.000Z",
+          updated: "2026-05-01T00:00:00.000Z",
+        },
+      ]);
+
+      const raw = await getTool("system_list").handler(
+        { entityType: "post", status: "published" },
+        baseContext("anchor"),
+      );
+      const data = expectSuccess(raw, listDataSchema);
+      expect(data.entities.map((entity) => entity.id)).toEqual([
+        "newer-post",
+        "older-post",
       ]);
     });
   });

@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugifyUrl } from "@brains/utils";
+import { slugifyUrl } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import {
@@ -72,7 +72,8 @@ export interface CreateAgentContentInput {
 
 export class AgentAdapter extends BaseEntityAdapter<
   AgentEntity,
-  AgentMetadata
+  AgentMetadata,
+  AgentFrontmatter
 > {
   constructor() {
     super({

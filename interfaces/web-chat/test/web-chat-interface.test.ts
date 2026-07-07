@@ -382,6 +382,78 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls).toHaveLength(0);
   });
 
+  it("returns 400 for malformed JSON on the chat endpoint", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        body: "{not json",
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toBe("Invalid JSON body");
+  });
+
+  it("returns 400 for malformed JSON on the chat actions endpoint", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/actions", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/actions", {
+        method: "POST",
+        body: "{not json",
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toBe("Invalid JSON body");
+  });
+
+  it("forwards the action fromState through the runtime action channel", async () => {
+    const plugin = operatorPlugin();
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    await harness.installPlugin(plugin);
+    const received: unknown[] = [];
+    harness.subscribe(AGENT_ACTION_REQUEST_CHANNEL, async (message) => {
+      received.push(message.payload);
+      return {
+        success: true,
+        data: {
+          text: "Continuing onboarding.",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        },
+      };
+    });
+
+    const route = getRoute(plugin, "/api/chat/actions", "POST");
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/actions", {
+        method: "POST",
+        body: JSON.stringify({
+          conversationId: "web-session",
+          action: { type: "event", event: "NEXT", fromState: "welcome" },
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(received).toEqual([
+      {
+        conversationId: "web-session",
+        interfaceType: "web-chat",
+        channelName: "Web Chat",
+        userPermissionLevel: "anchor",
+        action: { type: "event", event: "NEXT", fromState: "welcome" },
+      },
+    ]);
+  });
+
   it("requires operator auth for the chat page", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);

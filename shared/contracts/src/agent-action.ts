@@ -5,6 +5,8 @@ export const AGENT_ACTION_REQUEST_CHANNEL = "agent:action:request";
 export interface AgentEventAction {
   type: "event";
   event: string;
+  /** State id the action was rendered for; lets handlers reject stale events. */
+  fromState?: string | undefined;
 }
 
 export interface AgentActionRequest {
@@ -22,6 +24,8 @@ export const agentEventActionSchema: z.ZodType<
 > = z.object({
   type: z.literal("event"),
   event: z.string().min(1),
+  /** State id the action was rendered for; lets handlers reject stale events. */
+  fromState: z.string().min(1).optional(),
 });
 
 export const agentActionRequestSchema: z.ZodType<

@@ -7,8 +7,8 @@
 import { mock } from "bun:test";
 import type { BaseEntity } from "@brains/plugins/test";
 import {
-  baseEntitySchema,
   BaseEntityAdapter,
+  baseEntitySchema,
   emptyFrontmatterSchema,
 } from "@brains/plugins/test";
 import type {

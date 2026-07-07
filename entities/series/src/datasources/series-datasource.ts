@@ -6,7 +6,7 @@ import type {
   BaseEntity,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { Series } from "../schemas/series";
 import {

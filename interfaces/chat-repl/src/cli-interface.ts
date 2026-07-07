@@ -2,7 +2,12 @@ import {
   MessageInterfacePlugin,
   type InterfacePluginContext,
   PluginError,
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
   parseConfirmationResponse,
+  type ApprovalResolution,
   type StructuredChatCard,
   type ToolApprovalCard,
 } from "@brains/plugins";
@@ -12,6 +17,12 @@ import type { AgentNamespace } from "@brains/plugins";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig, type CLIConfigInput } from "./config";
 import packageJson from "../package.json";
+
+const APPROVAL_RESULT_MARKERS: Record<ApprovalResolution, string> = {
+  completed: "✓",
+  declined: "○",
+  failed: "✗",
+};
 
 /**
  * CLI Interface - Agent-based architecture
@@ -30,6 +41,7 @@ export class CLIInterface extends MessageInterfacePlugin<
   private inkApp: Instance | null = null;
   private responseCallback: ((response: string) => void) | undefined;
   private agentService?: AgentNamespace;
+  private signalHandler: (() => void) | undefined;
 
   // Track pending confirmation approval ids
   private pendingConfirmationIds: string[] = [];
@@ -145,15 +157,7 @@ export class CLIInterface extends MessageInterfacePlugin<
           });
           this.inkApp = render(element);
 
-          // Handle process termination gracefully
-          process.on("SIGINT", async (): Promise<void> => {
-            this.logger.debug("Received SIGINT, stopping CLI interface");
-            await this.cleanup();
-          });
-          process.on("SIGTERM", async (): Promise<void> => {
-            this.logger.debug("Received SIGTERM, stopping CLI interface");
-            await this.cleanup();
-          });
+          this.registerSignalHandlers();
         } catch (error) {
           this.logger.error("Failed to start CLI interface", { error });
           throw error;
@@ -191,10 +195,15 @@ export class CLIInterface extends MessageInterfacePlugin<
     this.startProcessingInput();
 
     try {
-      // Check for confirmation response
+      // Check for explicit confirmation responses. Other messages should fall
+      // through to AgentService; it applies the authoritative implicit-decline
+      // semantics for mid-confirmation topic changes.
       if (this.pendingConfirmationIds.length > 0) {
-        await this.handleConfirmationResponse(input, conversationId);
-        return;
+        const handledConfirmation = await this.handleConfirmationResponse(
+          input,
+          conversationId,
+        );
+        if (handledConfirmation) return;
       }
 
       // Route message to AgentService with anchor permissions (CLI is local)
@@ -210,13 +219,15 @@ export class CLIInterface extends MessageInterfacePlugin<
       );
 
       // Track pending confirmations if returned
-      const approvalCards = this.getPendingApprovalCards(response.cards);
+      const approvalCards = getPendingApprovalCards(response.cards);
       if (approvalCards.length > 0) {
         this.pendingConfirmationIds = approvalCards.map((card) => card.id);
       } else if (response.pendingConfirmations) {
         this.pendingConfirmationIds = response.pendingConfirmations.map(
           (confirmation) => confirmation.id,
         );
+      } else {
+        this.pendingConfirmationIds = [];
       }
 
       // Build response with tool results
@@ -257,50 +268,23 @@ export class CLIInterface extends MessageInterfacePlugin<
   }
 
   /**
-   * Get pending approval card from structured agent response cards.
-   */
-  private getPendingApprovalCards(
-    cards: StructuredChatCard[] | undefined,
-  ): ToolApprovalCard[] {
-    return (
-      cards?.filter(
-        (card): card is ToolApprovalCard =>
-          card.kind === "tool-approval" && card.state === "approval-requested",
-      ) ?? []
-    );
-  }
-
-  private getResolvedApprovalCard(
-    cards: StructuredChatCard[] | undefined,
-  ): ToolApprovalCard | undefined {
-    return cards?.find(
-      (card): card is ToolApprovalCard =>
-        card.kind === "tool-approval" &&
-        (card.state === "output-available" ||
-          card.state === "output-error" ||
-          card.state === "output-denied"),
-    );
-  }
-
-  /**
-   * Format CLI response text for structured approval cards.
+   * Format CLI response text for structured approval cards: the shared base
+   * text plus terminal-specific previews and reply instructions.
    */
   private formatAgentResponseText(
     text: string,
     approvalCards: ToolApprovalCard[],
   ): string {
     if (approvalCards.length === 0) return text;
+    const baseText = formatApprovalRequestText(text, approvalCards);
 
     if (approvalCards.length === 1) {
       const approvalCard = approvalCards[0];
       if (!approvalCard) return text;
-      const baseText = text.trim().length > 0 ? text : approvalCard.summary;
       const preview = approvalCard.preview ? `\n\n${approvalCard.preview}` : "";
       return `${baseText}${preview}\n\n_Please reply with **yes** to confirm or **no/cancel** to abort._`;
     }
 
-    const baseText =
-      text.trim().length > 0 ? text : "Multiple approvals required.";
     const approvalList = approvalCards
       .map((card, index) => {
         const preview = card.preview ? `\n   ${card.preview}` : "";
@@ -314,18 +298,14 @@ export class CLIInterface extends MessageInterfacePlugin<
     text: string,
     cards: StructuredChatCard[] | undefined,
   ): string {
-    const resultCard = this.getResolvedApprovalCard(cards);
+    const resultCard = getResolvedApprovalCard(cards);
     if (!resultCard) return text;
 
-    if (resultCard.state === "output-error") {
-      return resultCard.error
-        ? `✗ ${resultCard.summary}\n\n${resultCard.error}`
-        : `✗ ${resultCard.summary}`;
-    }
-    if (resultCard.state === "output-denied") {
-      return `○ ${resultCard.summary}`;
-    }
-    return `✓ ${resultCard.summary}`;
+    const result = buildApprovalResultView(resultCard);
+    const marker = APPROVAL_RESULT_MARKERS[result.resolution];
+    return result.error
+      ? `${marker} ${result.summary}\n\n${result.error}`
+      : `${marker} ${result.summary}`;
   }
 
   private parseIndexedConfirmationResponse(
@@ -354,10 +334,6 @@ export class CLIInterface extends MessageInterfacePlugin<
   ): { confirmed: boolean; approvalId: string } | undefined {
     const result = this.parseIndexedConfirmationResponse(message);
     if (result === undefined) {
-      this.sendMessageToChannel({
-        channelId: null,
-        message: this.getConfirmationHelpText(),
-      });
       return undefined;
     }
 
@@ -389,9 +365,9 @@ export class CLIInterface extends MessageInterfacePlugin<
   private async handleConfirmationResponse(
     message: string,
     conversationId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const approvalSelection = this.resolvePendingApprovalSelection(message);
-    if (!approvalSelection) return;
+    if (!approvalSelection) return false;
 
     // Clear selected pending confirmation before calling AgentService.
     this.pendingConfirmationIds = this.pendingConfirmationIds.filter(
@@ -414,15 +390,36 @@ export class CLIInterface extends MessageInterfacePlugin<
       channelId: null,
       message: this.formatApprovalResultText(response.text, response.cards),
     });
+    return true;
+  }
+
+  /**
+   * Handle process termination gracefully. The handler is stored so it can
+   * be removed on stop — otherwise a listener leaks per daemon start and
+   * Node warns about exceeding the max listener count.
+   */
+  protected registerSignalHandlers(): void {
+    this.signalHandler = (): void => {
+      this.logger.debug("Received termination signal, stopping CLI");
+      void this.cleanup();
+    };
+    process.on("SIGINT", this.signalHandler);
+    process.on("SIGTERM", this.signalHandler);
   }
 
   /**
    * Clean up resources
    */
-  private async cleanup(): Promise<void> {
+  protected async cleanup(): Promise<void> {
     // Clean up callbacks
     this.unregisterProgressCallback();
     this.unregisterMessageCallbacks();
+
+    if (this.signalHandler) {
+      process.removeListener("SIGINT", this.signalHandler);
+      process.removeListener("SIGTERM", this.signalHandler);
+      this.signalHandler = undefined;
+    }
 
     if (this.inkApp) {
       this.inkApp.unmount();

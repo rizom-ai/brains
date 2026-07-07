@@ -3,6 +3,10 @@ export { SiteInfoAdapter } from "./adapters/site-info-adapter";
 export { SiteInfoService } from "./services/site-info-service";
 export { fetchSiteInfo } from "./services/site-info-helpers";
 export { SiteInfoDataSource } from "./datasources/site-info-datasource";
+export {
+  fetchRecentEntities,
+  requireCta,
+} from "./datasources/site-datasource-helpers";
 
 export type { SiteInfo } from "./schemas/site-info";
 export { SiteInfoSchema } from "./schemas/site-info";

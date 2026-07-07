@@ -69,7 +69,8 @@ If the available library does not cover Ed25519 + the chosen covered components 
 A new shared package at `shared/http-signatures` or `shell/http-signatures`. Owns:
 
 - `signRequest(req, privateKey, keyId)`
-- `verifyRequest(req, jwksResolver) → { keyId, domain } | error`
+- `verifyRequest(req, jwksResolver) → { keyId, domain } | null` — null when
+  no signature is present; throws when a signature is present but invalid
 - `JwksResolver` — TTL-cached fetcher of remote brains' JWKS
 
 Used by `interfaces/a2a` (both inbound and outbound). The keypair lifecycle (generate / persist / load) lives in the same package or in `shell/auth-service` alongside existing auth key custody.
@@ -82,6 +83,47 @@ The a2a interface already uses a "discovered → approved" lifecycle for peer ag
 - Approving a peer adds an entry to `trustedAgents` with the desired permission level
 
 No secret is exchanged. The `outboundTokens` config field is removed.
+
+### 7. Task access is bound to the verified caller
+
+Today `tasks/get` and `tasks/cancel`
+(`interfaces/a2a/src/jsonrpc-handler.ts`) accept any caller who knows a
+task UUID: tasks are not associated with the identity that created
+them, so a public caller with a leaked ID can read a task's full
+history — including responses produced under a trusted caller's
+permission level — or cancel it. Once decision 2 gives every request a
+verified domain, bind tasks to it:
+
+- `TaskRecord` gains `callerDomain: string | null` (null for
+  public/unverified callers), set at creation in the `message/send` and
+  `message/stream` paths.
+- `tasks/get` and `tasks/cancel` return `-32001` (task not found)
+  unless the requesting verified domain matches the record's
+  `callerDomain`. Deliberately "not found", not "forbidden" — task IDs
+  must not be probeable.
+- Tasks created by unverified callers are readable only by unverified
+  callers of the same session scope; if no session notion exists for
+  public callers, they are simply not readable back (the response
+  already streamed inline).
+
+### 8. Retries are limited to requests that never reached the peer
+
+`isRetryableNetworkError` in `interfaces/a2a/src/client.ts` currently
+treats every `Error` as retryable, so a mid-stream idle timeout —
+which fires _after_ the remote accepted and began processing — re-POSTs
+the same `message/stream` request and produces a duplicate agent turn
+on the peer. Fix in two layers:
+
+- Client: retry only connection-establishment failures (DNS, refused,
+  TLS, reset-before-response). Once any response byte or SSE event has
+  arrived, no automatic retry.
+- Protocol: outbound `message/send` / `message/stream` carry a client
+  idempotency key (`messageId` already exists in the A2A message
+  envelope — reuse it); the receiving handler tracks recently seen
+  message IDs per verified caller (TTL ~10 min, bounded) and returns
+  the existing task instead of starting a duplicate turn. Signed
+  requests make the key trustworthy; that is why this lands here and
+  not as a standalone patch.
 
 ## Design
 
@@ -101,7 +143,7 @@ In `interfaces/a2a/src/a2a-interface.ts`, the existing `resolveCallerPermission(
 
 ```ts
 private async resolveCallerPermission(req: Request): Promise<UserPermissionLevel> {
-  const verified = await verifyRequest(req, this.jwks);
+  const verified = await verifyRequest(req, this.jwks); // absent → null, invalid → throws
   if (!verified) return "public";
   const identity = this.config.trustedAgents?.[verified.domain];
   if (!identity || !this.permissionContext) return "public";
@@ -110,6 +152,13 @@ private async resolveCallerPermission(req: Request): Promise<UserPermissionLevel
 ```
 
 The shape of the function and the downstream `getUserLevel` call are unchanged. Only the input changes: from a bearer token to a verified domain.
+
+Absent and invalid signatures are different cases and must not be conflated:
+
+- **No signature at all** → the caller is anonymous and resolves to `"public"`. Two brains that have never heard of each other keep talking with zero setup; signing only upgrades identity, it is not an admission ticket.
+- **Signature present but invalid** (bad digest, expired freshness window, unresolvable `keyid`, key mismatch) → reject with 401. A failed verification is a forgery attempt or a broken proxy, never silently downgraded to public — downgrading would let an attacker probe with someone else's identity and still get the public surface while masking the failure from both operators.
+
+`verifyRequest` therefore distinguishes "no `Signature` header" (returns null) from "verification failed" (throws), and the handler maps the throw to 401.
 
 ### Config schema change
 
@@ -170,7 +219,16 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 - add `trustedAgents` config field, remove `trustedTokens`
 - update agent-card / agent-discovery flows to fetch and store peer JWKS at approval time
 
-### Phase 5 — docs and migration
+### Phase 5 — task caller binding and idempotent retry
+
+- add `callerDomain` to `TaskRecord`, set from the verified identity;
+  gate `tasks/get`/`tasks/cancel` on it (decision 7), with tests for
+  cross-caller probing returning `-32001`
+- narrow client retry to connection-establishment failures; add the
+  `messageId`-based dedupe store on the receiving side (decision 8),
+  with a test that a retried send resolves to the same task
+
+### Phase 6 — docs and migration
 
 - update operator docs and example configs
 - document reverse-proxy requirements
@@ -188,13 +246,15 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 
 1. A brain generates a signing keypair on first boot and publishes it at `/.well-known/jwks.json`
 2. Outbound A2A requests carry `Signature` and `Signature-Input` headers per RFC 9421; no `Authorization: Bearer` header is sent
-3. Inbound A2A requests verify successfully when the sender's JWKS is reachable and the signature is valid; fail with 401 otherwise
+3. Inbound A2A requests verify successfully when the sender's JWKS is reachable and the signature is valid; a request with a present-but-invalid signature fails with 401; a request with no signature resolves to the public permission level (unacquainted brains keep talking with zero setup)
 4. `trustedAgents: Record<domain, identity>` resolves to the same `permissionService.getUserLevel(...)` flow that `trustedTokens` did
 5. Two brains can establish bidirectional A2A trust without exchanging any secret
 6. Key rotation (replacing a brain's signing key) does not require re-approval at peers, as long as the new key is published in JWKS during a grace window
 7. Freshness window rejects requests outside ±60s
 8. `outboundTokens` and `trustedTokens` are removed from the config schema; brains with old config get a clear startup error
-9. Old `2026-03-15-a2a-authentication.md` is deleted; references in other plans updated
+9. A task created by verified peer A cannot be read or cancelled by peer B or by an unverified caller (`-32001`, indistinguishable from a missing task)
+10. Re-sending a `message/send` with the same `messageId` from the same verified caller within the dedupe window returns the original task; the peer runs one agent turn, not two
+11. Old `2026-03-15-a2a-authentication.md` is deleted; references in other plans updated
 
 ## Related
 

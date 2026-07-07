@@ -17,34 +17,27 @@ const noteStatusParserSchema: z.ZodType<NoteStatus, NoteStatus> = z.enum([
   "failed",
 ]);
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- ZodObject shape aliases preserve named property inference without a broad index signature.
-type NoteFrontmatterShape = {
+export const noteFrontmatterSchema: z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
   status: z.ZodOptional<z.ZodType<NoteStatus, NoteStatus>>;
   error: z.ZodOptional<z.ZodString>;
-};
-
-export const noteFrontmatterSchema: z.ZodObject<NoteFrontmatterShape> =
-  z.object({
-    title: z.string().optional(),
-    status: noteStatusSchema.optional(),
-    error: z.string().optional(),
-  });
+}> = z.object({
+  title: z.string().optional(),
+  status: noteStatusSchema.optional(),
+  error: z.string().optional(),
+});
 
 export type NoteFrontmatter = z.output<typeof noteFrontmatterSchema>;
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- ZodObject shape aliases preserve named property inference without a broad index signature.
-type NoteMetadataShape = {
-  title: z.ZodString;
-  status: z.ZodOptional<z.ZodType<NoteStatus, NoteStatus>>;
-  error: z.ZodOptional<z.ZodString>;
-};
 
 /**
  * Note metadata schema - derived from frontmatter
  * Title is required in metadata (derived from frontmatter, H1, or filename)
  */
-export const noteMetadataSchema: z.ZodObject<NoteMetadataShape> = z.object({
+export const noteMetadataSchema: z.ZodObject<{
+  title: z.ZodString;
+  status: z.ZodOptional<z.ZodType<NoteStatus, NoteStatus>>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
   title: z.string(),
   status: noteStatusSchema.optional(),
   error: z.string().optional(),
@@ -52,13 +45,15 @@ export const noteMetadataSchema: z.ZodObject<NoteMetadataShape> = z.object({
 
 export type NoteMetadata = z.output<typeof noteMetadataSchema>;
 
-const noteEntityMetadataParserSchema: z.ZodObject<NoteMetadataShape> = z.object(
-  {
-    title: z.string(),
-    status: noteStatusParserSchema.optional(),
-    error: z.string().optional(),
-  },
-);
+const noteEntityMetadataParserSchema: z.ZodObject<{
+  title: z.ZodString;
+  status: z.ZodOptional<z.ZodType<NoteStatus, NoteStatus>>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  title: z.string(),
+  status: noteStatusParserSchema.optional(),
+  error: z.string().optional(),
+});
 
 /**
  * Note entity schema (extends BaseEntity)
@@ -67,7 +62,7 @@ const noteEntityMetadataParserSchema: z.ZodObject<NoteMetadataShape> = z.object(
 export const noteSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"note">;
-    metadata: z.ZodObject<NoteMetadataShape>;
+    metadata: typeof noteEntityMetadataParserSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("note"),
@@ -81,7 +76,7 @@ export type Note = z.output<typeof noteSchema>;
  */
 export const noteWithDataSchema: ReturnType<
   typeof noteSchema.extend<{
-    frontmatter: z.ZodObject<NoteFrontmatterShape>;
+    frontmatter: typeof noteFrontmatterSchema;
     body: z.ZodString;
   }>
 > = noteSchema.extend({

@@ -7,7 +7,7 @@ import type { JobOptions } from "../src/schema/types";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/test-utils";
-import { createId } from "@brains/utils";
+import { createId } from "@brains/utils/id";
 
 const defaultBatchOptions: JobOptions = {
   source: "test:batch-manager",
@@ -113,6 +113,76 @@ describe("BatchJobManager", () => {
       const status = await batchManager.getBatchStatus(batchId);
       expect(status).toBeDefined();
       expect(status?.totalOperations).toBe(1);
+    });
+
+    it("should register batch metadata before enqueueing child jobs", async () => {
+      const batchId = createId();
+      const observed: Array<{ status: string; total: number } | null> = [];
+      const originalEnqueue = jobQueueService.enqueue.bind(jobQueueService);
+      jobQueueService.enqueue = async (
+        request,
+      ): ReturnType<typeof originalEnqueue> => {
+        // Simulates a fast child resolving its batch while enqueueing is
+        // still in progress — the batch must already be visible and must
+        // not look terminal
+        const status = await batchManager.getBatchStatus(batchId);
+        observed.push(
+          status
+            ? { status: status.status, total: status.totalOperations }
+            : null,
+        );
+        return originalEnqueue(request);
+      };
+
+      try {
+        await batchManager.enqueueBatch(
+          [
+            { type: "embedding", data: { entityId: "entity-1" } },
+            { type: "embedding", data: { entityId: "entity-2" } },
+          ],
+          defaultBatchOptions,
+          batchId,
+        );
+      } finally {
+        jobQueueService.enqueue = originalEnqueue;
+      }
+
+      expect(observed).toEqual([
+        { status: JOB_STATUS.PROCESSING, total: 2 },
+        { status: JOB_STATUS.PROCESSING, total: 2 },
+      ]);
+    });
+
+    it("should drop batch metadata when enqueueing fails partway", async () => {
+      const batchId = createId();
+      const originalEnqueue = jobQueueService.enqueue.bind(jobQueueService);
+      let calls = 0;
+      jobQueueService.enqueue = async (
+        request,
+      ): ReturnType<typeof originalEnqueue> => {
+        calls++;
+        if (calls === 2) {
+          throw new Error("enqueue exploded");
+        }
+        return originalEnqueue(request);
+      };
+
+      try {
+        expect(
+          batchManager.enqueueBatch(
+            [
+              { type: "embedding", data: { entityId: "entity-1" } },
+              { type: "embedding", data: { entityId: "entity-2" } },
+            ],
+            defaultBatchOptions,
+            batchId,
+          ),
+        ).rejects.toThrow("enqueue exploded");
+      } finally {
+        jobQueueService.enqueue = originalEnqueue;
+      }
+
+      expect(await batchManager.getBatchStatus(batchId)).toBeNull();
     });
 
     it("should throw error for empty batch", async () => {

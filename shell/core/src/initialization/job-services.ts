@@ -7,7 +7,8 @@ import {
   type IJobQueueWorker,
 } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";
-import type { IJobProgressMonitor, Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { IJobProgressMonitor } from "@brains/utils/progress";
 import type { ShellDependencies } from "../types/shell-types";
 
 export interface JobServices {

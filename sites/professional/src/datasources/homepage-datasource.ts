@@ -1,12 +1,16 @@
+import { fetchAnchorProfileData } from "@brains/plugins";
 import type {
+  BaseDataSourceContext,
   DataSource,
   DataSourceSchema,
-  BaseDataSourceContext,
 } from "@brains/plugins";
-import { fetchAnchorProfile } from "@brains/plugins";
-import { AnchorProfileAdapter } from "@brains/identity-service";
-import { fetchSiteInfo } from "@brains/site-info";
-import { sortByPublicationDate } from "@brains/utils";
+import {
+  fetchRecentEntities,
+  fetchSiteInfo,
+  requireCta,
+  type SiteInfoBody,
+  type SiteInfoCTA,
+} from "@brains/site-info";
 import {
   professionalProfileSchema,
   type ProfessionalProfile,
@@ -21,11 +25,8 @@ import {
   parseDeckData,
   type DeckWithData,
 } from "@brains/decks";
-import type { SiteInfoCTA, SiteInfoBody } from "@brains/site-info";
 
 type HomepageSections = NonNullable<SiteInfoBody["sections"]>;
-
-const adapter = new AnchorProfileAdapter();
 
 /**
  * Homepage data returned by datasource (non-enriched)
@@ -69,38 +70,20 @@ export class HomepageListDataSource implements DataSource {
     const entityService = context.entityService;
 
     // Fetch profile, posts, decks, and site-info in parallel
-    const [profileContent, publishedPosts, publishedDecks, siteInfo] =
-      await Promise.all([
-        fetchAnchorProfile(entityService),
-        entityService.listEntities<BlogPost>({
-          entityType: "post",
-          options: { limit: 20 },
-        }),
-        entityService.listEntities<DeckEntity>({
-          entityType: "deck",
-          options: { limit: 20 },
-        }),
-        fetchSiteInfo(entityService),
-      ]);
-
-    const profile = adapter.parseProfileBody(
-      profileContent,
-      professionalProfileSchema,
-    );
-
-    const posts = publishedPosts
-      .sort(sortByPublicationDate)
-      .slice(0, 3)
-      .map(parsePostData);
-
-    const decks = publishedDecks
-      .sort(sortByPublicationDate)
-      .slice(0, 3)
-      .map(parseDeckData);
-
-    if (!siteInfo.cta) {
-      throw new Error("CTA not configured in site-info");
-    }
+    const [profile, posts, decks, siteInfo] = await Promise.all([
+      fetchAnchorProfileData(entityService, professionalProfileSchema),
+      fetchRecentEntities<BlogPost, BlogPostWithData>(entityService, {
+        entityType: "post",
+        count: 3,
+        parse: parsePostData,
+      }),
+      fetchRecentEntities<DeckEntity, DeckWithData>(entityService, {
+        entityType: "deck",
+        count: 3,
+        parse: parseDeckData,
+      }),
+      fetchSiteInfo(entityService),
+    ]);
 
     const data: HomepageDataSourceOutput = {
       profile,
@@ -108,7 +91,7 @@ export class HomepageListDataSource implements DataSource {
       decks,
       postsListUrl: this.postsListUrl,
       decksListUrl: this.decksListUrl,
-      cta: siteInfo.cta,
+      cta: requireCta(siteInfo.cta),
       sections: siteInfo.sections ?? {},
     };
 

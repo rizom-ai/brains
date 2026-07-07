@@ -1,7 +1,8 @@
 import { extractCoverImageId, extractOgImageId } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
-import type { Logger } from "@brains/utils";
-import { getErrorMessage, pluralize } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
+import { pluralize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { SiteImageLookup } from "@brains/site-engine";
 import type { IEntityService } from "@brains/plugins";

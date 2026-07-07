@@ -4,7 +4,7 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { PermissionService, ServicePlugin } from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import {
   BUILT_IN_WIDGET_RENDERERS,
@@ -161,13 +161,21 @@ export class DashboardPlugin extends ServicePlugin<
     context.messaging.subscribe(
       "dashboard:unregister-widget",
       async (message) => {
-        const payload = unregisterWidgetPayloadSchema.parse(message.payload);
-        this.widgetRegistry?.unregister(payload.pluginId, payload.widgetId);
-        this.logger.debug("Widget unregistered via messaging", {
-          pluginId: payload.pluginId,
-          widgetId: payload.widgetId,
-        });
-        return { success: true };
+        try {
+          const payload = unregisterWidgetPayloadSchema.parse(message.payload);
+          this.widgetRegistry?.unregister(payload.pluginId, payload.widgetId);
+          this.logger.debug("Widget unregistered via messaging", {
+            pluginId: payload.pluginId,
+            widgetId: payload.widgetId,
+          });
+          return { success: true };
+        } catch (error) {
+          this.logger.error("Failed to unregister widget", {
+            error: getErrorMessage(error),
+            payload: message.payload,
+          });
+          return { success: false, error: "Widget unregistration failed" };
+        }
       },
     );
 

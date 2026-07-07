@@ -1,6 +1,6 @@
 import type { ComponentType } from "preact";
 import { PermissionService, type UserPermissionLevel } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
 export interface WidgetComponentProps {

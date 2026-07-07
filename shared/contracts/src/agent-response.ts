@@ -1,4 +1,4 @@
-import { stripUndefinedDeep } from "@brains/utils";
+import { stripUndefinedDeep } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
 
 export interface PendingConfirmation {
@@ -200,6 +200,7 @@ export interface EventChatAction {
   id: string;
   label: string;
   event: string;
+  fromState?: string | undefined;
   description?: string | undefined;
 }
 
@@ -208,6 +209,8 @@ const EventChatActionSchemaImpl = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
   event: z.string().min(1),
+  /** State id the action was rendered for; echoed back so stale clicks can be rejected. */
+  fromState: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
 });
 

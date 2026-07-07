@@ -1,6 +1,6 @@
 import type { ImageRenderer } from "@brains/ui-library";
-import type { Logger } from "@brains/utils";
-import { pLimit } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";

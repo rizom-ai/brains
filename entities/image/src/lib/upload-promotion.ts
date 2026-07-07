@@ -1,4 +1,4 @@
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 
 export const webChatUploadsScope = {
   namespace: "upload",

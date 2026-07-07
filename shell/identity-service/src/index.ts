@@ -17,6 +17,7 @@ export {
   baseProfileExtension,
   professionalProfileExtension,
   fetchAnchorProfile,
+  fetchAnchorProfileData,
 } from "./profile-helpers";
 
 // Anchor profile (was: profile)

@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   blogPostSchema,
   blogPostFrontmatterSchema,
@@ -14,13 +14,14 @@ import {
  */
 export class BlogPostAdapter extends BaseEntityAdapter<
   BlogPost,
-  BlogPostMetadata
+  BlogPostMetadata,
+  BlogPostFrontmatter
 > {
   constructor() {
     super({
       entityType: "post",
       purpose:
-        "A long-form published article or blog post written for an audience.",
+        "A long-form published article, essay, or blog post written for an audience.",
       schema: blogPostSchema,
       frontmatterSchema: blogPostFrontmatterSchema,
       supportsCoverImage: true,

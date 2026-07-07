@@ -3,8 +3,8 @@ import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins/test";
 import {
-  baseEntitySchema,
   BaseEntityAdapter,
+  baseEntitySchema,
   emptyFrontmatterSchema,
 } from "@brains/plugins/test";
 import { createTestEntity } from "@brains/test-utils";

@@ -230,7 +230,9 @@ function renderProjectPrintablePdf(
           <img className="printable-cover" src={data.coverImageUrl} alt="" />
         )}
         <MarkdownContent markdown={data.body} className="printable-body" />
-        {(data.canonicalUrl || data.url || data.brandLabel) && (
+        {(Boolean(data.canonicalUrl) ||
+          Boolean(data.url) ||
+          Boolean(data.brandLabel)) && (
           <footer className="printable-footer">
             <span>{data.brandLabel ?? "Project printable"}</span>
             {data.canonicalUrl || data.url ? (

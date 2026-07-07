@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { InternalMessageResponse, MessageWithPayload } from "./types";
 import type { HandlerRegistry } from "./handler-registry";
 import { publishBroadcast, publishRequest } from "./message-dispatcher";

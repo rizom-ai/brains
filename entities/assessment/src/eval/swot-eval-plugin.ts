@@ -10,7 +10,7 @@ import {
   createEntityPluginContext,
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import packageJson from "../../package.json";
 import { SwotAdapter } from "../adapters/swot-adapter";
@@ -121,7 +121,8 @@ const agentBodyFormatter = new StructuredContentFormatter<EvalAgentBody>(
 
 class EvalAgentAdapter extends BaseEntityAdapter<
   z.infer<typeof evalAgentEntitySchema>,
-  z.infer<typeof evalAgentEntitySchema>["metadata"]
+  z.infer<typeof evalAgentEntitySchema>["metadata"],
+  z.infer<typeof evalAgentFrontmatterSchema>
 > {
   constructor() {
     super({

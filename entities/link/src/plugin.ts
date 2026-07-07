@@ -12,9 +12,9 @@ import type {
 } from "@brains/plugins";
 import { createPendingEntity, EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { slugify } from "@brains/utils";
+import { type LinkEntity, linkSchema, type LinkSource } from "./schemas/link";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import { linkSchema, type LinkEntity, type LinkSource } from "./schemas/link";
 import {
   linkConfigSchema,
   type LinkConfig,

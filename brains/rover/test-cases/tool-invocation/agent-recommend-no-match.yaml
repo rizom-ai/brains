@@ -1,0 +1,32 @@
+id: tool-invocation-agent-recommend-no-match
+name: Agent Expertise Recommendation With No Clear Match
+description: Verifies that expertise recommendations search saved agents and honestly report no clear match instead of inventing a generic consultant.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - tool-invocation
+  - preset-core
+
+turns:
+  - userMessage: "Who in my network should I consult about marine biology?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+      argsContain:
+        scope.kind: type
+        scope.entityType: "agent"
+  responseContainsAny:
+    - ["clear marine", "clear network", "couldn’t find a clear", "couldn't find a clear", "no clear"]
+  responseNotContains:
+    - "marine biologist, oceanographer, or ecologist"
+    - "If you want, I can help narrow it down"
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

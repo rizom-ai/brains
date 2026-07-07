@@ -1,5 +1,5 @@
 import { mock } from "bun:test";
-import { Logger, LogLevel } from "@brains/utils";
+import { Logger, LogLevel } from "@brains/utils/logger";
 
 /**
  * Create a silent logger for tests

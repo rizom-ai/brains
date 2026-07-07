@@ -2,46 +2,38 @@ import { StructuredContentFormatter } from "@brains/content-formatters";
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- ZodObject shape aliases preserve named property inference without a broad index signature.
-type SeriesFrontmatterShape = {
+export const seriesFrontmatterSchema: z.ZodObject<{
   title: z.ZodString;
   slug: z.ZodString;
   coverImageId: z.ZodOptional<z.ZodString>;
-};
-
-/**
- * Series frontmatter schema (stored in content as YAML frontmatter)
- */
-export const seriesFrontmatterSchema: z.ZodObject<SeriesFrontmatterShape> =
-  z.object({
-    title: z.string(),
-    slug: z.string(),
-    coverImageId: z.string().optional(),
-  });
+}> = z.object({
+  title: z.string(),
+  slug: z.string(),
+  coverImageId: z.string().optional(),
+});
 
 export type SeriesFrontmatter = z.output<typeof seriesFrontmatterSchema>;
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- ZodObject shape aliases preserve named property inference without a broad index signature.
-type SeriesMetadataShape = {
-  title: z.ZodString;
-  slug: z.ZodString;
-};
 
 /**
  * Series metadata schema (searchable fields only)
  */
-export const seriesMetadataSchema: z.ZodObject<SeriesMetadataShape> = z.object({
+export const seriesMetadataSchema: z.ZodObject<{
+  title: z.ZodString;
+  slug: z.ZodString;
+}> = z.object({
   title: z.string(),
   slug: z.string(),
 });
 
 export type SeriesMetadata = z.output<typeof seriesMetadataSchema>;
 
-const seriesEntityMetadataParserSchema: z.ZodObject<SeriesMetadataShape> =
-  z.object({
-    title: z.string(),
-    slug: z.string(),
-  });
+const seriesEntityMetadataParserSchema: z.ZodObject<{
+  title: z.ZodString;
+  slug: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  slug: z.string(),
+});
 
 /**
  * Series entity schema
@@ -49,7 +41,7 @@ const seriesEntityMetadataParserSchema: z.ZodObject<SeriesMetadataShape> =
 export const seriesSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"series">;
-    metadata: z.ZodObject<SeriesMetadataShape>;
+    metadata: typeof seriesEntityMetadataParserSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("series"),
@@ -63,7 +55,7 @@ export type Series = z.output<typeof seriesSchema>;
  */
 export const seriesWithDataSchema: ReturnType<
   typeof seriesSchema.extend<{
-    frontmatter: z.ZodObject<SeriesFrontmatterShape>;
+    frontmatter: typeof seriesFrontmatterSchema;
   }>
 > = seriesSchema.extend({
   frontmatter: seriesFrontmatterSchema,

@@ -1,5 +1,17 @@
 # @brains/utils
 
+## 0.2.0-alpha.140
+
+### Patch Changes
+
+- [`a30edc7`](https://github.com/rizom-ai/brains/commit/a30edc7ac66807c66cba2bc94e78206f133710d6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Extract shared site-datasource logic: fetchAnchorProfileData (fetch+parse profile) added to identity-service and re-exported via @brains/plugins; fetchRecentEntities and requireCta added to @brains/site-info. The personal/professional homepage and about datasources now compose these instead of repeating profile fetch/parse, entity list/sort/slice/map, and the CTA guard.
+
+- [`cea906c`](https://github.com/rizom-ai/brains/commit/cea906c689d40dee5f06ab949d5289c2660bfd37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Split the utils grab-bag into explicit subpath modules (@brains/utils/logger, /id, /markdown, /yaml, /progress, /string-utils, …) and delete the root barrel; the pinned zod re-export lives at @brains/utils/zod and the package root exports nothing. All consumers import the specific module they use.
+
+## 0.2.0-alpha.139
+
+## 0.2.0-alpha.138
+
 ## 0.2.0-alpha.137
 
 ## 0.2.0-alpha.136

@@ -1,5 +1,6 @@
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
+  agentEventActionSchema,
   parseAgentResponse,
 } from "@brains/contracts";
 import { getActiveAuthService } from "@brains/auth-service";
@@ -68,10 +69,7 @@ const playbooksLifecycleStartersChannel = "playbooks:lifecycle-starters";
 const chatActionRequestSchema = z
   .object({
     conversationId: z.string().min(1),
-    action: z.object({
-      type: z.literal("event"),
-      event: z.string().min(1),
-    }),
+    action: agentEventActionSchema,
   })
   .strict();
 
@@ -329,7 +327,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
       return new Response("Forbidden", { status: 403 });
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Invalid JSON body", { status: 400 });
+    }
     const parsed = chatActionRequestSchema.safeParse(body);
     if (!parsed.success) {
       return new Response("Invalid chat action request", { status: 400 });
@@ -395,7 +398,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
     }
     const permissionLevel = "anchor";
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Invalid JSON body", { status: 400 });
+    }
     const parsed = chatRequestSchema.safeParse(body);
     if (!parsed.success) {
       return new Response("Invalid chat request", { status: 400 });

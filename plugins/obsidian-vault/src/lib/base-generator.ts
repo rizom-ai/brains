@@ -1,4 +1,5 @@
-import { toYaml, toDisplayName } from "@brains/utils";
+import { toDisplayName } from "@brains/utils/string-utils";
+import { toYaml } from "@brains/utils/yaml";
 import type { FieldInfo } from "./schema-introspector";
 
 const EXCLUDED_COLUMNS = new Set(["entityType"]);

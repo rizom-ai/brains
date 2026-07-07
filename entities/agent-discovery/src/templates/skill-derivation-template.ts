@@ -7,7 +7,7 @@ type SkillDerivationResultSchema = z.ZodObject<{
 }>;
 
 const skillDerivationResultSchema: SkillDerivationResultSchema = z.object({
-  skills: z.array(skillFrontmatterSchema).max(4),
+  skills: z.array(skillFrontmatterSchema).max(8),
 });
 
 export type SkillDerivationResult = z.output<
@@ -34,6 +34,6 @@ For each skill, provide:
 - tags: 3-5 keywords spanning multiple topics
 - examples: 2-3 concrete user prompts
 
-Return 2-4 consolidated skills as a JSON object with a "skills" array. Never return as many skills as there are knowledge domains.`,
+Return 4-8 consolidated skills as a JSON object with a "skills" array. Never return as many skills as there are knowledge domains.`,
     requiredPermission: "public",
   });

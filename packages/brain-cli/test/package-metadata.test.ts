@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveDeployScriptPath } from "@brains/deploy-support";
 
 import packageJson from "../package.json";
 
@@ -35,6 +36,24 @@ describe("@rizom/brain package metadata", () => {
     expect(updateDns).toContain("https://api.cloudflare.com/client/v4");
     expect(writeSshKey).toContain('requireEnv("KAMAL_SSH_PRIVATE_KEY")');
     expect(writeSshKey).toContain("mode: 0o600");
+  });
+
+  it("keeps committed deploy script templates identical to @brains/deploy-support", () => {
+    // templates/deploy/scripts is regenerated from @brains/deploy-support by
+    // scripts/build.ts (copyDeployScripts); this guards against hand-edits.
+    const scripts = [
+      "provision-server.ts",
+      "update-dns.ts",
+      "write-ssh-key.ts",
+    ] as const;
+
+    for (const script of scripts) {
+      const committed = readPackageFile(
+        join("templates", "deploy", "scripts", script),
+      );
+      const canonical = readFileSync(resolveDeployScriptPath(script), "utf8");
+      expect(committed).toBe(canonical);
+    }
   });
 
   it("publishes a package-owned public instance tsconfig preset", () => {

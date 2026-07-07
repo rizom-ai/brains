@@ -57,6 +57,11 @@ export {
 export { JobResult } from "./job-result";
 export { messageRoleSchema, type MessageRole } from "./message-role";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
+export {
+  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+  lifecycleStarterRegistrationSchema,
+  type LifecycleStarterRegistration,
+} from "./playbook-lifecycle-starter";
 export type {
   PublishResult,
   PublishProvider,

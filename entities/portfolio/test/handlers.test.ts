@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import type { ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import {
   buildProjectGenerationPrompt,
   ProjectGenerationJobHandler,

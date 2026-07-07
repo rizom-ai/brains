@@ -1,6 +1,6 @@
 import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import type { CommandResult } from "../run-command";
+import type { CommandResult } from "../lib/command-result";
 
 export interface AuthResetPasskeysOptions {
   storageDir?: string | undefined;

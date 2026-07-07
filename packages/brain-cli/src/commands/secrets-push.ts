@@ -163,7 +163,6 @@ export async function pushSecrets(
   }
 
   await pushSecretsToBackend(target, pushedKeys, {
-    cwd,
     runCommand: options.runCommand,
     logger,
   });

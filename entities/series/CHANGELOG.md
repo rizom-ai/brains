@@ -1,5 +1,44 @@
 # @brains/series
 
+## 0.2.0-alpha.140
+
+### Patch Changes
+
+- Updated dependencies [[`070541b`](https://github.com/rizom-ai/brains/commit/070541b535e3977c8fe2d590ae7ad114cee09417), [`f30d603`](https://github.com/rizom-ai/brains/commit/f30d603ef2384df63381227754f8178ef6b88a06), [`a30edc7`](https://github.com/rizom-ai/brains/commit/a30edc7ac66807c66cba2bc94e78206f133710d6), [`cea906c`](https://github.com/rizom-ai/brains/commit/cea906c689d40dee5f06ab949d5289c2660bfd37)]:
+  - @brains/entity-service@0.2.0-alpha.140
+  - @brains/job-queue@0.2.0-alpha.140
+  - @brains/plugins@0.2.0-alpha.140
+  - @brains/content-formatters@0.2.0-alpha.140
+  - @brains/atproto-contracts@0.2.0-alpha.140
+  - @brains/utils@0.2.0-alpha.140
+  - @brains/templates@0.2.0-alpha.140
+
+## 0.2.0-alpha.139
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.139
+  - @brains/content-formatters@0.2.0-alpha.139
+  - @brains/utils@0.2.0-alpha.139
+  - @brains/entity-service@0.2.0-alpha.139
+  - @brains/job-queue@0.2.0-alpha.139
+  - @brains/plugins@0.2.0-alpha.139
+  - @brains/templates@0.2.0-alpha.139
+
+## 0.2.0-alpha.138
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.138
+  - @brains/content-formatters@0.2.0-alpha.138
+  - @brains/utils@0.2.0-alpha.138
+  - @brains/entity-service@0.2.0-alpha.138
+  - @brains/job-queue@0.2.0-alpha.138
+  - @brains/plugins@0.2.0-alpha.138
+  - @brains/templates@0.2.0-alpha.138
+
 ## 0.2.0-alpha.137
 
 ### Patch Changes

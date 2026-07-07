@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { useEffect, useState } from "react";
+import { ActionsCardSchema, type EventChatAction } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   artifactStatusLabel as attachmentStatusLabel,
@@ -456,36 +457,7 @@ function getSourceScore(
   return parsed.success ? parsed.data.score : undefined;
 }
 
-const promptChatActionSchema = z.object({
-  type: z.literal("prompt"),
-  id: z.string().min(1),
-  label: z.string().min(1),
-  prompt: z.string().min(1),
-  description: z.string().min(1).optional(),
-});
-
-const eventChatActionSchema = z.object({
-  type: z.literal("event"),
-  id: z.string().min(1),
-  label: z.string().min(1),
-  event: z.string().min(1),
-  description: z.string().min(1).optional(),
-});
-
-const actionsCardSchema = z.object({
-  kind: z.literal("actions"),
-  id: z.string().min(1),
-  title: z.string().min(1).optional(),
-  defaultOpen: z.boolean().optional(),
-  actions: z
-    .array(
-      z.discriminatedUnion("type", [
-        promptChatActionSchema,
-        eventChatActionSchema,
-      ]),
-    )
-    .min(1),
-});
+const actionsCardSchema = ActionsCardSchema;
 
 export function SourcesPart({ data }: { data: unknown }): React.ReactElement {
   const parsed = sourcesCardSchema.safeParse(data);
@@ -545,7 +517,7 @@ export function ActionsPart({
 }: {
   data: unknown;
   onPromptAction: (prompt: string) => void;
-  onEventAction: (event: string) => void;
+  onEventAction: (action: EventChatAction) => void;
 }): React.ReactElement {
   const parsed = actionsCardSchema.safeParse(data);
   if (!parsed.success) {
@@ -576,7 +548,7 @@ export function ActionsPart({
                 aria-disabled={false}
                 onClick={() => {
                   if (action.type === "prompt") onPromptAction(action.prompt);
-                  else onEventAction(action.event);
+                  else onEventAction(action);
                 }}
               >
                 {action.label}

@@ -1,14 +1,15 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import {
   BaseJobHandler,
   failPendingEntity,
   findEntityByIdentifier,
   saveProcessedEntity,
 } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { imageAdapter, setCoverImageId } from "@brains/image";
-import { getErrorMessage, slugify } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import { buildImageBasePrompt } from "../lib/build-image-base-prompt";

@@ -65,7 +65,7 @@ import type {
 } from "@brains/templates";
 import type { IMCPService, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 
 import { getRuntimeAppInfo } from "./app-info";
@@ -77,7 +77,6 @@ import { generateShellContent } from "./shell-content";
 import {
   ShellInitializer,
   resetServiceSingletons,
-  type ShellServices,
 } from "./initialization/shellInitializer";
 import {
   ShellBootloader,
@@ -94,7 +93,7 @@ import {
 } from "./plugin-routes";
 import { shutdownShellServices } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
-import type { ShellDependencies } from "./types/shell-types";
+import type { ShellDependencies, ShellServices } from "./types/shell-types";
 
 export type { ShellDependencies };
 

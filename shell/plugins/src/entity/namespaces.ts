@@ -5,11 +5,19 @@ import type {
   UploadSaveHandlerRegistration,
   EntityAdapter,
   EntityTypeConfig,
+  IEntitiesNamespace,
   IEntityService,
 } from "@brains/entity-service";
 import type { IShell } from "../interfaces";
 import { resolvePrompt } from "./prompt-resolver";
-import type { IEntitiesNamespace, IPromptsNamespace } from "./context";
+
+/**
+ * Prompts namespace — resolves AI prompts from prompt entities
+ */
+export interface IPromptsNamespace {
+  /** Resolve a prompt by target name. Returns entity content if found, fallback otherwise. */
+  resolve: (target: string, fallback: string) => Promise<string>;
+}
 
 type EntitySchema<TEntity extends BaseEntity> =
   EntityAdapter<TEntity>["schema"];

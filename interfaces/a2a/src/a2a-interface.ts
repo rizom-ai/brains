@@ -269,7 +269,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
           );
         }
 
-        const { stream } = handleStreamMessage(
+        const streamResult = handleStreamMessage(
           parsed.data.id,
           streamParams.data.message,
           {
@@ -278,6 +278,12 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
             callerPermissionLevel,
           },
         );
+
+        if ("error" in streamResult) {
+          return this.withCors(c.json(streamResult));
+        }
+
+        const { stream } = streamResult;
 
         return this.withCors(
           new Response(stream, {

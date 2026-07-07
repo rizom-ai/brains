@@ -1,5 +1,15 @@
 # @brains/ops
 
+## 0.2.0-alpha.140
+
+### Patch Changes
+
+- [`f30d603`](https://github.com/rizom-ai/brains/commit/f30d603ef2384df63381227754f8178ef6b88a06) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Tech-debt sweep: dashboard CSS extracted to a real stylesheet; deploy scaffolding forks (push-target, run-subprocess, push-secrets, ssh-key-bootstrap) consolidated into @brains/deploy-support with drift-guard tests; atproto-contracts split into modules with the @brains/plugins dependency removed; hackmd, notion, plugin-examples, and mcp-bridge plugins deleted (zero consumers).
+
+## 0.2.0-alpha.139
+
+## 0.2.0-alpha.138
+
 ## 0.2.0-alpha.137
 
 ## 0.2.0-alpha.136

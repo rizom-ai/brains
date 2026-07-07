@@ -22,6 +22,8 @@ export class QueueManager {
   private static instance: QueueManager | null = null;
 
   // Map of entityType -> array of queue entries
+  // Deliberately in-memory only: queued entries are ephemeral and lost on
+  // restart (unlike @brains/job-queue jobs, which are persisted)
   private queues: Map<string, QueueEntry[]> = new Map();
 
   /**

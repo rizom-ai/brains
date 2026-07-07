@@ -10,8 +10,8 @@ import type {
   DataSourceSchema,
   IEntityService,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { slugify } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { BlogPost } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../schemas/blog-post";

@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { messageResponseSchema, type MessageResponse } from "./base-types";
+import { type MessageResponse, messageResponseSchema } from "./base-types";
 
 export type HandlerResponse = MessageResponse;
 

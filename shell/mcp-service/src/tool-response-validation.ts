@@ -1,5 +1,5 @@
 import type { MessageResponse } from "@brains/messaging-service";
-import type { Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { toolResponseSchema, type Tool, type ToolResponse } from "./types";
 

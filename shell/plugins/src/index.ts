@@ -358,7 +358,7 @@ export type { IAgentService } from "@brains/ai-service";
 export type { IMessageBus } from "@brains/messaging-service";
 
 export type { ContentFormatter } from "@brains/content-formatters";
-export type { ProgressCallback } from "@brains/utils";
+export type { ProgressCallback } from "@brains/utils/progress";
 
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
@@ -391,9 +391,14 @@ export {
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   PendingApprovalTracker,
+  parseConfirmationIntent,
   parseConfirmationResponse,
   routeConfirmationResponse,
   artifactStatusLabel,
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
   collectPendingApprovalIdsFromStoredMessages,
   collectUploadIdsFromStoredMessages,
   defaultMessageUploadFilename,
@@ -405,7 +410,6 @@ export {
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
-  formatConfirmationPrompt,
   formatConfirmationResult,
   formatContentDispositionHeader,
   formatToolStatusLabel,
@@ -452,6 +456,8 @@ export {
   type ArtifactEntityType,
   type ArtifactJobStatus,
   type AgentResponseTextPartsInput,
+  type ApprovalResolution,
+  type ApprovalResultView,
   type ConfirmationDecision,
   type ConfirmationResultDisplay,
   type ConfirmationResultInput,
@@ -498,7 +504,7 @@ export {
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
 
-export { createId } from "@brains/utils";
+export { createId } from "@brains/utils/id";
 
 // ============================================================================
 // Routing & Navigation (Site Builder)
@@ -553,6 +559,7 @@ export {
   baseProfileExtension,
   professionalProfileExtension,
   fetchAnchorProfile,
+  fetchAnchorProfileData,
 } from "@brains/identity-service";
 
 // ============================================================================

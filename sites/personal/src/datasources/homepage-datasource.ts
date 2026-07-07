@@ -1,21 +1,21 @@
+import { fetchAnchorProfileData } from "@brains/plugins";
 import type {
+  BaseDataSourceContext,
   DataSource,
   DataSourceSchema,
-  BaseDataSourceContext,
 } from "@brains/plugins";
-import { fetchAnchorProfile } from "@brains/plugins";
-import { AnchorProfileAdapter } from "@brains/identity-service";
-import { fetchSiteInfo } from "@brains/site-info";
-import { sortByPublicationDate } from "@brains/utils";
+import {
+  fetchRecentEntities,
+  fetchSiteInfo,
+  requireCta,
+  type SiteInfoCTA,
+} from "@brains/site-info";
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 import {
   type BlogPost,
   parsePostData,
   type BlogPostWithData,
 } from "@brains/blog";
-import type { SiteInfoCTA } from "@brains/site-info";
-
-const adapter = new AnchorProfileAdapter();
 
 interface HomepageDataSourceOutput {
   profile: PersonalProfile;
@@ -46,34 +46,21 @@ export class HomepageDataSource implements DataSource {
   ): Promise<T> {
     const entityService = context.entityService;
 
-    const [profileContent, publishedPosts, siteInfo] = await Promise.all([
-      fetchAnchorProfile(entityService),
-      entityService.listEntities<BlogPost>({
+    const [profile, posts, siteInfo] = await Promise.all([
+      fetchAnchorProfileData(entityService, personalProfileSchema),
+      fetchRecentEntities<BlogPost, BlogPostWithData>(entityService, {
         entityType: "post",
-        options: { limit: 20 },
+        count: 6,
+        parse: parsePostData,
       }),
       fetchSiteInfo(entityService),
     ]);
-
-    const profile = adapter.parseProfileBody(
-      profileContent,
-      personalProfileSchema,
-    );
-
-    const posts = publishedPosts
-      .sort(sortByPublicationDate)
-      .slice(0, 6)
-      .map(parsePostData);
-
-    if (!siteInfo.cta) {
-      throw new Error("CTA not configured in site-info");
-    }
 
     const data: HomepageDataSourceOutput = {
       profile,
       posts,
       postsListUrl: this.postsListUrl,
-      cta: siteInfo.cta,
+      cta: requireCta(siteInfo.cta),
     };
 
     return outputSchema.parse(data);

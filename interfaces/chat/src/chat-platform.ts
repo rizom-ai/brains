@@ -1,4 +1,4 @@
-import { chunkMessage } from "@brains/utils";
+import { chunkMessage } from "@brains/utils/chunk-message";
 import { CHAT_PLATFORMS, type ChatPlatform } from "./types";
 
 const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {

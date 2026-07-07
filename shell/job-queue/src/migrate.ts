@@ -2,7 +2,7 @@
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { createJobQueueDatabase, enableWALMode } from "./db";
 import type { JobQueueDbConfig } from "./types";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 
 export async function migrateJobQueue(
   config: JobQueueDbConfig,

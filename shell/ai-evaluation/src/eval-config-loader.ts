@@ -365,10 +365,12 @@ async function parseRawBrainEvalYaml(
   content: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const { fromYaml, interpolateEnv } = await import("@brains/utils");
+    const { fromYaml } = await import("@brains/utils/yaml");
+    const { interpolateEnv } = await import("@brains/utils/string-utils");
     const parsed = rawYamlSchema.safeParse(fromYaml(content));
     if (parsed.success) {
-      return rawYamlSchema.parse(interpolateEnv(parsed.data));
+      const interpolated = rawYamlSchema.safeParse(interpolateEnv(parsed.data));
+      if (interpolated.success) return interpolated.data;
     }
   } catch {
     // Ignore parse errors — overrides already parsed above.

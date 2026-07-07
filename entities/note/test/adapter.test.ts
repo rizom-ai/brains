@@ -116,6 +116,46 @@ Just content, no frontmatter.`;
 
       expect(markdown).toBe(content);
     });
+
+    it("should preserve status frontmatter when title is absent", () => {
+      const content = `---
+status: generating
+---
+
+Body content`;
+
+      const entity = createMockNote({
+        content,
+        metadata: { title: "Untitled", status: "generating" },
+      });
+      const markdown = adapter.toMarkdown(entity);
+
+      expect(markdown).toContain("status: generating");
+      expect(markdown).toContain("Body content");
+    });
+
+    it("should preserve status and error frontmatter when title is absent", () => {
+      const content = `---
+status: failed
+error: Generation failed
+---
+
+Body content`;
+
+      const entity = createMockNote({
+        content,
+        metadata: {
+          title: "Untitled",
+          status: "failed",
+          error: "Generation failed",
+        },
+      });
+      const markdown = adapter.toMarkdown(entity);
+
+      expect(markdown).toContain("status: failed");
+      expect(markdown).toContain("error: Generation failed");
+      expect(markdown).toContain("Body content");
+    });
   });
 
   describe("extractMetadata", () => {

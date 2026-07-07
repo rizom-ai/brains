@@ -113,6 +113,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
     this.httpServer = StreamableHTTPServer.createFresh({
       port: this.config.httpPort,
       logger: this.logger,
+      sessionIdleTtlMs: this.config.sessionIdleTtlMs,
       auth: this.config.authToken
         ? { token: this.config.authToken }
         : authService
@@ -293,9 +294,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
       // Connect MCP server from service to HTTP transport
       const mcpServer = this.mcpTransport.getMcpServer();
       this.httpServer.connectMCPServer(mcpServer, this.mcpTransport);
-
-      // Connect agent service for /api/chat endpoint
-      this.httpServer.connectAgentService(context.agent);
 
       this.logger.debug("MCP HTTP transport mounted on shared webserver host");
     }

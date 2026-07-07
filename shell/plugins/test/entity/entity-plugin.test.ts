@@ -7,14 +7,14 @@ import {
 } from "../../src/entity/entity-plugin";
 import type { EntityPluginContext } from "../../src/entity/context";
 import type { DerivedEntityProjection } from "../../src/entity/derived-entity-projection";
+import {
+  BaseEntityAdapter,
+  baseEntitySchema,
+  emptyFrontmatterSchema,
+} from "@brains/entity-service";
 import type {
   BaseEntity,
   CreateInterceptionResult,
-} from "@brains/entity-service";
-import {
-  baseEntitySchema,
-  BaseEntityAdapter,
-  emptyFrontmatterSchema,
 } from "@brains/entity-service";
 
 const testSchema = baseEntitySchema;

@@ -215,6 +215,22 @@ describe("PublishExecuteHandler", () => {
     handler = new PublishExecuteHandler(config);
   });
 
+  function createHandlerWithAttachments(
+    resolveAttachment: NonNullable<
+      PublishExecuteHandlerConfig["resolveAttachment"]
+    >,
+  ): PublishExecuteHandler {
+    const config: PublishExecuteHandlerConfig = {
+      sendMessage: (request) => messageSender.sendMessage(request),
+      logger,
+      entityService,
+      providers,
+      permissions,
+      resolveAttachment,
+    };
+    return new PublishExecuteHandler(config);
+  }
+
   describe("handle", () => {
     it("requires publish permission before executing", async () => {
       permissions.assertEntityActionAllowed = mock(() => {
@@ -482,15 +498,8 @@ describe("PublishExecuteHandler", () => {
       };
       const resolveAttachment = mock(() => Promise.resolve(carouselPdf));
 
-      const handlerWithAttachments = new PublishExecuteHandler({
-        sendMessage: (request): ReturnType<typeof messageSender.sendMessage> =>
-          messageSender.sendMessage(request),
-        logger,
-        entityService,
-        providers,
-        permissions,
-        resolveAttachment,
-      });
+      const handlerWithAttachments =
+        createHandlerWithAttachments(resolveAttachment);
 
       await handlerWithAttachments.handle({
         entityType: "social-post",
@@ -514,15 +523,8 @@ describe("PublishExecuteHandler", () => {
       entityService.setGetEntityResult(samplePostWithSource);
       const resolveAttachment = mock(() => Promise.resolve(undefined));
 
-      const handlerWithAttachments = new PublishExecuteHandler({
-        sendMessage: (request): ReturnType<typeof messageSender.sendMessage> =>
-          messageSender.sendMessage(request),
-        logger,
-        entityService,
-        providers,
-        permissions,
-        resolveAttachment,
-      });
+      const handlerWithAttachments =
+        createHandlerWithAttachments(resolveAttachment);
 
       await handlerWithAttachments.handle({
         entityType: "social-post",
@@ -566,15 +568,8 @@ Post with both explicit doc and source.`,
       });
       const resolveAttachment = mock(() => Promise.resolve(undefined));
 
-      const handlerWithAttachments = new PublishExecuteHandler({
-        sendMessage: (request): ReturnType<typeof messageSender.sendMessage> =>
-          messageSender.sendMessage(request),
-        logger,
-        entityService,
-        providers,
-        permissions,
-        resolveAttachment,
-      });
+      const handlerWithAttachments =
+        createHandlerWithAttachments(resolveAttachment);
 
       await handlerWithAttachments.handle({
         entityType: "social-post",

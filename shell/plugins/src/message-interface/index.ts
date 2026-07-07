@@ -43,11 +43,16 @@ export {
   type ToolStatusUpdate,
 } from "./tool-status";
 
+export { parseConfirmationResponse } from "./confirmation-handler";
+
 export {
-  parseConfirmationResponse,
-  formatConfirmationPrompt,
-  ConfirmationTracker,
-} from "./confirmation-handler";
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
+  type ApprovalResolution,
+  type ApprovalResultView,
+} from "./approval-cards";
 
 export {
   containsApprovalIdToken,

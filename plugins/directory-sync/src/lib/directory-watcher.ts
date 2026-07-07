@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ImportResult, JobRequest } from "../types";
 import { EventHandler } from "./event-handler";
 import type { FileOperations } from "./file-operations";

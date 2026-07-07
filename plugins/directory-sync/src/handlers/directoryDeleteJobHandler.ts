@@ -1,7 +1,7 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import type { ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import type { IDirectorySync } from "../types";
 import {
   directoryDeleteJobSchema,

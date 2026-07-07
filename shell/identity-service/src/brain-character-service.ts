@@ -3,7 +3,7 @@ import {
   internalFullScope,
   SingletonEntityService,
 } from "@brains/entity-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { BrainCharacter } from "./brain-character-schema";
 import { BrainCharacterAdapter } from "./brain-character-adapter";
 

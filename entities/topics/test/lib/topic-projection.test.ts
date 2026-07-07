@@ -9,7 +9,7 @@ import {
   createMockShell,
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import type { TopicsPluginConfig } from "../../src/schemas/config";
 import {
   createTopicProjectionHandler,
@@ -358,13 +358,11 @@ describe("topic projection helpers", () => {
     const deleteEntity = mock(async (): Promise<boolean> => true);
     const context = {
       entityService: {
-        listEntities: mock(
-          async (): Promise<BaseEntity[]> => [
-            createTopic("topic-a", "public"),
-            createTopic("topic-b", "shared"),
-            createTopic("topic-c", "restricted"),
-          ],
-        ),
+        listEntities: mock(async (): Promise<BaseEntity[]> => [
+          createTopic("topic-a", "public"),
+          createTopic("topic-b", "shared"),
+          createTopic("topic-c", "restricted"),
+        ]),
         deleteEntity,
       },
     } as unknown as EntityPluginContext;

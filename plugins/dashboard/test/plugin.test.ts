@@ -256,6 +256,22 @@ describe("DashboardPlugin", () => {
       expect(testPluginCount()).toBe(0);
     });
 
+    it("should return a structured error for a malformed unregister payload", async () => {
+      const response = await harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: "dashboard:unregister-widget",
+          payload: { widgetId: 42 },
+          sender: "test",
+        });
+
+      expect(response).toEqual({
+        success: false,
+        error: "Widget unregistration failed",
+      });
+    });
+
     it("should reject a custom renderer without a component", async () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "broken-widget",

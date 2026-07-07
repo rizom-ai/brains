@@ -1,7 +1,7 @@
 import { z } from "@brains/utils/zod";
 import {
-  anchorProfileBodySchema,
   type AnchorProfile,
+  anchorProfileBodySchema,
 } from "@brains/identity-service";
 
 /**

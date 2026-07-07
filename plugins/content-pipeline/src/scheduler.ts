@@ -1,4 +1,4 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 /**
  * ContentScheduler - Cron-based scheduler for content pipeline queues
  *

@@ -25,8 +25,8 @@ import type {
   NewSummaryTracking,
 } from "./schema";
 import { conversations, messages, summaryTracking } from "./schema";
-import type { Logger } from "@brains/utils";
-import { createId } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { createId } from "@brains/utils/id";
 import type { MessageBus } from "@brains/messaging-service";
 import { and, eq, desc, asc, sql, count, gt } from "drizzle-orm";
 

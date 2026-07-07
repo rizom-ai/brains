@@ -4,6 +4,10 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  deployScriptNames,
+  resolveDeployScriptPath,
+} from "@brains/deploy-support";
 import { z } from "@brains/utils/zod";
 
 import packageJson from "../package.json";
@@ -48,6 +52,27 @@ describe("@rizom/ops package metadata", () => {
     expect(deployTemplate).toContain("/opt/brain-dist:/app/dist");
     expect(dockerfile).toContain("ENV XDG_DATA_HOME=/data");
     expect(dockerfile).toContain("ENV XDG_CONFIG_HOME=/config");
+  });
+
+  it("keeps committed deploy script templates identical to @brains/deploy-support", () => {
+    // templates/rover-pilot/deploy/scripts is regenerated from
+    // @brains/deploy-support by scripts/build.ts (copyDeployScripts); this
+    // guards against hand-edits.
+    for (const script of deployScriptNames) {
+      const committed = readFileSync(
+        join(
+          packageDir,
+          "templates",
+          "rover-pilot",
+          "deploy",
+          "scripts",
+          script,
+        ),
+        "utf8",
+      );
+      const canonical = readFileSync(resolveDeployScriptPath(script), "utf8");
+      expect(committed).toBe(canonical);
+    }
   });
 
   it("publishes built dist entrypoints and templates", () => {

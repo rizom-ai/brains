@@ -1,6 +1,6 @@
 {
   "name": "@brains/ui-library",
-  "version": "0.2.0-alpha.137",
+  "version": "0.2.0-alpha.140",
   "private": true,
   "description": "Shared UI components for the Brains project.",
   "author": "Gemini",
@@ -10,9 +10,11 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"**/*.{ts,tsx}\"",
-    "lint:fix": "eslint \"**/*.{ts,tsx}\" --fix",
-    "test": "bun test"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "test": "bun test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@brains/utils": "workspace:*",

@@ -5,11 +5,11 @@ import { ServicePlugin } from "@brains/plugins";
 import {
   generateCmsConfig,
   type CmsConfig,
-  type EntityDisplayMap,
-} from "@brains/cms-config";
+  type CmsEntityDisplayMap,
+} from "./config";
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
-import { toYaml } from "@brains/utils";
+import { toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
@@ -124,7 +124,7 @@ interface EnabledLoginMethods {
 }
 
 interface CmsConfigBuildOptions {
-  entityDisplay?: EntityDisplayMap;
+  entityDisplay?: CmsEntityDisplayMap;
   authEndpoint?: string;
   baseUrl?: string;
 }
@@ -170,8 +170,8 @@ function getCmsConfigOptions(
   context?: ServicePluginContext,
 ): CmsConfigBuildOptions {
   const entityDisplay =
-    (config.entityDisplay as EntityDisplayMap | undefined) ??
-    (context?.entityDisplay as EntityDisplayMap | undefined);
+    (config.entityDisplay as CmsEntityDisplayMap | undefined) ??
+    (context?.entityDisplay as CmsEntityDisplayMap | undefined);
   return {
     ...(entityDisplay ? { entityDisplay } : {}),
     ...(hasEnabledLogin(loginMethods)
@@ -788,7 +788,7 @@ function webauthnBrowserHelpers(): string {
     async function fetchJSON(url, init) {
       const response = await fetch(url, init);
       let payload = null;
-      try { payload = await response.json(); } catch {}
+      try { payload = await response.json(); } catch { /* non-JSON body; fall through to status check */ }
       if (!response.ok) {
         const message = payload && (payload.error_description || payload.error) ? (payload.error_description || payload.error) : response.statusText;
         throw new Error(message);

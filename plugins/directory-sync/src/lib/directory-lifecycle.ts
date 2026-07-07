@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { ensureSyncPath } from "./directory-path";
 
 export async function initializeDirectorySync(

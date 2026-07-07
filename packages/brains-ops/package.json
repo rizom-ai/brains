@@ -4,7 +4,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.2.0-alpha.137",
+  "version": "0.2.0-alpha.140",
   "type": "module",
   "exports": {
     ".": {
@@ -30,8 +30,8 @@
     "build": "bun scripts/build.ts",
     "prepublishOnly": "bun scripts/build.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"**/*.ts\"",
-    "lint:fix": "eslint \"**/*.ts\" --fix",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
     "test": "bun run build && bun test --timeout 20000",
     "test:smoke": "bun run build && RUN_SMOKE_TESTS=1 bun test --timeout 60000"
   },

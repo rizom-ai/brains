@@ -3,6 +3,7 @@ import type { BlogPlugin } from "../src/index";
 import { blogPlugin } from "../src/index";
 import { BlogPostAdapter } from "../src/adapters/blog-post-adapter";
 import type { BlogPost } from "../src/schemas/blog-post";
+import { blogPostFrontmatterSchema } from "../src/schemas/blog-post";
 import { createMockBlogPost } from "./fixtures/blog-entities";
 import { createTestEntity } from "@brains/test-utils";
 import packageJson from "../package.json";
@@ -38,6 +39,22 @@ describe("BlogPlugin", () => {
 
       expect(customPlugin.id).toBe("blog");
       expect(customPlugin.version).toBe(packageJson.version);
+    });
+  });
+
+  describe("blogPostFrontmatterSchema", () => {
+    it("rejects an empty-string publishedAt, so list templates can use ?? to fall back to created", () => {
+      const base = {
+        title: "Post",
+        status: "draft",
+        excerpt: "Excerpt",
+        author: "Author",
+      };
+      expect(
+        blogPostFrontmatterSchema.safeParse({ ...base, publishedAt: "" })
+          .success,
+      ).toBe(false);
+      expect(blogPostFrontmatterSchema.safeParse(base).success).toBe(true);
     });
   });
 

@@ -1,5 +1,5 @@
 import { createSign, generateKeyPairSync } from "node:crypto";
-import { parseJsonResponse } from "@brains/utils";
+import { parseJsonResponse } from "@brains/utils/http-response";
 import { z } from "@brains/utils/zod";
 
 export interface OriginKeyPair {

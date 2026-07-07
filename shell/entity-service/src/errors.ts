@@ -1,4 +1,4 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 
 const validationIssuesErrorSchema = z.looseObject({

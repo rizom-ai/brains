@@ -43,8 +43,22 @@ export interface SiteMetadata {
   sections?: Record<string, SiteMetadataSection> | undefined;
 }
 
+type SiteMetadataSchema = z.ZodObject<{
+  title: z.ZodString;
+  description: z.ZodString;
+  url: z.ZodOptional<z.ZodString>;
+  copyright: z.ZodOptional<z.ZodString>;
+  logo: z.ZodOptional<z.ZodBoolean>;
+  themeMode: z.ZodOptional<z.ZodEnum<{ light: "light"; dark: "dark" }>>;
+  analyticsScript: z.ZodOptional<z.ZodString>;
+  cta: z.ZodOptional<typeof siteMetadataCTASchema>;
+  sections: z.ZodOptional<
+    z.ZodRecord<z.ZodString, typeof siteMetadataSectionSchema>
+  >;
+}>;
+
 /** Plain site metadata consumed by site renderers. */
-export const siteMetadataSchema: z.ZodType<SiteMetadata> = z.object({
+export const siteMetadataSchema: SiteMetadataSchema = z.object({
   title: z.string().describe("The site's title"),
   description: z.string().describe("The site's description"),
   url: z.string().optional().describe("Canonical site URL"),

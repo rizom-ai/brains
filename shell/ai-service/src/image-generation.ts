@@ -1,5 +1,5 @@
 import { generateImage } from "ai";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type {
   AspectRatio,
   ImageGenerationOptions,

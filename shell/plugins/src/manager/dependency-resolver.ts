@@ -1,5 +1,5 @@
-import { getErrorMessage } from "@brains/utils";
-import type { Logger } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 import type { EventEmitter } from "events";
 import type { PluginInfo } from "./types";
 import { PluginStatus, PluginEvent } from "./types";

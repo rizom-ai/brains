@@ -1,5 +1,9 @@
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import {
+  siteMetadataCTASchema,
+  siteMetadataSchema,
+} from "@brains/site-composition";
 
 export interface SiteInfoMetadata {
   [key: string]: unknown;
@@ -33,86 +37,28 @@ export const siteInfoSchema: ReturnType<
  */
 export type SiteInfoEntity = z.output<typeof siteInfoSchema>;
 
-export interface SiteInfoCTA {
-  heading: string;
-  buttonText: string;
-  buttonLink: string;
-}
-
-type SiteInfoCTASchema = z.ZodObject<{
-  heading: z.ZodString;
-  buttonText: z.ZodString;
-  buttonLink: z.ZodString;
-}>;
-
 /**
  * CTA schema - call-to-action configuration.
- *
- * Local durable frontmatter schema for the site-info entity.
  */
-export const siteInfoCTASchema: SiteInfoCTASchema = z.object({
-  heading: z.string().describe("Main CTA heading text"),
-  buttonText: z.string().describe("Call-to-action button text"),
-  buttonLink: z.string().describe("URL or anchor for the CTA button"),
+export const siteInfoCTASchema: typeof siteMetadataCTASchema =
+  siteMetadataCTASchema;
+
+export const siteInfoBodySchema: ReturnType<
+  typeof siteMetadataSchema.omit<{
+    url: true;
+    analyticsScript: true;
+  }>
+> = siteMetadataSchema.omit({
+  url: true,
+  analyticsScript: true,
 });
-
-export interface SiteInfoSection {
-  blurb?: string | undefined;
-}
-
-type SiteInfoSectionSchema = z.ZodObject<{
-  blurb: z.ZodOptional<z.ZodString>;
-}>;
-
-const siteInfoSectionSchema: SiteInfoSectionSchema = z.object({
-  blurb: z
-    .string()
-    .optional()
-    .describe("Short italic subtitle under the section title"),
-});
-
-export interface SiteInfoBody {
-  [key: string]: unknown;
-  title: string;
-  description: string;
-  copyright?: string | undefined;
-  logo?: boolean | undefined;
-  themeMode?: "light" | "dark" | undefined;
-  cta?: SiteInfoCTA | undefined;
-  sections?: Record<string, SiteInfoSection> | undefined;
-}
-
-export type SiteInfoBodySchema = z.ZodObject<{
-  title: z.ZodString;
-  description: z.ZodString;
-  copyright: z.ZodOptional<z.ZodString>;
-  logo: z.ZodOptional<z.ZodBoolean>;
-  themeMode: z.ZodOptional<z.ZodEnum<{ light: "light"; dark: "dark" }>>;
-  cta: z.ZodOptional<SiteInfoCTASchema>;
-  sections: z.ZodOptional<z.ZodRecord<z.ZodString, SiteInfoSectionSchema>>;
-}>;
 
 /**
- * Site info body schema - structure of content within the markdown
- * (Not stored as separate entity fields - parsed from content)
+ * Site info body type
  */
-export const siteInfoBodySchema: SiteInfoBodySchema = z.object({
-  title: z.string().describe("The site's title"),
-  description: z.string().describe("The site's description"),
-  copyright: z.string().optional().describe("Copyright notice text"),
-  logo: z
-    .boolean()
-    .optional()
-    .describe("Whether to display logo instead of title text in header"),
-  themeMode: z
-    .enum(["light", "dark"])
-    .optional()
-    .describe("Default theme mode"),
-  cta: siteInfoCTASchema.optional().describe("Call-to-action configuration"),
-  sections: z
-    .record(z.string(), siteInfoSectionSchema)
-    .optional()
-    .describe(
-      "Optional per-section blurbs, keyed by section id (e.g. 'essays', 'presentations', 'about'). Used by homepage templates that render editorial section headers.",
-    ),
-});
+export type SiteInfoBody = z.output<typeof siteInfoBodySchema>;
+
+/**
+ * CTA configuration type
+ */
+export type SiteInfoCTA = NonNullable<SiteInfoBody["cta"]>;

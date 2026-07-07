@@ -2,8 +2,8 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { NotePlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { JobHandler } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils";
+import type { EntityMutationResult, JobHandler } from "@brains/plugins";
+import { ProgressReporter } from "@brains/utils/progress";
 
 const primerPdfBase64 =
   "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NCA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoRGlzdHJpYnV0ZWQgU3lzdGVtcyBQcmltZXIpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzQ4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDE4CiUlRU9GCg==";
@@ -116,14 +116,17 @@ describe("NotePlugin", () => {
       expect(enqueuedJobs).toHaveLength(1);
       expect(enqueuedJobs[0]).toMatchObject({
         type: "note:upload-import",
-        data: { uploadId: upload.id },
+        data: { uploadId: upload.id, entityId: "research-notes" },
       });
 
       let entity = await harness.getEntityService().getEntity({
         entityType: "note",
         id: "research-notes",
       });
-      expect(entity).toBeNull();
+      expect(entity?.metadata).toMatchObject({
+        title: "research-notes",
+        status: "generating",
+      });
 
       await runQueuedUploadImport();
 
@@ -134,7 +137,7 @@ describe("NotePlugin", () => {
       expect(entity?.content).toBe(
         `---\ntitle: research-notes\n---\n${rawMarkdown}\n`,
       );
-      expect(entity?.metadata).toMatchObject({ title: "research-notes" });
+      expect(entity?.metadata).toEqual({ title: "research-notes" });
     });
 
     it("imports an uploaded JSON file as a markdown note", async () => {
@@ -268,6 +271,145 @@ describe("NotePlugin", () => {
       expect(entity?.metadata).toMatchObject({
         title: "distributed-systems-primer",
       });
+    });
+
+    it("returns the deduplicated entityId when the derived id is taken", async () => {
+      const entityService = harness.getEntityService();
+      const now = new Date().toISOString();
+      await entityService.createEntity({
+        entity: {
+          id: "research-notes",
+          entityType: "note",
+          content: "# Existing\n\nOriginal note body",
+          metadata: { title: "Existing" },
+          created: now,
+          updated: now,
+        },
+      });
+      // The mock entity service ignores deduplicateId — emulate the real
+      // service's suffix resolution so the interceptor sees a resolved id.
+      const originalCreate = entityService.createEntity.bind(entityService);
+      entityService.createEntity = async (
+        request,
+      ): Promise<EntityMutationResult> => {
+        const { entity } = request;
+        const existing =
+          entity.id && entity.entityType
+            ? await entityService.getEntity({
+                entityType: entity.entityType,
+                id: entity.id,
+              })
+            : null;
+        if (existing) {
+          return originalCreate({
+            ...request,
+            entity: { ...entity, id: `${entity.id}-2` },
+          });
+        }
+        return originalCreate(request);
+      };
+
+      const uploadStore = harness.getEntityContext("test").uploads.scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000705",
+      });
+      const upload = await uploadStore.save({
+        filename: "research-notes.txt",
+        mediaType: "text/plain",
+        content: Buffer.from("Fresh imported body", "utf8"),
+      });
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
+
+      const result = await interceptor(
+        {
+          entityType: "note",
+          from: { kind: "upload", id: upload.id },
+          transform: "extract-markdown",
+        },
+        { interfaceType: "web-chat", userId: "operator" },
+      );
+
+      expect(result.kind).toBe("handled");
+      if (result.kind !== "handled") return;
+      if (!result.result.success) throw new Error(result.result.error);
+      expect(result.result.data).toEqual({
+        entityId: "research-notes-2",
+        status: "generating",
+        jobId: "queued-note-job",
+      });
+      expect(enqueuedJobs[0]).toMatchObject({
+        type: "note:upload-import",
+        data: { uploadId: upload.id, entityId: "research-notes-2" },
+      });
+
+      await runQueuedUploadImport();
+
+      const imported = await harness.getEntityService().getEntity({
+        entityType: "note",
+        id: "research-notes-2",
+      });
+      expect(imported?.content).toContain("Fresh imported body");
+
+      const original = await harness.getEntityService().getEntity({
+        entityType: "note",
+        id: "research-notes",
+      });
+      expect(original?.content).toContain("Original note body");
+    });
+
+    it("marks the stub failed when the import job fails", async () => {
+      const uploadStore = harness.getEntityContext("test").uploads.scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000706",
+      });
+      const upload = await uploadStore.save({
+        filename: "doomed-import.txt",
+        mediaType: "text/plain",
+        content: Buffer.from("Body", "utf8"),
+      });
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
+
+      const result = await interceptor(
+        {
+          entityType: "note",
+          from: { kind: "upload", id: upload.id },
+          transform: "extract-markdown",
+        },
+        { interfaceType: "web-chat", userId: "operator" },
+      );
+      expect(result.kind).toBe("handled");
+
+      const handler = registeredHandlers.get("note:upload-import");
+      if (!handler) {
+        throw new Error("note:upload-import handler not registered");
+      }
+      const reporter = ProgressReporter.from(async () => {});
+      if (!reporter) throw new Error("progress reporter not created");
+      const jobResult = await handler.process(
+        { uploadId: "missing-upload", entityId: "doomed-import" },
+        "queued-note-job",
+        reporter,
+      );
+      expect(jobResult).toMatchObject({ success: false });
+
+      const entity = await harness.getEntityService().getEntity({
+        entityType: "note",
+        id: "doomed-import",
+      });
+      expect(entity?.metadata).toMatchObject({ status: "failed" });
+      expect(
+        (entity?.metadata as Record<string, unknown>)["error"],
+      ).toBeDefined();
     });
   });
 });

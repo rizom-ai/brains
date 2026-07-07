@@ -93,7 +93,7 @@ describe("Deserialize error quarantine behavior", () => {
   });
 
   it("should STILL quarantine files on Zod validation errors", async () => {
-    const { z } = await import("@brains/utils");
+    const { z } = await import("@brains/utils/zod");
 
     mkdirSync(join(testDir, "post"), { recursive: true });
     const filePath = join(testDir, "post", "bad.md");

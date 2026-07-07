@@ -523,17 +523,52 @@ describe("JSON-RPC Handler", () => {
       return events;
     }
 
-    it("should stream status-update events with correct shape", async () => {
-      agentService = createMockAgentService({ text: "Streamed result" });
+    /** Assert a stream result (not a JSON-RPC error) and return it */
+    function expectStream(result: ReturnType<typeof handleStreamMessage>): {
+      taskId: string;
+      stream: ReadableStream<Uint8Array>;
+    } {
+      if ("error" in result) {
+        throw new Error(`Expected stream, got error: ${result.error.message}`);
+      }
+      return result;
+    }
 
+    it("should reject a message with no text parts with -32602", () => {
       const result = handleStreamMessage(
         1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+        { kind: "message", parts: [{ kind: "data", data: {} }] },
         {
           taskManager,
           agentService,
           callerPermissionLevel: "public",
         },
+      );
+
+      if (!("error" in result)) {
+        throw new Error("Expected a JSON-RPC error");
+      }
+      expect(result.error.code).toBe(-32602);
+      expect(result.error.message).toBe(
+        "Message must contain at least one text part",
+      );
+      expect(result.id).toBe(1);
+      expect(taskManager.size).toBe(0);
+    });
+
+    it("should stream status-update events with correct shape", async () => {
+      agentService = createMockAgentService({ text: "Streamed result" });
+
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService,
+            callerPermissionLevel: "public",
+          },
+        ),
       );
 
       const events = await collectEvents(result.stream);
@@ -565,14 +600,16 @@ describe("JSON-RPC Handler", () => {
         },
       });
 
-      const result = handleStreamMessage(
-        1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
-        {
-          taskManager,
-          agentService: failingAgent,
-          callerPermissionLevel: "public",
-        },
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService: failingAgent,
+            callerPermissionLevel: "public",
+          },
+        ),
       );
 
       const events = await collectEvents(result.stream);
@@ -584,14 +621,16 @@ describe("JSON-RPC Handler", () => {
     });
 
     it("should return taskId with the stream", () => {
-      const result = handleStreamMessage(
-        1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
-        {
-          taskManager,
-          agentService,
-          callerPermissionLevel: "public",
-        },
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService,
+            callerPermissionLevel: "public",
+          },
+        ),
       );
 
       expect(result.taskId).toBeDefined();
@@ -603,15 +642,17 @@ describe("JSON-RPC Handler", () => {
         chat: async () => new Promise<AgentResponse>(() => {}),
       });
 
-      const result = handleStreamMessage(
-        1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
-        {
-          taskManager,
-          agentService: slowAgent,
-          callerPermissionLevel: "public",
-        },
-        { heartbeatIntervalMs: 5 },
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService: slowAgent,
+            callerPermissionLevel: "public",
+          },
+          { heartbeatIntervalMs: 5 },
+        ),
       );
 
       const reader = result.stream.getReader();
@@ -632,14 +673,16 @@ describe("JSON-RPC Handler", () => {
         },
       });
 
-      const result = handleStreamMessage(
-        1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
-        {
-          taskManager,
-          agentService: slowAgent,
-          callerPermissionLevel: "public",
-        },
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService: slowAgent,
+            callerPermissionLevel: "public",
+          },
+        ),
       );
 
       // Read one event then cancel

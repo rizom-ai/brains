@@ -10,6 +10,7 @@ import type {
   FetchImageFn,
   SelectResult,
 } from "../lib/types";
+import { setCoverImage } from "../lib/set-cover-image";
 
 export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
@@ -156,13 +157,12 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         };
 
         if (targetEntityType && targetEntityId) {
-          await setCoverImage(
+          result.coverSet = await setCoverImage(
             deps.entityService,
             targetEntityType,
             targetEntityId,
             existing[0].id,
           );
-          result.coverSet = true;
         }
 
         return { success: true, data: result };
@@ -192,33 +192,11 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         status: "generating",
       };
       if (targetEntityType && targetEntityId) {
-        result.coverSet = true;
+        // The queued job sets the cover once the image is materialized.
+        result.coverSet = false;
       }
 
       return { success: true, data: result };
     },
   };
-}
-
-async function setCoverImage(
-  entityService: IEntityService,
-  entityType: string,
-  entityId: string,
-  imageEntityId: string,
-): Promise<void> {
-  const target = await entityService.getEntity({
-    entityType: entityType,
-    id: entityId,
-  });
-  if (!target) return;
-
-  await entityService.updateEntity({
-    entity: {
-      ...target,
-      metadata: {
-        ...target.metadata,
-        coverImageId: imageEntityId,
-      },
-    },
-  });
 }

@@ -9,7 +9,7 @@ export interface WordmarkParts {
 // matching the rizom.ai wordmark used by the deck carousel. Prefers an existing
 // dot ("rizom.ai"), falls back to first space ("Alex Chen" → "alex.chen"), else
 // renders a single part. Shared by every media-render template (no Tailwind in
-// that pipeline, so this is intentionally separate from rizom-ui's Wordmark).
+// that pipeline, so this is intentionally separate from the Rizom Wordmark component).
 export function splitWordmark(label: string): WordmarkParts {
   const trimmed = label.trim();
   const dot = trimmed.lastIndexOf(".");

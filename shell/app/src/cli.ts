@@ -55,7 +55,7 @@ function createHeadlessConfig(config: AppConfig): AppConfig {
 }
 
 async function routeLogsToStderr(): Promise<void> {
-  const { Logger } = await import("@brains/utils");
+  const { Logger } = await import("@brains/utils/logger");
   Logger.getInstance().setUseStderr(true);
 }
 
@@ -339,7 +339,7 @@ async function runDiagnostics(
   args: string[],
   App: AppFactory,
 ): Promise<void> {
-  const { Logger, LogLevel } = await import("@brains/utils");
+  const { Logger, LogLevel } = await import("@brains/utils/logger");
   // Suppress plugin registration noise — only show warnings and errors
   Logger.resetInstance();
   Logger.getInstance({ level: LogLevel.WARN, useStderr: true });

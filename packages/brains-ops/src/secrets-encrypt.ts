@@ -8,7 +8,7 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { toYaml } from "@brains/utils";
+import { toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";

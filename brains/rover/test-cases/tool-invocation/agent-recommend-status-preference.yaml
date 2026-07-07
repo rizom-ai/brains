@@ -1,0 +1,31 @@
+id: tool-invocation-agent-recommend-status-preference
+name: Agent Expertise Recommendation Prefers Approved Match
+description: Verifies that when approved and discovered agents both match an expertise query, the assistant recommends the approved contact first.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - tool-invocation
+  - preset-core
+
+turns:
+  - userMessage: "Who is the best saved agent to ask about brand positioning?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+      argsContain:
+        scope.kind: type
+        scope.entityType: "agent"
+  responseContains:
+    - "Brand Studio"
+  responseNotContains:
+    - "Brand Scout is the best"
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

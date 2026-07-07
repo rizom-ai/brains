@@ -1,5 +1,6 @@
 import { z } from "@brains/utils/zod";
 import type { ICoreEntityService } from "@brains/entity-service";
+import { AnchorProfileAdapter } from "./anchor-profile-adapter";
 
 export interface BaseProfileExtension {
   tagline?: string | undefined;
@@ -106,4 +107,17 @@ export async function fetchAnchorProfile(
     throw new Error("Profile not found — create an anchor-profile entity");
   }
   return entity.content;
+}
+
+/**
+ * Fetch the anchor-profile entity and parse its body with the given schema.
+ * Combines {@link fetchAnchorProfile} with the adapter parse step that every
+ * profile consumer otherwise repeats.
+ */
+export async function fetchAnchorProfileData<T extends Record<string, unknown>>(
+  entityService: ICoreEntityService,
+  schema: z.ZodSchema<T>,
+): Promise<T> {
+  const content = await fetchAnchorProfile(entityService);
+  return new AnchorProfileAdapter().parseProfileBody(content, schema);
 }

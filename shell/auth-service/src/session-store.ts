@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { JsonFileStore } from "./json-file-store";
+import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
-import { isFileNotFoundError } from "./fs-errors";
+import { join } from "node:path";
 
 const DEFAULT_SESSION_STORE_FILE = "oauth-sessions.json";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
@@ -29,10 +29,6 @@ export interface CreateOperatorSessionResult {
 export interface OperatorSessionStoreOptions {
   storageDir: string;
   storeFile?: string;
-}
-
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
 }
 
 function hashToken(token: string): string {
@@ -74,14 +70,17 @@ export function clearOperatorSessionCookie(secure = false): string {
 }
 
 export class OperatorSessionStore {
-  private readonly storeFile: string;
-  private writeQueue: Promise<void> = Promise.resolve();
+  private readonly store: JsonFileStore<SessionStoreFile>;
 
   constructor(options: OperatorSessionStoreOptions) {
-    this.storeFile = join(
-      options.storageDir,
-      options.storeFile ?? DEFAULT_SESSION_STORE_FILE,
-    );
+    this.store = new JsonFileStore({
+      filePath: join(
+        options.storageDir,
+        options.storeFile ?? DEFAULT_SESSION_STORE_FILE,
+      ),
+      parse: parseStoreFile,
+      empty: (): SessionStoreFile => ({ sessions: [] }),
+    });
   }
 
   async createSession(
@@ -99,13 +98,13 @@ export class OperatorSessionStore {
       expires_at: expiresAt,
     };
 
-    await this.enqueueWrite(async () => {
-      const store = await this.readStore();
+    await this.store.enqueueWrite(async () => {
+      const store = await this.store.read();
       store.sessions = store.sessions.filter(
         (session) => session.expires_at > createdAt,
       );
       store.sessions.push(record);
-      await this.writeStore(store);
+      await this.store.write(store);
     });
 
     return {
@@ -123,7 +122,7 @@ export class OperatorSessionStore {
 
     const tokenHash = hashToken(token);
     const now = nowSeconds();
-    const store = await this.readStore();
+    const store = await this.store.read();
     return store.sessions.find(
       (session) => session.token_hash === tokenHash && session.expires_at > now,
     );
@@ -135,43 +134,19 @@ export class OperatorSessionStore {
 
     const tokenHash = hashToken(token);
     let revoked = false;
-    await this.enqueueWrite(async () => {
-      const store = await this.readStore();
+    await this.store.enqueueWrite(async () => {
+      const store = await this.store.read();
       const before = store.sessions.length;
       store.sessions = store.sessions.filter(
         (session) => session.token_hash !== tokenHash,
       );
       revoked = store.sessions.length !== before;
       if (revoked) {
-        await this.writeStore(store);
+        await this.store.write(store);
       }
     });
 
     return revoked;
-  }
-
-  private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
-    this.writeQueue = this.writeQueue.then(operation, operation);
-    return this.writeQueue;
-  }
-
-  private async readStore(): Promise<SessionStoreFile> {
-    try {
-      return parseStoreFile(JSON.parse(await readFile(this.storeFile, "utf8")));
-    } catch (error) {
-      if (isFileNotFoundError(error)) {
-        return { sessions: [] };
-      }
-      throw error;
-    }
-  }
-
-  private async writeStore(store: SessionStoreFile): Promise<void> {
-    await mkdir(dirname(this.storeFile), { recursive: true, mode: 0o700 });
-    await writeFile(this.storeFile, `${JSON.stringify(store, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(this.storeFile, 0o600);
   }
 }
 

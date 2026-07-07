@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.137",
+  "version": "0.2.0-alpha.140",
   "type": "module",
   "private": true,
   "main": "./src/index.ts",
@@ -15,6 +15,7 @@
     "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "eval": "brain-eval",
     "eval:core": "brain-eval --suite core",
     "eval:core:coverage": "brain-eval --suite core --tool-coverage",
@@ -22,8 +23,8 @@
     "eval:default:coverage": "brain-eval --suite default --tool-coverage",
     "eval:full": "brain-eval --suite full",
     "eval:full:coverage": "brain-eval --suite full --tool-coverage",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@brains/a2a": "workspace:*",
@@ -50,7 +51,6 @@
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/obsidian-vault": "workspace:*",
-    "@brains/playbook": "workspace:*",
     "@brains/playbooks": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/prompt": "workspace:*",

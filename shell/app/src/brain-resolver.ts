@@ -5,7 +5,8 @@ import {
   type EntityActionRequiredLevel,
 } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
-import { ensureArray, type Logger } from "@brains/utils";
+import { ensureArray } from "@brains/utils/array";
+import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type {
   BrainDefinition,
@@ -765,7 +766,10 @@ const sitePackageOverridesShapeSchema = z.looseObject({
   staticAssets: z.record(z.string(), z.string()).optional(),
 });
 
-const sitePackageOverridesSchema = z.custom<ConventionalSiteOverrides>(
+// Validate the shape loosely (plugin as a bare function, layouts/routes as
+// records) but declare the trusted output type once here at the parse
+// boundary — same idiom as sitePackageSchema in site-package.ts.
+const conventionalSiteOverridesSchema = z.custom<ConventionalSiteOverrides>(
   (value) => sitePackageOverridesShapeSchema.safeParse(value).success,
 );
 
@@ -791,7 +795,7 @@ function resolveConventionalSitePackage(
 ): SitePackage | undefined {
   if (!definition.site) return undefined;
 
-  const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
+  const parsedOverrides = conventionalSiteOverridesSchema.safeParse(pkg);
   if (!parsedOverrides.success) return undefined;
 
   const { pluginConfig, ...siteOverrides } = parsedOverrides.data;

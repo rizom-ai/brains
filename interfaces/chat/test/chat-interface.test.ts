@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
-import { chunkMessage } from "@brains/utils";
+import { chunkMessage } from "@brains/utils/chunk-message";
 import { z } from "@brains/utils/zod";
 import { createDiscordChatUploadStoreScope } from "../src/upload-store";
+import { PromptActionStore } from "../src/prompt-action-store";
 import type { DiscordChatAdapterConfig } from "../src/config";
 import type {
   ChatAdapterMap,
@@ -2016,6 +2017,50 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("passes topic changes during pending confirmation through to chat", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "Please confirm.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        pendingConfirmations: [
+          {
+            id: "approval-1",
+            toolName: "system_delete",
+            summary: "Delete thing",
+            args: {},
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Fresh topic answer.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "actually tell me about Rover", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).not.toHaveBeenCalled();
+    expect(agentService.chat).toHaveBeenNthCalledWith(
+      2,
+      "actually tell me about Rover",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({
+        userPermissionLevel: "public",
+        interfaceType: "discord",
+        channelId: "discord:guild-123:channel-123:thread-456",
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Fresh topic answer.");
+  });
+
   it("resolves approval cards in the matching conversation when approval ids collide", async () => {
     agentService.chat
       .mockResolvedValueOnce({
@@ -2668,67 +2713,54 @@ describe("ChatInterface", () => {
     );
   });
 
-  it("keeps pending confirmations open after unrecognized replies", async () => {
-    agentService.chat.mockResolvedValueOnce({
-      text: "Please confirm.",
-      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-      pendingConfirmations: [
-        {
-          id: "approval-1",
-          toolName: "system_delete",
-          summary: "Delete thing",
-          args: {},
-        },
-      ],
-    });
+  it("passes unrecognized replies during pending confirmation through to chat", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "Please confirm.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        pendingConfirmations: [
+          {
+            id: "approval-1",
+            toolName: "system_delete",
+            summary: "Delete thing",
+            args: {},
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Maybe answer.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
     await chat?.handlers.subscribedMessages[0]?.(
       thread,
       createMessage({ text: "maybe", isMention: false }),
     );
-    await chat?.handlers.subscribedMessages[0]?.(
-      thread,
-      createMessage({
-        id: "confirm-message-1",
-        text: "yes",
-        isMention: false,
-      }),
-    );
 
-    expect(thread.post).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fallbackText: "Please reply with yes to confirm or no/cancel to abort.",
-        card: expect.objectContaining({ title: "Approval notice" }),
-      }),
-    );
-    expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
-    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+    expect(agentService.confirmPendingAction).not.toHaveBeenCalled();
+    expect(agentService.chat).toHaveBeenNthCalledWith(
+      2,
+      "maybe",
       "discord-discord:guild-123:channel-123:thread-456",
-      true,
-      "approval-1",
       expect.objectContaining({
         channelId: "discord:guild-123:channel-123:thread-456",
         channelName: "discord:guild-123:channel-123",
         interfaceType: "discord",
         userPermissionLevel: "public",
-        actor: expect.objectContaining({
-          actorId: "discord:user-789",
-          displayName: "Mira Ops",
-          username: "mira",
-        }),
-        source: expect.objectContaining({
-          messageId: "confirm-message-1",
-          channelId: "discord:guild-123:channel-123:thread-456",
-          threadId: "thread-456",
-          metadata: expect.objectContaining({ guildId: "guild-123" }),
-        }),
       }),
     );
+    expect(thread.post).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Please reply with yes to confirm or no/cancel to abort.",
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Maybe answer.");
   });
 
   it("requires an approval id when multiple confirmations are pending", async () => {
@@ -4015,6 +4047,93 @@ describe("ChatInterface", () => {
     );
     expect(thread.startTyping).toHaveBeenCalledTimes(2);
     expect(thread.post).toHaveBeenLastCalledWith("Drafted announcement.");
+  });
+
+  it("consumes a suggested prompt action token so it cannot be replayed", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "Pick one.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        cards: [
+          {
+            kind: "actions",
+            id: "actions-1",
+            title: "Next actions",
+            actions: [
+              {
+                type: "prompt",
+                id: "action-1",
+                label: "Draft announcement",
+                prompt: "Draft an announcement",
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Drafted announcement.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    const actionToken = getFirstPromptActionToken(thread);
+    const promptActionHandler = chat?.handlers.actions.find(
+      ({ actionIds }) => actionIds === "chat.prompt",
+    )?.handler;
+
+    const event = {
+      actionId: "chat.prompt",
+      adapter: { name: "discord" },
+      messageId: "actions-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: actionToken,
+    } as MockActionEvent;
+
+    await promptActionHandler?.(event);
+    expect(agentService.chat).toHaveBeenCalledTimes(2);
+
+    // Replaying the same token must not fire another agent turn
+    await promptActionHandler?.(event);
+    expect(agentService.chat).toHaveBeenCalledTimes(2);
+    expect(thread.post.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({
+        fallbackText: "That suggested action is no longer available.",
+        card: expect.objectContaining({ title: "Action unavailable" }),
+      }),
+    );
+  });
+
+  it("bounds the number of retained never-clicked prompt action tokens", () => {
+    const store = new PromptActionStore(1000);
+
+    const firstToken = store.register("discord:thread", {
+      label: "Action 0",
+      prompt: "Prompt 0",
+    });
+    for (let i = 1; i < 2000; i++) {
+      store.register("discord:thread", {
+        label: `Action ${i}`,
+        prompt: `Prompt ${i}`,
+      });
+    }
+
+    expect(store.size).toBeLessThanOrEqual(1000);
+    // Oldest never-clicked tokens are the ones evicted
+    expect(store.get(firstToken)).toBeUndefined();
   });
 
   it("does not route suggested prompt actions when Discord DMs are disabled", async () => {

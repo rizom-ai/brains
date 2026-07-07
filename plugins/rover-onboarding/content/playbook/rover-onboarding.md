@@ -44,6 +44,7 @@ To do:
 - Do not infer brain identity details from the playbook welcome text, ambient memory, or existing brain-character when the operator has not provided details in this run.
 - If the operator asks to continue/next but explicitly says they have not provided brain identity details, ask the Brain identity prompt again and do not call any tools.
 - If the operator gives a compact description, infer reasonable role, purpose, and values from it; ask only for genuinely missing or ambiguous information.
+- If the operator says "Rover should..." or asks to tune Rover's brain identity, treat Rover as the brain name and the supplied description/values as enough identity detail unless role, purpose, and values are genuinely absent.
 - When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
 - Update the existing brain character singleton with system_update using entityType "brain-character" and id "brain-character".
 - Use a full markdown content replacement with valid frontmatter keys: name, role, purpose, and values (values is a YAML list); do not use fields-only updates for brain-character.
@@ -79,7 +80,7 @@ To do:
 - Construct the required full markdown replacement yourself from the operator's natural-language details; never ask the operator to resend full markdown when they already provided name, role, audience, expertise, and tone.
 - When the operator only asks to continue to profile setup, ask the Anchor profile prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
-- Use a full markdown content replacement. Anchor profile accepts its base keys plus extension frontmatter keys preserved by the adapter; do not use brain-character keys such as purpose or values.
+- Use the `content` argument with a full markdown replacement; never use `fields` for anchor-profile during this playbook. Anchor profile accepts its base keys plus extension frontmatter keys preserved by the adapter; do not use brain-character keys such as purpose or values.
 - Set kind to "professional" for an individual operator.
 - Store onboarding essentials as structured frontmatter keys: name, kind, role, audience, expertise, and desiredTone.
 - `kind: professional` is required. Never call system_update for anchor-profile if the replacement content omits kind.

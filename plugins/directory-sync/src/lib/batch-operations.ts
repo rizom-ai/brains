@@ -1,5 +1,5 @@
 import type { ServicePluginContext, BatchOperation } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/plugins";
 import type {
   BatchMetadata,

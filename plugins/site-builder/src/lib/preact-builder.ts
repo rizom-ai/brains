@@ -5,7 +5,8 @@ import type {
   BuildContext,
 } from "./static-site-builder";
 import type { RouteDefinition, SiteLayoutInfo } from "@brains/site-composition";
-import type { Logger, ProgressNotification } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressNotification } from "@brains/utils/progress";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
 import {
@@ -23,7 +24,7 @@ import {
   TailwindCSSProcessor,
   type CSSProcessor,
 } from "@brains/site-engine";
-import { pLimit } from "@brains/utils";
+import { pLimit } from "@brains/utils/p-limit";
 import { z } from "@brains/utils/zod";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };

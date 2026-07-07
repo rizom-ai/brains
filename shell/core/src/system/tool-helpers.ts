@@ -9,7 +9,7 @@ import type {
   PermissionService,
   UserPermissionLevel,
 } from "@brains/templates";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { SystemServices } from "./types";
 

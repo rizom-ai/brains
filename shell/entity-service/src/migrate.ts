@@ -6,7 +6,7 @@ import {
   ensureFtsTable,
 } from "./db";
 import type { EntityDbConfig } from "./types";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 
 export async function migrateEntities(
   config: EntityDbConfig,

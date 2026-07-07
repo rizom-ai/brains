@@ -1,6 +1,6 @@
+import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
 import type { SiteMetadata } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
-import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
 
 /**
  * Schema for site build job data

@@ -1,4 +1,4 @@
-import type { CommandResult } from "../run-command";
+import type { CommandResult } from "../lib/command-result";
 import type { MCPClient } from "../lib/mcp-client";
 
 /** A single tool from the MCP listTools response. */

@@ -1,5 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { parseMarkdown, slugify } from "@brains/utils";
+import { parseMarkdown } from "@brains/utils/markdown";
+import { slugify } from "@brains/utils/string-utils";
 import type {
   PublishAssetDefinition,
   PublishAssetTargetField,

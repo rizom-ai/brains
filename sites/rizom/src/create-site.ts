@@ -5,10 +5,10 @@ import {
   type SitePackage,
 } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
-import rizomBaseSite from ".";
+import { rizomBaseSite } from "./runtime";
 import {
-  RizomRuntimePlugin,
   type RizomRuntimeConfigInput,
+  RizomRuntimePlugin,
   type RizomThemeProfile,
 } from "./runtime/plugin";
 

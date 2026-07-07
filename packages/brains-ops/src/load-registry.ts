@@ -1,7 +1,10 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 
-import { parseYamlDocument, type YamlValidationSchema } from "@brains/utils";
+import {
+  parseYamlDocument,
+  type YamlValidationSchema,
+} from "@brains/utils/yaml";
 
 import {
   type CohortConfig,

@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { GenerationJobHandler } from "../handlers/generationHandler";
 

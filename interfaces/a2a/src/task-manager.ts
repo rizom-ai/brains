@@ -47,9 +47,16 @@ export class TaskManager {
   }
 
   /**
-   * Evict terminal tasks whose updatedAt exceeds the TTL
+   * Fail overdue working tasks, then evict terminal tasks whose
+   * updatedAt exceeds the TTL
    */
   private evictExpired(): void {
+    for (const [id, record] of this.tasks) {
+      if (this.isOverdueWorking(record)) {
+        this.updateState(id, "failed", "Processing timed out");
+      }
+    }
+
     const now = Date.now();
     for (const [id, record] of this.tasks) {
       if (
@@ -59,6 +66,15 @@ export class TaskManager {
         this.tasks.delete(id);
       }
     }
+  }
+
+  private isOverdueWorking(record: TaskRecord): boolean {
+    return (
+      record.task.status.state === "working" &&
+      record.workingStartedAt !== undefined &&
+      Date.now() - new Date(record.workingStartedAt).getTime() >=
+        this.processingTimeoutMs
+    );
   }
 
   /**
@@ -179,12 +195,7 @@ export class TaskManager {
     if (!record) return undefined;
 
     // Auto-fail stale working tasks
-    if (
-      record.task.status.state === "working" &&
-      record.workingStartedAt &&
-      Date.now() - new Date(record.workingStartedAt).getTime() >=
-        this.processingTimeoutMs
-    ) {
+    if (this.isOverdueWorking(record)) {
       this.updateState(taskId, "failed", "Processing timed out");
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.137",
+  "version": "0.2.0-alpha.140",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "type": "module",
   "bin": {
@@ -57,7 +57,8 @@
     "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint \"**/*.ts\""
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@clack/prompts": "^1.5.1",

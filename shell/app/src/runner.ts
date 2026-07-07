@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { handleCLI } from "./cli";
 import { resolve } from "./brain-resolver";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import {
   parseInstanceOverrides,
   InstanceOverridesParseError,

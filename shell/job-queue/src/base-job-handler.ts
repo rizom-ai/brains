@@ -1,4 +1,5 @@
-import type { Logger, ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import type { JobHandler } from "./types";
 

@@ -1,5 +1,5 @@
-import { getErrorMessage, toError } from "@brains/utils";
-import type { Logger } from "@brains/utils";
+import { getErrorMessage, toError } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { EventEmitter } from "events";
 import type { PluginCapabilities } from "../interfaces";

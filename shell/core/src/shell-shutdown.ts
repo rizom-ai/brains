@@ -1,4 +1,4 @@
-import type { ShellServices } from "./initialization/shellInitializer";
+import type { ShellServices } from "./types/shell-types";
 
 export async function shutdownShellServices(
   services: ShellServices,

@@ -2,7 +2,7 @@ import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
 } from "@brains/runtime-state";
-import { createPrefixedId } from "@brains/utils";
+import { createPrefixedId } from "@brains/utils/id";
 import { z } from "@brains/utils/zod";
 
 export type PlaybookRunStatus =
@@ -101,6 +101,7 @@ export const playbookRunSchema: z.ZodType<PlaybookRun, PlaybookRunInput> = z
     conversationId: z.string().min(1).optional(),
     currentState: z.string().min(1),
     completedStates: z.array(z.string().min(1)).default([]),
+    /** Legacy XState snapshot. No longer read or written; kept so stored runs still parse. */
     snapshot: z.unknown().optional(),
     context: z.record(z.string(), z.unknown()).default({}),
     evidence: z.array(playbookRunEvidenceSchema).default([]),
@@ -237,7 +238,6 @@ export function createPlaybookRun(input: {
   lifecycle?: string | undefined;
   conversationId?: string | undefined;
   status?: PlaybookRunStatus | undefined;
-  snapshot?: unknown;
 }): PlaybookRun {
   const now = new Date().toISOString();
   return playbookRunSchema.parse({
@@ -249,7 +249,6 @@ export function createPlaybookRun(input: {
     ...(input.conversationId ? { conversationId: input.conversationId } : {}),
     currentState: input.initialState,
     completedStates: [],
-    ...(input.snapshot !== undefined ? { snapshot: input.snapshot } : {}),
     context: {},
     evidence: [],
     gateVerdicts: [],

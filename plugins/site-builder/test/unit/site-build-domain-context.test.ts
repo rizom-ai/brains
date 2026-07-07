@@ -4,7 +4,7 @@ import {
   type SiteBuildJobHandlerConfig,
 } from "../../src/handlers/siteBuildJobHandler";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createSilentLogger,
   createMockProgressReporter,

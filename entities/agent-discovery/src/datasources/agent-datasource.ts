@@ -10,9 +10,9 @@ import type {
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils/zod";
 import { agentFrontmatterSchema, agentWithDataSchema } from "../schemas/agent";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";

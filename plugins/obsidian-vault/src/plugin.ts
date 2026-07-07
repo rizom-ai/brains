@@ -9,9 +9,9 @@ import {
 import type { ServicePluginContext, Tool, ToolResult } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
-  obsidianVaultConfigSchema,
   type ObsidianVaultConfig,
   type ObsidianVaultConfigInput,
+  obsidianVaultConfigSchema,
 } from "./config";
 import { introspectSchema } from "./lib/schema-introspector";
 import { generateTemplate } from "./lib/template-generator";

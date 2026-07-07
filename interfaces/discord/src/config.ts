@@ -1,22 +1,5 @@
+import { urlCaptureConfigSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-
-const blockedUrlDomainsDefault: string[] = [
-  "meet.google.com",
-  "zoom.us",
-  "teams.microsoft.com",
-  "whereby.com",
-  "gather.town",
-  "calendly.com",
-  "cal.com",
-  "discord.com",
-  "discord.gg",
-  "cdn.discordapp.com",
-  "media.discordapp.net",
-  "giphy.com",
-  "tenor.com",
-  "wetransfer.com",
-  "file.io",
-];
 
 export interface DiscordConfig {
   botToken: string;
@@ -74,9 +57,8 @@ export const discordConfigSchema: z.ZodType<DiscordConfig, DiscordConfigInput> =
         z.literal(10080),
       ])
       .default(1440),
-    /** URL capture */
-    captureUrls: z.boolean().default(false),
-    blockedUrlDomains: z.array(z.string()).default(blockedUrlDomainsDefault),
+    // URL capture (shared config) + Discord-specific emoji reaction
+    ...urlCaptureConfigSchema.shape,
     /** Emoji to react with when capturing a URL */
     captureUrlEmoji: z.string().default("🔖"),
   });

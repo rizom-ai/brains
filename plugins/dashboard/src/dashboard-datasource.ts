@@ -1,10 +1,10 @@
 import type {
+  BaseDataSourceContext,
   DataSource,
   DataSourceSchema,
-  BaseDataSourceContext,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 import type {
   DashboardWidgetRegistry,
   StoredRegisteredWidget,

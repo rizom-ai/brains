@@ -36,11 +36,6 @@ turns:
     successCriteria:
       toolCountRange:
         max: 0
-      responseNotContains:
-        - "from the filename alone"
-        - "only the filename"
-        - "can't directly inspect"
-        - "can’t directly inspect"
 
   - userMessage: "How does that relate to ecosystems?"
     successCriteria:

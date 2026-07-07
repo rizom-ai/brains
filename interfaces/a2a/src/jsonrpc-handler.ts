@@ -53,7 +53,7 @@ interface JsonRpcSuccess {
   error?: never;
 }
 
-interface JsonRpcError {
+export interface JsonRpcError {
   jsonrpc: "2.0";
   id: string | number | null;
   result?: never;
@@ -241,14 +241,21 @@ export function handleStreamMessage(
   message: StreamParams["message"],
   context: JsonRpcHandlerContext,
   options: StreamOptions = {},
-): StreamResult {
+): StreamResult | JsonRpcError {
   const textParts = message.parts.filter(
     (p): p is { kind: "text"; text: string } =>
       p.kind === "text" && typeof p.text === "string",
   );
 
-  const messageText =
-    textParts.map((p) => p.text).join("\n") || "No message text";
+  if (textParts.length === 0) {
+    return errorResponse(
+      requestId,
+      -32602,
+      "Message must contain at least one text part",
+    );
+  }
+
+  const messageText = textParts.map((p) => p.text).join("\n");
 
   const record = context.taskManager.createTask(messageText, message.contextId);
   const taskId = record.task.id;

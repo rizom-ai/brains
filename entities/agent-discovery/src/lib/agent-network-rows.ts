@@ -1,4 +1,4 @@
-import { firstSentence } from "@brains/utils";
+import { firstSentence } from "@brains/utils/string-utils";
 import type {
   AgentEntity,
   AgentFrontmatter,
@@ -9,7 +9,7 @@ import type {
   AgentNetworkAgentRow,
   AgentNetworkSkillRow,
   AgentNetworkTagFilter,
-} from "./agent-network-widget";
+} from "./agent-network-schema";
 import { normalizeTags } from "./tag-vocabulary";
 
 export interface ParsedAgentForNetwork {

@@ -1,6 +1,6 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { ICoreEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { GenerationCondition } from "../types/config";
 import type { GenerationConditionResult } from "../types/scheduler";
 

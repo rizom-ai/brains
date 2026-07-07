@@ -1,5 +1,6 @@
 import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
-import { fromYaml, updateFrontmatterField } from "@brains/utils";
+import { updateFrontmatterField } from "@brains/utils/markdown";
+import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import type { Image, ResolvedImage } from "../schemas/image";
 

@@ -20,15 +20,17 @@ export interface AboutPageData {
  */
 export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
   const title = `About ${profile.name || "Me"}`;
-  const description = profile.description || profile.intro || "About page";
+  // First non-empty wins — empty strings fall through like absent values.
+  const description =
+    [profile.description, profile.intro].find((value) => value) ?? "About page";
 
   const hasStructuredContent =
-    (profile.expertise && profile.expertise.length > 0) ||
-    profile.currentFocus ||
-    profile.availability ||
-    profile.email ||
-    profile.website ||
-    (profile.socialLinks && profile.socialLinks.length > 0);
+    (profile.expertise !== undefined && profile.expertise.length > 0) ||
+    Boolean(profile.currentFocus) ||
+    Boolean(profile.availability) ||
+    Boolean(profile.email) ||
+    Boolean(profile.website) ||
+    (profile.socialLinks !== undefined && profile.socialLinks.length > 0);
 
   return (
     <>
@@ -107,9 +109,10 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
               )}
 
               {/* Contact */}
-              {(profile.email ||
-                profile.website ||
-                (profile.socialLinks && profile.socialLinks.length > 0)) && (
+              {(Boolean(profile.email) ||
+                Boolean(profile.website) ||
+                (profile.socialLinks !== undefined &&
+                  profile.socialLinks.length > 0)) && (
                 <section>
                   <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-6">
                     Contact
@@ -147,7 +150,7 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
                             variant="secondary"
                             size="md"
                           >
-                            {link.label || link.platform}
+                            {link.label?.length ? link.label : link.platform}
                           </LinkButton>
                         ))}
                       </div>

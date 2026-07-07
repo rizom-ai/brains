@@ -695,6 +695,38 @@ describe("DiscordInterface", () => {
       expect(mockSendTyping).toHaveBeenCalled();
     });
 
+    it("should clear the previous interval when starting again for the same channel", () => {
+      const channel = {
+        id: "channel-typing",
+        sendTyping: mock(async () => {}),
+      };
+
+      const cleared: unknown[] = [];
+      const originalClearInterval = globalThis.clearInterval;
+      globalThis.clearInterval = ((
+        timer: Parameters<typeof clearInterval>[0],
+      ) => {
+        cleared.push(timer);
+        originalClearInterval(timer);
+      }) as typeof clearInterval;
+
+      try {
+        discord["startTypingIndicator"](channel as never);
+        const first = discord["typingIntervals"].get("channel-typing");
+        expect(first).toBeDefined();
+
+        // A concurrent message in the same channel restarts the indicator —
+        // the first interval must be cleared, not orphaned
+        discord["startTypingIndicator"](channel as never);
+        expect(cleared).toContain(first);
+
+        discord["stopTypingIndicator"]("channel-typing");
+        expect(discord["typingIntervals"].size).toBe(0);
+      } finally {
+        globalThis.clearInterval = originalClearInterval;
+      }
+    });
+
     it("should not send typing when disabled", async () => {
       const quietDiscord = new DiscordInterface({
         botToken: "test-token",
@@ -747,6 +779,50 @@ describe("DiscordInterface", () => {
           actor: expect.objectContaining({ actorId: "discord:user-789" }),
         }),
       );
+    });
+
+    it("should pass topic changes during pending confirmation through to chat", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Are you sure?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:dangerous-tool",
+            toolName: "dangerous_tool",
+            summary: "Delete all",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Fresh topic answer.",
+        usage: { promptTokens: 5, completionTokens: 6, totalTokens: 11 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
+
+      const topicChange = createDiscordMessage({
+        content: "actually tell me about Rover",
+      });
+      messageCreateHandler?.(topicChange);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
+      expect(mockAgentService.chat).toHaveBeenNthCalledWith(
+        2,
+        "actually tell me about Rover",
+        expect.stringContaining("discord-"),
+        expect.objectContaining({
+          userPermissionLevel: "public",
+          interfaceType: "discord",
+          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+        }),
+      );
+      expect(mockSend).toHaveBeenCalledWith("Fresh topic answer.");
     });
 
     it("should render structured approval cards with Discord buttons", async () => {

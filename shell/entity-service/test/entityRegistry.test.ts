@@ -10,7 +10,8 @@ import { EntityRegistry } from "../src/entityRegistry";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { createSilentLogger, createTestEntity } from "@brains/test-utils";
-import { type Logger, createId } from "@brains/utils";
+import { createId } from "@brains/utils/id";
+import { type Logger } from "@brains/utils/logger";
 import matter from "gray-matter";
 
 const noteSchema = baseEntitySchema.extend({

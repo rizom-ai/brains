@@ -1,9 +1,9 @@
 import type {
+  BaseDataSourceContext,
   DataSource,
   DataSourceSchema,
-  BaseDataSourceContext,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 import type { SiteInfoBody } from "../schemas/site-info-schema";

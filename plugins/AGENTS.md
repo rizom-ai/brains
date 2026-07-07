@@ -20,12 +20,13 @@ Service plugins provide operational capabilities such as:
 - Keep tool definitions explicit and narrow.
 - Use Zod for tool inputs and plugin config.
 - Import through `@brains/plugins`; avoid shell-internal imports.
-- Keep integrations isolated from entity packages.
+- Keep integrations isolated from standalone entity packages.
+- For a tightly coupled 1:1 entity + service capability, keep both parts in one compound package under `plugins/`; put entity schemas/adapters under `src/entity/`.
 
 ## Do not
 
-- Do not define entity types here.
-- Do not add markdown adapters here.
+- Do not define standalone entity types here; only compound packages may own entity schemas/adapters.
+- Do not add markdown adapters here unless the package is an approved compound package.
 - Do not duplicate entity responsibilities.
 - Do not blur transport concerns into service plugins unless required.
 

@@ -17,7 +17,7 @@ import {
   inArray,
   type SQL,
 } from "drizzle-orm";
-import type { Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { EntitySerializer } from "./entity-serializer";
 import { normalizeEntityRow, type EntityData } from "./entity-data";

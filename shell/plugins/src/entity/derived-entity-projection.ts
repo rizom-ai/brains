@@ -4,7 +4,8 @@ import type {
   EntityInput,
 } from "@brains/entity-service";
 import type { JobHandler, JobOptions } from "@brains/job-queue";
-import { getErrorMessage, type Logger } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import { type Logger } from "@brains/utils/logger";
 import type { EntityPluginContext } from "./context";
 
 export interface EntityChangePayload<TEntity extends BaseEntity = BaseEntity> {

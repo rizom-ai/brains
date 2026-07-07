@@ -126,7 +126,7 @@ const nodes = [
   { id:'link',         label:'Link',         sub:'entities/link',         desc:'Curated bookmarks. EntityPlugin with capture handler.',       x:468, y:110, w:W, h:H, layer:'entities' },
   { id:'portfolio',    label:'Portfolio',     sub:'entities/portfolio',    desc:'Case studies. EntityPlugin.',                                x:612, y:110, w:W, h:H, layer:'entities' },
   { id:'social-media', label:'Social Media', sub:'entities/social-media', desc:'LinkedIn text/image/document posts. EntityPlugin with generation jobs and native PDF carousel publishing.',                x:756, y:110, w:W, h:H, layer:'entities' },
-  { id:'newsletter',   label:'Newsletter',   sub:'entities/newsletter',   desc:'Email newsletters. EntityPlugin + publish pipeline.',         x:36,  y:166, w:W, h:H, layer:'entities' },
+  { id:'newsletter',   label:'Newsletter',   sub:'plugins/newsletter/src/entity',   desc:'Email newsletters. Compound package entity module + publish pipeline.',         x:36,  y:166, w:W, h:H, layer:'entities' },
   { id:'wishlist',     label:'Wishlist',     sub:'entities/wishlist',     desc:'Unfulfilled requests. EntityPlugin.',                        x:180, y:166, w:W, h:H, layer:'entities' },
   { id:'products',     label:'Products',     sub:'entities/products',     desc:'Product listings. EntityPlugin.',                            x:324, y:166, w:W, h:H, layer:'entities' },
   { id:'image',        label:'Image',        sub:'entities/image',        desc:'Image entities. EntityPlugin with AI generation.',            x:468, y:166, w:W, h:H, layer:'entities' },
@@ -147,15 +147,12 @@ const nodes = [
   { id:'content-pipe', label:'Pipeline',     sub:'plugins/content-pipeline',  desc:'Publish + queue orchestration.',                   x:324, y:248, w:W, h:H, layer:'plugins' },
   { id:'dashboard',    label:'Dashboard',    sub:'plugins/dashboard',         desc:'Widget registration + rendering.',                 x:468, y:248, w:W, h:H, layer:'plugins' },
   { id:'analytics',    label:'Analytics',    sub:'plugins/analytics',         desc:'Cloudflare analytics query tool.',                 x:612, y:248, w:W, h:H, layer:'plugins' },
-  { id:'buttondown',   label:'Buttondown',   sub:'plugins/buttondown',       desc:'Subscriber tools + API routes. Split from newsletter.', x:756, y:248, w:W, h:H, layer:'plugins' },
-  { id:'notion',       label:'Notion',       sub:'plugins/notion',           desc:'MCP bridge to Notion workspace.',                  x:900, y:248, w:W, h:H, layer:'plugins' },
-  { id:'hackmd',       label:'HackMD',       sub:'plugins/hackmd',           desc:'MCP bridge to HackMD.',                            x:900, y:304, w:W, h:H, layer:'plugins' },
+  { id:'buttondown',   label:'Buttondown',   sub:'plugins/newsletter/src/provider',       desc:'Subscriber tools + API routes inside newsletter compound package.', x:756, y:248, w:W, h:H, layer:'plugins' },
   { id:'obsidian',     label:'Obsidian',     sub:'plugins/obsidian-vault',   desc:'Obsidian vault sync.',                             x:756, y:304, w:W, h:H, layer:'plugins' },
   { id:'site-content', label:'Site Content', sub:'plugins/site-content',     desc:'Landing page content gen.',                         x:612, y:304, w:W, h:H, layer:'plugins' },
   { id:'stock-photo', label:'Stock Photo', sub:'plugins/stock-photo',     desc:'Unsplash search + select. Provider abstraction.',   x:468, y:304, w:W, h:H, layer:'plugins' },
   { id:'cms',         label:'CMS',         sub:'plugins/cms',              desc:'Browser authoring routes + CMS config. Pairs with the @brains/cms-config types package.',     x:36,  y:304, w:W, h:H, layer:'plugins' },
-  { id:'newsletter-p',label:'Newsletter',  sub:'plugins/newsletter',       desc:'Composite plugin bundling the newsletter entity with the buttondown service plugin.', x:180, y:304, w:W, h:H, layer:'plugins' },
-  { id:'examples',    label:'Examples',    sub:'plugins/examples',         desc:'Reference plugin patterns published as @brains/plugin-examples for documentation and authoring guides.', x:324, y:304, w:W, h:H, layer:'plugins' },
+  { id:'newsletter-p',label:'Newsletter',  sub:'plugins/newsletter',       desc:'Compound package bundling the newsletter entity with the Buttondown service plugin.', x:180, y:304, w:W, h:H, layer:'plugins' },
   { id:'notifications', label:'Notifications', sub:'plugins/notifications', desc:'Notification plugin surface for operator/runtime delivery flows.', x:1044, y:304, w:W, h:H, layer:'plugins' },
   { id:'email-resend', label:'Email Resend', sub:'plugins/email-resend',     desc:'Resend-backed email delivery service plugin, used by hosted onboarding/setup-email flows.', x:1188, y:304, w:W, h:H, layer:'plugins' },
 
@@ -186,7 +183,6 @@ const nodes = [
   { id:'ui-lib',       label:'UI Library',  sub:'shared/ui-library',      desc:'Header, Footer, ThemeToggle, Card.', x:146, y:596, w:100, h:H, layer:'shared' },
   { id:'rizom-ui',     label:'Rizom UI',    sub:'shared/rizom-ui',         desc:'@rizom/ui — Rizom-brand UI primitives (Wordmark slot, header pieces) shared across app-owned Rizom variants.', x:256, y:596, w:100, h:H, layer:'shared' },
   { id:'test-utils',   label:'Test Utils',  sub:'shared/test-utils',      desc:'Mock factories, harness helpers.',  x:366, y:596, w:100, h:H, layer:'shared' },
-  { id:'mcp-bridge',   label:'MCP Bridge',  sub:'shared/mcp-bridge',      desc:'Base class for upstream MCP servers.', x:476, y:596, w:100, h:H, layer:'shared' },
   { id:'image-lib',    label:'Image Lib',   sub:'shared/image',           desc:'Image schema, adapter, utilities.',    x:586, y:596, w:100, h:H, layer:'shared' },
   { id:'site-engine',  label:'Site Engine', sub:'shared/site-engine',      desc:'Renderer-agnostic site build engine utilities. Used by site-builder.', x:696, y:596, w:100, h:H, layer:'shared' },
   { id:'site-comp',    label:'Site Compose',sub:'shared/site-composition', desc:'Shared site composition contract and merge helpers. Backbone of site-package inheritance.', x:806, y:596, w:100, h:H, layer:'shared' },
@@ -234,7 +230,6 @@ const connections = [
   { from:'content-pipe', to:'plugin-fw', type:'dep' },
   { from:'cms', to:'plugin-fw', type:'dep' },
   { from:'newsletter-p', to:'plugin-fw', type:'dep' },
-  { from:'examples', to:'plugin-fw', type:'dep' },
   { from:'rizom-eco', to:'plugin-fw', type:'dep' },
   { from:'notifications', to:'plugin-fw', type:'dep' },
   { from:'email-resend', to:'plugin-fw', type:'dep' },
@@ -255,8 +250,6 @@ const connections = [
   { from:'webserver', to:'plugin-fw', type:'dep' },
 
   // MCP bridges → shared
-  { from:'notion', to:'mcp-bridge', type:'dep' },
-  { from:'hackmd', to:'mcp-bridge', type:'dep' },
 
   // Newsletter ↔ Buttondown
   { from:'newsletter', to:'buttondown', type:'event', label:'publish' },

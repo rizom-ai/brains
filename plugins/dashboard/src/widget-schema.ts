@@ -1,9 +1,9 @@
-import { z } from "@brains/utils/zod";
 import type {
   DashboardWidgetSection,
   WidgetComponent,
   WidgetVisibility,
 } from "./widget-registry";
+import { z } from "@brains/utils/zod";
 
 const widgetVisibilitySchema: z.ZodType<WidgetVisibility, WidgetVisibility> =
   z.enum(["public", "trusted", "anchor"]);

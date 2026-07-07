@@ -13,14 +13,14 @@ import {
   EntityPlugin,
   resolveEntityOrError,
 } from "@brains/plugins";
-import { slugify } from "@brains/utils";
-import { z } from "@brains/utils/zod";
 import {
-  imageSchema,
-  imageAdapter,
   type Image,
+  imageAdapter,
   type ImageAdapter,
+  imageSchema,
 } from "@brains/image";
+import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
 import { SourceImageRenderJobHandler } from "./handlers/source-image-render-handler";
 import { UploadPromotionJobHandler } from "./handlers/upload-promotion-handler";

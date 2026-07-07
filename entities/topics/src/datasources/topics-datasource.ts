@@ -7,7 +7,7 @@ import type {
   EntityDataSourceConfig,
 } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { toTopicDetail, toTopicSummary } from "../lib/topic-presenter";
 import type { TopicDetailData } from "../templates/topic-detail/schema";

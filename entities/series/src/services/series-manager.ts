@@ -1,7 +1,7 @@
 import type { IEntityService, BaseEntity } from "@brains/plugins";
 import { generateMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { slugify } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { slugify } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { Series, SeriesFrontmatter } from "../schemas/series";
 import { getSeriesName } from "../lib/series-metadata";

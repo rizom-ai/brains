@@ -1,4 +1,4 @@
-import { baseEntityParserSchema, type BaseEntity } from "@brains/plugins";
+import { type BaseEntity, baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 export interface SiteContentMetadata extends Record<string, unknown> {

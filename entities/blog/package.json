@@ -1,7 +1,7 @@
 {
   "name": "@brains/blog",
   "private": true,
-  "version": "0.2.0-alpha.137",
+  "version": "0.2.0-alpha.140",
   "description": "AI-powered blog post generation from existing brain content",
   "type": "module",
   "exports": {
@@ -10,8 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint \"**/*.ts\"",
-    "lint:fix": "eslint \"**/*.ts\" --fix",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
     "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {

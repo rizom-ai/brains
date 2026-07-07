@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ExportResult } from "../types";
 
 export interface EntityExportResult {

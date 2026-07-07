@@ -1,6 +1,6 @@
+import { type SummaryTimeRange, summaryTimeRangeSchema } from "./summary";
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { summaryTimeRangeSchema, type SummaryTimeRange } from "./summary";
 
 export interface MemoryActorReference {
   actorId: string;

@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import { join, dirname } from "path";
 import type { BootMode } from "@brains/core";
-import type { CommandResult } from "../run-command";
+import type { CommandResult } from "../lib/command-result";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import {
   getAvailableModels,

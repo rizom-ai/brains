@@ -3,7 +3,7 @@ import { EntitySearch } from "../src/entity-search";
 import { EntityRegistry } from "../src/entityRegistry";
 import { EntitySerializer } from "../src/entity-serializer";
 import { createSilentLogger } from "@brains/test-utils";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "../src/embedding-types";
 import type { EntityDB } from "../src/db";
 import { z } from "@brains/utils/zod";

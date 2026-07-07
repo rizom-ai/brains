@@ -2,7 +2,7 @@ import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "fs/promises";
 import { basename, join } from "path";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "./fs-utils";
 
 export interface PrepareGitRepositoryOptions {

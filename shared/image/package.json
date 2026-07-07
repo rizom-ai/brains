@@ -1,7 +1,7 @@
 {
   "name": "@brains/image",
   "private": true,
-  "version": "0.2.0-alpha.137",
+  "version": "0.2.0-alpha.140",
   "description": "Image entity support with base64 storage - schemas, adapter, and utilities",
   "type": "module",
   "exports": {
@@ -10,8 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint \"**/*.ts\"",
-    "lint:fix": "eslint \"**/*.ts\" --fix"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@brains/entity-service": "workspace:*",

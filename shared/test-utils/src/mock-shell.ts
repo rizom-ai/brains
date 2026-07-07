@@ -37,7 +37,7 @@ import type {
   MessageResponse,
 } from "@brains/messaging-service";
 import type { ContentService } from "@brains/content-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import {
   getVisibleContentVisibilities,

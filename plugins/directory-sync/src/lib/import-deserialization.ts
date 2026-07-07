@@ -1,6 +1,6 @@
 import type { BaseEntity, IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { getErrorMessage } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { getErrorMessage } from "@brains/utils/error";
 import type { ImportResult, RawEntity } from "../types";
 import type { ImageJobQueueDeps } from "./image-job-queue";
 import type { Quarantine } from "./quarantine";

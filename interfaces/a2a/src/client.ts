@@ -211,6 +211,33 @@ function isExactDomainLikeAgentId(agentId: string): boolean {
   return /^[^\s/.][^\s/]*\.[^\s/]+$/.test(agentId);
 }
 
+/**
+ * Validate a remote-supplied Agent Card endpoint URL before contacting it.
+ * The card is fetched from https://<agentId>, so the endpoint must stay on
+ * that host over HTTPS — anything else is an SSRF vector.
+ */
+function validateCardEndpoint(
+  cardUrl: string,
+  agentId: string,
+): { ok: true } | { ok: false; error: string } {
+  let url: URL;
+  try {
+    url = new URL(cardUrl);
+  } catch {
+    return {
+      ok: false,
+      error: `Agent Card for ${agentId} has an invalid endpoint URL.`,
+    };
+  }
+  if (url.protocol !== "https:" || url.hostname.toLowerCase() !== agentId) {
+    return {
+      ok: false,
+      error: `Agent Card for ${agentId} has an untrusted endpoint URL (${cardUrl}). The endpoint must be https:// on ${agentId}.`,
+    };
+  }
+  return { ok: true };
+}
+
 async function fetchAgentCard(
   agentUrl: string,
   fetchFn: FetchFn,
@@ -573,6 +600,11 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
           };
         }
 
+        const oneShotEndpoint = validateCardEndpoint(card.url, agentId);
+        if (!oneShotEndpoint.ok) {
+          return { success: false, error: oneShotEndpoint.error };
+        }
+
         const oneShotResult = await sendMessage(
           card.url,
           message,
@@ -623,6 +655,11 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
           success: false,
           error: `Could not fetch Agent Card from ${cardBaseUrl}`,
         };
+      }
+
+      const approvedEndpoint = validateCardEndpoint(card.url, agentId);
+      if (!approvedEndpoint.ok) {
+        return { success: false, error: approvedEndpoint.error };
       }
 
       const endpointUrl = card.url;

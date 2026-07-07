@@ -1,6 +1,6 @@
 import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
-import type { Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import {
   McpServer,

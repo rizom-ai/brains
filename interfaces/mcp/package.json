@@ -1,7 +1,7 @@
 {
   "name": "@brains/mcp",
   "private": true,
-  "version": "0.2.0-alpha.137",
+  "version": "0.2.0-alpha.140",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
@@ -11,8 +11,8 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint --max-warnings 0 .",
-    "lint:fix": "eslint --fix .",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
     "test": "bun test"
   },
   "dependencies": {

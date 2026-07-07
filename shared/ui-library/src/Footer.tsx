@@ -1,9 +1,7 @@
 import type { JSX, ComponentChildren } from "preact";
-import {
-  FooterContent,
-  type NavigationItem,
-  type SocialLink,
-} from "@brains/ui-library";
+import { FooterContent } from "./FooterContent";
+import type { NavigationItem } from "./NavLinks";
+import type { SocialLink } from "./SocialLinks";
 
 interface FooterProps {
   primaryNavigation: NavigationItem[];

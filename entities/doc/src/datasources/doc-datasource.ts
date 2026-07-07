@@ -10,7 +10,7 @@ import type {
   PaginationInfo,
   EntityDataSourceConfig,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { Doc } from "../schemas/doc";
 import {
   docFrontmatterSchema,

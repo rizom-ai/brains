@@ -5,8 +5,9 @@ import {
   findEntityByIdentifier,
   saveProcessedEntity,
 } from "@brains/plugins";
-import type { ProgressReporter, Logger } from "@brains/utils";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {

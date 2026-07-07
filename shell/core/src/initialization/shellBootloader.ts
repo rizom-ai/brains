@@ -1,6 +1,7 @@
 import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
-import { ShellInitializer, type ShellServices } from "./shellInitializer";
+import { ShellInitializer } from "./shellInitializer";
+import type { ShellServices } from "../types/shell-types";
 
 const INDEX_READINESS_TIMEOUT_MS = 30_000;
 const INDEX_READINESS_RETRY_MS = 5_000;

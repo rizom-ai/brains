@@ -9,7 +9,7 @@ import {
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
-import { fromYaml } from "@brains/utils";
+import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import { cmsPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
 

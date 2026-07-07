@@ -3,11 +3,11 @@ import type {
   JobContext,
   JobOptions,
 } from "@brains/plugins";
-import type { SiteInfoBody } from "@brains/site-info";
+import type { SiteMetadata } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import type { GenerateOptions } from "../schemas/generate-options";
 
-export type SiteGenerationConfig = Pick<SiteInfoBody, "title" | "description">;
+export type SiteGenerationConfig = Pick<SiteMetadata, "title" | "description">;
 
 const routeSectionSchema = z.looseObject({
   id: z.string(),

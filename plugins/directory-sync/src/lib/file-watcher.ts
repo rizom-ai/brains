@@ -1,6 +1,6 @@
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { isImageFile } from "./image-file-utils";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 
@@ -42,8 +42,7 @@ export class FileWatcher {
   private readonly watchInterval: number;
   private readonly logger: Logger;
   private readonly onFileChange?:
-    | ((event: string, path: string) => Promise<void>)
-    | undefined;
+    ((event: string, path: string) => Promise<void>) | undefined;
 
   constructor(options: FileWatcherOptions) {
     this.syncPath = options.syncPath;

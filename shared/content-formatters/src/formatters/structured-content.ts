@@ -103,8 +103,11 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       }
 
       return lines.join("\n");
-    } catch {
-      throw new Error("Failed to format structured content");
+    } catch (error) {
+      throw new Error(
+        `Failed to format structured content: ${this.describeError(error)}`,
+        { cause: error },
+      );
     }
   }
 
@@ -117,9 +120,25 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       const sections = this.extractSections(tree, 2);
       const data = this.buildDataFromSections(sections, this.config.mappings);
       return this.schema.parse(data);
-    } catch {
-      throw new Error("Failed to parse structured content");
+    } catch (error) {
+      throw new Error(
+        `Failed to parse structured content: ${this.describeError(error)}`,
+        { cause: error },
+      );
     }
+  }
+
+  /**
+   * Summarize an error for inclusion in a wrapped error message,
+   * flattening zod issues to "path: reason" pairs.
+   */
+  private describeError(error: unknown): string {
+    if (error instanceof z.ZodError) {
+      return error.issues
+        .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+        .join("; ");
+    }
+    return error instanceof Error ? error.message : String(error);
   }
 
   /**

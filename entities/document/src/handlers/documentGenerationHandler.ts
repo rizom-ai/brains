@@ -6,13 +6,11 @@ import {
   saveProcessedEntity,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import {
-  getErrorMessage,
-  parseMarkdown,
-  slugify,
-  updateFrontmatterField,
-} from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
+import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
   countPdfPages,
@@ -29,10 +27,7 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const DOCUMENT_ID_MAX_LENGTH = 80;
 const DOCUMENT_ID_HASH_LENGTH = 10;
 
-type StringOrNumberSchema = z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- ZodObject shape aliases preserve named property inference without a broad index signature.
-type DocumentGenerationJobSchemaShape = {
+const documentGenerationJobSchemaShape: {
   renderUrl: z.ZodOptional<z.ZodURL>;
   sourceEntityType: z.ZodString;
   sourceEntityId: z.ZodString;
@@ -46,14 +41,12 @@ type DocumentGenerationJobSchemaShape = {
   maxPageCount: z.ZodOptional<z.ZodNumber>;
   maxBytes: z.ZodOptional<z.ZodNumber>;
   timeoutMs: z.ZodOptional<z.ZodNumber>;
-  width: z.ZodOptional<StringOrNumberSchema>;
-  height: z.ZodOptional<StringOrNumberSchema>;
+  width: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+  height: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
   format: z.ZodOptional<z.ZodString>;
   targetEntityType: z.ZodOptional<z.ZodString>;
   targetEntityId: z.ZodOptional<z.ZodString>;
-};
-
-const documentGenerationJobSchemaShape: DocumentGenerationJobSchemaShape = {
+} = {
   renderUrl: z.url().optional(),
   sourceEntityType: z.string().min(1),
   sourceEntityId: z.string().min(1),
@@ -74,8 +67,9 @@ const documentGenerationJobSchemaShape: DocumentGenerationJobSchemaShape = {
   targetEntityId: z.string().min(1).optional(),
 };
 
-export const documentGenerationJobSchemaBase: z.ZodObject<DocumentGenerationJobSchemaShape> =
-  z.object(documentGenerationJobSchemaShape);
+export const documentGenerationJobSchemaBase: z.ZodObject<
+  typeof documentGenerationJobSchemaShape
+> = z.object(documentGenerationJobSchemaShape);
 
 export type DocumentGenerationJobDataBase = z.output<
   typeof documentGenerationJobSchemaBase

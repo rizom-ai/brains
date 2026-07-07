@@ -1,5 +1,5 @@
 import { mock } from "bun:test";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 
 /**
  * Create a mock ProgressReporter for testing
