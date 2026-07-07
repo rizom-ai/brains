@@ -325,6 +325,34 @@ describe("A2A Client", () => {
       expect(capturedHeaders).toHaveLength(1);
       expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
     });
+
+    it("should sign outbound requests instead of sending a bearer token when a signer is configured", async () => {
+      const capturedHeaders: Record<string, string>[] = [];
+      const signedUrls: string[] = [];
+      const tool = createAgentCallTool({
+        fetch: createMockFetch(capturedHeaders),
+        outboundTokens: {
+          "remote.example.com": "legacy-token",
+        },
+        requestSigner: async (request) => {
+          signedUrls.push(String(request.url));
+          request.headers["Signature-Input"] = "sig1=()";
+          request.headers["Signature"] = "sig1=:abc:";
+        },
+        entityService: createSavedAgentEntityService(),
+      });
+
+      await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(signedUrls).toEqual(["https://remote.example.com/a2a"]);
+      expect(capturedHeaders).toHaveLength(1);
+      expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
+      expect(capturedHeaders[0]?.["Signature-Input"]).toBe("sig1=()");
+      expect(capturedHeaders[0]?.["Signature"]).toBe("sig1=:abc:");
+    });
   });
 
   describe("SSE streaming via message/stream", () => {

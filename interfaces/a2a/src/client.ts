@@ -23,6 +23,17 @@ interface A2AError {
 
 type A2AResult = A2ASuccess | A2AError;
 
+export interface A2ARequestToSign {
+  method: "POST";
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+}
+
+export type A2ARequestSigner = (
+  request: A2ARequestToSign,
+) => Promise<void> | void;
+
 const textPartSchema = z.object({
   kind: z.literal("text"),
   text: z.string(),
@@ -234,6 +245,7 @@ async function sendMessage(
   message: string,
   fetchFn: FetchFn,
   authToken: string | undefined,
+  requestSigner: A2ARequestSigner | undefined,
   options: Required<A2ANetworkOptions>,
 ): Promise<ToolResponse> {
   const maxAttempts = Math.max(1, options.maxNetworkAttempts);
@@ -245,7 +257,28 @@ async function sendMessage(
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (authToken) {
+      const body = JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "message/stream",
+        params: {
+          message: {
+            kind: "message",
+            messageId: clientMessageId,
+            role: "user",
+            parts: [{ kind: "text", text: message }],
+          },
+        },
+      });
+
+      if (requestSigner) {
+        await requestSigner({
+          method: "POST",
+          url: endpointUrl,
+          headers,
+          body,
+        });
+      } else if (authToken) {
         headers["Authorization"] = `Bearer ${authToken}`;
       }
 
@@ -255,19 +288,7 @@ async function sendMessage(
         {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: crypto.randomUUID(),
-            method: "message/stream",
-            params: {
-              message: {
-                kind: "message",
-                messageId: clientMessageId,
-                role: "user",
-                parts: [{ kind: "text", text: message }],
-              },
-            },
-          }),
+          body,
         },
         options.requestTimeoutMs,
       );
@@ -496,6 +517,8 @@ export interface A2AClientDeps extends A2ANetworkOptions {
   fetch?: FetchFn;
   /** Map of remote agent domain → bearer token to send */
   outboundTokens?: Record<string, string>;
+  /** Signs outbound A2A requests. When present, legacy bearer tokens are not sent. */
+  requestSigner?: A2ARequestSigner;
   /** Entity service for agent directory resolution */
   entityService?: {
     getEntity(request: {
@@ -593,6 +616,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
           message,
           fetchFn,
           undefined,
+          deps.requestSigner,
           networkOptions,
         );
         if ("success" in oneShotResult && oneShotResult.success === true) {
@@ -647,9 +671,10 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
 
       const endpointUrl = card.url;
 
-      // Look up outbound token by agent domain
+      // Look up outbound token by agent domain for legacy configs.
+      // Signed requests supersede bearer tokens when a signer is configured.
       let authToken: string | undefined;
-      if (deps.outboundTokens) {
+      if (!deps.requestSigner && deps.outboundTokens) {
         try {
           const domain = new URL(endpointUrl).hostname;
           authToken = deps.outboundTokens[domain];
@@ -663,6 +688,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
         message,
         fetchFn,
         authToken,
+        deps.requestSigner,
         networkOptions,
       );
     },
