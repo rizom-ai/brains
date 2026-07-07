@@ -114,7 +114,10 @@ export class AuthService {
     this.runtimeDatabase = new AuthRuntimeDatabase({
       storageDir: options.storageDir,
     });
-    this.keyStore = new AuthKeyStore({ storageDir: options.storageDir });
+    this.keyStore = new AuthKeyStore({
+      storageDir: options.storageDir,
+      runtimeDatabase: this.runtimeDatabase,
+    });
     this.clientStore = new OAuthClientStore({ storageDir: options.storageDir });
     this.authCodeStore = new AuthorizationCodeStore({
       storageDir: options.storageDir,

@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { eq } from "drizzle-orm";
+import type { AuthRuntimeDatabase } from "./runtime-db";
+import { oauthSigningKeys } from "./runtime-schema";
 import type { PrivateJwk, PublicJwk } from "./types";
 
 const DEFAULT_KEY_FILE = "oauth-signing-key.jwk";
@@ -8,6 +11,7 @@ const DEFAULT_KEY_FILE = "oauth-signing-key.jwk";
 export interface AuthKeyStoreOptions {
   storageDir: string;
   keyFile?: string;
+  runtimeDatabase?: AuthRuntimeDatabase;
 }
 
 function isPrivateJwk(value: unknown): value is PrivateJwk {
@@ -32,6 +36,16 @@ function thumbprint(
     y: publicJwk.y,
   });
   return createHash("sha256").update(canonical).digest("base64url");
+}
+
+function normalizePrivateJwk(value: PrivateJwk): PrivateJwk {
+  const kid = typeof value.kid === "string" ? value.kid : thumbprint(value);
+  return {
+    ...value,
+    kid,
+    use: "sig",
+    alg: "ES256",
+  };
 }
 
 function publicFromPrivate(privateJwk: PrivateJwk): PublicJwk {
@@ -72,6 +86,7 @@ async function generatePrivateJwk(): Promise<PrivateJwk> {
 
 export class AuthKeyStore {
   private readonly keyFile: string;
+  private readonly runtimeDatabase: AuthRuntimeDatabase | undefined;
   private cachedKey: PrivateJwk | undefined;
   private loadPromise: Promise<PrivateJwk> | undefined;
 
@@ -80,6 +95,7 @@ export class AuthKeyStore {
       options.storageDir,
       options.keyFile ?? DEFAULT_KEY_FILE,
     );
+    this.runtimeDatabase = options.runtimeDatabase;
   }
 
   async getPrivateJwk(): Promise<PrivateJwk> {
@@ -96,6 +112,40 @@ export class AuthKeyStore {
   }
 
   private async loadOrCreateKey(): Promise<PrivateJwk> {
+    if (this.runtimeDatabase) {
+      return this.loadOrCreateDatabaseKey();
+    }
+
+    return this.loadOrCreateFileKey();
+  }
+
+  private async loadOrCreateDatabaseKey(): Promise<PrivateJwk> {
+    if (!this.runtimeDatabase) {
+      throw new Error("Auth runtime database is not configured");
+    }
+
+    await this.runtimeDatabase.start();
+    const activeRows = await this.runtimeDatabase.db
+      .select()
+      .from(oauthSigningKeys)
+      .where(eq(oauthSigningKeys.status, "active"))
+      .limit(1);
+    const active = activeRows[0];
+    if (active) {
+      return this.parseStoredKey(active.privateJwk, active.kid);
+    }
+
+    const key = (await this.readExistingKey()) ?? (await generatePrivateJwk());
+    await this.runtimeDatabase.db.insert(oauthSigningKeys).values({
+      kid: key.kid,
+      privateJwk: JSON.stringify(key),
+      status: "active",
+      createdAt: Date.now(),
+    });
+    return key;
+  }
+
+  private async loadOrCreateFileKey(): Promise<PrivateJwk> {
     const existing = await this.readExistingKey();
     if (existing) return existing;
 
@@ -112,6 +162,23 @@ export class AuthKeyStore {
     return publicFromPrivate(await this.getPrivateJwk());
   }
 
+  private parseStoredKey(value: string, expectedKid: string): PrivateJwk {
+    const parsed = JSON.parse(value) as unknown;
+    if (!isPrivateJwk(parsed)) {
+      throw new Error(
+        `OAuth signing key ${expectedKid} in auth database is not a private P-256 JWK`,
+      );
+    }
+
+    const normalized = normalizePrivateJwk(parsed);
+    if (normalized.kid !== expectedKid) {
+      throw new Error(
+        `OAuth signing key ${expectedKid} in auth database has mismatched kid ${normalized.kid}`,
+      );
+    }
+    return normalized;
+  }
+
   private async readExistingKey(): Promise<PrivateJwk | undefined> {
     try {
       const parsed = JSON.parse(
@@ -123,14 +190,7 @@ export class AuthKeyStore {
         );
       }
 
-      const kid =
-        typeof parsed.kid === "string" ? parsed.kid : thumbprint(parsed);
-      return {
-        ...parsed,
-        kid,
-        use: "sig",
-        alg: "ES256",
-      };
+      return normalizePrivateJwk(parsed);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return undefined;

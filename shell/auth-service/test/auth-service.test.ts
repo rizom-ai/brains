@@ -7,6 +7,7 @@ import { z } from "@brains/utils/zod";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { NOTIFICATIONS_SEND } from "@brains/notifications";
 import {
+  AuthKeyStore,
   AuthRuntimeDatabase,
   AuthService,
   OperatorSessionStore,
@@ -41,6 +42,13 @@ const authUserRowSchema = z.object({
   role: z.literal("anchor"),
   status: z.literal("active"),
 });
+
+const signingKeyRowsSchema = z.array(
+  z.object({
+    kid: z.string(),
+    status: z.literal("active"),
+  }),
+);
 
 const tempDirs: string[] = [];
 
@@ -95,7 +103,7 @@ describe("AuthService", () => {
     );
   });
 
-  it("generates and reuses an ES256 public JWKS key", async () => {
+  it("generates and reuses an ES256 public JWKS key from the auth database", async () => {
     const storageDir = await tempStorageDir();
     const service = new AuthService({
       storageDir,
@@ -117,10 +125,61 @@ describe("AuthService", () => {
       alg: "ES256",
     });
     expect(first.keys[0]?.["d"]).toBeUndefined();
-    expect(second.keys[0]?.kid).toBe(first.keys[0]?.kid);
+    const firstKey = first.keys[0];
+    if (!firstKey) {
+      throw new Error("Expected JWKS response to include a signing key");
+    }
+    expect(second.keys[0]?.kid).toBe(firstKey.kid);
 
-    const keyStats = await stat(join(storageDir, "oauth-signing-key.jwk"));
-    expect(keyStats.mode & 0o777).toBe(0o600);
+    const runtimeDatabase = new AuthRuntimeDatabase({ storageDir });
+    await runtimeDatabase.start();
+    const rows = await runtimeDatabase.client.execute(
+      "SELECT kid, status FROM oauth_signing_keys",
+    );
+    await runtimeDatabase.stop();
+    expect(signingKeyRowsSchema.parse(rows.rows)).toEqual([
+      { kid: firstKey.kid, status: "active" },
+    ]);
+
+    let legacyFileExists = true;
+    try {
+      await stat(join(storageDir, "oauth-signing-key.jwk"));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        legacyFileExists = false;
+      } else {
+        throw error;
+      }
+    }
+    expect(legacyFileExists).toBe(false);
+  });
+
+  it("imports an existing legacy OAuth signing key into the auth database", async () => {
+    const storageDir = await tempStorageDir();
+    const legacyKeyStore = new AuthKeyStore({ storageDir });
+    const legacyPublicKey = await legacyKeyStore.getPublicJwk();
+
+    const service = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+    });
+    const jwks = await service.getJwks();
+
+    expect(jwks.keys[0]).toMatchObject({
+      kid: legacyPublicKey.kid,
+      x: legacyPublicKey.x,
+      y: legacyPublicKey.y,
+    });
+
+    const runtimeDatabase = new AuthRuntimeDatabase({ storageDir });
+    await runtimeDatabase.start();
+    const rows = await runtimeDatabase.client.execute(
+      "SELECT kid, status FROM oauth_signing_keys",
+    );
+    await runtimeDatabase.stop();
+    expect(signingKeyRowsSchema.parse(rows.rows)).toEqual([
+      { kid: legacyPublicKey.kid, status: "active" },
+    ]);
   });
 
   it("serves OAuth well-known metadata from request host", async () => {
