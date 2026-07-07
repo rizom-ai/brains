@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import {
   NOTIFICATIONS_SEND,
   sendNotificationResultSchema,
@@ -34,8 +35,8 @@ const authServiceConfigSchema = z.object({
   trustedIssuers: z.array(z.string()).default([]),
   /** Allow localhost/127.0.0.1 request issuers. Defaults to true only for localhost issuers. */
   allowLocalhostIssuers: z.boolean().optional(),
-  /** Runtime auth storage directory. Keep this outside brain-data/content. */
-  storageDir: z.string().default("./data/auth"),
+  /** Runtime auth storage directory. Defaults to <shell dataDir>/auth. Keep this outside brain-data/content. */
+  storageDir: z.string().optional(),
   /** First-passkey setup token lifetime in seconds. */
   setupTokenTtlSeconds: z
     .number()
@@ -79,7 +80,7 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
         ? (context.localSiteUrl ?? context.siteUrl)
         : (context.siteUrl ?? context.localSiteUrl));
     this.service = new AuthService({
-      storageDir: this.config.storageDir,
+      storageDir: this.config.storageDir ?? join(context.dataDir, "auth"),
       ...(issuer ? { issuer } : {}),
       trustedIssuers: this.config.trustedIssuers,
       ...(this.config.allowLocalhostIssuers !== undefined

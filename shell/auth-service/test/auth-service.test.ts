@@ -406,6 +406,21 @@ describe("AuthService", () => {
     expect(setup?.expiresAt).toBeLessThanOrEqual(after + 24 * 60 * 60);
   });
 
+  it("defaults plugin storage under the shell data directory", async () => {
+    const dataDir = await tempStorageDir();
+    const harness = new PluginTestHarness({
+      dataDir,
+      domain: "brain.example.com",
+    });
+
+    await harness.installPlugin(
+      authServicePlugin({ issuer: "https://brain.example.com" }),
+    );
+
+    const dbStats = await stat(join(dataDir, "auth", "auth.db"));
+    expect(dbStats.isFile()).toBe(true);
+  });
+
   it("allows configuring the first-passkey setup token lifetime", async () => {
     const harness = new PluginTestHarness({ domain: "brain.example.com" });
 
