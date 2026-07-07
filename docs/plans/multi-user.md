@@ -23,7 +23,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Passkey registration/authentication defaults to `single-operator` and display name `Operator`.
 - HTTP MCP currently treats authenticated requests as `anchor` globally instead of resolving per-user/session permissions.
 - Passkeys, sessions, OAuth clients, signing keys, auth codes, and refresh tokens live in runtime auth storage (`./data/auth`) and must **not** move under `brain-data`.
-- Dashboard operator visibility is widget-level, not route-level, and the signed-in UI currently displays generic `operator · sign out`.
+- Dashboard widget visibility already uses the standard permission levels (`UserPermissionLevelSchema`, `plugins/dashboard/src/widget-schema.ts`); an operator session maps to `anchor`, everyone else to `public` (`plugin.ts:190`). The signed-in UI is still generic (masthead shows a console header plus `Sign out`, no user name or role).
 - Conversation/message/job storage already has metadata hooks, but user attribution is not wired to auth users yet.
 - `@rizom/ops` has fleet/user deployment tooling; that is operator/fleet multi-user, not this runtime auth-user model.
 
@@ -143,9 +143,8 @@ Current HTTP MCP sets the whole transport to `anchor` when auth is configured. M
 
 ### Dashboard visibility
 
-- Dashboard widget visibility should use the same levels as tools: `public`, `trusted`, `anchor`.
-- Existing `operator` visibility is accepted as a backward-compatible alias for `anchor`, but new code/docs should use permission-level names.
-- Dashboard login/logout continue using operator sessions, but sessions now carry a real user id and role.
+- Widget visibility already uses the same levels as tools (`public` / `trusted` / `anchor`) — verified 2026-07-07; no `operator` alias exists in the schema or is needed.
+- Dashboard login/logout continue using operator sessions, but sessions now carry a real user id and role, and the session→`anchor` mapping becomes role-based.
 - Signed-in masthead should display the user's name and role label, e.g. `Alex · Owner · sign out`.
 - Use user-facing role labels in UI: `anchor` → **Owner**, `trusted` → **Collaborator**, `public` → **Public**.
 
