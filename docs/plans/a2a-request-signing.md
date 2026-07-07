@@ -19,7 +19,7 @@ Brain-to-brain is the right shape for cryptographic identity: each brain runs at
 
 ## Goal
 
-A2A traffic between brains is authenticated by per-brain Ed25519 signing keys, with public keys discoverable via `/.well-known/jwks.json`. Every A2A request is signed using RFC 9421. Operators express trust by approving peers in the agent directory — one action covering both directions, no secrets exchanged. The verified caller domain resolves to the same anchor / trusted / public levels as every other channel.
+A2A traffic between brains is authenticated by per-brain Ed25519 signing keys, with public keys discoverable via `/.well-known/jwks.json`. Every A2A request is signed using RFC 9421. Connecting a peer adds it to the local agent directory for outbound use; inbound trust is a separate explicit grant stored in runtime auth storage, with no secrets exchanged. The verified caller domain resolves to public by default, or to the explicitly granted trusted level when a pinned peer-trust record matches.
 
 ## Non-goals
 
@@ -46,7 +46,7 @@ This covers everything that matters for request integrity without depending on h
 
 ### 2. Identity is the brain's domain
 
-The `keyid` parameter resolves to a JWKS URL at the same domain. Verified domain is the identity. Operators trust peers by approving them in the agent directory (decision 6); there is no domain-list config field. No identifier scheme is invented; the brain's existing `context.domain` is the identity, consistent with how the Agent Card already advertises the brain.
+The `keyid` parameter resolves to a JWKS URL at the same domain. Verified domain is the identity. Connected peers are directory contacts for outbound calls; trusted inbound access requires a separate runtime peer-trust grant (decision 6). There is no domain-list config field. No identifier scheme is invented; the brain's existing `context.domain` is the identity, consistent with how the Agent Card already advertises the brain.
 
 ### 3. Separate keypair from the auth-service signing key
 
@@ -75,15 +75,17 @@ A new shared package at `shared/http-signatures` or `shell/http-signatures`. Own
 
 Used by `interfaces/a2a` (both inbound and outbound). The keypair lifecycle (generate / persist / load) lives in the same package or in `shell/auth-service` alongside existing auth key custody.
 
-### 6. Approval covers both directions; the inbound grant lives in runtime auth storage
+### 6. Directory connection is separate from inbound trust
 
-The a2a interface already uses a "discovered → approved" lifecycle for peer agents (see the agent-call instruction block in `interfaces/a2a/src/a2a-interface.ts`, around the `target agent is discovered but not approved yet` rule). Today that lifecycle only governs **outbound** calling; **inbound** trust lives separately in `trustedTokens` config, and the two halves don't know about each other. This plan makes approval the single operator action that establishes trust in both directions:
+The a2a interface already uses a "discovered → approved" lifecycle for peer agents (see the agent-call instruction block in `interfaces/a2a/src/a2a-interface.ts`, around the `target agent is discovered but not approved yet` rule). That lifecycle governs the **directory and outbound calling** only: connecting or approving a peer means "this is a saved contact I may call", not "this peer may use my trusted surface inbound".
 
-- Adding a peer (`agent_connect` or ATProto discovery) fetches `/.well-known/agent-card.json` and `/.well-known/jwks.json`, marks the entry "discovered"
-- Approving a peer (one anchor-confirmed action) does two writes: the agent entity becomes `approved` (directory UX, outbound calling — as today), and a **peer-trust record** `{domain, key fingerprint, grantedLevel}` is written to runtime auth storage
-- `grantedLevel` is `trusted` or `public`; `anchor` is not grantable to a peer brain — owner authority stays human
+Inbound trust uses a separate **peer-trust record** `{domain, key fingerprint, grantedLevel}` in runtime auth storage:
 
-The peer-trust record — not the entity — is what inbound verification consults. This split is deliberate: agent entities are git-synced brain-data, and directory-sync ingests that repo automatically, so an entity-borne grant would let anyone with a commit to the content repo mint themselves inbound trust (add an approved entry for their own domain, sign with their own key). Trust grants therefore live on the runtime plane (same non-synced storage class as passkeys and sessions; table shape coordinates with [auth-runtime-db.md](./auth-runtime-db.md)), where only anchor-confirmed runtime flows write. A restored brain-data repo brings back the directory _listing_; inbound trust requires re-approval through the runtime store.
+- Adding a peer (`agent_connect` or ATProto discovery) fetches `/.well-known/agent-card.json` and saves/updates the directory entry. It does **not** create an inbound trusted grant.
+- A separate explicit trust action fetches `/.well-known/jwks.json`, pins the peer A2A key fingerprint, and writes the peer-trust record.
+- `grantedLevel` is `trusted` or `public`; `anchor` is not grantable to a peer brain — owner authority stays human.
+
+The peer-trust record — not the entity — is what inbound verification consults. This split is deliberate: agent entities are git-synced brain-data, and directory-sync ingests that repo automatically, so an entity-borne grant would let anyone with a commit to the content repo mint themselves inbound trust (add an approved entry for their own domain, sign with their own key). Trust grants therefore live on the runtime plane (same non-synced storage class as passkeys and sessions; table shape coordinates with [auth-runtime-db.md](./auth-runtime-db.md)), where only explicit runtime trust flows write. A restored brain-data repo brings back the directory _listing_; inbound trust requires a separate runtime grant.
 
 No secret is exchanged anywhere, and no domain-list config field replaces the removed tokens.
 
@@ -175,7 +177,7 @@ outboundTokens: z.record(z.string()).optional(), // domain → token
 // after — nothing. Trust is not config.
 ```
 
-Both fields are removed with no replacement: outbound needs no credential (requests are signed), and inbound grants live in the runtime peer-trust store written by directory approval. There is no migration shim. Operators with existing `trustedTokens`/`outboundTokens` config get a clear startup error and a migration note: re-approve each peer via `agent_connect`.
+Both fields are removed with no replacement: outbound needs no credential (requests are signed), and inbound grants live in the runtime peer-trust store written by explicit trust actions. There is no migration shim. Operators with existing `trustedTokens`/`outboundTokens` config get a clear startup error and a migration note: connect peers for outbound calls, then explicitly grant inbound trust only where intended.
 
 ### JWKS resolver
 
@@ -217,10 +219,10 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 
 ### Phase 4 — inbound verification and the peer-trust store
 
-- add the peer-trust store (`{domain, keyFingerprint, grantedLevel}`) in runtime auth storage, written by the directory approval flow (anchor-confirmed), with a fingerprint-mismatch path that demotes to "discovered"
+- add the peer-trust store (`{domain, keyFingerprint, grantedLevel}`) in runtime auth storage, written only by an explicit trust-grant flow, with a fingerprint-mismatch path that drops the caller to `public`
 - swap `resolveCallerPermission` to verify-and-resolve against the store; remove `trustedTokens`
-- update agent-card / agent-discovery flows to fetch peer JWKS at approval time and record the grant
-- test that a content-plane write (an `approved` agent entity arriving via directory-sync) grants nothing inbound
+- add an explicit trust-grant flow that fetches peer JWKS and records the pinned grant
+- test that `agent_connect`, `system_update({ status: "approved" })`, and content-plane sync grant nothing inbound by themselves
 
 ### Phase 5 — task caller binding and idempotent retry
 
@@ -245,15 +247,15 @@ Settled in [identity-and-trust.md](./identity-and-trust.md):
 2. Multi-key rollover on a single peer is supported: peers publish old and new keys in JWKS during a grace window; the verifier matches on `kid`.
 3. `JwksResolver` is a brain-level singleton (one cache for all peer lookups).
 4. V1 signs the initiating request only. Signing A2A streaming responses (SSE events) is a separate future question.
-5. Key fingerprint pinning at approval time (trust-on-first-use) is in scope: if a peer's JWKS returns entirely different keys with no rotation overlap, the peer drops back to discovered and requires re-approval. The fingerprint lives in the runtime peer-trust record beside the granted level (decision 6), not on the git-synced agent entity — the entity only mirrors the discovered/approved status for directory UX.
+5. Key fingerprint pinning at explicit trust-grant time (trust-on-first-use) is in scope: if a peer's JWKS returns entirely different keys with no rotation overlap, inbound calls from that peer drop back to `public` and require a renewed trust grant. The fingerprint lives in the runtime peer-trust record beside the granted level (decision 6), not on the git-synced agent entity — the entity only mirrors the discovered/approved status for directory UX.
 
 ## Verification
 
 1. A brain generates a signing keypair on first boot and publishes it at `/.well-known/jwks.json`
 2. Outbound A2A requests carry `Signature` and `Signature-Input` headers per RFC 9421; no `Authorization: Bearer` header is sent
 3. Inbound A2A requests verify successfully when the sender's JWKS is reachable and the signature is valid; a request with a present-but-invalid signature fails with 401; a request with no signature resolves to the public permission level (unacquainted brains keep talking with zero setup)
-4. Approving a peer in the directory is sufficient for inbound trust: the next validly signed request from that domain resolves to the granted level, with no config edit anywhere
-5. Two brains can establish bidirectional A2A trust without exchanging any secret
+4. Connecting or approving a peer in the directory is not sufficient for inbound trust: valid signed requests from connected peers still resolve to `public` until an explicit runtime peer-trust grant exists
+5. Two brains can establish bidirectional A2A trust without exchanging any secret, but each side must explicitly grant inbound trust where desired
 6. Key rotation (replacing a brain's signing key) does not require re-approval at peers, as long as the new key is published in JWKS during a grace window
 7. Freshness window rejects requests outside ±60s
 8. `outboundTokens` and `trustedTokens` are removed from the config schema with no replacement field; brains with old config get a clear startup error
