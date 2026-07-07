@@ -5,16 +5,25 @@ import { z } from "@brains/utils/zod";
 import { pluginOverrideEntrySchema } from "@brains/app";
 import { resolveModelName } from "./model-registry";
 
-const brainYamlSchema = z.looseObject({
-  brain: z.string(),
-  domain: z.string().optional(),
-  preset: z.string().optional(),
-  model: z.string().optional(),
-  plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
-});
+export interface BrainYamlConfig {
+  brain: string;
+  domain?: string | undefined;
+  preset?: string | undefined;
+  model?: string | undefined;
+  plugins?: Record<string, Record<string, unknown>> | undefined;
+  [key: string]: unknown;
+}
 
-export type BrainYamlConfig = z.output<typeof brainYamlSchema>;
-export type BrainYamlConfigInput = z.input<typeof brainYamlSchema>;
+export type BrainYamlConfigInput = BrainYamlConfig;
+
+const brainYamlSchema: z.ZodType<BrainYamlConfig, BrainYamlConfigInput> =
+  z.looseObject({
+    brain: z.string(),
+    domain: z.string().optional(),
+    preset: z.string().optional(),
+    model: z.string().optional(),
+    plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
+  });
 
 /**
  * Parse brain.yaml from a directory.

@@ -126,7 +126,7 @@ export function resolveModelEnvSchema(
 
 export function buildInstanceEnvSchema(
   model: string,
-  instanceName = model,
+  instanceName: string = model,
   backend?: string,
 ): string {
   const selectedBackend = normalizeSecretBackend(backend);
@@ -136,7 +136,7 @@ export function buildInstanceEnvSchema(
     deployProvisionEnvSchema.trimEnd(),
     tlsCertEnvSchema.trimEnd(),
     backendBootstrapEnvSchema(selectedBackend).trimEnd(),
-  ].filter((section) => section.length > 0);
+  ].filter((section: string) => section.length > 0);
 
   return `${sections.join("\n\n")}\n`;
 }
