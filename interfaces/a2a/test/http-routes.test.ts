@@ -87,6 +87,15 @@ describe("A2A HTTP routes", () => {
     return route;
   }
 
+  it("rejects legacy bearer-token trust config", () => {
+    const legacyConfig = {
+      port: 0,
+      trustedTokens: { token: "remote.example" },
+    };
+
+    expect(() => new A2AInterface(legacyConfig)).toThrow(/trustedTokens/);
+  });
+
   it("returns a helpful 405 for GET /a2a", async () => {
     installWebserverPlugin();
     const plugin = new A2AInterface({ port: 0 });
@@ -111,7 +120,7 @@ describe("A2A HTTP routes", () => {
       "GET, POST, OPTIONS",
     );
     expect(response.headers.get("Access-Control-Allow-Headers")).toBe(
-      "Content-Type, Authorization, Signature, Signature-Input, Content-Digest, Date",
+      "Content-Type, Signature, Signature-Input, Content-Digest, Date",
     );
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     const body = await response.json();

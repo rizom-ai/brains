@@ -31,7 +31,7 @@ const A2A_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, Signature, Signature-Input, Content-Digest, Date",
+    "Content-Type, Signature, Signature-Input, Content-Digest, Date",
   "X-Content-Type-Options": "nosniff",
 } as const;
 
@@ -105,10 +105,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     const profile = context.identity.getProfile();
     const tools = context.tools.listForPermissionLevel("public");
 
-    const hasTrustedTokens =
-      this.config.trustedTokens &&
-      Object.keys(this.config.trustedTokens).length > 0;
-
     // Query skill entities for Agent Card — metadata validated via schema
     let skills: SkillData[] | undefined;
     if (context.entityService.hasEntityType("skill")) {
@@ -138,7 +134,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       organization: this.config.organization,
       tools,
       skills,
-      authEnabled: hasTrustedTokens,
+      authEnabled: false,
     });
 
     this.logger.debug("Agent Card rebuilt", {
@@ -155,8 +151,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
 
   /**
    * Resolve caller permission from a verified HTTP signature when present.
-   * Unsigned requests remain public; legacy bearer tokens are still accepted
-   * temporarily until peer-trust grants replace trustedTokens entirely.
+   * Unsigned requests remain public.
    */
   private async resolveCaller(
     request: Request,
@@ -184,29 +179,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       };
     }
 
-    return this.resolveLegacyBearerCaller(
-      request.headers.get("Authorization") ?? undefined,
-    );
-  }
-
-  private resolveLegacyBearerCaller(authHeader: string | undefined): {
-    permissionLevel: UserPermissionLevel;
-    callerDomain: string | null;
-  } {
-    if (!authHeader?.startsWith("Bearer ") || !this.config.trustedTokens) {
-      return { permissionLevel: "public", callerDomain: null };
-    }
-
-    const token = authHeader.slice(7);
-    const identity = this.config.trustedTokens[token];
-    if (!identity || !this.permissionContext) {
-      return { permissionLevel: "public", callerDomain: null };
-    }
-
-    return {
-      permissionLevel: this.permissionContext.getUserLevel("a2a", identity),
-      callerDomain: identity,
-    };
+    return { permissionLevel: "public", callerDomain: null };
   }
 
   private withCors(response: Response): Response {
