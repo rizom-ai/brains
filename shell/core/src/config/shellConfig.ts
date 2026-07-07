@@ -5,10 +5,9 @@ import type {
   IEvalHandlerRegistry,
   EntityDisplayEntry,
 } from "@brains/plugins";
-
+import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
-import { mkdir } from "fs/promises";
 import {
   createStandardConfig,
   createStandardPaths,
@@ -19,15 +18,6 @@ import {
 export type { StandardConfig } from "./standardConfig";
 
 export const STANDARD_PATHS: StandardPaths = createStandardPaths();
-
-const pluginMetadataSchema = z.object({
-  id: z.string(),
-  version: z.string(),
-  type: z.enum(["core", "entity", "service", "interface"]),
-  description: z.string().optional(),
-  dependencies: z.array(z.string()).optional(),
-  packageName: z.string(),
-});
 
 const entityDisplayEntrySchema = z.looseObject({
   label: z.string().min(1),
@@ -46,22 +36,6 @@ const entityDisplayEntrySchema = z.looseObject({
 
 export function getStandardConfig(): StandardConfig {
   return createStandardConfig(STANDARD_PATHS);
-}
-
-export async function getStandardConfigWithDirectories(): Promise<StandardConfig> {
-  try {
-    await mkdir(STANDARD_PATHS.dataDir, { recursive: true });
-    await mkdir(STANDARD_PATHS.cacheDir, { recursive: true });
-    await mkdir(STANDARD_PATHS.distDir, { recursive: true });
-  } catch (error) {
-    const msg =
-      error instanceof Error && error.message.includes("EACCES")
-        ? `Cannot create data directories — permission denied. Run from a writable directory or check permissions on ${STANDARD_PATHS.dataDir}`
-        : `Cannot create data directories: ${error instanceof Error ? error.message : String(error)}`;
-    throw new Error(msg, { cause: error });
-  }
-
-  return getStandardConfig();
 }
 
 export interface ShellConfigSchemaOutput {

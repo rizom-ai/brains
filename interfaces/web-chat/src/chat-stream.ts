@@ -1,6 +1,7 @@
 import {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
+  buildResponsePlan,
   collectDeniedArtifactCardIds,
   redactUploadRefs,
   type AgentNamespace,
@@ -12,7 +13,7 @@ import {
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
 import { stripInternalEntityMemoryNote } from "./display-content";
-import { writeStructuredCards, writeTextPart } from "./stream-writer";
+import { writePlanCards, writeTextPart } from "./stream-writer";
 
 export interface ActiveStream {
   writer: UIMessageStreamWriter<UIMessage>;
@@ -89,6 +90,12 @@ export async function handleStreamedChat(
     );
 
     await deps.handleAgentResponseToolStatuses(response, input.conversationId);
+    const deniedCardIds = await deniedArtifactCardIds(
+      deps,
+      response,
+      input.permissionLevel,
+    );
+    const plan = buildResponsePlan(response, { deniedCardIds });
     writeText(input.writer, response.text, "text", deps.createId);
     for (const toolResult of response.toolResults ?? []) {
       input.writer.write({
@@ -97,12 +104,7 @@ export async function handleStreamedChat(
         data: redactUploadRefs(toolResult),
       });
     }
-    const deniedCardIds = await deniedArtifactCardIds(
-      deps,
-      response,
-      input.permissionLevel,
-    );
-    writeStructuredCards(input.writer, response.cards ?? [], deniedCardIds);
+    writePlanCards(input.writer, plan);
   } finally {
     deps.endProcessingInput();
     deps.activeStreams.delete(input.conversationId);
@@ -150,13 +152,14 @@ export async function handleStreamedConfirmations(
         response,
         input.conversationId,
       );
-      writeText(input.writer, response.text, "text", deps.createId);
       const deniedCardIds = await deniedArtifactCardIds(
         deps,
         response,
         input.permissionLevel,
       );
-      writeStructuredCards(input.writer, response.cards ?? [], deniedCardIds);
+      const plan = buildResponsePlan(response, { deniedCardIds });
+      writeText(input.writer, response.text, "text", deps.createId);
+      writePlanCards(input.writer, plan);
     }
   } finally {
     deps.endProcessingInput();

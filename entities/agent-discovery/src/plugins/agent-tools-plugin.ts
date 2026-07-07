@@ -2,6 +2,7 @@ import type { Plugin, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { createAgentConnectTool } from "../tools/agent-connect";
+import { createAgentSetTrustLevelTool } from "../tools/agent-set-trust-level";
 import type { FetchFn } from "../lib/fetch-agent-card";
 import packageJson from "../../package.json";
 
@@ -25,7 +26,10 @@ export class AgentToolsPlugin extends ServicePlugin<
   }
 
   protected override async getTools(): Promise<Tool[]> {
-    return [createAgentConnectTool(this.getContext(), this.fetchFn)];
+    return [
+      createAgentConnectTool(this.getContext(), this.fetchFn),
+      createAgentSetTrustLevelTool(this.getContext(), this.fetchFn),
+    ];
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "@brains/directory-sync",
   "private": true,
-  "version": "0.2.0-alpha.140",
+  "version": "0.2.0-alpha.141",
   "description": "Directory-based entity synchronization plugin for Brains",
   "type": "module",
   "main": "./src/index.ts",
@@ -10,7 +10,8 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
-    }
+    },
+    "./env-schema": "./src/env-schema.ts"
   },
   "scripts": {
     "test": "bun test",

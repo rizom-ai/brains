@@ -1,6 +1,6 @@
 {
   "name": "@brains/utils",
-  "version": "0.2.0-alpha.140",
+  "version": "0.2.0-alpha.141",
   "private": true,
   "type": "module",
   "exports": {
@@ -8,6 +8,7 @@
     "./chunk-message": "./src/chunk-message.ts",
     "./date": "./src/date.ts",
     "./debounce": "./src/debounce.ts",
+    "./env-schema": "./src/env-schema.ts",
     "./error": "./src/error.ts",
     "./fetch-like": "./src/fetch-like.ts",
     "./hash": "./src/hash.ts",

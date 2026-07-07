@@ -21,6 +21,10 @@ export interface TaskRecord {
   conversationId: string;
   createdAt: string;
   updatedAt: string;
+  /** Verified caller domain for signed callers; null for anonymous/public callers. */
+  callerDomain: string | null;
+  /** Client-provided A2A message id used as an idempotency key. */
+  clientMessageId?: string;
   /** Timestamp when task entered "working" state (for stale detection) */
   workingStartedAt?: string;
 }
@@ -35,6 +39,7 @@ export interface TaskRecord {
  */
 export class TaskManager {
   private tasks: Map<string, TaskRecord> = new Map<string, TaskRecord>();
+  private clientMessageIndex: Map<string, string> = new Map<string, string>();
   private readonly ttlMs: number;
   private readonly processingTimeoutMs: number;
 
@@ -63,9 +68,29 @@ export class TaskManager {
         TERMINAL_STATES.has(record.task.status.state) &&
         now - new Date(record.updatedAt).getTime() >= this.ttlMs
       ) {
-        this.tasks.delete(id);
+        this.removeTask(id);
       }
     }
+  }
+
+  private clientMessageKey(
+    callerDomain: string | null,
+    messageId: string,
+  ): string {
+    return JSON.stringify([callerDomain, messageId]);
+  }
+
+  private removeTask(taskId: string): boolean {
+    const record = this.tasks.get(taskId);
+    if (!record) return false;
+
+    if (record.clientMessageId) {
+      this.clientMessageIndex.delete(
+        this.clientMessageKey(record.callerDomain, record.clientMessageId),
+      );
+    }
+
+    return this.tasks.delete(taskId);
   }
 
   private isOverdueWorking(record: TaskRecord): boolean {
@@ -80,15 +105,21 @@ export class TaskManager {
   /**
    * Create a new task from an incoming message
    */
-  createTask(messageText: string, contextId?: string): TaskRecord {
+  createTask(
+    messageText: string,
+    contextId?: string,
+    options: { callerDomain?: string | null; messageId?: string } = {},
+  ): TaskRecord {
     this.evictExpired();
     const taskId = crypto.randomUUID();
     const resolvedContextId = contextId ?? crypto.randomUUID();
     const now = new Date().toISOString();
+    const callerDomain = options.callerDomain ?? null;
+    const clientMessageId = options.messageId;
 
     const userMessage: Message = {
       kind: "message",
-      messageId: crypto.randomUUID(),
+      messageId: clientMessageId ?? crypto.randomUUID(),
       role: "user",
       parts: [{ kind: "text", text: messageText }],
       contextId: resolvedContextId,
@@ -111,9 +142,17 @@ export class TaskManager {
       conversationId: `a2a:${taskId}`,
       createdAt: now,
       updatedAt: now,
+      callerDomain,
+      ...(clientMessageId ? { clientMessageId } : {}),
     };
 
     this.tasks.set(taskId, record);
+    if (clientMessageId) {
+      this.clientMessageIndex.set(
+        this.clientMessageKey(callerDomain, clientMessageId),
+        taskId,
+      );
+    }
     return record;
   }
 
@@ -122,6 +161,20 @@ export class TaskManager {
    */
   getTask(taskId: string): TaskRecord | undefined {
     return this.tasks.get(taskId);
+  }
+
+  /**
+   * Get a task by the client message id scoped to the verified caller.
+   */
+  getTaskByClientMessageId(
+    callerDomain: string | null,
+    messageId: string | undefined,
+  ): TaskRecord | undefined {
+    if (!messageId) return undefined;
+    const taskId = this.clientMessageIndex.get(
+      this.clientMessageKey(callerDomain, messageId),
+    );
+    return taskId ? this.tasks.get(taskId) : undefined;
   }
 
   /**
@@ -213,7 +266,7 @@ export class TaskManager {
    * Remove a task
    */
   deleteTask(taskId: string): boolean {
-    return this.tasks.delete(taskId);
+    return this.removeTask(taskId);
   }
 
   /**

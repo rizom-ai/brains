@@ -3,8 +3,9 @@ import {
   formatPendingConfirmationsFallback,
   type PendingConfirmation,
 } from "@brains/plugins";
-import type { SentMessage, Thread } from "chat";
+import type { SentMessage } from "chat";
 import type { ChatCardBuilder } from "./chat-cards";
+import type { ChatThread } from "./types";
 
 interface ApprovalCardTrackerDeps {
   cardBuilder: ChatCardBuilder;
@@ -33,7 +34,7 @@ export class ApprovalCardTracker {
   }
 
   async trackPendingConfirmations(
-    thread: Thread,
+    thread: ChatThread,
     conversationId: string,
     pendingConfirmations: PendingConfirmation[] | undefined,
   ): Promise<void> {

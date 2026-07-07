@@ -1,7 +1,7 @@
 {
   "name": "@brains/agent-discovery",
   "private": true,
-  "version": "0.2.0-alpha.140",
+  "version": "0.2.0-alpha.141",
   "description": "Agent discovery — brain+anchor contacts and skills",
   "type": "module",
   "exports": {
@@ -15,9 +15,11 @@
   },
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
+    "@brains/auth-service": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/dashboard": "workspace:*",
+    "@brains/http-signatures": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",

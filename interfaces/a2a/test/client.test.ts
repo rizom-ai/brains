@@ -217,7 +217,7 @@ describe("A2A Client", () => {
     });
   });
 
-  describe("createAgentCallTool outbound auth", () => {
+  describe("createAgentCallTool outbound signing", () => {
     /** Mock fetch that serves an agent card then records the a2a call */
     function createMockFetch(capturedHeaders: Record<string, string>[]) {
       return async (
@@ -270,47 +270,7 @@ describe("A2A Client", () => {
       };
     }
 
-    it("should send Authorization header when outbound token matches domain", async () => {
-      const capturedHeaders: Record<string, string>[] = [];
-      const tool = createAgentCallTool({
-        fetch: createMockFetch(capturedHeaders),
-        outboundTokens: {
-          "remote.example.com": "secret-token-xyz",
-        },
-        entityService: createSavedAgentEntityService(),
-      });
-
-      await tool.handler(
-        { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
-      );
-
-      expect(capturedHeaders).toHaveLength(1);
-      const headers = capturedHeaders[0];
-      expect(headers).toBeDefined();
-      expect(headers?.["Authorization"]).toBe("Bearer secret-token-xyz");
-    });
-
-    it("should not send Authorization header when no token matches", async () => {
-      const capturedHeaders: Record<string, string>[] = [];
-      const tool = createAgentCallTool({
-        fetch: createMockFetch(capturedHeaders),
-        outboundTokens: {
-          "other-agent.com": "some-token",
-        },
-        entityService: createSavedAgentEntityService(),
-      });
-
-      await tool.handler(
-        { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
-      );
-
-      expect(capturedHeaders).toHaveLength(1);
-      expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
-    });
-
-    it("should not send Authorization header when no outbound tokens configured", async () => {
+    it("should not send Authorization headers", async () => {
       const capturedHeaders: Record<string, string>[] = [];
       const tool = createAgentCallTool({
         fetch: createMockFetch(capturedHeaders),
@@ -324,6 +284,31 @@ describe("A2A Client", () => {
 
       expect(capturedHeaders).toHaveLength(1);
       expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
+    });
+
+    it("should sign outbound requests when a signer is configured", async () => {
+      const capturedHeaders: Record<string, string>[] = [];
+      const signedUrls: string[] = [];
+      const tool = createAgentCallTool({
+        fetch: createMockFetch(capturedHeaders),
+        requestSigner: async (request) => {
+          signedUrls.push(String(request.url));
+          request.headers["Signature-Input"] = "sig1=()";
+          request.headers["Signature"] = "sig1=:abc:";
+        },
+        entityService: createSavedAgentEntityService(),
+      });
+
+      await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(signedUrls).toEqual(["https://remote.example.com/a2a"]);
+      expect(capturedHeaders).toHaveLength(1);
+      expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
+      expect(capturedHeaders[0]?.["Signature-Input"]).toBe("sig1=()");
+      expect(capturedHeaders[0]?.["Signature"]).toBe("sig1=:abc:");
     });
   });
 
@@ -442,7 +427,7 @@ describe("A2A Client", () => {
       expect(result).toHaveProperty("success", false);
     });
 
-    it("should timeout and retry when the POST never returns", async () => {
+    it("should not retry when the POST times out after it may have reached the peer", async () => {
       let postAttempts = 0;
       const fetchFn = async (
         _url: string | URL | Request,
@@ -478,15 +463,15 @@ describe("A2A Client", () => {
         { interfaceType: "test", userId: "test" },
       );
 
-      expect(postAttempts).toBe(2);
+      expect(postAttempts).toBe(1);
       expect(result).toHaveProperty("success", false);
       expect(result).toHaveProperty(
         "error",
-        "Failed to reach remote agent after 2 attempts: request timed out after 5ms",
+        "Failed to reach remote agent: request timed out after 5ms",
       );
     });
 
-    it("should timeout and retry when the SSE stream stalls", async () => {
+    it("should not retry when the SSE stream stalls after the peer started processing", async () => {
       const encoder = new TextEncoder();
       const createStalledStream = (): ReadableStream<Uint8Array> =>
         new ReadableStream<Uint8Array>({
@@ -538,15 +523,29 @@ describe("A2A Client", () => {
         { interfaceType: "test", userId: "test" },
       );
 
-      expect(postAttempts).toBe(2);
+      expect(postAttempts).toBe(1);
       expect(result).toHaveProperty("success", false);
       expect(result).toHaveProperty(
         "error",
-        "A2A stream stalled waiting for final event after 5ms after 2 attempts",
+        "A2A stream stalled waiting for final event after 5ms",
       );
     });
 
-    it("should retry once on transient network failure", async () => {
+    it("should not retry when the SSE stream errors after the response starts", async () => {
+      const encoder = new TextEncoder();
+      const erroringStream = new ReadableStream<Uint8Array>({
+        start(controller): void {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                result: { status: { state: "working" }, final: false },
+              })}\n\n`,
+            ),
+          );
+          controller.error(new Error("stream reset"));
+        },
+      });
+
       let postAttempts = 0;
       const fetchFn = async (
         _url: string | URL | Request,
@@ -563,6 +562,52 @@ describe("A2A Client", () => {
         }
 
         postAttempts++;
+        return new Response(erroringStream, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      };
+
+      const tool = createAgentCallTool({
+        fetch: fetchFn,
+        entityService: createSavedAgentEntityService(),
+        maxNetworkAttempts: 2,
+      });
+
+      const result = await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(postAttempts).toBe(1);
+      expect(result).toHaveProperty("success", false);
+      expect(result).toHaveProperty(
+        "error",
+        "Failed to reach remote agent: stream reset",
+      );
+    });
+
+    it("should retry once on transient network failure", async () => {
+      let postAttempts = 0;
+      const messageIds: string[] = [];
+      const fetchFn = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        postAttempts++;
+        const body = JSON.parse(String(init.body));
+        expect(body).toHaveProperty("params.message.messageId");
+        messageIds.push(body.params.message.messageId);
         if (postAttempts === 1) {
           throw new Error("fetch failed");
         }
@@ -588,6 +633,7 @@ describe("A2A Client", () => {
       );
 
       expect(postAttempts).toBe(2);
+      expect(new Set(messageIds).size).toBe(1);
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("data.response", "retry ok");
     });

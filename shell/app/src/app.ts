@@ -3,6 +3,7 @@ import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
+import { resolveStandardConfig } from "./standard-paths";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];
@@ -74,6 +75,7 @@ export class App {
       ...this.config.shellConfig, // Allow overriding for tests/advanced use
     };
 
+    this.applyStandardStorageConfig(shellConfig);
     this.applySimpleConfigOverrides(shellConfig);
     this.applyAIConfig(shellConfig, options);
     this.applyLoggingConfig(shellConfig);
@@ -84,6 +86,21 @@ export class App {
     this.applyAppMetadata(shellConfig);
 
     return shellConfig;
+  }
+
+  /**
+   * Environment policy lives here, not in core: resolve XDG-based storage
+   * paths and pass them as explicit config. Anything the caller already
+   * set (tests, advanced use) wins.
+   */
+  private applyStandardStorageConfig(shellConfig: ShellConfig): void {
+    const standard = resolveStandardConfig();
+    shellConfig.database ??= standard.database;
+    shellConfig.jobQueueDatabase ??= standard.jobQueueDatabase;
+    shellConfig.conversationDatabase ??= standard.conversationDatabase;
+    shellConfig.runtimeStateDatabase ??= standard.runtimeStateDatabase;
+    shellConfig.embeddingDatabase ??= standard.embeddingDatabase;
+    shellConfig.embedding ??= standard.embedding;
   }
 
   private applySimpleConfigOverrides(shellConfig: ShellConfig): void {

@@ -1,3 +1,9 @@
+import { getActiveAuthService } from "@brains/auth-service";
+import {
+  JwksResolver,
+  signRequest,
+  verifyRequest,
+} from "@brains/http-signatures";
 import {
   InterfacePlugin,
   type InterfacePluginContext,
@@ -18,13 +24,14 @@ import {
   jsonrpcRequestSchema,
   streamParamsSchema,
 } from "./jsonrpc-handler";
-import { createAgentCallTool } from "./client";
+import { createAgentCallTool, type A2ARequestSigner } from "./client";
 import packageJson from "../package.json";
 
 const A2A_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Signature, Signature-Input, Content-Digest, Date",
   "X-Content-Type-Options": "nosniff",
 } as const;
 
@@ -40,7 +47,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   private agentCard: AgentCard | undefined;
   private taskManager = new TaskManager();
   private agentService: AgentNamespace | undefined;
-  private permissionContext: InterfacePluginContext["permissions"] | undefined;
+  private readonly jwksResolver = new JwksResolver();
   private app: Hono | undefined;
   private hasWebserver = false;
 
@@ -55,7 +62,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
     this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agent;
-    this.permissionContext = context.permissions;
 
     if (this.hasWebserver) {
       context.endpoints.register({
@@ -97,10 +103,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     const profile = context.identity.getProfile();
     const tools = context.tools.listForPermissionLevel("public");
 
-    const hasTrustedTokens =
-      this.config.trustedTokens &&
-      Object.keys(this.config.trustedTokens).length > 0;
-
     // Query skill entities for Agent Card — metadata validated via schema
     let skills: SkillData[] | undefined;
     if (context.entityService.hasEntityType("skill")) {
@@ -130,7 +132,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       organization: this.config.organization,
       tools,
       skills,
-      authEnabled: hasTrustedTokens,
+      authEnabled: false,
     });
 
     this.logger.debug("Agent Card rebuilt", {
@@ -146,24 +148,42 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   }
 
   /**
-   * Resolve caller permission level from Authorization header.
-   * Looks up bearer token in trustedTokens config, then checks
-   * the permission system for the resolved identity.
+   * Resolve caller permission from a verified HTTP signature when present.
+   * Unsigned requests remain public.
    */
-  private resolveCallerPermission(
-    authHeader: string | undefined,
-  ): UserPermissionLevel {
-    if (!authHeader?.startsWith("Bearer ") || !this.config.trustedTokens) {
-      return "public";
+  private async resolveCaller(
+    request: Request,
+    body: string,
+  ): Promise<{
+    permissionLevel: UserPermissionLevel;
+    callerDomain: string | null;
+  }> {
+    const verified = await verifyRequest(
+      {
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        body,
+      },
+      this.jwksResolver,
+    );
+
+    if (verified) {
+      const grant = await getActiveAuthService()?.getA2APeerTrust(
+        verified.domain,
+      );
+      const permissionLevel =
+        grant?.keyFingerprint === verified.keyFingerprint
+          ? grant.grantedLevel
+          : "public";
+
+      return {
+        permissionLevel,
+        callerDomain: verified.domain,
+      };
     }
 
-    const token = authHeader.slice(7);
-    const identity = this.config.trustedTokens[token];
-    if (!identity || !this.permissionContext) {
-      return "public";
-    }
-
-    return this.permissionContext.getUserLevel("a2a", identity);
+    return { permissionLevel: "public", callerDomain: null };
   }
 
   private withCors(response: Response): Response {
@@ -223,9 +243,20 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
         );
       }
 
+      const bodyText = await c.req.text();
+      let caller: {
+        permissionLevel: UserPermissionLevel;
+        callerDomain: string | null;
+      };
+      try {
+        caller = await this.resolveCaller(c.req.raw, bodyText);
+      } catch {
+        return this.withCors(c.json({ error: "Invalid HTTP signature" }, 401));
+      }
+
       let body: unknown;
       try {
-        body = await c.req.json();
+        body = JSON.parse(bodyText);
       } catch {
         return this.withCors(
           c.json({
@@ -246,10 +277,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
           }),
         );
       }
-
-      const callerPermissionLevel = this.resolveCallerPermission(
-        c.req.header("Authorization"),
-      );
 
       if (parsed.data.method === "message/stream") {
         const streamParams = streamParamsSchema.safeParse(
@@ -275,7 +302,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
           {
             taskManager: this.taskManager,
             agentService: this.agentService,
-            callerPermissionLevel,
+            callerPermissionLevel: caller.permissionLevel,
+            callerDomain: caller.callerDomain,
           },
         );
 
@@ -299,7 +327,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       const response = await handleJsonRpc(parsed.data, {
         taskManager: this.taskManager,
         agentService: this.agentService,
-        callerPermissionLevel,
+        callerPermissionLevel: caller.permissionLevel,
+        callerDomain: caller.callerDomain,
       });
 
       return this.withCors(c.json(response));
@@ -345,10 +374,20 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     ];
   }
 
+  private createRequestSigner(): A2ARequestSigner | undefined {
+    const authService = getActiveAuthService();
+    if (!authService) return undefined;
+
+    return async (request): Promise<void> => {
+      const signingKey = await authService.getA2ASigningKey();
+      await signRequest(request, signingKey.privateJwk, signingKey.keyId);
+    };
+  }
+
   protected override async getTools(): Promise<Tool[]> {
     return [
       createAgentCallTool({
-        outboundTokens: this.config.outboundTokens,
+        requestSigner: this.createRequestSigner(),
         requestTimeoutMs: this.config.requestTimeoutMs,
         streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
         maxNetworkAttempts: this.config.maxNetworkAttempts,

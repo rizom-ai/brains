@@ -1,11 +1,12 @@
 {
   "name": "@brains/analytics",
   "private": true,
-  "version": "0.2.0-alpha.140",
+  "version": "0.2.0-alpha.141",
   "description": "Analytics plugin for collecting website and social media metrics",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./env-schema": "./src/env-schema.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

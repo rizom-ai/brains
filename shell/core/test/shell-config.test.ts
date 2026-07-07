@@ -1,30 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import type * as ShellConfigModule from "../src/config/shellConfig";
-
-async function loadConfigWithEnv(
-  env: Record<string, string | undefined>,
-): Promise<typeof ShellConfigModule> {
-  const previous = { ...process.env };
-  for (const [key, value] of Object.entries(env)) {
-    if (value === undefined) {
-      delete process.env[key];
-    } else {
-      process.env[key] = value;
-    }
-  }
-
-  const module = await import(
-    `../src/config/shellConfig.ts?test=${Date.now()}-${Math.random()}`
-  );
-
-  process.env = previous;
-  return module as typeof ShellConfigModule;
-}
+import { createShellConfig, getStandardConfig } from "../src/config";
 
 describe("shell config", () => {
-  it("preserves shared conversation spaces", async () => {
-    const { createShellConfig } = await loadConfigWithEnv({});
-
+  it("preserves shared conversation spaces", () => {
     const config = createShellConfig({
       ai: { apiKey: "test-key", model: "gpt-4o-mini" },
       spaces: ["discord:project-*"],
@@ -35,28 +13,29 @@ describe("shell config", () => {
 });
 
 describe("standard shell paths", () => {
-  it("uses XDG_DATA_HOME for state databases when set", async () => {
-    const { getStandardConfig } = await loadConfigWithEnv({
-      XDG_DATA_HOME: "/data",
-    });
+  it("uses fixed relative defaults and ignores ambient env", () => {
+    // Environment policy (XDG_DATA_HOME etc.) belongs to the app/deploy
+    // layer, which passes explicit config in; core stays deterministic.
+    process.env["XDG_DATA_HOME"] = "/somewhere-else";
+    try {
+      const config = getStandardConfig();
 
-    const config = getStandardConfig();
-
-    expect(config.database.url).toBe("file:/data/brain.db");
-    expect(config.jobQueueDatabase.url).toBe("file:/data/brain-jobs.db");
-    expect(config.conversationDatabase.url).toBe("file:/data/conversations.db");
-    expect(config.runtimeStateDatabase.url).toBe("file:/data/runtime-state.db");
-    expect(config.embeddingDatabase.url).toBe("file:/data/embeddings.db");
+      expect(config.database.url).toBe("file:./data/brain.db");
+      expect(config.jobQueueDatabase.url).toBe("file:./data/brain-jobs.db");
+      expect(config.conversationDatabase.url).toBe(
+        "file:./data/conversations.db",
+      );
+      expect(config.runtimeStateDatabase.url).toBe(
+        "file:./data/runtime-state.db",
+      );
+      expect(config.embeddingDatabase.url).toBe("file:./data/embeddings.db");
+      expect(config.embedding.cacheDir).toBe("./cache/embeddings");
+    } finally {
+      delete process.env["XDG_DATA_HOME"];
+    }
   });
 
-  it("does not read database auth tokens from ambient env", async () => {
-    const { getStandardConfig } = await loadConfigWithEnv({
-      DATABASE_AUTH_TOKEN: "db-secret",
-      JOB_QUEUE_DATABASE_AUTH_TOKEN: "jobs-secret",
-      CONVERSATION_DATABASE_AUTH_TOKEN: "conversation-secret",
-      RUNTIME_STATE_DATABASE_AUTH_TOKEN: "runtime-state-secret",
-    });
-
+  it("does not read database auth tokens from ambient env", () => {
     const config = getStandardConfig();
 
     expect(config.database.authToken).toBeUndefined();

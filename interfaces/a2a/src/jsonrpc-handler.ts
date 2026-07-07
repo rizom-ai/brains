@@ -101,6 +101,8 @@ export interface JsonRpcHandlerContext {
   taskManager: TaskManager;
   agentService: AgentNamespace;
   callerPermissionLevel: UserPermissionLevel;
+  /** Verified caller domain for signed A2A requests; null/undefined for anonymous callers. */
+  callerDomain?: string | null;
 }
 
 // -- Main handler --
@@ -154,9 +156,22 @@ async function handleSendMessage(
 
   const messageText = textParts.map((p) => p.text).join("\n");
   const contextId = parsed.data.message.contextId;
+  const callerDomain = context.callerDomain ?? null;
+  const messageId = callerDomain ? parsed.data.message.messageId : undefined;
+
+  const existing = context.taskManager.getTaskByClientMessageId(
+    callerDomain,
+    messageId,
+  );
+  if (existing) {
+    return successResponse(id, existing.task);
+  }
 
   // Create task and move to working
-  const record = context.taskManager.createTask(messageText, contextId);
+  const record = context.taskManager.createTask(messageText, contextId, {
+    callerDomain,
+    messageId,
+  });
   const taskId = record.task.id;
   context.taskManager.updateState(taskId, "working");
 
@@ -206,6 +221,7 @@ function processInBackground(
 export interface StreamParams {
   message: {
     kind: string;
+    messageId?: string | undefined;
     parts: MessagePartParams[];
     contextId?: string | undefined;
   };
@@ -217,6 +233,7 @@ export const streamParamsSchema: z.ZodType<StreamParams, StreamParamsInput> =
   z.object({
     message: z.object({
       kind: z.string(),
+      messageId: z.string().optional(),
       parts: messagePartsSchema,
       contextId: z.string().optional(),
     }),
@@ -256,8 +273,28 @@ export function handleStreamMessage(
   }
 
   const messageText = textParts.map((p) => p.text).join("\n");
+  const callerDomain = context.callerDomain ?? null;
+  const messageId = callerDomain ? message.messageId : undefined;
 
-  const record = context.taskManager.createTask(messageText, message.contextId);
+  const existing = context.taskManager.getTaskByClientMessageId(
+    callerDomain,
+    messageId,
+  );
+  if (existing) {
+    return {
+      taskId: existing.task.id,
+      stream: taskSnapshotStream(requestId, existing.task),
+    };
+  }
+
+  const record = context.taskManager.createTask(
+    messageText,
+    message.contextId,
+    {
+      callerDomain,
+      messageId,
+    },
+  );
   const taskId = record.task.id;
 
   context.taskManager.updateState(taskId, "working");
@@ -373,6 +410,42 @@ export function handleStreamMessage(
   return { taskId, stream };
 }
 
+function taskSnapshotStream(
+  requestId: string | number,
+  task: Task,
+): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    start(controller): void {
+      controller.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({
+            jsonrpc: "2.0",
+            id: requestId,
+            result: {
+              kind: "status-update",
+              taskId: task.id,
+              contextId: task.contextId,
+              status: task.status,
+              final: TERMINAL_STATES.has(task.status.state),
+            },
+          })}\n\n`,
+        ),
+      );
+      controller.close();
+    },
+  });
+}
+
+function callerCanAccessTask(
+  record: { callerDomain: string | null },
+  context: JsonRpcHandlerContext,
+): boolean {
+  return (
+    record.callerDomain !== null && record.callerDomain === context.callerDomain
+  );
+}
+
 function handleGetTask(
   id: string | number,
   params: Record<string, unknown>,
@@ -381,6 +454,11 @@ function handleGetTask(
   const parsed = taskIdParamsSchema.safeParse(params);
   if (!parsed.success) {
     return errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`);
+  }
+
+  const record = context.taskManager.getTask(parsed.data.id);
+  if (!record || !callerCanAccessTask(record, context)) {
+    return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
   }
 
   const task = context.taskManager.getTaskWithHistory(
@@ -406,7 +484,7 @@ function handleCancelTask(
   }
 
   const record = context.taskManager.getTask(parsed.data.id);
-  if (!record) {
+  if (!record || !callerCanAccessTask(record, context)) {
     return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
   }
 

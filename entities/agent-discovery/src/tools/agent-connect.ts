@@ -115,7 +115,7 @@ export function createAgentConnectTool(
   return {
     name: toolName,
     description:
-      "Verify and connect a remote A2A agent by fetching its Agent Card from /.well-known/agent-card.json, then save the verified contact in the local agent directory as approved for future calls. This establishes and approves the contact; it does not message the remote agent. Requires confirmation before verification and persistence. Call this tool without confirmed on the initial request; the tool returns confirmation args for the user to approve.",
+      "Verify and connect a remote A2A agent by fetching its Agent Card from /.well-known/agent-card.json, then save the verified contact in the local agent directory as approved for future outbound calls. This adds a directory contact; it does not message the remote agent or grant it inbound trusted access. Requires confirmation before verification and persistence. Call this tool without confirmed on the initial request; the tool returns confirmation args for the user to approve.",
     inputSchema: agentConnectInputSchema.shape,
     visibility: "trusted",
     sideEffects: "external",
@@ -215,7 +215,7 @@ export function createAgentConnectTool(
         needsConfirmation: true,
         toolName,
         summary: `Verify and connect agent ${normalized.domain}?`,
-        preview: `This will fetch and validate ${normalized.domain}'s A2A Agent Card, then save the verified contact as approved for future calls. It will not message the remote agent.`,
+        preview: `This will fetch and validate ${normalized.domain}'s A2A Agent Card, then save the verified contact as approved for future outbound calls. It will not message the remote agent or grant it inbound trusted access.`,
         args: confirmationArgs,
       };
     },

@@ -23,6 +23,17 @@ interface A2AError {
 
 type A2AResult = A2ASuccess | A2AError;
 
+export interface A2ARequestToSign {
+  method: "POST";
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+}
+
+export type A2ARequestSigner = (
+  request: A2ARequestToSign,
+) => Promise<void> | void;
+
 const textPartSchema = z.object({
   kind: z.literal("text"),
   text: z.string(),
@@ -261,10 +272,11 @@ async function sendMessage(
   endpointUrl: string,
   message: string,
   fetchFn: FetchFn,
-  authToken: string | undefined,
+  requestSigner: A2ARequestSigner | undefined,
   options: Required<A2ANetworkOptions>,
 ): Promise<ToolResponse> {
   const maxAttempts = Math.max(1, options.maxNetworkAttempts);
+  const clientMessageId = crypto.randomUUID();
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -272,8 +284,27 @@ async function sendMessage(
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (authToken) {
-        headers["Authorization"] = `Bearer ${authToken}`;
+      const body = JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "message/stream",
+        params: {
+          message: {
+            kind: "message",
+            messageId: clientMessageId,
+            role: "user",
+            parts: [{ kind: "text", text: message }],
+          },
+        },
+      });
+
+      if (requestSigner) {
+        await requestSigner({
+          method: "POST",
+          url: endpointUrl,
+          headers,
+          body,
+        });
       }
 
       const response = await fetchWithTimeout(
@@ -282,19 +313,7 @@ async function sendMessage(
         {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: crypto.randomUUID(),
-            method: "message/stream",
-            params: {
-              message: {
-                kind: "message",
-                messageId: crypto.randomUUID(),
-                role: "user",
-                parts: [{ kind: "text", text: message }],
-              },
-            },
-          }),
+          body,
         },
         options.requestTimeoutMs,
       );
@@ -310,16 +329,26 @@ async function sendMessage(
         return { success: false, error: "No response body (SSE expected)" };
       }
 
-      return await readStreamToCompletion(
-        response.body,
-        options.streamIdleTimeoutMs,
-      );
+      try {
+        return await readStreamToCompletion(
+          response.body,
+          options.streamIdleTimeoutMs,
+        );
+      } catch (err) {
+        return {
+          success: false,
+          error: formatNetworkFailure(err, attempt),
+        };
+      }
     } catch (err) {
       lastError = err;
-      if (attempt < maxAttempts && isRetryableNetworkError(err)) {
-        continue;
+      const shouldRetry = attempt < maxAttempts && isRetryableNetworkError(err);
+      if (!shouldRetry) {
+        return {
+          success: false,
+          error: formatNetworkFailure(err, attempt),
+        };
       }
-      break;
     }
   }
 
@@ -480,7 +509,7 @@ function isRetryableNetworkError(error: unknown): boolean {
     error instanceof A2ARequestTimeoutError ||
     error instanceof A2AStreamIdleTimeoutError
   ) {
-    return true;
+    return false;
   }
 
   return error instanceof Error;
@@ -511,8 +540,8 @@ export interface A2ANetworkOptions {
 
 export interface A2AClientDeps extends A2ANetworkOptions {
   fetch?: FetchFn;
-  /** Map of remote agent domain → bearer token to send */
-  outboundTokens?: Record<string, string>;
+  /** Signs outbound A2A requests. */
+  requestSigner?: A2ARequestSigner;
   /** Entity service for agent directory resolution */
   entityService?: {
     getEntity(request: {
@@ -609,7 +638,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
           card.url,
           message,
           fetchFn,
-          undefined,
+          deps.requestSigner,
           networkOptions,
         );
         if ("success" in oneShotResult && oneShotResult.success === true) {
@@ -664,22 +693,11 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
 
       const endpointUrl = card.url;
 
-      // Look up outbound token by agent domain
-      let authToken: string | undefined;
-      if (deps.outboundTokens) {
-        try {
-          const domain = new URL(endpointUrl).hostname;
-          authToken = deps.outboundTokens[domain];
-        } catch {
-          // Invalid URL — skip token
-        }
-      }
-
       return sendMessage(
         endpointUrl,
         message,
         fetchFn,
-        authToken,
+        deps.requestSigner,
         networkOptions,
       );
     },

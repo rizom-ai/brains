@@ -191,9 +191,15 @@ export class StreamableHTTPServer {
     request: Request,
     params: Record<string, string> = {},
   ): string {
-    const resourceMetadata = `${requestOrigin(request)}/.well-known/oauth-protected-resource`;
+    // Static-token mode rejects OAuth-issued JWTs, so advertising the OAuth
+    // resource metadata would lure spec-compliant clients (Claude Desktop,
+    // MCP Inspector) through a full auth ceremony that always ends in 401.
     const entries = {
-      resource_metadata: resourceMetadata,
+      ...(this.authConfig.token
+        ? {}
+        : {
+            resource_metadata: `${requestOrigin(request)}/.well-known/oauth-protected-resource`,
+          }),
       ...params,
     };
     const serialized = Object.entries(entries)

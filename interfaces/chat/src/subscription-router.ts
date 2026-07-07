@@ -1,4 +1,5 @@
-import type { Message, Thread } from "chat";
+import type { Message } from "chat";
+import type { ChatThread } from "./types";
 import type {
   DiscordThreadSubscriptionState,
   DiscordThreadSubscriptionStore,
@@ -9,9 +10,9 @@ const MENTION_REQUIRED_NOTICE =
 
 interface SubscriptionRouterDeps {
   getSubscriptions: () => DiscordThreadSubscriptionStore | undefined;
-  getPlatform: (thread: Thread) => string;
+  getPlatform: (thread: ChatThread) => string;
   /** Platform-specific: did the bot create this thread? Discord supplies this today. */
-  isBotCreatedThread: (thread: Thread, message: Message) => boolean;
+  isBotCreatedThread: (thread: ChatThread, message: Message) => boolean;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
   };
@@ -34,7 +35,10 @@ export class SubscriptionRouter {
     this.deps = deps;
   }
 
-  async subscribeOwnedThread(thread: Thread, message: Message): Promise<void> {
+  async subscribeOwnedThread(
+    thread: ChatThread,
+    message: Message,
+  ): Promise<void> {
     if (!this.deps.isBotCreatedThread(thread, message)) return;
 
     try {
@@ -51,7 +55,7 @@ export class SubscriptionRouter {
   }
 
   async shouldRouteSubscribedMessage(
-    thread: Thread,
+    thread: ChatThread,
     message: Message,
   ): Promise<boolean> {
     if (this.deps.getPlatform(thread) !== "discord") return false;
@@ -86,7 +90,7 @@ export class SubscriptionRouter {
   }
 
   private async postMentionRequiredNotice(
-    thread: Thread,
+    thread: ChatThread,
     subscription: DiscordThreadSubscriptionState,
   ): Promise<void> {
     await thread.post(MENTION_REQUIRED_NOTICE);
@@ -98,7 +102,7 @@ export class SubscriptionRouter {
   }
 
   private async shouldRequireMentionInSubscribedThread(
-    thread: Thread,
+    thread: ChatThread,
   ): Promise<boolean> {
     try {
       const participants = await thread.getParticipants();

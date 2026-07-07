@@ -1,5 +1,9 @@
 # Discord opt-in plan for rover-pilot ops
 
+## Status
+
+Proposed. Not started in the current tree: `@rizom/ops` still accepts `--anchor-id` without an explicit `--discord` flag, and the rover-pilot operator docs still describe Discord as the primary/default pilot interface. This remains active until the scaffold defaults, secrets template, reconcile behavior, docs, and tests all make Discord opt-in.
+
 ## Goal
 
 Make Discord opt-in for `@rizom/ops` rover-pilot scaffolding. New pilot users should be created with Discord disabled unless the operator explicitly requests Discord during onboarding.

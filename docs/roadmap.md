@@ -170,6 +170,7 @@ This includes:
 
 Plans:
 
+- [identity-and-trust.md](./plans/identity-and-trust.md) — the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
 - [auth-runtime-db.md](./plans/auth-runtime-db.md) — auth-specific runtime database for users, passkeys, OAuth/session stores, and audit.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
@@ -229,14 +230,10 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
-- [env-handling.md](./plans/env-handling.md) — co-locate env declarations and move `process.env` reads out of `shell/core` into the app/deploy layer.
-- [unify-build-pipeline.md](./plans/unify-build-pipeline.md) — collapse duplicated build responsibilities.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [external-dependency-review.md](./plans/external-dependency-review.md) — dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the Zod 4 migration/policy cleanup for the first stable `@rizom/brain`.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [codebase-cleanup-backlog.md](./plans/codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package-script drift).
-- [system-create-source-architecture.md](./plans/system-create-source-architecture.md) — agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. Deletes the NL guards (`call-options.ts` regexes, routing prose, source-precedence sniffing) and makes `system_create` source-only at the model boundary. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.
-- [upload-attachment-visibility.md](./plans/upload-attachment-visibility.md) — sibling of the interpretation-boundary plan: what attachments the model sees is data and cost policy, never message wording. Deletes the wording-based upload/attachment selection (`selectReferencedAttachments`, `conversation-messages.ts` narrowing helpers) so the model resolves "it/this/latest" against candidate refs instead of code regexes.
 
 Research probes (parked):
 

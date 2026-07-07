@@ -5,14 +5,6 @@ import type {
 } from "../contracts/agent";
 import { formatConfirmationResult } from "./confirmation-result";
 
-export interface AgentResponseTextPartsInput {
-  text: string;
-  cards: StructuredChatCard[] | undefined;
-  pendingConfirmations: PendingConfirmation[] | undefined;
-  deniedCardIds: ReadonlySet<string> | undefined;
-  formatCard: (card: StructuredChatCard) => string;
-}
-
 export interface ConfirmationResponsePartsInput {
   response: AgentResponse;
   confirmed: boolean;
@@ -59,23 +51,6 @@ export function formatPendingConfirmationHelp(
   return formatPendingConfirmationsFallback(pendingConfirmations);
 }
 
-export function buildAgentResponseTextParts({
-  text,
-  cards,
-  pendingConfirmations,
-  deniedCardIds,
-  formatCard,
-}: AgentResponseTextPartsInput): string[] {
-  return [
-    text,
-    ...getMainResponseSummaryCards({
-      cards,
-      pendingConfirmations,
-      deniedCardIds,
-    }).map(formatCard),
-  ].filter(isNonEmptyString);
-}
-
 export function buildConfirmationResponseParts({
   response,
   confirmed,
@@ -105,35 +80,22 @@ export function buildConfirmationResponseParts({
   };
 }
 
-export function getMainResponseSummaryCards(input: {
-  cards: StructuredChatCard[] | undefined;
-  pendingConfirmations: PendingConfirmation[] | undefined;
-  deniedCardIds: ReadonlySet<string> | undefined;
-}): StructuredChatCard[] {
-  const suppressApprovalCards = Boolean(input.pendingConfirmations?.length);
-  return (input.cards ?? []).filter((card) => {
-    if (suppressApprovalCards && card.kind === "tool-approval") {
-      return false;
-    }
-    return card.kind === "attachment" && input.deniedCardIds?.has(card.id);
-  });
-}
-
 export function getDeniedAttachmentCards(
   cards: StructuredChatCard[] | undefined,
   deniedCardIds: ReadonlySet<string> | undefined,
-): StructuredChatCard[] {
+): AttachmentChatCard[] {
   return (cards ?? []).filter(
-    (card) => card.kind === "attachment" && deniedCardIds?.has(card.id),
+    (card): card is AttachmentChatCard =>
+      card.kind === "attachment" && Boolean(deniedCardIds?.has(card.id)),
   );
 }
 
 export function getDeliverableArtifactCards(
   cards: StructuredChatCard[] | undefined,
   deniedCardIds: ReadonlySet<string> | undefined,
-): Array<Extract<StructuredChatCard, { kind: "attachment" }>> {
+): AttachmentChatCard[] {
   return (cards ?? []).filter(
-    (card): card is Extract<StructuredChatCard, { kind: "attachment" }> =>
+    (card): card is AttachmentChatCard =>
       card.kind === "attachment" && !deniedCardIds?.has(card.id),
   );
 }
@@ -141,18 +103,96 @@ export function getDeliverableArtifactCards(
 export function getSupplementalCards(
   cards: StructuredChatCard[] | undefined,
   pendingConfirmations: PendingConfirmation[] | undefined,
-): Array<Exclude<StructuredChatCard, { kind: "attachment" }>> {
+): SupplementalChatCard[] {
   const suppressRequestedApprovals = Boolean(pendingConfirmations?.length);
-  return (cards ?? []).filter(
-    (card): card is Exclude<StructuredChatCard, { kind: "attachment" }> => {
-      if (card.kind === "attachment") return false;
-      return !(
-        suppressRequestedApprovals &&
-        card.kind === "tool-approval" &&
-        card.state === "approval-requested"
-      );
-    },
-  );
+  return (cards ?? []).filter((card): card is SupplementalChatCard => {
+    if (card.kind === "attachment") return false;
+    return !(
+      suppressRequestedApprovals &&
+      card.kind === "tool-approval" &&
+      card.state === "approval-requested"
+    );
+  });
+}
+
+export type AttachmentChatCard = Extract<
+  StructuredChatCard,
+  { kind: "attachment" }
+>;
+export type SupplementalChatCard = Exclude<
+  StructuredChatCard,
+  { kind: "attachment" }
+>;
+export type ToolApprovalChatCard = Extract<
+  StructuredChatCard,
+  { kind: "tool-approval" }
+>;
+
+/**
+ * One renderable unit of an agent response, in delivery order. Each
+ * interface maps directives to its own mechanism (discrete card messages
+ * vs stream events); selection and sequencing live here so they cannot
+ * drift between interfaces.
+ *
+ * - `text` — the main response text (may be empty; renderers decide).
+ * - `denied-artifact` — an artifact the user's permission level may not
+ *   receive; render at most a mention, never the content.
+ * - `artifact` — a deliverable artifact card.
+ * - `supplemental` — a non-attachment card (sources, actions, resolved
+ *   tool cards; also *requested* approvals when no confirmation flow is
+ *   active).
+ * - `approvals` — emitted only when the response carries pending
+ *   confirmations; holds both the approval-requested cards and the
+ *   confirmations so each interface renders its own approval UX.
+ */
+export type ResponseRenderDirective =
+  | { kind: "text"; text: string }
+  | { kind: "denied-artifact"; card: AttachmentChatCard }
+  | { kind: "artifact"; card: AttachmentChatCard }
+  | { kind: "supplemental"; card: SupplementalChatCard }
+  | {
+      kind: "approvals";
+      cards: ToolApprovalChatCard[];
+      confirmations: PendingConfirmation[];
+    };
+
+export interface ResponsePlan {
+  directives: ResponseRenderDirective[];
+  /** Async job ids referenced by the response, for progress tracking. */
+  jobIds: string[];
+}
+
+export function buildResponsePlan(
+  response: Pick<
+    AgentResponse,
+    "text" | "cards" | "pendingConfirmations" | "toolResults"
+  >,
+  access: { deniedCardIds?: ReadonlySet<string> | undefined },
+): ResponsePlan {
+  const confirmations = response.pendingConfirmations ?? [];
+  const directives: ResponseRenderDirective[] = [
+    { kind: "text", text: response.text },
+    ...getDeniedAttachmentCards(response.cards, access.deniedCardIds).map(
+      (card): ResponseRenderDirective => ({ kind: "denied-artifact", card }),
+    ),
+    ...getDeliverableArtifactCards(response.cards, access.deniedCardIds).map(
+      (card): ResponseRenderDirective => ({ kind: "artifact", card }),
+    ),
+    ...getSupplementalCards(response.cards, response.pendingConfirmations).map(
+      (card): ResponseRenderDirective => ({ kind: "supplemental", card }),
+    ),
+  ];
+  if (confirmations.length > 0) {
+    directives.push({
+      kind: "approvals",
+      cards: (response.cards ?? []).filter(
+        (card): card is ToolApprovalChatCard =>
+          card.kind === "tool-approval" && card.state === "approval-requested",
+      ),
+      confirmations,
+    });
+  }
+  return { directives, jobIds: getResponseJobIds(response) };
 }
 
 export function getResponseJobIds(

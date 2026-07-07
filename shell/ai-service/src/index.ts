@@ -37,6 +37,7 @@ export type {
 export { AgentService } from "./agent-service";
 export { buildAssistantActor, createBrainActorId } from "./assistant-actor";
 export { createBrainAgentFactory } from "./brain-agent";
+export { aiServiceEnvSchema } from "./env-schema";
 export {
   createToolExecuteWrapper,
   createMessageBusEmitter,

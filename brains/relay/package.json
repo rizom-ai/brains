@@ -1,7 +1,7 @@
 {
   "name": "@brains/relay",
   "private": true,
-  "version": "0.2.0-alpha.140",
+  "version": "0.2.0-alpha.141",
   "description": "Relay brain model — collaborative knowledge management",
   "type": "module",
   "files": [
@@ -10,7 +10,8 @@
     "env.schema.template"
   ],
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./env-schema": "./src/env-schema.ts"
   },
   "scripts": {
     "build:web-chat": "turbo run build --filter=@brains/web-chat",
