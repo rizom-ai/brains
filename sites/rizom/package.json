@@ -6,6 +6,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishExports": {
+    ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
@@ -19,8 +26,8 @@
     "build": "bun scripts/build.ts",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "postpack": "bun scripts/publish-peers.ts restore",
-    "prepack": "bun scripts/publish-peers.ts inject",
+    "postpack": "publish-manifest restore",
+    "prepack": "publish-manifest prepare",
     "prepublishOnly": "bun scripts/build.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
@@ -35,6 +42,7 @@
   },
   "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",
+    "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/typescript-config": "workspace:*",

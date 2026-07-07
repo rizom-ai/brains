@@ -13,13 +13,16 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "postpack": "publish-manifest restore",
+    "prepack": "publish-manifest prepare"
   },
   "dependencies": {
     "@rizom/site-rizom": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {
+    "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",

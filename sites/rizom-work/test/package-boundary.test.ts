@@ -10,6 +10,7 @@ import {
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
+import { preparePublishManifest } from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
 const basePackageDir = join(packageDir, "../rizom");
@@ -62,36 +63,49 @@ async function findPackedTarball(
   return join(packDir, tarball);
 }
 
+/**
+ * Copy a package dir and apply the same manifest transform the real
+ * publish runs via prepack. Packing from a copy keeps the live
+ * manifests untouched while parallel workspace tasks run; stripping
+ * the lifecycle scripts stops bun pm pack from re-running the
+ * transform inside the copy (where the publish-manifest bin does not
+ * exist).
+ */
+async function stagePublishableCopy(
+  sourceDir: string,
+  destinationDir: string,
+): Promise<void> {
+  await cp(sourceDir, destinationDir, {
+    recursive: true,
+    filter: (source) =>
+      !source.includes("node_modules") && !source.includes(".turbo"),
+  });
+  await preparePublishManifest(destinationDir, { resolveFrom: sourceDir });
+
+  const manifestPath = join(destinationDir, "package.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  delete manifest.scripts?.prepack;
+  delete manifest.scripts?.postpack;
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 describe("@rizom/site-rizom-work package boundary", () => {
-  test("source-published TSX imports cleanly from a packed install", async () => {
+  test("publishable manifests install and import cleanly from packed tarballs", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "site-rizom-work-pack-"));
 
     try {
-      // Pack the base package from a copy: its prepack step temporarily
-      // rewrites package.json, which must never touch the live manifest
-      // while other workspace tasks run in parallel.
       const baseCopyDir = join(tempDir, "base-copy");
-      await cp(basePackageDir, baseCopyDir, {
-        recursive: true,
-        filter: (source) =>
-          !source.includes("node_modules") && !source.includes(".turbo"),
-      });
-      // bun pm pack cannot resolve workspace:* refs outside the
-      // workspace, and devDependencies are irrelevant to the artifact.
-      const copyManifestPath = join(baseCopyDir, "package.json");
-      const copyManifest = JSON.parse(await readFile(copyManifestPath, "utf8"));
-      delete copyManifest.devDependencies;
-      await writeFile(
-        copyManifestPath,
-        `${JSON.stringify(copyManifest, null, 2)}\n`,
-      );
+      const workCopyDir = join(tempDir, "work-copy");
+      await stagePublishableCopy(basePackageDir, baseCopyDir);
+      await stagePublishableCopy(packageDir, workCopyDir);
+
       await run(
         ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
         baseCopyDir,
       );
       await run(
         ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
-        packageDir,
+        workCopyDir,
       );
 
       const baseTarball = await findPackedTarball(tempDir, "rizom-site-rizom-");
@@ -138,17 +152,11 @@ describe("@rizom/site-rizom-work package boundary", () => {
 
       expect(output.trim()).toBe("home");
 
-      const packedPackageJson = await readFile(
-        join(tempDir, "node_modules/@rizom/site-rizom-work/package.json"),
-        "utf8",
-      );
-      expect(packedPackageJson).not.toContain("workspace:*");
-
-      // The runtime peer range must reach the published manifest even
-      // though the repo manifest omits it (it would close a workspace
-      // dependency cycle through @rizom/brain).
       const sourceBaseManifest = JSON.parse(
         await readFile(join(basePackageDir, "package.json"), "utf8"),
+      );
+      const sourceWorkManifest = JSON.parse(
+        await readFile(join(packageDir, "package.json"), "utf8"),
       );
       const installedBaseManifest = JSON.parse(
         await readFile(
@@ -156,6 +164,25 @@ describe("@rizom/site-rizom-work package boundary", () => {
           "utf8",
         ),
       );
+      const installedWorkManifest = JSON.parse(
+        await readFile(
+          join(tempDir, "node_modules/@rizom/site-rizom-work/package.json"),
+          "utf8",
+        ),
+      );
+
+      // The workspace protocol must not survive into a publishable
+      // manifest: npm publish (used by the release flow) does not
+      // rewrite it, so the transform has to.
+      expect(JSON.stringify(installedWorkManifest)).not.toContain("workspace:");
+      expect(installedWorkManifest.dependencies["@rizom/site-rizom"]).toBe(
+        sourceBaseManifest.version,
+      );
+      expect(installedWorkManifest.devDependencies).toBeUndefined();
+
+      // The runtime peer range must reach the published manifest even
+      // though the repo manifest omits it (it would close a workspace
+      // dependency cycle through @rizom/brain).
       expect(sourceBaseManifest.peerDependencies).toBeUndefined();
       expect(installedBaseManifest.peerDependencies).toEqual(
         sourceBaseManifest.publishPeerDependencies,
@@ -163,6 +190,16 @@ describe("@rizom/site-rizom-work package boundary", () => {
       expect(
         installedBaseManifest.peerDependencies?.["@rizom/brain"],
       ).toBeDefined();
+
+      // The in-repo "bun" source export condition must not ship: the
+      // published artifact resolves to dist only.
+      expect(sourceWorkManifest.scripts.prepack).toBe(
+        "publish-manifest prepare",
+      );
+      expect(JSON.stringify(installedBaseManifest.exports)).not.toContain(
+        "src/",
+      );
+      expect(installedBaseManifest.publishExports).toBeUndefined();
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
-  findInternalBrainImports,
+  findInternalDeclarationImports,
   formatDeclarationLeakError,
-} from "../scripts/declaration-leaks";
+} from "@brains/build-tools";
 
 describe("declaration bundler policy", () => {
   it("extracts leaked internal @brains import specifiers", () => {
@@ -14,22 +14,26 @@ describe("declaration bundler policy", () => {
       'import type { App as AppAgain } from "@brains/app";',
     ].join("\n");
 
-    expect(findInternalBrainImports(declaration)).toEqual([
+    expect(
+      findInternalDeclarationImports(declaration, {
+        internalPrefixes: ["@brains/"],
+      }),
+    ).toEqual([
       "@brains/app",
       "@brains/deploy-support/origin-ca",
       "@brains/site-composition",
-      "@brains/theme-base",
     ]);
   });
 
   it("formats actionable internal import leak diagnostics", () => {
-    const error = formatDeclarationLeakError("/tmp/brain/interfaces.d.ts", [
-      "@brains/site-composition",
-      "@brains/theme-base",
-    ]);
+    const error = formatDeclarationLeakError(
+      "/tmp/brain/interfaces.d.ts",
+      ["@brains/site-composition", "@brains/theme-base"],
+      "add it to packages/brain-cli/scripts/bundle-declarations.mjs declarationInlinePackages.",
+    );
 
     expect(error).toContain(
-      "Generated declaration 'interfaces.d.ts' leaks internal @brains/* imports:",
+      "Generated declaration 'interfaces.d.ts' leaks internal imports:",
     );
     expect(error).toContain("- @brains/site-composition");
     expect(error).toContain("- @brains/theme-base");

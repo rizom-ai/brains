@@ -773,6 +773,20 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/build-tools": {
+      "name": "@brains/build-tools",
+      "version": "0.2.0-alpha.136",
+      "bin": {
+        "publish-manifest": "./src/cli.ts",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/analytics": {
       "name": "@brains/analytics",
       "version": "0.2.0-alpha.136",
@@ -1966,6 +1980,8 @@
     "@brains/auth-service": ["@brains/auth-service@workspace:shell/auth-service"],
 
     "@brains/blog": ["@brains/blog@workspace:entities/blog"],
+
+    "@brains/build-tools": ["@brains/build-tools@workspace:packages/build-tools"],
 
     "@brains/buttondown": ["@brains/buttondown@workspace:plugins/buttondown"],
 

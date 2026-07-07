@@ -1,32 +1,13 @@
+import {
+  findInternalDeclarationImports,
+  formatDeclarationLeakError,
+} from "@brains/build-tools";
 import { readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
 const packageDir = join(import.meta.dir, "..");
 const distDir = join(packageDir, "dist");
-
-const internalDeclarationSpecifierPattern =
-  /(?:@brains\/[\w-]+(?:\/[\w./-]+)?|@rizom\/ui(?:\/[\w./-]+)?)/g;
-
-function findInternalDeclarationImports(declaration: string): string[] {
-  return [
-    ...new Set(declaration.match(internalDeclarationSpecifierPattern) ?? []),
-  ].sort();
-}
-
-function formatDeclarationLeakError(
-  declarationPath: string,
-  leakedImports: string[],
-): string {
-  return [
-    "Generated declaration 'index.d.ts' leaks internal site-rizom imports:",
-    ...leakedImports.map((specifier) => `- ${specifier}`),
-    "",
-    `Declaration file: ${declarationPath}`,
-    "",
-    "Inline the source-owned public contract or remove the public export that exposes it.",
-  ].join("\n");
-}
 
 await rm(distDir, { recursive: true, force: true });
 
@@ -76,8 +57,16 @@ if (declarationExitCode !== 0) {
 }
 
 const declaration = readFileSync(declarationPath, "utf8");
-const leakedImports = findInternalDeclarationImports(declaration);
+const leakedImports = findInternalDeclarationImports(declaration, {
+  internalPrefixes: ["@brains/", "@rizom/"],
+});
 if (leakedImports.length > 0) {
-  console.error(formatDeclarationLeakError(declarationPath, leakedImports));
+  console.error(
+    formatDeclarationLeakError(
+      declarationPath,
+      leakedImports,
+      "Inline the source-owned public contract or remove the public export that exposes it.",
+    ),
+  );
   process.exit(1);
 }
