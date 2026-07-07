@@ -199,6 +199,10 @@ export class AuthService {
     return this.peerTrustStore.get(domain);
   }
 
+  revokeA2APeerTrust(domain: string): Promise<void> {
+    return this.peerTrustStore.revoke(domain);
+  }
+
   getAuthorizationServerMetadata(
     issuer = this.issuer,
   ): AuthorizationServerMetadata {

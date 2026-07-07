@@ -71,6 +71,16 @@ export class A2APeerTrustStore {
 
     return record;
   }
+
+  async revoke(domain: string): Promise<void> {
+    const normalizedDomain = normalizePeerDomain(domain);
+    await this.store.enqueueWrite(async () => {
+      const file = await this.store.read();
+      await this.store.write({
+        peers: file.peers.filter((peer) => peer.domain !== normalizedDomain),
+      });
+    });
+  }
 }
 
 function normalizePeerDomain(domain: string): string {

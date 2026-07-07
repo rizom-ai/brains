@@ -82,7 +82,7 @@ The a2a interface already uses a "discovered → approved" lifecycle for peer ag
 Inbound trust uses a separate **peer-trust record** `{domain, key fingerprint, grantedLevel}` in runtime auth storage:
 
 - Adding a peer (`agent_connect` or ATProto discovery) fetches `/.well-known/agent-card.json` and saves/updates the directory entry. It does **not** create an inbound trusted grant.
-- A separate explicit trust action fetches `/.well-known/jwks.json`, pins the peer A2A key fingerprint, and writes the peer-trust record.
+- A separate explicit trust action (`agent_set_trust_level`) fetches `/.well-known/jwks.json`, pins the peer A2A key fingerprint, and writes the peer-trust record.
 - `grantedLevel` is `trusted` or `public`; `anchor` is not grantable to a peer brain — owner authority stays human.
 
 The peer-trust record — not the entity — is what inbound verification consults. This split is deliberate: agent entities are git-synced brain-data, and directory-sync ingests that repo automatically, so an entity-borne grant would let anyone with a commit to the content repo mint themselves inbound trust (add an approved entry for their own domain, sign with their own key). Trust grants therefore live on the runtime plane (same non-synced storage class as passkeys and sessions; table shape coordinates with [auth-runtime-db.md](./auth-runtime-db.md)), where only explicit runtime trust flows write. A restored brain-data repo brings back the directory _listing_; inbound trust requires a separate runtime grant.
@@ -221,7 +221,7 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 
 - add the peer-trust store (`{domain, keyFingerprint, grantedLevel}`) in runtime auth storage, written only by an explicit trust-grant flow, with a fingerprint-mismatch path that drops the caller to `public`
 - swap `resolveCallerPermission` to verify-and-resolve against the store; remove `trustedTokens`
-- add an explicit trust-grant flow that fetches peer JWKS and records the pinned grant
+- add `agent_set_trust_level`, an explicit trust-grant/revoke flow that fetches peer JWKS for `trusted` and records the pinned grant, or revokes the grant for `public`
 - test that `agent_connect`, `system_update({ status: "approved" })`, and content-plane sync grant nothing inbound by themselves
 
 ### Phase 5 — task caller binding and idempotent retry

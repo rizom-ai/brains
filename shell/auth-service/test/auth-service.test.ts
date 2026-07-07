@@ -187,6 +187,21 @@ describe("AuthService", () => {
     );
   });
 
+  it("revokes A2A peer trust grants from runtime auth storage", async () => {
+    const storageDir = await tempStorageDir();
+    const service = new AuthService({ storageDir });
+
+    await service.grantA2APeerTrust({
+      domain: "remote.example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
+    });
+    await service.revokeA2APeerTrust("remote.example");
+
+    const reloaded = new AuthService({ storageDir });
+    expect(await reloaded.getA2APeerTrust("remote.example")).toBeUndefined();
+  });
+
   it("serves OAuth well-known metadata from request host", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),

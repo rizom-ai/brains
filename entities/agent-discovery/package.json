@@ -15,9 +15,11 @@
   },
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
+    "@brains/auth-service": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/dashboard": "workspace:*",
+    "@brains/http-signatures": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
