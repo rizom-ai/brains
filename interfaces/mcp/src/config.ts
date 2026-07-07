@@ -2,6 +2,7 @@ import { z } from "@brains/utils/zod";
 
 export const mcpConfigSchema = z.object({
   transport: z.enum(["stdio", "http"]).default("http"),
+  mode: z.enum(["basic", "debug"]).default("basic"),
   httpPort: z
     .number()
     .describe("Port for HTTP transport (only used when transport is 'http')")

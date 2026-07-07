@@ -2,10 +2,7 @@
 
 ## Status
 
-Proposed. Revised 2026-07-07 after re-verification against the tree: the
-original Phase 0 targeted a `/api/chat` gating bug that commit `458447ba7`
-(2026-07-02) resolved by **deleting** the endpoint instead — which left remote
-evaluation broken (see decision 3 and Phase 0, both rewritten accordingly).
+Implemented on `feat/mcp-external-redesign`. The MCP command path runs through `chat`/`confirm`, the protocol server defaults to `basic` mode (read-only tools plus `chat`/`confirm`), and `debug` preserves raw-tool exposure for authenticated/local anchor use. MCP confirmations resolve through `agent.confirmPendingAction`, and the response adapter surfaces `toolResults` plus read-your-writes handles. The stale `/api/chat` assumption has been refreshed: `/api/chat` is outside MCP scope; remote-agent JSON compatibility now uses `/api/agent/chat` and `/api/agent/chat/confirm` on the web-chat surface.
 
 ## Background
 
@@ -23,8 +20,7 @@ Every other external surface already works differently. Matrix, Discord, CLI, an
 WebChat extend `MessageInterfacePlugin`
 (`shell/plugins/src/message-interface/message-interface-plugin.ts`) and turn an
 inbound message into `context.agent.chat(message, conversationId, { userPermissionLevel, interfaceType, ... })`
-(e.g. `routeToAgent` in `interfaces/discord/src/discord-interface.ts:571` and
-`interfaces/chat/src/chat-interface.ts:713`). The agent runs with the
+(e.g. `interfaces/discord/src/discord-interface.ts:555`). The agent runs with the
 system prompt intact and orchestrates its own internal toolset, filtered to the
 caller's permission level. MCP is the only external interface that skips this for
 actions.
@@ -55,19 +51,13 @@ The plumbing to do this already exists:
 
 - The agent service filters its available tools by permission level at call time —
   `getToolsForPermission: (level) => this.mcpService.listToolsForPermissionLevel(level)...`
-  (`shell/ai-service/src/agent-service.ts:182`; the per-turn filtering now lives in
-  `shell/ai-service/src/turn-processor.ts:188`). Gating is the agent's job, not the
-  caller's.
-- The agent entrypoint has been exposed over plain HTTP before: the MCP http-server
-  used to serve `/api/chat`, deleted by `458447ba7` (2026-07-02, "mcp hardening")
-  as dead **unrouted** code that trusted a client-supplied permission level. Its one
-  real consumer — remote evaluation via
-  `shell/ai-evaluation/src/remote-agent-service.ts` — still POSTs to
-  `/api/chat` + `/api/chat/confirm` and is broken against a current brain: those
-  paths now resolve to web-chat's operator-session-gated streaming route and a 404.
-  Phase 0 reintroduces a properly gated replacement.
-- The MCP interface's own tool factory is already empty and waiting:
-  `createMCPTools(...) { return []; }` (`interfaces/mcp/src/tools/index.ts`).
+  (`shell/ai-service/src/agent-service.ts:341`). Gating is the
+  agent's job, not the caller's.
+- The agent entrypoint already exists for every message-style interface:
+  `context.agent.chat(...)` and `context.agent.confirmPendingAction(...)`. MCP's
+  command tools are thin adapters onto those same calls.
+- The MCP interface owns only command adapters (`chat`/`confirm`); raw query
+  tools continue to come from the system/plugin tool registry.
 - The read tools already exist and are already `visibility: public`
   (`shell/core/src/system/entity-read-tools.ts`, `job-tools.ts`) — they _are_ the
   query side, ready to keep.
@@ -81,10 +71,10 @@ External MCP exposure follows a CQRS split, with two explicit modes:
     `job_status`) stay exposed raw, each marked `readOnlyHint`. Structured,
     cheap, composable. Gated only by permission level + entity visibility (no
     change to that filter).
-  - **Command side** — a single `chat` tool routes the query through the brain's
-    agent via `context.agent.chat(...)`, system prompt and persona intact, with
-    the confirmation flow for writes. This is the _only_ way an external caller
-    mutates state.
+  - **Command side** — `chat` routes the query through the brain's agent via
+    `context.agent.chat(...)`, system prompt and persona intact; `confirm`
+    resolves pending approvals through `context.agent.confirmPendingAction(...)`.
+    This agent path is the _only_ way an external caller mutates state.
 - **`debug`** (local/anchor only): the current behaviour — _all_ plugin tools
   (including raw write tools) registered on the MCP server, bypassing the system
   prompt. A development/inspection escape hatch, refused on any transport a
@@ -118,8 +108,8 @@ inside `chat` — they no longer carry the _whole_ command/query distinction.
 ### 1. Split by command/query, not by tool count
 
 The asymmetry is deliberate and is the design: a **fine-grained typed read API**
-(many explicit query tools) and a **single intelligent write funnel** (`chat`).
-Reads want composability; writes want orchestration. Forcing symmetry in either
+(many explicit query tools) and a **single intelligent write funnel** (`chat`,
+with `confirm` only resolving pending approvals). Reads want composability; writes want orchestration. Forcing symmetry in either
 direction is wrong — consolidating reads loses structured composability;
 exploding writes loses the system prompt.
 
@@ -130,14 +120,14 @@ write. That's a _who-can-see-it_ axis, not a _does-it-mutate_ axis, and the
 correlation won't always hold. Mark tools with MCP's standard
 `readOnlyHint` / `destructiveHint` annotations (add to the `Tool` type in
 `shell/mcp-service/src/types.ts`). `basic` mode exposes read-only-hinted tools raw
-and routes everything else through `chat`. `visibility` continues to do its
+and routes commands through `chat`/`confirm`. `visibility` continues to do its
 separate job (which reads a given permission level may see).
 
 ### 3. One agent entrypoint; MCP needs an adapter, not a custom path
 
 `chat`'s handler calls `context.agent.chat(...)` **verbatim** — the same method
 `MessageInterfacePlugin` subclasses call (`message-interface-plugin.ts:264`,
-`discord-interface.ts:571`) and that `/api/agent/chat` calls. There is **one** agent
+`discord-interface.ts:555`) and that `/api/chat` calls. There is **one** agent
 entrypoint (`agent.chat` + `confirmPendingAction`,
 `shell/plugins/src/contracts/agent.ts:94`); every interface is a thin adapter
 over it. MCP is not an exception — a custom agent path would duplicate gating that
@@ -161,7 +151,7 @@ reads `context.userPermissionLevel` (populated from `extra._meta` by
 `mcp-registration`) and forwards it to `agent.chat`, which gates the agent's
 internal tools via `listToolsForPermissionLevel`. The level is derived exactly as
 today — stdio → anchor, http+auth → anchor, http no-auth → configured/public
-(`interfaces/mcp/src/mcp-interface.ts:259`).
+(`interfaces/mcp/src/mcp-interface.ts:248`).
 
 ### 5. Read-your-writes is acknowledged, not hidden
 
@@ -226,7 +216,7 @@ permission-level filter.
 
 ### Command side — the `chat` tool
 
-`createMCPTools` (`interfaces/mcp/src/tools/index.ts`) returns one tool:
+`createMCPTools` (`interfaces/mcp/src/tools/index.ts`) returns the command entrypoint:
 
 ```ts
 {
@@ -258,11 +248,11 @@ permission-level filter.
 
 A client-supplied `conversationId` always wins (multi-turn threading is the
 client's to control). When absent, default to the transport's session identifier so
-turns within one connection share context: HTTP already tracks an `mcp-session-id`
-per session (`http-server.ts:306`); stdio is one connection = one session, so a
+turns within one connection share context: HTTP already mints an `MCP-Session-Id`
+per session (`http-server.ts:265`); stdio is one connection = one session, so a
 stable per-process id suffices. This needs a small addition — `mcp-registration.ts`
 does **not** currently extract `conversationId` from `extra._meta` (it extracts
-`interfaceType`/`userId`/`channelId` at `:114`), and the transports must inject the
+`interfaceType`/`userId`/`channelId` at `:112`), and the transports must inject the
 session id into `_meta`. Scoped, mechanical, no agent change.
 
 ### Response adapter (`AgentResponse` → MCP `ToolResponse`)
@@ -276,16 +266,13 @@ union (`shell/mcp-service/src/types.ts:101`). The adapter flattens:
 - `pendingConfirmations` → MCP's **native confirmation variant** of `ToolResponse`.
   The shape already exists, so the approval flow has a clean home — no invention.
 - `text` → the primary text content.
-- `toolResults[]` → structured content. **Confirmed sufficient** (decision 4):
-  direct creates return `data: { entityId, status: "created" }` synchronously
-  (`entity-create-tool.ts:300` — no consistency gap at all), and the async tools
-  carry the poll handle — generate returns
-  `data: { entityId, status: "generating", jobId }`
-  (`entity-generate-tool.ts:308`), extract likewise. So the adapter exposing
-  `toolResults` hands the caller the `entityId` to `get` and, where work is
-  async, the `jobId` to poll — no `AgentResponse` contract change. (One cleanup:
-  `jobId` lands in `data` there but `ToolResultData` also has its own `jobId`
-  field, `agent-response.ts:143` — the adapter reads both.)
+- `toolResults[]` → structured content. **Confirmed sufficient** (decision 4): a
+  create tool returns `data: { entityId, status, jobId }`
+  (`shell/core/src/system/entity-create-tool.ts:510`), so the adapter exposing
+  `toolResults` hands the caller the `entityId` to `get` and the `jobId` to poll —
+  no `AgentResponse` contract change. The adapter also derives a convenience
+  `readYourWrites[]` handle list and reads `jobId` from both `ToolResultData.jobId`
+  and nested `data.jobId`.
 - `cards[]` → UI affordances (buttons, previews) meaningless to a non-UI LLM
   caller; flatten to text or drop.
 - `usage` → drop (or map to `_meta`).
@@ -303,10 +290,9 @@ In `mcp-interface.ts` startup:
 ### Approval flow
 
 `chat`'s `AgentResponse.pendingConfirmations` maps onto the MCP `ToolResponse`
-confirmation variant (above). Resolve it via
+confirmation variant (above). The `confirm` MCP tool resolves it via
 `confirmPendingAction(conversationId, confirmed, approvalId, context)`
-(`shell/plugins/src/contracts/agent.ts:94`) — the same method Phase 0's
-`/api/agent/chat/confirm` calls. Provide a confirm path on the MCP surface; no new
+(`shell/plugins/src/contracts/agent.ts:94`). This is a thin adapter over existing
 agent behaviour. Per decision 7, this flow is advisory at the MCP boundary — the caller's
 LLM can auto-confirm, and safety rests on the permission level, not on this
 round-trip.
@@ -322,59 +308,28 @@ forward those to `ToolContext.sendProgress`, but that is _reusing the existing b
 not custom agent code. The walking skeleton blocks and returns the final result;
 streaming progress is a later enhancement.
 
-### Remote agent endpoint (Phase 0 — remote evaluation is broken today)
+### `/api/chat` follow-up (moved out of MCP scope)
 
-The plain-HTTP twin of the `chat` tool no longer exists. The old `/api/chat` +
-`/api/chat/confirm` handlers on the MCP http-server were deleted by `458447ba7`
-as dead unrouted code that trusted a client-supplied permission level — the right
-call for that code, but it stranded the one real consumer:
-`shell/ai-evaluation/src/remote-agent-service.ts` implements `AgentNamespace` by
-POSTing to a remote brain's `/api/chat`, and today those URLs land on web-chat's
-operator-session-gated streaming route (wrong auth, wrong response contract) and
-a 404 for `/confirm`. Remote evaluation (`multi-model-runner` /
-`single-model-runner`) is therefore broken against current brains, independent of
-this redesign.
-
-**Reintroduce the endpoint, properly gated, at a non-colliding path (decision 3):**
-`/api/agent/chat` + `/api/agent/chat/confirm`, served by the MCP HTTP transport
-(which already owns bearer auth). Requirements learned from the deleted version:
-
-- The server derives the permission level itself — bearer auth → `anchor`, else
-  configured/`public`, the same mapping the MCP transport uses
-  (`mcp-interface.ts:259`) — and builds the `ChatContext` before calling
-  `agentService.chat`. Nothing client-supplied is trusted; `RemoteAgentService`
-  already sends only `{ message, conversationId }`.
-- The route must be **routed** (registered on the shared webserver host like the
-  `/mcp` route), not a dangling handler — the deleted version rotted precisely
-  because it was unreachable.
-- The response is the full `AgentResponse` JSON. This is why remote eval does not
-  simply ride the `chat` MCP tool or A2A: evaluation asserts on `toolResults`,
-  `pendingConfirmations`, and usage with full fidelity, which the MCP
-  `ToolResponse` adapter and A2A task shapes deliberately flatten.
-- `RemoteAgentService` is repointed to the new paths in the same change.
-
-This fix stands on its own and lands first. (Peer-specific permission levels for
-remote brains are the A2A signing plan's concern, not this one; here, the existing
-auth→level mapping is reused unchanged.)
+Earlier drafts treated `/api/chat` as part of `interfaces/mcp`. That endpoint has
+since moved out of the MCP transport; `interfaces/mcp` now intentionally returns
+404 for `/api/chat` and `/api/chat/confirm`. Remote-agent evaluation now uses the
+web-chat-owned JSON endpoints `/api/agent/chat` and `/api/agent/chat/confirm`.
+Those endpoints derive anchor permission server-side from the operator session and
+do not trust client-supplied permission context. The MCP command path remains
+`chat` + `confirm` over the MCP tool protocol.
 
 ## Phasing (thin vertical slices)
 
 Tests written before implementation (TDD).
 
-### Phase 0 — reintroduce the remote agent endpoint (standalone, lands first)
+### Phase 0 — Refresh stale `/api/chat` assumptions
 
-Remote evaluation is broken today (see the design section above), so this phase
-is urgent independent of the rest.
-
-- Tests first: an authenticated `POST /api/agent/chat` runs the agent at `anchor`
-  and returns full `AgentResponse` JSON; an unauthenticated one runs at `public`;
-  `/api/agent/chat/confirm` resolves a pending confirmation at the same
-  server-derived level; a `RemoteAgentService` round-trip (chat → confirm)
-  works end-to-end.
-- Implement: routed `/api/agent/chat` + `/confirm` on the MCP HTTP transport with
-  server-derived level and server-built `ChatContext`; repoint
-  `RemoteAgentService` to the new paths. Independent of everything below; ship it
-  even if the rest waits.
+- Tests first: MCP HTTP keeps returning 404 for `/api/chat` and `/api/chat/confirm`;
+  remote-agent evaluation posts simple JSON to `/api/agent/chat` and
+  `/api/agent/chat/confirm`.
+- Implement: remove `/api/chat` from MCP scope in this plan. Add dedicated web-chat
+  remote-agent JSON endpoints that derive permission server-side and update
+  `RemoteAgentService` to use them.
 
 ### Phase 1 — Walking skeleton: `chat` command over stdio at anchor
 
@@ -392,7 +347,7 @@ is urgent independent of the rest.
 - Tests first: read tools advertise `readOnlyHint`; in `basic` a `public` caller
   sees only permission-permitted read tools; write tools are absent.
 - Implement: add `readOnlyHint` to read tools + thread through registration;
-  `basic` mode registers only read-only-hinted tools + `chat`.
+  `basic` mode registers only read-only-hinted tools + `chat`/`confirm`.
 
 ### Phase 3 — Permission level flows into `chat`
 
@@ -407,8 +362,8 @@ is urgent independent of the rest.
   resolves it via `confirmPendingAction`; the adapter surfaces the write's
   `toolResults` entry (entity ref + `jobId`) so the caller can `get`/poll it.
 - Implement: complete `agentResponseToToolResponse` (map `pendingConfirmations` →
-  confirmation variant, expose `toolResults`); wire confirm path. Extend
-  `AgentResponse` only if `toolResults` proves insufficient.
+  confirmation variant, expose `toolResults` and derived `readYourWrites`); wire
+  confirm path. Extend `AgentResponse` only if `toolResults` proves insufficient.
 
 ### Phase 5 — `basic` vs `debug` switch
 
@@ -418,13 +373,14 @@ is urgent independent of the rest.
 
 ### Phase 6 — Docs
 
-- Update operator docs and example `brain.yaml` (modes, the `chat` tool, the
-  advisory nature of MCP confirmations per decision 7).
+- Update operator docs and example `brain.yaml` (modes, the `chat`/`confirm` tools,
+  the read-your-writes handles, and the advisory nature of MCP confirmations per
+  decision 7).
 
 ## Validation
 
 1. In `basic`, a stdio MCP client lists the four read tools (each `readOnlyHint`)
-   plus `chat`, and no write tools.
+   plus `chat`/`confirm`, and no raw write tools.
 2. A raw `get`/`search` returns structured data without invoking the agent (cheap
    query path intact).
 3. Any mutation requires `chat`; `chat` runs the agent with the system prompt.
@@ -437,9 +393,8 @@ is urgent independent of the rest.
    follow-up `get` retrieves it (read-your-writes bridge works).
 6. `mode: "debug"` exposes raw write tools over stdio/anchor and is refused on
    unauthenticated http.
-7. `POST /api/agent/chat` returns full `AgentResponse` JSON at a server-derived
-   level (anchor with auth, public without); `/api/agent/chat/confirm` resolves
-   confirmations; a `RemoteAgentService` round-trip passes against a live brain.
+7. MCP HTTP keeps `/api/chat` out of scope; remote-agent evaluation uses
+   `/api/agent/chat` and `/api/agent/chat/confirm` with server-derived anchor context.
 8. No new published package; changes confined to `interfaces/mcp`,
    `shell/mcp-service`, `shell/core`.
 
@@ -447,9 +402,8 @@ is urgent independent of the rest.
 
 All items previously open are resolved (each verified against the code):
 
-1. **Tool name → `chat`.** The honest name (the handler _is_ `agent.chat`, and the
-   tool is the MCP twin of Phase 0's `/api/agent/chat` endpoint); covers writes and
-   reasoning-reads. Rejected `ask` (most read-flavored verb, sits beside literal
+1. **Tool name → `chat`.** The honest name (the handler _is_ `agent.chat`); covers
+   writes and reasoning-reads. Rejected `ask` (most read-flavored verb, sits beside literal
    query tools, invites routing reads to it and wasting the cheap path) and `query`
    (collides with the CQRS query side). `chat`'s one risk — reading as "casual
    conversation" — is carried by the description, which does the real routing.
@@ -457,26 +411,16 @@ All items previously open are resolved (each verified against the code):
    and is the read-your-writes bridge. Folding job status into the `chat` flow would
    force an agent/LLM turn just to poll a job — defeating the cheap-query purpose
    the CQRS split exists to protect.
-3. **The remote agent endpoint is reintroduced at `/api/agent/chat`, properly
-   gated.** The original decision ("keep `/api/chat`, fix its gating") was
-   overtaken by events: `458447ba7` deleted the endpoint as dead unrouted code,
-   which broke its real consumer — `shell/ai-evaluation/src/remote-agent-service.ts`
-   (remote evaluation) now POSTs into web-chat's operator-gated streaming route
-   and a 404. Riding the `chat` MCP tool or A2A instead was considered and
-   rejected: eval needs full `AgentResponse` fidelity, which both deliberately
-   flatten. So the `chat` tool and `/api/agent/chat` coexist as two transports
-   onto one entrypoint; the new path avoids colliding with web-chat's
-   `/api/chat/*` namespace; gating is server-derived (the client doesn't send a
-   level); lands first as standalone Phase 0.
-4. **No `AgentResponse` contract change.** Verified (corrected 2026-07-07):
-   direct creates return `data: { entityId, status: "created" }` synchronously
-   (`entity-create-tool.ts:300`), so they have no consistency gap; the async
-   tools carry the poll handle — generate returns
-   `data: { entityId, status: "generating", jobId }`
-   (`entity-generate-tool.ts:308`). The response adapter exposing `toolResults`
-   already hands the caller the read-your-writes handle (`entityId` to `get`,
-   `jobId` to poll where async). The adapter reads `jobId` from both `data` and
-   `ToolResultData`'s own `jobId` field (`agent-response.ts:143`).
+3. **`/api/chat` is outside MCP scope.** `interfaces/mcp` intentionally serves only
+   the MCP protocol and returns 404 for `/api/chat` paths. Remote-agent JSON calls
+   use dedicated web-chat routes (`/api/agent/chat`, `/api/agent/chat/confirm`) so
+   they do not collide with the AI SDK web-chat stream contract.
+4. **No `AgentResponse` contract change.** Verified: a create tool returns
+   `data: { entityId, status, jobId }` (`entity-create-tool.ts:510`), so the
+   response adapter exposing `toolResults` already hands the caller the
+   read-your-writes handle (`entityId` to `get`, `jobId` to poll). The adapter also
+   derives `readYourWrites[]` and reads `jobId` from both `data` and
+   `ToolResultData`'s own `jobId` field (`agent-response.ts:141`).
 5. **Read-only `basic` mode rejected — the command side ships.** The strongest
    alternative was a `basic` mode with no `chat` tool at all (queries only;
    mutations via the brain's own interfaces or A2A) — simpler, no adapter, no

@@ -29,5 +29,6 @@ export function createMockMCPService(): IMCPService {
     getMcpServer: mock(mcpServerNotMocked),
     createMcpServer: mock(mcpServerNotMocked),
     setPermissionLevel: mock(() => {}),
+    setProtocolMode: mock(() => {}),
   };
 }

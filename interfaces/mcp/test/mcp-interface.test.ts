@@ -2,22 +2,39 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MCPInterface } from "../src/mcp-interface";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createSilentLogger } from "@brains/test-utils";
+import type { IMCPService } from "@brains/mcp-service";
+import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import { StreamableHTTPServer } from "../src/transports/http-server";
 
 describe("MCPInterface", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
-  function installMockHttpTransport(): void {
+  function installMockHttpTransport(): {
+    permissionLevels: string[];
+    protocolModes: string[];
+  } {
     const mcpServer = new McpServer({ name: "test-server", version: "1.0.0" });
-    const mockTransport = {
+    const permissionLevels: string[] = [];
+    const protocolModes: string[] = [];
+    const calls = {
+      permissionLevels,
+      protocolModes,
+    };
+    const mockTransport: IMCPService = {
+      ...createMockMCPService(),
       getMcpServer: (): McpServer => mcpServer,
       createMcpServer: (): McpServer =>
         new McpServer({ name: "test-server", version: "1.0.0" }),
-      setPermissionLevel: (): void => {},
+      setPermissionLevel: (level): void => {
+        calls.permissionLevels.push(level);
+      },
+      setProtocolMode: (mode): void => {
+        calls.protocolModes.push(mode);
+      },
     };
 
-    harness.getMockShell().getMCPService = (): never => mockTransport as never;
+    harness.getMockShell().getMCPService = (): IMCPService => mockTransport;
+    return calls;
   }
 
   function installWebserverPlugin(): void {
@@ -120,7 +137,10 @@ describe("MCPInterface", () => {
 
       expect(plugin.id).toBe("mcp");
       expect(capabilities).toBeDefined();
-      expect(capabilities.tools).toHaveLength(0);
+      expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+        "chat",
+        "confirm",
+      ]);
       // Resources are provided by system plugin, not MCP interface
       expect(capabilities.resources).toHaveLength(0);
     });
@@ -133,7 +153,10 @@ describe("MCPInterface", () => {
 
       expect(plugin.id).toBe("mcp");
       expect(capabilities).toBeDefined();
-      expect(capabilities.tools).toHaveLength(0);
+      expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+        "chat",
+        "confirm",
+      ]);
       expect(capabilities.resources).toHaveLength(0);
     });
   });
@@ -181,6 +204,54 @@ describe("MCPInterface", () => {
 
       // Plugin should have registered with daemon support
       expect(capabilities).toBeDefined();
+    });
+
+    it("should pass the configured protocol mode to the MCP transport", async () => {
+      const calls = installMockHttpTransport();
+      installWebserverPlugin();
+      const plugin = new MCPInterface({
+        transport: "http",
+        httpPort: 3001,
+        authToken: "test-token",
+        mode: "debug",
+      });
+
+      await harness.installPlugin(plugin);
+      await harness.getMockShell().getDaemonRegistry().startPlugin("mcp");
+
+      expect(calls.protocolModes).toEqual(["debug"]);
+      expect(calls.permissionLevels).toEqual(["anchor"]);
+    });
+
+    it("should reject debug mode for unauthenticated HTTP transport", async () => {
+      installMockHttpTransport();
+      installWebserverPlugin();
+      const plugin = new MCPInterface({
+        transport: "http",
+        httpPort: 3001,
+        mode: "debug",
+      });
+
+      await harness.installPlugin(plugin);
+
+      const startPromise = Promise.resolve(
+        harness.getMockShell().getDaemonRegistry().startPlugin("mcp"),
+      );
+
+      await startPromise.then(
+        () => {
+          throw new Error("Expected MCP debug startup to fail");
+        },
+        (error: unknown) => {
+          expect(error).toBeInstanceOf(Error);
+          if (!(error instanceof Error)) {
+            throw error;
+          }
+          expect(error.message).toContain(
+            "MCP debug mode requires authenticated HTTP transport",
+          );
+        },
+      );
     });
 
     it("should require webserver for http transport", async () => {

@@ -245,7 +245,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(15);
+    expect(routes).toHaveLength(17);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -321,6 +321,16 @@ describe("WebChatInterface", () => {
       method: "GET",
       public: true,
     });
+    expect(routes[15]).toMatchObject({
+      path: "/api/agent/chat",
+      method: "POST",
+      public: true,
+    });
+    expect(routes[16]).toMatchObject({
+      path: "/api/agent/chat/confirm",
+      method: "POST",
+      public: true,
+    });
   });
 
   it("routes structured event actions through runtime action channel without model chat", async () => {
@@ -380,6 +390,120 @@ describe("WebChatInterface", () => {
       },
     ]);
     expect(agent.chatCalls).toHaveLength(0);
+  });
+
+  it("serves remote-agent chat JSON through the agent with server-derived anchor permission", async () => {
+    const plugin = operatorPlugin();
+    const agent = createSpyAgentService({
+      text: "Remote response",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    harness.setAgentService(agent);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/agent/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/agent/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "Evaluate this",
+          conversationId: "remote-conversation",
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({
+      text: "Remote response",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    expect(agent.chatCalls).toEqual([
+      {
+        message: "Evaluate this",
+        conversationId: "remote-conversation",
+        context: {
+          userPermissionLevel: "anchor",
+          interfaceType: "remote-agent",
+          channelId: "remote-conversation",
+          channelName: "Remote Agent",
+          actor: {
+            actorId: "remote-agent:remote-conversation:operator",
+            interfaceType: "remote-agent",
+            role: "user",
+            displayName: "Remote agent operator",
+          },
+        },
+      },
+    ]);
+  });
+
+  it("serves remote-agent confirmation JSON through the agent", async () => {
+    const plugin = operatorPlugin();
+    const agent = createSpyAgentService(undefined, {
+      text: "Remote confirmed",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    harness.setAgentService(agent);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/agent/chat/confirm", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/agent/chat/confirm", {
+        method: "POST",
+        body: JSON.stringify({
+          conversationId: "remote-conversation",
+          approvalId: "approval-1",
+          confirmed: true,
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({
+      text: "Remote confirmed",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    expect(agent.confirmCalls).toEqual([
+      {
+        conversationId: "remote-conversation",
+        confirmed: true,
+        approvalId: "approval-1",
+        context: {
+          userPermissionLevel: "anchor",
+          interfaceType: "remote-agent",
+          channelId: "remote-conversation",
+          channelName: "Remote Agent",
+          actor: {
+            actorId: "remote-agent:remote-conversation:operator",
+            interfaceType: "remote-agent",
+            role: "user",
+            displayName: "Remote agent operator",
+          },
+        },
+      },
+    ]);
+  });
+
+  it("rejects remote-agent JSON requests without an operator session", async () => {
+    const plugin = new WebChatInterface(
+      {},
+      { resolveOperatorSession: async (): Promise<boolean> => false },
+    );
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/agent/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/agent/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "Evaluate this",
+          conversationId: "remote-conversation",
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+    expect(await response?.text()).toBe("Forbidden");
   });
 
   it("returns 400 for malformed JSON on the chat endpoint", async () => {
