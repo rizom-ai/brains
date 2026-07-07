@@ -4,7 +4,7 @@
 
 Phase 0 started in worktree `work/sites-controlled-deploy`.
 
-Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@rizom/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Packed-install smoke coverage now verifies `@rizom/site-rizom-work` can remain thin/source-published, the installed-package dynamic import path boots, and a hosted-style preview rebuild renders from installed packages. Remaining gates are release/publish and hosted deploy wiring.
+Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@rizom/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Packed-install smoke coverage now verifies `@rizom/site-rizom-work` can remain thin/source-published, the installed-package dynamic import path boots, and a hosted-style preview rebuild renders from installed packages. Remaining gates are the `@rizom/site` authoring SDK (see "Authoring SDK decision" — the public contract ships as its own package before anything publishes), then release/publish and hosted deploy wiring.
 
 > **Supersedes prior direction.** The earlier "one shared site + per-app skins in app `src/`, no new published packages" direction is intentionally reversed for this work (confirmed 2026-06-30). Hosted-rover needs npm-resolvable site refs in generated `brain.yaml`, which app-local `src/site.ts` cannot provide, so the Rizom site family now ships as three published per-site packages. The divergence-discipline rule still applies _within_ each package.
 >
@@ -135,10 +135,24 @@ Publish-scope correction (2026-07-06): we do not own the `@brains` scope on npm 
 
 Runtime-compatibility decision (2026-07-06): the published base package bundles a _copy_ of the `@brains/site-composition` contracts, and nothing at install time links that copy to the runtime version hosted-rover pins — first-party CI would catch drift, but an externally authored site package would only fail at runtime. Decision: the base package declares a `peerDependencies` range on the published runtime package (`@rizom/brain`) covering the versions its bundled contracts are compatible with; per-site packages inherit the constraint through the base. Hosted-rover installs the site package alongside the pinned runtime, so the package manager enforces compatibility at install time. Bump the peer range whenever the bundled contract copy changes incompatibly.
 
+Authoring SDK decision (2026-07-07): the public contract moves out of the base package into one published authoring SDK, `@rizom/site`. The branch review exposed that every mechanism protecting the current type boundary — the hand-maintained contract mirror in `sites/rizom/src/contracts.ts`, declaration-leak checks, drift guards, dts-inlining plans — is compensation for exposing the internal site-builder integration interface (plugin factories, `register(shell)`, capability shapes) as a public API it was never designed to be. Decision:
+
+- `@rizom/site` is the authoring contract, designed as a product: the declarative site shape (layouts, routes, content DSL definitions, theme override, entity display, static assets) plus layout/site-info prop types. No plugin factories, no shell surface, no data-source registries in v1; escape hatches (e.g. relay-style custom data sources) are added deliberately and versioned. Authors depend on `@rizom/site` + `preact` only; the DSL keeps authoring zod-free while the platform validates.
+- The framework conforms to the contract, not the reverse: `@brains/site-composition` and the site-builder depend on `@rizom/site`, internal zod schemas are pinned to the SDK's declared types, and a platform-side adapter turns a declarative site into the internal plugin machinery. `register(shell)` stays inside the platform.
+- `@rizom/site-rizom` becomes the rizom family layer (shared UI, theme profiles, `createRizomSite` sugar) built on the SDK like any other consumer; per-site packages depend on the SDK plus the family base.
+- The SDK version is the contract/compatibility token: site packages depend on `@rizom/site@^X` and the runtime declares the SDK versions it supports, so npm enforces compatibility directly. The `publishPeerDependencies` range on `@rizom/brain` is an interim measure until the SDK lands, then dropped.
+- This supersedes "the base package is the public/stable Rizom-site API boundary" above and step 2 of the preferred path below. The contracts mirror in the base package is deleted when the SDK lands. (A first single-sourcing attempt via re-exports and drift guards on 2026-07-07 was reverted in favor of this decision.)
+
+SDK phasing (walking skeleton first):
+
+1. `@rizom/site` package containing exactly the contract the three real sites need; platform adapter in site-builder/site-composition; internal schemas pinned to SDK types.
+2. Port `@rizom/site-rizom` and `@rizom/site-rizom-work` onto the SDK; delete the contracts mirror and its leak-check machinery for contract types.
+3. Publish SDK + family base + per-site packages through the normal release flow; hosted deploy wiring continues unchanged (`site.package` refs are unaffected).
+
 Preferred path:
 
 1. Move shared Rizom site core into a publishable `@rizom/site-rizom` base package with a clean public dependency and type story.
-2. Define the `@rizom/site-rizom` public API at the source layer: runtime site/plugin contracts, authoring helpers, route/content definition types, and actual UI prop types. Generated declarations should verify this API; they should not be patched by hand-written declaration blobs.
+2. Define the `@rizom/site-rizom` public API at the source layer: runtime site/plugin contracts, authoring helpers, route/content definition types, and actual UI prop types. Generated declarations should verify this API; they should not be patched by hand-written declaration blobs. _(Superseded 2026-07-07: the public API moves to the `@rizom/site` authoring SDK — see the Authoring SDK decision above.)_
 3. Move each site into a thin monorepo package that extends the base package.
 4. For each per-site package, prove whether source publishing is self-contained before choosing a build artifact. Start with the smallest JSX-runtime/package-metadata fix for TSX source packages.
 5. Make the base package and each per-site package publishable.
