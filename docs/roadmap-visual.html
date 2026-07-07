@@ -323,14 +323,6 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Unify Build Pipeline</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">collapse duplicated build responsibilities.</div>
-          <div class="card-file">unify-build-pipeline.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
             <span class="card-name">Parallel Multi-Model Eval</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -366,16 +358,8 @@
             <span class="card-name">Agent interpretation boundary — target architecture</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. Deletes the NL guards (<code>call-options.ts</code> regexes, routing prose, source-precedence sniffing) and makes <code>system_create</code> source-only at the model boundary. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.</div>
+          <div class="card-desc">agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. The NL-guard deletions and the <code>system_create</code>/<code>system_generate</code> typed contracts have shipped; the doc remains the standing rule while [system-create-source-recovery.md](./plans/system-create-source-recovery.md) rebuilds the dropped capability deterministically.</div>
           <div class="card-file">system-create-source-architecture.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Upload/attachment visibility — no NL selection</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">sibling of the interpretation-boundary plan: what attachments the model sees is data and cost policy, never message wording. Deletes the wording-based upload/attachment selection (<code>selectReferencedAttachments</code>, <code>conversation-messages.ts</code> narrowing helpers) so the model resolves &quot;it/this/latest&quot; against candidate refs instead of code regexes.</div>
-          <div class="card-file">upload-attachment-visibility.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
