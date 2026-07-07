@@ -18,7 +18,7 @@ type EntityQuery = z.output<typeof entityQuerySchema>;
 
 export class EntityDataSource implements DataSource {
   private entityService: IEntityService;
-  readonly id = SHELL_DATASOURCE_IDS.ENTITIES;
+  readonly id: string = SHELL_DATASOURCE_IDS.ENTITIES;
   readonly name = "Entity DataSource";
   readonly description = "Fetches entity content from the entity service";
 

@@ -6,14 +6,23 @@ import { EntityUrlGenerator } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import { resolvePrompt } from "@brains/plugins";
 
-export const GenerationContextSchema = z.object({
-  prompt: z.string().optional(),
-  conversationHistory: z.string().optional(),
-  data: z.record(z.string(), z.unknown()).optional(),
-  templateName: z.string(),
-});
+export interface GenerationContext {
+  prompt?: string | undefined;
+  conversationHistory?: string | undefined;
+  data?: Record<string, unknown> | undefined;
+  templateName: string;
+}
 
-export type GenerationContext = z.output<typeof GenerationContextSchema>;
+const generationContextSchemaInternal: z.ZodType<GenerationContext, unknown> =
+  z.object({
+    prompt: z.string().optional(),
+    conversationHistory: z.string().optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
+    templateName: z.string(),
+  });
+
+export const GenerationContextSchema: typeof generationContextSchemaInternal =
+  generationContextSchemaInternal;
 
 const entitySlugSchema = z.object({ slug: z.string() });
 
