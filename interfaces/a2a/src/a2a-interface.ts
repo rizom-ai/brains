@@ -352,7 +352,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   protected override async getTools(): Promise<Tool[]> {
     return [
       createAgentCallTool({
-        outboundTokens: this.config.outboundTokens,
         requestTimeoutMs: this.config.requestTimeoutMs,
         streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
         maxNetworkAttempts: this.config.maxNetworkAttempts,

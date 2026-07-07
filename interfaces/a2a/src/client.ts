@@ -244,7 +244,6 @@ async function sendMessage(
   endpointUrl: string,
   message: string,
   fetchFn: FetchFn,
-  authToken: string | undefined,
   requestSigner: A2ARequestSigner | undefined,
   options: Required<A2ANetworkOptions>,
 ): Promise<ToolResponse> {
@@ -278,8 +277,6 @@ async function sendMessage(
           headers,
           body,
         });
-      } else if (authToken) {
-        headers["Authorization"] = `Bearer ${authToken}`;
       }
 
       const response = await fetchWithTimeout(
@@ -515,9 +512,7 @@ export interface A2ANetworkOptions {
 
 export interface A2AClientDeps extends A2ANetworkOptions {
   fetch?: FetchFn;
-  /** Map of remote agent domain → bearer token to send */
-  outboundTokens?: Record<string, string>;
-  /** Signs outbound A2A requests. When present, legacy bearer tokens are not sent. */
+  /** Signs outbound A2A requests. */
   requestSigner?: A2ARequestSigner;
   /** Entity service for agent directory resolution */
   entityService?: {
@@ -615,7 +610,6 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
           card.url,
           message,
           fetchFn,
-          undefined,
           deps.requestSigner,
           networkOptions,
         );
@@ -671,23 +665,10 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
 
       const endpointUrl = card.url;
 
-      // Look up outbound token by agent domain for legacy configs.
-      // Signed requests supersede bearer tokens when a signer is configured.
-      let authToken: string | undefined;
-      if (!deps.requestSigner && deps.outboundTokens) {
-        try {
-          const domain = new URL(endpointUrl).hostname;
-          authToken = deps.outboundTokens[domain];
-        } catch {
-          // Invalid URL — skip token
-        }
-      }
-
       return sendMessage(
         endpointUrl,
         message,
         fetchFn,
-        authToken,
         deps.requestSigner,
         networkOptions,
       );

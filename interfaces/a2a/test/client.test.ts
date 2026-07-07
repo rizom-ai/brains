@@ -217,7 +217,7 @@ describe("A2A Client", () => {
     });
   });
 
-  describe("createAgentCallTool outbound auth", () => {
+  describe("createAgentCallTool outbound signing", () => {
     /** Mock fetch that serves an agent card then records the a2a call */
     function createMockFetch(capturedHeaders: Record<string, string>[]) {
       return async (
@@ -270,47 +270,7 @@ describe("A2A Client", () => {
       };
     }
 
-    it("should send Authorization header when outbound token matches domain", async () => {
-      const capturedHeaders: Record<string, string>[] = [];
-      const tool = createAgentCallTool({
-        fetch: createMockFetch(capturedHeaders),
-        outboundTokens: {
-          "remote.example.com": "secret-token-xyz",
-        },
-        entityService: createSavedAgentEntityService(),
-      });
-
-      await tool.handler(
-        { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
-      );
-
-      expect(capturedHeaders).toHaveLength(1);
-      const headers = capturedHeaders[0];
-      expect(headers).toBeDefined();
-      expect(headers?.["Authorization"]).toBe("Bearer secret-token-xyz");
-    });
-
-    it("should not send Authorization header when no token matches", async () => {
-      const capturedHeaders: Record<string, string>[] = [];
-      const tool = createAgentCallTool({
-        fetch: createMockFetch(capturedHeaders),
-        outboundTokens: {
-          "other-agent.com": "some-token",
-        },
-        entityService: createSavedAgentEntityService(),
-      });
-
-      await tool.handler(
-        { agent: "remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
-      );
-
-      expect(capturedHeaders).toHaveLength(1);
-      expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
-    });
-
-    it("should not send Authorization header when no outbound tokens configured", async () => {
+    it("should not send Authorization headers", async () => {
       const capturedHeaders: Record<string, string>[] = [];
       const tool = createAgentCallTool({
         fetch: createMockFetch(capturedHeaders),
@@ -326,14 +286,11 @@ describe("A2A Client", () => {
       expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
     });
 
-    it("should sign outbound requests instead of sending a bearer token when a signer is configured", async () => {
+    it("should sign outbound requests when a signer is configured", async () => {
       const capturedHeaders: Record<string, string>[] = [];
       const signedUrls: string[] = [];
       const tool = createAgentCallTool({
         fetch: createMockFetch(capturedHeaders),
-        outboundTokens: {
-          "remote.example.com": "legacy-token",
-        },
         requestSigner: async (request) => {
           signedUrls.push(String(request.url));
           request.headers["Signature-Input"] = "sig1=()";

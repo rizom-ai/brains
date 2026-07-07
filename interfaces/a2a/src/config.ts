@@ -13,9 +13,6 @@ export const a2aConfigSchema = z.object({
   /** Inbound: map of bearer token → agent identity for caller authentication */
   trustedTokens: z.record(z.string()).optional(),
 
-  /** Outbound: map of remote agent domain → bearer token to send */
-  outboundTokens: z.record(z.string()).optional(),
-
   /** Max time to receive outbound A2A POST response headers. */
   requestTimeoutMs: z.number().positive().default(30_000),
 
