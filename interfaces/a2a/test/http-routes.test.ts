@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { authServicePlugin } from "@brains/auth-service";
-import { createPluginHarness } from "@brains/plugins/test";
+import { AuthService, authServicePlugin } from "@brains/auth-service";
+import { signRequest } from "@brains/http-signatures";
+import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { A2AInterface } from "../src/a2a-interface";
 
@@ -45,6 +46,47 @@ describe("A2A HTTP routes", () => {
     return dir;
   }
 
+  async function signedA2ARequest(
+    body: unknown,
+    signer: AuthService,
+    options: { bodyOverride?: string } = {},
+  ): Promise<Request> {
+    const bodyText = JSON.stringify(body);
+    const headers = new Headers({ "Content-Type": "application/json" });
+    const signingKey = await signer.getA2ASigningKey();
+    await signRequest(
+      {
+        method: "POST",
+        url: "http://brain/a2a",
+        headers,
+        body: bodyText,
+      },
+      signingKey.privateJwk,
+      signingKey.keyId,
+    );
+
+    return new Request("http://brain/a2a", {
+      method: "POST",
+      headers,
+      body: options.bodyOverride ?? bodyText,
+    });
+  }
+
+  function a2aPostRoute(
+    plugin: A2AInterface,
+  ): ReturnType<A2AInterface["getWebRoutes"]>[number] {
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) => candidate.path === "/a2a" && candidate.method === "POST",
+      );
+    expect(route).toBeDefined();
+    if (!route) {
+      throw new Error("Expected A2A POST route");
+    }
+    return route;
+  }
+
   it("returns a helpful 405 for GET /a2a", async () => {
     installWebserverPlugin();
     const plugin = new A2AInterface({ port: 0 });
@@ -69,7 +111,7 @@ describe("A2A HTTP routes", () => {
       "GET, POST, OPTIONS",
     );
     expect(response.headers.get("Access-Control-Allow-Headers")).toBe(
-      "Content-Type, Authorization",
+      "Content-Type, Authorization, Signature, Signature-Input, Content-Digest, Date",
     );
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     const body = await response.json();
@@ -176,6 +218,98 @@ describe("A2A HTTP routes", () => {
     );
     expect(capturedHeaders[0]?.["signature"]).toStartWith("sig1=:");
     expect(capturedHeaders[0]?.["content-digest"]).toStartWith("sha-256=:");
+  });
+
+  it("verifies signed inbound requests and maps the caller domain to permissions", async () => {
+    installWebserverPlugin();
+    harness.setPermissionService(
+      new PermissionService({ trusted: ["a2a:remote.example"] }),
+    );
+
+    let capturedLevel = "";
+    harness.setAgentService({
+      chat: async (_message, _conversationId, context) => {
+        capturedLevel = context?.userPermissionLevel ?? "public";
+        return {
+          text: "ok",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "ok",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      }),
+      invalidateAgent: () => {},
+    });
+
+    const remoteAuth = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://remote.example",
+    });
+    const remoteJwks = await remoteAuth.getJwks();
+    globalThis.fetch = Object.assign(
+      async (): Promise<Response> => Response.json(remoteJwks),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    const plugin = new A2AInterface({ port: 0 });
+    await harness.installPlugin(plugin);
+    const response = await a2aPostRoute(plugin).handler(
+      await signedA2ARequest(
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "message/send",
+          params: {
+            message: {
+              kind: "message",
+              messageId: "msg-1",
+              role: "user",
+              parts: [{ kind: "text", text: "hello" }],
+            },
+          },
+        },
+        remoteAuth,
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(capturedLevel).toBe("trusted");
+  });
+
+  it("rejects signed inbound requests with a bad digest", async () => {
+    installWebserverPlugin();
+    const remoteAuth = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://remote.example",
+    });
+    const remoteJwks = await remoteAuth.getJwks();
+    globalThis.fetch = Object.assign(
+      async (): Promise<Response> => Response.json(remoteJwks),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    const plugin = new A2AInterface({ port: 0 });
+    await harness.installPlugin(plugin);
+
+    const response = await a2aPostRoute(plugin).handler(
+      await signedA2ARequest(
+        { jsonrpc: "2.0", id: 1, method: "message/send", params: {} },
+        remoteAuth,
+        {
+          bodyOverride: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "message/send",
+            params: { tampered: true },
+          }),
+        },
+      ),
+    );
+
+    expect(response.status).toBe(401);
+    const body = await response.json();
+    expect(body).toEqual({ error: "Invalid HTTP signature" });
   });
 
   it("adds cors headers to the agent card route", async () => {

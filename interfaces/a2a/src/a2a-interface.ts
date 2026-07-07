@@ -1,5 +1,9 @@
 import { getActiveAuthService } from "@brains/auth-service";
-import { signRequest } from "@brains/http-signatures";
+import {
+  JwksResolver,
+  signRequest,
+  verifyRequest,
+} from "@brains/http-signatures";
 import {
   InterfacePlugin,
   type InterfacePluginContext,
@@ -26,7 +30,8 @@ import packageJson from "../package.json";
 const A2A_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, Signature, Signature-Input, Content-Digest, Date",
   "X-Content-Type-Options": "nosniff",
 } as const;
 
@@ -43,6 +48,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   private taskManager = new TaskManager();
   private agentService: AgentNamespace | undefined;
   private permissionContext: InterfacePluginContext["permissions"] | undefined;
+  private readonly jwksResolver = new JwksResolver();
   private app: Hono | undefined;
   private hasWebserver = false;
 
@@ -148,11 +154,42 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   }
 
   /**
-   * Resolve caller permission level from Authorization header.
-   * Looks up bearer token in trustedTokens config, then checks
-   * the permission system for the resolved identity.
+   * Resolve caller permission from a verified HTTP signature when present.
+   * Unsigned requests remain public; legacy bearer tokens are still accepted
+   * temporarily until peer-trust grants replace trustedTokens entirely.
    */
-  private resolveCaller(authHeader: string | undefined): {
+  private async resolveCaller(
+    request: Request,
+    body: string,
+  ): Promise<{
+    permissionLevel: UserPermissionLevel;
+    callerDomain: string | null;
+  }> {
+    const verified = await verifyRequest(
+      {
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        body,
+      },
+      this.jwksResolver,
+    );
+
+    if (verified) {
+      return {
+        permissionLevel:
+          this.permissionContext?.getUserLevel("a2a", verified.domain) ??
+          "public",
+        callerDomain: verified.domain,
+      };
+    }
+
+    return this.resolveLegacyBearerCaller(
+      request.headers.get("Authorization") ?? undefined,
+    );
+  }
+
+  private resolveLegacyBearerCaller(authHeader: string | undefined): {
     permissionLevel: UserPermissionLevel;
     callerDomain: string | null;
   } {
@@ -229,9 +266,20 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         );
       }
 
+      const bodyText = await c.req.text();
+      let caller: {
+        permissionLevel: UserPermissionLevel;
+        callerDomain: string | null;
+      };
+      try {
+        caller = await this.resolveCaller(c.req.raw, bodyText);
+      } catch {
+        return this.withCors(c.json({ error: "Invalid HTTP signature" }, 401));
+      }
+
       let body: unknown;
       try {
-        body = await c.req.json();
+        body = JSON.parse(bodyText);
       } catch {
         return this.withCors(
           c.json({
@@ -252,8 +300,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
           }),
         );
       }
-
-      const caller = this.resolveCaller(c.req.header("Authorization"));
 
       if (parsed.data.method === "message/stream") {
         const streamParams = streamParamsSchema.safeParse(
