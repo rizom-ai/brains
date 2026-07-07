@@ -41,6 +41,7 @@
     "@brains/decks": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
+    "@brains/doc": "workspace:*",
     "@brains/document-plugin": "workspace:*",
     "@brains/email-resend": "workspace:*",
     "@brains/image-plugin": "workspace:*",

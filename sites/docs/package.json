@@ -1,0 +1,52 @@
+{
+  "name": "@rizom/site-docs",
+  "version": "0.2.0-alpha.136",
+  "description": "Docs site package for docs.rizom.ai hosted deployments",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "postpack": "publish-manifest restore",
+    "prepack": "publish-manifest prepare"
+  },
+  "dependencies": {
+    "@rizom/site": "workspace:*",
+    "preact": "^10.27.2"
+  },
+  "publishPeerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.136 <0.3.0"
+  },
+  "devDependencies": {
+    "@brains/build-tools": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rizom-ai/brains.git",
+    "directory": "sites/docs"
+  },
+  "license": "Apache-2.0",
+  "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
+  "homepage": "https://github.com/rizom-ai/brains/tree/main/sites/docs#readme",
+  "bugs": {
+    "url": "https://github.com/rizom-ai/brains/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.3"
+  }
+}

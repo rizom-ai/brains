@@ -4,7 +4,7 @@
 
 Phase 0 started in worktree `work/sites-controlled-deploy`.
 
-Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@rizom/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Packed-install smoke coverage now verifies `@rizom/site-rizom-work` can remain thin/source-published, the installed-package dynamic import path boots, and a hosted-style preview rebuild renders from installed packages. Remaining gates are the `@rizom/site` authoring SDK (see "Authoring SDK decision" — the public contract ships as its own package before anything publishes), then release/publish and hosted deploy wiring.
+Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. The shared `@rizom/site-rizom` runtime boundary now avoids runtime `@brains/plugins` imports. `brains-ops` can parse per-user `siteOverride` metadata and render generated `brain.yaml` with npm package refs while keeping package versions out of runtime YAML. Packed-install smoke coverage now verifies `@rizom/site-rizom-work` can remain thin/source-published, the installed-package dynamic import path boots, and a hosted-style preview rebuild renders from installed packages. The `@rizom/site` SDK walking skeleton is in place, all three Rizom family per-site packages (`@rizom/site-rizom-work`, `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`) have been added on that boundary, and `docs.rizom.ai` now has a separate `@rizom/site-docs` package that renders on Rover with `add: [docs]`. Remaining gates are release/publish and hosted deploy wiring.
 
 > **Supersedes prior direction.** The earlier "one shared site + per-app skins in app `src/`, no new published packages" direction is intentionally reversed for this work (confirmed 2026-06-30). Hosted-rover needs npm-resolvable site refs in generated `brain.yaml`, which app-local `src/site.ts` cannot provide, so the Rizom site family now ships as three published per-site packages. The divergence-discipline rule still applies _within_ each package.
 >
@@ -22,6 +22,7 @@ External app repos found under `/home/yeehaa/Documents` as source inputs to migr
 - `/home/yeehaa/Documents/rizom-ai` → `git@github.com:rizom-ai/rizom-ai.git`
 - `/home/yeehaa/Documents/rizom-foundation` → `git@github.com:rizom-ai/rizom-foundation.git`
 - `/home/yeehaa/Documents/rizom-work` → `git@github.com:rizom-ai/rizom-work.git`
+- `/home/yeehaa/Documents/doc-brain` → `git@github.com:rizom-ai/doc-brain.git` (`docs.rizom.ai`, separate docs-brain path)
 
 ## Current deployments
 
@@ -30,6 +31,7 @@ External app repos found under `/home/yeehaa/Documents` as source inputs to migr
 | `rizom.ai`         | `ranger`        | `default` | `rizom.ai`         | `rizom-ai/rizom-ai-content`         | `src/site.ts`, `themeProfile: product`   | `add: [atproto-registry]`; `plugins.atproto-registry: {}`; `plugins.mcp.authToken`; no anchors/trusted/permissions in `brain.yaml` |
 | `rizom.foundation` | `relay`         | `default` | `rizom.foundation` | `rizom-ai/rizom-foundation-content` | `src/site.ts`, `themeProfile: editorial` | `plugins.mcp.authToken`; no anchors/trusted/permissions in `brain.yaml`                                                            |
 | `rizom.work`       | `ranger`        | `default` | `rizom.work`       | `rizom-ai/rizom-work-content`       | `src/site.ts`, `themeProfile: studio`    | `plugins.mcp.authToken`; no anchors/trusted/permissions in `brain.yaml`                                                            |
+| `docs.rizom.ai`    | `relay`         | `default` | `docs.rizom.ai`    | `rizom-ai/doc-brain-content`        | `src/site.ts`, docs entity routes        | `add: [docs]`; `anchors`; `spaces`; `plugins.directory-sync`; optional Discord bot                                                 |
 
 ## Local site shape to migrate
 
@@ -53,6 +55,11 @@ All three sites currently use app-local conventional site modules (`src/site.ts`
   - plugin config: `{ themeProfile: "studio" }`
   - sections: hero, problem, workshop, credibility, personas, proof, ownership, closer, ecosystem
   - local `src/theme.css`
+- `doc-brain/src/site.ts`
+  - layout: fragment-only `DocsLayout`
+  - routes: `/` and `/docs`
+  - section: `docs:doc-list` backed by the `doc` entity
+  - entity display: `doc` detail/list routing
 
 ## Deploy shape today
 
@@ -79,20 +86,24 @@ Current deploy scripts derive:
 
 ## Target architecture
 
-1. Move site source from the three external app repos into monorepo site packages, for example:
+1. Move site source from the external app repos into monorepo site packages, for example:
    - `sites/rizom-ai` → published package for `rizom.ai`
    - `sites/rizom-foundation` → published package for `rizom.foundation`
    - `sites/rizom-work` → published package for `rizom.work`
-2. Publish one shared Rizom site base package and three thin per-site packages:
+   - `sites/docs` → published package for `docs.rizom.ai`
+2. Publish one shared Rizom site base package, three thin Rizom family per-site packages, and one separate docs-site package:
    - `@rizom/site-rizom` is the public base/core package for Rizom sites: runtime plugin, shared layout primitives, theme-profile behavior, canvas/static assets, and the `createRizomSite` helper.
    - `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`, and `@rizom/site-rizom-work` extend that base and carry only their site-specific routes, layouts, templates, `themeProfile`, and package-local CSS/theme override.
+   - `@rizom/site-docs` uses the public SDK directly for `docs.rizom.ai` docs routes/entity display and does not depend on `@rizom/site-rizom`.
    - **Note: this is new coupling, not a lift-and-shift.** The external sites do not import `@rizom/site-rizom` today — `rizom-work/src/site.ts` is a bare default-export object depending only on `@rizom/brain` / `@rizom/ui`. Introducing the shared-core dependency is net-new work per site, not a file move; scope the migration accordingly.
 3. `rover-pilot` / `hosted-rover` registry config chooses the per-site package and version for each deployed site.
 4. Generated `brain.yaml` should reference npm-resolvable package refs, not app-local `src/site.ts` paths.
 5. Hosted deploy installs or otherwise resolves those package refs before boot/build, so Rover can render the requested site without bundling every possible site into the base runtime.
 6. Once hosted deploy is live, retire the old standalone site deploy workflows/images in `rizom-ai`, `rizom-foundation`, and `rizom-work`.
+7. Migrate `docs.rizom.ai` through a separate docs-site package (`@rizom/site-docs`) rather than the Rizom family marketing-site base. Its hosted wiring must run on Rover (`brain: rover`) with opt-in docs capability (`add: [docs]`), docs content repo sync, and optional Discord.
+8. After the four public sites run on Rover, retire the old Ranger/Relay site deployment paths rather than carrying model-specific hosted site variants forward.
 
-Implemented config slice (2026-07-02): `brains-ops` user registry entries may now set `domainOverride`, `contentRepoOverride`, and `siteOverride`. Generated `brain.yaml` emits `site.package` and `site.theme`; `siteOverride.version` is retained as operator metadata for build/install pinning and is intentionally omitted from runtime YAML.
+Implemented config slice (2026-07-02): `brains-ops` user registry entries may now set `domainOverride`, `contentRepoOverride`, and `siteOverride`. Generated `brain.yaml` emits `site.package` and `site.theme`; `siteOverride.version` is retained as operator metadata for build/install pinning and is intentionally omitted from runtime YAML. Follow-up (2026-07-07): user entries may also set `addOverride` so hosted Rover can opt selected deployments into capabilities such as `docs` without switching brain models.
 
 ## Packaging path
 
@@ -116,19 +127,22 @@ Source-published TSX update (2026-07-06): `@rizom/site-rizom-work` now uses file
 
 Current packaging matrix:
 
-| Package                     | Runtime dependency boundary                                                                                                                                      | TSX/source-publish boundary                                                                                                 | Type boundary                                                                                                          | Current direction                                                            |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `@rizom/site-rizom`         | Has private/internal workspace deps (`@brains/site-composition`, `@brains/atproto-contracts`, shared Rizom UI source) that should not be published transitively. | May contain TSX, but runtime bundling is already justified by private deps.                                                 | Public declarations must not leak private packages; fix at source/API boundary, not by hand-written declaration blobs. | Bundle runtime; expose an intentional public API and generated declarations. |
-| `@rizom/site-rizom-work`    | Depends only on public `@rizom/site-rizom` plus `preact`.                                                                                                        | Source-published TSX imports cleanly with file-level `@jsxImportSource preact` pragmas and package-boundary smoke coverage. | Clean through the base public declaration boundary.                                                                    | Keep thin/source-published unless a new private runtime boundary appears.    |
-| `@brains/atproto-contracts` | Internal canonical lexicon source.                                                                                                                               | N/A                                                                                                                         | N/A                                                                                                                    | Do not publish for hosted Rizom sites; bundle through base.                  |
-| `@brains/site-composition`  | Internal site framework contract used by app/runtime.                                                                                                            | N/A                                                                                                                         | Would leak if exported directly.                                                                                       | Keep internal; hide behind base.                                             |
+| Package                        | Runtime dependency boundary                                                                                                                                                           | TSX/source-publish boundary                                                                                                 | Type boundary                                                                                                          | Current direction                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `@rizom/site-rizom`            | Has private/internal workspace deps (`@brains/site-composition`, `@brains/atproto-contracts`, shared Rizom UI source) that should not be published transitively.                      | May contain TSX, but runtime bundling is already justified by private deps.                                                 | Public declarations must not leak private packages; fix at source/API boundary, not by hand-written declaration blobs. | Bundle runtime; expose an intentional public API and generated declarations. |
+| `@rizom/site-rizom-work`       | Depends only on public `@rizom/site-rizom`, `@rizom/site`, and `preact`.                                                                                                              | Source-published TSX imports cleanly with file-level `@jsxImportSource preact` pragmas and package-boundary smoke coverage. | Clean through the SDK/base public declaration boundary.                                                                | Keep thin/source-published unless a new private runtime boundary appears.    |
+| `@rizom/site-rizom-ai`         | Depends only on public `@rizom/site-rizom`, `@rizom/site`, and `preact`.                                                                                                              | Source-published TSX imports cleanly with file-level `@jsxImportSource preact` pragmas and package-boundary smoke coverage. | Clean through the SDK/base public declaration boundary.                                                                | Keep thin/source-published unless a new private runtime boundary appears.    |
+| `@rizom/site-rizom-foundation` | Depends only on public `@rizom/site-rizom`, `@rizom/site`, and `preact`.                                                                                                              | Source-published TSX imports cleanly with file-level `@jsxImportSource preact` pragmas and package-boundary smoke coverage. | Clean through the SDK/base public declaration boundary.                                                                | Keep thin/source-published unless a new private runtime boundary appears.    |
+| `@rizom/site-docs`             | Depends only on public `@rizom/site` and `preact`, with an `@rizom/brain` peer for docs/runtime compatibility; intentionally does not depend on the Rizom family marketing-site base. | Source-published TS imports cleanly and package-boundary smoke coverage installs only the SDK plus this package.            | Clean through the SDK public declaration boundary.                                                                     | Keep separate from `@rizom/site-rizom`; preserve Rover/docs runtime wiring.  |
+| `@brains/atproto-contracts`    | Internal canonical lexicon source.                                                                                                                                                    | N/A                                                                                                                         | N/A                                                                                                                    | Do not publish for hosted Rizom sites; bundle through base.                  |
+| `@brains/site-composition`     | Internal site framework contract used by app/runtime.                                                                                                                                 | N/A                                                                                                                         | Would leak if exported directly.                                                                                       | Keep internal; hide behind base.                                             |
 
 Packaging decision:
 
-- **Yes:** publish one shared base package, `@rizom/site-rizom`, and have the three per-site packages depend on/extend it.
+- **Yes:** publish one shared base package, `@rizom/site-rizom`, and have the three Rizom family per-site packages depend on/extend it.
 - **No:** do not publish the entire low-level `@brains/*` framework dependency chain just to make these sites installable.
 - The base package is the public/stable Rizom-site API boundary. Its own internal framework dependencies should be bundled/hidden behind the base package's published artifact unless there is an explicit reason to expose them as public packages.
-- Per-site packages should stay thin and depend only on `@rizom/site-rizom` and `preact`; shared Rizom UI and site authoring helpers should be exposed through the base package boundary.
+- Rizom family per-site packages should stay thin and depend only on `@rizom/site-rizom`, `@rizom/site`, and `preact`; shared Rizom UI and site authoring helpers should be exposed through the base package boundary. `@rizom/site-docs` is intentionally separate and depends only on the SDK plus `preact`, with a runtime peer on `@rizom/brain` because it requires docs entity/template support.
 - Thin per-site packages may still publish source if their TS/TSX is self-contained for npm consumers. Do not add per-site build artifacts merely because the base package needs one.
 
 Publish-scope correction (2026-07-06): we do not own the `@brains` scope on npm — the org publishes under `@rizom` (the runtime already ships as `@rizom/*`), and nothing is published under `@brains/*` today. Because `site.package` resolves by the literal package name, the published name and the `package.json` name must match, so the publishable packages got a mechanical scope swap before first publish: `@brains/site-rizom` → `@rizom/site-rizom`, `@brains/site-rizom-work` → `@rizom/site-rizom-work` (no semantic renames). The rename ripples into workspace `package.json` names and internal deps, generated `brain.yaml` refs, `brains-ops` `siteOverride` rendering, and the package-boundary test.
@@ -149,17 +163,17 @@ SDK phasing (walking skeleton first):
 2. Port `@rizom/site-rizom` and `@rizom/site-rizom-work` onto the SDK; delete the contracts mirror and its leak-check machinery for contract types.
 3. Publish SDK + family base + per-site packages through the normal release flow; hosted deploy wiring continues unchanged (`site.package` refs are unaffected).
 
-SDK implementation update (2026-07-07): the walking skeleton exists as `@rizom/site` with zod-free public route/content/layout/site-definition types and no runtime `@brains/*` dependencies. `@brains/site-composition` now consumes the SDK's route/content/metadata types and keeps schema assignability checks against them. `@rizom/site-rizom` depends on and re-exports SDK authoring types, while `@rizom/site-rizom-work` imports public authoring types from the SDK and still imports Rizom-family UI/sugar from `@rizom/site-rizom`. The platform now adapts declarative SDK sites internally: `@rizom/site-rizom-work` exports a `SiteDefinition` with content/head scripts instead of a public plugin factory, and the app resolver wraps content/head scripts into an internal runtime plugin. `@rizom/site-rizom`'s generated public declarations no longer expose `SitePackage`, shell registration, or plugin capability types; only an advanced `runtime` hook remains on `createRizomSite` for in-repo custom template/data-source wiring (currently Relay).
+SDK implementation update (2026-07-07): the walking skeleton exists as `@rizom/site` with zod-free public route/content/layout/site-definition types and no runtime `@brains/*` dependencies. `@brains/site-composition` now consumes the SDK's route/content/metadata types and keeps schema assignability checks against them. `@rizom/site-rizom` depends on and re-exports SDK authoring types, while the three Rizom family per-site packages import public authoring types from the SDK and still import Rizom-family UI/sugar from `@rizom/site-rizom`. `@rizom/site-docs` uses the SDK directly and avoids the family base because `docs.rizom.ai` is a docs-brain site, not a Rizom marketing-site variant. The platform now adapts declarative SDK sites internally: per-site packages export `SiteDefinition` with content/head scripts instead of a public plugin factory, and the app resolver wraps content/head scripts into an internal runtime plugin. `@rizom/site-rizom`'s generated public declarations no longer expose `SitePackage`, shell registration, or plugin capability types; only an advanced `runtime` hook remains on `createRizomSite` for in-repo custom template/data-source wiring (currently Relay). Packed rendered-site smoke has passed for `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`, and `@rizom/site-docs` using packed `@rizom/brain`, `@rizom/site`, and the selected per-site package (plus `@rizom/site-rizom` for Rizom family sites); the docs smoke uses `brain: rover` with `add: [docs]`.
 
 Preferred path:
 
 1. Move shared Rizom site core into a publishable `@rizom/site-rizom` base package with a clean public dependency and type story.
 2. Define the `@rizom/site-rizom` public API at the source layer: runtime site/plugin contracts, authoring helpers, route/content definition types, and actual UI prop types. Generated declarations should verify this API; they should not be patched by hand-written declaration blobs. _(Superseded 2026-07-07: the public API moves to the `@rizom/site` authoring SDK — see the Authoring SDK decision above.)_
-3. Move each site into a thin monorepo package that extends the base package.
+3. Move each Rizom family site into a thin monorepo package that extends the base package; move `docs.rizom.ai` into a thin SDK-only docs package.
 4. For each per-site package, prove whether source publishing is self-contained before choosing a build artifact. Start with the smallest JSX-runtime/package-metadata fix for TSX source packages.
-5. Make the base package and each per-site package publishable.
+5. Make the SDK, base package, and each per-site package publishable.
 6. Publish them with the normal monorepo release flow.
-7. Teach hosted-rover to install the exact per-site package version alongside the pinned Rover/runtime version. Package managers will bring the compatible base package version through normal dependency resolution.
+7. Teach hosted-rover/hosted docs deploy to install the exact per-site package version alongside the pinned runtime version. Package managers will bring the compatible base package version through normal dependency resolution where applicable.
 8. Keep generated `brain.yaml` shaped as package refs from day one.
 
 The bridge — bundling Rizom site packages into the current published runtime/image — is only a fallback if the package install path blocks Phase 1. If used, it must be documented as temporary and removed in a follow-up phase.

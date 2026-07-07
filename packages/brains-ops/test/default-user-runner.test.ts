@@ -21,6 +21,7 @@ const baseUser: ResolvedUser = {
   model: "rover",
   preset: "default",
   serverStatus: "unknown",
+  addOverride: ["docs"],
   siteOverride: {
     package: "@rizom/site-rizom-work",
     version: "0.2.0-alpha.136",
@@ -35,6 +36,7 @@ describe("createDefaultUserRunner", () => {
 
     const result = await runner(baseUser);
 
+    expect(result.brainYaml).toContain(`add:\n  - docs`);
     expect(result.brainYaml).toContain(
       `site:\n  package: "@rizom/site-rizom-work"\n  theme: "@brains/theme-rizom"`,
     );

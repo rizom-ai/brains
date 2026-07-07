@@ -15,6 +15,7 @@ import { siteInfoPlugin } from "@brains/site-info";
 import { blogPlugin } from "@brains/blog";
 import { seriesPlugin } from "@brains/series";
 import { decksPlugin } from "@brains/decks";
+import { docsPlugin } from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
@@ -170,6 +171,7 @@ export default defineBrain({
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],
+    ["docs", docsPlugin, undefined],
     ["document", documentPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],

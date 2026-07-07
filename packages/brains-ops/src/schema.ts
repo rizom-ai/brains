@@ -89,6 +89,7 @@ export const userSchema = z
     gitSyncTokenOverride: secretNameSchema.optional(),
     domainOverride: z.string().min(1).optional(),
     contentRepoOverride: z.string().min(1).optional(),
+    addOverride: z.array(z.string().min(1)).optional(),
     siteOverride: siteOverrideSchema.optional(),
     setup: setupDeliverySchema.optional(),
     atproto: atprotoSchema.optional(),

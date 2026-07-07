@@ -118,6 +118,7 @@
         "@brains/decks": "workspace:*",
         "@brains/directory-sync": "workspace:*",
         "@brains/discord": "workspace:*",
+        "@brains/doc": "workspace:*",
         "@brains/document-plugin": "workspace:*",
         "@brains/email-resend": "workspace:*",
         "@brains/image-plugin": "workspace:*",
@@ -1847,6 +1848,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "sites/docs": {
+      "name": "@rizom/site-docs",
+      "version": "0.2.0-alpha.136",
+      "dependencies": {
+        "@rizom/site": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/build-tools": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "sites/personal": {
       "name": "@brains/site-personal",
       "version": "0.2.0-alpha.136",
@@ -1916,6 +1933,40 @@
         "eslint": "^8.56.0",
         "rollup": "^4.60.2",
         "rollup-plugin-dts": "^6.4.1",
+        "typescript": "^5.3.3",
+      },
+    },
+    "sites/rizom-ai": {
+      "name": "@rizom/site-rizom-ai",
+      "version": "0.2.0-alpha.136",
+      "dependencies": {
+        "@rizom/site": "workspace:*",
+        "@rizom/site-rizom": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/build-tools": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "sites/rizom-foundation": {
+      "name": "@rizom/site-rizom-foundation",
+      "version": "0.2.0-alpha.136",
+      "dependencies": {
+        "@rizom/site": "workspace:*",
+        "@rizom/site-rizom": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/build-tools": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -2626,7 +2677,13 @@
 
     "@rizom/site": ["@rizom/site@workspace:packages/site"],
 
+    "@rizom/site-docs": ["@rizom/site-docs@workspace:sites/docs"],
+
     "@rizom/site-rizom": ["@rizom/site-rizom@workspace:sites/rizom"],
+
+    "@rizom/site-rizom-ai": ["@rizom/site-rizom-ai@workspace:sites/rizom-ai"],
+
+    "@rizom/site-rizom-foundation": ["@rizom/site-rizom-foundation@workspace:sites/rizom-foundation"],
 
     "@rizom/site-rizom-work": ["@rizom/site-rizom-work@workspace:sites/rizom-work"],
 

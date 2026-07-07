@@ -18,6 +18,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     `brain: ${user.model}`,
     `domain: ${user.domain}`,
     `preset: ${user.preset}`,
+    ...renderAddConfig(user),
     ...renderSiteConfig(user),
     "",
     renderAnchors(user),
@@ -56,6 +57,14 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   lines.push("");
 
   return lines.join("\n");
+}
+
+function renderAddConfig(user: ResolvedUser): string[] {
+  if (!user.addOverride || user.addOverride.length === 0) {
+    return [];
+  }
+
+  return ["", "add:", ...user.addOverride.map((id) => `  - ${id}`)];
 }
 
 function renderSiteConfig(user: ResolvedUser): string[] {

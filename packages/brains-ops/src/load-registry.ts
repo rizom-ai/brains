@@ -74,6 +74,7 @@ export interface ResolvedUserIdentity {
   preset: PilotPreset;
   domain: string;
   contentRepo: string;
+  addOverride?: string[];
   siteOverride?: ResolvedSiteOverride;
   discordEnabled: boolean;
   discordAnchorUserId?: string;
@@ -168,6 +169,9 @@ export async function loadPilotRegistry(
         contentRepo:
           userFile.data.contentRepoOverride ??
           `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
+        ...(userFile.data.addOverride
+          ? { addOverride: userFile.data.addOverride }
+          : {}),
         ...(userFile.data.siteOverride
           ? { siteOverride: userFile.data.siteOverride }
           : {}),
