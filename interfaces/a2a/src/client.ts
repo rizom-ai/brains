@@ -237,6 +237,7 @@ async function sendMessage(
   options: Required<A2ANetworkOptions>,
 ): Promise<ToolResponse> {
   const maxAttempts = Math.max(1, options.maxNetworkAttempts);
+  const clientMessageId = crypto.randomUUID();
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -261,7 +262,7 @@ async function sendMessage(
             params: {
               message: {
                 kind: "message",
-                messageId: crypto.randomUUID(),
+                messageId: clientMessageId,
                 role: "user",
                 parts: [{ kind: "text", text: message }],
               },
@@ -282,16 +283,26 @@ async function sendMessage(
         return { success: false, error: "No response body (SSE expected)" };
       }
 
-      return await readStreamToCompletion(
-        response.body,
-        options.streamIdleTimeoutMs,
-      );
+      try {
+        return await readStreamToCompletion(
+          response.body,
+          options.streamIdleTimeoutMs,
+        );
+      } catch (err) {
+        return {
+          success: false,
+          error: formatNetworkFailure(err, attempt),
+        };
+      }
     } catch (err) {
       lastError = err;
-      if (attempt < maxAttempts && isRetryableNetworkError(err)) {
-        continue;
+      const shouldRetry = attempt < maxAttempts && isRetryableNetworkError(err);
+      if (!shouldRetry) {
+        return {
+          success: false,
+          error: formatNetworkFailure(err, attempt),
+        };
       }
-      break;
     }
   }
 
@@ -452,7 +463,7 @@ function isRetryableNetworkError(error: unknown): boolean {
     error instanceof A2ARequestTimeoutError ||
     error instanceof A2AStreamIdleTimeoutError
   ) {
-    return true;
+    return false;
   }
 
   return error instanceof Error;

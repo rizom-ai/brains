@@ -150,20 +150,24 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
    * Looks up bearer token in trustedTokens config, then checks
    * the permission system for the resolved identity.
    */
-  private resolveCallerPermission(
-    authHeader: string | undefined,
-  ): UserPermissionLevel {
+  private resolveCaller(authHeader: string | undefined): {
+    permissionLevel: UserPermissionLevel;
+    callerDomain: string | null;
+  } {
     if (!authHeader?.startsWith("Bearer ") || !this.config.trustedTokens) {
-      return "public";
+      return { permissionLevel: "public", callerDomain: null };
     }
 
     const token = authHeader.slice(7);
     const identity = this.config.trustedTokens[token];
     if (!identity || !this.permissionContext) {
-      return "public";
+      return { permissionLevel: "public", callerDomain: null };
     }
 
-    return this.permissionContext.getUserLevel("a2a", identity);
+    return {
+      permissionLevel: this.permissionContext.getUserLevel("a2a", identity),
+      callerDomain: identity,
+    };
   }
 
   private withCors(response: Response): Response {
@@ -247,9 +251,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         );
       }
 
-      const callerPermissionLevel = this.resolveCallerPermission(
-        c.req.header("Authorization"),
-      );
+      const caller = this.resolveCaller(c.req.header("Authorization"));
 
       if (parsed.data.method === "message/stream") {
         const streamParams = streamParamsSchema.safeParse(
@@ -275,7 +277,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
           {
             taskManager: this.taskManager,
             agentService: this.agentService,
-            callerPermissionLevel,
+            callerPermissionLevel: caller.permissionLevel,
+            callerDomain: caller.callerDomain,
           },
         );
 
@@ -299,7 +302,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       const response = await handleJsonRpc(parsed.data, {
         taskManager: this.taskManager,
         agentService: this.agentService,
-        callerPermissionLevel,
+        callerPermissionLevel: caller.permissionLevel,
+        callerDomain: caller.callerDomain,
       });
 
       return this.withCors(c.json(response));
