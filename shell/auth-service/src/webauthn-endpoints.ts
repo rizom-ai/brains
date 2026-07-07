@@ -2,7 +2,11 @@ import type {
   AuthenticationResponseJSON,
   RegistrationResponseJSON,
 } from "@simplewebauthn/server";
-import type { PasskeyService, WebAuthnRequestContext } from "./passkey-service";
+import type {
+  PasskeyRegistrationUser,
+  PasskeyService,
+  WebAuthnRequestContext,
+} from "./passkey-service";
 import type { OperatorSessionStore } from "./session-store";
 import type { SetupFlow } from "./setup-flow";
 import { issuerFromRequest, isSecureRequest } from "./issuer";
@@ -12,6 +16,7 @@ export interface WebAuthnEndpointsOptions {
   passkeyService: PasskeyService;
   sessionStore: OperatorSessionStore;
   setupFlow: SetupFlow;
+  registrationUserProvider: () => Promise<PasskeyRegistrationUser>;
 }
 
 /**
@@ -23,11 +28,13 @@ export class WebAuthnEndpoints {
   private readonly passkeyService: PasskeyService;
   private readonly sessionStore: OperatorSessionStore;
   private readonly setupFlow: SetupFlow;
+  private readonly registrationUserProvider: () => Promise<PasskeyRegistrationUser>;
 
   constructor(options: WebAuthnEndpointsOptions) {
     this.passkeyService = options.passkeyService;
     this.sessionStore = options.sessionStore;
     this.setupFlow = options.setupFlow;
+    this.registrationUserProvider = options.registrationUserProvider;
   }
 
   async handleRegistrationOptions(request: Request): Promise<Response> {
@@ -43,6 +50,7 @@ export class WebAuthnEndpoints {
 
     const options = await this.passkeyService.generateRegistrationOptions(
       webAuthnRequestContext(request),
+      await this.registrationUserProvider(),
     );
     return jsonResponse(options);
   }

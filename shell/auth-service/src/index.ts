@@ -67,11 +67,24 @@ export {
   OPERATOR_SESSION_COOKIE,
   OperatorSessionStore,
 } from "./session-store";
+export {
+  AuthUserStore,
+  hashIdentityKey,
+  normalizeIdentityKey,
+} from "./user-store";
 export type {
   CreateOperatorSessionResult,
   OperatorSessionRecord,
   OperatorSessionStoreOptions,
 } from "./session-store";
+export type {
+  AttachAuthIdentityInput,
+  AuthIdentityType,
+  AuthUserRole,
+  AuthUserStatus,
+  CreateAuthUserInput,
+  ResolveAuthIdentityInput,
+} from "./user-store";
 export type {
   AuthorizationServerMetadata,
   JwksResponse,

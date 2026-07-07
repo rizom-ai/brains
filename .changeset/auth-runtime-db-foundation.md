@@ -2,4 +2,4 @@
 "@brains/auth-service": minor
 ---
 
-Add the auth runtime database foundation and initial private auth schema.
+Add the auth runtime database foundation, initial private auth schema, user/identity store, and first-passkey owner-user creation.

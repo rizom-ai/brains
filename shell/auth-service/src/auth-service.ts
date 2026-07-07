@@ -2,7 +2,12 @@ import type { Logger } from "@brains/utils/logger";
 import { AuthorizationCodeStore } from "./auth-code-store";
 import { OAuthClientStore } from "./client-store";
 import { AuthKeyStore } from "./key-store";
-import { PasskeyService } from "./passkey-service";
+import {
+  PasskeyService,
+  type PasskeyRegistrationUser,
+} from "./passkey-service";
+import { AuthRuntimeDatabase } from "./runtime-db";
+import { AuthUserStore } from "./user-store";
 import { RefreshTokenStore } from "./refresh-token-store";
 import { SetupStateStore } from "./setup-state-store";
 import {
@@ -48,6 +53,8 @@ import type {
 
 export type { OperatorSetupRequired } from "./setup-flow";
 
+const MIGRATION_SINGLE_OPERATOR_SUBJECT = "single-operator";
+
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
   storageDir: string;
@@ -66,6 +73,8 @@ export class AuthService {
   private readonly issuer: string;
   private readonly trustedIssuers: Set<string>;
   private readonly allowLocalhostIssuers: boolean;
+  private readonly runtimeDatabase: AuthRuntimeDatabase;
+  private userStore: AuthUserStore | undefined;
   private readonly keyStore: AuthKeyStore;
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
@@ -86,6 +95,9 @@ export class AuthService {
     ]);
     this.allowLocalhostIssuers =
       options.allowLocalhostIssuers ?? isLoopbackIssuer(this.issuer);
+    this.runtimeDatabase = new AuthRuntimeDatabase({
+      storageDir: options.storageDir,
+    });
     this.keyStore = new AuthKeyStore({ storageDir: options.storageDir });
     this.clientStore = new OAuthClientStore({ storageDir: options.storageDir });
     this.authCodeStore = new AuthorizationCodeStore({
@@ -117,6 +129,14 @@ export class AuthService {
       passkeyService: this.passkeyService,
       sessionStore: this.sessionStore,
       setupFlow: this.setupFlow,
+      registrationUserProvider: async (): Promise<PasskeyRegistrationUser> => {
+        const user = await this.getUserStore().ensureFirstAnchorUser();
+        return {
+          subject: user.id,
+          userName: user.displayName,
+          userDisplayName: user.displayName,
+        };
+      },
     });
     this.logger = options.logger;
   }
@@ -126,6 +146,9 @@ export class AuthService {
   }
 
   async initialize(): Promise<void> {
+    await this.ensureUserStoreStarted();
+    await this.migrateLegacyPasskeys();
+    await this.migrateLegacySessions();
     await this.keyStore.getPrivateJwk();
     this.logger?.debug("Auth service signing key loaded");
 
@@ -142,6 +165,74 @@ export class AuthService {
         }
       }
     }
+  }
+
+  async close(): Promise<void> {
+    this.userStore = undefined;
+    await this.runtimeDatabase.stop();
+  }
+
+  private async ensureUserStoreStarted(): Promise<void> {
+    if (this.userStore) {
+      return;
+    }
+    await this.runtimeDatabase.start();
+    this.userStore = new AuthUserStore(this.runtimeDatabase.db);
+  }
+
+  private async migrateLegacyPasskeys(): Promise<void> {
+    const credentials = await this.passkeyService.listCredentials();
+    if (
+      !credentials.some(
+        (credential) =>
+          credential.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT,
+      )
+    ) {
+      return;
+    }
+
+    const user = await this.getUserStore().ensureFirstAnchorUser();
+    const migrated = await this.passkeyService.rebindCredentialSubject(
+      MIGRATION_SINGLE_OPERATOR_SUBJECT,
+      user.id,
+      user.displayName,
+    );
+    if (migrated > 0) {
+      this.logger?.info("Migrated legacy operator passkey credentials", {
+        migrated,
+        userId: user.id,
+      });
+    }
+  }
+
+  private async migrateLegacySessions(): Promise<void> {
+    const sessions = await this.sessionStore.listSessions();
+    if (
+      !sessions.some(
+        (session) => session.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT,
+      )
+    ) {
+      return;
+    }
+
+    const user = await this.getUserStore().ensureFirstAnchorUser();
+    const migrated = await this.sessionStore.rebindSessionSubject(
+      MIGRATION_SINGLE_OPERATOR_SUBJECT,
+      user.id,
+    );
+    if (migrated > 0) {
+      this.logger?.info("Migrated legacy operator sessions", {
+        migrated,
+        userId: user.id,
+      });
+    }
+  }
+
+  private getUserStore(): AuthUserStore {
+    if (!this.userStore) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.userStore;
   }
 
   async hasPasskeyCredentials(): Promise<boolean> {
@@ -203,10 +294,15 @@ export class AuthService {
   }
 
   async createOperatorSession(
-    subject = "single-operator",
+    subject?: string,
     options: { secure?: boolean } = {},
   ): Promise<CreateOperatorSessionResult> {
-    return this.sessionStore.createSession(subject, options);
+    await this.ensureUserStoreStarted();
+    const sessionSubject =
+      !subject || subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
+        ? (await this.getUserStore().ensureFirstAnchorUser()).id
+        : subject;
+    return this.sessionStore.createSession(sessionSubject, options);
   }
 
   async getOperatorSession(

@@ -102,6 +102,7 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     if (activeAuthService === this.service) {
       activeAuthService = undefined;
     }
+    await this.service?.close();
     this.service = undefined;
   }
 

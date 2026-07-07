@@ -125,6 +125,32 @@ export class OperatorSessionStore {
     };
   }
 
+  async listSessions(): Promise<OperatorSessionRecord[]> {
+    const store = await this.store.read();
+    const now = nowSeconds();
+    return store.sessions.filter((session) => session.expires_at > now);
+  }
+
+  async rebindSessionSubject(
+    fromSubject: string,
+    toSubject: string,
+  ): Promise<number> {
+    let updated = 0;
+    await this.store.enqueueWrite(async () => {
+      const store = await this.store.read();
+      for (const session of store.sessions) {
+        if (session.subject === fromSubject) {
+          session.subject = toSubject;
+          updated += 1;
+        }
+      }
+      if (updated > 0) {
+        await this.store.write(store);
+      }
+    });
+    return updated;
+  }
+
   async getSessionFromRequest(
     request: Request,
   ): Promise<OperatorSessionRecord | undefined> {

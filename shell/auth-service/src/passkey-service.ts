@@ -17,8 +17,8 @@ import {
   type StoredPasskeyCredential,
 } from "./passkey-store";
 
-const DEFAULT_SUBJECT = "single-operator";
 const DEFAULT_USER_NAME = "Operator";
+const AUTHENTICATION_CHALLENGE_SUBJECT = "passkey-authentication";
 const DEFAULT_RP_NAME = "Brain";
 
 export interface PasskeyServiceOptions {
@@ -30,6 +30,12 @@ export interface PasskeyServiceOptions {
 export interface WebAuthnRequestContext {
   origin: string;
   rpID: string;
+}
+
+export interface PasskeyRegistrationUser {
+  subject: string;
+  userName?: string;
+  userDisplayName?: string;
 }
 
 export interface RegistrationVerifyResult {
@@ -59,13 +65,16 @@ export class PasskeyService {
 
   async generateRegistrationOptions(
     context: WebAuthnRequestContext,
+    user: PasskeyRegistrationUser,
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
     const existingCredentials = await this.store.listCredentials();
+    const userName = user.userName ?? DEFAULT_USER_NAME;
+    const userDisplayName = user.userDisplayName ?? userName;
     const options = await generateRegistrationOptions({
       rpName: this.rpName,
       rpID: context.rpID,
-      userName: DEFAULT_USER_NAME,
-      userDisplayName: DEFAULT_USER_NAME,
+      userName,
+      userDisplayName,
       attestationType: "none",
       authenticatorSelection: {
         residentKey: "preferred",
@@ -77,10 +86,7 @@ export class PasskeyService {
       })),
     });
 
-    await this.store.saveRegistrationChallenge(
-      options.challenge,
-      DEFAULT_SUBJECT,
-    );
+    await this.store.saveRegistrationChallenge(options.challenge, user.subject);
     return options;
   }
 
@@ -134,6 +140,18 @@ export class PasskeyService {
     return { verified: true, subject: storedChallenge.subject };
   }
 
+  async listCredentials(): Promise<StoredPasskeyCredential[]> {
+    return this.store.listCredentials();
+  }
+
+  async rebindCredentialSubject(
+    fromSubject: string,
+    toSubject: string,
+    userName: string,
+  ): Promise<number> {
+    return this.store.rebindCredentialSubject(fromSubject, toSubject, userName);
+  }
+
   async generateAuthenticationOptions(
     context: WebAuthnRequestContext,
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
@@ -149,7 +167,7 @@ export class PasskeyService {
 
     await this.store.saveAuthenticationChallenge(
       options.challenge,
-      DEFAULT_SUBJECT,
+      AUTHENTICATION_CHALLENGE_SUBJECT,
     );
     return options;
   }

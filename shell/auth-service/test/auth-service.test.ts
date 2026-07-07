@@ -7,7 +7,9 @@ import { z } from "@brains/utils/zod";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { NOTIFICATIONS_SEND } from "@brains/notifications";
 import {
+  AuthRuntimeDatabase,
   AuthService,
+  OperatorSessionStore,
   PasskeyStore,
   authServicePlugin,
   normalizeIssuer,
@@ -22,6 +24,21 @@ const setupRequiredToolDataSchema = z.object({
 
 const setupCompleteToolDataSchema = z.object({
   status: z.literal("complete"),
+});
+
+const passkeyStoreFileSchema = z.object({
+  registrationChallenges: z.array(
+    z.object({
+      subject: z.string(),
+    }),
+  ),
+});
+
+const authUserRowSchema = z.object({
+  id: z.string().startsWith("usr_"),
+  display_name: z.string(),
+  role: z.literal("anchor"),
+  status: z.literal("active"),
 });
 
 const tempDirs: string[] = [];
@@ -243,6 +260,110 @@ describe("AuthService", () => {
     expect(options.authenticatorSelection).toMatchObject({
       userVerification: "required",
     });
+
+    const passkeyStore = passkeyStoreFileSchema.parse(
+      JSON.parse(
+        await readFile(join(storageDir, "oauth-passkeys.json"), "utf8"),
+      ) as unknown,
+    );
+    const challengeSubject = passkeyStore.registrationChallenges[0]?.subject;
+    if (!challengeSubject) {
+      throw new Error("Expected a registration challenge subject");
+    }
+    expect(challengeSubject).toStartWith("usr_");
+
+    const authDb = new AuthRuntimeDatabase({ storageDir });
+    await authDb.start();
+    try {
+      const users = await authDb.client.execute({
+        sql: "SELECT id, display_name, role, status FROM auth_users",
+        args: [],
+      });
+      expect(users.rows.map((row) => authUserRowSchema.parse(row))).toEqual([
+        {
+          id: challengeSubject,
+          display_name: "Operator",
+          role: "anchor",
+          status: "active",
+        },
+      ]);
+    } finally {
+      await authDb.stop();
+    }
+  });
+
+  it("creates operator sessions for the first owner user by default", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+
+    const session = await service.createOperatorSession();
+
+    expect(session.subject).toStartWith("usr_");
+  });
+
+  it("migrates existing single-operator passkeys to the first owner user", async () => {
+    const storageDir = await tempStorageDir();
+    await seedPasskeyCredential(storageDir);
+
+    const service = new AuthService({
+      storageDir,
+      issuer: "http://localhost:8080",
+    });
+    await service.initialize();
+
+    const credentials = await new PasskeyStore({
+      storageDir,
+    }).listCredentials();
+    expect(credentials).toHaveLength(1);
+    const migratedSubject = credentials[0]?.subject;
+    if (!migratedSubject) {
+      throw new Error("Expected migrated credential subject");
+    }
+    expect(migratedSubject).toStartWith("usr_");
+
+    const authDb = new AuthRuntimeDatabase({ storageDir });
+    await authDb.start();
+    try {
+      const users = await authDb.client.execute({
+        sql: "SELECT id, display_name, role, status FROM auth_users",
+        args: [],
+      });
+      expect(users.rows.map((row) => authUserRowSchema.parse(row))).toEqual([
+        {
+          id: migratedSubject,
+          display_name: "Operator",
+          role: "anchor",
+          status: "active",
+        },
+      ]);
+    } finally {
+      await authDb.stop();
+    }
+  });
+
+  it("migrates existing single-operator sessions to the first owner user", async () => {
+    const storageDir = await tempStorageDir();
+    await new OperatorSessionStore({ storageDir }).createSession(
+      "single-operator",
+    );
+
+    const service = new AuthService({
+      storageDir,
+      issuer: "http://localhost:8080",
+    });
+    await service.initialize();
+
+    const sessions = await new OperatorSessionStore({
+      storageDir,
+    }).listSessions();
+    expect(sessions).toHaveLength(1);
+    const migratedSubject = sessions[0]?.subject;
+    if (!migratedSubject) {
+      throw new Error("Expected migrated session subject");
+    }
+    expect(migratedSubject).toStartWith("usr_");
   });
 
   it("hides setup page without the one-shot setup token", async () => {
@@ -1063,8 +1184,8 @@ describe("AuthService", () => {
       }),
       { issuer: "https://brain.example.com", audience: client.client_id },
     );
+    expect(verified?.subject).toStartWith("usr_");
     expect(verified).toMatchObject({
-      subject: "single-operator",
       issuer: "https://brain.example.com",
       audience: client.client_id,
       scope: ["openid", "profile", "mcp"],
@@ -1255,9 +1376,7 @@ describe("AuthService", () => {
     });
 
     const beforeLogout = await service.getOperatorSession(request);
-    expect(beforeLogout).toMatchObject({
-      subject: "single-operator",
-    });
+    expect(beforeLogout?.subject).toStartWith("usr_");
 
     const response = await service.handleRequest(
       new Request("https://brain.example.com/logout?return_to=/dashboard", {

@@ -192,6 +192,29 @@ export class PasskeyStore {
     });
   }
 
+  async rebindCredentialSubject(
+    fromSubject: string,
+    toSubject: string,
+    userName: string,
+  ): Promise<number> {
+    let updated = 0;
+    await this.store.enqueueWrite(async () => {
+      const store = withoutExpiredChallenges(await this.store.read());
+      for (const credential of store.credentials) {
+        if (credential.subject === fromSubject) {
+          credential.subject = toSubject;
+          credential.user_name = userName;
+          credential.updated_at = nowSeconds();
+          updated += 1;
+        }
+      }
+      if (updated > 0) {
+        await this.store.write(store);
+      }
+    });
+    return updated;
+  }
+
   async updateCredentialCounter(id: string, counter: number): Promise<void> {
     await this.store.enqueueWrite(async () => {
       const store = withoutExpiredChallenges(await this.store.read());
