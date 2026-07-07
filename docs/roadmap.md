@@ -235,7 +235,7 @@ Cleanup:
 - [external-dependency-review.md](./plans/external-dependency-review.md) — dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [codebase-cleanup-backlog.md](./plans/codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package-script drift).
-- [system-create-source-architecture.md](./plans/system-create-source-architecture.md) — agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. The NL-guard deletions and the `system_create`/`system_generate` typed contracts have shipped; the doc remains the standing rule while [system-create-source-recovery.md](./plans/system-create-source-recovery.md) rebuilds the dropped capability deterministically.
+- [system-create-source-architecture.md](./plans/system-create-source-architecture.md) — agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. Fully executed — the NL-guard deletions, the typed `system_create`/`system_generate` contracts, and the post-migration eval recovery (full-suite runs are back at ~99%) have all shipped; the doc remains as the standing rule.
 
 Research probes (parked):
 
