@@ -137,7 +137,10 @@ describe("MCPInterface", () => {
 
       expect(plugin.id).toBe("mcp");
       expect(capabilities).toBeDefined();
-      expect(capabilities.tools.map((tool) => tool.name)).toEqual(["chat"]);
+      expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+        "chat",
+        "confirm",
+      ]);
       // Resources are provided by system plugin, not MCP interface
       expect(capabilities.resources).toHaveLength(0);
     });
@@ -150,7 +153,10 @@ describe("MCPInterface", () => {
 
       expect(plugin.id).toBe("mcp");
       expect(capabilities).toBeDefined();
-      expect(capabilities.tools.map((tool) => tool.name)).toEqual(["chat"]);
+      expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+        "chat",
+        "confirm",
+      ]);
       expect(capabilities.resources).toHaveLength(0);
     });
   });

@@ -72,7 +72,9 @@ export function canExposeToolOnProtocol(
     return true;
   }
 
-  return isReadOnlyTool(tool) || tool.name === "chat";
+  return (
+    isReadOnlyTool(tool) || tool.name === "chat" || tool.name === "confirm"
+  );
 }
 
 export function canExposeResource(

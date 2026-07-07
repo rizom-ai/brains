@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
@@ -519,7 +521,7 @@ describe("MCPService", () => {
   });
 
   describe("createMcpServer", () => {
-    it("should expose only read-only tools plus chat in basic mode", () => {
+    it("should expose only read-only tools plus chat and confirm in basic mode", () => {
       const readTool: Tool = {
         name: "search",
         description: "Search entities",
@@ -547,14 +549,24 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: "ok" }),
       };
 
+      const confirmTool: Tool = {
+        name: "confirm",
+        description: "Resolve pending agent confirmations",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "writes",
+        handler: async () => ({ success: true, data: "ok" }),
+      };
+
       mcpService.setPermissionLevel("anchor");
       mcpService.registerTool("system", readTool);
       mcpService.registerTool("system", writeTool);
       mcpService.registerTool("mcp", chatTool);
+      mcpService.registerTool("mcp", confirmTool);
 
       expect(
         listProtocolToolNames(mcpService.createMcpServer("anchor")),
-      ).toEqual(["search", "chat"]);
+      ).toEqual(["search", "chat", "confirm"]);
       expect(
         getProtocolToolAnnotations(mcpService.getMcpServer(), "search"),
       ).toEqual({
@@ -571,6 +583,86 @@ describe("MCPService", () => {
         idempotentHint: false,
         openWorldHint: false,
       });
+    });
+
+    it("advertises basic-mode tools and annotations through an MCP client", async () => {
+      const readTool: Tool = {
+        name: "client_search",
+        description: "Search entities",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        handler: async () => ({ success: true, data: [] }),
+      };
+
+      const writeTool: Tool = {
+        name: "client_create",
+        description: "Create entity",
+        inputSchema: {},
+        visibility: "trusted",
+        sideEffects: "writes",
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      const chatTool: Tool = {
+        name: "chat",
+        description: "Route commands through the agent",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "writes",
+        handler: async () => ({ success: true, data: "ok" }),
+      };
+
+      const confirmTool: Tool = {
+        name: "confirm",
+        description: "Resolve pending agent confirmations",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "writes",
+        handler: async () => ({ success: true, data: "ok" }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerTool("system", readTool);
+      mcpService.registerTool("system", writeTool);
+      mcpService.registerTool("mcp", chatTool);
+      mcpService.registerTool("mcp", confirmTool);
+
+      const client = new Client({ name: "mcp-test", version: "1.0.0" });
+      const mcpServer = mcpService.createMcpServer("anchor");
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+
+      await mcpServer.connect(serverTransport);
+      await client.connect(clientTransport);
+      try {
+        const tools = await client.listTools();
+        expect(tools.tools.map((tool) => tool.name)).toEqual([
+          "client_search",
+          "chat",
+          "confirm",
+        ]);
+        expect(
+          tools.tools.find((tool) => tool.name === "client_search")
+            ?.annotations,
+        ).toEqual({
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        });
+        expect(
+          tools.tools.find((tool) => tool.name === "chat")?.annotations,
+        ).toEqual({
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: false,
+          openWorldHint: false,
+        });
+      } finally {
+        await client.close();
+        await mcpServer.close();
+      }
     });
 
     it("should create fresh servers with tools filtered by explicit permission in debug mode", () => {
