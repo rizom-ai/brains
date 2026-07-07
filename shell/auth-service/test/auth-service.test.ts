@@ -147,6 +147,46 @@ describe("AuthService", () => {
     expect(signingKey.privateJwk.d).toBeString();
   });
 
+  it("persists A2A peer trust grants in runtime auth storage", async () => {
+    const storageDir = await tempStorageDir();
+    const first = new AuthService({ storageDir });
+
+    await first.grantA2APeerTrust({
+      domain: "Remote.Example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
+    });
+
+    const second = new AuthService({ storageDir });
+    const grant = await second.getA2APeerTrust("remote.example");
+    expect(grant).toEqual({
+      domain: "remote.example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
+    });
+  });
+
+  it("does not allow A2A peer trust grants to confer anchor permission", async () => {
+    const service = new AuthService({ storageDir: await tempStorageDir() });
+
+    let caught: unknown;
+    try {
+      await service.grantA2APeerTrust({
+        domain: "remote.example",
+        keyFingerprint: "fingerprint-1",
+        grantedLevel: "anchor",
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught).toHaveProperty(
+      "message",
+      "A2A peer trust grants must be trusted or public",
+    );
+  });
+
   it("serves OAuth well-known metadata from request host", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),

@@ -19,6 +19,12 @@ export {
 export type { AuthServiceConfig } from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
+export { A2APeerTrustStore } from "./peer-trust-store";
+export type {
+  A2APeerTrustRecord,
+  A2APeerTrustStoreOptions,
+  GrantA2APeerTrustInput,
+} from "./peer-trust-store";
 export { InvalidClientMetadataError, OAuthClientStore } from "./client-store";
 export type {
   ClientRegistrationRequest,

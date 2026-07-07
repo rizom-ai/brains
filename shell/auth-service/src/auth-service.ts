@@ -3,6 +3,11 @@ import { AuthorizationCodeStore } from "./auth-code-store";
 import { OAuthClientStore } from "./client-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import { PasskeyService } from "./passkey-service";
+import {
+  A2APeerTrustStore,
+  type A2APeerTrustRecord,
+  type GrantA2APeerTrustInput,
+} from "./peer-trust-store";
 import { RefreshTokenStore } from "./refresh-token-store";
 import { SetupStateStore } from "./setup-state-store";
 import {
@@ -77,6 +82,7 @@ export class AuthService {
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly sessionStore: OperatorSessionStore;
+  private readonly peerTrustStore: A2APeerTrustStore;
   private readonly passkeyService: PasskeyService;
   private readonly setupFlow: SetupFlow;
   private readonly oauthEndpoints: OAuthEndpoints;
@@ -100,6 +106,9 @@ export class AuthService {
       storageDir: options.storageDir,
     });
     this.sessionStore = new OperatorSessionStore({
+      storageDir: options.storageDir,
+    });
+    this.peerTrustStore = new A2APeerTrustStore({
       storageDir: options.storageDir,
     });
     this.passkeyService = new PasskeyService({
@@ -178,6 +187,16 @@ export class AuthService {
         `/.well-known/jwks.json#${privateJwk.kid}`,
       ),
     };
+  }
+
+  grantA2APeerTrust(
+    input: GrantA2APeerTrustInput,
+  ): Promise<A2APeerTrustRecord> {
+    return this.peerTrustStore.grant(input);
+  }
+
+  getA2APeerTrust(domain: string): Promise<A2APeerTrustRecord | undefined> {
+    return this.peerTrustStore.get(domain);
   }
 
   getAuthorizationServerMetadata(

@@ -47,7 +47,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   private agentCard: AgentCard | undefined;
   private taskManager = new TaskManager();
   private agentService: AgentNamespace | undefined;
-  private permissionContext: InterfacePluginContext["permissions"] | undefined;
   private readonly jwksResolver = new JwksResolver();
   private app: Hono | undefined;
   private hasWebserver = false;
@@ -63,7 +62,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
 
     this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agent;
-    this.permissionContext = context.permissions;
 
     if (this.hasWebserver) {
       context.endpoints.register({
@@ -171,10 +169,16 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     );
 
     if (verified) {
+      const grant = await getActiveAuthService()?.getA2APeerTrust(
+        verified.domain,
+      );
+      const permissionLevel =
+        grant?.keyFingerprint === verified.keyFingerprint
+          ? grant.grantedLevel
+          : "public";
+
       return {
-        permissionLevel:
-          this.permissionContext?.getUserLevel("a2a", verified.domain) ??
-          "public",
+        permissionLevel,
         callerDomain: verified.domain,
       };
     }

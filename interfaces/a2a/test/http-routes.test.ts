@@ -2,9 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AuthService, authServicePlugin } from "@brains/auth-service";
-import { signRequest } from "@brains/http-signatures";
-import { createPluginHarness, PermissionService } from "@brains/plugins/test";
+import {
+  AuthService,
+  authServicePlugin,
+  getActiveAuthService,
+} from "@brains/auth-service";
+import { keyFingerprint, signRequest } from "@brains/http-signatures";
+import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { A2AInterface } from "../src/a2a-interface";
 
@@ -229,10 +233,13 @@ describe("A2A HTTP routes", () => {
     expect(capturedHeaders[0]?.["content-digest"]).toStartWith("sha-256=:");
   });
 
-  it("verifies signed inbound requests and maps the caller domain to permissions", async () => {
+  it("verifies signed inbound requests and maps approved peer trust to permissions", async () => {
     installWebserverPlugin();
-    harness.setPermissionService(
-      new PermissionService({ trusted: ["a2a:remote.example"] }),
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir: await tempStorageDir(),
+        issuer: "https://local.example",
+      }),
     );
 
     let capturedLevel = "";
@@ -256,6 +263,20 @@ describe("A2A HTTP routes", () => {
       issuer: "https://remote.example",
     });
     const remoteJwks = await remoteAuth.getJwks();
+    const remotePublicKey = remoteJwks.keys.find((key) => key.alg === "EdDSA");
+    if (!remotePublicKey) {
+      throw new Error("Expected remote A2A public key");
+    }
+    const localAuth = getActiveAuthService();
+    if (!localAuth) {
+      throw new Error("Expected active auth service");
+    }
+    await localAuth.grantA2APeerTrust({
+      domain: "remote.example",
+      keyFingerprint: keyFingerprint(remotePublicKey),
+      grantedLevel: "trusted",
+    });
+
     globalThis.fetch = Object.assign(
       async (): Promise<Response> => Response.json(remoteJwks),
       { preconnect: originalFetch.preconnect },
