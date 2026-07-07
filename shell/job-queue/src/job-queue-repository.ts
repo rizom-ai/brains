@@ -266,7 +266,9 @@ export class JobQueueRepository {
    * concurrent workers never race on the same row — if two workers run this
    * at once, exactly one of them gets the job and the other gets `null`.
    */
-  public async claimNextReady(now = Date.now()): Promise<JobQueue | null> {
+  public async claimNextReady(
+    now: number = Date.now(),
+  ): Promise<JobQueue | null> {
     const claimExpiredBefore = now - this.claimTimeoutMs;
     const terminalClaimExpired = sql`${jobQueue.status} = ${JOB_STATUS.PROCESSING} AND ${jobQueue.retryCount} + 1 > ${jobQueue.maxRetries}`;
 

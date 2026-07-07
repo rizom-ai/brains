@@ -20,11 +20,29 @@ export interface JobQueueEnqueueRequest {
   options?: JobOptions;
 }
 
+export interface JobInfo {
+  id: string;
+  type: string;
+  data: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  source: string | null;
+  priority: number;
+  retryCount: number;
+  maxRetries: number;
+  lastError: string | null;
+  createdAt: number;
+  scheduledFor: number;
+  startedAt: number | null;
+  completedAt: number | null;
+  metadata: JobContext;
+  result?: unknown;
+}
+
 /**
  * Simplified job info schema for external packages
  * Avoids exposing the complex Drizzle-inferred JobQueue type
  */
-export const JobInfoSchema = z.object({
+export const JobInfoSchema: z.ZodType<JobInfo, unknown> = z.object({
   id: z.string(),
   type: z.string(),
   data: z.string(),
@@ -41,8 +59,6 @@ export const JobInfoSchema = z.object({
   metadata: JobContextSchema,
   result: z.unknown().nullable().optional(), // Job result (type varies by job type)
 });
-
-export type JobInfo = z.output<typeof JobInfoSchema>;
 
 /**
  * Job handler interface for processing specific job types

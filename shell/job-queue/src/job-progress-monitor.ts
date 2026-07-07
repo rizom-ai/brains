@@ -6,12 +6,8 @@ import type {
   ProgressNotification,
 } from "@brains/utils/progress";
 import type { MessageBus } from "@brains/messaging-service";
-import type {
-  IBatchJobManager,
-  IJobQueueService,
-  JobContext,
-  JobInfo,
-} from "./types";
+import type { IBatchJobManager, IJobQueueService, JobInfo } from "./types";
+import { JobContextSchema, type JobContext } from "./schema/types";
 import type { BatchJobStatus } from "./batch-schemas";
 import type { JobProgressEventSchema } from "./schemas";
 
@@ -344,28 +340,35 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   public async handleJobStatusChange(
     jobId: string,
     status: "completed" | "failed",
-    metadata?: JobContext,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
-    if (metadata?.silent) {
+    const parsedMetadata = metadata
+      ? JobContextSchema.safeParse(metadata)
+      : undefined;
+    const jobMetadata = parsedMetadata?.success
+      ? parsedMetadata.data
+      : undefined;
+
+    if (jobMetadata?.silent) {
       return;
     }
 
     try {
       await this.emitJobStatusEvent(jobId, status);
 
-      if (metadata && this.isBatchChild(jobId, metadata.rootJobId)) {
+      if (jobMetadata && this.isBatchChild(jobId, jobMetadata.rootJobId)) {
         try {
-          const rootJobId = metadata.rootJobId;
+          const rootJobId = jobMetadata.rootJobId;
           const batchStatus =
             await this.batchJobManager.getBatchStatus(rootJobId);
           if (batchStatus) {
-            const batchMetadata = batchStatus.metadata ?? metadata;
+            const batchMetadata = batchStatus.metadata ?? jobMetadata;
             await this.emitBatchProgress(rootJobId, batchStatus, batchMetadata);
           }
         } catch (error) {
           this.logger.warn("Failed to emit batch progress", {
             jobId,
-            rootJobId: metadata.rootJobId,
+            rootJobId: jobMetadata.rootJobId,
             error,
           });
         }
