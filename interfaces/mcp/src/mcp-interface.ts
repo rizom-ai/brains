@@ -125,9 +125,20 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
                 | {
                     subject: string;
                     scope?: string[];
+                    permissionLevel?: "anchor" | "trusted" | "public";
                   }
                 | undefined
-              > => authService.verifyBearerToken(request),
+              > => {
+                const verified = await authService.verifyBearerToken(request);
+                if (!verified) return undefined;
+                const principal = await authService.resolveBearerToken(request);
+                if (!principal) return undefined;
+                return {
+                  subject: verified.subject,
+                  scope: verified.scope,
+                  permissionLevel: principal.permissionLevel,
+                };
+              },
             }
           : { disabled: true },
     });
@@ -256,15 +267,12 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       transportUserId,
     );
 
-    // For HTTP with authentication, authenticated users get anchor permission.
-    // For HTTP without auth, use the configured permission level.
-    if (
-      this.config.transport === "http" &&
-      (this.config.authToken || getActiveAuthService())
-    ) {
+    // Static-token HTTP auth remains an anchor fallback. OAuth-authenticated
+    // HTTP sessions get per-user permissions when each session initializes.
+    if (this.config.transport === "http" && this.config.authToken) {
       userLevel = "anchor";
       this.logger.debug(
-        "HTTP authentication configured - authenticated users will have anchor permissions",
+        "HTTP static-token authentication configured - authenticated users will have anchor permissions",
       );
     }
 

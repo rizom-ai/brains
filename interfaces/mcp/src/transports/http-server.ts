@@ -2,7 +2,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { IMCPTransport } from "@brains/mcp-service";
+import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils/logger";
@@ -10,6 +10,11 @@ import type { Logger } from "@brains/utils/logger";
 export interface VerifiedBearerToken {
   subject: string;
   scope?: string[];
+  permissionLevel?: ToolVisibility;
+}
+
+interface AuthenticatedRequest {
+  permissionLevel?: ToolVisibility;
 }
 
 export interface AuthConfig {
@@ -203,7 +208,9 @@ export class StreamableHTTPServer {
     return `Bearer ${serialized}`;
   }
 
-  private async authenticate(request: Request): Promise<Response | null> {
+  private async authenticate(
+    request: Request,
+  ): Promise<Response | AuthenticatedRequest> {
     const pathname = new URL(request.url).pathname;
 
     if (
@@ -211,11 +218,11 @@ export class StreamableHTTPServer {
       pathname === "/status" ||
       (pathname === "/mcp" && request.method === "OPTIONS")
     ) {
-      return null;
+      return {};
     }
 
     if (this.authConfig.disabled) {
-      return null;
+      return {};
     }
 
     const authHeader = request.headers.get("authorization");
@@ -240,7 +247,7 @@ export class StreamableHTTPServer {
       }
 
       this.logger.debug("Authentication successful");
-      return null;
+      return { permissionLevel: "anchor" };
     }
 
     try {
@@ -273,7 +280,7 @@ export class StreamableHTTPServer {
       }
 
       this.logger.debug("Authentication successful");
-      return null;
+      return { permissionLevel: verified.permissionLevel };
     } catch (error) {
       this.logger.warn("Authentication failed: Invalid token", error);
       return this.getAuthErrorResponse(
@@ -308,7 +315,10 @@ export class StreamableHTTPServer {
     }
   }
 
-  private async handleMcpRequest(request: Request): Promise<Response> {
+  private async handleMcpRequest(
+    request: Request,
+    auth: AuthenticatedRequest,
+  ): Promise<Response> {
     const sessionId = request.headers.get("mcp-session-id") ?? undefined;
 
     if (request.method === "GET") {
@@ -396,7 +406,7 @@ export class StreamableHTTPServer {
         });
 
         const sessionServer = this.mcpTransport
-          ? this.mcpTransport.createMcpServer()
+          ? this.mcpTransport.createMcpServer(auth.permissionLevel)
           : this.mcpServer;
         await sessionServer.connect(transport);
       } else {
@@ -435,9 +445,9 @@ export class StreamableHTTPServer {
     const url = new URL(request.url);
     this.logger.debug(`${request.method} ${url.pathname}`);
 
-    const authFailure = await this.authenticate(request);
-    if (authFailure) {
-      return authFailure;
+    const auth = await this.authenticate(request);
+    if (auth instanceof Response) {
+      return auth;
     }
 
     if (url.pathname === "/health") {
@@ -456,7 +466,7 @@ export class StreamableHTTPServer {
     }
 
     if (url.pathname === "/mcp") {
-      return this.handleMcpRequest(request);
+      return this.handleMcpRequest(request, auth);
     }
 
     return this.createTextResponse("Not Found", 404);

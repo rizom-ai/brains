@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { StreamableHTTPServer } from "../../src/transports/http-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
 import type { TransportLogger } from "../../src/transports/types";
 
 // Test helper types
@@ -897,6 +898,48 @@ describe("StreamableHTTPServer", () => {
         expect(response.headers["www-authenticate"]).not.toContain(
           'resource_metadata="http://docs.rizom.ai/.well-known/oauth-protected-resource"',
         );
+      });
+
+      test("should create initialized sessions at the bearer principal permission level", async () => {
+        const createMcpServer = mock(
+          (_permissionLevel?: ToolVisibility) =>
+            new McpServer({ name: "session-server", version: "1.0" }),
+        );
+        const mcpTransport: IMCPTransport = {
+          getMcpServer: () =>
+            new McpServer({ name: "base-server", version: "1.0" }),
+          createMcpServer,
+          setPermissionLevel: mock(() => {}),
+        };
+        server?.connectMCPServer(
+          new McpServer({ name: "base-server", version: "1.0" }),
+          mcpTransport,
+        );
+        verifyBearerToken.mockImplementation(async () => ({
+          subject: "usr_trusted",
+          scope: ["openid", "mcp"],
+          permissionLevel: "trusted",
+        }));
+
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Authorization: "Bearer trusted-token",
+          },
+          body: {
+            jsonrpc: "2.0",
+            method: "initialize",
+            params: {
+              protocolVersion: "2024-11-05",
+              capabilities: {},
+              clientInfo: { name: "test-client", version: "1.0.0" },
+            },
+            id: 1,
+          },
+        });
+
+        expect(response.status).toBe(200);
+        expect(createMcpServer).toHaveBeenCalledWith("trusted");
       });
 
       test("should reject OAuth bearer tokens without the mcp scope", async () => {
