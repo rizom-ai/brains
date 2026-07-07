@@ -14,7 +14,12 @@ export const ANCHOR_EXTENSION_URI = "https://rizom.ai/ext/anchor-profile/v1";
  * Used by the A2A interface (client) and the agent directory plugin.
  */
 
-export const agentCardSkillSchema = z.looseObject({
+export const agentCardSkillSchema: z.ZodObject<{
+  id: z.ZodString;
+  description: z.ZodString;
+  name: z.ZodOptional<z.ZodString>;
+  tags: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+}> = z.looseObject({
   id: z.string(),
   description: z.string(),
   name: z.string().optional(),
@@ -24,12 +29,27 @@ export const agentCardSkillSchema = z.looseObject({
 export const anchorExtensionParamsSchema: z.ZodType<AnchorProfile> =
   anchorProfileBodySchema;
 
-const extensionSchema = z.looseObject({
+const extensionSchema: z.ZodObject<{
+  uri: z.ZodString;
+  params: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.looseObject({
   uri: z.string(),
   params: z.record(z.string(), z.unknown()).optional(),
 });
 
-export const agentCardSchema = z.looseObject({
+export const agentCardSchema: z.ZodObject<{
+  name: z.ZodString;
+  url: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  skills: z.ZodDefault<z.ZodOptional<z.ZodArray<typeof agentCardSkillSchema>>>;
+  capabilities: z.ZodOptional<
+    z.ZodObject<{
+      extensions: z.ZodDefault<
+        z.ZodOptional<z.ZodArray<typeof extensionSchema>>
+      >;
+    }>
+  >;
+}> = z.looseObject({
   name: z.string(),
   url: z.string(),
   description: z.string().optional(),

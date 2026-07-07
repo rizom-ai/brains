@@ -14,11 +14,21 @@ import { z } from "@brains/utils/zod";
 
 export type { SortField };
 
+interface BaseQuerySchemaShape {
+  id: z.ZodOptional<z.ZodString>;
+  limit: z.ZodOptional<z.ZodNumber>;
+  page: z.ZodOptional<z.ZodNumber>;
+  pageSize: z.ZodOptional<z.ZodNumber>;
+  baseUrl: z.ZodOptional<z.ZodString>;
+}
+
+type BaseQuerySchema = ReturnType<typeof z.looseObject<BaseQuerySchemaShape>>;
+
 /**
  * Zod schema for the base query fields.
  * Subclasses can extend this with `.extend()` for additional fields.
  */
-export const baseQuerySchema = z.looseObject({
+export const baseQuerySchema: BaseQuerySchema = z.looseObject({
   id: z.string().optional(),
   limit: z.number().optional(),
   page: z.number().optional(),
@@ -30,7 +40,14 @@ export const baseQuerySchema = z.looseObject({
  * Zod schema for the outer datasource input (entityType + query).
  * Subclasses can extend the inner query via `baseQuerySchema.extend()`.
  */
-export const baseInputSchema = z.looseObject({
+interface BaseInputSchemaShape {
+  entityType: z.ZodOptional<z.ZodString>;
+  query: z.ZodOptional<typeof baseQuerySchema>;
+}
+
+type BaseInputSchema = ReturnType<typeof z.looseObject<BaseInputSchemaShape>>;
+
+export const baseInputSchema: BaseInputSchema = z.looseObject({
   entityType: z.string().optional(),
   query: baseQuerySchema.optional(),
 });

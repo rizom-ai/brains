@@ -39,12 +39,22 @@ export type {
   ToolResultData,
 } from "@brains/contracts";
 
-export const ChatAttachmentSourceSchema = z.object({
+export const ChatAttachmentSourceSchema: z.ZodObject<{
+  kind: z.ZodString;
+  id: z.ZodString;
+}> = z.object({
   kind: z.string().min(1),
   id: z.string().min(1),
 });
 
-export const TextChatAttachmentSchema = z.object({
+export const TextChatAttachmentSchema: z.ZodObject<{
+  kind: z.ZodLiteral<"text">;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  content: z.ZodString;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<typeof ChatAttachmentSourceSchema>;
+}> = z.object({
   kind: z.literal("text"),
   filename: z.string().min(1),
   mediaType: z.string().min(1),
@@ -53,11 +63,17 @@ export const TextChatAttachmentSchema = z.object({
   source: ChatAttachmentSourceSchema.optional(),
 });
 
-const fileAttachmentDataSchema = z.custom<Uint8Array>(
-  (value) => value instanceof Uint8Array,
-);
+const fileAttachmentDataSchema: z.ZodType<Uint8Array, unknown> =
+  z.custom<Uint8Array>((value) => value instanceof Uint8Array);
 
-export const FileChatAttachmentSchema = z.object({
+export const FileChatAttachmentSchema: z.ZodObject<{
+  kind: z.ZodLiteral<"file">;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  data: typeof fileAttachmentDataSchema;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<typeof ChatAttachmentSourceSchema>;
+}> = z.object({
   kind: z.literal("file"),
   filename: z.string().min(1),
   mediaType: z.string().min(1),
@@ -66,14 +82,45 @@ export const FileChatAttachmentSchema = z.object({
   source: ChatAttachmentSourceSchema.optional(),
 });
 
-export const ChatAttachmentSchema = z.discriminatedUnion("kind", [
+export const ChatAttachmentSchema: z.ZodDiscriminatedUnion<
+  [typeof TextChatAttachmentSchema, typeof FileChatAttachmentSchema],
+  "kind"
+> = z.discriminatedUnion("kind", [
   TextChatAttachmentSchema,
   FileChatAttachmentSchema,
 ]);
 
 export type ChatAttachment = z.output<typeof ChatAttachmentSchema>;
 
-export const ChatContextSchema = z.object({
+export interface ChatContext {
+  userPermissionLevel?: "anchor" | "trusted" | "public" | undefined;
+  interfaceType?: string | undefined;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  actor?:
+    | {
+        actorId: string;
+        canonicalId?: string | undefined;
+        interfaceType: string;
+        role: "user" | "assistant";
+        displayName?: string | undefined;
+        username?: string | undefined;
+        isBot?: boolean | undefined;
+      }
+    | undefined;
+  source?:
+    | {
+        messageId?: string | undefined;
+        channelId?: string | undefined;
+        channelName?: string | undefined;
+        threadId?: string | undefined;
+        metadata?: Record<string, unknown> | undefined;
+      }
+    | undefined;
+  attachments?: ChatAttachment[] | undefined;
+}
+
+export const ChatContextSchema: z.ZodType<ChatContext, unknown> = z.object({
   userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
@@ -82,8 +129,6 @@ export const ChatContextSchema = z.object({
   source: conversationMessageSourceSchema.optional(),
   attachments: z.array(ChatAttachmentSchema).optional(),
 });
-
-export type ChatContext = z.output<typeof ChatContextSchema>;
 
 export interface AgentNamespace {
   chat(

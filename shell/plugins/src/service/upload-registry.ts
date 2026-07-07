@@ -2,10 +2,10 @@ import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { basename, dirname, join } from "path";
 import { z } from "@brains/utils/zod";
 
-export const runtimeUploadIdPattern =
+export const runtimeUploadIdPattern: RegExp =
   /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export const defaultRuntimeUploadRetentionMs = 24 * 60 * 60 * 1000;
-export const defaultRuntimeUploadMaxCount = 200;
+export const defaultRuntimeUploadRetentionMs: number = 24 * 60 * 60 * 1000;
+export const defaultRuntimeUploadMaxCount: number = 200;
 
 export interface RuntimeUploadRef {
   kind: string;

@@ -206,7 +206,10 @@ export interface JobProgressEvent {
   metadata: JobProgressContext;
 }
 
-export const urlCaptureConfigSchema = z.object({
+export const urlCaptureConfigSchema: z.ZodObject<{
+  captureUrls: z.ZodDefault<z.ZodBoolean>;
+  blockedUrlDomains: z.ZodDefault<z.ZodArray<z.ZodString>>;
+}> = z.object({
   captureUrls: z.boolean().default(false),
   blockedUrlDomains: z
     .array(z.string())

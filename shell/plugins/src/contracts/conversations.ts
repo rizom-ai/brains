@@ -7,7 +7,18 @@ import { ExtensionMetadataSchema } from "./metadata";
 export { messageRoleSchema };
 export type { MessageRole };
 
-export const ConversationSchema = z.object({
+export const ConversationSchema: z.ZodObject<{
+  id: z.ZodString;
+  sessionId: z.ZodString;
+  interfaceType: z.ZodString;
+  channelId: z.ZodString;
+  channelName: z.ZodOptional<z.ZodString>;
+  startedAt: z.ZodString;
+  lastActiveAt: z.ZodString;
+  createdAt: z.ZodString;
+  updatedAt: z.ZodString;
+  metadata: typeof ExtensionMetadataSchema;
+}> = z.object({
   id: z.string(),
   sessionId: z.string(),
   interfaceType: z.string(),
@@ -22,7 +33,14 @@ export const ConversationSchema = z.object({
 
 export type Conversation = z.output<typeof ConversationSchema>;
 
-export const MessageSchema = z.object({
+export const MessageSchema: z.ZodObject<{
+  id: z.ZodString;
+  conversationId: z.ZodString;
+  role: typeof messageRoleSchema;
+  content: z.ZodString;
+  timestamp: z.ZodString;
+  metadata: typeof ExtensionMetadataSchema;
+}> = z.object({
   id: z.string(),
   conversationId: z.string(),
   role: messageRoleSchema,

@@ -277,7 +277,10 @@ export abstract class MessageInterfacePlugin<
    * Track progress events for UI state
    * Key: event ID, Value: latest event data
    */
-  protected progressEvents = new Map<string, JobProgressEvent>();
+  protected progressEvents: Map<string, JobProgressEvent> = new Map<
+    string,
+    JobProgressEvent
+  >();
 
   /**
    * Send a message to a specific channel

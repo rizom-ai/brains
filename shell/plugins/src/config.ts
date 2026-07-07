@@ -4,7 +4,10 @@ import { z, type ZodType } from "@brains/utils/zod";
  * Base configuration schema that all plugins should extend
  * Provides common fields like enabled, debug, etc.
  */
-export const basePluginConfigSchema = z.object({
+export const basePluginConfigSchema: z.ZodObject<{
+  enabled: z.ZodBoolean;
+  debug: z.ZodBoolean;
+}> = z.object({
   enabled: z.boolean().describe("Whether the plugin is enabled"),
   debug: z.boolean().describe("Enable debug logging for this plugin"),
 });

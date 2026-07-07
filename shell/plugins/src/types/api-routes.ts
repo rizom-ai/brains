@@ -1,6 +1,15 @@
 import { z } from "@brains/utils/zod";
 
-export const apiRouteDefinitionSchema = z.object({
+export const apiRouteDefinitionSchema: z.ZodObject<{
+  path: z.ZodString;
+  method: z.ZodDefault<
+    z.ZodEnum<{ GET: "GET"; POST: "POST"; PUT: "PUT"; DELETE: "DELETE" }>
+  >;
+  tool: z.ZodString;
+  public: z.ZodDefault<z.ZodBoolean>;
+  successRedirect: z.ZodOptional<z.ZodString>;
+  errorRedirect: z.ZodOptional<z.ZodString>;
+}> = z.object({
   /** Path suffix (prefixed with /api/{pluginId}) */
   path: z.string(),
   /** HTTP method */

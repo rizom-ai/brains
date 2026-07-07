@@ -25,7 +25,8 @@ import {
   type DerivedEntityProjectionController,
 } from "./derived-entity-projection";
 
-export const emptyEntityPluginConfigSchema = z.object({});
+export const emptyEntityPluginConfigSchema: z.ZodObject<Record<string, never>> =
+  z.object({});
 
 /**
  * Base class for entity plugins — plugins that define an entity type

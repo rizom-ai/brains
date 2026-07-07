@@ -7,6 +7,7 @@ import { z } from "@brains/utils/zod";
  * documented contract, hoist it to a typed top-level field on the owning DTO
  * schema and keep this bag only as optional extension data.
  */
-export const ExtensionMetadataSchema = z.record(z.string(), z.unknown());
+export const ExtensionMetadataSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
+  z.record(z.string(), z.unknown());
 
 export type ExtensionMetadata = z.output<typeof ExtensionMetadataSchema>;

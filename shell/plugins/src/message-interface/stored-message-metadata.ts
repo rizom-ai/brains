@@ -7,12 +7,21 @@ import {
   type StructuredChatCard,
 } from "../contracts/agent";
 
-const storedAttachmentSourceSchema = z.object({
+const storedAttachmentSourceSchema: z.ZodObject<{
+  kind: z.ZodString;
+  id: z.ZodString;
+}> = z.object({
   kind: z.string().min(1),
   id: z.string().min(1),
 });
 
-const storedMessageAttachmentSchema = z.object({
+const storedMessageAttachmentSchema: z.ZodObject<{
+  kind: z.ZodString;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<typeof storedAttachmentSourceSchema>;
+}> = z.object({
   kind: z.string().min(1),
   filename: z.string().min(1),
   mediaType: z.string().min(1),
@@ -20,7 +29,9 @@ const storedMessageAttachmentSchema = z.object({
   source: storedAttachmentSourceSchema.optional(),
 });
 
-const storedMessageAttachmentsSchema = z.array(storedMessageAttachmentSchema);
+const storedMessageAttachmentsSchema: z.ZodArray<
+  typeof storedMessageAttachmentSchema
+> = z.array(storedMessageAttachmentSchema);
 const storedAttachmentCardsSchema = z.array(AttachmentCardSchema);
 const storedToolApprovalCardsSchema = z.array(ToolApprovalCardSchema);
 const storedMessageMetadataRecordSchema = z.record(z.string(), z.unknown());

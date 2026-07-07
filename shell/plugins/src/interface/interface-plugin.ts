@@ -51,16 +51,14 @@ export abstract class InterfacePlugin<
   /**
    * Internal job tracking with timestamps for TTL-based cleanup
    */
-  protected jobTrackingEntries = new Map<
-    string,
-    TrackingEntry<TTrackingInfo>
-  >();
+  protected jobTrackingEntries: Map<string, TrackingEntry<TTrackingInfo>> =
+    new Map<string, TrackingEntry<TTrackingInfo>>();
 
   /**
    * TTL for job tracking entries in milliseconds (default: 1 hour)
    * Override in subclasses if different TTL is needed
    */
-  protected jobTrackingTtlMs = DEFAULT_JOB_TRACKING_TTL_MS;
+  protected jobTrackingTtlMs: number = DEFAULT_JOB_TRACKING_TTL_MS;
 
   /**
    * Register the plugin with shell - creates InterfacePluginContext internally

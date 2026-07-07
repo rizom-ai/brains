@@ -2,7 +2,16 @@ import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { ExtensionMetadataSchema } from "./metadata";
 
-export const MessageResponseSchema = z.union([
+export const MessageResponseSchema: z.ZodUnion<
+  [
+    z.ZodObject<{
+      success: z.ZodBoolean;
+      data: z.ZodOptional<z.ZodUnknown>;
+      error: z.ZodOptional<z.ZodString>;
+    }>,
+    z.ZodObject<{ noop: z.ZodLiteral<true> }>,
+  ]
+> = z.union([
   z.object({
     success: z.boolean(),
     data: z.unknown().optional(),
@@ -17,7 +26,14 @@ export type MessageResponse<T = unknown> =
     })
   | { noop: true };
 
-export const BaseMessageSchema = z.object({
+export const BaseMessageSchema: z.ZodObject<{
+  id: z.ZodString;
+  timestamp: z.ZodString;
+  type: z.ZodString;
+  source: z.ZodString;
+  target: z.ZodOptional<z.ZodString>;
+  metadata: z.ZodOptional<typeof ExtensionMetadataSchema>;
+}> = z.object({
   id: z.string(),
   timestamp: z.string(),
   type: z.string(),
