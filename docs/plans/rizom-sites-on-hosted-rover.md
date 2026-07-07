@@ -14,14 +14,26 @@ Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: pack
 
 1. **Publish the package set from this branch through the normal changesets release path.** Required public packages are `@rizom/site`, `@rizom/site-rizom`, `@rizom/site-rizom-work`, `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`, `@rizom/site-docs`, `@rizom/brain`, and `@rizom/ops`.
 2. **Update the hosted rover-pilot registry** to pin the released versions. The generated image build now derives `SITE_PACKAGES` from those pins and tags the image with the package-set hash, so the registry is the source of truth for both runtime YAML and installed site packages.
-3. **Before deploying `rizom.ai`, resolve the protocol-registry capability gap.** The old Ranger app used `add: [atproto-registry]`; Rover does not yet expose that capability. Either add `atproto-registry` as a Rover opt-in capability (preferred if `rizom.ai` remains the canonical protocol registry) or explicitly decide to drop/replace that behavior before launch.
-4. **Run staged hosted deploys on Rover** in this order: `rizom.work`, `rizom.foundation`, `rizom.ai`, then `docs.rizom.ai`. For each site: reconcile generated config, build the hash-tagged fleet image, deploy preview/apex, trigger/verify preview rebuild, and inspect site-specific markers.
+3. **Start the staged hosted deploy with `rizom.ai`, not the easier sites.** It carries the protocol-registry capability gap from Ranger (`add: [atproto-registry]`), so it should validate the hardest Rover migration path first. Add `atproto-registry` as a Rover opt-in capability (preferred if `rizom.ai` remains the canonical protocol registry) or explicitly decide to drop/replace that behavior before launch.
+4. **Run staged hosted deploys on Rover** in this order: `rizom.ai`, `rizom.work`, `rizom.foundation`, then `docs.rizom.ai`. For each site: reconcile generated config, build the hash-tagged fleet image, deploy preview/apex, trigger/verify preview rebuild, and inspect site-specific markers.
 5. **Finish per-domain TLS/DNS automation** for custom apex domains before production cutover. Each domain needs its own Cloudflare zone handling, Origin CA cert pair, proxy hosts, and apex/`www`/`preview` DNS records.
 6. **Only after live Rover deploys pass, retire legacy standalone deploys and Ranger/Relay site paths.** Keep old repos/workflows available until cutover rollback is no longer needed.
 
 Target hosted registry entries after publish should have this shape:
 
 ```yaml
+# rizom.ai
+handle: rizom-ai
+domainOverride: rizom.ai
+contentRepoOverride: rizom-ai/rizom-ai-content
+# Add once Rover exposes the opt-in capability, unless protocol registry is explicitly retired.
+addOverride:
+  - atproto-registry
+siteOverride:
+  package: "@rizom/site-rizom-ai"
+  version: "<released-version>"
+  theme: "@brains/theme-rizom"
+
 # rizom.work
 handle: rizom-work
 domainOverride: rizom.work
@@ -37,16 +49,6 @@ domainOverride: rizom.foundation
 contentRepoOverride: rizom-ai/rizom-foundation-content
 siteOverride:
   package: "@rizom/site-rizom-foundation"
-  version: "<released-version>"
-  theme: "@brains/theme-rizom"
-
-# rizom.ai
-handle: rizom-ai
-domainOverride: rizom.ai
-contentRepoOverride: rizom-ai/rizom-ai-content
-# addOverride may need atproto-registry once Rover exposes it.
-siteOverride:
-  package: "@rizom/site-rizom-ai"
   version: "<released-version>"
   theme: "@brains/theme-rizom"
 
@@ -269,28 +271,29 @@ The site package itself owns `themeProfile: "studio"`, routes, layouts, template
 ## Phase 1 implications
 
 1. A Rover `brain.yaml` with only `site.package: @rizom/site-rizom` will not reproduce any of the three sites. It would miss each site's package-specific layout, route list, sections/templates, and local CSS.
-2. First package to migrate should be `rizom.work` because it is a concrete Ranger-based site and has clear `themeProfile: studio` plus local `theme.css`.
+2. Original package migration started with `rizom.work` because it was the smallest concrete Ranger-based site with clear `themeProfile: studio` plus local `theme.css`. Hosted rollout should now start with `rizom.ai` because it exercises the harder Rover protocol-registry capability gap.
 3. `themeProfile` should remain site plugin config owned by the site package, not a new top-level `site.themeProfile` deploy field.
 4. Site-specific CSS should live in the site package and be layered by the package/runtime, not copied into operator config. This needs an explicit site-package CSS contract before implementation, preferably `SitePackage.themeOverride` layered after the selected base theme and before any instance override.
 5. Hosted deploy needs **per-domain** custom-domain support — each rizom site is its own apex domain in its own Cloudflare zone, with its own Origin CA cert covering apex + `www` + `preview`. The current pilot is single-zone: `brain cert:bootstrap` (`packages/brains-ops/src/cert-bootstrap.ts`) resolves one domain from `registry.pilot.domainSuffix`, uses one `CF_ZONE_ID`, issues one shared `*.domain` cert, and pushes one `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` pair. That must become per-domain — see "TLS / certificates" below.
 6. Bundle cleanup is already done (verified 2026-07-06): entrypoint generation imports only the packages referenced by the target `brain.yaml`, and no build path bundles all `sites/*` into an image. "No all-sites bundling" stays in the acceptance bar as a check, not as remaining work.
 7. `rizom.ai` currently carries extra behavior (`add: [atproto-registry]` and `plugins.atproto-registry: {}`). Its migration phase must explicitly decide whether to preserve that via Rover `add:` or accept Rover-default behavior.
 
-### Phase 1 acceptance bar (rizom.work)
+### Phase 1 acceptance bar (site packages and first hosted rollout)
 
 Done when:
 
-- `@rizom/site-rizom-work` exists in the monorepo, composes `@rizom/site-rizom`, and owns rizom.work's layout/routes/templates/`themeProfile: studio`/local CSS.
+- `@rizom/site-rizom-work`, `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`, and `@rizom/site-docs` exist in the monorepo. The Rizom family packages compose `@rizom/site-rizom`; the docs package uses `@rizom/site` directly.
 - The shared `@rizom/site-rizom` base package has a clean public dependency story: any low-level private/internal dependencies are either hidden/bundled behind it or intentionally made public/stable.
 - `@rizom/site-rizom-work` depends on the base package rather than the full internal framework chain.
-- The base package and `@rizom/site-rizom-work` are published via the normal release flow at resolvable versions.
-- A generated `brain.yaml` referencing `site.package: @rizom/site-rizom-work` boots and renders rizom.work — apex + `www` + `preview` — without bundling all `sites/*` into the image.
-- The old `rizom-work` standalone deploy workflow/image is retired (or explicitly gated behind the temporary bridge if used).
+- The SDK, base package, per-site packages, `@rizom/brain`, and `@rizom/ops` are published via the normal release flow at resolvable versions.
+- A generated Rover `brain.yaml` referencing `site.package: @rizom/site-rizom-ai` and opt-in protocol registry support boots and renders `rizom.ai` — apex + `www` + `preview` — without bundling all `sites/*` into the image.
+- Subsequent generated Rover configs render `rizom.work`, `rizom.foundation`, and `docs.rizom.ai` from their pinned packages.
+- The old `rizom-ai`, `rizom-work`, `rizom-foundation`, and docs standalone deploy workflows/images are retired only after the Rover deployments are live and rollback is no longer needed.
 
 Tests (written before impl, per TDD):
 
-- Package-level test: rizom.work site composes and exposes its routes/layouts/templates against the shared core, including package-owned CSS/theme override behavior.
-- Deploy/config test: generated `brain.yaml` resolves the package ref and the rendered site matches the current standalone output for the rizom.work routes.
+- Package-level tests: each site package exposes its routes/layouts/templates against the public SDK boundary, including package-owned CSS/theme override behavior where applicable.
+- Deploy/config tests: generated `brain.yaml` resolves each package ref, and rendered output matches expected site markers for `rizom.ai`, `rizom.work`, `rizom.foundation`, and `docs.rizom.ai`.
 
 ## Site package resolution model
 
