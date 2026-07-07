@@ -10,7 +10,8 @@
     "env.schema.template"
   ],
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./env-schema": "./src/env-schema.ts"
   },
   "scripts": {
     "build:web-chat": "turbo run build --filter=@brains/web-chat",

@@ -25,32 +25,6 @@ export const ENV_SCHEMA_HEADER = [
   "# ----------",
 ].join("\n");
 
-/**
- * Markers delimiting the generated shell-owned block inside each brain's
- * `env.schema.template`. `scripts/sync-env-templates.ts` owns the content
- * between them; everything outside stays hand-maintained.
- */
-export const SHELL_ENV_SECTION_START =
-  "# ---- shell-owned env (generated; edit the owning service's env-schema.ts) ----";
-export const SHELL_ENV_SECTION_END = "# ---- end shell-owned env ----";
-
-/** Replace the marker-delimited block in a template with `section`. */
-export function replaceShellEnvSection(
-  template: string,
-  section: string,
-): string {
-  const startIndex = template.indexOf(SHELL_ENV_SECTION_START);
-  const endIndex = template.indexOf(SHELL_ENV_SECTION_END);
-  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-    throw new Error("Template is missing the shell-owned env section markers");
-  }
-  return (
-    template.slice(0, startIndex + SHELL_ENV_SECTION_START.length) +
-    `\n${section}\n` +
-    template.slice(endIndex)
-  );
-}
-
 export function renderEnvSchemaSection(decls: EnvVarDecl[]): string {
   return decls.map(renderDecl).join("\n\n");
 }

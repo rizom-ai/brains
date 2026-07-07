@@ -5,7 +5,8 @@
   "description": "Generic email delivery adapter for Resend",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./env-schema": "./src/env-schema.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

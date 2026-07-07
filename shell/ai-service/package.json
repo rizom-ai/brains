@@ -37,7 +37,8 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./test": "./test/mock.ts"
+    "./test": "./test/mock.ts",
+    "./env-schema": "./src/env-schema.ts"
   },
   "files": [
     "src"

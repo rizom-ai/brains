@@ -1,15 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import {
   ENV_SCHEMA_HEADER,
-  SHELL_ENV_SECTION_END,
-  SHELL_ENV_SECTION_START,
   renderEnvSchemaSection,
-  replaceShellEnvSection,
   type EnvVarDecl,
 } from "../src/env-schema";
 
 describe("renderEnvSchemaSection", () => {
-  it("renders description, annotations, and assignment like the hand-written templates", () => {
+  it("renders description, annotations, and assignment like the operator templates", () => {
     const decls: EnvVarDecl[] = [
       {
         name: "AI_API_KEY",
@@ -45,35 +42,6 @@ describe("renderEnvSchemaSection", () => {
     expect(
       renderEnvSchemaSection([{ name: "SETUP_EMAIL_TO", required: true }]),
     ).toBe(["# @required", "SETUP_EMAIL_TO="].join("\n"));
-  });
-
-  it("replaces the marker-delimited block and rejects templates without markers", () => {
-    const template = [
-      "# header",
-      SHELL_ENV_SECTION_START,
-      "# old content",
-      "OLD_VAR=",
-      SHELL_ENV_SECTION_END,
-      "",
-      "# Git sync",
-      "GIT_SYNC_TOKEN=",
-    ].join("\n");
-
-    expect(replaceShellEnvSection(template, "NEW_VAR=")).toBe(
-      [
-        "# header",
-        SHELL_ENV_SECTION_START,
-        "NEW_VAR=",
-        SHELL_ENV_SECTION_END,
-        "",
-        "# Git sync",
-        "GIT_SYNC_TOKEN=",
-      ].join("\n"),
-    );
-
-    expect(() => replaceShellEnvSection("# no markers", "X=")).toThrow(
-      "missing the shell-owned env section markers",
-    );
   });
 
   it("exposes the varlock header used at the top of every schema", () => {

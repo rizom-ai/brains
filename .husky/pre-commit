@@ -36,7 +36,7 @@ if git diff --cached --name-only | grep -qE '^docs/(roadmap\.md|plans/)'; then
   bun run roadmap:check
 fi
 
-# Keep brains/*/env.schema.template in sync with the shell env declarations.
+# Keep brains/*/env.schema.template in sync with the composed env declarations.
 # Only runs when env schemas or templates changed, so normal commits stay fast.
 if git diff --cached --name-only | grep -qE '(env-schema\.ts|env\.schema\.template)'; then
   echo "🔧 Checking env schema templates are in sync..."

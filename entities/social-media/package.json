@@ -5,7 +5,8 @@
   "description": "Multi-provider social media posting with queue-based publishing",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./env-schema": "./src/env-schema.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -10,7 +10,8 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
-    }
+    },
+    "./env-schema": "./src/env-schema.ts"
   },
   "scripts": {
     "test": "bun test",
