@@ -83,10 +83,10 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§1</span>The brain and its bundles</summary>
         <div class="cards">
-        <div class="card status-partial">
+        <div class="card status-active">
           <div class="card-head">
             <span class="card-name">Exhaustive core-preset eval set for Rover</span>
-            <span class="badge badge-partial">In progress</span>
+            <span class="badge badge-active">Active</span>
           </div>
           <div class="card-desc">preset-aware eval harness merged; remaining work fills behavioral coverage and re-tags toward bundle combinations as unification lands.</div>
           <div class="card-file">rover-core-preset-evals.md</div>
@@ -223,14 +223,6 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§5</span>Interfaces</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Chat MessageInterface Shared Workflows</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">extraction pass moving Discord/Web-chat-generic workflows into <code>MessageInterface</code> helpers before Slack duplicates them.</div>
-          <div class="card-file">chat-message-interface-shared-workflows.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">First-Party CMS Editor</span>
@@ -244,7 +236,7 @@
             <span class="card-name">Slack Chat SDK Interface</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">first Slack slice for <code>@brains/chat</code>, separate from Discord replacement work.</div>
+          <div class="card-desc">first Slack slice for <code>@brains/chat</code>, building on the shared <code>MessageInterface</code> helpers already extracted from Discord/web-chat workflows.</div>
           <div class="card-file">slack-chat-sdk.md</div>
         </div>
         <div class="card status-parked">

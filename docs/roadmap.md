@@ -202,8 +202,7 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 Plans:
 
 - [first-party-cms-editor.md](./plans/first-party-cms-editor.md) — first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync). The committed CMS direction, replacing the Sveltia/GitHub-App token path.
-- [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, separate from Discord replacement work.
-- [chat-message-interface-shared-workflows.md](./plans/chat-message-interface-shared-workflows.md) — extraction pass moving Discord/Web-chat-generic workflows into `MessageInterface` helpers before Slack duplicates them.
+- [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
