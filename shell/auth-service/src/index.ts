@@ -71,8 +71,12 @@ export type {
   OperatorSessionStoreOptions,
 } from "./session-store";
 export type {
+  A2APrivateJwk,
+  A2APublicJwk,
   AuthorizationServerMetadata,
   JwksResponse,
+  OAuthPrivateJwk,
+  OAuthPublicJwk,
   PrivateJwk,
   ProtectedResourceMetadata,
   PublicJwk,

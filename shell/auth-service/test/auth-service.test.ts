@@ -77,7 +77,7 @@ describe("AuthService", () => {
     );
   });
 
-  it("generates and reuses an ES256 public JWKS key", async () => {
+  it("generates and reuses public JWKS keys for OAuth and A2A", async () => {
     const storageDir = await tempStorageDir();
     const service = new AuthService({
       storageDir,
@@ -91,18 +91,37 @@ describe("AuthService", () => {
     });
     const second = await secondService.getJwks();
 
-    expect(first.keys).toHaveLength(1);
-    expect(first.keys[0]).toMatchObject({
+    expect(first.keys).toHaveLength(2);
+
+    const oauthKey = first.keys.find((key) => key.alg === "ES256");
+    expect(oauthKey).toMatchObject({
       kty: "EC",
       crv: "P-256",
       use: "sig",
       alg: "ES256",
     });
-    expect(first.keys[0]?.["d"]).toBeUndefined();
-    expect(second.keys[0]?.kid).toBe(first.keys[0]?.kid);
+    expect(oauthKey?.["d"]).toBeUndefined();
 
-    const keyStats = await stat(join(storageDir, "oauth-signing-key.jwk"));
-    expect(keyStats.mode & 0o777).toBe(0o600);
+    const a2aKey = first.keys.find((key) => key.alg === "EdDSA");
+    expect(a2aKey).toMatchObject({
+      kty: "OKP",
+      crv: "Ed25519",
+      use: "sig",
+      alg: "EdDSA",
+    });
+    expect(a2aKey?.["d"]).toBeUndefined();
+
+    expect(second.keys.find((key) => key.alg === "ES256")?.kid).toBe(
+      oauthKey?.kid,
+    );
+    expect(second.keys.find((key) => key.alg === "EdDSA")?.kid).toBe(
+      a2aKey?.kid,
+    );
+
+    const oauthKeyStats = await stat(join(storageDir, "oauth-signing-key.jwk"));
+    expect(oauthKeyStats.mode & 0o777).toBe(0o600);
+    const a2aKeyStats = await stat(join(storageDir, "a2a-signing-key.jwk"));
+    expect(a2aKeyStats.mode & 0o777).toBe(0o600);
   });
 
   it("serves OAuth well-known metadata from request host", async () => {

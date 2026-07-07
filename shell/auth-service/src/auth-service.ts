@@ -1,7 +1,7 @@
 import type { Logger } from "@brains/utils/logger";
 import { AuthorizationCodeStore } from "./auth-code-store";
 import { OAuthClientStore } from "./client-store";
-import { AuthKeyStore } from "./key-store";
+import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import { PasskeyService } from "./passkey-service";
 import { RefreshTokenStore } from "./refresh-token-store";
 import { SetupStateStore } from "./setup-state-store";
@@ -67,6 +67,7 @@ export class AuthService {
   private readonly trustedIssuers: Set<string>;
   private readonly allowLocalhostIssuers: boolean;
   private readonly keyStore: AuthKeyStore;
+  private readonly a2aKeyStore: A2AKeyStore;
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly sessionStore: OperatorSessionStore;
@@ -87,6 +88,7 @@ export class AuthService {
     this.allowLocalhostIssuers =
       options.allowLocalhostIssuers ?? isLoopbackIssuer(this.issuer);
     this.keyStore = new AuthKeyStore({ storageDir: options.storageDir });
+    this.a2aKeyStore = new A2AKeyStore({ storageDir: options.storageDir });
     this.clientStore = new OAuthClientStore({ storageDir: options.storageDir });
     this.authCodeStore = new AuthorizationCodeStore({
       storageDir: options.storageDir,
@@ -126,8 +128,11 @@ export class AuthService {
   }
 
   async initialize(): Promise<void> {
-    await this.keyStore.getPrivateJwk();
-    this.logger?.debug("Auth service signing key loaded");
+    await Promise.all([
+      this.keyStore.getPrivateJwk(),
+      this.a2aKeyStore.getPrivateJwk(),
+    ]);
+    this.logger?.debug("Auth service signing keys loaded");
 
     if (!(await this.hasPasskeyCredentials())) {
       await this.setupFlow.ensureSetupToken();
@@ -149,8 +154,12 @@ export class AuthService {
   }
 
   async getJwks(): Promise<JwksResponse> {
+    const [oauthKey, a2aKey] = await Promise.all([
+      this.keyStore.getPublicJwk(),
+      this.a2aKeyStore.getPublicJwk(),
+    ]);
     return {
-      keys: [await this.keyStore.getPublicJwk()],
+      keys: [oauthKey, a2aKey],
     };
   }
 
