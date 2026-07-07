@@ -19,7 +19,7 @@ Brain-to-brain is the right shape for cryptographic identity: each brain runs at
 
 ## Goal
 
-A2A traffic between brains is authenticated by per-brain Ed25519 signing keys, with public keys discoverable via `/.well-known/jwks.json`. Every A2A request is signed using RFC 9421. Operators express trust by listing peer domains, not by exchanging secrets. The verified caller domain flows into the existing `permissionService` (anchor / trusted / public) unchanged.
+A2A traffic between brains is authenticated by per-brain Ed25519 signing keys, with public keys discoverable via `/.well-known/jwks.json`. Every A2A request is signed using RFC 9421. Operators express trust by approving peers in the agent directory — one action covering both directions, no secrets exchanged. The verified caller domain resolves to the same anchor / trusted / public levels as every other channel.
 
 ## Non-goals
 
@@ -46,7 +46,7 @@ This covers everything that matters for request integrity without depending on h
 
 ### 2. Identity is the brain's domain
 
-The `keyid` parameter resolves to a JWKS URL at the same domain. Verified domain is the identity. Operators trust peers by listing domains in `trustedAgents: Record<domain, identity>`. No identifier scheme is invented; the brain's existing `context.domain` is the identity, consistent with how the Agent Card already advertises the brain.
+The `keyid` parameter resolves to a JWKS URL at the same domain. Verified domain is the identity. Operators trust peers by approving them in the agent directory (decision 6); there is no domain-list config field. No identifier scheme is invented; the brain's existing `context.domain` is the identity, consistent with how the Agent Card already advertises the brain.
 
 ### 3. Separate keypair from the auth-service signing key
 
@@ -75,14 +75,17 @@ A new shared package at `shared/http-signatures` or `shell/http-signatures`. Own
 
 Used by `interfaces/a2a` (both inbound and outbound). The keypair lifecycle (generate / persist / load) lives in the same package or in `shell/auth-service` alongside existing auth key custody.
 
-### 6. Trust-establishment via the existing agent-directory flow
+### 6. Approval covers both directions; the inbound grant lives in runtime auth storage
 
-The a2a interface already uses a "discovered → approved" lifecycle for peer agents (see the agent-call instruction block in `interfaces/a2a/src/a2a-interface.ts`, around the `target agent is discovered but not approved yet` rule). This plan plugs into that flow:
+The a2a interface already uses a "discovered → approved" lifecycle for peer agents (see the agent-call instruction block in `interfaces/a2a/src/a2a-interface.ts`, around the `target agent is discovered but not approved yet` rule). Today that lifecycle only governs **outbound** calling; **inbound** trust lives separately in `trustedTokens` config, and the two halves don't know about each other. This plan makes approval the single operator action that establishes trust in both directions:
 
-- Adding a peer fetches `/.well-known/agent-card.json` and `/.well-known/jwks.json`, marks the entry "discovered"
-- Approving a peer adds an entry to `trustedAgents` with the desired permission level
+- Adding a peer (`agent_connect` or ATProto discovery) fetches `/.well-known/agent-card.json` and `/.well-known/jwks.json`, marks the entry "discovered"
+- Approving a peer (one anchor-confirmed action) does two writes: the agent entity becomes `approved` (directory UX, outbound calling — as today), and a **peer-trust record** `{domain, key fingerprint, grantedLevel}` is written to runtime auth storage
+- `grantedLevel` is `trusted` or `public`; `anchor` is not grantable to a peer brain — owner authority stays human
 
-No secret is exchanged. The `outboundTokens` config field is removed.
+The peer-trust record — not the entity — is what inbound verification consults. This split is deliberate: agent entities are git-synced brain-data, and directory-sync ingests that repo automatically, so an entity-borne grant would let anyone with a commit to the content repo mint themselves inbound trust (add an approved entry for their own domain, sign with their own key). Trust grants therefore live on the runtime plane (same non-synced storage class as passkeys and sessions; table shape coordinates with [auth-runtime-db.md](./auth-runtime-db.md)), where only anchor-confirmed runtime flows write. A restored brain-data repo brings back the directory _listing_; inbound trust requires re-approval through the runtime store.
+
+No secret is exchanged anywhere, and no domain-list config field replaces the removed tokens.
 
 ### 7. Task access is bound to the verified caller
 
@@ -145,13 +148,13 @@ In `interfaces/a2a/src/a2a-interface.ts`, the existing `resolveCallerPermission(
 private async resolveCallerPermission(req: Request): Promise<UserPermissionLevel> {
   const verified = await verifyRequest(req, this.jwks); // absent → null, invalid → throws
   if (!verified) return "public";
-  const identity = this.config.trustedAgents?.[verified.domain];
-  if (!identity || !this.permissionContext) return "public";
-  return this.permissionContext.getUserLevel("a2a", identity);
+  const grant = await this.peerTrust.get(verified.domain); // runtime auth storage
+  if (!grant || grant.keyFingerprint !== verified.keyFingerprint) return "public";
+  return grant.grantedLevel; // "trusted" | "public"
 }
 ```
 
-The shape of the function and the downstream `getUserLevel` call are unchanged. Only the input changes: from a bearer token to a verified domain.
+The function's shape is unchanged; the inputs change from a bearer token to a verified domain, and the lookup moves from config to the runtime peer-trust store. A fingerprint mismatch (peer's keys changed with no rotation overlap) resolves to `public` and flags the directory entry back to "discovered" for re-approval — the caller keeps the public surface rather than being rejected, because the _signature_ was valid; only the pinned trust is stale.
 
 Absent and invalid signatures are different cases and must not be conflated:
 
@@ -169,11 +172,10 @@ Absent and invalid signatures are different cases and must not be conflated:
 trustedTokens: z.record(z.string()).optional(),  // token → identity
 outboundTokens: z.record(z.string()).optional(), // domain → token
 
-// after
-trustedAgents: z.record(z.string()).optional(),  // domain → identity
+// after — nothing. Trust is not config.
 ```
 
-There is no migration shim. The current bearer-token path is removed in the same change. Operators with existing `trustedTokens` config get a clear startup error and a migration note.
+Both fields are removed with no replacement: outbound needs no credential (requests are signed), and inbound grants live in the runtime peer-trust store written by directory approval. There is no migration shim. Operators with existing `trustedTokens`/`outboundTokens` config get a clear startup error and a migration note: re-approve each peer via `agent_connect`.
 
 ### JWKS resolver
 
@@ -213,11 +215,12 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 - add `agentKey` injection through `InterfacePluginContext` so the client can sign without owning the key directly
 - remove `outboundTokens` config field
 
-### Phase 4 — inbound verification
+### Phase 4 — inbound verification and the peer-trust store
 
-- swap `resolveCallerPermission` to verify-and-resolve
-- add `trustedAgents` config field, remove `trustedTokens`
-- update agent-card / agent-discovery flows to fetch and store peer JWKS at approval time
+- add the peer-trust store (`{domain, keyFingerprint, grantedLevel}`) in runtime auth storage, written by the directory approval flow (anchor-confirmed), with a fingerprint-mismatch path that demotes to "discovered"
+- swap `resolveCallerPermission` to verify-and-resolve against the store; remove `trustedTokens`
+- update agent-card / agent-discovery flows to fetch peer JWKS at approval time and record the grant
+- test that a content-plane write (an `approved` agent entity arriving via directory-sync) grants nothing inbound
 
 ### Phase 5 — task caller binding and idempotent retry
 
@@ -242,25 +245,27 @@ Settled in [identity-and-trust.md](./identity-and-trust.md):
 2. Multi-key rollover on a single peer is supported: peers publish old and new keys in JWKS during a grace window; the verifier matches on `kid`.
 3. `JwksResolver` is a brain-level singleton (one cache for all peer lookups).
 4. V1 signs the initiating request only. Signing A2A streaming responses (SSE events) is a separate future question.
-5. The agent directory gains a "key fingerprint at approval time" field (trust-on-first-use): if a peer's JWKS returns entirely different keys with no rotation overlap, the entry drops back to discovered and requires re-approval. The agent entity schema change is in scope for this plan (phase 4).
+5. Key fingerprint pinning at approval time (trust-on-first-use) is in scope: if a peer's JWKS returns entirely different keys with no rotation overlap, the peer drops back to discovered and requires re-approval. The fingerprint lives in the runtime peer-trust record beside the granted level (decision 6), not on the git-synced agent entity — the entity only mirrors the discovered/approved status for directory UX.
 
 ## Verification
 
 1. A brain generates a signing keypair on first boot and publishes it at `/.well-known/jwks.json`
 2. Outbound A2A requests carry `Signature` and `Signature-Input` headers per RFC 9421; no `Authorization: Bearer` header is sent
 3. Inbound A2A requests verify successfully when the sender's JWKS is reachable and the signature is valid; a request with a present-but-invalid signature fails with 401; a request with no signature resolves to the public permission level (unacquainted brains keep talking with zero setup)
-4. `trustedAgents: Record<domain, identity>` resolves to the same `permissionService.getUserLevel(...)` flow that `trustedTokens` did
+4. Approving a peer in the directory is sufficient for inbound trust: the next validly signed request from that domain resolves to the granted level, with no config edit anywhere
 5. Two brains can establish bidirectional A2A trust without exchanging any secret
 6. Key rotation (replacing a brain's signing key) does not require re-approval at peers, as long as the new key is published in JWKS during a grace window
 7. Freshness window rejects requests outside ±60s
-8. `outboundTokens` and `trustedTokens` are removed from the config schema; brains with old config get a clear startup error
-9. A task created by verified peer A cannot be read or cancelled by peer B or by an unverified caller (`-32001`, indistinguishable from a missing task)
-10. Re-sending a `message/send` with the same `messageId` from the same verified caller within the dedupe window returns the original task; the peer runs one agent turn, not two
-11. Old `2026-03-15-a2a-authentication.md` is deleted; references in other plans updated
+8. `outboundTokens` and `trustedTokens` are removed from the config schema with no replacement field; brains with old config get a clear startup error
+9. An `approved` agent entity arriving via content sync (directory-sync from the brain-data repo) grants no inbound permission — only a runtime peer-trust record does
+10. A task created by verified peer A cannot be read or cancelled by peer B or by an unverified caller (`-32001`, indistinguishable from a missing task)
+11. Re-sending a `message/send` with the same `messageId` from the same verified caller within the dedupe window returns the original task; the peer runs one agent turn, not two
+12. Old `2026-03-15-a2a-authentication.md` is deleted; references in other plans updated
 
 ## Related
 
 - [identity-and-trust.md](./identity-and-trust.md) — the positioning doc this plan executes a slice of; settles domain-as-identity, key custody, and the shared trust-establishment flow
+- [auth-runtime-db.md](./auth-runtime-db.md) — home of the runtime auth storage plane the peer-trust store joins
 - `shell/auth-service` — existing OAuth/JWKS foundation that this plan extends
 - `docs/plans/multi-user.md` — depends on this plan for cross-interface identity linking (a follow-on; multi-user phases 1–3 proceed independently)
 - `entities/agent-discovery` — saved-agent allowlist semantics this plan plugs into

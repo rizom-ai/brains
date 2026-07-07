@@ -81,34 +81,42 @@ the PDS custodies them, and the brain authenticates _to_ the PDS
 its own PDS, those keys join the same custody module — but that is a
 hosting decision, not an identity decision.
 
-### 4. The agent directory is the single trust-establishment flow
+### 4. The agent directory is the single trust-establishment flow; grants live on the runtime plane
 
 Both brain-to-brain channels converge on the existing `agent` entity's
 discovered → approved lifecycle:
 
-- A2A peer approval fetches the peer's agent card and JWKS, and records
-  the trusted domain.
+- A2A peer approval fetches the peer's agent card and JWKS.
 - ATProto discovery ingests signed brain cards into the same directory as
   reviewable `agent` entities (already implemented as the bounded
   discovery slice).
 
-Approval pins **domain + key fingerprint** — trust-on-first-use. If a
-peer's published keys later change without overlap (no grace-window
-rotation via JWKS multi-key publishing), the entry drops back to
-discovered and requires re-approval. The agent entity schema gains a key
-fingerprint field for this; a2a-request-signing implements it. No secret
-is ever exchanged in any trust flow.
+Approval is one anchor-confirmed action covering **both directions**: the
+entity becomes `approved` (directory UX, outbound calling), and a
+peer-trust record — **domain + pinned key fingerprint + granted inbound
+level** (`trusted`/`public`; `anchor` is never grantable to a peer) — is
+written to runtime auth storage. The runtime record, not the entity, is
+what inbound verification consults. This is the same content/runtime
+split as decision 3 in reverse: agent entities are git-synced brain-data
+ingested automatically by directory-sync, so an entity-borne grant would
+let anyone with a commit to the content repo mint themselves inbound
+trust. Authorization state never rides the content plane.
+
+The fingerprint pin is trust-on-first-use: if a peer's published keys
+later change without overlap (no grace-window rotation via JWKS
+multi-key publishing), the peer drops back to discovered and requires
+re-approval. No secret is ever exchanged in any trust flow.
 
 ### 5. Humans and brains stay distinct subjects in v1
 
 Multi-user's `AuthUserIdentity` already reserves `a2a` and `did` identity
 types, so a peer brain (or its anchor) can eventually be bound to a
 runtime user for attribution ("this change came from Jane's brain"). That
-linking is explicitly **not** wired in v1: brains resolve through
-`trustedAgents` (domain → identity → permission level), humans through
-auth users, and the two meet only at the permission model. Cross-subject
-linking is a follow-on that needs multi-user phases 1–2 and a2a signing
-both landed first.
+linking is explicitly **not** wired in v1: brains resolve through the
+runtime peer-trust store (verified domain → granted level), humans
+through auth users, and the two meet only at the permission model.
+Cross-subject linking is a follow-on that needs multi-user phases 1–2
+and a2a signing both landed first.
 
 ## What this settles in the execution plans
 
@@ -117,8 +125,8 @@ home is `shared/http-signatures` (standalone library, no brain-specific
 deps); multi-key rollover is supported via JWKS multi-key publishing and
 `kid` matching; `JwksResolver` is a brain-level singleton; v1 signs
 requests only (response/stream signing is a separate future question);
-and the TOFU key-fingerprint field on the agent entity is in scope
-(decision 4).
+and directory approval writes the runtime peer-trust record — pinned
+fingerprint plus granted inbound level — per decision 4.
 
 **multi-user.md** — unchanged in substance; its identity-key
 normalization (`did:<did>`, `a2a` bindings) is the reserved hook for
