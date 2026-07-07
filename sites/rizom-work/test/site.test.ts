@@ -9,13 +9,11 @@ describe("@rizom/site-rizom-work", () => {
     expect(site.themeOverride).toContain("rizom-diagnostic-panel");
   });
 
-  test("owns the studio theme profile in site plugin config", () => {
-    const plugin = site.plugin();
-    expect(plugin.id).toBe("rizom-site");
-    expect(plugin.packageName).toBe("@rizom/site-rizom-work");
-    expect(plugin.config).toMatchObject({
-      themeProfile: "studio",
-    });
+  test("owns the studio theme profile declaratively", () => {
+    expect(site.content).toBeDefined();
+    expect(site.headScripts?.join("\n")).toContain(
+      'data-theme-profile", "studio"',
+    );
   });
 
   test("exposes work-specific route sections", () => {

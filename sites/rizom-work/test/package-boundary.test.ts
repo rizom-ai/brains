@@ -14,6 +14,7 @@ import { preparePublishManifest } from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
 const basePackageDir = join(packageDir, "../rizom");
+const sdkPackageDir = join(packageDir, "../../packages/site");
 
 async function run(command: string[], cwd: string): Promise<string> {
   const process = Bun.spawn(command, {
@@ -94,11 +95,17 @@ describe("@rizom/site-rizom-work package boundary", () => {
     const tempDir = await mkdtemp(join(tmpdir(), "site-rizom-work-pack-"));
 
     try {
+      const sdkCopyDir = join(tempDir, "sdk-copy");
       const baseCopyDir = join(tempDir, "base-copy");
       const workCopyDir = join(tempDir, "work-copy");
+      await stagePublishableCopy(sdkPackageDir, sdkCopyDir);
       await stagePublishableCopy(basePackageDir, baseCopyDir);
       await stagePublishableCopy(packageDir, workCopyDir);
 
+      await run(
+        ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
+        sdkCopyDir,
+      );
       await run(
         ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
         baseCopyDir,
@@ -108,6 +115,7 @@ describe("@rizom/site-rizom-work package boundary", () => {
         workCopyDir,
       );
 
+      const sdkTarball = await findPackedTarball(tempDir, "rizom-site-");
       const baseTarball = await findPackedTarball(tempDir, "rizom-site-rizom-");
       const workTarball = await findPackedTarball(
         tempDir,
@@ -131,6 +139,7 @@ describe("@rizom/site-rizom-work package boundary", () => {
               "@rizom/site-rizom-work": `file:${workTarball}`,
             },
             overrides: {
+              "@rizom/site": `file:${sdkTarball}`,
               "@rizom/site-rizom": `file:${baseTarball}`,
             },
           },
@@ -158,6 +167,9 @@ describe("@rizom/site-rizom-work package boundary", () => {
       const sourceWorkManifest = JSON.parse(
         await readFile(join(packageDir, "package.json"), "utf8"),
       );
+      const sourceSdkManifest = JSON.parse(
+        await readFile(join(sdkPackageDir, "package.json"), "utf8"),
+      );
       const installedBaseManifest = JSON.parse(
         await readFile(
           join(tempDir, "node_modules/@rizom/site-rizom/package.json"),
@@ -175,8 +187,14 @@ describe("@rizom/site-rizom-work package boundary", () => {
       // manifest: npm publish (used by the release flow) does not
       // rewrite it, so the transform has to.
       expect(JSON.stringify(installedWorkManifest)).not.toContain("workspace:");
+      expect(installedWorkManifest.dependencies["@rizom/site"]).toBe(
+        sourceSdkManifest.version,
+      );
       expect(installedWorkManifest.dependencies["@rizom/site-rizom"]).toBe(
         sourceBaseManifest.version,
+      );
+      expect(installedBaseManifest.dependencies["@rizom/site"]).toBe(
+        sourceSdkManifest.version,
       );
       expect(installedWorkManifest.devDependencies).toBeUndefined();
 

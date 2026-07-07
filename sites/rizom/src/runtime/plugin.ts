@@ -48,6 +48,31 @@ const CANVAS_BY_THEME_PROFILE: Record<RizomThemeProfile, string> = {
   studio: "/canvases/constellation.canvas.js",
 };
 
+function getRizomCanvasPath(
+  themeProfile?: RizomThemeProfile,
+): string | undefined {
+  return themeProfile ? CANVAS_BY_THEME_PROFILE[themeProfile] : undefined;
+}
+
+export function buildRizomHeadScript(themeProfile?: RizomThemeProfile): string {
+  const canvasPath = getRizomCanvasPath(themeProfile);
+  const scripts = [`<script src="/boot.js" defer></script>`];
+
+  if (themeProfile) {
+    const themeProfileJson = JSON.stringify(themeProfile);
+    scripts.unshift(
+      `<script>document.documentElement.setAttribute("data-theme-profile", ${themeProfileJson});</script>`,
+    );
+  }
+
+  if (canvasPath) {
+    scripts.push(`<script src="/canvases/prelude.canvas.js" defer></script>`);
+    scripts.push(`<script src="${canvasPath}" defer></script>`);
+  }
+
+  return scripts.join("");
+}
+
 export const RIZOM_ATPROTO_LEXICON_BASE_PATH = "/atproto/lexicons";
 
 function formatLexiconJson(lexicon: unknown): string {
@@ -95,7 +120,6 @@ export class RizomRuntimePlugin {
 
   protected async onRegister(shell: RizomSiteShell): Promise<void> {
     const themeProfile = this.getThemeProfile();
-    const canvasPath = this.getCanvasPath(themeProfile);
     const messaging = shell.getMessageBus();
 
     messaging.subscribe("system:plugins:ready", async () => {
@@ -104,7 +128,7 @@ export class RizomRuntimePlugin {
         sender: this.id,
         payload: {
           pluginId: this.id,
-          script: this.buildHeadScript(themeProfile, canvasPath),
+          script: buildRizomHeadScript(themeProfile),
         },
       });
       return { success: true };
@@ -119,32 +143,5 @@ export class RizomRuntimePlugin {
 
   protected getThemeProfile(): RizomThemeProfile | undefined {
     return this.config.themeProfile;
-  }
-
-  protected getCanvasPath(
-    themeProfile?: RizomThemeProfile,
-  ): string | undefined {
-    return themeProfile ? CANVAS_BY_THEME_PROFILE[themeProfile] : undefined;
-  }
-
-  protected buildHeadScript(
-    themeProfile?: string,
-    canvasPath?: string,
-  ): string {
-    const scripts = [`<script src="/boot.js" defer></script>`];
-
-    if (themeProfile) {
-      const themeProfileJson = JSON.stringify(themeProfile);
-      scripts.unshift(
-        `<script>document.documentElement.setAttribute("data-theme-profile", ${themeProfileJson});</script>`,
-      );
-    }
-
-    if (canvasPath) {
-      scripts.push(`<script src="/canvases/prelude.canvas.js" defer></script>`);
-      scripts.push(`<script src="${canvasPath}" defer></script>`);
-    }
-
-    return scripts.join("");
   }
 }

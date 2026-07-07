@@ -1,4 +1,20 @@
 import { z } from "@brains/utils";
+import type {
+  NavigationItem,
+  NavigationMetadata,
+  RouteDefinition,
+  SectionDefinition,
+} from "@rizom/site";
+
+export type {
+  EntityDisplayEntry,
+  NavigationItem,
+  NavigationMetadata,
+  NavigationSlot,
+  RouteDefinition,
+  RouteDefinitionInput,
+  SectionDefinition,
+} from "@rizom/site";
 
 /** Section definition schema for site routes. */
 export const SectionDefinitionSchema = z.object({
@@ -25,24 +41,6 @@ export const SectionDefinitionSchema = z.object({
 
 /** Navigation slot types. */
 export const NavigationSlots = ["primary", "secondary"] as const;
-export type NavigationSlot = (typeof NavigationSlots)[number];
-
-/** Display and behavior metadata for an entity type. */
-export interface EntityDisplayEntry {
-  label: string;
-  pluralName?: string;
-  /** Layout name for this entity type's generated routes (defaults to "default") */
-  layout?: string;
-  /** Enable pagination for list pages */
-  paginate?: boolean;
-  /** Items per page (default: 10) */
-  pageSize?: number;
-  navigation?: {
-    show?: boolean;
-    slot?: NavigationSlot;
-    priority?: number;
-  };
-}
 
 /** Navigation metadata schema for route definitions. */
 export const NavigationMetadataSchema = z
@@ -71,10 +69,31 @@ export const RouteDefinitionSchema = z.object({
   navigation: NavigationMetadataSchema,
 });
 
-export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
-export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
-export type RouteDefinitionInput = z.input<typeof RouteDefinitionSchema>;
-export type NavigationMetadata = z.infer<typeof NavigationMetadataSchema>;
+type SectionDefinitionSchemaOutput = z.infer<typeof SectionDefinitionSchema>;
+type RouteDefinitionSchemaOutput = z.infer<typeof RouteDefinitionSchema>;
+type NavigationMetadataSchemaOutput = z.infer<typeof NavigationMetadataSchema>;
+
+function expectSectionDefinition(
+  value: SectionDefinitionSchemaOutput,
+): SectionDefinition {
+  return value;
+}
+
+function expectRouteDefinition(
+  value: RouteDefinitionSchemaOutput,
+): RouteDefinition {
+  return value;
+}
+
+function expectNavigationMetadata(
+  value: NavigationMetadataSchemaOutput,
+): NavigationMetadata | undefined {
+  return value;
+}
+
+void expectSectionDefinition;
+void expectRouteDefinition;
+void expectNavigationMetadata;
 
 /** Message payload schemas for route operations. */
 export const RegisterRoutesPayloadSchema = z.object({
@@ -123,4 +142,10 @@ export const NavigationItemSchema = z.object({
   priority: z.number(),
 });
 
-export type NavigationItem = z.infer<typeof NavigationItemSchema>;
+type NavigationItemSchemaOutput = z.infer<typeof NavigationItemSchema>;
+function expectNavigationItem(
+  value: NavigationItemSchemaOutput,
+): NavigationItem {
+  return value;
+}
+void expectNavigationItem;

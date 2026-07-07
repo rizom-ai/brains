@@ -691,10 +691,12 @@ export const relayRoutes: RouteDefinitionInput[] = [
 
 export const relaySite = createRizomSite({
   packageName: "@brains/relay/site",
-  contentNamespace: "relay-site",
   themeProfile: "studio",
   layout: RelayLayout,
   routes: relayRoutes,
-  templates: { "home-diagram": relayDiagramTemplate },
-  dataSources: [new RelayHomeCountsDataSource()],
+  runtime: {
+    contentNamespace: "relay-site",
+    templates: { "home-diagram": relayDiagramTemplate },
+    dataSources: [new RelayHomeCountsDataSource()],
+  },
 });

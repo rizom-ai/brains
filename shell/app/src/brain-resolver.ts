@@ -1,4 +1,4 @@
-import type { Plugin } from "@brains/plugins";
+import type { IShell, Plugin, PluginCapabilities } from "@brains/plugins";
 import {
   entityActionPolicyConfigSchema,
   type EntityActionPolicyConfig,
@@ -22,10 +22,12 @@ import {
   type InstanceOverrides,
 } from "./instance-overrides";
 import {
+  createSiteContentTemplates,
   extendSite,
   sitePackageSchema,
   themeCssSchema,
   type ConventionalSiteOverrides,
+  type SiteContentDefinition,
   type SitePackage,
   type SitePackageOverrides,
 } from "./site-package";
@@ -244,19 +246,80 @@ function applyPluginDefaults(
   }
 }
 
-function instantiateSitePlugin(
+function normalizeSiteContent(
+  content: SitePackage["content"],
+): SiteContentDefinition[] {
+  if (!content) return [];
+  return Array.isArray(content) ? content : [content];
+}
+
+class DeclarativeSitePlugin implements Plugin {
+  readonly id = "site-package";
+  readonly version = "0.1.0";
+  readonly type = "service" as const;
+  readonly description = "Declarative site package adapter";
+
+  constructor(
+    readonly packageName: string,
+    private readonly site: SitePackage,
+  ) {}
+
+  async register(shell: IShell): Promise<PluginCapabilities> {
+    for (const definition of normalizeSiteContent(this.site.content)) {
+      shell.registerTemplates(
+        createSiteContentTemplates(definition),
+        definition.namespace,
+      );
+    }
+
+    if (this.site.headScripts?.length) {
+      const messaging = shell.getMessageBus();
+      messaging.subscribe("system:plugins:ready", async () => {
+        for (const [index, script] of this.site.headScripts?.entries() ?? []) {
+          await messaging.send({
+            type: "plugin:site-builder:head-script:register",
+            sender: this.id,
+            payload: {
+              pluginId: `${this.id}:${index}`,
+              script,
+            },
+          });
+        }
+        return { success: true };
+      });
+    }
+
+    return { tools: [], resources: [] };
+  }
+}
+
+function instantiateSitePlugins(
   site: SitePackage | undefined,
   overrides: Omit<InstanceOverrides, "brain"> | undefined,
   activeIds: ActiveIds,
 ): Plugin[] {
-  if (!site) return [];
+  if (!site || !isActive(activeIds, "site-builder")) return [];
 
-  const sitePlugin = site.plugin({
-    entityDisplay: site.entityDisplay,
-    ...stripSiteConfig(overrides?.site),
-  });
+  const plugins: Plugin[] = [];
+  if (site.plugin) {
+    plugins.push(
+      site.plugin({
+        entityDisplay: site.entityDisplay,
+        ...stripSiteConfig(overrides?.site),
+      }),
+    );
+  }
 
-  return isActive(activeIds, "site-builder") ? [sitePlugin] : [];
+  if (site.content || site.headScripts?.length) {
+    plugins.push(
+      new DeclarativeSitePlugin(
+        overrides?.site?.package ?? "@rizom/site-package",
+        site,
+      ),
+    );
+  }
+
+  return plugins;
 }
 
 function instantiateCapabilities(
@@ -483,7 +546,7 @@ export function resolve(
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
   const capabilities: Plugin[] = [
-    ...instantiateSitePlugin(site, overrides, activeIds),
+    ...instantiateSitePlugins(site, overrides, activeIds),
     ...instantiateCapabilities(
       definition,
       env,
@@ -763,6 +826,7 @@ const sitePackageOverridesSchema = z
     pluginConfig: z.record(z.unknown()).optional(),
     routes: z.array(routeDefinitionOverrideSchema).optional(),
     entityDisplay: z.record(entityDisplayEntryOverrideSchema).optional(),
+    headScripts: z.array(z.string()).optional(),
     staticAssets: z.record(z.string()).optional(),
   })
   .passthrough();
@@ -771,12 +835,13 @@ function applySitePluginConfig(
   site: SitePackage,
   pluginConfig: Record<string, unknown> | undefined,
 ): SitePackage {
-  if (!pluginConfig) return site;
+  if (!pluginConfig || !site.plugin) return site;
 
+  const plugin = site.plugin;
   return {
     ...site,
     plugin: (config?: Record<string, unknown>) =>
-      site.plugin({
+      plugin({
         ...pluginConfig,
         ...(config ?? {}),
       }),

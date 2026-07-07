@@ -1,17 +1,13 @@
-import type { SitePackage } from "../contracts";
+import type { SiteDefinition } from "@rizom/site";
 import { DefaultRizomLayout } from "./default-layout";
-import { rizomRuntimeStaticAssets, RizomRuntimePlugin } from "./plugin";
+import { buildRizomHeadScript, rizomRuntimeStaticAssets } from "./plugin";
 
-export const rizomBaseSite: SitePackage<
-  Record<string, unknown>,
-  RizomRuntimePlugin
-> = {
+export const rizomBaseSite: SiteDefinition = {
   layouts: {
     default: DefaultRizomLayout,
   },
   routes: [],
-  plugin: (config?: Record<string, unknown>): RizomRuntimePlugin =>
-    new RizomRuntimePlugin("@rizom/site-rizom", config ?? {}),
+  headScripts: [buildRizomHeadScript()],
   entityDisplay: {},
   staticAssets: rizomRuntimeStaticAssets,
 };

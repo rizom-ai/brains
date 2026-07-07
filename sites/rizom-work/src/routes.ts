@@ -1,4 +1,4 @@
-import type { RouteDefinitionInput } from "@rizom/site-rizom";
+import type { RouteDefinitionInput } from "@rizom/site";
 
 export const workRoutes: RouteDefinitionInput[] = [
   {

@@ -1,5 +1,16 @@
 import { z } from "@brains/utils";
+import type {
+  SiteLayoutInfo,
+  SiteMetadata,
+  SiteMetadataCTA,
+} from "@rizom/site";
 import { NavigationItemSchema } from "./routes";
+
+export type {
+  SiteLayoutInfo,
+  SiteMetadata,
+  SiteMetadataCTA,
+} from "@rizom/site";
 
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
@@ -47,8 +58,21 @@ export const siteMetadataSchema = z.object({
     ),
 });
 
-export type SiteMetadata = z.infer<typeof siteMetadataSchema>;
-export type SiteMetadataCTA = z.infer<typeof siteMetadataCTASchema>;
+type SiteMetadataSchemaOutput = z.infer<typeof siteMetadataSchema>;
+type SiteMetadataCTASchemaOutput = z.infer<typeof siteMetadataCTASchema>;
+
+function expectSiteMetadata(value: SiteMetadataSchemaOutput): SiteMetadata {
+  return value;
+}
+
+function expectSiteMetadataCTA(
+  value: SiteMetadataCTASchemaOutput,
+): SiteMetadataCTA {
+  return value;
+}
+
+void expectSiteMetadata;
+void expectSiteMetadataCTA;
 
 const socialLinkSchema = z.object({
   platform: z
@@ -71,4 +95,10 @@ export const siteLayoutInfoSchema = siteMetadataSchema.extend({
     .describe("Social media links from profile metadata"),
 });
 
-export type SiteLayoutInfo = z.infer<typeof siteLayoutInfoSchema>;
+type SiteLayoutInfoSchemaOutput = z.infer<typeof siteLayoutInfoSchema>;
+function expectSiteLayoutInfo(
+  value: SiteLayoutInfoSchemaOutput,
+): SiteLayoutInfo {
+  return value;
+}
+void expectSiteLayoutInfo;

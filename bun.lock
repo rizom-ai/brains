@@ -723,6 +723,7 @@
       },
       "devDependencies": {
         "@brains/app": "workspace:*",
+        "@brains/build-tools": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/deploy-support": "workspace:*",
         "@brains/eslint-config": "workspace:*",
@@ -785,6 +786,21 @@
         "@types/bun": "latest",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
+      },
+    },
+    "packages/site": {
+      "name": "@rizom/site",
+      "version": "0.2.0-alpha.136",
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "preact": "^10.27.2",
+        "typescript": "^5.3.3",
+      },
+      "peerDependencies": {
+        "preact": "^10.27.2",
       },
     },
     "plugins/analytics": {
@@ -1370,6 +1386,7 @@
         "@brains/content-formatters": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@rizom/site": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1883,12 +1900,14 @@
       "name": "@rizom/site-rizom",
       "version": "0.2.0-alpha.136",
       "dependencies": {
+        "@rizom/site": "workspace:*",
         "clsx": "^2.1.0",
         "preact": "^10.27.2",
         "tailwind-merge": "^2.2.0",
       },
       "devDependencies": {
         "@brains/atproto-contracts": "workspace:*",
+        "@brains/build-tools": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -1904,10 +1923,12 @@
       "name": "@rizom/site-rizom-work",
       "version": "0.2.0-alpha.134",
       "dependencies": {
+        "@rizom/site": "workspace:*",
         "@rizom/site-rizom": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
+        "@brains/build-tools": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
@@ -2602,6 +2623,8 @@
     "@rizom/brain": ["@rizom/brain@workspace:packages/brain-cli"],
 
     "@rizom/ops": ["@rizom/ops@workspace:packages/brains-ops"],
+
+    "@rizom/site": ["@rizom/site@workspace:packages/site"],
 
     "@rizom/site-rizom": ["@rizom/site-rizom@workspace:sites/rizom"],
 

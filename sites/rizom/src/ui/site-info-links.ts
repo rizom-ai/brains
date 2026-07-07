@@ -1,4 +1,4 @@
-import type { SiteLayoutInfo } from "../contracts";
+import type { SiteLayoutInfo } from "@rizom/site";
 import type { RizomLink } from "./types";
 
 const DEFAULT_LABELS: Record<string, string> = {

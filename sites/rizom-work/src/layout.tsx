@@ -1,13 +1,12 @@
 /** @jsxImportSource preact */
 import type { JSX, ComponentChildren } from "preact";
+import type { RizomLink, SiteLayoutInfo } from "@rizom/site";
 import {
   Footer,
   Header,
   RizomFrame,
   SideNav,
   socialLinksToRizomLinks,
-  type RizomLink,
-  type SiteLayoutInfo,
 } from "@rizom/site-rizom";
 import { isNewTabHref, BOOKING_HREF, QUIZ_HREF } from "./link-targets";
 

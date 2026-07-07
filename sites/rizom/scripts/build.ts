@@ -59,6 +59,7 @@ if (declarationExitCode !== 0) {
 const declaration = readFileSync(declarationPath, "utf8");
 const leakedImports = findInternalDeclarationImports(declaration, {
   internalPrefixes: ["@brains/", "@rizom/"],
+  allow: ["@rizom/site"],
 });
 if (leakedImports.length > 0) {
   console.error(

@@ -149,6 +149,8 @@ SDK phasing (walking skeleton first):
 2. Port `@rizom/site-rizom` and `@rizom/site-rizom-work` onto the SDK; delete the contracts mirror and its leak-check machinery for contract types.
 3. Publish SDK + family base + per-site packages through the normal release flow; hosted deploy wiring continues unchanged (`site.package` refs are unaffected).
 
+SDK implementation update (2026-07-07): the walking skeleton exists as `@rizom/site` with zod-free public route/content/layout/site-definition types and no runtime `@brains/*` dependencies. `@brains/site-composition` now consumes the SDK's route/content/metadata types and keeps schema assignability checks against them. `@rizom/site-rizom` depends on and re-exports SDK authoring types, while `@rizom/site-rizom-work` imports public authoring types from the SDK and still imports Rizom-family UI/sugar from `@rizom/site-rizom`. The platform now adapts declarative SDK sites internally: `@rizom/site-rizom-work` exports a `SiteDefinition` with content/head scripts instead of a public plugin factory, and the app resolver wraps content/head scripts into an internal runtime plugin. `@rizom/site-rizom`'s generated public declarations no longer expose `SitePackage`, shell registration, or plugin capability types; only an advanced `runtime` hook remains on `createRizomSite` for in-repo custom template/data-source wiring (currently Relay).
+
 Preferred path:
 
 1. Move shared Rizom site core into a publishable `@rizom/site-rizom` base package with a clean public dependency and type story.

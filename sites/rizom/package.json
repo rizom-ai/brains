@@ -33,6 +33,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rizom/site": "workspace:*",
     "clsx": "^2.1.0",
     "preact": "^10.27.2",
     "tailwind-merge": "^2.2.0"

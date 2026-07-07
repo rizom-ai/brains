@@ -7,8 +7,8 @@ import { BridgeLayout } from "./sections/bridge/layout";
 import { CredibilityLayout } from "./sections/credibility/layout";
 import { OwnershipLayout } from "./sections/ownership/layout";
 import { CloserLayout } from "./sections/closer/layout";
+import type { SiteContentDefinition } from "@rizom/site";
 import { Ecosystem } from "@rizom/site-rizom";
-import type { SiteContentDefinition } from "@rizom/site-rizom";
 
 const workSiteContent: SiteContentDefinition = {
   namespace: "landing-page",

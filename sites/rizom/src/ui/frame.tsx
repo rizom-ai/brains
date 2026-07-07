@@ -1,6 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
 
-export type { RizomLayoutProps } from "../contracts";
+export type { RizomLayoutProps } from "@rizom/site";
 
 export interface RizomFrameProps {
   children?: ComponentChildren;
