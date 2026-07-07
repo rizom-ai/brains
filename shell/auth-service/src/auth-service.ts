@@ -94,6 +94,7 @@ export class AuthService {
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly sessionStore: OperatorSessionStore;
+  private readonly refreshTokenStore: RefreshTokenStore;
   private readonly passkeyService: PasskeyService;
   private readonly setupFlow: SetupFlow;
   private readonly oauthEndpoints: OAuthEndpoints;
@@ -121,6 +122,9 @@ export class AuthService {
     this.sessionStore = new OperatorSessionStore({
       storageDir: options.storageDir,
     });
+    this.refreshTokenStore = new RefreshTokenStore({
+      storageDir: options.storageDir,
+    });
     this.passkeyService = new PasskeyService({
       storageDir: options.storageDir,
       ...(options.logger ? { logger: options.logger } : {}),
@@ -134,9 +138,7 @@ export class AuthService {
     this.oauthEndpoints = new OAuthEndpoints({
       clientStore: this.clientStore,
       authCodeStore: this.authCodeStore,
-      refreshTokenStore: new RefreshTokenStore({
-        storageDir: options.storageDir,
-      }),
+      refreshTokenStore: this.refreshTokenStore,
       sessionStore: this.sessionStore,
       keyStore: this.keyStore,
     });
@@ -164,6 +166,7 @@ export class AuthService {
     await this.ensureUserStoreStarted();
     await this.migrateLegacyPasskeys();
     await this.migrateLegacySessions();
+    await this.migrateLegacyRefreshTokens();
     await this.keyStore.getPrivateJwk();
     this.logger?.debug("Auth service signing key loaded");
 
@@ -240,6 +243,15 @@ export class AuthService {
         migrated,
         userId: user.id,
       });
+    }
+  }
+
+  private async migrateLegacyRefreshTokens(): Promise<void> {
+    const revoked = await this.refreshTokenStore.revokeTokensForSubject(
+      MIGRATION_SINGLE_OPERATOR_SUBJECT,
+    );
+    if (revoked > 0) {
+      this.logger?.info("Revoked legacy operator refresh tokens", { revoked });
     }
   }
 

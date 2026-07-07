@@ -170,6 +170,26 @@ export class RefreshTokenStore {
     return revoked;
   }
 
+  async revokeTokensForSubject(subject: string): Promise<number> {
+    const now = nowSeconds();
+    let revoked = 0;
+
+    await this.store.enqueueWrite(async () => {
+      const store = pruneExpired(await this.store.read());
+      for (const token of store.refreshTokens) {
+        if (token.subject === subject && token.revoked_at === undefined) {
+          token.revoked_at = now;
+          revoked += 1;
+        }
+      }
+      if (revoked > 0) {
+        await this.store.write(store);
+      }
+    });
+
+    return revoked;
+  }
+
   private createRecord(input: IssueRefreshTokenInput): IssuedRefreshToken {
     const token = createRefreshToken();
     const issuedAt = nowSeconds();

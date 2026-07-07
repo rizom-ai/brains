@@ -11,6 +11,7 @@ import {
   AuthService,
   OperatorSessionStore,
   PasskeyStore,
+  RefreshTokenStore,
   authServicePlugin,
   normalizeIssuer,
 } from "../src";
@@ -340,6 +341,33 @@ describe("AuthService", () => {
       ]);
     } finally {
       await authDb.stop();
+    }
+  });
+
+  it("revokes existing single-operator refresh tokens during migration", async () => {
+    const storageDir = await tempStorageDir();
+    const refreshTokenStore = new RefreshTokenStore({ storageDir });
+    const issued = await refreshTokenStore.issueToken({
+      clientId: "client-id",
+      subject: "single-operator",
+      scope: "mcp",
+    });
+
+    const service = new AuthService({
+      storageDir,
+      issuer: "http://localhost:8080",
+    });
+    await service.initialize();
+
+    let rotateError: unknown;
+    try {
+      await refreshTokenStore.rotateToken(issued.token, "client-id");
+    } catch (error) {
+      rotateError = error;
+    }
+    expect(rotateError).toBeInstanceOf(Error);
+    if (rotateError instanceof Error) {
+      expect(rotateError.message).toBe("Refresh token revoked");
     }
   });
 
