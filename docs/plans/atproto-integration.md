@@ -75,6 +75,8 @@ Separate AT Protocol repo identity from public brain identity:
 - **Brain DID** — the agent/brain identity. This identifies the specific brain described by a record. It does not imply write authority over the PDS repo unless the brain itself owns the PDS account.
 - **Anchor DID** — the owner/operator identity for a person, team, organization, or collective. One anchor may own/operate multiple brains across multiple domains. Discovery groups related brains by `anchor.did`, not by domain.
 
+How these DIDs relate to the brain's domain identity (A2A signing) and to runtime auth users is positioned in [Identity & trust architecture](./identity-and-trust.md): `did:web:<site-host>` is the DID spelling of the same domain identity A2A trusts, and anchor DIDs are the reserved hook for multi-user's cross-subject linking follow-on.
+
 Phase 1 supports the simplest deployable model: one configured PDS login identifier plus optional `repoDid`, `anchorDid`, and `brainDid` metadata. When `repoDid` is omitted, the plugin uses the DID returned from `com.atproto.server.createSession`, avoiding duplicated handle→DID config. When `brainDid` / `anchorDid` are omitted, publishing and DID routes use the site-host conventions `did:web:<site-host>` and `did:web:<site-host>:anchor`. A dedicated PDS account per brain can be added later when a brain needs independent account-level authorship.
 
 Identity architecture target:

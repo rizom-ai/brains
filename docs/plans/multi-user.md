@@ -12,7 +12,7 @@ The first version should stay small: coarse permission levels, explicit operator
 
 ## Source of truth
 
-This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, management tools/UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md).
+This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, management tools/UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
 
 ## Current baseline
 

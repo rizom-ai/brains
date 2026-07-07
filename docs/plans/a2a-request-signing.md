@@ -234,13 +234,15 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 - document reverse-proxy requirements
 - delete `2026-03-15-a2a-authentication.md`
 
-## Open questions
+## Resolved questions
 
-1. Package home: `shared/http-signatures` (cross-cutting library) or `shell/http-signatures` (brain-runtime infrastructure)? Leaning shared since it's a small standalone library with no brain-specific dependencies.
-2. Do we want to support multi-key rollover on a single peer? `JwksResolver` already handles it via JWKS publishing both old and new keys; verifier just needs to try matching on `kid`.
-3. Should `JwksResolver` be a singleton at the brain level (one cache for all peer lookups) or per-A2A-interface? Singleton is simpler and matches expected usage.
-4. Do we sign A2A streaming responses (SSE events from `/a2a` POST that opens a stream), or only the initiating request? V1 signs the request only — streaming response signing is a separate question.
-5. Does the agent directory need a "key fingerprint at approval time" field for trust-on-first-use semantics? Probably yes — if a peer's JWKS suddenly returns a different key, that should require re-approval. Worth adding to the agent entity schema.
+Settled in [identity-and-trust.md](./identity-and-trust.md):
+
+1. Package home is `shared/http-signatures` — a small standalone library with no brain-specific dependencies.
+2. Multi-key rollover on a single peer is supported: peers publish old and new keys in JWKS during a grace window; the verifier matches on `kid`.
+3. `JwksResolver` is a brain-level singleton (one cache for all peer lookups).
+4. V1 signs the initiating request only. Signing A2A streaming responses (SSE events) is a separate future question.
+5. The agent directory gains a "key fingerprint at approval time" field (trust-on-first-use): if a peer's JWKS returns entirely different keys with no rotation overlap, the entry drops back to discovered and requires re-approval. The agent entity schema change is in scope for this plan (phase 4).
 
 ## Verification
 
@@ -258,6 +260,7 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 
 ## Related
 
+- [identity-and-trust.md](./identity-and-trust.md) — the positioning doc this plan executes a slice of; settles domain-as-identity, key custody, and the shared trust-establishment flow
 - `shell/auth-service` — existing OAuth/JWKS foundation that this plan extends
-- `docs/plans/multi-user.md` — depends on this plan for cross-interface identity
+- `docs/plans/multi-user.md` — depends on this plan for cross-interface identity linking (a follow-on; multi-user phases 1–3 proceed independently)
 - `entities/agent-discovery` — saved-agent allowlist semantics this plan plugs into
