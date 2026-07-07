@@ -6,6 +6,7 @@
     "erasableSyntaxOnly": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "isolatedDeclarations": true,
     "isolatedModules": true,
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
