@@ -708,12 +708,7 @@ describe("StreamableHTTPServer", () => {
             message: "Unauthorized: Bearer token required",
           },
         });
-        expect(response.headers["www-authenticate"]).toContain(
-          'resource_metadata="http://localhost:',
-        );
-        expect(response.headers["www-authenticate"]).toContain(
-          '/.well-known/oauth-protected-resource"',
-        );
+        expect(response.headers["www-authenticate"]).toContain('realm="mcp"');
         expect(mockLogger.warn).toHaveBeenCalledWith(
           expect.stringContaining(
             "Authentication failed: Missing Bearer token",
@@ -721,22 +716,27 @@ describe("StreamableHTTPServer", () => {
         );
       });
 
-      test("should use forwarded origin in OAuth resource metadata challenge", async () => {
-        const response = await makeRequest("POST", "/mcp", {
+      test("should not advertise the OAuth flow it cannot accept", async () => {
+        // Static-token mode rejects OAuth-issued JWTs, so the challenge must
+        // not point clients at the OAuth resource metadata — that lures them
+        // through a full auth ceremony that always ends in 401.
+        const missingAuth = await makeRequest("POST", "/mcp", {
           port,
-          headers: {
-            Host: "docs.rizom.ai",
-            "X-Forwarded-Proto": "https",
-          },
           body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
         });
-
-        expect(response.status).toBe(401);
-        expect(response.headers["www-authenticate"]).toContain(
-          'resource_metadata="https://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        expect(missingAuth.status).toBe(401);
+        expect(missingAuth.headers["www-authenticate"]).not.toContain(
+          "resource_metadata",
         );
-        expect(response.headers["www-authenticate"]).not.toContain(
-          'resource_metadata="http://docs.rizom.ai/.well-known/oauth-protected-resource"',
+
+        const wrongToken = await makeRequest("POST", "/mcp", {
+          port,
+          headers: { Authorization: "Bearer an-oauth-jwt-not-the-token" },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+        expect(wrongToken.status).toBe(401);
+        expect(wrongToken.headers["www-authenticate"]).not.toContain(
+          "resource_metadata",
         );
       });
 
@@ -863,6 +863,40 @@ describe("StreamableHTTPServer", () => {
             message: "Unauthorized: Invalid token",
           },
         });
+      });
+
+      test("should advertise OAuth resource metadata in the challenge", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.headers["www-authenticate"]).toContain(
+          'resource_metadata="http://localhost:',
+        );
+        expect(response.headers["www-authenticate"]).toContain(
+          '/.well-known/oauth-protected-resource"',
+        );
+      });
+
+      test("should use forwarded origin in OAuth resource metadata challenge", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Host: "docs.rizom.ai",
+            "X-Forwarded-Proto": "https",
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.headers["www-authenticate"]).toContain(
+          'resource_metadata="https://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        );
+        expect(response.headers["www-authenticate"]).not.toContain(
+          'resource_metadata="http://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        );
       });
 
       test("should reject OAuth bearer tokens without the mcp scope", async () => {
