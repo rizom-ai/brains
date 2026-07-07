@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Work started on `feat/mcp-external-redesign`. The MCP command path is implemented through `chat`/`confirm`, the protocol server now defaults to `basic` mode (read-only tools plus `chat`/`confirm`), and `debug` preserves raw-tool exposure for authenticated/local anchor use. MCP confirmations resolve through `agent.confirmPendingAction`, and the response adapter surfaces `toolResults` plus read-your-writes handles. The stale `/api/chat` assumption has been refreshed: `/api/chat` is outside MCP scope and belongs to web-chat / remote-agent follow-up if needed.
+Implemented on `feat/mcp-external-redesign`. The MCP command path runs through `chat`/`confirm`, the protocol server defaults to `basic` mode (read-only tools plus `chat`/`confirm`), and `debug` preserves raw-tool exposure for authenticated/local anchor use. MCP confirmations resolve through `agent.confirmPendingAction`, and the response adapter surfaces `toolResults` plus read-your-writes handles. The stale `/api/chat` assumption has been refreshed: `/api/chat` is outside MCP scope and belongs to web-chat / remote-agent follow-up if needed.
 
 ## Background
 
