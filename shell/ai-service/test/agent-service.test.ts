@@ -68,9 +68,13 @@ function createUploadAttachmentResolver(
 }
 
 function getConversationActors(service: AgentService): Map<unknown, unknown> {
-  const actors = Reflect.get(service, "conversationActors");
+  const registry = Reflect.get(service, "conversationActors");
+  if (typeof registry !== "object" || registry === null) {
+    throw new Error("Expected conversationActors to be a registry");
+  }
+  const actors = Reflect.get(registry, "actors");
   if (!(actors instanceof Map)) {
-    throw new Error("Expected conversationActors to be a Map");
+    throw new Error("Expected registry actors to be a Map");
   }
   return actors;
 }

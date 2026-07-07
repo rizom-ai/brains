@@ -14,6 +14,7 @@ import { sql, and, desc, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
 
 export const MAX_SEARCH_QUERY_CHARS = 12_000;
+const MAX_VECTOR_DISTANCE = 0.82;
 
 export function prepareSearchQuery(
   query: string,
@@ -45,6 +46,7 @@ const searchOptionsSchema = z.object({
   weight: z.record(z.string(), z.number()).optional(),
   visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
   includeUngenerated: z.boolean().optional().default(false),
+  minScore: z.number().min(0).optional(),
 });
 
 const entityMetadataSchema = z.preprocess(
@@ -93,6 +95,7 @@ export class EntitySearch {
       weight,
       visibilityScope,
       includeUngenerated,
+      minScore,
     } = validatedOptions;
 
     // Check if we have weights to apply
@@ -144,6 +147,7 @@ export class EntitySearch {
       limit,
       offset,
       preparedQuery,
+      minScore,
     );
   }
 
@@ -203,6 +207,7 @@ export class EntitySearch {
     limit: number,
     offset: number,
     query: string,
+    minScore: number | undefined,
   ): Promise<SearchResult<T>[]> {
     const alpha = EntitySearch.FTS_ALPHA;
 
@@ -240,7 +245,15 @@ export class EntitySearch {
         sql`emb.embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
       )
-      .where(and(sql`${distanceExpr} < 0.82`, ...typeConditions))
+      .where(
+        and(
+          sql`${distanceExpr} < ${MAX_VECTOR_DISTANCE}`,
+          ...(minScore !== undefined
+            ? [sql`${combinedScore} >= ${minScore}`]
+            : []),
+          ...typeConditions,
+        ),
+      )
       .orderBy(desc(combinedScore))
       .limit(limit)
       .offset(offset);

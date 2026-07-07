@@ -27,31 +27,56 @@ import type {
   ToolResponse,
 } from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
-import { createPrefixedId } from "@brains/utils/id";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
-import { createActor, createMachine } from "xstate";
 import packageJson from "../package.json";
 import {
+  getBlockedTransitions,
+  getState,
+  getValidTransitions,
+} from "./lib/run-machine";
+import {
+  buildInstructions,
+  buildStateGuidance,
+  renderAgentContextItem,
+} from "./lib/render";
+import {
+  LifecycleStarterRegistry,
+  lifecycleConfigSchema,
+  type LifecyclePlaybookConfig,
+  type LifecycleStarterRegistrationResponse,
+  type LifecycleStartersResponse,
+} from "./lib/lifecycle-starters";
+
+import {
+  RunEngine,
+  appendUnique,
+  errorMessage,
+  type GoalCheck,
+  type GoalCheckInput,
+  type GoalCheckResult,
+} from "./lib/run-engine";
+
+export type {
+  LifecyclePlaybookConfig,
+  LifecycleStarterRegistrationResponse,
+  LifecycleStartersResponse,
+  PlaybookStarter,
+} from "./lib/lifecycle-starters";
+export type {
+  GoalCheck,
+  GoalCheckInput,
+  GoalCheckResult,
+} from "./lib/run-engine";
+import {
   PlaybookRunStore,
-  createPlaybookRun,
   playbookRunEvidenceSchema,
   playbookRunSchema,
-  type PlaybookGateVerdict,
   type PlaybookRun,
   type PlaybookRunEvidence,
 } from "./run-store";
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
-
-export interface LifecyclePlaybookConfig {
-  trigger: string;
-  playbookId: string;
-  once: boolean;
-  starterText: string;
-  description?: string | undefined;
-  starterPrompt: string;
-}
 
 export interface LifecyclePlaybookConfigInput {
   trigger: string;
@@ -97,20 +122,6 @@ export interface PlaybookEntity extends Record<string, unknown> {
   content: string;
   metadata: PlaybookEntityMetadata;
 }
-
-const lifecycleConfigSchema: z.ZodType<
-  LifecyclePlaybookConfig,
-  LifecyclePlaybookConfigInput
-> = z
-  .object({
-    trigger: z.string().min(1),
-    playbookId: z.string().min(1),
-    once: z.boolean().default(true),
-    starterText: z.string().min(1),
-    description: z.string().min(1).optional(),
-    starterPrompt: z.string().min(1),
-  })
-  .strict();
 
 const playbooksConfigSchema: z.ZodType<PlaybooksConfig, PlaybooksConfigInput> =
   z
@@ -177,15 +188,6 @@ export interface ParsedPlaybook {
   version: string;
 }
 
-export interface PlaybookStarter {
-  id: string;
-  title: string;
-  description?: string | undefined;
-  playbookId: string;
-  lifecycle: string;
-  starterPrompt: string;
-}
-
 export interface PlaybookStatusResponse {
   runs: PlaybookRun[];
   activeRun?: PlaybookRun | undefined;
@@ -198,29 +200,6 @@ export interface PlaybookStatusResponse {
   guidance?: string | undefined;
   cards?: ActionsCard[] | undefined;
   lifecycle: Record<string, LifecyclePlaybookConfig>;
-}
-
-export interface LifecycleStartersResponse {
-  starters: PlaybookStarter[];
-}
-
-export interface LifecycleStarterRegistrationResponse {
-  registered: boolean;
-  id: string;
-  ignored?: boolean | undefined;
-  reason?: string | undefined;
-}
-
-export interface GoalCheckInput {
-  run: PlaybookRun;
-  state: PlaybookState;
-  goal: string[];
-  evidence: PlaybookRunEvidence[];
-}
-
-export interface GoalCheckResult {
-  met: boolean;
-  reason: string;
 }
 
 const goalCheckResultSchema = z
@@ -261,10 +240,6 @@ const goalCheckInputSchema = z
   })
   .strict();
 
-export interface GoalCheck {
-  evaluate(input: GoalCheckInput): Promise<GoalCheckResult>;
-}
-
 export interface PlaybooksPluginDeps {
   goalCheck?: GoalCheck | undefined;
 }
@@ -279,10 +254,8 @@ export class PlaybooksPlugin extends ServicePlugin<
   private readonly injectedGoalCheck: GoalCheck | undefined;
   private readonly startLocks = new Map<string, Promise<ToolResponse>>();
   private readonly runLocks = new Map<string, Promise<void>>();
-  private readonly registeredLifecycleStarters = new Map<
-    string,
-    { source: string; config: LifecyclePlaybookConfig }
-  >();
+  private lifecycleStarters!: LifecycleStarterRegistry;
+  private runs!: RunEngine;
 
   constructor(
     config: PlaybooksConfigInput = {},
@@ -300,8 +273,28 @@ export class PlaybooksPlugin extends ServicePlugin<
     this.ctx = context;
     this.store = new PlaybookRunStore(context.runtimeState);
     this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
+    this.runs = new RunEngine({
+      store: this.store,
+      goalCheck: this.goalCheck,
+      getPlaybook: (playbookId): Promise<ParsedPlaybook | undefined> =>
+        this.getPlaybook(playbookId),
+      withRunLock: <T>(
+        runId: string,
+        operation: () => Promise<T>,
+      ): Promise<T> => this.withRunLock(runId, operation),
+    });
+    this.lifecycleStarters = new LifecycleStarterRegistry({
+      logger: this.logger,
+      configuredLifecycle: this.config.lifecycle,
+      triggers: this.config.triggers,
+      findRunByLifecycle: (lifecycle): Promise<PlaybookRun | undefined> =>
+        this.store.findByLifecycle(lifecycle),
+      getPlaybook: (playbookId): Promise<ParsedPlaybook | undefined> =>
+        this.getPlaybook(playbookId),
+      listPlaybooks: (): Promise<ParsedPlaybook[]> => this.listPlaybooks(),
+    });
 
-    context.registerInstructions(this.buildInstructions());
+    context.registerInstructions(buildInstructions(this.config.lifecycle));
     context.eval.registerHandler("goalCheck", async (input: unknown) =>
       this.goalCheck.evaluate(goalCheckInputSchema.parse(input)),
     );
@@ -311,7 +304,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       LifecycleStartersResponse
     >(PLAYBOOKS_LIFECYCLE_STARTERS, async (message) => {
       const input = lifecycleStartersRequestSchema.parse(message.payload);
-      const starters = await this.resolveLifecycleStarters(input);
+      const starters = await this.lifecycleStarters.resolveStarters(input);
       return { success: true, data: { starters } };
     });
 
@@ -322,7 +315,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       const registration = lifecycleStarterRegistrationSchema.parse(
         message.payload,
       );
-      const result = this.registerLifecycleStarter(
+      const result = this.lifecycleStarters.register(
         registration,
         message.source,
       );
@@ -353,14 +346,20 @@ export class PlaybooksPlugin extends ServicePlugin<
       "entity:created",
       async (message) => ({
         success: true,
-        data: await this.recordEntityEventEvidence("created", message.payload),
+        data: await this.runs.recordEntityEventEvidence(
+          "created",
+          message.payload,
+        ),
       }),
     );
     context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
       "entity:updated",
       async (message) => ({
         success: true,
-        data: await this.recordEntityEventEvidence("updated", message.payload),
+        data: await this.runs.recordEntityEventEvidence(
+          "updated",
+          message.payload,
+        ),
       }),
     );
   }
@@ -429,7 +428,7 @@ export class PlaybooksPlugin extends ServicePlugin<
                       : { startedAt: new Date().toISOString() }),
                   });
                 })
-              : await this.createStartedRun({
+              : await this.runs.createStartedRun({
                   playbookId: parsed.playbookId,
                   playbookVersion: playbook.version,
                   body: playbook.body,
@@ -600,11 +599,11 @@ export class PlaybooksPlugin extends ServicePlugin<
         error: `Playbook definition changed for '${run.playbookId}'. Run version ${run.playbookVersion} does not match current version ${playbook.version}.`,
       };
     }
-    const sourceState = this.getState(playbook.body, run.currentState);
+    const sourceState = getState(playbook.body, run.currentState);
     const selectedTransition = sourceState?.transitions.find(
       (transition) => transition.event === event,
     );
-    const result = await this.transitionRun(run, playbook.body, event);
+    const result = await this.runs.transitionRun(run, playbook.body, event);
     if (!result.success) {
       if (result.gateVerdicts) {
         await this.store.upsert({
@@ -638,345 +637,6 @@ export class PlaybooksPlugin extends ServicePlugin<
         sourceState && selectedTransition?.operatorAction === true
           ? withOperatorActionGuidance(data, sourceState, selectedTransition)
           : data,
-    };
-  }
-
-  private async createStartedRun(input: {
-    playbookId: string;
-    playbookVersion: string;
-    body: PlaybookBody;
-    lifecycle?: string | undefined;
-    conversationId?: string | undefined;
-  }): Promise<PlaybookRun> {
-    return this.store.upsert(
-      createPlaybookRun({
-        playbookId: input.playbookId,
-        playbookVersion: input.playbookVersion,
-        initialState: input.body.initialState,
-        lifecycle: input.lifecycle,
-        conversationId: input.conversationId,
-      }),
-    );
-  }
-
-  private async transitionRun(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    event: string,
-  ): Promise<
-    | {
-        success: true;
-        currentState: string;
-        gateVerdicts: PlaybookGateVerdict[];
-      }
-    | { success: false; error: string; gateVerdicts?: PlaybookGateVerdict[] }
-  > {
-    const state = this.getState(body, run.currentState);
-    if (!state) {
-      return {
-        success: false,
-        error: `Playbook state not found: ${run.currentState}`,
-      };
-    }
-
-    const gateResult = await this.prepareGateVerdicts(run, state, event);
-    if (!gateResult.success) return gateResult;
-
-    const candidateRun: PlaybookRun = {
-      ...run,
-      gateVerdicts: gateResult.gateVerdicts,
-    };
-    const actor = this.createRunActor(body, candidateRun);
-    actor.start();
-    const snapshot = actor.getSnapshot();
-    const eventObject = { type: event };
-    if (!snapshot.can(eventObject)) {
-      actor.stop();
-      return {
-        success: false,
-        error: `Invalid playbook event '${event}' from state '${run.currentState}'.`,
-        gateVerdicts: gateResult.gateVerdicts,
-      };
-    }
-
-    actor.send(eventObject);
-    const nextState = String(actor.getSnapshot().value);
-    actor.stop();
-    const expectedTarget = state.transitions.find(
-      (transition) => transition.event === event,
-    )?.target;
-    if (expectedTarget && nextState !== expectedTarget) {
-      return {
-        success: false,
-        error: `Playbook event '${event}' is blocked from state '${run.currentState}'. Complete the state's Done When conditions before sending this event.`,
-        gateVerdicts: gateResult.gateVerdicts,
-      };
-    }
-    return {
-      success: true,
-      currentState: nextState,
-      gateVerdicts: gateResult.gateVerdicts,
-    };
-  }
-
-  /**
-   * The run's currentState is the single source of truth for machine state;
-   * the actor is rehydrated from it on every call. Legacy persisted snapshots
-   * are ignored entirely (they could be corrupt or disagree with currentState).
-   */
-  private createRunActor(
-    body: PlaybookBody,
-    run: PlaybookRun,
-  ): ReturnType<typeof createActor> {
-    const machine = this.buildMachine(run.playbookId, body, run);
-    return createActor(machine, {
-      snapshot: machine.resolveState({ value: run.currentState }),
-    });
-  }
-
-  private async prepareGateVerdicts(
-    run: PlaybookRun,
-    state: PlaybookState,
-    event: string,
-  ): Promise<
-    | { success: true; gateVerdicts: PlaybookGateVerdict[] }
-    | { success: false; error: string }
-  > {
-    if (!this.transitionRequiresGateVerdict(state, event)) {
-      return { success: true, gateVerdicts: run.gateVerdicts };
-    }
-    if (this.hasSatisfiedGateVerdicts(state, run)) {
-      return { success: true, gateVerdicts: run.gateVerdicts };
-    }
-
-    const evidence = this.evidenceForState(run, state.id);
-    let result: GoalCheckResult;
-    try {
-      result = await this.goalCheck.evaluate({
-        run,
-        state,
-        goal: state.doneWhen,
-        evidence,
-      });
-    } catch (error) {
-      result = {
-        met: false,
-        reason: `Playbook goal check failed: ${errorMessage(error)}`,
-      };
-    }
-
-    const gateVerdict: PlaybookGateVerdict = {
-      stateId: state.id,
-      goal: state.doneWhen,
-      met: result.met,
-      reason: result.reason,
-      evaluatedAt: new Date().toISOString(),
-    };
-    const nextVerdicts = upsertGateVerdicts(run.gateVerdicts, [gateVerdict]);
-    return { success: true, gateVerdicts: nextVerdicts };
-  }
-
-  private evidenceForState(
-    run: PlaybookRun,
-    stateId: string,
-  ): PlaybookRunEvidence[] {
-    return run.evidence.filter(
-      (evidence) => !evidence.stateId || evidence.stateId === stateId,
-    );
-  }
-
-  private buildMachine(
-    playbookId: string,
-    body: PlaybookBody,
-    run: PlaybookRun,
-  ): ReturnType<typeof createMachine> {
-    return createMachine({
-      id: playbookId,
-      initial: body.initialState,
-      states: Object.fromEntries(
-        body.states.map((state) => {
-          const isFinal = body.finalStates.includes(state.id);
-          return [
-            state.id,
-            {
-              ...(isFinal ? { type: "final" as const } : {}),
-              ...(isFinal
-                ? {}
-                : {
-                    on: Object.fromEntries(
-                      state.transitions.map((transition) => [
-                        transition.event,
-                        {
-                          target: transition.target,
-                          ...(this.transitionRequiresGateVerdict(
-                            state,
-                            transition.event,
-                          )
-                            ? {
-                                guard: (): boolean =>
-                                  this.hasSatisfiedGateVerdicts(state, run),
-                              }
-                            : {}),
-                        },
-                      ]),
-                    ),
-                  }),
-            },
-          ];
-        }),
-      ),
-    });
-  }
-
-  private async resolveLifecycleStarters(input: {
-    lifecycle?: string | undefined;
-    interfaceType: string;
-    userPermissionLevel: "anchor" | "trusted" | "public";
-  }): Promise<PlaybookStarter[]> {
-    if (
-      input.interfaceType !== "web-chat" ||
-      input.userPermissionLevel !== "anchor"
-    ) {
-      return [];
-    }
-
-    const starters: PlaybookStarter[] = [];
-    const seenLifecycleIds = new Set<string>();
-
-    const entries = Object.entries(this.config.lifecycle).filter(
-      ([id]) => !input.lifecycle || id === input.lifecycle,
-    );
-
-    for (const [id, lifecycle] of entries) {
-      const starter = await this.resolveConfiguredLifecycleStarter(
-        id,
-        lifecycle,
-      );
-      if (!starter) continue;
-      starters.push(starter);
-      seenLifecycleIds.add(id);
-    }
-
-    for (const [id, registration] of this.registeredLifecycleStarters) {
-      if (input.lifecycle && id !== input.lifecycle) continue;
-      if (seenLifecycleIds.has(id)) continue;
-      const starter = await this.resolveConfiguredLifecycleStarter(
-        id,
-        registration.config,
-      );
-      if (!starter) continue;
-      starters.push(starter);
-      seenLifecycleIds.add(id);
-    }
-
-    const enabledTriggers = new Set(
-      Object.entries(this.config.triggers)
-        .filter(([, enabled]) => enabled)
-        .map(([trigger]) => trigger),
-    );
-    if (enabledTriggers.size === 0) return starters;
-
-    for (const playbook of await this.listPlaybooks()) {
-      const metadata = playbook.entity.metadata;
-      if (metadata.status !== "active" || metadata.audience !== "anchor") {
-        continue;
-      }
-      const trigger = metadata.trigger;
-      if (!trigger || !enabledTriggers.has(trigger)) continue;
-      const lifecycle = metadata.lifecycle ?? playbook.entity.id;
-      if (seenLifecycleIds.has(lifecycle)) continue;
-      if (input.lifecycle && lifecycle !== input.lifecycle) continue;
-
-      const existingRun = await this.store.findByLifecycle(lifecycle);
-      if (
-        (metadata.once ?? true) &&
-        (existingRun?.status === "completed" ||
-          existingRun?.status === "dismissed")
-      ) {
-        continue;
-      }
-
-      starters.push({
-        id: lifecycle,
-        title: metadata.starterText ?? metadata.title,
-        ...((metadata.description ?? playbook.body.purpose)
-          ? { description: metadata.description ?? playbook.body.purpose }
-          : {}),
-        playbookId: playbook.entity.id,
-        lifecycle,
-        starterPrompt:
-          metadata.starterPrompt ?? `Start the ${metadata.title} playbook.`,
-      });
-      seenLifecycleIds.add(lifecycle);
-    }
-
-    return starters;
-  }
-
-  private registerLifecycleStarter(
-    registration: LifecycleStarterRegistration,
-    source: string,
-  ): LifecycleStarterRegistrationResponse {
-    const existing = this.registeredLifecycleStarters.get(registration.id);
-    const config = lifecycleConfigSchema.parse({
-      trigger: registration.trigger,
-      playbookId: registration.playbookId,
-      once: registration.once,
-      starterText: registration.starterText,
-      ...(registration.description
-        ? { description: registration.description }
-        : {}),
-      starterPrompt: registration.starterPrompt,
-    });
-
-    if (existing) {
-      if (
-        existing.source === source &&
-        sameLifecycleConfig(existing.config, config)
-      ) {
-        return { registered: true, id: registration.id };
-      }
-
-      this.logger.warn("Ignoring conflicting playbook lifecycle starter", {
-        id: registration.id,
-        source,
-        existingSource: existing.source,
-      });
-      return {
-        registered: false,
-        id: registration.id,
-        ignored: true,
-        reason: `Lifecycle starter '${registration.id}' is already registered by '${existing.source}'.`,
-      };
-    }
-
-    this.registeredLifecycleStarters.set(registration.id, { source, config });
-    return { registered: true, id: registration.id };
-  }
-
-  private async resolveConfiguredLifecycleStarter(
-    id: string,
-    lifecycle: LifecyclePlaybookConfig,
-  ): Promise<PlaybookStarter | undefined> {
-    const existingRun = await this.store.findByLifecycle(id);
-    if (
-      lifecycle.once &&
-      (existingRun?.status === "completed" ||
-        existingRun?.status === "dismissed")
-    ) {
-      return undefined;
-    }
-
-    const playbook = await this.getPlaybook(lifecycle.playbookId);
-    if (playbook?.entity.metadata.status !== "active") return undefined;
-
-    return {
-      id,
-      title: lifecycle.starterText,
-      ...(lifecycle.description ? { description: lifecycle.description } : {}),
-      playbookId: lifecycle.playbookId,
-      lifecycle: id,
-      starterPrompt: lifecycle.starterPrompt,
     };
   }
 
@@ -1042,11 +702,11 @@ export class PlaybooksPlugin extends ServicePlugin<
       : undefined;
     const currentState =
       parsedPlaybook && activeRun
-        ? this.getState(parsedPlaybook.body, activeRun.currentState)
+        ? getState(parsedPlaybook.body, activeRun.currentState)
         : undefined;
     const allValidTransitions =
       currentState && activeRun && parsedPlaybook
-        ? this.getValidTransitions(activeRun, parsedPlaybook.body, currentState)
+        ? getValidTransitions(activeRun, parsedPlaybook.body, currentState)
         : (currentState?.transitions ?? []);
     const validEvents = allValidTransitions.filter(
       (transition) => transition.operatorAction !== true,
@@ -1056,15 +716,11 @@ export class PlaybooksPlugin extends ServicePlugin<
     );
     const blockedEvents =
       currentState && activeRun && parsedPlaybook
-        ? this.getBlockedTransitions(
-            activeRun,
-            parsedPlaybook.body,
-            currentState,
-          )
+        ? getBlockedTransitions(activeRun, parsedPlaybook.body, currentState)
         : [];
     const guidance =
       currentState && activeRun && parsedPlaybook
-        ? this.buildStateGuidance(activeRun, parsedPlaybook.body, currentState)
+        ? buildStateGuidance(activeRun, parsedPlaybook.body, currentState)
         : undefined;
 
     const actionsCard =
@@ -1157,169 +813,6 @@ export class PlaybooksPlugin extends ServicePlugin<
     return undefined;
   }
 
-  private buildStateGuidance(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    state: PlaybookState,
-  ): string {
-    const allValidTransitions = this.getValidTransitions(run, body, state);
-    const validTransitions = allValidTransitions.filter(
-      (transition) => transition.operatorAction !== true,
-    );
-    const operatorActions = allValidTransitions.filter(
-      (transition) => transition.operatorAction === true,
-    );
-    const blockedTransitions = this.getBlockedTransitions(run, body, state);
-    const verdict = run.gateVerdicts.find(
-      (candidate) =>
-        candidate.stateId === state.id &&
-        sameGoal(candidate.goal, state.doneWhen),
-    );
-    return [
-      `Current state: ${state.id} (${state.title})`,
-      "Instructions:",
-      ...state.instructions.map((instruction) => `- ${instruction}`),
-      "Done When:",
-      ...(state.doneWhen.length > 0
-        ? state.doneWhen.map((condition) => `- ${condition}`)
-        : ["- none"]),
-      "Goal status:",
-      verdict
-        ? `- ${verdict.met ? "Met" : "Not yet met"}: ${verdict.reason}`
-        : "- Not checked yet.",
-      "Current-state information rules:",
-      "- If this state asks the operator for information, ask the operator for the missing current-run information.",
-      "- If the current operator message partially answers the state's prompt, do not repeat the original prompt; ask only for the next missing detail required by the state instructions.",
-      "- Do not answer the state's operator-facing prompt from memory, existing durable records, profile data, search, or retrieval tools.",
-      "- Setup facts must come from current-run evidence or current operator input, not ambient records.",
-      "Event selection rules:",
-      "- Blocked events are not valid events; do not call playbook_send_event with a blocked event.",
-      "- For gated durable states, operator-provided details are not enough to send NEXT; first complete the required system_create/system_update/system_delete action or use existing current-run evidence that the Done When condition has already been met.",
-      "- If the operator explicitly says they have not chosen, selected, asked for, or used one of the available actions, do not send any event.",
-      '- Operator actions and choices are not generic continuation events; even if only one operator action is available, generic continuation like "yes", "next", or "continue" is not a valid selection.',
-      "- If multiple events are available, ask the operator to pick one labeled action.",
-      "- A Skip-style operator action is never a default continuation; send it only when the operator positively selects or asks to skip.",
-      "Valid continuation events:",
-      ...(validTransitions.length > 0
-        ? validTransitions.map((transition) =>
-            this.formatTransition(transition),
-          )
-        : ["- none"]),
-      "Available operator actions:",
-      ...(operatorActions.length > 0
-        ? operatorActions.map((transition) => this.formatTransition(transition))
-        : ["- none"]),
-      "Blocked events:",
-      ...(blockedTransitions.length > 0
-        ? blockedTransitions.map((transition) =>
-            this.formatTransition(transition),
-          )
-        : ["- none"]),
-    ].join("\n");
-  }
-
-  private async recordEntityEventEvidence(
-    operation: "created" | "updated",
-    payload: Record<string, unknown>,
-  ): Promise<{ recorded: boolean }> {
-    const entityType = stringFromPayload(payload, "entityType");
-    const entityId = stringFromPayload(payload, "entityId");
-    if (!entityType || !entityId) return { recorded: false };
-
-    const explicitRunId = stringFromPayload(payload, "runId");
-    const conversationId = stringFromPayload(payload, "conversationId");
-    const run = explicitRunId
-      ? await this.store.findById(explicitRunId)
-      : conversationId
-        ? await this.store.findActiveByConversation(conversationId)
-        : undefined;
-    if (run?.status !== "active") return { recorded: false };
-
-    const evidence: PlaybookRunEvidence = {
-      id: createPrefixedId("playbook_evidence"),
-      kind: "entity_event",
-      stateId: run.currentState,
-      observedAt: new Date().toISOString(),
-      data: {
-        entityType,
-        entityId,
-        operation,
-        ...entityEvidenceDetails(payload),
-        ...(conversationId ? { conversationId } : {}),
-        ...(stringFromPayload(payload, "toolCallId")
-          ? { toolCallId: stringFromPayload(payload, "toolCallId") }
-          : {}),
-      },
-    };
-    const updatedRun = await this.store.appendEvidence(run.id, evidence);
-    await this.evaluateGateAfterEvidence(updatedRun.id);
-    return { recorded: true };
-  }
-
-  private async evaluateGateAfterEvidence(runId: string): Promise<void> {
-    await this.withRunLock(runId, () =>
-      this.evaluateGateAfterEvidenceLocked(runId),
-    );
-  }
-
-  private async evaluateGateAfterEvidenceLocked(runId: string): Promise<void> {
-    const run = await this.store.findById(runId);
-    if (run?.status !== "active") return;
-    if (this.hasSatisfiedGateForCurrentState(run)) return;
-    const playbook = await this.getPlaybook(run.playbookId);
-    if (run.playbookVersion !== playbook?.version) return;
-    const state = this.getState(playbook.body, run.currentState);
-    if (!state?.doneWhen.length) return;
-    const nextTransitions = state.transitions.filter(
-      (transition) => transition.event === "NEXT",
-    );
-    if (nextTransitions.length !== 1) return;
-
-    const result = await this.prepareGateVerdicts(run, state, "NEXT");
-    if (!result.success) return;
-
-    const candidateRun = { ...run, gateVerdicts: result.gateVerdicts };
-    if (!this.hasSatisfiedGateVerdicts(state, candidateRun)) {
-      await this.store.upsert(candidateRun);
-      return;
-    }
-
-    const transitioned = await this.transitionRun(
-      candidateRun,
-      playbook.body,
-      "NEXT",
-    );
-    if (!transitioned.success) {
-      await this.store.upsert(candidateRun);
-      return;
-    }
-
-    const reachedFinalState = playbook.body.finalStates.includes(
-      transitioned.currentState,
-    );
-    await this.store.upsert({
-      ...candidateRun,
-      currentState: transitioned.currentState,
-      completedStates: appendUnique(
-        candidateRun.completedStates,
-        candidateRun.currentState,
-      ),
-      gateVerdicts: transitioned.gateVerdicts,
-      ...(reachedFinalState
-        ? {
-            status: "completed" as const,
-            completedAt: new Date().toISOString(),
-          }
-        : {}),
-    });
-  }
-
-  private hasSatisfiedGateForCurrentState(run: PlaybookRun): boolean {
-    return run.gateVerdicts.some(
-      (verdict) => verdict.stateId === run.currentState && verdict.met,
-    );
-  }
-
   private async getPlaybook(
     playbookId: string,
   ): Promise<ParsedPlaybook | undefined> {
@@ -1394,95 +887,6 @@ export class PlaybooksPlugin extends ServicePlugin<
     return run;
   }
 
-  private transitionRequiresGateVerdict(
-    state: PlaybookState,
-    event: string,
-  ): boolean {
-    return event === "NEXT" && state.doneWhen.length > 0;
-  }
-
-  private hasSatisfiedGateVerdicts(
-    state: PlaybookState,
-    run: PlaybookRun,
-  ): boolean {
-    return run.gateVerdicts.some(
-      (verdict) =>
-        verdict.stateId === state.id &&
-        sameGoal(verdict.goal, state.doneWhen) &&
-        verdict.met,
-    );
-  }
-
-  private getValidTransitions(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    state: PlaybookState,
-  ): PlaybookTransition[] {
-    return state.transitions.filter((transition) =>
-      this.canTransition(run, body, transition.event),
-    );
-  }
-
-  private getBlockedTransitions(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    state: PlaybookState,
-  ): PlaybookTransition[] {
-    const validKeys = new Set(
-      this.getValidTransitions(run, body, state).map(
-        (transition) => `${transition.event}\u0000${transition.target}`,
-      ),
-    );
-    return state.transitions.filter(
-      (transition) =>
-        !validKeys.has(`${transition.event}\u0000${transition.target}`),
-    );
-  }
-
-  private canTransition(
-    run: PlaybookRun,
-    body: PlaybookBody,
-    event: string,
-  ): boolean {
-    const actor = this.createRunActor(body, run);
-    actor.start();
-    const canTransition = actor.getSnapshot().can({ type: event });
-    actor.stop();
-    return canTransition;
-  }
-
-  private formatTransition(transition: PlaybookTransition): string {
-    const description =
-      transition.operatorDescription ??
-      transition.description ??
-      transition.label;
-    return description
-      ? `- ${transition.event} -> ${transition.target}: ${description}`
-      : `- ${transition.event} -> ${transition.target}`;
-  }
-
-  private getState(
-    body: PlaybookBody,
-    stateId: string,
-  ): PlaybookState | undefined {
-    return body.states.find((state) => state.id === stateId);
-  }
-
-  private formatVerifierStatus(run: PlaybookRun, state: PlaybookState): string {
-    if (state.doneWhen.length === 0) return "- no gated Done When conditions";
-    const verdict = run.gateVerdicts.find(
-      (candidate) =>
-        candidate.stateId === state.id &&
-        sameGoal(candidate.goal, state.doneWhen),
-    );
-    if (!verdict) {
-      return `- Not yet met: ${state.doneWhen.join("; ")}`;
-    }
-    return verdict.met
-      ? `- Met: ${verdict.reason}`
-      : `- Not yet met: ${verdict.reason}`;
-  }
-
   private async buildAgentContextItem(
     conversationId: string,
   ): Promise<AgentContextItem | undefined> {
@@ -1490,132 +894,15 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (!run) return undefined;
     const playbook = await this.getPlaybook(run.playbookId);
     if (!playbook) return undefined;
-    const state = this.getState(playbook.body, run.currentState);
+    const state = getState(playbook.body, run.currentState);
     if (!state) return undefined;
 
-    const allValidTransitions = this.getValidTransitions(
+    return renderAgentContextItem({
       run,
-      playbook.body,
+      body: playbook.body,
       state,
-    );
-    const validTransitions = allValidTransitions.filter(
-      (transition) => transition.operatorAction !== true,
-    );
-    const operatorActions = allValidTransitions.filter(
-      (transition) => transition.operatorAction === true,
-    );
-    const validTransitionKeys = new Set(
-      allValidTransitions.map(
-        (transition) => `${transition.event}\u0000${transition.target}`,
-      ),
-    );
-    const blockedTransitions = state.transitions.filter(
-      (transition) =>
-        !validTransitionKeys.has(
-          `${transition.event}\u0000${transition.target}`,
-        ),
-    );
-    const validEvents = validTransitions
-      .map((transition) => this.formatTransition(transition))
-      .join("\n");
-    const operatorActionEvents = operatorActions
-      .map((transition) => this.formatTransition(transition))
-      .join("\n");
-    const blockedEvents = blockedTransitions
-      .map((transition) => this.formatTransition(transition))
-      .join("\n");
-    const doneWhen = state.doneWhen
-      .map((condition) => `- ${condition}`)
-      .join("\n");
-    const completedStates = run.completedStates
-      .map((stateId) => `- ${stateId}`)
-      .join("\n");
-    const requiredDetails = state.requiredDetails
-      .map((detail) => `- ${detail}`)
-      .join("\n");
-    const goalStatus = this.formatVerifierStatus(run, state);
-
-    return {
-      id: run.id,
-      source: "active-playbook",
-      title: `${playbook.entity.metadata.title} — state: ${state.title}`,
-      content: `Current playbook: ${playbook.entity.metadata.title}
-Run ID: ${run.id}
-Current state title: ${state.title}
-Current state id (tool use only): ${state.id}
-${state.prompt ? `Operator-facing prompt: ${state.prompt}\n` : ""}
-For current-conversation playbook tools, omit runId and let the runtime infer the active run; only include runId when a tool explicitly asks after an ambiguity error.
-When you call playbook_send_event, pass fromState set to the current state id shown above; if the run has advanced past that state in the meantime, the event is rejected as stale instead of being applied to the wrong state.
-Treat this current state as the source of truth. Do not redo completed states or ask for evidence already captured; ask only for what is missing in the current state.
-Do not mention raw playbook state IDs to the operator; use the state title or natural-language task description instead.
-Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat; describe the task or outcome in natural language instead.
-Call playbook tools silently; never write tool names like playbook_status or playbook_send_event in operator-facing text.
-After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. If runtime evidence already advanced the run, do not send an extra NEXT for the new state.
-If the immediately prior assistant turn completed a confirmed create/update action and the operator now asks for playbook-related next-step work or provides details for the likely next step, call playbook_status before any non-playbook domain tool so the runtime can apply satisfied gated transitions first.
-If exactly one non-operator continuation event is available and the operator clearly accepts it, send that event instead of starting the playbook again. If the current state has exactly one non-operator continuation event, its Done When has already been satisfied by runtime evidence, and the operator asks for the next playbook task, names an action from the next task, names the continuation target, or provides the requested work/details for the continuation target, send the continuation event before doing the requested next-task work. Operator actions and choices are not generic continuation events; even if only one operator action is available, generic continuation like "yes", "next", or "continue" is not a valid selection. If multiple events are available, ask the operator to pick one labeled action. If the operator explicitly says they have not chosen, selected, asked for, or used one of the available actions, do not send any event.
-A Skip-style operator action is never a default continuation. Send a Skip event only when the operator positively selects or asks to skip.
-If the operator names or selects a valid event label or operator action (for example, "Use the X action"), call playbook_send_event for that matching event before doing related work or answering. Do not ask the operator for the raw event code when a matching labeled action is available; translate the label to its event yourself. If the operator message only selects the playbook action, do not also call unrelated domain mutation tools such as system_create or system_update in the same turn.
-A playbook event does not replace ordinary domain tools requested in the same operator message. If the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer; do not claim that work happened from conversation memory, playbook evidence, or a playbook event alone. For find/show/retrieve requests, system_get or system_search is mandatory in the same turn even when you also send a playbook event.
-After a playbook event advances the run, call playbook_status and answer from the refreshed current state. If playbook_send_event or playbook_status returns currentState.prompt, use that prompt as the final answer for the next step unless the same operator message answers or partially answers that prompt, or includes a concrete request with the necessary content and target details for the new state. If the same operator message answers partially, ask only for the next missing detail required by the state instructions. If the same operator message includes a concrete request, satisfy it in the same turn instead of waiting for another message. Do not infer missing setup details from memory or existing profile data just because the event reached a setup state.
-If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
-Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
-Treat setup facts as current-run evidence: unless the operator provided them in this run or they appear in active-run evidence, do not fill missing playbook requirements from ambient memory or existing durable records.
-When the current playbook state asks the operator for information, ask the operator; do not answer the prompt yourself from memory, knowledge search, or existing durable records. If the current operator message appears to answer the current state's operator-facing prompt, use all relevant details in that message as current-run information, then follow the state instructions: act when its requirements are satisfied, or ask only for the next missing required detail instead of repeating the same prompt. If the message only partially satisfies the current state's listed requirements, do not call unrelated durable mutation tools such as system_create or system_update for that state yet; ask for the next missing required detail. If the operator explicitly selects a valid event or operator action such as Skip, send that event instead of asking for the missing information.
-Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
-Teach by doing real actions with existing tools.
-After meaningful tool actions, explain what happened and why it matters.
-Use existing entity tools for durable profile, site, notes, links, posts, projects, newsletters, and social drafts. Runtime evidence from those actions is attached to the active run automatically where supported.
-Do not publish content unless the operator explicitly asks and confirms the publishing action.
-
-Completed states:
-${completedStates || "- none"}
-
-State instructions:
-${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
-
-Required details:
-${requiredDetails || "- none"}
-
-Done when:
-${doneWhen || "- none"}
-
-Goal status:
-${goalStatus}
-
-Valid continuation events:
-${validEvents || "- none"}
-
-Available operator actions:
-${operatorActionEvents || "- none"}
-
-Blocked events:
-${blockedEvents || "- none"}`,
-      provenance: {
-        playbookId: run.playbookId,
-        runId: run.id,
-        currentState: run.currentState,
-        validEvents: validTransitions.map((transition) => transition.event),
-        operatorActions: operatorActions.map((transition) => transition.event),
-      },
-    };
-  }
-
-  private buildInstructions(): string {
-    const lifecycleSummary = Object.entries(this.config.lifecycle)
-      .map(
-        ([id, config]) =>
-          `- ${id}: playbookId=${config.playbookId}, trigger=${config.trigger}`,
-      )
-      .join("\n");
-
-    return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing. If the operator names a playbook by title and no configured lifecycle entry is listed below, still call playbook_start with the stable slug/id form when known instead of claiming the playbook is unavailable without trying the tool.
-When active-playbook context is present, follow its current state instructions, Done When conditions, valid events, and operating guidance.
-If the recent conversation involved a playbook and the operator asks what is next, what to do next, whether setup is done, or a similar progress question, call playbook_status before answering and use the returned run status/current state as source of truth.
-A playbook event does not replace ordinary domain tools requested in the same operator message; if the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer.
-Do not publish content unless the operator explicitly asks and confirms the publishing action.
-
-Configured lifecycle playbooks:
-${lifecycleSummary || "- none"}`;
+      playbookTitle: playbook.entity.metadata.title,
+    });
   }
 }
 
@@ -1701,10 +988,6 @@ function zeroUsage(): AgentResponse["usage"] {
   return { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 }
 
-function appendUnique(values: string[], value: string): string[] {
-  return values.includes(value) ? values : [...values, value];
-}
-
 function preferActiveRun(
   runs: PlaybookRun[],
   predicate: (run: PlaybookRun) => boolean,
@@ -1720,100 +1003,6 @@ function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {
   return [...runs].sort((a, b) =>
     (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt),
   )[0];
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function sameGoal(left: string[], right: string[]): boolean {
-  return (
-    left.length === right.length &&
-    left.every((value, index) => value === right[index])
-  );
-}
-
-function sameLifecycleConfig(
-  left: LifecyclePlaybookConfig,
-  right: LifecyclePlaybookConfig,
-): boolean {
-  return (
-    left.trigger === right.trigger &&
-    left.playbookId === right.playbookId &&
-    left.once === right.once &&
-    left.starterText === right.starterText &&
-    left.description === right.description &&
-    left.starterPrompt === right.starterPrompt
-  );
-}
-
-function upsertGateVerdicts(
-  existing: PlaybookGateVerdict[],
-  next: PlaybookGateVerdict[],
-): PlaybookGateVerdict[] {
-  const nextKeys = new Set(next.map(gateVerdictKey));
-  return [
-    ...existing.filter((verdict) => !nextKeys.has(gateVerdictKey(verdict))),
-    ...next,
-  ];
-}
-
-function gateVerdictKey(verdict: PlaybookGateVerdict): string {
-  return [verdict.stateId, ...verdict.goal].join("\u0000");
-}
-
-function stringFromPayload(
-  payload: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = payload[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function entityEvidenceDetails(
-  payload: Record<string, unknown>,
-): Record<string, string> {
-  const entity = recordFromUnknown(payload["entity"]);
-  if (!entity) return {};
-
-  const metadata = recordFromUnknown(entity["metadata"]);
-  const title = firstNonEmptyString(
-    metadata?.["title"],
-    metadata?.["name"],
-    entity["title"],
-  );
-  const content = firstNonEmptyString(entity["content"]);
-  const contentPreview = content ? previewText(content) : undefined;
-
-  return {
-    ...(title ? { title } : {}),
-    ...(contentPreview ? { contentPreview } : {}),
-  };
-}
-
-function recordFromUnknown(
-  value: unknown,
-): Record<string, unknown> | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return undefined;
-  }
-  return value as Record<string, unknown>;
-}
-
-function firstNonEmptyString(...values: unknown[]): string | undefined {
-  return values
-    .find(
-      (value): value is string =>
-        typeof value === "string" && value.trim().length > 0,
-    )
-    ?.trim();
-}
-
-function previewText(value: string): string {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  return normalized.length > 500
-    ? `${normalized.slice(0, 497)}...`
-    : normalized;
 }
 
 function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {

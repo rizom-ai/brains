@@ -22,6 +22,13 @@ export const searchInputSchema = z.object({
     "Structured search scope. Use { kind: 'all' } for broad search across all entity types. Use { kind: 'type', entityType } only when the user asks for a specific entity type.",
   ),
   limit: z.number().optional().describe("Maximum number of results"),
+  minScore: z
+    .number()
+    .min(0)
+    .optional()
+    .describe(
+      "Minimum relevance score. Default is 0.5; lower it only for exploratory or loose recall when weak candidates are acceptable.",
+    ),
   includeUngenerated: z
     .boolean()
     .optional()

@@ -19,18 +19,18 @@ business logic + persistence and would benefit from extracting focused
 collaborators. These are large enough to warrant a thin-vertical plan
 before touching — not opportunistic edits.
 
-- **`plugins/playbooks/src/plugin.ts` (~1888 lines)** — lifecycle +
-  state-machine orchestration + gate verification + agent-context
-  building + guidance rendering. Candidate extracts: context formatter,
-  status builder, guidance renderer, lifecycle-starter resolver.
+- ~~`plugins/playbooks/src/plugin.ts`~~ — DONE 2026-07-06: decomposed
+  into src/lib/ run-machine (pure transition semantics), render,
+  lifecycle-starters, and run-engine; the plugin is down to ~1050 lines
+  of plugin surface (tools, subscriptions, locks, status assembly).
 - **`interfaces/chat/src/chat-interface.ts` (~1386 lines)** — message
   routing + approval tracking + artifact delivery + upload management.
   Candidate extracts: message router (strategy map), approval handler,
   artifact delivery, upload manager.
-- **`shell/ai-service/src/agent-service.ts` (~1224 lines)** —
-  conversation-actor lifecycle + message/context building +
-  confirmation handling. First thin slice: extract a
-  `ConversationActorFactory` (actor creation + TTL/eviction).
+- ~~`shell/ai-service/src/agent-service.ts`~~ — DONE 2026-07-06:
+  decomposed into ConversationActorRegistry, attachment-intake,
+  ConfirmationCoordinator, and TurnProcessor; the service is now a
+  ~330-line façade.
 - **`interfaces/discord/src/discord-interface.ts` (~1048 lines)** —
   Discord SDK management + message parsing + card rendering +
   subscription tracking + uploads. Mirror the chat-interface split.

@@ -12,13 +12,16 @@ const baseEntityResponseSchema = z.looseObject({
   entityType: z.string(),
 });
 
-const searchDataSchema = z.object({
-  results: z.array(
-    z.object({
-      entity: baseEntityResponseSchema,
-    }),
-  ),
-});
+const searchDataSchema = z
+  .object({
+    results: z.array(
+      z.object({
+        entity: baseEntityResponseSchema.passthrough(),
+        score: z.number(),
+      }),
+    ),
+  })
+  .strict();
 
 const listDataSchema = z.object({
   entities: z.array(baseEntityResponseSchema),
@@ -52,13 +55,17 @@ function expectError(raw: unknown): string {
   return response.error;
 }
 
-const makeEntity = (id: string, visibility: ContentVisibility): BaseEntity => ({
+const makeEntity = (
+  id: string,
+  visibility: ContentVisibility,
+  searchScore?: number,
+): BaseEntity => ({
   id,
   entityType: "doc",
   content: `body of ${id}`,
   contentHash: `hash-${id}`,
   visibility,
-  metadata: { title: id },
+  metadata: { title: id, ...(searchScore !== undefined && { searchScore }) },
   created: "2026-05-01T00:00:00.000Z",
   updated: "2026-05-01T00:00:00.000Z",
 });
@@ -77,6 +84,7 @@ describe("read tool model contracts", () => {
       "query",
       "scope",
       "limit",
+      "minScore",
       "includeUngenerated",
     ]);
     expect(searchInputSchema.shape.scope.description).toContain("kind: 'all'");
@@ -87,6 +95,42 @@ describe("read tool model contracts", () => {
     expect(tool?.description).toContain(
       "For broad search, make one system_search call with scope.kind all",
     );
+    expect(tool?.description).toContain("default minScore of 0.5");
+    expect(searchInputSchema.shape.minScore.description).toContain(
+      "lower it only for exploratory",
+    );
+  });
+
+  it("applies a default search score cutoff and allows explicit override", async () => {
+    const services = createMockSystemServices();
+    services.addEntities([
+      makeEntity("strong", "public", 0.7),
+      makeEntity("weak", "public", 0.4),
+    ]);
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_search",
+    );
+    if (!tool) throw new Error("system_search not found");
+
+    const defaultRaw = await tool.handler(
+      { query: "body", scope: { kind: "all" } },
+      baseContext("anchor"),
+    );
+    expect(
+      expectSuccess(defaultRaw, searchDataSchema).results.map(
+        (r) => r.entity.id,
+      ),
+    ).toEqual(["strong"]);
+
+    const overrideRaw = await tool.handler(
+      { query: "body", scope: { kind: "all" }, minScore: 0.3 },
+      baseContext("anchor"),
+    );
+    expect(
+      expectSuccess(overrideRaw, searchDataSchema).results.map(
+        (r) => r.entity.id,
+      ),
+    ).toEqual(["strong", "weak"]);
   });
 
   it("describes status as optional and warns against invented statuses", () => {
