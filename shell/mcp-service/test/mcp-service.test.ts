@@ -5,12 +5,14 @@ import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 
 interface ProtocolToolHandlerExtra {
   _meta?: Record<string, unknown>;
 }
 
 interface InspectableRegisteredTool {
+  annotations?: ToolAnnotations;
   handler: (
     params: Record<string, unknown>,
     extra: ProtocolToolHandlerExtra,
@@ -48,6 +50,13 @@ function inspectMcpServer(server: McpServer): InspectableMcpServer {
 
 function listProtocolToolNames(server: McpServer): string[] {
   return Object.keys(inspectMcpServer(server)._registeredTools);
+}
+
+function getProtocolToolAnnotations(
+  server: McpServer,
+  name: string,
+): ToolAnnotations | undefined {
+  return inspectMcpServer(server)._registeredTools[name]?.annotations;
 }
 
 function listProtocolResourceUris(server: McpServer): string[] {
@@ -205,6 +214,7 @@ describe("MCPService", () => {
           input: z.string(),
         },
         visibility: "anchor",
+        sideEffects: "none",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -509,7 +519,62 @@ describe("MCPService", () => {
   });
 
   describe("createMcpServer", () => {
-    it("should create fresh servers with tools filtered by explicit permission", () => {
+    it("should expose only read-only tools plus chat in basic mode", () => {
+      const readTool: Tool = {
+        name: "search",
+        description: "Search entities",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        handler: async () => ({ success: true, data: [] }),
+      };
+
+      const writeTool: Tool = {
+        name: "entity_create",
+        description: "Create entity",
+        inputSchema: {},
+        visibility: "trusted",
+        sideEffects: "writes",
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      const chatTool: Tool = {
+        name: "chat",
+        description: "Route commands through the agent",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "writes",
+        handler: async () => ({ success: true, data: "ok" }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerTool("system", readTool);
+      mcpService.registerTool("system", writeTool);
+      mcpService.registerTool("mcp", chatTool);
+
+      expect(
+        listProtocolToolNames(mcpService.createMcpServer("anchor")),
+      ).toEqual(["search", "chat"]);
+      expect(
+        getProtocolToolAnnotations(mcpService.getMcpServer(), "search"),
+      ).toEqual({
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      });
+      expect(
+        getProtocolToolAnnotations(mcpService.getMcpServer(), "chat"),
+      ).toEqual({
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+      });
+    });
+
+    it("should create fresh servers with tools filtered by explicit permission in debug mode", () => {
+      mcpService.setProtocolMode("debug");
       const publicTool: Tool = {
         name: "fresh_public_tool",
         description: "Public tool",
@@ -562,7 +627,8 @@ describe("MCPService", () => {
       ]);
     });
 
-    it("should use the current service permission when permission is omitted", () => {
+    it("should use the current service permission when permission is omitted in debug mode", () => {
+      mcpService.setProtocolMode("debug");
       const publicTool: Tool = {
         name: "current_public_tool",
         description: "Public tool",

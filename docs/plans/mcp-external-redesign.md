@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Work started on `feat/mcp-external-redesign`; Phase 1 walking skeleton is being implemented first against the current code shape. The `/api/chat` endpoint described in Phase 0 has since moved out of `interfaces/mcp`, so that phase needs a follow-up plan refresh before implementation.
+In progress. Work started on `feat/mcp-external-redesign`. The Phase 1 `chat` walking skeleton is implemented, and the MCP protocol server now defaults to `basic` mode: read-only tools plus `chat`, with `debug` preserving raw-tool exposure for authenticated/local anchor use. The `/api/chat` endpoint described in Phase 0 has since moved out of `interfaces/mcp`, so that phase needs a follow-up plan refresh before implementation.
 
 ## Background
 
