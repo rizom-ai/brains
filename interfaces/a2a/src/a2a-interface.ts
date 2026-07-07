@@ -1,3 +1,5 @@
+import { getActiveAuthService } from "@brains/auth-service";
+import { signRequest } from "@brains/http-signatures";
 import {
   InterfacePlugin,
   type InterfacePluginContext,
@@ -18,7 +20,7 @@ import {
   jsonrpcRequestSchema,
   streamParamsSchema,
 } from "./jsonrpc-handler";
-import { createAgentCallTool } from "./client";
+import { createAgentCallTool, type A2ARequestSigner } from "./client";
 import packageJson from "../package.json";
 
 const A2A_CORS_HEADERS = {
@@ -349,9 +351,20 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     ];
   }
 
+  private createRequestSigner(): A2ARequestSigner | undefined {
+    const authService = getActiveAuthService();
+    if (!authService) return undefined;
+
+    return async (request): Promise<void> => {
+      const signingKey = await authService.getA2ASigningKey();
+      await signRequest(request, signingKey.privateJwk, signingKey.keyId);
+    };
+  }
+
   protected override async getTools(): Promise<Tool[]> {
     return [
       createAgentCallTool({
+        requestSigner: this.createRequestSigner(),
         requestTimeoutMs: this.config.requestTimeoutMs,
         streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
         maxNetworkAttempts: this.config.maxNetworkAttempts,

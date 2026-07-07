@@ -40,6 +40,7 @@ import {
   type OperatorSetupRequired,
 } from "./setup-flow";
 import type {
+  A2APrivateJwk,
   AuthorizationServerMetadata,
   JwksResponse,
   ProtectedResourceMetadata,
@@ -47,6 +48,11 @@ import type {
 } from "./types";
 
 export type { OperatorSetupRequired } from "./setup-flow";
+
+export interface A2ASigningKey {
+  privateJwk: A2APrivateJwk;
+  keyId: string;
+}
 
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
@@ -160,6 +166,17 @@ export class AuthService {
     ]);
     return {
       keys: [oauthKey, a2aKey],
+    };
+  }
+
+  async getA2ASigningKey(): Promise<A2ASigningKey> {
+    const privateJwk = await this.a2aKeyStore.getPrivateJwk();
+    return {
+      privateJwk,
+      keyId: absoluteUrl(
+        this.issuer,
+        `/.well-known/jwks.json#${privateJwk.kid}`,
+      ),
     };
   }
 

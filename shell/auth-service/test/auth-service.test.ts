@@ -124,6 +124,29 @@ describe("AuthService", () => {
     expect(a2aKeyStats.mode & 0o777).toBe(0o600);
   });
 
+  it("returns an A2A signing key id rooted at the issuer JWKS", async () => {
+    const storageDir = await tempStorageDir();
+    const service = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+    });
+
+    const signingKey = await service.getA2ASigningKey();
+    const jwks = await service.getJwks();
+    const publicA2AKey = jwks.keys.find((key) => key.alg === "EdDSA");
+
+    expect(signingKey.keyId).toBe(
+      `https://brain.example.com/.well-known/jwks.json#${publicA2AKey?.kid}`,
+    );
+    expect(signingKey.privateJwk).toMatchObject({
+      kty: "OKP",
+      crv: "Ed25519",
+      alg: "EdDSA",
+      kid: publicA2AKey?.kid,
+    });
+    expect(signingKey.privateJwk.d).toBeString();
+  });
+
   it("serves OAuth well-known metadata from request host", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
