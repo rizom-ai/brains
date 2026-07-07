@@ -490,7 +490,14 @@ const entityRefArgsSchema = z.object({
   title: z.string().optional(),
 });
 
-export const entityMemoryRefSchema = z.object({
+const entityMemoryRefSchemaInternal: z.ZodObject<{
+  entityType: z.ZodOptional<z.ZodString>;
+  entityId: z.ZodString;
+  operation: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+  status: z.ZodOptional<z.ZodString>;
+  listIndex: z.ZodOptional<z.ZodNumber>;
+}> = z.object({
   entityType: z.string().min(1).optional(),
   entityId: z.string().min(1),
   operation: z.string().min(1).optional(),
@@ -499,14 +506,25 @@ export const entityMemoryRefSchema = z.object({
   listIndex: z.number().int().positive().optional(),
 });
 
+export const entityMemoryRefSchema: typeof entityMemoryRefSchemaInternal =
+  entityMemoryRefSchemaInternal;
+
 export type EntityMemoryRef = z.infer<typeof entityMemoryRefSchema>;
 
-export const agentContactCandidateSchema = z.object({
+const agentContactCandidateSchemaInternal: z.ZodObject<{
+  source: z.ZodObject<{
+    kind: z.ZodLiteral<"url">;
+    url: z.ZodString;
+  }>;
+}> = z.object({
   source: z.object({
     kind: z.literal("url"),
     url: z.string().min(1),
   }),
 });
+
+export const agentContactCandidateSchema: typeof agentContactCandidateSchemaInternal =
+  agentContactCandidateSchemaInternal;
 
 export type AgentContactCandidate = z.infer<typeof agentContactCandidateSchema>;
 

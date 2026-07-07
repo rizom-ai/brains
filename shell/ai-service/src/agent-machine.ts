@@ -1,4 +1,14 @@
 import { setup, assign, fromPromise } from "xstate";
+import type {
+  AnyActorRef,
+  EventObject,
+  MetaObject,
+  NonReducibleUnknown,
+  ParameterizedObject,
+  ProvidedActor,
+  StateMachine,
+  StateSchema,
+} from "xstate";
 import { z } from "@brains/utils/zod";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
@@ -204,7 +214,24 @@ function buildCancelledResponse(
  *
  * This keeps the machine pure — all side effects live in the actors.
  */
-export const agentMachine = setup({
+type AgentMachine = StateMachine<
+  AgentMachineContext,
+  AgentMachineEvent,
+  Record<string, AnyActorRef | undefined>,
+  ProvidedActor,
+  ParameterizedObject,
+  ParameterizedObject,
+  string,
+  "idle" | "processing" | "awaitingConfirmation" | "executing",
+  string,
+  NonReducibleUnknown,
+  NonReducibleUnknown,
+  EventObject,
+  MetaObject,
+  StateSchema
+>;
+
+export const agentMachine: AgentMachine = setup({
   types: {
     context: {} as AgentMachineContext,
     events: {} as AgentMachineEvent,
