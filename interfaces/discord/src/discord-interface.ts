@@ -1,3 +1,4 @@
+import { getActiveAuthService } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
   buildApprovalResultView,
@@ -342,8 +343,8 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     let agentMessage = this.stripMention(message.content);
 
     if (message.attachments.size > 0) {
-      const userLevel = this.context.permissions.getUserLevel(
-        "discord",
+      const userLevel = await this.resolveDiscordUserPermissionLevel(
+        this.context,
         message.author.id,
         permissionContext,
       );
@@ -415,7 +416,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     await this.clearApprovalInteractionComponents(interaction);
 
     const confirmationContext =
-      this.buildInteractionConfirmationContext(interaction);
+      await this.buildInteractionConfirmationContext(interaction);
     const response = await this.context.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
@@ -448,16 +449,16 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       );
   }
 
-  private buildInteractionConfirmationContext(
+  private async buildInteractionConfirmationContext(
     interaction: ButtonInteraction,
-  ): ChatContext {
+  ): Promise<ChatContext> {
     if (!this.context) {
       throw new Error("Discord context is not registered");
     }
 
     return {
-      userPermissionLevel: this.context.permissions.getUserLevel(
-        "discord",
+      userPermissionLevel: await this.resolveDiscordUserPermissionLevel(
+        this.context,
         interaction.user.id,
         { channelId: interaction.channelId },
       ),
@@ -542,8 +543,8 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     }
 
     const conversationId = `discord-${replyChannelId}`;
-    const userPermissionLevel = this.context.permissions.getUserLevel(
-      "discord",
+    const userPermissionLevel = await this.resolveDiscordUserPermissionLevel(
+      this.context,
       discordMessage.author.id,
       permissionContext,
     );
@@ -782,6 +783,21 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     );
   }
 
+  private async resolveDiscordUserPermissionLevel(
+    context: InterfacePluginContext,
+    userId: string,
+    permissionContext: PermissionLookupContext,
+  ): Promise<UserPermissionLevel> {
+    const principal = await getActiveAuthService()?.resolveIdentity({
+      type: "discord",
+      subject: userId,
+    });
+    return (
+      principal?.permissionLevel ??
+      context.permissions.getUserLevel("discord", userId, permissionContext)
+    );
+  }
+
   private async resolveDiscordArtifactFiles(
     response: AgentResponse,
     userPermissionLevel: UserPermissionLevel,
@@ -863,8 +879,8 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       return true;
     }
     const channelName = this.getChannelName(discordMessage);
-    const userPermissionLevel = context.permissions.getUserLevel(
-      "discord",
+    const userPermissionLevel = await this.resolveDiscordUserPermissionLevel(
+      context,
       discordMessage.author.id,
       permissionContext,
     );

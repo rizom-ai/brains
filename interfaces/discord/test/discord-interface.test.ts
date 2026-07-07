@@ -93,6 +93,28 @@ const mockClientInstance = {
   },
 };
 
+let mockActiveAuthService:
+  | {
+      resolveIdentity: Mock<
+        (input: { type: string; subject: string; issuer?: string }) => Promise<
+          | {
+              userId: string;
+              displayName: string;
+              role: "anchor" | "trusted" | "public";
+              status: "active" | "invited" | "suspended";
+              permissionLevel: "anchor" | "trusted" | "public";
+            }
+          | undefined
+        >
+      >;
+    }
+  | undefined;
+
+void mock.module("@brains/auth-service", () => ({
+  getActiveAuthService: (): typeof mockActiveAuthService =>
+    mockActiveAuthService,
+}));
+
 void mock.module("discord.js", () => ({
   Client: class {
     login = mockClientInstance.login;
@@ -234,6 +256,7 @@ describe("DiscordInterface", () => {
     mockDeferUpdate.mockClear();
     mockInteractionReply.mockClear();
     mockInteractionMessageEdit.mockClear();
+    mockActiveAuthService = undefined;
     messageCreateHandler = null;
     interactionCreateHandler = null;
 
@@ -302,6 +325,34 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           interfaceType: "discord",
           userPermissionLevel: "public",
+        }),
+      );
+    });
+
+    it("should use linked auth principal permissions for Discord users", async () => {
+      const resolveIdentity = mock(async () => ({
+        userId: "usr_mira",
+        displayName: "Mira",
+        role: "trusted" as const,
+        status: "active" as const,
+        permissionLevel: "trusted" as const,
+      }));
+      mockActiveAuthService = { resolveIdentity };
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(resolveIdentity).toHaveBeenCalledWith({
+        type: "discord",
+        subject: "user-789",
+      });
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        "Hello bot",
+        expect.stringContaining("discord-"),
+        expect.objectContaining({
+          interfaceType: "discord",
+          userPermissionLevel: "trusted",
         }),
       );
     });
