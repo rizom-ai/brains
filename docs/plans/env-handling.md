@@ -104,17 +104,17 @@ Pilot one service end-to-end before fanning out. `ai-service` is a good first ca
 1. ~~Move `ai-service` env declarations into a co-located schema file (A).~~ DONE 2026-07-07: `shell/ai-service/src/env-schema.ts` with `EnvVarDecl`/renderer in `@brains/utils/env-schema`.
 2. ~~Add `shell/core/src/env-schema.ts` with just `ai-service` (A).~~ DONE 2026-07-07: `shellEnvVars(model)` aggregator.
 3. ~~Update `brain-cli` composition (A).~~ DONE 2026-07-07, with a mechanism change: instead of the CLI splicing rendered sections at runtime (which would break composition for custom models and change published-CLI behavior), `scripts/sync-env-templates.ts` **generates the shell-owned section into each `brains/*/env.schema.template`** between explicit markers — the same sync-plus-check pattern as the roadmap visual. `env-schema:check` runs in pre-commit whenever an env-schema or template changes; the existing bundle generator then picks the synced templates up unchanged. One edit per var still holds: edit the service's `env-schema.ts`, run `bun run env-schema:sync`.
-4. Add the app/deploy XDG helper and wire `ai-service`-relevant paths through it (B).
-5. Confirm Docker/Kamal still produce `/data/*.db` for `ai-service` resources.
+4. ~~Add the app/deploy XDG helper (B).~~ DONE 2026-07-07: `shell/app/src/standard-paths.ts` (`resolveStandardPaths` / `resolveStandardConfig` / `resolveStandardConfigWithDirectories`); `App.buildShellConfig` applies the env-derived storage config before overrides.
+5. ~~Confirm Docker/Kamal still produce `/data/*.db`.~~ DONE 2026-07-07: covered by an app test asserting `XDG_DATA_HOME=/data` maps to `file:/data/*.db` (the Dockerfile sets `XDG_DATA_HOME=/data`, `shared/deploy-support/src/Dockerfile:10`).
 
 ### Fan out
 
-6. Migrate remaining services to co-located declarations (A).
-7. Migrate remaining `shell/core` defaults (`database.url`, `jobQueueDatabase.url`, `conversationDatabase.url`, `embeddingDatabase.url`, `embedding.cacheDir`) into explicit values built at the app/deploy layer (B).
-8. Move migration-script `getStandardConfigWithDirectories()` usage out of core (B).
-9. Remove `process.env` reads from `shell/core` (B).
-10. Remove `bundled-model-env-schemas.ts` (A).
-11. Tighten `env-schema.test.ts` to assert generated `.env.schema` matches `shellEnvVars()` output (A).
+6. Migrate remaining declarations to co-located schema files (A). Remaining vars in the templates are mostly **plugin-owned** (`GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, `BUTTONDOWN_API_KEY`, …), so this step needs the per-plugin declaration shape plus per-model composition before the aggregator can claim them; the shell-owned markers cover only shell services until then.
+7. ~~Migrate remaining `shell/core` defaults into explicit values built at the app/deploy layer (B).~~ DONE 2026-07-07: all five DB urls plus `embedding.cacheDir` resolve in the app layer; core defaults are fixed `./data`/`./cache`/`./dist`.
+8. ~~Move migration-script `getStandardConfigWithDirectories()` usage out of core (B).~~ DONE 2026-07-07: all five migration scripts and `MigrationManager` use the app helper; the core export is removed.
+9. ~~Remove `process.env` reads from `shell/core` (B).~~ DONE 2026-07-07: zero `process.env` reads remain under `shell/core/src`.
+10. Remove `bundled-model-env-schemas.ts` (A) — blocked on step 6.
+11. Tighten `env-schema.test.ts` to assert generated `.env.schema` matches `shellEnvVars()` output (A) — partially covered: the marker-block test plus `env-schema:check` guard the shell-owned section today; the full assertion lands with step 10.
 
 ## Compatibility note
 

@@ -8,7 +8,6 @@ import type {
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
-import { mkdir } from "fs/promises";
 import {
   createStandardConfig,
   createStandardPaths,
@@ -21,22 +20,6 @@ export const STANDARD_PATHS = createStandardPaths();
 
 export function getStandardConfig(): StandardConfig {
   return createStandardConfig(STANDARD_PATHS);
-}
-
-export async function getStandardConfigWithDirectories(): Promise<StandardConfig> {
-  try {
-    await mkdir(STANDARD_PATHS.dataDir, { recursive: true });
-    await mkdir(STANDARD_PATHS.cacheDir, { recursive: true });
-    await mkdir(STANDARD_PATHS.distDir, { recursive: true });
-  } catch (error) {
-    const msg =
-      error instanceof Error && error.message.includes("EACCES")
-        ? `Cannot create data directories — permission denied. Run from a writable directory or check permissions on ${STANDARD_PATHS.dataDir}`
-        : `Cannot create data directories: ${error instanceof Error ? error.message : String(error)}`;
-    throw new Error(msg);
-  }
-
-  return getStandardConfig();
 }
 
 export const shellConfigSchema = z.object({
