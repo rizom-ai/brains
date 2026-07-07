@@ -379,6 +379,23 @@ export class AuthService {
     });
   }
 
+  async resolveBearerToken(
+    request: Request,
+    options: { issuer?: string; audience?: string } = {},
+  ): Promise<AuthPrincipal | undefined> {
+    await this.ensureUserStoreStarted();
+    const verified = await this.verifyBearerToken(request, options);
+    if (!verified) {
+      return undefined;
+    }
+
+    const user = await this.getUserStore().getUser(verified.subject);
+    if (user?.status !== "active") {
+      return undefined;
+    }
+    return principalFromUser(user);
+  }
+
   getSetupUrl(issuer = this.issuer): string | undefined {
     return this.setupFlow.getSetupUrl(issuer);
   }
