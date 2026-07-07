@@ -113,6 +113,7 @@ export function registerToolOnServer(
     async (params, extra) => {
       const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
       const userId = extra._meta?.["userId"] ?? "mcp-user";
+      const conversationId = extra._meta?.["conversationId"];
       const channelId = extra._meta?.["channelId"];
       const channelName = extra._meta?.["channelName"];
       const progressToken = extra._meta?.progressToken;
@@ -122,6 +123,7 @@ export function registerToolOnServer(
         pluginId,
         interfaceType,
         userId,
+        conversationId,
         channelId,
         channelName,
         progressToken,
@@ -138,6 +140,7 @@ export function registerToolOnServer(
             hasProgress: progressToken !== undefined,
             interfaceType,
             userId,
+            conversationId,
             channelId,
             channelName,
             userPermissionLevel: permissionLevel,

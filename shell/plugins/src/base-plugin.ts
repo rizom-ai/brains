@@ -105,6 +105,7 @@ export abstract class BasePlugin<
             hasProgress,
             interfaceType,
             userId,
+            conversationId,
             channelId,
             userPermissionLevel,
           } = toolExecuteRequestSchema.parse(message.payload);
@@ -123,6 +124,7 @@ export abstract class BasePlugin<
           const toolContext: ToolContext = {
             interfaceType,
             userId,
+            ...(conversationId && { conversationId }),
             ...(channelId && { channelId }),
             ...(userPermissionLevel && { userPermissionLevel }),
             ...(hasProgress &&

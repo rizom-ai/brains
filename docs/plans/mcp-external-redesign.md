@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+In progress. Work started on `feat/mcp-external-redesign`; Phase 1 walking skeleton is being implemented first against the current code shape. The `/api/chat` endpoint described in Phase 0 has since moved out of `interfaces/mcp`, so that phase needs a follow-up plan refresh before implementation.
 
 ## Background
 
