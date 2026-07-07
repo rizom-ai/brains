@@ -25,7 +25,11 @@ import { normalizeEntityRow, type EntityData } from "./entity-data";
 /**
  * Schema for sort field
  */
-const sortFieldSchema = z.object({
+const sortFieldSchema: z.ZodObject<{
+  field: z.ZodString;
+  direction: z.ZodEnum<{ asc: "asc"; desc: "desc" }>;
+  nullsFirst: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   field: z.string(),
   direction: z.enum(["asc", "desc"]),
   nullsFirst: z.boolean().optional(),
@@ -34,7 +38,24 @@ const sortFieldSchema = z.object({
 /**
  * Schema for list entities options
  */
-const listOptionsSchema = z.object({
+const listOptionsSchema: z.ZodObject<{
+  limit: z.ZodOptional<z.ZodNumber>;
+  offset: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+  sortFields: z.ZodOptional<z.ZodArray<typeof sortFieldSchema>>;
+  filter: z.ZodOptional<
+    z.ZodObject<{
+      metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+      visibilityScope: z.ZodOptional<
+        z.ZodEnum<{
+          public: "public";
+          shared: "shared";
+          restricted: "restricted";
+        }>
+      >;
+    }>
+  >;
+  publishedOnly: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   limit: z.number().int().positive().optional(),
   offset: z.number().int().min(0).optional().default(0),
   sortFields: z.array(sortFieldSchema).optional(),

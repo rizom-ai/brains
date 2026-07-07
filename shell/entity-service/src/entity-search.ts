@@ -19,7 +19,7 @@ const MAX_VECTOR_DISTANCE = 0.82;
 export function prepareSearchQuery(
   query: string,
   logger?: Logger,
-  maxChars = MAX_SEARCH_QUERY_CHARS,
+  maxChars: number = MAX_SEARCH_QUERY_CHARS,
 ): string {
   const normalizedQuery = query.trim().replace(/\s+/g, " ");
 

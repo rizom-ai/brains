@@ -1,5 +1,10 @@
 import { customType } from "drizzle-orm/sqlite-core";
 
+interface VectorCustomTypeValues {
+  data: Float32Array;
+  driverData: Buffer;
+}
+
 /**
  * Custom type for libSQL vector columns.
  * This allows us to use F32_BLOB in libSQL while maintaining Drizzle compatibility.
@@ -9,21 +14,19 @@ import { customType } from "drizzle-orm/sqlite-core";
  * The dimension here must match the Drizzle migration SQL but does not
  * constrain the embedding DB.
  */
-export const vector = customType<{
-  data: Float32Array;
-  driverData: Buffer;
-}>({
-  dataType() {
-    return "F32_BLOB(1536)";
-  },
-  toDriver(value: Float32Array): Buffer {
-    return Buffer.from(value.buffer);
-  },
-  fromDriver(value: Buffer): Float32Array {
-    return new Float32Array(
-      value.buffer,
-      value.byteOffset,
-      value.byteLength / 4,
-    );
-  },
-});
+export const vector: ReturnType<typeof customType<VectorCustomTypeValues>> =
+  customType<VectorCustomTypeValues>({
+    dataType() {
+      return "F32_BLOB(1536)";
+    },
+    toDriver(value: Float32Array): Buffer {
+      return Buffer.from(value.buffer);
+    },
+    fromDriver(value: Buffer): Float32Array {
+      return new Float32Array(
+        value.buffer,
+        value.byteOffset,
+        value.byteLength / 4,
+      );
+    },
+  });

@@ -91,7 +91,16 @@ export interface StoreEmbeddingData {
 /**
  * Base entity schema that all entities must extend
  */
-export const baseEntitySchema = z.object({
+export const baseEntitySchema: z.ZodObject<{
+  id: z.ZodString;
+  entityType: z.ZodString;
+  content: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+  visibility: typeof contentVisibilitySchema;
+  metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+  contentHash: z.ZodString;
+}> = z.object({
   id: z.string(),
   entityType: z.string(),
   content: z.string(),
@@ -102,14 +111,33 @@ export const baseEntitySchema = z.object({
   contentHash: z.string(),
 });
 
-const canonicalContentVisibilityParserSchema = z.enum([
-  "public",
-  "shared",
-  "restricted",
-]);
+const canonicalContentVisibilityParserSchema: z.ZodEnum<{
+  public: "public";
+  shared: "shared";
+  restricted: "restricted";
+}> = z.enum(["public", "shared", "restricted"]);
 
 /** Zod 4-owned parser base for entity schemas whose registration slot is structural. */
-export const baseEntityParserSchema = z.object({
+export const baseEntityParserSchema: z.ZodObject<{
+  id: z.ZodString;
+  entityType: z.ZodString;
+  content: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+  visibility: z.ZodPipe<
+    z.ZodOptional<
+      z.ZodUnion<
+        readonly [
+          typeof canonicalContentVisibilityParserSchema,
+          z.ZodLiteral<"private">,
+        ]
+      >
+    >,
+    z.ZodTransform<ContentVisibility, RawContentVisibility | undefined>
+  >;
+  metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+  contentHash: z.ZodString;
+}> = z.object({
   id: z.string(),
   entityType: z.string(),
   content: z.string(),
@@ -128,7 +156,8 @@ export const baseEntityParserSchema = z.object({
 });
 
 /** Shared empty frontmatter schema for entity types with no typed frontmatter. */
-export const emptyFrontmatterSchema = z.object({});
+export const emptyFrontmatterSchema: z.ZodObject<Record<string, never>> =
+  z.object({});
 
 export type EntitySchema<T> = z.ZodType<T, unknown>;
 /** @deprecated Use EntitySchema<T>. */
@@ -238,7 +267,21 @@ export interface CreateExecutionContext {
 /**
  * Result returned to system_create when a plugin fully handles creation.
  */
-export const createResultAttachmentSchema = z.object({
+export const createResultAttachmentSchema: z.ZodObject<{
+  mediaType: z.ZodString;
+  url: z.ZodString;
+  downloadUrl: z.ZodOptional<z.ZodString>;
+  previewUrl: z.ZodOptional<z.ZodString>;
+  filename: z.ZodOptional<z.ZodString>;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<
+    z.ZodObject<{
+      entityType: z.ZodOptional<z.ZodString>;
+      entityId: z.ZodOptional<z.ZodString>;
+      attachmentType: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+}> = z.object({
   mediaType: z.string(),
   url: z.string(),
   downloadUrl: z.string().optional(),
