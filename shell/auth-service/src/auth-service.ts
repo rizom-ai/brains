@@ -7,7 +7,13 @@ import {
   type PasskeyRegistrationUser,
 } from "./passkey-service";
 import { AuthRuntimeDatabase } from "./runtime-db";
-import { AuthUserStore } from "./user-store";
+import type { AuthIdentity, AuthUser } from "./runtime-schema";
+import {
+  AuthUserStore,
+  type AttachAuthIdentityInput,
+  type CreateAuthUserInput,
+  type ResolveAuthIdentityInput,
+} from "./user-store";
 import { RefreshTokenStore } from "./refresh-token-store";
 import { SetupStateStore } from "./setup-state-store";
 import {
@@ -54,6 +60,15 @@ import type {
 export type { OperatorSetupRequired } from "./setup-flow";
 
 const MIGRATION_SINGLE_OPERATOR_SUBJECT = "single-operator";
+
+export interface AuthPrincipal {
+  userId: string;
+  displayName: string;
+  role: "anchor" | "trusted" | "public";
+  status: "active" | "invited" | "suspended";
+  permissionLevel: "anchor" | "trusted" | "public";
+  canonicalId?: string;
+}
 
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
@@ -293,6 +308,24 @@ export class AuthService {
     return this.clientStore.getClient(clientId);
   }
 
+  async createUser(input: CreateAuthUserInput): Promise<AuthPrincipal> {
+    await this.ensureUserStoreStarted();
+    return principalFromUser(await this.getUserStore().createUser(input));
+  }
+
+  async attachIdentity(input: AttachAuthIdentityInput): Promise<AuthIdentity> {
+    await this.ensureUserStoreStarted();
+    return this.getUserStore().attachIdentity(input);
+  }
+
+  async resolveIdentity(
+    input: ResolveAuthIdentityInput,
+  ): Promise<AuthPrincipal | undefined> {
+    await this.ensureUserStoreStarted();
+    const user = await this.getUserStore().resolveIdentity(input);
+    return user ? principalFromUser(user) : undefined;
+  }
+
   async createOperatorSession(
     subject?: string,
     options: { secure?: boolean } = {},
@@ -309,6 +342,20 @@ export class AuthService {
     request: Request,
   ): Promise<OperatorSessionRecord | undefined> {
     return this.sessionStore.getSessionFromRequest(request);
+  }
+
+  async resolveSession(request: Request): Promise<AuthPrincipal | undefined> {
+    await this.ensureUserStoreStarted();
+    const session = await this.getOperatorSession(request);
+    if (!session) {
+      return undefined;
+    }
+
+    const user = await this.getUserStore().getUser(session.subject);
+    if (user?.status !== "active") {
+      return undefined;
+    }
+    return principalFromUser(user);
   }
 
   createOperatorLoginResponse(request: Request): Response {
@@ -494,4 +541,15 @@ export class AuthService {
       },
     });
   }
+}
+
+function principalFromUser(user: AuthUser): AuthPrincipal {
+  return {
+    userId: user.id,
+    displayName: user.displayName,
+    role: user.role,
+    status: user.status,
+    permissionLevel: user.role,
+    ...(user.canonicalId ? { canonicalId: user.canonicalId } : {}),
+  };
 }

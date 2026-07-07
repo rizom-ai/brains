@@ -6,7 +6,11 @@ export type {
   CreateAuthorizationCodeInput,
 } from "./auth-code-store";
 export { AuthService } from "./auth-service";
-export type { AuthServiceOptions, OperatorSetupRequired } from "./auth-service";
+export type {
+  AuthPrincipal,
+  AuthServiceOptions,
+  OperatorSetupRequired,
+} from "./auth-service";
 export {
   AuthServicePlugin,
   authServicePlugin,
