@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented on `feat/mcp-external-redesign`. The MCP command path runs through `chat`/`confirm`, the protocol server defaults to `basic` mode (read-only tools plus `chat`/`confirm`), and `debug` preserves raw-tool exposure for authenticated/local anchor use. MCP confirmations resolve through `agent.confirmPendingAction`, and the response adapter surfaces `toolResults` plus read-your-writes handles. The stale `/api/chat` assumption has been refreshed: `/api/chat` is outside MCP scope and belongs to web-chat / remote-agent follow-up if needed.
+Implemented on `feat/mcp-external-redesign`. The MCP command path runs through `chat`/`confirm`, the protocol server defaults to `basic` mode (read-only tools plus `chat`/`confirm`), and `debug` preserves raw-tool exposure for authenticated/local anchor use. MCP confirmations resolve through `agent.confirmPendingAction`, and the response adapter surfaces `toolResults` plus read-your-writes handles. The stale `/api/chat` assumption has been refreshed: `/api/chat` is outside MCP scope; remote-agent JSON compatibility now uses `/api/agent/chat` and `/api/agent/chat/confirm` on the web-chat surface.
 
 ## Background
 
@@ -312,10 +312,11 @@ streaming progress is a later enhancement.
 
 Earlier drafts treated `/api/chat` as part of `interfaces/mcp`. That endpoint has
 since moved out of the MCP transport; `interfaces/mcp` now intentionally returns
-404 for `/api/chat` and `/api/chat/confirm`. Any remaining `/api/chat` compatibility
-or remote-agent-evaluation work belongs to the web-chat / remote-agent surface, not
-to this MCP external redesign. The MCP command path is `chat` + `confirm` over the
-MCP tool protocol.
+404 for `/api/chat` and `/api/chat/confirm`. Remote-agent evaluation now uses the
+web-chat-owned JSON endpoints `/api/agent/chat` and `/api/agent/chat/confirm`.
+Those endpoints derive anchor permission server-side from the operator session and
+do not trust client-supplied permission context. The MCP command path remains
+`chat` + `confirm` over the MCP tool protocol.
 
 ## Phasing (thin vertical slices)
 
@@ -323,9 +324,12 @@ Tests written before implementation (TDD).
 
 ### Phase 0 — Refresh stale `/api/chat` assumptions
 
-- Tests first: MCP HTTP keeps returning 404 for `/api/chat` and `/api/chat/confirm`.
-- Implement: remove `/api/chat` from MCP scope in this plan. Track any remote-agent
-  compatibility work separately under the web-chat / evaluation surface.
+- Tests first: MCP HTTP keeps returning 404 for `/api/chat` and `/api/chat/confirm`;
+  remote-agent evaluation posts simple JSON to `/api/agent/chat` and
+  `/api/agent/chat/confirm`.
+- Implement: remove `/api/chat` from MCP scope in this plan. Add dedicated web-chat
+  remote-agent JSON endpoints that derive permission server-side and update
+  `RemoteAgentService` to use them.
 
 ### Phase 1 — Walking skeleton: `chat` command over stdio at anchor
 
@@ -389,8 +393,8 @@ Tests written before implementation (TDD).
    follow-up `get` retrieves it (read-your-writes bridge works).
 6. `mode: "debug"` exposes raw write tools over stdio/anchor and is refused on
    unauthenticated http.
-7. MCP HTTP keeps `/api/chat` out of scope; `/api/chat` compatibility work is
-   tracked separately under web-chat / remote-agent evaluation if needed.
+7. MCP HTTP keeps `/api/chat` out of scope; remote-agent evaluation uses
+   `/api/agent/chat` and `/api/agent/chat/confirm` with server-derived anchor context.
 8. No new published package; changes confined to `interfaces/mcp`,
    `shell/mcp-service`, `shell/core`.
 
@@ -408,9 +412,9 @@ All items previously open are resolved (each verified against the code):
    force an agent/LLM turn just to poll a job — defeating the cheap-query purpose
    the CQRS split exists to protect.
 3. **`/api/chat` is outside MCP scope.** `interfaces/mcp` intentionally serves only
-   the MCP protocol and returns 404 for `/api/chat` paths. Any remote-agent
-   compatibility work for `/api/chat` belongs to web-chat / evaluation follow-up,
-   not this MCP external redesign.
+   the MCP protocol and returns 404 for `/api/chat` paths. Remote-agent JSON calls
+   use dedicated web-chat routes (`/api/agent/chat`, `/api/agent/chat/confirm`) so
+   they do not collide with the AI SDK web-chat stream contract.
 4. **No `AgentResponse` contract change.** Verified: a create tool returns
    `data: { entityId, status, jobId }` (`entity-create-tool.ts:510`), so the
    response adapter exposing `toolResults` already hands the caller the
