@@ -52,6 +52,12 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   private hasWebserver = false;
 
   constructor(config: A2AConfigInput = {}) {
+    if (Object.prototype.hasOwnProperty.call(config, "trustedTokens")) {
+      throw new Error("trustedTokens legacy config is no longer supported");
+    }
+    if (Object.prototype.hasOwnProperty.call(config, "outboundTokens")) {
+      throw new Error("outboundTokens legacy config is no longer supported");
+    }
     super("a2a", packageJson, config, a2aConfigSchema);
   }
 

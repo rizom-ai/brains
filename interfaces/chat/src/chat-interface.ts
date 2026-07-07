@@ -18,7 +18,6 @@ import {
   type MessageInterfaceOutput,
   type ResponsePlan,
   type RuntimeUploadStore,
-  type PermissionLookupContext,
   type ToolActivityEvent,
   type ToolStatusUpdate,
   type UserPermissionLevel,

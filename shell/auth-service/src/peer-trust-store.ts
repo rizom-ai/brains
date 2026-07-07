@@ -4,7 +4,17 @@ import { JsonFileStore } from "./json-file-store";
 
 const PEER_TRUST_FILE = "a2a-peer-trust.json";
 
-const peerTrustRecordSchema = z
+export interface A2APeerTrustRecord {
+  domain: string;
+  keyFingerprint: string;
+  grantedLevel: "public" | "trusted";
+}
+
+interface A2APeerTrustStoreFile {
+  peers: A2APeerTrustRecord[];
+}
+
+const peerTrustRecordSchema: z.ZodType<A2APeerTrustRecord> = z
   .object({
     domain: z.string().min(1),
     keyFingerprint: z.string().min(1),
@@ -12,13 +22,11 @@ const peerTrustRecordSchema = z
   })
   .strict();
 
-const peerTrustStoreFileSchema = z
+const peerTrustStoreFileSchema: z.ZodType<A2APeerTrustStoreFile> = z
   .object({
     peers: z.array(peerTrustRecordSchema),
   })
   .strict();
-
-export type A2APeerTrustRecord = z.infer<typeof peerTrustRecordSchema>;
 
 export interface GrantA2APeerTrustInput {
   domain: string;
@@ -32,16 +40,14 @@ export interface A2APeerTrustStoreOptions {
 }
 
 export class A2APeerTrustStore {
-  private readonly store: JsonFileStore<
-    z.infer<typeof peerTrustStoreFileSchema>
-  >;
+  private readonly store: JsonFileStore<A2APeerTrustStoreFile>;
 
   constructor(options: A2APeerTrustStoreOptions) {
     this.store = new JsonFileStore({
       filePath: join(options.storageDir, options.fileName ?? PEER_TRUST_FILE),
-      parse: (value): z.infer<typeof peerTrustStoreFileSchema> =>
+      parse: (value): A2APeerTrustStoreFile =>
         peerTrustStoreFileSchema.parse(value),
-      empty: (): z.infer<typeof peerTrustStoreFileSchema> => ({ peers: [] }),
+      empty: (): A2APeerTrustStoreFile => ({ peers: [] }),
       onCorrupt: "throw",
     });
   }

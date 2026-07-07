@@ -18,7 +18,7 @@ export interface EnvVarDecl {
 }
 
 /** The varlock header at the top of every generated `.env.schema`. */
-export const ENV_SCHEMA_HEADER = [
+export const ENV_SCHEMA_HEADER: string = [
   "# This env file uses @env-spec - see https://varlock.dev/env-spec for more info",
   "#",
   "# @defaultRequired=false @defaultSensitive=false",

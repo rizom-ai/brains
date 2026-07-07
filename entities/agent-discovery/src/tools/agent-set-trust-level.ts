@@ -113,7 +113,7 @@ export function createAgentSetTrustLevelTool(
       if (!parsed.success) {
         return {
           success: false,
-          error: `Invalid input: ${parsed.error.errors.map((error) => `${error.path.join(".")}: ${error.message}`).join(", ")}`,
+          error: `Invalid input: ${parsed.error.issues.map((error) => `${error.path.join(".")}: ${error.message}`).join(", ")}`,
         };
       }
 
