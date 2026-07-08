@@ -136,9 +136,11 @@ describe("registerActionItemsWidget", () => {
       id: "conversation-memory:action-items",
       pluginId: "conversation-memory",
       title: "Open action items",
+      group: "knowledge",
       section: "secondary",
       priority: 25,
       rendererName: "ListWidget",
+      digest: expect.any(Array),
     });
   });
 });

@@ -104,9 +104,14 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
             id: "swot",
             pluginId: this.id,
             title: "SWOT",
+            group: "network",
             section: "secondary",
             priority: 14,
             rendererName: "SwotWidget",
+            digest: [
+              { label: "Assessment", value: "SWOT" },
+              { label: "Scope", value: "Agent network" },
+            ],
             component: SwotWidget,
             dataProvider: async () => {
               const swot = await context.entityService.getEntity<SwotEntity>({

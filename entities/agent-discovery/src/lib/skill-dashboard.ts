@@ -18,9 +18,14 @@ export function registerSkillsDashboardWidget(
           id: SKILLS_WIDGET_ID,
           pluginId,
           title: "Skills",
+          group: "network",
           section: "sidebar",
           priority: 20,
           rendererName: "ListWidget",
+          digest: [
+            { label: "Capabilities", value: "Skills" },
+            { label: "Advertised via", value: "A2A" },
+          ],
           dataProvider: async () => {
             const skills =
               await context.entityService.listEntities<SkillEntity>({

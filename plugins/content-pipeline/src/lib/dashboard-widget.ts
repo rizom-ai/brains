@@ -26,10 +26,15 @@ export async function registerDashboardWidget(
       id: "publication-pipeline",
       pluginId,
       title: "Publication Pipeline",
+      group: "publishing",
       section: "secondary",
       priority: 100,
       rendererName: "PipelineWidget",
       visibility: "anchor",
+      digest: [
+        { label: "Workflow", value: "Draft → queued → published" },
+        { label: "Surface", value: "Publishing" },
+      ],
       dataProvider: () => getPipelineWidgetData(context),
     },
   });

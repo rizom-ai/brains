@@ -43,10 +43,22 @@ const registerWidgetPayloadSchema = z
     pluginId: z.string(),
     title: z.string(),
     description: z.string().optional(),
+    group: z.string().min(1),
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
     visibility: UserPermissionLevelSchema.default("public"),
+    needsOperator: z.number().int().nonnegative().optional(),
+    digest: z
+      .array(
+        z.object({
+          label: z.string(),
+          value: z.string(),
+          tone: z.enum(["plain", "good", "warn"]).optional(),
+        }),
+      )
+      .max(4)
+      .optional(),
     component: z.custom<WidgetComponent>().optional(),
     clientScript: z.string().optional(),
     dataProvider: z.function().returns(z.promise(z.unknown())),
@@ -74,10 +86,15 @@ function createRegisteredWidget(
     pluginId: payload.pluginId,
     title: payload.title,
     ...(payload.description ? { description: payload.description } : {}),
+    group: payload.group,
     priority: payload.priority,
     section: payload.section,
     rendererName: payload.rendererName,
     visibility: payload.visibility,
+    ...(payload.needsOperator !== undefined && {
+      needsOperator: payload.needsOperator,
+    }),
+    ...(payload.digest ? { digest: payload.digest } : {}),
     ...(payload.component ? { component: payload.component } : {}),
     ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
     dataProvider: payload.dataProvider as () => Promise<unknown>,
@@ -247,6 +264,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             baseUrl,
             widgets: resolvedWidgets.widgets,
             widgetScripts: resolvedWidgets.widgetScripts,
+            dashboardPath: this.config.routePath,
             character,
             profile,
             appInfo: visibleAppInfo,

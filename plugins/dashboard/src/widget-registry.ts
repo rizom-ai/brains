@@ -38,17 +38,27 @@ export function isBuiltInWidgetRenderer(
   return builtInWidgetRendererSet.has(rendererName);
 }
 
+export const dashboardDigestLineSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+  tone: z.enum(["plain", "good", "warn"]).optional(),
+});
+
 export const dashboardWidgetSchema = z.object({
   id: z.string(),
   pluginId: z.string(),
   title: z.string(),
   description: z.string().optional(),
+  group: z.string().min(1),
   priority: z.number().default(50),
   section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
   rendererName: z.string(),
   visibility: UserPermissionLevelSchema.default("public"),
+  needsOperator: z.number().int().nonnegative().optional(),
+  digest: z.array(dashboardDigestLineSchema).max(4).optional(),
 });
 
+export type DashboardDigestLine = z.infer<typeof dashboardDigestLineSchema>;
 export type DashboardWidgetMeta = z.infer<typeof dashboardWidgetSchema>;
 export type DashboardWidgetInput = z.input<typeof dashboardWidgetSchema>;
 
@@ -73,9 +83,12 @@ export class DashboardWidgetRegistry {
   }
 
   register(widget: RegisteredWidget): void {
+    const parsedWidget = dashboardWidgetSchema.parse(widget);
     const normalizedWidget: StoredRegisteredWidget = {
-      ...widget,
-      ...dashboardWidgetSchema.parse(widget),
+      ...parsedWidget,
+      dataProvider: widget.dataProvider,
+      ...(widget.component ? { component: widget.component } : {}),
+      ...(widget.clientScript ? { clientScript: widget.clientScript } : {}),
     };
     const key = `${normalizedWidget.pluginId}:${normalizedWidget.id}`;
     this.widgets.set(key, normalizedWidget);
@@ -83,6 +96,7 @@ export class DashboardWidgetRegistry {
       key,
       title: normalizedWidget.title,
       rendererName: normalizedWidget.rendererName,
+      group: normalizedWidget.group,
     });
   }
 

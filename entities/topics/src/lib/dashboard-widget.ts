@@ -19,9 +19,14 @@ export function registerTopicsDashboardWidget(params: {
           id: TOPICS_PLUGIN_ID,
           pluginId,
           title: "Topics",
+          group: "knowledge",
           section: "secondary",
           priority: 20,
           rendererName: "ListWidget",
+          digest: [
+            { label: "Corpus", value: "Topics" },
+            { label: "View", value: "Recently updated" },
+          ],
           dataProvider: async () => {
             const topics =
               await context.entityService.listEntities<TopicEntity>({

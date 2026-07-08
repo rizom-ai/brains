@@ -17,6 +17,7 @@ interface DashboardWidgetPayload {
   id: string;
   pluginId: string;
   title: string;
+  group: string;
   section: string;
   priority: number;
   rendererName: string;
@@ -52,10 +53,12 @@ describe("dashboard widget registration", () => {
       id: "publication-pipeline",
       pluginId: "content-pipeline",
       title: "Publication Pipeline",
+      group: "publishing",
       section: "secondary",
       priority: 100,
       rendererName: "PipelineWidget",
       visibility: "anchor",
+      digest: expect.any(Array),
     });
     expect(widgetPayload?.dataProvider).toBeFunction();
   });

@@ -74,9 +74,14 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
           id: "top-wishes",
           pluginId: this.id,
           title: "Top Wishes",
+          group: "knowledge",
           section: "secondary",
           priority: 30,
           rendererName: "ListWidget",
+          digest: [
+            { label: "Demand", value: "Top wishes" },
+            { label: "Signal", value: "Requested capabilities" },
+          ],
           dataProvider: async () => {
             const wishes = await context.entityService.listEntities<WishEntity>(
               {

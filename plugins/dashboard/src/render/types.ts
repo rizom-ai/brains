@@ -31,6 +31,7 @@ export interface DashboardRenderInput {
   baseUrl: string | undefined;
   widgets: Record<string, RenderableWidgetData>;
   widgetScripts: string[];
+  dashboardPath?: string;
   character: CharacterInput;
   profile: ProfileInput;
   appInfo: AppInfo;

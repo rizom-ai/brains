@@ -81,9 +81,14 @@ export function registerDecisionsWidget(params: {
           id: WIDGET_ID,
           pluginId,
           title: "Recent decisions",
+          group: "knowledge",
           section: "secondary",
           priority: 30,
           rendererName: "ListWidget",
+          digest: [
+            { label: "Memory", value: "Decisions" },
+            { label: "View", value: "Recent" },
+          ],
           dataProvider: () => buildDecisionsWidgetData(context),
         },
       });

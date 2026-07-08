@@ -60,6 +60,219 @@ describe("renderDashboardPageHtml", () => {
     );
   });
 
+  it("should derive tabs from non-empty widget groups", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {
+        "content-pipeline:pipeline": {
+          widget: {
+            id: "pipeline",
+            pluginId: "content-pipeline",
+            title: "Publication Pipeline",
+            group: "publishing",
+            section: "primary",
+            priority: 10,
+            rendererName: "PipelineWidget",
+            visibility: "public",
+            needsOperator: 2,
+          },
+          data: { summary: {}, items: [] },
+        },
+        "agent-discovery:agents": {
+          widget: {
+            id: "agents",
+            pluginId: "agent-discovery",
+            title: "Agents",
+            group: "network",
+            section: "secondary",
+            priority: 20,
+            rendererName: "ListWidget",
+            visibility: "public",
+          },
+          data: { items: [] },
+        },
+      },
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('href="#overview"');
+    expect(html).toContain('href="#publishing"');
+    expect(html).toContain('href="#network"');
+    expect(html).not.toContain('href="#site"');
+    expect(html).toContain('class="tab-badge tab-badge--needs">2</span>');
+    expect(html).toContain('class="tab-badge tab-badge--muted">1</span>');
+    expect(html).toContain('data-dashboard-group="publishing"');
+    expect(html).toContain('data-dashboard-group="network"');
+  });
+
+  it("should render overview vitals and digest lines from widgets", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({
+        uptime: 100,
+        entities: 12,
+        embeddings: 12,
+        interactions: [
+          {
+            id: "dashboard",
+            label: "Dashboard",
+            href: "/dashboard",
+            kind: "admin",
+            pluginId: "dashboard",
+            priority: 30,
+            visibility: "public",
+            status: "available",
+          },
+        ],
+      }),
+      widgets: {
+        "content-pipeline:pipeline": {
+          widget: {
+            id: "pipeline",
+            pluginId: "content-pipeline",
+            title: "Publication Pipeline",
+            group: "publishing",
+            section: "primary",
+            priority: 10,
+            rendererName: "PipelineWidget",
+            visibility: "public",
+            digest: [
+              { label: "Queued", value: "3", tone: "warn" },
+              { label: "Published", value: "9", tone: "good" },
+            ],
+          },
+          data: { summary: {}, items: [] },
+        },
+      },
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain("Runtime vitals");
+    expect(html).toContain("Semantic index");
+    expect(html).toContain("Ready");
+    expect(html).toContain("Queued");
+    expect(html).toContain("Published");
+    expect(html).toContain('href="#publishing"');
+    expect(html).toContain("Activity ledger");
+    expect(html).toContain(
+      "Recent entity activity is not available from the dashboard datasource yet.",
+    );
+  });
+
+  it("should render all tab panels in the no-JS HTML output", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {
+        "content-pipeline:pipeline": {
+          widget: {
+            id: "pipeline",
+            pluginId: "content-pipeline",
+            title: "Publication Pipeline",
+            group: "publishing",
+            section: "primary",
+            priority: 10,
+            rendererName: "PipelineWidget",
+            visibility: "public",
+          },
+          data: { summary: {}, items: [] },
+        },
+      },
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('id="overview"');
+    expect(html).toContain('id="publishing"');
+    expect(html).toContain("Entities");
+    expect(html).toContain("Publication Pipeline");
+    expect(html).toContain("dashboard-tabs-ready");
+    expect(html).not.toContain('hidden=""');
+  });
+
+  it("should render a built-in System tab with runtime status", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({
+        uptime: 100,
+        embeddings: 0,
+        endpoints: [
+          {
+            label: "Dashboard",
+            url: "/dashboard",
+            pluginId: "dashboard",
+            priority: 30,
+            visibility: "public",
+          },
+        ],
+        daemons: [
+          {
+            name: "Directory Sync",
+            pluginId: "directory-sync",
+            status: "running",
+            health: { status: "healthy" },
+          },
+        ],
+      }),
+      widgets: {},
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('href="#system"');
+    expect(html).toContain('id="system"');
+    expect(html).toContain("System health");
+    expect(html).toContain("1/1 healthy");
+    expect(html).toContain("Job queue");
+    expect(html).toContain("Unavailable");
+  });
+
+  it("should render the shared console strip", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      dashboardPath: "/operator",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+      operatorAccess: {
+        isOperator: true,
+        hiddenWidgetCount: 0,
+        loginUrl: "/login?return_to=%2Foperator",
+        logoutUrl: "/logout?return_to=%2Foperator",
+      },
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('class="console-strip"');
+    expect(html).toContain('href="/operator"');
+    expect(html).toContain('href="/chat"');
+    expect(html).toContain('href="/cms"');
+    expect(html).toContain("Operator");
+  });
+
   it("should not render the masthead scoreboard", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
@@ -85,7 +298,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
   });
 
-  it("should render identity sections and interaction entry points", () => {
+  it("should render identity capsule and interaction entry points", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -123,10 +336,8 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("Identity");
-    expect(html).toContain("Role");
-    expect(html).toContain("Purpose");
-    expect(html).toContain("Values");
+    expect(html).toContain("Identity capsule");
+    expect(html).toContain("Values: clarity");
     expect(html).toContain("Research brain");
     expect(html).toContain("Ways to connect");
     expect(html).toContain("Operator access");
@@ -152,6 +363,7 @@ describe("renderDashboardPageHtml", () => {
           widget: {
             id: "swot",
             pluginId: "swot",
+            group: "network",
             title: "SWOT",
             section: "secondary",
             priority: 10,
@@ -164,6 +376,7 @@ describe("renderDashboardPageHtml", () => {
           widget: {
             id: "network",
             pluginId: "agent-discovery",
+            group: "network",
             title: "Agent Network",
             section: "secondary",
             priority: 11,
@@ -176,6 +389,7 @@ describe("renderDashboardPageHtml", () => {
           widget: {
             id: "pipeline",
             pluginId: "content-pipeline",
+            group: "publishing",
             title: "Content Pipeline",
             section: "secondary",
             priority: 12,
@@ -188,6 +402,7 @@ describe("renderDashboardPageHtml", () => {
           widget: {
             id: "tiny",
             pluginId: "stats",
+            group: "system",
             title: "Tiny Stats",
             section: "secondary",
             priority: 13,
@@ -234,6 +449,7 @@ describe("renderDashboardPageHtml", () => {
           widget: {
             id: "test-widget",
             pluginId: "custom",
+            group: "knowledge",
             title: "Custom",
             section: "secondary",
             priority: 15,

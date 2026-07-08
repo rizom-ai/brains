@@ -89,9 +89,14 @@ export function registerActionItemsWidget(params: {
           id: WIDGET_ID,
           pluginId,
           title: "Open action items",
+          group: "knowledge",
           section: "secondary",
           priority: 25,
           rendererName: "ListWidget",
+          digest: [
+            { label: "Operator work", value: "Action items", tone: "warn" },
+            { label: "Source", value: "Conversation memory" },
+          ],
           dataProvider: () => buildActionItemsWidgetData(context),
         },
       });
