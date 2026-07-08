@@ -201,6 +201,28 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     ].slice(0, 8);
   }
 
+  private getIndexReady(): boolean | undefined {
+    if (!this.ctx) return undefined;
+
+    const entityService = this.ctx
+      .entityService as typeof this.ctx.entityService & {
+      isIndexReady?: () => boolean;
+    };
+
+    if (typeof entityService.isIndexReady !== "function") {
+      return undefined;
+    }
+
+    try {
+      return entityService.isIndexReady();
+    } catch (error) {
+      this.logger.debug("Semantic index status unavailable", {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
   private async getDirectorySyncStatus(): Promise<
     DashboardRenderInput["directorySyncStatus"]
   > {
@@ -352,6 +374,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             ]);
           const character = ctx.identity.get();
           const profile = ctx.identity.getProfile();
+          const indexReady = this.getIndexReady();
 
           const baseUrl =
             this.siteUrl ??
@@ -399,6 +422,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             appInfo: visibleAppInfo,
             activityLog: this.activityLog,
             jobProgress: this.jobProgress,
+            ...(indexReady !== undefined && { indexReady }),
             ...(directorySyncStatus !== undefined && { directorySyncStatus }),
             ...(this.config.themeCSS !== undefined && {
               themeCSS: this.config.themeCSS,

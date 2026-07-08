@@ -270,6 +270,7 @@ describe("renderDashboardPageHtml", () => {
           progressLabel: "1/3",
         },
       ],
+      indexReady: true,
       directorySyncStatus: {
         syncPath: "/brain/content",
         isInitialized: true,
@@ -285,6 +286,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("1/1 healthy");
     expect(html).toContain("Job queue");
     expect(html).toContain("1 recent");
+    expect(html).toContain("<dt>Semantic index</dt><dd>Ready</dd>");
     expect(html).toContain("Watching");
     expect(html).toContain("/brain/content");
     expect(html).toContain("site:build");

@@ -86,13 +86,14 @@ function getFallbackDigestLines(
   input: DashboardRenderInput,
 ): OverviewDigestLine[] {
   if (tab.group === "system") {
+    const indexReady = resolveIndexReady(input);
     return [
       { label: "Runtime", value: "Active", tone: "good" },
       { label: "Endpoints", value: String(input.appInfo.endpoints.length) },
       {
         label: "Semantic index",
-        value: input.appInfo.embeddings > 0 ? "Ready" : "Pending",
-        tone: input.appInfo.embeddings > 0 ? "good" : "warn",
+        value: indexReady ? "Ready" : "Pending",
+        tone: indexReady ? "good" : "warn",
       },
     ];
   }
@@ -390,8 +391,13 @@ function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
   );
 }
 
+function resolveIndexReady(input: DashboardRenderInput): boolean {
+  return input.indexReady ?? input.appInfo.embeddings > 0;
+}
+
 function VitalsRow({ input }: { input: DashboardRenderInput }): JSX.Element {
-  const indexReady = input.appInfo.embeddings > 0;
+  const indexReady = resolveIndexReady(input);
+  const latestWrite = input.activityLog?.[0];
 
   return (
     <section class="overview-vitals" aria-label="Runtime vitals">
@@ -409,7 +415,9 @@ function VitalsRow({ input }: { input: DashboardRenderInput }): JSX.Element {
       </article>
       <article class="vital-card vital-card--muted">
         <span>Last write</span>
-        <strong>—</strong>
+        <strong>
+          {latestWrite ? formatTimestamp(latestWrite.timestamp) : "—"}
+        </strong>
       </article>
     </section>
   );
@@ -569,7 +577,7 @@ function SystemHealthCard({
   const healthyDaemons = input.appInfo.daemons.filter(
     (daemon) => daemon.health?.status === "healthy",
   ).length;
-  const indexReady = input.appInfo.embeddings > 0;
+  const indexReady = resolveIndexReady(input);
 
   return (
     <section class="card system-health-card">
@@ -600,7 +608,9 @@ function SystemHealthCard({
             {input.directorySyncStatus
               ? input.directorySyncStatus.watchEnabled
                 ? "Watching"
-                : "Initialized"
+                : input.directorySyncStatus.isInitialized
+                  ? "Initialized"
+                  : "Not initialized"
               : "Unavailable"}
           </dd>
         </div>

@@ -62,6 +62,7 @@ export interface DashboardRenderInput {
   themeCSS?: string;
   activityLog?: DashboardActivityEvent[];
   jobProgress?: DashboardJobProgressItem[];
+  indexReady?: boolean;
   directorySyncStatus?: DashboardDirectorySyncStatus;
   operatorAccess?: DashboardOperatorAccess;
 }

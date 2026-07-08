@@ -165,6 +165,13 @@ describe("DashboardPlugin", () => {
           watchEnabled: true,
         },
       }));
+      (
+        harness.getEntityService() as ReturnType<
+          typeof harness.getEntityService
+        > & {
+          isIndexReady: () => boolean;
+        }
+      ).isIndexReady = (): boolean => true;
 
       await harness.sendMessage("entity:updated", {
         entityType: "note",
@@ -188,6 +195,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("site:build");
       expect(html).toContain("1/3");
       expect(html).toContain("/brain/content");
+      expect(html).toContain("<dt>Semantic index</dt><dd>Ready</dd>");
     });
 
     it("should show anchor endpoints and interactions to signed-in operators", async () => {
