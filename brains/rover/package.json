@@ -32,6 +32,7 @@
     "@brains/app": "workspace:*",
     "@brains/assessment": "workspace:*",
     "@brains/atproto": "workspace:*",
+    "@brains/atproto-registry": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/blog": "workspace:*",
     "@brains/chat": "workspace:*",

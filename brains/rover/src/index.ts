@@ -8,6 +8,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
 import { authServicePlugin } from "@brains/auth-service";
+import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { directorySync } from "@brains/directory-sync";
 import { emailResendPlugin } from "@brains/email-resend";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
@@ -232,6 +233,7 @@ export default defineBrain({
           : {}),
       }),
     ],
+    ["atproto-registry", atprotoRegistryPlugin, {}],
     [
       "directory-sync",
       directorySync,
