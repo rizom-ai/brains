@@ -202,6 +202,7 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 Plans:
 
 - [first-party-cms-editor.md](./plans/first-party-cms-editor.md) — first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync). The committed CMS direction, replacing the Sveltia/GitHub-App token path.
+- [dashboard-tabbed-console.md](./plans/dashboard-tabbed-console.md) — restructure the operator dashboard into a tabbed console: tabs derived from widget groups (converging to bundle ids when bundles land), an Overview that answers "anything need me?", operator-work badges, and a console strip shared with Chat and the CMS.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
