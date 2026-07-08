@@ -2,19 +2,21 @@
 
 ## Status
 
-Proposed; decided 2026-07-07. **Supersedes `rizom-sites-on-hosted-rover.md`** (deleted with
-this plan's landing): the three Rizom web properties (`rizom.ai`, `rizom.work`,
-`rizom.foundation`) consolidate into **one site at `rizom.ai`**, and the three deployed
-brains behind them (ranger, ranger, relay) consolidate into **one Rizom brain**. The
-predecessor's premise — packaging three per-site variants so hosted Rover can resolve them
-as npm refs — dissolves: with one site there is no fan-out to package.
+Proposed; direction decided 2026-07-07. **Follow-up to
+[`rizom-sites-on-hosted-rover.md`](./rizom-sites-on-hosted-rover.md)**: once the site
+packaging and hosted-rover custom-domain machinery from that plan land, the three Rizom
+web properties (`rizom.ai`, `rizom.work`, `rizom.foundation`) consolidate into **one site
+at `rizom.ai`**, and the three deployed brains behind them (ranger, ranger, relay)
+consolidate into **one Rizom brain**. The predecessor keeps its scope (npm-resolvable site
+packages, per-domain TLS/DNS); this plan is the end-state it feeds into — from three
+custom-domain sites down to one.
 
 ## Why
 
-- Three standalone deploys, three Cloudflare zones with their own certs/DNS, three content
-  repos, and three site variants exist to serve what is one organisation's presence. The
-  predecessor plan's hardest work (per-site npm packaging, per-domain TLS parameterization,
-  multi-zone DNS) is cost incurred _because_ there are three of everything.
+- Three deploys, three Cloudflare zones with their own certs/DNS, three content repos, and
+  three site variants exist to serve what is one organisation's presence. The predecessor
+  plan makes the three-of-everything shape _hostable_; this plan removes the reason for it —
+  the per-domain machinery gets exercised for one domain instead of three, permanently.
 - The repo's stated direction is a single brain, not a fleet. Site consolidation without
   brain consolidation would leave two brains whose only job is redundancy.
 - Bundle-model alignment (`brain-model-unification.md`): the consolidated brain is exactly
@@ -49,25 +51,22 @@ as npm refs — dissolves: with one site there is no fan-out to package.
    (conversations, entities, jobs) are copied to the consolidated deployment at cutover
    rather than starting fresh. The other two brains' runtime state is disposable
    (site-serving only).
-6. **Deploy shape: one standalone deploy now; hosted-rover later, optionally.** The
-   predecessor plan existed to put three sites on hosted Rover. With one brain, the
-   simplest safe shape is the one that already works: a single standalone deploy (today's
-   `rizom-ai` repo shape) serving `rizom.ai`. Moving that one brain onto hosted-rover
-   custom-domain machinery becomes an independent, optional follow-up — the per-domain
-   cert/DNS design from the predecessor plan (Origin CA per zone, per-brain PEM pair,
-   NS-delegation onboarding) remains documented in git history if/when that happens.
+6. **Deploy shape: the hosted-rover custom-domain slot the predecessor builds.** The
+   consolidated brain deploys as a single custom-domain brain on hosted Rover, using the
+   per-domain cert/DNS machinery (Origin CA per zone, per-brain PEM pair, NS-delegation
+   onboarding) from the predecessor plan — exercised for `rizom.ai` only. The two retired
+   domains never need that machinery; they are edge redirects (decision 2).
 
-## What carries over from the in-flight worktree
+## Sequencing note for the in-flight worktree
 
-`work/sites-controlled-deploy` started the predecessor's Phase 1 (`@brains/site-rizom-work`
-package scaffold). Under this plan that package is not needed, but two of its products are:
-
-- the **site-package CSS contract** (`themeOverride` layered after base theme) — applies
-  unchanged to the single consolidated site;
-- the **publishability groundwork** for the site dependency chain — needed the day the
-  hosted-rover follow-up is picked up, and harmless before then.
-
-The lane should be redirected before more work-specific effort lands.
+`work/sites-controlled-deploy` is executing the predecessor's Phase 1 with
+`@brains/site-rizom-work` as the pilot package. With this follow-up decided, that package
+has a bounded lifetime: it proves the packaging/resolution path, then folds into the
+consolidated site here. Its durable products — the site-package CSS contract
+(`themeOverride`) and the publishability groundwork for the site dependency chain — carry
+over unchanged. Worth weighing inside the predecessor's scope: whether the pilot package
+should be the consolidated `rizom.ai` site rather than `rizom.work`, so the throwaway is
+avoided; that call belongs to that plan's lane.
 
 ## Phases (thin vertical, tests first)
 
@@ -128,9 +127,10 @@ The lane should be redirected before more work-specific effort lands.
 
 ## Related
 
+- [`rizom-sites-on-hosted-rover.md`](./rizom-sites-on-hosted-rover.md) — the predecessor
+  this plan follows: site packaging, package resolution, and per-domain TLS/DNS machinery.
 - `brain-model-unification.md` — the consolidated brain becomes the natural relay-successor
   composition (`core + site + team` + adds); one fewer live model to migrate.
-- `work/sites-controlled-deploy` — in-flight lane to redirect; CSS contract carries over.
+- `work/sites-controlled-deploy` — in-flight lane executing the predecessor; see the
+  sequencing note above.
 - `sites/rizom`, `brains/relay`, `brains/ranger` — sources of the consolidated composition.
-- Predecessor: `rizom-sites-on-hosted-rover.md` (superseded and deleted; its per-domain
-  TLS/DNS design lives in git history for the optional hosted-rover follow-up).
