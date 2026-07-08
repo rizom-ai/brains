@@ -35,7 +35,7 @@ export class RemoteAgentService implements IAgentService {
     conversationId: string,
     _context?: ChatContext,
   ): Promise<AgentResponse> {
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
+    const response = await fetch(`${this.baseUrl}/api/agent/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -58,9 +58,9 @@ export class RemoteAgentService implements IAgentService {
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
-    context: ChatContext,
+    _context: ChatContext,
   ): Promise<AgentResponse> {
-    const response = await fetch(`${this.baseUrl}/api/chat/confirm`, {
+    const response = await fetch(`${this.baseUrl}/api/agent/chat/confirm`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -70,7 +70,6 @@ export class RemoteAgentService implements IAgentService {
         conversationId,
         confirmed,
         approvalId,
-        context,
       }),
     });
 

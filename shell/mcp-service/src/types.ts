@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { type ProgressNotification } from "@brains/utils/progress";
 import { z, type ZodRawShape } from "@brains/utils/zod";
 import type { UserPermissionLevel } from "@brains/templates";
@@ -149,6 +150,7 @@ export const toolResponseSchema: z.ZodType<ToolResponse> = z.union([
 export type ToolSideEffects = "none" | "writes" | "external";
 export type ToolInputSchema = ZodRawShape;
 export type ToolOutputSchema = z.ZodType;
+export type MCPProtocolMode = "basic" | "debug";
 
 /**
  * Tool definition
@@ -163,6 +165,8 @@ export interface Tool<TOutput = ToolResponse> {
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
   /** Declares whether this tool is safe to repeat/cache within one model turn. Undefined defaults to not cacheable. */
   sideEffects?: ToolSideEffects;
+  /** MCP protocol annotations advertised to external clients. Derived from sideEffects when omitted. */
+  annotations?: ToolAnnotations;
   /** Optional CLI metadata — makes this tool invocable as a brain CLI command */
   cli?: {
     /** CLI command name (e.g. "list", "sync", "build") */
@@ -256,6 +260,9 @@ export interface IMCPTransport {
    * Set the permission level for this transport
    */
   setPermissionLevel(level: UserPermissionLevel): void;
+
+  /** Select which registered tools are exposed on the external MCP protocol server. */
+  setProtocolMode(mode: MCPProtocolMode): void;
 }
 
 /**

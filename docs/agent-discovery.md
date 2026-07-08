@@ -181,11 +181,6 @@ grant it call access.
   calls are signed with RFC 9421 HTTP Message Signatures. Plugs into the
   same discovered → approved lifecycle, which then covers inbound trust as
   well as outbound calling.
-- **External tool discovery (CQRS split)** — `docs/plans/mcp-external-redesign.md`.
-  For external MCP clients, read tools (`search`/`get`/`list`) stay individually
-  exposed and permission-filtered for composability, while writes funnel through
-  a single `chat` tool. Refines the in-brain capability layer for outside
-  callers.
 - **Agents in the core bundle** — `docs/plans/brain-model-unification.md`. The
   `agents` plugin lives in the posture-independent `core` bundle; "agents phase
   2 (ATProto firehose) — auto-discover peer brains" is the next named capability.

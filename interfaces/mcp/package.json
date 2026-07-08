@@ -21,7 +21,9 @@
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express": "^4.18.0",
+    "express-async-handler": "^1.2.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

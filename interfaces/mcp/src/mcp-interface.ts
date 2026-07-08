@@ -209,6 +209,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
           lastCheck: new Date(),
           details: {
             transport: this.config.transport,
+            mode: this.config.mode,
             url:
               this.config.transport === "http"
                 ? this.domain
@@ -256,23 +257,38 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
       transportUserId,
     );
 
+    const activeAuthService = getActiveAuthService();
+    const hasHttpAuth =
+      this.config.transport === "http" &&
+      (this.config.authToken ? true : activeAuthService !== undefined);
+
     // For HTTP with authentication, authenticated users get anchor permission.
     // For HTTP without auth, use the configured permission level.
-    if (
-      this.config.transport === "http" &&
-      (this.config.authToken || getActiveAuthService())
-    ) {
+    if (hasHttpAuth) {
       userLevel = "anchor";
       this.logger.debug(
         "HTTP authentication configured - authenticated users will have anchor permissions",
       );
     }
 
-    // Pass the determined permission level to the MCP transport
+    if (this.config.mode === "debug") {
+      if (this.config.transport === "http" && !hasHttpAuth) {
+        throw new Error(
+          "MCP debug mode requires authenticated HTTP transport; configure authToken or OAuth auth service.",
+        );
+      }
+
+      if (userLevel !== "anchor") {
+        throw new Error("MCP debug mode requires anchor permissions.");
+      }
+    }
+
+    // Pass the determined protocol mode and permission level to the MCP transport
+    this.mcpTransport.setProtocolMode(this.config.mode);
     this.mcpTransport.setPermissionLevel(userLevel);
 
     this.logger.debug(
-      `Starting MCP ${this.config.transport} transport with ${userLevel} permissions`,
+      `Starting MCP ${this.config.transport} transport in ${this.config.mode} mode with ${userLevel} permissions`,
     );
 
     if (this.config.transport === "stdio") {

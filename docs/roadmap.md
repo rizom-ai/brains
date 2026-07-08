@@ -190,6 +190,8 @@ This includes:
 Plans:
 
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
+- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — package the Rizom site variants so hosted Rover can consume them as npm-resolvable site refs, plus per-domain TLS/DNS for custom-domain brains.
+- [rizom-consolidation.md](./plans/rizom-consolidation.md) — follow-up end-state: one brain, one site. Fold rizom.work and rizom.foundation into rizom.ai (edge redirects for the old domains) and consolidate the three deployed brains into one relay-shaped composition carrying the atproto registry and the collective's team memory.
 - [rover-onboarding-plugin.md](./plans/rover-onboarding-plugin.md) — extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord opt-in in `@rizom/ops` rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.
@@ -201,8 +203,8 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 Plans:
 
 - [first-party-cms-editor.md](./plans/first-party-cms-editor.md) — first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync). The committed CMS direction, replacing the Sveltia/GitHub-App token path.
-- [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, separate from Discord replacement work.
-- [chat-message-interface-shared-workflows.md](./plans/chat-message-interface-shared-workflows.md) — extraction pass moving Discord/Web-chat-generic workflows into `MessageInterface` helpers before Slack duplicates them.
+- [dashboard-tabbed-console.md](./plans/dashboard-tabbed-console.md) — restructure the operator dashboard into a tabbed console: tabs derived from widget groups (converging to bundle ids when bundles land), an Overview that answers "anything need me?", operator-work badges, and a console strip shared with Chat and the CMS.
+- [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
@@ -221,7 +223,6 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
-- [mcp-external-redesign.md](./plans/mcp-external-redesign.md) — CQRS split for external MCP: raw read tools stay composable (`readOnlyHint`), all mutations route through a single agent-gated `chat` command; `debug` mode keeps raw write tools local-only.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — Opportunity Priority Engine: proposed standalone `@brains/opportunity` package for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for opportunity prioritization; brain-agnostic, not in any default bundle.
 
 ### 7. Keep the framework sustainable

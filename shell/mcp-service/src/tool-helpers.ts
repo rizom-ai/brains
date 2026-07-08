@@ -107,11 +107,18 @@ export function createTool<
   options: {
     visibility?: Tool["visibility"];
     sideEffects?: Tool["sideEffects"];
+    annotations?: Tool["annotations"];
     debug?: boolean;
     cli?: Tool["cli"];
   } = {},
 ): Tool {
-  const { visibility = "anchor", sideEffects, debug = false, cli } = options;
+  const {
+    visibility = "anchor",
+    sideEffects,
+    annotations,
+    debug = false,
+    cli,
+  } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
   const inputShape = inputSchema.shape;
 
@@ -148,6 +155,7 @@ export function createTool<
     },
     visibility,
     ...(sideEffects ? { sideEffects } : {}),
+    ...(annotations ? { annotations } : {}),
     ...(cli ? { cli } : {}),
   };
 }

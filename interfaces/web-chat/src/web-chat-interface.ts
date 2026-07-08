@@ -18,6 +18,7 @@ import {
   type WebRouteDefinition,
   type ToolStatusUpdate,
   type UserPermissionLevel,
+  type ChatContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -70,6 +71,21 @@ const chatActionRequestSchema = z
   .object({
     conversationId: z.string().min(1),
     action: agentEventActionSchema,
+  })
+  .strict();
+
+const remoteAgentChatRequestSchema = z
+  .object({
+    message: z.string().min(1),
+    conversationId: z.string().min(1),
+  })
+  .strict();
+
+const remoteAgentConfirmRequestSchema = z
+  .object({
+    conversationId: z.string().min(1),
+    confirmed: z.boolean(),
+    approvalId: z.string().min(1),
   })
   .strict();
 
@@ -156,6 +172,10 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleChatPage(request),
         handleChatRequest: (request): Promise<Response> =>
           this.handleChatRequest(request),
+        handleRemoteAgentChatRequest: (request): Promise<Response> =>
+          this.handleRemoteAgentChatRequest(request),
+        handleRemoteAgentConfirmRequest: (request): Promise<Response> =>
+          this.handleRemoteAgentConfirmRequest(request),
         handleBootstrapRequest: (request): Promise<Response> =>
           this.handleBootstrapRequest(request),
         handleActionRequest: (request): Promise<Response> =>
@@ -390,6 +410,80 @@ export class WebChatInterface extends MessageInterfacePlugin<
       getUploadStore: () =>
         this.getContext().uploads.scoped(createWebChatUploadStoreScope()),
     });
+  }
+
+  private async handleRemoteAgentChatRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Invalid JSON body", { status: 400 });
+    }
+
+    const parsed = remoteAgentChatRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response("Invalid remote agent chat request", { status: 400 });
+    }
+
+    const response = await this.getContext().agent.chat(
+      parsed.data.message,
+      parsed.data.conversationId,
+      this.createRemoteAgentChatContext(parsed.data.conversationId),
+    );
+
+    return Response.json(response);
+  }
+
+  private async handleRemoteAgentConfirmRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Invalid JSON body", { status: 400 });
+    }
+
+    const parsed = remoteAgentConfirmRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response("Invalid remote agent confirm request", {
+        status: 400,
+      });
+    }
+
+    const response = await this.getContext().agent.confirmPendingAction(
+      parsed.data.conversationId,
+      parsed.data.confirmed,
+      parsed.data.approvalId,
+      this.createRemoteAgentChatContext(parsed.data.conversationId),
+    );
+
+    return Response.json(response);
+  }
+
+  private createRemoteAgentChatContext(conversationId: string): ChatContext {
+    return {
+      userPermissionLevel: "anchor",
+      interfaceType: "remote-agent",
+      channelId: conversationId,
+      channelName: "Remote Agent",
+      actor: {
+        actorId: `remote-agent:${conversationId}:operator`,
+        interfaceType: "remote-agent",
+        role: "user",
+        displayName: "Remote agent operator",
+      },
+    };
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {

@@ -6,7 +6,14 @@ import {
   McpServer,
   ResourceTemplate as MCPResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Prompt, Resource, ResourceTemplate, Tool } from "./types";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  MCPProtocolMode,
+  Prompt,
+  Resource,
+  ResourceTemplate,
+  Tool,
+} from "./types";
 import { normalizeToolExecutionMessageResponse } from "./tool-response-validation";
 
 const MCP_SERVER_INFO = {
@@ -52,6 +59,24 @@ export function canExposeTool(
   );
 }
 
+export function canExposeToolOnProtocol(
+  permissionLevel: UserPermissionLevel,
+  tool: Tool,
+  mode: MCPProtocolMode,
+): boolean {
+  if (!canExposeTool(permissionLevel, tool)) {
+    return false;
+  }
+
+  if (mode === "debug") {
+    return true;
+  }
+
+  return (
+    isReadOnlyTool(tool) || tool.name === "chat" || tool.name === "confirm"
+  );
+}
+
 export function canExposeResource(
   permissionLevel: UserPermissionLevel,
 ): boolean {
@@ -91,6 +116,45 @@ export function filterToolsForPermission(
   return tools.filter(({ tool }) => canExposeTool(userLevel, tool));
 }
 
+export function getToolAnnotations(tool: Tool): ToolAnnotations | undefined {
+  if (tool.annotations) {
+    return tool.annotations;
+  }
+
+  if (tool.sideEffects === "none") {
+    return {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    };
+  }
+
+  if (tool.sideEffects === "writes") {
+    return {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    };
+  }
+
+  if (tool.sideEffects === "external") {
+    return {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    };
+  }
+
+  return undefined;
+}
+
+export function isReadOnlyTool(tool: Tool): boolean {
+  return getToolAnnotations(tool)?.readOnlyHint === true;
+}
+
 export function serializeMessageResponse(response: MessageResponse): string {
   if ("success" in response && !response.success) {
     throw new Error(response.error ?? "Operation failed");
@@ -110,9 +174,11 @@ export function registerToolOnServer(
     tool.name,
     tool.description,
     tool.inputSchema,
+    getToolAnnotations(tool) ?? {},
     async (params, extra) => {
       const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
       const userId = extra._meta?.["userId"] ?? "mcp-user";
+      const conversationId = extra._meta?.["conversationId"];
       const channelId = extra._meta?.["channelId"];
       const channelName = extra._meta?.["channelName"];
       const progressToken = extra._meta?.progressToken;
@@ -122,6 +188,7 @@ export function registerToolOnServer(
         pluginId,
         interfaceType,
         userId,
+        conversationId,
         channelId,
         channelName,
         progressToken,
@@ -138,6 +205,7 @@ export function registerToolOnServer(
             hasProgress: progressToken !== undefined,
             interfaceType,
             userId,
+            conversationId,
             channelId,
             channelName,
             userPermissionLevel: permissionLevel,
