@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed. Design settled 2026-07-07 (mockups approved direction; see below). The current
+Implemented on `work/dashboard-tabbed-console` (all four phases); branch merged up to main
+2026-07-08, gates green. Awaiting merge to main. Design settled 2026-07-07 (mockups
+approved direction; see below). The current
 dashboard (`plugins/dashboard`) renders everything on one page — identity column, entity
 summary, primary/secondary widget stack, sidebar with interactions/endpoints/runtime — and
 has grown unwieldy as more plugins register widgets. This plan restructures it into a
