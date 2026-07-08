@@ -1,0 +1,37 @@
+id: tool-invocation-agent-set-trust-level
+name: Set Agent Inbound Trust Level
+description: Verifies that inbound A2A trust revocation uses the dedicated trust tool instead of editing agent metadata.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - a2a
+  - trust
+  - tool-invocation
+  - preset-core
+
+turns:
+  - userMessage: "Revoke docs.rizom.ai inbound A2A trusted access."
+
+successCriteria:
+  expectedTools:
+    - toolName: agent_set_trust_level
+      shouldBeCalled: true
+      argsContain:
+        agent: docs.rizom.ai
+        level: public
+    - toolName: system_update
+      shouldBeCalled: false
+  responseContains:
+    - "Confirmation required"
+  responseNotContains:
+    - "Updated agent"
+    - "JWKS unavailable"
+    - "status set to approved"
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 25000

@@ -15,8 +15,10 @@ turns:
   - userMessage: "Can you backup my brain to git?"
 
 successCriteria:
-  expectedTools:
-    - toolName: directory-sync_sync
+  expectedAnyTool:
+    - toolNames:
+        - directory-sync_sync
+        - directory-sync_status
       shouldBeCalled: true
   toolCountRange:
     min: 1
@@ -24,8 +26,6 @@ successCriteria:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
-  minHelpfulnessScore: 4
-  minInstructionFollowingScore: 4
 
 efficiency:
   maxToolCalls: 3

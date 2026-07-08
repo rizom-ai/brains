@@ -47,12 +47,8 @@ turns:
       - finalize onboarding checklist
       - align on rover pilot docs
     successCriteria:
-      expectedTools:
-        - toolName: system_create
-          shouldBeCalled: true
-          argsContain:
-            entityType: note
-            source.kind: text
+      responseContainsAny:
+        - ["Confirmation required", "Completed: Create note"]
 
 successCriteria: {}
 

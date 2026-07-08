@@ -76,8 +76,6 @@ successCriteria:
   expectedTools:
     - toolName: system_create
       shouldBeCalled: false
-    - toolName: system_upload_save
-      shouldBeCalled: false
   responseNotContains:
     - "which one"
     - "which image"

@@ -1,0 +1,27 @@
+id: tool-invocation-playbook-status
+name: Playbook Status Check
+description: Verifies that explicit playbook status requests use the playbook_status tool.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - playbooks
+  - tool-invocation
+  - preset-core
+
+turns:
+  - userMessage: "Check the status of the rover-onboarding playbook."
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_status
+      shouldBeCalled: true
+      argsContain:
+        playbookId: rover-onboarding
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 15000
