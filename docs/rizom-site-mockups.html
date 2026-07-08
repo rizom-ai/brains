@@ -182,26 +182,31 @@
   .room-head .standfirst { font-size: 17px; color: var(--w70); max-width: 54ch; margin-top: 18px; }
   .room-head .actions { display: flex; gap: 24px; align-items: baseline; margin-top: 28px; }
 
-  /* the /work diagnostic exhibit — a captioned figure, from the live site */
-  .exhibit-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 60px; align-items: start; }
+  /* the /work diagnostic panel — faithful to the live rizom.work hero visual */
+  .exhibit-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: start; }
   @media (max-width: 1020px) { .exhibit-grid { grid-template-columns: 1fr; gap: 30px; } }
-  .exhibit { border: 1px solid var(--rule); padding: 22px 24px 20px; margin-top: 8px; }
-  .exhibit .x-tabs { display: flex; gap: 18px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--w28); border-bottom: 1px solid var(--rule-soft); padding-bottom: 12px; }
-  .exhibit .x-tabs .on { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: -12px; }
-  .exhibit .x-type { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0 6px; }
-  .exhibit .x-type .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--w28); }
-  .exhibit .x-type b { font-family: var(--display); font-variation-settings: "SOFT" 70; font-weight: 520; font-size: 21px; letter-spacing: -.005em; }
-  .exhibit .x-score { text-align: right; }
-  .exhibit .x-score .n { font-family: var(--display); font-variation-settings: "SOFT" 30; font-weight: 480; font-size: 27px; color: var(--accent); }
-  .exhibit .x-score .n small { font-size: 14px; color: var(--w28); font-weight: 400; }
-  .exhibit .meter { height: 3px; background: var(--rule-soft); margin: 10px 0 16px; }
-  .exhibit .meter i { display: block; height: 100%; width: 34%; background: var(--accent); }
-  .exhibit .x-actions { border-top: 1px solid var(--rule-soft); }
-  .exhibit .x-act { display: grid; grid-template-columns: 42px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule-soft); font-size: 13px; color: var(--w70); align-items: baseline; }
-  .exhibit .x-act .no { font-family: var(--mono); font-size: 10.5px; color: var(--accent); }
-  .exhibit .x-foot { display: flex; justify-content: space-between; align-items: baseline; padding-top: 14px; }
-  .exhibit .x-foot a { font-family: var(--mono); font-size: 11.5px; color: var(--w45); text-decoration: none; border-bottom: 1px solid var(--rule); }
-  .exhibit .x-foot a:hover { color: var(--accent); border-color: var(--accent); }
+  .diag { position: relative; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 16px; padding: 20px 30px 26px; margin-top: 8px; overflow: hidden; }
+  .diag .bar { position: absolute; inset: 0 0 auto 0; height: 2px; background: var(--accent); border-radius: 16px 16px 0 0; }
+  .diag .radar { display: block; width: 100%; height: auto; padding-bottom: 10px; }
+  .diag .radar .tri-outer { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+  .diag .radar .tri-score { fill: color-mix(in srgb, var(--accent) 20%, transparent); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .diag .radar .vertex { fill: var(--white); stroke: var(--night); stroke-width: 2; }
+  .diag .radar text { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; fill: var(--w45); }
+  .diag .d-type { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 1px solid var(--rule-soft); padding: 18px 0; }
+  .diag .d-type .k { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--w45); white-space: nowrap; }
+  .diag .d-type b { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 96; font-style: italic; font-weight: 500; font-size: 22px; letter-spacing: -.015em; text-align: right; }
+  .diag .d-acts { border-top: 1px solid var(--rule-soft); padding-top: 18px; }
+  .diag .d-acts-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--w45); }
+  .diag .d-acts-head .score { letter-spacing: .18em; }
+  .diag .d-acts-head .score .arr { color: var(--w28); margin-right: 6px; }
+  .diag .d-acts-head .score .dim { color: var(--accent); }
+  .diag .d-acts-head .score .n { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .diag .d-acts-head .score .n span { opacity: .6; }
+  .diag ul { list-style: none; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .diag li { display: flex; align-items: baseline; gap: 12px; font-size: 13px; line-height: 1.5; color: var(--w70); }
+  .diag li .no { min-width: 26px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; color: color-mix(in srgb, var(--accent) 80%, var(--white)); }
+  .diag .d-run { margin-top: 20px; display: flex; width: 100%; align-items: center; justify-content: center; border: 1px solid var(--rule); border-radius: 10px; padding: 12px 16px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--w70); text-decoration: none; transition: border-color .15s, color .15s; }
+  .diag .d-run:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--white); }
   .exhibit-caption { font-family: var(--mono); font-size: 10.5px; color: var(--w28); margin-top: 10px; }
 
   .rsect { position: relative; padding: 54px 56px 20px 130px; }
@@ -492,34 +497,36 @@
           </div>
         </div>
         <div>
-          <div class="exhibit">
-            <div class="x-tabs">
-              <span>Specialization</span>
-              <span>Credibility</span>
-              <span class="on">Coordination</span>
+          <div class="diag">
+            <div class="bar"></div>
+            <svg class="radar" viewBox="0 4 360 248" role="img" aria-label="Three-axis TMS radar — Specialization, Credibility, Coordination">
+              <polygon class="tri-outer" points="180,50 266.60,200 93.40,200"></polygon>
+              <polygon class="tri-score" points="180,95 233.69,181 150.56,167"></polygon>
+              <circle class="vertex" cx="180" cy="95" r="4"></circle>
+              <circle class="vertex" cx="233.69" cy="181" r="4"></circle>
+              <circle class="vertex" cx="150.56" cy="167" r="4"></circle>
+              <text x="180" y="34" text-anchor="middle">Specialization</text>
+              <text x="252" y="222" text-anchor="start">Credibility</text>
+              <text x="108" y="222" text-anchor="end">Coordination</text>
+            </svg>
+            <div class="d-type">
+              <span class="k">Your team type</span>
+              <b>Distributed specialists</b>
             </div>
-            <div class="x-type">
-              <div>
-                <div class="k">Your team type</div>
-                <b>Distributed specialists</b>
+            <div class="d-acts">
+              <div class="d-acts-head">
+                <span>Priority actions</span>
+                <span class="score"><span class="arr">→</span><span class="dim">Coordination</span> <span class="n">34<span>/100</span></span></span>
               </div>
-              <div class="x-score">
-                <div class="k">Coordination</div>
-                <div class="n">34<small>/100</small></div>
-              </div>
+              <ul>
+                <li><span class="no">[01]</span><span>Clarify decision authority in the 4 highest-friction roles</span></li>
+                <li><span class="no">[02]</span><span>Surface tacit expertise via a weekly ritual</span></li>
+                <li><span class="no">[03]</span><span>Install coordination layer before further AI pilots</span></li>
+              </ul>
             </div>
-            <div class="meter"><i></i></div>
-            <div class="x-actions">
-              <div class="x-act"><span class="no">[01]</span><span>Clarify decision authority in the 4 highest-friction roles</span></div>
-              <div class="x-act"><span class="no">[02]</span><span>Surface tacit expertise via a weekly ritual</span></div>
-              <div class="x-act"><span class="no">[03]</span><span>Install coordination layer before further AI pilots</span></div>
-            </div>
-            <div class="x-foot">
-              <span class="exhibit-caption" style="margin:0">priority actions</span>
-              <a href="#s2">Run the diagnostic →</a>
-            </div>
+            <a class="d-run" href="#s2">Run the diagnostic →</a>
           </div>
-          <div class="exhibit-caption">fig. 1 — the diagnostic, as your team sees it</div>
+          <div class="exhibit-caption">the live rizom.work diagnostic panel, carried over as-is</div>
         </div>
       </div>
     </div>
