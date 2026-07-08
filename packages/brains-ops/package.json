@@ -1,40 +1,21 @@
 {
   "name": "@rizom/ops",
-  "description": "Operator CLI for managing private brain fleet registry repos",
-  "publishConfig": {
-    "access": "public"
-  },
   "version": "0.2.0-alpha.141",
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./deploy": {
-      "bun": "./dist/deploy.js",
-      "types": "./dist/deploy.d.ts",
-      "import": "./dist/deploy.js"
-    }
-  },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "description": "Operator CLI for managing private brain fleet registry repos",
+  "keywords": [
+    "brains",
+    "ops",
+    "cli",
+    "deploy",
+    "fleet",
+    "operator"
+  ],
+  "license": "Apache-2.0",
+  "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
   "bin": {
     "brains-ops": "./dist/brains-ops.js"
   },
-  "files": [
-    "dist",
-    "templates"
-  ],
-  "scripts": {
-    "build": "bun scripts/build.ts",
-    "prepublishOnly": "bun scripts/build.ts",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
-    "test": "bun run build && bun test --timeout 20000",
-    "test:smoke": "bun run build && RUN_SMOKE_TESTS=1 bun test --timeout 60000"
-  },
+  "bugs": "https://github.com/rizom-ai/brains/issues",
   "dependencies": {
     "age-encryption": "^0.3.0"
   },
@@ -43,27 +24,46 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@types/bun": "latest",
-    "typescript": "^5.3.3"
+    "@types/bun": "^1.3.14",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "bun": ">=1.3.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./deploy": {
+      "types": "./dist/deploy.d.ts",
+      "import": "./dist/deploy.js",
+      "bun": "./dist/deploy.js"
+    }
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/brains-ops#readme",
+  "main": "./dist/index.js",
+  "publishConfig": {
+    "access": "public"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/rizom-ai/brains.git",
     "directory": "packages/brains-ops"
   },
-  "license": "Apache-2.0",
-  "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
-  "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/brains-ops#readme",
-  "bugs": "https://github.com/rizom-ai/brains/issues",
-  "engines": {
-    "bun": ">=1.3.3"
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "prepublishOnly": "bun scripts/build.ts",
+    "test": "bun run build && bun test --timeout 20000",
+    "test:smoke": "bun run build && RUN_SMOKE_TESTS=1 bun test --timeout 60000",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "brains",
-    "ops",
-    "cli",
-    "deploy",
-    "fleet",
-    "operator"
-  ]
+  "type": "module",
+  "types": "./dist/index.d.ts"
 }

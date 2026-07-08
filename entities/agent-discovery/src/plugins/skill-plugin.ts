@@ -5,7 +5,7 @@ import type {
   DerivedEntityProjection,
   EntityTypeConfig,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
 import { SkillAdapter } from "../adapters/skill-adapter";
 import { skillDerivationTemplate } from "../templates/skill-derivation-template";
@@ -20,15 +20,19 @@ import { getSkillDerivedEntityProjections } from "../lib/skill-projection";
 import { registerSkillEvalHandlers } from "../lib/skill-eval-handlers";
 import packageJson from "../../package.json";
 
-const skillAdapter = new SkillAdapter();
+const skillAdapter: SkillAdapter = new SkillAdapter();
 
-export class SkillPlugin extends EntityPlugin<SkillEntity> {
-  readonly entityType = SKILL_ENTITY_TYPE;
-  readonly schema = skillEntitySchema;
-  readonly adapter = skillAdapter;
+export class SkillPlugin extends EntityPlugin<
+  SkillEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  readonly entityType: typeof SKILL_ENTITY_TYPE = SKILL_ENTITY_TYPE;
+  readonly schema: typeof skillEntitySchema = skillEntitySchema;
+  readonly adapter: SkillAdapter = skillAdapter;
 
   constructor() {
-    super(SKILL_PLUGIN_ID, packageJson);
+    super(SKILL_PLUGIN_ID, packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {

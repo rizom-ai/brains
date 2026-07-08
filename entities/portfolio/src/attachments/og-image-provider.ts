@@ -24,13 +24,21 @@ export class ProjectOgImageAttachmentProvider implements AttachmentProvider {
     targetField: "ogImageId",
   } as const;
 
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
+  private readonly deps: ProjectOgImageAttachmentProviderDeps;
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
-    private readonly deps: ProjectOgImageAttachmentProviderDeps = {},
-  ) {}
+    deps: ProjectOgImageAttachmentProviderDeps = {},
+  ) {
+    this.context = context;
+    this.deps = deps;
+  }
 
   async resolve(request: {
     sourceEntityType: string;

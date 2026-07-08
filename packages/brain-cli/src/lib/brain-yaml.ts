@@ -1,21 +1,29 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { z } from "@brains/utils/zod";
 import { parseYamlDocument } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 import { pluginOverrideEntrySchema } from "@brains/app";
 import { resolveModelName } from "./model-registry";
 
-const brainYamlSchema = z
-  .object({
+export interface BrainYamlConfig {
+  brain: string;
+  domain?: string | undefined;
+  preset?: string | undefined;
+  model?: string | undefined;
+  plugins?: Record<string, Record<string, unknown>> | undefined;
+  [key: string]: unknown;
+}
+
+export type BrainYamlConfigInput = BrainYamlConfig;
+
+const brainYamlSchema: z.ZodType<BrainYamlConfig, BrainYamlConfigInput> =
+  z.looseObject({
     brain: z.string(),
     domain: z.string().optional(),
     preset: z.string().optional(),
     model: z.string().optional(),
-    plugins: z.record(pluginOverrideEntrySchema).optional(),
-  })
-  .passthrough();
-
-export type BrainYamlConfig = z.infer<typeof brainYamlSchema>;
+    plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
+  });
 
 /**
  * Parse brain.yaml from a directory.

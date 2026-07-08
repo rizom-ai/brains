@@ -14,7 +14,7 @@ import type { Daemon, AgentNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
-import { a2aConfigSchema, type A2AConfig } from "./config";
+import { a2aConfigSchema, type A2AConfig, type A2AConfigInput } from "./config";
 import { buildAgentCard } from "./agent-card";
 import { skillDataSchema, type SkillData } from "@brains/plugins";
 import { TaskManager } from "./task-manager";
@@ -42,7 +42,7 @@ const A2A_CORS_HEADERS = {
  * Serves an Agent Card for discovery and accepts tasks via JSON-RPC 2.0.
  * Routes tasks through AgentService (conversational, like Matrix/Discord).
  */
-export class A2AInterface extends InterfacePlugin<A2AConfig> {
+export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
   private taskManager = new TaskManager();
@@ -51,7 +51,13 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   private app: Hono | undefined;
   private hasWebserver = false;
 
-  constructor(config: Partial<A2AConfig> = {}) {
+  constructor(config: A2AConfigInput = {}) {
+    if (Object.prototype.hasOwnProperty.call(config, "trustedTokens")) {
+      throw new Error("trustedTokens legacy config is no longer supported");
+    }
+    if (Object.prototype.hasOwnProperty.call(config, "outboundTokens")) {
+      throw new Error("outboundTokens legacy config is no longer supported");
+    }
     super("a2a", packageJson, config, a2aConfigSchema);
   }
 

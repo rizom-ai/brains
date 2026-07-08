@@ -16,7 +16,10 @@ export {
   authServicePlugin,
   getActiveAuthService,
 } from "./auth-service-plugin";
-export type { AuthServiceConfig } from "./auth-service-plugin";
+export type {
+  AuthServiceConfig,
+  AuthServiceConfigInput,
+} from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
 export { A2APeerTrustStore } from "./peer-trust-store";

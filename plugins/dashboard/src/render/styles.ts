@@ -7,6 +7,6 @@
 import componentStyles from "./styles/components.css" with { type: "text" };
 import { DASHBOARD_TOKENS } from "./styles/tokens";
 
-export const DASHBOARD_STYLES = `${DASHBOARD_TOKENS}
+export const DASHBOARD_STYLES: string = `${DASHBOARD_TOKENS}
 
 ${componentStyles}`;

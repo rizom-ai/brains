@@ -46,13 +46,17 @@ export interface InlineConversionResult {
  * 4. Replaces URLs with entity://image/{id} references
  */
 export class MarkdownImageConverter {
+  private entityService: IEntityService;
+  private fetcher: ImageFetcher;
   private logger: Logger;
 
   constructor(
-    private entityService: IEntityService,
+    entityService: IEntityService,
     logger: Logger,
-    private fetcher: ImageFetcher = fetchImageAsBase64,
+    fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
+    this.entityService = entityService;
+    this.fetcher = fetcher;
     this.logger = logger.child("MarkdownImageConverter");
   }
 

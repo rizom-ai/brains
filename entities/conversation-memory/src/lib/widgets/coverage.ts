@@ -1,5 +1,6 @@
 import type { Conversation, EntityPluginContext } from "@brains/plugins";
-import type { SummaryConfig, SummaryEntity } from "../../schemas/summary";
+import type { SummaryEntity } from "../../schemas/summary";
+import type { SummaryConfig } from "../../schemas/summary-config";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { SummarySourceReader } from "../summary-source-reader";
 import { evaluateSummaryEligibility } from "../summary-space-eligibility";
@@ -183,4 +184,5 @@ export function registerSummaryCoverageWidget(params: {
   );
 }
 
-export const SUMMARY_COVERAGE_WIDGET_ID = COVERAGE_WIDGET_ID;
+export const SUMMARY_COVERAGE_WIDGET_ID: typeof COVERAGE_WIDGET_ID =
+  COVERAGE_WIDGET_ID;

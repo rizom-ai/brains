@@ -54,7 +54,7 @@ export async function resolvePrompt(
   if (entity?.content) {
     const body = parseMarkdownWithFrontmatter(
       entity.content,
-      z.record(z.unknown()),
+      z.record(z.string(), z.unknown()),
     ).content;
     promptCache.set(target, body);
     return body;

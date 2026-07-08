@@ -191,8 +191,16 @@
             <span class="card-name">Rizom sites on hosted Rover</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">package the Rizom site variants so hosted Rover can consume them as npm-resolvable site refs.</div>
+          <div class="card-desc">package the Rizom site variants so hosted Rover can consume them as npm-resolvable site refs, plus per-domain TLS/DNS for custom-domain brains.</div>
           <div class="card-file">rizom-sites-on-hosted-rover.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Rizom consolidation — one brain, one site</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">follow-up end-state: one brain, one site. Fold rizom.work and rizom.foundation into rizom.ai (edge redirects for the old domains) and consolidate the three deployed brains into one relay-shaped composition carrying the atproto registry and the collective's team memory.</div>
+          <div class="card-file">rizom-consolidation.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -230,6 +238,14 @@
           </div>
           <div class="card-desc">first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync). The committed CMS direction, replacing the Sveltia/GitHub-App token path.</div>
           <div class="card-file">first-party-cms-editor.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Dashboard tabbed console</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">restructure the operator dashboard into a tabbed console: tabs derived from widget groups (converging to bundle ids when bundles land), an Overview that answers &quot;anything need me?&quot;, operator-work badges, and a console strip shared with Chat and the CMS.</div>
+          <div class="card-file">dashboard-tabbed-console.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -299,6 +315,14 @@
         <div class="cards">
         <div class="card status-partial">
           <div class="card-head">
+            <span class="card-name">External dependency review and updates</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the Zod 4 migration/policy cleanup for the first stable <code>@rizom/brain</code>.</div>
+          <div class="card-file">external-dependency-review.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
             <span class="card-name">Local AI Runtime</span>
             <span class="badge badge-partial">In progress</span>
           </div>
@@ -312,14 +336,6 @@
           </div>
           <div class="card-desc">parallelize multi-model eval runs.</div>
           <div class="card-file">parallel-eval-workers.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">External dependency review and updates</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable <code>@rizom/brain</code>.</div>
-          <div class="card-file">external-dependency-review.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

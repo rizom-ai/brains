@@ -1,7 +1,7 @@
 import { describe, it, expect, spyOn } from "bun:test";
 import { SummaryExtractor } from "../../src/lib/summary-extractor";
 import { buildSummaryExtractionPrompt } from "../../src/lib/summary-prompt";
-import { summaryConfigSchema } from "../../src/schemas/summary";
+import { summaryConfigSchema } from "../../src/schemas/summary-config";
 import {
   createMockShell,
   createEntityPluginContext,

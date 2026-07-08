@@ -4,6 +4,12 @@
 
 Phase 0 started in worktree `work/sites-controlled-deploy`.
 
+> **Follow-up decided (2026-07-07):** once this plan's packaging and custom-domain
+> machinery land, the three Rizom properties consolidate into one brain and one site at
+> `rizom.ai` — see [`rizom-consolidation.md`](./rizom-consolidation.md). That end-state is
+> worth weighing when choosing which site package to pilot first (the consolidated
+> `rizom.ai` site avoids building a throwaway `site-rizom-work` package).
+
 Implementation started with `@brains/site-rizom-work` in `sites/rizom-work`: package scaffold, site-package CSS contract (`themeOverride`), and package-level tests are in place. Publishability of the full runtime dependency chain remains the next gate before hosted-rover can consume it as an installed package.
 
 > **Supersedes prior direction.** The earlier "one shared site + per-app skins in app `src/`, no new published packages" direction is intentionally reversed for this work (confirmed 2026-06-30). Hosted-rover needs npm-resolvable site refs in generated `brain.yaml`, which app-local `src/site.ts` cannot provide, so the Rizom site family now ships as three published per-site packages. The divergence-discipline rule still applies _within_ each package.

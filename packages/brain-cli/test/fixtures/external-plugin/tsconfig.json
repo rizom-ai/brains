@@ -3,7 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "noEmit": true
+    "noEmit": true,
+    "declaration": true,
+    "isolatedDeclarations": true
   },
   "include": ["src/**/*.ts"],
   "exclude": []

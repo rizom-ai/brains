@@ -1,13 +1,60 @@
-import { paginationInfoSchema } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
-import { docWithDataSchema } from "../schemas/doc";
 import { DocListTemplate, type DocListProps } from "../templates/doc-list";
 import {
   DocDetailTemplate,
   type DocDetailProps,
 } from "../templates/doc-detail";
+
+const paginationInfoSchema = z.object({
+  currentPage: z.number(),
+  totalPages: z.number(),
+  totalItems: z.number(),
+  pageSize: z.number(),
+  hasNextPage: z.boolean(),
+  hasPrevPage: z.boolean(),
+});
+
+const contentVisibilitySchema = z
+  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return "public";
+    if (value === "private") return "restricted";
+    return value;
+  });
+
+const docFrontmatterSchema = z.object({
+  title: z.string(),
+  section: z.string(),
+  order: z.number().int(),
+  sourcePath: z.string(),
+  description: z.string().optional(),
+  slug: z.string().optional(),
+});
+
+const docMetadataSchema = z.object({
+  title: z.string(),
+  section: z.string(),
+  order: z.number().int(),
+  description: z.string().optional(),
+  slug: z.string(),
+});
+
+const docWithDataSchema = z.object({
+  id: z.string(),
+  entityType: z.literal("doc"),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  visibility: contentVisibilitySchema,
+  metadata: docMetadataSchema,
+  contentHash: z.string(),
+  frontmatter: docFrontmatterSchema,
+  body: z.string(),
+});
+
 const docListSchema = z.object({
   docs: z.array(docWithDataSchema),
   pagination: paginationInfoSchema.nullable(),
@@ -23,7 +70,7 @@ const docDetailSchema = z.object({
 
 export function getTemplates(): Record<string, Template> {
   return {
-    "doc-list": createTemplate<z.infer<typeof docListSchema>, DocListProps>({
+    "doc-list": createTemplate<z.output<typeof docListSchema>, DocListProps>({
       name: "doc-list",
       description: "Documentation index template",
       schema: docListSchema,
@@ -32,7 +79,7 @@ export function getTemplates(): Record<string, Template> {
       layout: { component: DocListTemplate },
     }),
     "doc-detail": createTemplate<
-      z.infer<typeof docDetailSchema>,
+      z.output<typeof docDetailSchema>,
       DocDetailProps
     >({
       name: "doc-detail",

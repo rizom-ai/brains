@@ -15,7 +15,7 @@ import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { JobProgressEvent } from "@brains/plugins";
 import type { AgentNamespace } from "@brains/plugins";
 import type { Instance } from "ink";
-import { cliConfigSchema, type CLIConfig } from "./config";
+import { cliConfigSchema, type CLIConfig, type CLIConfigInput } from "./config";
 import packageJson from "../package.json";
 
 const APPROVAL_RESULT_MARKERS: Record<ApprovalResolution, string> = {
@@ -33,7 +33,10 @@ const APPROVAL_RESULT_MARKERS: Record<ApprovalResolution, string> = {
  * - Extends MessageInterfacePlugin for common progress handling
  * - Keeps local UI commands (/exit, /clear, /progress) for CLI-specific controls
  */
-export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
+export class CLIInterface extends MessageInterfacePlugin<
+  CLIConfig,
+  CLIConfigInput
+> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
   private responseCallback: ((response: string) => void) | undefined;
@@ -43,7 +46,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   // Track pending confirmation approval ids
   private pendingConfirmationIds: string[] = [];
 
-  constructor(config: Partial<CLIConfig> = {}) {
+  constructor(config: CLIConfigInput = {}) {
     super("cli", packageJson, config, cliConfigSchema);
   }
 

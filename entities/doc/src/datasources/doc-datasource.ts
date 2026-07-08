@@ -4,12 +4,13 @@ import {
 } from "@brains/plugins";
 import type {
   BaseDataSourceContext,
+  DataSourceSchema,
   BaseQuery,
   NavigationResult,
   PaginationInfo,
+  EntityDataSourceConfig,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { z } from "@brains/utils/zod";
 import type { Doc } from "../schemas/doc";
 import {
   docFrontmatterSchema,
@@ -58,7 +59,7 @@ export class DocDataSource extends BaseEntityDataSource<Doc, DocWithData> {
   readonly name = "Docs Entity DataSource";
   readonly description = "Fetches and transforms doc entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "doc",
     defaultSort: [
       { field: "order" as const, direction: "asc" as const },
@@ -79,7 +80,7 @@ export class DocDataSource extends BaseEntityDataSource<Doc, DocWithData> {
 
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const params = this.parseQuery(query);

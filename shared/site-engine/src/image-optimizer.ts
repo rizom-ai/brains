@@ -67,12 +67,11 @@ export type VariantsMap = Record<string, ImageVariants>;
  * - Filesystem cache: skips processing if output files already exist
  */
 export class ImageOptimizer {
+  private imagesDir: string;
   private logger: Logger;
 
-  constructor(
-    private imagesDir: string,
-    logger: Logger,
-  ) {
+  constructor(imagesDir: string, logger: Logger) {
+    this.imagesDir = imagesDir;
     this.logger = logger.child("ImageOptimizer");
   }
 

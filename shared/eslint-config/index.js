@@ -11,7 +11,14 @@ module.exports = {
     ecmaVersion: 2022,
     sourceType: "module",
     projectService: {
-      allowDefaultProject: ["*.js", "*.mjs", "*.cjs"],
+      allowDefaultProject: [
+        "*.js",
+        "*.mjs",
+        "*.cjs",
+        "packages/*/scripts/*.js",
+        "packages/*/scripts/*.mjs",
+        "packages/*/scripts/*.cjs",
+      ],
     },
   },
   overrides: [
@@ -104,7 +111,7 @@ module.exports = {
     "@typescript-eslint/explicit-module-boundary-types": "warn",
     "@typescript-eslint/no-non-null-assertion": "error",
     // "@typescript-eslint/no-unnecessary-type-assertion": "error", // Requires type info
-    "@typescript-eslint/prefer-nullish-coalescing": "warn",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
     "@typescript-eslint/prefer-optional-chain": "warn",
     "@typescript-eslint/ban-ts-comment": [
       "warn",
@@ -126,8 +133,8 @@ module.exports = {
       },
     ],
     "@typescript-eslint/await-thenable": "error",
-    "@typescript-eslint/consistent-type-imports": "warn",
-    "@typescript-eslint/no-unnecessary-condition": "warn",
+    "@typescript-eslint/consistent-type-imports": "error",
+    "@typescript-eslint/no-unnecessary-condition": "error",
     "no-return-await": "off",
     "@typescript-eslint/return-await": "error",
 
@@ -136,5 +143,11 @@ module.exports = {
     "@typescript-eslint/consistent-type-exports": "error",
     "@typescript-eslint/no-duplicate-type-constituents": "error",
     "@typescript-eslint/no-redundant-type-constituents": "off",
+    // ESLint 10 changed its recommended core rule set. Keep the ESLint 8
+    // baseline strictness explicit, then opt into selected new core rules
+    // through separate follow-up strictness slices.
+    "no-inner-declarations": "error",
+    "no-useless-assignment": "error",
+    "preserve-caught-error": "error",
   },
 };

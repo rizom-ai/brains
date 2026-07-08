@@ -10,12 +10,10 @@
     }
   },
   "peerDependencies": {
-    "@rizom/brain": "^0.2.0-alpha.47",
-    "zod": "^3.0.0"
+    "@rizom/brain": "^0.2.0-alpha.47"
   },
   "devDependencies": {
     "@rizom/brain": "workspace:*",
-    "typescript": "^5.3.3",
-    "zod": "^3.0.0"
+    "typescript": "^6.0.3"
   }
 }

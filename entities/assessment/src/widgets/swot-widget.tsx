@@ -24,7 +24,7 @@ const swotWidgetDataSchema = z.discriminatedUnion("status", [
 function SwotList({
   items,
 }: {
-  items: Array<z.infer<typeof swotItemSchema>>;
+  items: Array<z.output<typeof swotItemSchema>>;
 }): JSX.Element {
   if (items.length === 0) {
     return <p class="swot-empty">—</p>;
@@ -49,7 +49,7 @@ function SwotCell({
 }: {
   title: string;
   tone: "s" | "w" | "o" | "t";
-  items: Array<z.infer<typeof swotItemSchema>>;
+  items: Array<z.output<typeof swotItemSchema>>;
 }): JSX.Element {
   return (
     <section class={`swot-cell is-${tone}`}>

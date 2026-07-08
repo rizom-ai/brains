@@ -1,13 +1,18 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
-import type { CommandResult } from "../lib/command-result";
+import type { CommandResult } from "../run-command";
+import { z } from "@brains/utils/zod";
 
 interface PinPackageJson {
   name: string;
   private: boolean;
   dependencies: Record<string, string>;
 }
+
+const selfPackageJsonSchema = z.looseObject({
+  version: z.string().optional(),
+});
 
 /**
  * Generate a package.json that pins @rizom/brain to a specific version.
@@ -51,10 +56,10 @@ export function pin(cwd: string): CommandResult {
   try {
     const selfPkg = join(__dirname, "..", "..", "package.json");
     if (existsSync(selfPkg)) {
-      const pkg = JSON.parse(readFileSync(selfPkg, "utf-8")) as {
-        version?: string;
-      };
-      if (pkg.version) version = pkg.version;
+      const pkg = selfPackageJsonSchema.safeParse(
+        JSON.parse(readFileSync(selfPkg, "utf-8")),
+      );
+      if (pkg.success && pkg.data.version) version = pkg.data.version;
     }
   } catch {
     // Fall back to hardcoded version

@@ -63,4 +63,4 @@ export class ProductAdapter extends BaseEntityAdapter<
   }
 }
 
-export const productAdapter = new ProductAdapter();
+export const productAdapter: ProductAdapter = new ProductAdapter();

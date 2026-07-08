@@ -12,5 +12,5 @@ export const SKILL_PLUGIN_ID = "skill";
 export const SKILL_DERIVATION_PROJECTION_ID = "skill-derivation";
 export const SKILL_DERIVATION_JOB_TYPE = "skill:project";
 export const SKILL_DERIVATION_TEMPLATE_NAME = "skill-derivation";
-export const SKILL_DERIVATION_TEMPLATE_REF = `${SKILL_PLUGIN_ID}:${SKILL_DERIVATION_TEMPLATE_NAME}`;
+export const SKILL_DERIVATION_TEMPLATE_REF: string = `${SKILL_PLUGIN_ID}:${SKILL_DERIVATION_TEMPLATE_NAME}`;
 export const SKILLS_WIDGET_ID = "skills";

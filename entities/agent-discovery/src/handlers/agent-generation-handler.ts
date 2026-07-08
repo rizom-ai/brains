@@ -7,27 +7,50 @@ import { generationResultSchema } from "@brains/contracts";
 import { fetchAgentCard, extractDomain } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
-import { agentStatusSchema } from "../schemas/agent";
+type AgentGenerationStatusSchema = z.ZodEnum<{
+  discovered: "discovered";
+  approved: "approved";
+}>;
+
+const agentGenerationStatusSchema: AgentGenerationStatusSchema = z.enum([
+  "discovered",
+  "approved",
+]);
 
 /**
  * Input schema for agent generation — just needs a URL/domain.
  */
-export const agentGenerationJobSchema = z.object({
+type AgentGenerationJobSchema = z.ZodObject<{
+  prompt: z.ZodOptional<z.ZodString>;
+  url: z.ZodOptional<z.ZodString>;
+  content: z.ZodOptional<z.ZodString>;
+  skipAi: z.ZodOptional<z.ZodBoolean>;
+  status: z.ZodOptional<AgentGenerationStatusSchema>;
+}>;
+
+export const agentGenerationJobSchema: AgentGenerationJobSchema = z.object({
   prompt: z.string().optional(),
   url: z.string().optional(),
   content: z.string().optional(),
   skipAi: z.boolean().optional(),
-  status: agentStatusSchema.optional(),
+  status: agentGenerationStatusSchema.optional(),
 });
 
-export type AgentGenerationJobData = z.infer<typeof agentGenerationJobSchema>;
+export type AgentGenerationJobData = z.output<typeof agentGenerationJobSchema>;
 
-export const agentGenerationResultSchema = generationResultSchema.extend({
+export const agentGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    name: z.ZodOptional<z.ZodString>;
+    domain: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   name: z.string().optional(),
   domain: z.string().optional(),
 });
 
-export type AgentGenerationResult = z.infer<typeof agentGenerationResultSchema>;
+export type AgentGenerationResult = z.output<
+  typeof agentGenerationResultSchema
+>;
 
 /**
  * Generation handler for agent entities.

@@ -1,4 +1,8 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  DataSource,
+  DataSourceSchema,
+  BaseDataSourceContext,
+} from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -25,6 +29,8 @@ const querySchema = z.object({
     })
     .optional(),
 });
+
+type ProductsQuery = z.output<typeof querySchema>;
 
 /**
  * Parse product entity into template-ready format.
@@ -79,6 +85,7 @@ function parseOverviewData(
  * Products are sorted by order field. Overview is a singleton entity.
  */
 export class ProductsDataSource implements DataSource {
+  private readonly logger: Logger;
   public readonly id = "products:entities";
   public readonly name = "Products Entity DataSource";
   public readonly description =
@@ -87,16 +94,17 @@ export class ProductsDataSource implements DataSource {
   private readonly overviewFormatter = new OverviewBodyFormatter();
   private readonly productFormatter = new ProductBodyFormatter();
 
-  constructor(private readonly logger: Logger) {
+  constructor(logger: Logger) {
+    this.logger = logger;
     this.logger.debug("ProductsDataSource initialized");
   }
 
   async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = querySchema.parse(query);
+    const params: ProductsQuery = querySchema.parse(query);
     const entityService = context.entityService;
 
     // Fetch overview entity

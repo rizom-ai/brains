@@ -22,7 +22,10 @@ export interface DirectoryOperationDepsOptions {
 }
 
 export class DirectoryOperationDeps {
-  constructor(private readonly options: DirectoryOperationDepsOptions) {}
+  private readonly options: DirectoryOperationDepsOptions;
+  constructor(options: DirectoryOperationDepsOptions) {
+    this.options = options;
+  }
 
   createExportDeps(
     deleteOnFileRemoval: boolean,

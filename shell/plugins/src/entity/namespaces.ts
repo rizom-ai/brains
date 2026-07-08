@@ -8,7 +8,6 @@ import type {
   IEntitiesNamespace,
   IEntityService,
 } from "@brains/entity-service";
-import type { z } from "@brains/utils/zod";
 import type { IShell } from "../interfaces";
 import { resolvePrompt } from "./prompt-resolver";
 
@@ -19,6 +18,12 @@ export interface IPromptsNamespace {
   /** Resolve a prompt by target name. Returns entity content if found, fallback otherwise. */
   resolve: (target: string, fallback: string) => Promise<string>;
 }
+
+type EntitySchema<TEntity extends BaseEntity> =
+  EntityAdapter<TEntity>["schema"];
+type FrontmatterSchema = NonNullable<
+  EntityAdapter<BaseEntity>["frontmatterSchema"]
+>;
 
 /**
  * Create the shared entity-management namespace used by entity and service
@@ -32,7 +37,7 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
   return {
     register: <T extends BaseEntity>(
       entityType: string,
-      schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+      schema: EntitySchema<T>,
       adapter: EntityAdapter<T>,
       config?: EntityTypeConfig,
     ): void => {
@@ -47,13 +52,13 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     },
     extendFrontmatterSchema: (
       type: string,
-      extension: z.ZodObject<z.ZodRawShape>,
+      extension: FrontmatterSchema,
     ): void => {
       entityRegistry.extendFrontmatterSchema(type, extension);
     },
     getEffectiveFrontmatterSchema: (
       type: string,
-    ): z.ZodObject<z.ZodRawShape> | undefined => {
+    ): FrontmatterSchema | undefined => {
       return entityRegistry.getEffectiveFrontmatterSchema(type);
     },
     registerCreateInterceptor: (

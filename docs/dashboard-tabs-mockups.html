@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brain Dashboard — Tabbed Console Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --void: #131109;
+    --coal: #191612;
+    --panel: #201c16;
+    --panel-2: #262119;
+    --line: rgba(236, 227, 205, 0.11);
+    --line-soft: rgba(236, 227, 205, 0.06);
+    --bone: #ece3cd;
+    --bone-60: rgba(236, 227, 205, 0.6);
+    --bone-40: rgba(236, 227, 205, 0.38);
+    --vermilion: #e06a35;
+    --vermilion-dim: rgba(224, 106, 53, 0.16);
+    --verdigris: #6fae97;
+    --verdigris-dim: rgba(111, 174, 151, 0.13);
+    --amber: #d8a53f;
+    --amber-dim: rgba(216, 165, 63, 0.14);
+    --display: "Fraunces", serif;
+    --ui: "IBM Plex Sans", sans-serif;
+    --mono: "JetBrains Mono", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--ui);
+    background: var(--void);
+    color: var(--bone);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: 999; pointer-events: none; opacity: .55;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.04'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection { background: rgba(224,106,53,.35); }
+
+  /* ---------- mockup chrome ---------- */
+  .mock-header { max-width: 1280px; margin: 0 auto; padding: 56px 32px 20px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--vermilion); }
+  .mock-header h1 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 60, "opsz" 90;
+    font-weight: 540; font-size: clamp(32px, 4.6vw, 50px);
+    line-height: 1.06; letter-spacing: -.015em; margin-top: 10px; max-width: 18em;
+  }
+  .mock-header h1 em { font-style: italic; color: var(--vermilion); font-weight: 470; }
+  .lede { margin-top: 14px; max-width: 62ch; color: var(--bone-60); font-size: 15px; }
+  .mock-nav { max-width: 1280px; margin: 24px auto 0; padding: 0 32px; display: flex; border-bottom: 1px solid var(--line); }
+  .mock-nav a {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
+    text-decoration: none; color: var(--bone-60);
+    padding: 10px 18px 12px; border-bottom: 2px solid transparent; transform: translateY(1px);
+  }
+  .mock-nav a:hover { color: var(--bone); }
+  .mock-nav a span { color: var(--vermilion); margin-right: 6px; }
+
+  .screen { max-width: 1280px; margin: 70px auto 0; padding: 0 32px; }
+  .screen:last-of-type { margin-bottom: 60px; }
+  .screen-label { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; }
+  .screen-label .num { font-family: var(--mono); font-size: 12px; color: var(--vermilion); }
+  .screen-label h2 { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 520; font-size: 22px; }
+  .screen-label .note { font-size: 12.5px; color: var(--bone-40); margin-left: auto; text-align: right; max-width: 46ch; }
+
+  .frame {
+    background: var(--coal);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 30px 70px -30px rgba(0,0,0,.8);
+    overflow: hidden;
+  }
+
+  /* ---------- console strip (shared across dashboard / chat / cms) ---------- */
+  .console-strip {
+    display: flex; align-items: center; gap: 22px;
+    height: 50px; padding: 0 20px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(to bottom, rgba(236,227,205,.035), transparent);
+  }
+  .brandmark { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--bone-60); white-space: nowrap; }
+  .brandmark b { color: var(--bone); font-weight: 500; }
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--vermilion); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(224,106,53,.5); } 55% { box-shadow: 0 0 0 6px rgba(224,106,53,0); } }
+  .surfaces { display: flex; gap: 2px; }
+  .surfaces a {
+    font-size: 13px; text-decoration: none; color: var(--bone-40);
+    padding: 5px 12px; border-radius: 6px;
+  }
+  .surfaces a:hover { color: var(--bone); background: rgba(236,227,205,.05); }
+  .surfaces a.here { color: var(--bone); background: rgba(236,227,205,.08); font-weight: 500; }
+  .strip-spacer { flex: 1; }
+  .cmdk { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--bone-40); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  .cmdk kbd { font-family: var(--mono); font-size: 10px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
+  .session-chip { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; color: var(--verdigris); background: var(--verdigris-dim); border-radius: 99px; padding: 5px 12px; white-space: nowrap; }
+  .session-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--verdigris); }
+
+  /* ---------- masthead + tab bar ---------- */
+  .masthead { padding: 26px 26px 0; display: flex; align-items: flex-end; gap: 24px; }
+  .masthead h3 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 80, "opsz" 72;
+    font-weight: 560; font-size: 38px; line-height: 1; letter-spacing: -.01em;
+  }
+  .masthead .tagline { color: var(--bone-40); font-size: 13.5px; padding-bottom: 5px; max-width: 44ch; }
+  .masthead .theme-btn { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--bone-40); border: 1px solid var(--line); background: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; margin-bottom: 4px; }
+
+  .tabbar {
+    display: flex; align-items: flex-end; gap: 2px;
+    padding: 18px 26px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .05em;
+    color: var(--bone-40);
+    padding: 9px 16px 11px;
+    border: none; background: none; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transform: translateY(1px);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tab:hover { color: var(--bone-60); }
+  .tab.on { color: var(--bone); border-bottom-color: var(--vermilion); }
+  .tab .badge { font-size: 10px; color: var(--void); background: var(--vermilion); border-radius: 99px; padding: 0 6px; font-weight: 600; }
+  .tab .soft-badge { font-size: 10px; color: var(--bone-40); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; }
+  .tab.ghost { color: rgba(236,227,205,.22); border-bottom-style: dashed; cursor: default; font-style: italic; }
+
+  .canvas { padding: 26px; }
+
+  /* ---------- shared card language ---------- */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .card .card-head {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 14px 18px 0;
+  }
+  .card .card-head h4 { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--bone-40); font-weight: 500; }
+  .card .card-head .from { margin-left: auto; font-family: var(--mono); font-size: 10px; color: rgba(236,227,205,.25); }
+  .card .card-body { padding: 12px 18px 16px; }
+
+  /* ---------- overview: vitals ---------- */
+  .vitals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .vital { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 14px; position: relative; overflow: hidden; }
+  .vital .v-label { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--bone-40); }
+  .vital .v-num { font-family: var(--display); font-variation-settings: "SOFT" 40, "opsz" 50; font-weight: 540; font-size: 34px; line-height: 1.1; margin-top: 6px; }
+  .vital .v-sub { font-family: var(--mono); font-size: 11px; color: var(--bone-40); margin-top: 3px; }
+  .vital .v-sub b { color: var(--verdigris); font-weight: 500; }
+  .vital.ok::after, .vital.warm::after {
+    content: ""; position: absolute; top: 14px; right: 16px;
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .vital.ok::after { background: var(--verdigris); box-shadow: 0 0 10px rgba(111,174,151,.8); }
+  .vital.warm::after { background: var(--amber); animation: pulse 1.8s ease-in-out infinite; }
+
+  .overview-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; }
+
+  /* group digests */
+  .digests { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .digest { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; cursor: pointer; transition: border-color .15s, transform .15s; }
+  .digest:hover { border-color: rgba(224,106,53,.5); transform: translateY(-2px); }
+  .digest .d-head { display: flex; align-items: baseline; justify-content: space-between; }
+  .digest .d-head h4 { font-family: var(--display); font-variation-settings: "SOFT" 50; font-size: 18px; font-weight: 540; }
+  .digest .d-head .go { font-family: var(--mono); font-size: 11px; color: var(--vermilion); }
+  .digest ul { list-style: none; margin-top: 10px; }
+  .digest li { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--bone-60); padding: 4px 0; border-top: 1px solid var(--line-soft); }
+  .digest li .val { font-family: var(--mono); font-size: 11.5px; color: var(--bone); }
+  .digest li .val.warn { color: var(--amber); }
+  .digest li .val.good { color: var(--verdigris); }
+
+  /* activity ledger */
+  .ledger { display: flex; flex-direction: column; }
+  .ledger .entry { display: grid; grid-template-columns: 52px 14px 1fr; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line-soft); align-items: baseline; }
+  .ledger .entry:first-of-type { border-top: none; }
+  .ledger .t { font-family: var(--mono); font-size: 10.5px; color: var(--bone-40); }
+  .ledger .glyph { font-family: var(--mono); font-size: 11px; color: var(--vermilion); text-align: center; }
+  .ledger .glyph.g { color: var(--verdigris); }
+  .ledger .glyph.a { color: var(--amber); }
+  .ledger .what { font-size: 13px; color: var(--bone-60); }
+  .ledger .what b { color: var(--bone); font-weight: 500; }
+  .ledger .what code { font-family: var(--mono); font-size: 11px; color: var(--bone-40); }
+
+  .identity-capsule { margin-bottom: 14px; }
+  .identity-capsule .card-body { display: flex; gap: 26px; align-items: baseline; flex-wrap: wrap; }
+  .identity-capsule .role { font-family: var(--display); font-variation-settings: "SOFT" 70; font-style: italic; font-size: 16px; color: var(--bone); }
+  .identity-capsule .values { display: flex; gap: 8px; }
+  .identity-capsule .values span { font-family: var(--mono); font-size: 10.5px; color: var(--bone-40); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px; }
+
+  /* ---------- publishing tab ---------- */
+  .pub-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-soft); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .lane { background: var(--panel-2); padding: 12px 14px 16px; min-height: 190px; }
+  .lane .lane-head { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--bone-40); padding-bottom: 10px; }
+  .lane .lane-head .n { color: var(--vermilion); }
+  .work {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
+    padding: 9px 11px; margin-bottom: 8px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .work:hover { border-color: rgba(224,106,53,.5); }
+  .work .w-title { font-family: var(--display); font-variation-settings: "SOFT" 40; font-size: 13.5px; font-weight: 500; line-height: 1.3; }
+  .work .w-meta { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--bone-40); margin-top: 5px; }
+  .work.generating { border-color: rgba(216,165,63,.4); }
+  .work.generating .w-meta .st { color: var(--amber); }
+  .minibar { height: 2px; background: var(--line); border-radius: 99px; margin-top: 7px; overflow: hidden; }
+  .minibar i { display: block; height: 100%; width: 45%; background: var(--amber); animation: grow 3s ease-in-out infinite alternate; }
+  @keyframes grow { to { width: 78%; } }
+
+  .stack > .card { margin-bottom: 14px; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--bone-60); padding: 6px 0; border-top: 1px solid var(--line-soft); }
+  .kv:first-of-type { border-top: none; }
+  .kv .val { font-family: var(--mono); font-size: 11.5px; color: var(--bone); }
+  .kv .val.good { color: var(--verdigris); }
+  .kv .val.warn { color: var(--amber); }
+
+  /* ---------- system tab ---------- */
+  .sys-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .sys-grid .wide { grid-column: span 2; }
+  table.jobs { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.jobs th { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--bone-40); text-align: left; padding: 6px 8px 8px 0; border-bottom: 1px solid var(--line); font-weight: 500; }
+  table.jobs td { padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line-soft); color: var(--bone-60); }
+  table.jobs td.mono { font-family: var(--mono); font-size: 11px; }
+  .status-pill { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; border-radius: 99px; padding: 2px 9px; }
+  .status-pill.run { color: var(--amber); background: var(--amber-dim); }
+  .status-pill.done { color: var(--verdigris); background: var(--verdigris-dim); }
+  .status-pill.fail { color: #e0785e; background: rgba(224,120,94,.14); }
+
+  .gauge { display: flex; align-items: center; gap: 16px; }
+  .gauge .ring {
+    width: 74px; height: 74px; border-radius: 50%;
+    background: conic-gradient(var(--verdigris) 0 96%, var(--line) 96% 100%);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .gauge .ring::after { content: "96%"; width: 58px; height: 58px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; font-family: var(--mono); font-size: 13px; color: var(--verdigris); }
+  .gauge .g-meta { font-size: 12.5px; color: var(--bone-60); }
+  .gauge .g-meta b { display: block; color: var(--bone); font-weight: 500; font-size: 13.5px; }
+  .gauge .g-meta code { font-family: var(--mono); font-size: 10.5px; color: var(--bone-40); }
+
+  .pipeline-mini { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--bone-40); padding-top: 10px; }
+  .pipeline-mini .st { display: flex; align-items: center; gap: 6px; color: var(--bone-60); }
+  .pipeline-mini .st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--verdigris); }
+  .pipeline-mini .tr { flex: 0 0 26px; height: 1px; background: var(--line); }
+
+  .footer-note {
+    max-width: 1280px; margin: 90px auto 70px; padding: 22px 32px 0;
+    border-top: 1px solid var(--line);
+    display: flex; gap: 34px; font-size: 13px; color: var(--bone-40);
+  }
+  .footer-note .col { max-width: 46ch; }
+  .footer-note b { color: var(--bone-60); font-weight: 500; }
+
+  @media (max-width: 1000px) {
+    .vitals { grid-template-columns: 1fr 1fr; }
+    .overview-grid, .pub-grid, .sys-grid, .digests { grid-template-columns: 1fr; }
+    .sys-grid .wide { grid-column: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mock-header">
+  <div class="kicker">Brain · Operator Console — Dashboard Redesign Mockups</div>
+  <h1>One console, tabs that follow the brain's <em>composition</em>.</h1>
+  <p class="lede">Operator-first redesign. The top strip is shared console navigation
+  (Dashboard / Chat / CMS). Tabs are derived from widget groups — Overview plus one tab per
+  non-empty group — so the layout reshapes itself as capabilities are added, and group ids
+  converge to bundle ids when bundles land. Every screen below is signed-in state.</p>
+</header>
+
+<nav class="mock-nav">
+  <a href="#s1"><span>01</span>Overview</a>
+  <a href="#s2"><span>02</span>Publishing tab</a>
+  <a href="#s3"><span>03</span>System tab</a>
+</nav>
+
+<!-- ============ SCREEN 1 : OVERVIEW ============ -->
+<section class="screen" id="s1">
+  <div class="screen-label">
+    <span class="num">01</span>
+    <h2>Overview — the glance</h2>
+    <span class="note">Vitals, one-line identity, a digest card per group (each is a door to
+    its tab), and the activity ledger. Nothing here scrolls forever — depth lives in the tabs.</span>
+  </div>
+  <div class="frame">
+    <div class="console-strip">
+      <div class="brandmark"><span class="pulse"></span>Brain · <b>Console</b></div>
+      <nav class="surfaces">
+        <a class="here" href="#s1">Dashboard</a>
+        <a href="#s1">Chat</a>
+        <a href="#s1">CMS</a>
+      </nav>
+      <div class="strip-spacer"></div>
+      <div class="cmdk">Search or jump… <kbd>⌘K</kbd></div>
+      <div class="session-chip">passkey · anchor</div>
+    </div>
+    <div class="masthead">
+      <h3>Rover</h3>
+      <div class="tagline">Personal knowledge brain of Jan Hein — captures, connects, publishes.</div>
+      <button class="theme-btn">Light mode</button>
+    </div>
+    <div class="tabbar">
+      <button class="tab on">Overview</button>
+      <button class="tab">Site <span class="soft-badge">3</span></button>
+      <button class="tab">Publishing <span class="badge">2</span></button>
+      <button class="tab">Network <span class="soft-badge">6</span></button>
+      <button class="tab">System</button>
+      <button class="tab ghost" title="appears when the team bundle is installed">team</button>
+    </div>
+    <div class="canvas">
+      <div class="vitals">
+        <div class="vital">
+          <div class="v-label">Entities</div>
+          <div class="v-num">269</div>
+          <div class="v-sub">+6 today · 14 types</div>
+        </div>
+        <div class="vital">
+          <div class="v-label">Interactions</div>
+          <div class="v-num">31</div>
+          <div class="v-sub">today · discord 19 / mcp 8 / a2a 4</div>
+        </div>
+        <div class="vital ok">
+          <div class="v-label">Semantic index</div>
+          <div class="v-num" style="font-size:26px; padding-top:6px">ready</div>
+          <div class="v-sub"><b>269/269</b> embedded · 0 stale</div>
+        </div>
+        <div class="vital warm">
+          <div class="v-label">Last write</div>
+          <div class="v-num" style="font-size:26px; padding-top:6px">e4f21c9</div>
+          <div class="v-sub">exporting 1 entity → git</div>
+        </div>
+      </div>
+
+      <div class="card identity-capsule">
+        <div class="card-head"><h4>Identity</h4><span class="from">identity-service</span></div>
+        <div class="card-body">
+          <span class="role">“A careful librarian with a printing press.”</span>
+          <div class="values"><span>curiosity</span><span>precision</span><span>generosity</span></div>
+        </div>
+      </div>
+
+      <div class="overview-grid">
+        <div class="digests">
+          <div class="digest">
+            <div class="d-head"><h4>Publishing</h4><span class="go">open →</span></div>
+            <ul>
+              <li>Pipeline <span class="val warn">1 generating · 3 queued</span></li>
+              <li>Awaiting review <span class="val">2 drafts</span></li>
+              <li>Newsletter <span class="val">142 subscribers · +3 wk</span></li>
+              <li>Next scheduled <span class="val">LinkedIn · tomorrow 09:00</span></li>
+            </ul>
+          </div>
+          <div class="digest">
+            <div class="d-head"><h4>Site</h4><span class="go">open →</span></div>
+            <ul>
+              <li>Last build <span class="val good">4h ago · 1.9s</span></li>
+              <li>Views (7d) <span class="val">1,284</span></li>
+              <li>Top page <span class="val">/posts/single-writer</span></li>
+            </ul>
+          </div>
+          <div class="digest">
+            <div class="d-head"><h4>Network</h4><span class="go">open →</span></div>
+            <ul>
+              <li>Approved agents <span class="val">4</span></li>
+              <li>Discovered, pending review <span class="val warn">2</span></li>
+              <li>A2A calls (7d) <span class="val">12 out · 7 in</span></li>
+            </ul>
+          </div>
+          <div class="digest">
+            <div class="d-head"><h4>Knowledge</h4><span class="go">open →</span></div>
+            <ul>
+              <li>Notes / links <span class="val">112 / 86</span></li>
+              <li>Topics <span class="val">31 · 3 new this week</span></li>
+              <li>Latest capture <span class="val">18 min ago</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h4>Activity</h4><span class="from">entity events · live</span></div>
+          <div class="card-body ledger">
+            <div class="entry"><span class="t">14:32</span><span class="glyph a">◍</span><span class="what"><b>generating</b> cover image for <code>post/domain-as-identity</code></span></div>
+            <div class="entry"><span class="t">14:27</span><span class="glyph g">✓</span><span class="what"><b>committed</b> <code>e4f21c9</code> — 2 entities exported</span></div>
+            <div class="entry"><span class="t">13:58</span><span class="glyph">＋</span><span class="what"><b>note</b> created via discord — <code>note/verdigris-pigments</code></span></div>
+            <div class="entry"><span class="t">13:41</span><span class="glyph">＋</span><span class="what"><b>agent card</b> discovered via atproto — <code>agent/mira.garden</code></span></div>
+            <div class="entry"><span class="t">12:19</span><span class="glyph g">✓</span><span class="what"><b>newsletter</b> sent — issue 12, 142 recipients</span></div>
+            <div class="entry"><span class="t">11:03</span><span class="glyph">＋</span><span class="what"><b>link</b> captured — <code>link/rfc-9421</code></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREEN 2 : PUBLISHING ============ -->
+<section class="screen" id="s2">
+  <div class="screen-label">
+    <span class="num">02</span>
+    <h2>Publishing tab — one group, all its instruments</h2>
+    <span class="note">Everything the publishing plugins register lands here: the pipeline
+    board (content-pipeline), series, newsletter, social queue. The tab badge counts items
+    needing an operator.</span>
+  </div>
+  <div class="frame">
+    <div class="console-strip">
+      <div class="brandmark"><span class="pulse"></span>Brain · <b>Console</b></div>
+      <nav class="surfaces"><a class="here" href="#s2">Dashboard</a><a href="#s2">Chat</a><a href="#s2">CMS</a></nav>
+      <div class="strip-spacer"></div>
+      <div class="cmdk">⌘K</div>
+      <div class="session-chip">passkey · anchor</div>
+    </div>
+    <div class="tabbar" style="padding-top:22px">
+      <button class="tab">Overview</button>
+      <button class="tab">Site <span class="soft-badge">3</span></button>
+      <button class="tab on">Publishing <span class="badge">2</span></button>
+      <button class="tab">Network <span class="soft-badge">6</span></button>
+      <button class="tab">System</button>
+    </div>
+    <div class="canvas">
+      <div class="pub-grid">
+        <div class="card">
+          <div class="card-head"><h4>Publication pipeline</h4><span class="from">content-pipeline</span></div>
+          <div class="card-body">
+            <div class="board">
+              <div class="lane">
+                <div class="lane-head">Queued <span class="n">3</span></div>
+                <div class="work">
+                  <div class="w-title">Domain as identity</div>
+                  <div class="w-meta"><span>post · trust series</span><span>via chat</span></div>
+                </div>
+                <div class="work">
+                  <div class="w-title">Verdigris pigments in early print</div>
+                  <div class="w-meta"><span>note → post</span><span>manual</span></div>
+                </div>
+                <div class="work">
+                  <div class="w-title">Issue 13 — quiet protocols</div>
+                  <div class="w-meta"><span>newsletter</span><span>scheduled</span></div>
+                </div>
+              </div>
+              <div class="lane">
+                <div class="lane-head">Generating <span class="n">1</span></div>
+                <div class="work generating">
+                  <div class="w-title">Cover: handshake abstract</div>
+                  <div class="w-meta"><span>image · job 8412</span><span class="st">45s</span></div>
+                  <div class="minibar"><i></i></div>
+                </div>
+              </div>
+              <div class="lane">
+                <div class="lane-head">Review <span class="n">2</span></div>
+                <div class="work">
+                  <div class="w-title">The knowledge base is ready when it says it is</div>
+                  <div class="w-meta"><span>post · draft 2</span><span>needs you</span></div>
+                </div>
+                <div class="work">
+                  <div class="w-title">LinkedIn: single-writer thread</div>
+                  <div class="w-meta"><span>social-post</span><span>needs you</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h4>Newsletter</h4><span class="from">newsletter</span></div>
+            <div class="card-body">
+              <div class="kv">Subscribers <span class="val">142 <b style="color:var(--verdigris)">+3</b></span></div>
+              <div class="kv">Last issue open rate <span class="val good">61%</span></div>
+              <div class="kv">Next issue <span class="val">queued · issue 13</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h4>Distribution</h4><span class="from">social-media · atproto</span></div>
+            <div class="card-body">
+              <div class="kv">LinkedIn queue <span class="val warn">1 awaiting approval</span></div>
+              <div class="kv">ATProto records <span class="val">61 published</span></div>
+              <div class="kv">Last outbound <span class="val">deck → LinkedIn · 2d</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h4>Series</h4><span class="from">blog</span></div>
+            <div class="card-body">
+              <div class="kv">Trust &amp; Identity <span class="val">4 of 6 drafted</span></div>
+              <div class="kv">Quiet Protocols <span class="val">2 published</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREEN 3 : SYSTEM ============ -->
+<section class="screen" id="s3">
+  <div class="screen-label">
+    <span class="num">03</span>
+    <h2>System tab — runtime, jobs, sync, endpoints</h2>
+    <span class="note">The infra widgets that made the old single page unwieldy get their own
+    room: index readiness, the write pipeline, the job queue, runtime, endpoints.</span>
+  </div>
+  <div class="frame">
+    <div class="console-strip">
+      <div class="brandmark"><span class="pulse"></span>Brain · <b>Console</b></div>
+      <nav class="surfaces"><a class="here" href="#s3">Dashboard</a><a href="#s3">Chat</a><a href="#s3">CMS</a></nav>
+      <div class="strip-spacer"></div>
+      <div class="cmdk">⌘K</div>
+      <div class="session-chip">passkey · anchor</div>
+    </div>
+    <div class="tabbar" style="padding-top:22px">
+      <button class="tab">Overview</button>
+      <button class="tab">Site <span class="soft-badge">3</span></button>
+      <button class="tab">Publishing <span class="badge">2</span></button>
+      <button class="tab">Network <span class="soft-badge">6</span></button>
+      <button class="tab on">System</button>
+    </div>
+    <div class="canvas">
+      <div class="sys-grid">
+        <div class="card">
+          <div class="card-head"><h4>Semantic index</h4><span class="from">entity-service</span></div>
+          <div class="card-body">
+            <div class="gauge">
+              <div class="ring"></div>
+              <div class="g-meta">
+                <b>Ready · not degraded</b>
+                258 embedded · 11 queued backfill<br />
+                <code>gate: turns held while warming</code>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h4>Content sync</h4><span class="from">directory-sync</span></div>
+          <div class="card-body">
+            <div class="kv">Last export <span class="val">2 min ago · 2 files</span></div>
+            <div class="kv">Last commit <span class="val good">e4f21c9 · pushed</span></div>
+            <div class="kv">Echo loop <span class="val good">settled</span></div>
+            <div class="pipeline-mini">
+              <span class="st">entity db</span><span class="tr"></span>
+              <span class="st">exported</span><span class="tr"></span>
+              <span class="st">committed</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h4>Runtime</h4><span class="from">core</span></div>
+          <div class="card-body">
+            <div class="kv">Uptime <span class="val">14d 6h</span></div>
+            <div class="kv">Version <span class="val">0.2.0-alpha.141</span></div>
+            <div class="kv">Databases <span class="val">5 · 84 MB</span></div>
+            <div class="kv">Auth storage <span class="val good">persisted volume</span></div>
+          </div>
+        </div>
+        <div class="card wide">
+          <div class="card-head"><h4>Job queue</h4><span class="from">job-queue</span></div>
+          <div class="card-body">
+            <table class="jobs">
+              <thead><tr><th>Job</th><th>Type</th><th>Started</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">8412</td><td>image generation</td><td class="mono">45s ago</td><td><span class="status-pill run">running</span></td></tr>
+                <tr><td class="mono">8411</td><td>shell:embedding</td><td class="mono">2m ago</td><td><span class="status-pill done">done</span></td></tr>
+                <tr><td class="mono">8409</td><td>site build</td><td class="mono">4h ago</td><td><span class="status-pill done">done</span></td></tr>
+                <tr><td class="mono">8398</td><td>newsletter send</td><td class="mono">3h ago</td><td><span class="status-pill fail">failed · retried ✓</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h4>Endpoints</h4><span class="from">webserver</span></div>
+          <div class="card-body">
+            <div class="kv"><span style="font-family:var(--mono); font-size:11.5px">/mcp</span> <span class="val good">oauth · up</span></div>
+            <div class="kv"><span style="font-family:var(--mono); font-size:11.5px">/a2a</span> <span class="val good">up</span></div>
+            <div class="kv"><span style="font-family:var(--mono); font-size:11.5px">/chat</span> <span class="val good">up</span></div>
+            <div class="kv"><span style="font-family:var(--mono); font-size:11.5px">/cms</span> <span class="val good">passkey · up</span></div>
+            <div class="kv"><span style="font-family:var(--mono); font-size:11.5px">/.well-known/*</span> <span class="val">agent card · jwks</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer-note">
+  <div class="col"><b>Tabs are derived, not configured:</b> widgets declare a
+  <span style="font-family:var(--mono)">group</span>; the dashboard renders Overview plus one
+  tab per non-empty group. Group ids are chosen to match the planned bundle vocabulary
+  (site, publishing, team) so the two converge when bundles ship — the ghost
+  “team” tab appears the day a team-group widget registers.</div>
+  <div class="col"><b>Badges are operator work, not noise:</b> the solid badge counts items
+  that need a decision (reviews, approvals, discovered agents); the outline badge is plain
+  volume. Overview digests answer “anything need me?” in one glance; each digest is the door
+  to its tab.</div>
+  <div class="col"><b>Still server-rendered:</b> same Preact SSR + tiny inline script as
+  today — tabs are progressive enhancement over anchor targets, no SPA. The console strip
+  (Dashboard / Chat / CMS · ⌘K · session chip) is shared chrome across all three surfaces.</div>
+</footer>
+
+<script>
+  // Mockup-only: let the tab bars feel clickable.
+  document.querySelectorAll(".tabbar").forEach(function (bar) {
+    bar.querySelectorAll(".tab:not(.ghost)").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        bar.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("on"); });
+        tab.classList.add("on");
+      });
+    });
+  });
+</script>
+</body>
+</html>

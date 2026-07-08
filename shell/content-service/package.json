@@ -1,20 +1,15 @@
 {
   "name": "@brains/content-service",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "Content coordination and provider management service for the Brain system",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
-  "exports": {
-    ".": "./src/index.ts",
-    "./test": "./test/mock-content-generator.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "test": "bun test",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
+  "keywords": [
+    "content-generation",
+    "templates",
+    "ai",
+    "brain"
+  ],
+  "license": "MIT",
+  "author": "Brain Team",
   "dependencies": {
     "@brains/ai-service": "workspace:*",
     "@brains/content-formatters": "workspace:*",
@@ -27,18 +22,23 @@
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "typescript": "^5.3.3"
+    "@types/bun": "^1.3.14",
+    "typescript": "^6.0.3"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./test": "./test/mock-content-generator.ts"
   },
   "files": [
     "src"
   ],
-  "keywords": [
-    "content-generation",
-    "templates",
-    "ai",
-    "brain"
-  ],
-  "author": "Brain Team",
-  "license": "MIT"
+  "main": "src/index.ts",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "types": "src/index.ts"
 }

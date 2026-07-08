@@ -1,24 +1,25 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createPluginHarness } from "../../src/test/harness";
 import { createSilentLogger } from "@brains/test-utils";
-import { EntityPlugin } from "../../src/entity/entity-plugin";
+import {
+  EntityPlugin,
+  emptyEntityPluginConfigSchema,
+} from "../../src/entity/entity-plugin";
 import type { EntityPluginContext } from "../../src/entity/context";
 import type { DerivedEntityProjection } from "../../src/entity/derived-entity-projection";
-import { z } from "@brains/utils/zod";
-import type { CreateInterceptionResult } from "@brains/entity-service";
-import { baseEntitySchema, BaseEntityAdapter } from "@brains/entity-service";
+import {
+  BaseEntityAdapter,
+  baseEntitySchema,
+  emptyFrontmatterSchema,
+} from "@brains/entity-service";
+import type {
+  BaseEntity,
+  CreateInterceptionResult,
+} from "@brains/entity-service";
 
-// Test schema
-const testFrontmatterSchema = z.object({
-  title: z.string(),
-  slug: z.string(),
-});
+const testSchema = baseEntitySchema;
 
-const testSchema = baseEntitySchema.extend({
-  metadata: testFrontmatterSchema,
-});
-
-type TestEntity = z.infer<typeof testSchema>;
+type TestEntity = BaseEntity;
 
 const testPkg = {
   name: "@test/entity",
@@ -32,7 +33,7 @@ class TestAdapter extends BaseEntityAdapter<TestEntity> {
       entityType: "test-item",
       purpose: "Test entity for plugin tests.",
       schema: testSchema,
-      frontmatterSchema: testFrontmatterSchema,
+      frontmatterSchema: emptyFrontmatterSchema,
     });
   }
   override toMarkdown(entity: TestEntity): string {
@@ -44,23 +45,31 @@ class TestAdapter extends BaseEntityAdapter<TestEntity> {
 }
 
 // Minimal EntityPlugin subclass (no derive)
-class TestEntityPlugin extends EntityPlugin<TestEntity> {
+class TestEntityPlugin extends EntityPlugin<
+  TestEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "test-item";
   readonly schema = testSchema;
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("test-item", testPkg);
+    super("test-item", testPkg, {}, emptyEntityPluginConfigSchema);
   }
 }
 
-class InterceptingEntityPlugin extends EntityPlugin<TestEntity> {
+class InterceptingEntityPlugin extends EntityPlugin<
+  TestEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "intercepting-item";
   readonly schema = testSchema;
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("intercepting-item", testPkg);
+    super("intercepting-item", testPkg, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override async interceptCreate(input: {
@@ -77,13 +86,17 @@ class InterceptingEntityPlugin extends EntityPlugin<TestEntity> {
   }
 }
 
-class ProjectionEntityPlugin extends EntityPlugin<TestEntity> {
+class ProjectionEntityPlugin extends EntityPlugin<
+  TestEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "projection-item";
   readonly schema = testSchema;
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("projection-item", testPkg);
+    super("projection-item", testPkg, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getDerivedEntityProjections(

@@ -11,6 +11,7 @@ import {
   type InterfacePluginContext,
   type JobContext,
   type JobProgressEvent,
+  type MessageArtifactEntity,
   type MessageInterfaceOutput,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
@@ -42,7 +43,11 @@ import {
   handleStreamedConfirmations as handleStreamedConfirmationsRoute,
   writeText as writeStreamText,
 } from "./chat-stream";
-import { webChatConfigSchema, type WebChatConfig } from "./config";
+import {
+  webChatConfigSchema,
+  type WebChatConfig,
+  type WebChatConfigInput,
+} from "./config";
 import { toProgressData, toToolStatusData } from "./event-data";
 import { renderChatPage, uiAssetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
@@ -119,15 +124,17 @@ const defaultResolveOperatorSession: OperatorSessionResolver = async (
   return session !== undefined;
 };
 
-export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
+export class WebChatInterface extends MessageInterfacePlugin<
+  WebChatConfig,
+  WebChatConfigInput
+> {
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly resolveOperatorSession: OperatorSessionResolver;
   private readonly resolveCallerPermissionLevel:
-    | PermissionLevelResolver
-    | undefined;
+    PermissionLevelResolver | undefined;
 
-  constructor(config: Partial<WebChatConfig> = {}, deps: WebChatDeps = {}) {
+  constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
     this.resolveOperatorSession =
       deps.resolveOperatorSession ?? defaultResolveOperatorSession;
@@ -533,7 +540,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           entityType: string;
           id: string;
           visibilityScope?: unknown;
-        }): ReturnType<typeof streamContext.entityService.getEntity> =>
+        }): Promise<MessageArtifactEntity | null | undefined> =>
           streamContext.entityService.getEntity(
             ref as Parameters<typeof streamContext.entityService.getEntity>[0],
           ),

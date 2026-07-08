@@ -51,7 +51,7 @@ export function getAvailableModels(): readonly string[] {
  * Check if a model name is a known built-in model.
  */
 export function isBuiltinModel(name: string): name is ModelName {
-  return AVAILABLE_MODELS.includes(name as ModelName);
+  return name === "rover" || name === "ranger" || name === "relay";
 }
 
 /**

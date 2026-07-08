@@ -3,7 +3,8 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "isolatedDeclarations": true
   },
   "include": ["src/**/*", "test/**/*", "../../shared/types/**/*.d.ts"],
   "exclude": ["node_modules"]

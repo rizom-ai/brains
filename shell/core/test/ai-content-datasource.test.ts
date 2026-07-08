@@ -13,7 +13,7 @@ import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 
 const messageSchema = z.object({ message: z.string() });
-type Message = z.infer<typeof messageSchema>;
+type Message = z.output<typeof messageSchema>;
 
 const defaultIdentityContent = `# Identity
 

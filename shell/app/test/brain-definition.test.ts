@@ -6,7 +6,12 @@ import {
   type PluginFactory,
 } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
-import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
+import {
+  type IShell,
+  type Plugin,
+  type PluginCapabilities,
+  PluginConfigValidationError,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 // Minimal mock plugin factory. Narrower than PluginFactory (always returns a
@@ -379,7 +384,7 @@ describe("resolve", () => {
     ).toBeUndefined();
   });
 
-  test("should skip interface gracefully when config fails Zod validation", () => {
+  test("should skip interface gracefully when config validation fails", () => {
     const requiredTokenSchema = z.object({
       botToken: z.string().min(1),
     });
@@ -388,7 +393,17 @@ describe("resolve", () => {
       override readonly id = "validating";
       override readonly packageName = "validating";
       constructor(config: PluginConfig) {
-        requiredTokenSchema.parse(config); // throws ZodError
+        const parsed = requiredTokenSchema.safeParse(config);
+        if (!parsed.success) {
+          throw new PluginConfigValidationError(
+            "validating",
+            parsed.error.issues.map((issue) => ({
+              path: issue.path.map(String).join("."),
+              code: issue.code,
+              message: issue.message,
+            })),
+          );
+        }
         super(config);
       }
     }
@@ -401,7 +416,7 @@ describe("resolve", () => {
         [
           "validating",
           ValidatingInterface,
-          (): PluginConfig => ({}), // no botToken — ZodError
+          (): PluginConfig => ({}), // no botToken
         ],
       ],
     });
@@ -412,7 +427,7 @@ describe("resolve", () => {
     expect(config.plugins).toBeDefined();
   });
 
-  test("should rethrow non-Zod errors from interface constructor", () => {
+  test("should rethrow non-validation errors from interface constructor", () => {
     class BuggyInterface extends MockInterface {
       override readonly id = "buggy";
       constructor(config: PluginConfig) {
@@ -431,13 +446,23 @@ describe("resolve", () => {
     expect(() => resolve(def, {})).toThrow("unexpected null reference");
   });
 
-  test("should skip capability gracefully when config fails Zod validation", () => {
+  test("should skip capability gracefully when config validation fails", () => {
     const requiredKeySchema = z.object({
       apiKey: z.string().min(1),
     });
 
     const validatingFactory: PluginFactory = (config) => {
-      requiredKeySchema.parse(config); // throws ZodError
+      const parsed = requiredKeySchema.safeParse(config);
+      if (!parsed.success) {
+        throw new PluginConfigValidationError(
+          "needs-key",
+          parsed.error.issues.map((issue) => ({
+            path: issue.path.map(String).join("."),
+            code: issue.code,
+            message: issue.message,
+          })),
+        );
+      }
       return createMockPluginFactory("needs-key")(config);
     };
 
@@ -491,6 +516,6 @@ describe("resolve", () => {
     const config = resolve(def, {});
 
     expect(config.permissions?.anchors).toEqual(["matrix:@user:server"]);
-    expect(config.deployment?.domain).toBe("example.com");
+    expect(config.deployment.domain).toBe("example.com");
   });
 });

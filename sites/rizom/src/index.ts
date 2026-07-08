@@ -13,7 +13,11 @@ export {
   rizomRuntimeConfigSchema,
   rizomRuntimeStaticAssets,
 } from "./runtime";
-export type { RizomRuntimeConfig, RizomThemeProfile } from "./runtime";
+export type {
+  RizomRuntimeConfig,
+  RizomRuntimeConfigInput,
+  RizomThemeProfile,
+} from "./runtime";
 
 export { createRizomSite } from "./create-site";
 export type { CreateRizomSiteOptions } from "./create-site";

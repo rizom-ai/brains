@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
-import { z } from "@brains/utils/zod";
 import { formatLabel } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import type { JSX } from "preact";
 import type { RenderableWidgetData } from "./types";
 
@@ -22,6 +22,7 @@ const listItemSchema = z.object({
 const listWidgetDataSchema = z.object({
   items: z.array(listItemSchema),
 });
+const kvWidgetDataSchema = z.record(z.string(), z.unknown());
 
 const pipelineStatusSchema = z.enum(PIPELINE_STATUSES);
 const pipelineSummarySchema = z.object({
@@ -43,9 +44,9 @@ const pipelineWidgetDataSchema = z.object({
   items: z.array(pipelineItemSchema),
 });
 
-type ListItem = z.infer<typeof listItemSchema>;
-type PipelineStatus = z.infer<typeof pipelineStatusSchema>;
-type PipelineItem = z.infer<typeof pipelineItemSchema>;
+type ListItem = z.output<typeof listItemSchema>;
+type PipelineStatus = z.output<typeof pipelineStatusSchema>;
+type PipelineItem = z.output<typeof pipelineItemSchema>;
 
 interface RendererProps {
   widget: RenderableWidgetData;
@@ -138,10 +139,8 @@ function parsedListData(data: unknown): ListItem[] {
 }
 
 function parsedKvData(data: unknown): Record<string, unknown> | null {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
-    return null;
-  }
-  return data as Record<string, unknown>;
+  const parsed = kvWidgetDataSchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
 }
 
 function CountChip({ widget }: RendererProps): JSX.Element | null {

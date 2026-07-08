@@ -7,14 +7,22 @@ import type { GeneratedContent } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 
 /**
  * Input schema for deck generation job
  */
-export const deckGenerationJobSchema = z.object({
+export const deckGenerationJobSchema: z.ZodObject<{
+  prompt: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+  content: z.ZodOptional<z.ZodString>;
+  description: z.ZodOptional<z.ZodString>;
+  author: z.ZodOptional<z.ZodString>;
+  event: z.ZodOptional<z.ZodString>;
+  skipAi: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   prompt: z.string().optional(),
   title: z.string().optional(),
   content: z.string().optional(),
@@ -24,14 +32,19 @@ export const deckGenerationJobSchema = z.object({
   skipAi: z.boolean().optional(),
 });
 
-export type DeckGenerationJobData = z.infer<typeof deckGenerationJobSchema>;
+export type DeckGenerationJobData = z.output<typeof deckGenerationJobSchema>;
 
-export const deckGenerationResultSchema = generationResultSchema.extend({
+export const deckGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    title: z.ZodOptional<z.ZodString>;
+    slug: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   title: z.string().optional(),
   slug: z.string().optional(),
 });
 
-export type DeckGenerationResult = z.infer<typeof deckGenerationResultSchema>;
+export type DeckGenerationResult = z.output<typeof deckGenerationResultSchema>;
 
 /**
  * Job handler for deck generation

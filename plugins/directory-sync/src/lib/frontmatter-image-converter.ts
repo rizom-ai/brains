@@ -30,7 +30,7 @@ export interface ConversionResult {
 const coverImageFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(),
-  coverImageUrl: z.string().url(),
+  coverImageUrl: z.url(),
   coverImageId: z.string().optional(),
   coverImageAlt: z.string().optional(),
 });
@@ -65,13 +65,17 @@ export interface CoverImageDetection {
  * 3. Replaces coverImage with coverImageId in the frontmatter
  */
 export class FrontmatterImageConverter {
+  private entityService: IEntityService;
+  private fetcher: ImageFetcher;
   private logger: Logger;
 
   constructor(
-    private entityService: IEntityService,
+    entityService: IEntityService,
     logger: Logger,
-    private fetcher: ImageFetcher = fetchImageAsBase64,
+    fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
+    this.entityService = entityService;
+    this.fetcher = fetcher;
     this.logger = logger.child("FrontmatterImageConverter");
   }
 

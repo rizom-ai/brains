@@ -2,8 +2,8 @@ import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { noteAdapter } from "../adapters/note-adapter";
@@ -11,18 +11,26 @@ import { noteAdapter } from "../adapters/note-adapter";
 /**
  * Input schema for note generation job
  */
-export const noteGenerationJobSchema = z.object({
-  prompt: z.string(),
+export interface NoteGenerationJobData {
+  prompt: string;
+  title?: string | undefined;
+}
+
+export const noteGenerationJobSchema: z.ZodType<NoteGenerationJobData> =
+  z.object({
+    prompt: z.string(),
+    title: z.string().optional(),
+  });
+
+export const noteGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    title: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   title: z.string().optional(),
 });
 
-export type NoteGenerationJobData = z.infer<typeof noteGenerationJobSchema>;
-
-export const noteGenerationResultSchema = generationResultSchema.extend({
-  title: z.string().optional(),
-});
-
-export type NoteGenerationResult = z.infer<typeof noteGenerationResultSchema>;
+export type NoteGenerationResult = z.output<typeof noteGenerationResultSchema>;
 
 /**
  * Job handler for note generation

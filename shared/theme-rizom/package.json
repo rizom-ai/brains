@@ -1,30 +1,30 @@
 {
   "name": "@brains/theme-rizom",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "Rizom brand theme — amber + purple bioluminescent palette shared by the Rizom site family. Profile-specific accents and typography via [data-theme-profile] selectors.",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts",
-    "./types": "./src/types.d.ts"
-  },
-  "types": "./src/types.d.ts",
-  "files": [
-    "src"
-  ],
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
   "dependencies": {
     "@brains/theme-default": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
-  }
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.d.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "types": "./src/types.d.ts"
 }

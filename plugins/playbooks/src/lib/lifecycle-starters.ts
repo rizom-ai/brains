@@ -11,7 +11,28 @@ import type { LifecycleStarterRegistration } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
-export const lifecycleConfigSchema = z
+export interface LifecyclePlaybookConfig {
+  trigger: string;
+  playbookId: string;
+  once: boolean;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
+
+interface LifecyclePlaybookConfigInput {
+  trigger: string;
+  playbookId: string;
+  once?: boolean | undefined;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
+
+export const lifecycleConfigSchema: z.ZodType<
+  LifecyclePlaybookConfig,
+  LifecyclePlaybookConfigInput
+> = z
   .object({
     trigger: z.string().min(1),
     playbookId: z.string().min(1),
@@ -21,8 +42,6 @@ export const lifecycleConfigSchema = z
     starterPrompt: z.string().min(1),
   })
   .strict();
-
-export type LifecyclePlaybookConfig = z.infer<typeof lifecycleConfigSchema>;
 
 export interface PlaybookStarter {
   id: string;
@@ -89,12 +108,15 @@ function sameLifecycleConfig(
 }
 
 export class LifecycleStarterRegistry {
+  private readonly deps: LifecycleStarterRegistryDeps;
   private readonly registered = new Map<
     string,
     { source: string; config: LifecyclePlaybookConfig }
   >();
 
-  constructor(private readonly deps: LifecycleStarterRegistryDeps) {}
+  constructor(deps: LifecycleStarterRegistryDeps) {
+    this.deps = deps;
+  }
 
   /**
    * Register a starter on behalf of another plugin. Identical

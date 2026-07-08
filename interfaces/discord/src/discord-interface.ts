@@ -28,7 +28,7 @@ import {
   type Message,
 } from "discord.js";
 import { discordConfigSchema } from "./config";
-import type { DiscordConfig } from "./config";
+import type { DiscordConfig, DiscordConstructorConfig } from "./config";
 import packageJson from "../package.json";
 
 const DISCORD_MAX_LENGTH = 2000;
@@ -90,7 +90,10 @@ export interface DiscordDeps {
  * Routes all messages to AgentService, supports threads, file uploads,
  * and message chunking for Discord's 2000 char limit.
  */
-export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
+export class DiscordInterface extends MessageInterfacePlugin<
+  DiscordConfig,
+  DiscordConstructorConfig
+> {
   declare protected config: DiscordConfig;
   private client: Client | null = null;
   private readonly fetchText: (url: string) => Promise<string>;
@@ -98,7 +101,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
   private pendingConfirmations = new Map<string, Set<string>>();
   private typingIntervals = new Map<string, ReturnType<typeof setInterval>>();
 
-  constructor(config: Partial<DiscordConfig>, deps: DiscordDeps = {}) {
+  constructor(config: DiscordConstructorConfig, deps: DiscordDeps = {}) {
     super("discord", packageJson, config, discordConfigSchema);
     this.fetchText = deps.fetchText ?? fetchAsText;
   }

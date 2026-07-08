@@ -6,13 +6,23 @@ import { createAgentSetTrustLevelTool } from "../tools/agent-set-trust-level";
 import type { FetchFn } from "../lib/fetch-agent-card";
 import packageJson from "../../package.json";
 
-const agentToolsConfigSchema = z.object({}).strict();
+type AgentToolsConfig = Record<string, never>;
+type AgentToolsConfigInput = Record<string, never>;
 
-type AgentToolsConfig = z.infer<typeof agentToolsConfigSchema>;
+const agentToolsConfigSchema: z.ZodType<
+  AgentToolsConfig,
+  AgentToolsConfigInput
+> = z.object({}).strict();
 
-export class AgentToolsPlugin extends ServicePlugin<AgentToolsConfig> {
-  constructor(private readonly fetchFn?: FetchFn) {
+export class AgentToolsPlugin extends ServicePlugin<
+  AgentToolsConfig,
+  AgentToolsConfigInput
+> {
+  private readonly fetchFn: FetchFn | undefined;
+
+  constructor(fetchFn?: FetchFn) {
     super("agent", packageJson, {}, agentToolsConfigSchema);
+    this.fetchFn = fetchFn;
   }
 
   protected override async getTools(): Promise<Tool[]> {

@@ -98,7 +98,8 @@ export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBo
   }
 }
 
-export const playbookBodyFormatter = new PlaybookBodyFormatter();
+export const playbookBodyFormatter: PlaybookBodyFormatter =
+  new PlaybookBodyFormatter();
 
 function formatOptionalString(value: unknown): string {
   return typeof value === "string" ? value : "";

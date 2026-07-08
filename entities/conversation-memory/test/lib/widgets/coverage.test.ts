@@ -8,7 +8,7 @@ import {
   buildSummaryCoverageData,
   registerSummaryCoverageWidget,
 } from "../../../src/lib/widgets/coverage";
-import { summaryConfigSchema } from "../../../src/schemas/summary";
+import { summaryConfigSchema } from "../../../src/schemas/summary-config";
 import type { SummaryEntity } from "../../../src/schemas/summary";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;

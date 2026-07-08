@@ -61,4 +61,4 @@ export class OverviewAdapter extends BaseEntityAdapter<
   }
 }
 
-export const overviewAdapter = new OverviewAdapter();
+export const overviewAdapter: OverviewAdapter = new OverviewAdapter();

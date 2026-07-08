@@ -47,8 +47,8 @@ export async function bootstrapPilotAgeKey(
   const identityPath = join(rootDir, ".brains-ops", "age", "identity.txt");
 
   let createdLocalKey = false;
-  let identity = "";
-  let agePublicKey = "";
+  let identity: string;
+  let agePublicKey: string;
 
   if (existsSync(identityPath)) {
     identity = extractAgeIdentity(readFileSync(identityPath, "utf8"));

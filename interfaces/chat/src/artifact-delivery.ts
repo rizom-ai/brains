@@ -15,7 +15,9 @@ const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
 interface ArtifactDeliveryDeps {
   getContext: () => InterfacePluginContext | undefined;
   getDisplayBaseUrl: () => string | undefined;
-  logger: { debug: (message: string, context?: Record<string, unknown>) => void };
+  logger: {
+    debug: (message: string, context?: Record<string, unknown>) => void;
+  };
 }
 
 /**
@@ -26,7 +28,11 @@ interface ArtifactDeliveryDeps {
  * both the normal-response and confirmation-response render paths.
  */
 export class ArtifactDeliveryResolver {
-  constructor(private readonly deps: ArtifactDeliveryDeps) {}
+  private readonly deps: ArtifactDeliveryDeps;
+
+  constructor(deps: ArtifactDeliveryDeps) {
+    this.deps = deps;
+  }
 
   async resolve(
     cards: StructuredChatCard[] | undefined,

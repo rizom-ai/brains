@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "zod";
+import { z } from "../src/zod";
 import { parseYamlDocument } from "../src/yaml";
 
 describe("parseYamlDocument", () => {

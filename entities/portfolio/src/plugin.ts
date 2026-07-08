@@ -10,22 +10,23 @@ import type {
 } from "@brains/plugins";
 import {
   EntityPlugin,
-  paginationInfoSchema,
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import type { PublishProvider, PublishResult } from "@brains/contracts";
 import { createTemplate } from "@brains/templates";
 import {
   projectSchema,
-  enrichedProjectSchema,
   projectFrontmatterSchema,
   type Project,
 } from "./schemas/project";
-import { projectAdapter } from "./adapters/project-adapter";
+import {
+  projectAdapter,
+  type ProjectAdapter,
+} from "./adapters/project-adapter";
 import type { PortfolioConfig, PortfolioConfigInput } from "./config";
 import { portfolioConfigSchema } from "./config";
 import {
@@ -49,12 +50,92 @@ import { ProjectOgImageAttachmentProvider } from "./attachments/og-image-provide
 import { PROJECT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
+const paginationInfoSchema = z.object({
+  currentPage: z.number(),
+  totalPages: z.number(),
+  totalItems: z.number(),
+  pageSize: z.number(),
+  hasNextPage: z.boolean(),
+  hasPrevPage: z.boolean(),
+});
+
+const contentVisibilitySchema = z
+  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return "public";
+    if (value === "private") return "restricted";
+    return value;
+  });
+
+const projectStatusSchema = z.enum([
+  "generating",
+  "draft",
+  "published",
+  "failed",
+]);
+
+const projectFrontmatterViewSchema = z.object({
+  title: z.string(),
+  slug: z.string().optional(),
+  status: projectStatusSchema,
+  publishedAt: z.string().optional(),
+  description: z.string(),
+  year: z.number(),
+  coverImageId: z.string().optional(),
+  ogImageId: z.string().optional(),
+  url: z.url().optional(),
+});
+
+const projectMetadataViewSchema = z.object({
+  title: z.string(),
+  status: projectStatusSchema,
+  publishedAt: z.string().optional(),
+  year: z.number(),
+  slug: z.string(),
+  error: z.string().optional(),
+});
+
+const projectContentViewSchema = z.object({
+  context: z.string(),
+  problem: z.string(),
+  solution: z.string(),
+  outcome: z.string(),
+});
+
+const templateProjectSchema = z.object({
+  id: z.string(),
+  entityType: z.literal("project"),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  visibility: contentVisibilitySchema,
+  metadata: projectMetadataViewSchema,
+  contentHash: z.string(),
+  frontmatter: projectFrontmatterViewSchema,
+  body: z.string(),
+  structuredContent: projectContentViewSchema.optional(),
+  url: z.string(),
+  typeLabel: z.string(),
+  coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
+});
+
 const projectListSchema = z.object({
-  projects: z.array(enrichedProjectSchema),
+  projects: z.array(templateProjectSchema),
   pageTitle: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().optional(),
 });
+
+const generateProjectEvalInputSchema = z.object({
+  prompt: z.string(),
+  year: z.number(),
+});
+
+type GenerateProjectEvalInput = z.output<typeof generateProjectEvalInputSchema>;
 
 function extractProjectYear(
   title: string | undefined,
@@ -67,10 +148,14 @@ function extractProjectYear(
   return null;
 }
 
-export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
-  readonly entityType = projectAdapter.entityType;
-  readonly schema = projectSchema;
-  readonly adapter = projectAdapter;
+export class PortfolioPlugin extends EntityPlugin<
+  Project,
+  PortfolioConfig,
+  PortfolioConfigInput
+> {
+  readonly entityType = "project" as const;
+  readonly schema: typeof projectSchema = projectSchema;
+  readonly adapter: ProjectAdapter = projectAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
@@ -125,7 +210,7 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
   protected override getTemplates(): Record<string, Template> {
     return {
       "project-list": createTemplate<
-        z.infer<typeof projectListSchema>,
+        z.output<typeof projectListSchema>,
         ProjectListProps
       >({
         name: "project-list",
@@ -137,18 +222,18 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
       }),
       "project-detail": createTemplate<
         {
-          project: z.infer<typeof enrichedProjectSchema>;
-          prevProject: z.infer<typeof enrichedProjectSchema> | null;
-          nextProject: z.infer<typeof enrichedProjectSchema> | null;
+          project: z.output<typeof templateProjectSchema>;
+          prevProject: z.output<typeof templateProjectSchema> | null;
+          nextProject: z.output<typeof templateProjectSchema> | null;
         },
         ProjectDetailProps
       >({
         name: "project-detail",
         description: "Individual project case study template",
         schema: z.object({
-          project: enrichedProjectSchema,
-          prevProject: enrichedProjectSchema.nullable(),
-          nextProject: enrichedProjectSchema.nullable(),
+          project: templateProjectSchema,
+          prevProject: templateProjectSchema.nullable(),
+          nextProject: templateProjectSchema.nullable(),
         }),
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",
@@ -195,9 +280,8 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
 
   private registerEvalHandlers(context: EntityPluginContext): void {
     context.eval.registerHandler("generateProject", async (input: unknown) => {
-      const parsed = z
-        .object({ prompt: z.string(), year: z.number() })
-        .parse(input);
+      const parsed: GenerateProjectEvalInput =
+        generateProjectEvalInputSchema.parse(input);
       return context.ai.generate<{
         title: string;
         description: string;

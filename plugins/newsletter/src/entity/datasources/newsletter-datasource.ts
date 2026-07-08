@@ -1,31 +1,48 @@
 import {
   BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
   type BaseQuery,
+  type EntityDataSourceConfig,
   type PaginationInfo,
 } from "@brains/plugins";
-import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSourceSchema,
+  IEntityService,
+} from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
 import { truncateText } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import {
   type Newsletter,
   newsletterFrontmatterSchema,
 } from "../schemas/newsletter";
 
-const newsletterQuerySchema = baseQuerySchema.extend({
+interface NewsletterQuery extends BaseQuery {
+  status?:
+    "generating" | "draft" | "queued" | "published" | "failed" | undefined;
+}
+
+interface NewsletterInput {
+  entityType?: string | undefined;
+  query?: NewsletterQuery | undefined;
+}
+
+const newsletterQuerySchema: z.ZodType<NewsletterQuery> = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
   status: z
     .enum(["generating", "draft", "queued", "published", "failed"])
     .optional(),
 });
 
-const newsletterInputSchema = baseInputSchema.extend({
+const newsletterInputSchema: z.ZodType<NewsletterInput> = z.looseObject({
+  entityType: z.string().optional(),
   query: newsletterQuerySchema.optional(),
 });
-
-type NewsletterQuery = z.infer<typeof newsletterQuerySchema>;
 
 /**
  * Extract body content from newsletter (strips frontmatter).
@@ -73,7 +90,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
   readonly description =
     "Fetches and transforms newsletter entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "newsletter",
     defaultSort: [{ field: "created" as const, direction: "desc" as const }],
     defaultLimit: 10,
@@ -132,7 +149,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
    */
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);
@@ -170,7 +187,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
    */
   private async fetchSingleNewsletter<T>(
     id: string,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const newsletter = await entityService.getEntity<Newsletter>({

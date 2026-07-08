@@ -6,17 +6,24 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const PROJECT_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const PROJECT_OG_IMAGE_TEMPLATE_NAME = "portfolio:og-image";
 
-export const projectOgImageTemplateSchema = z.object({
+export interface ProjectOgImageTemplateData {
+  title: string;
+  description?: string | undefined;
+  year?: number | undefined;
+  brandLabel?: string | undefined;
+  coverImageUrl?: string | undefined;
+}
+
+export const projectOgImageTemplateSchema: z.ZodType<
+  ProjectOgImageTemplateData,
+  ProjectOgImageTemplateData
+> = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   year: z.number().optional(),
   brandLabel: z.string().optional(),
   coverImageUrl: z.string().optional(),
 });
-
-export type ProjectOgImageTemplateData = z.infer<
-  typeof projectOgImageTemplateSchema
->;
 
 export const projectOgImageTemplate: MediaPageTemplate = {
   name: PROJECT_OG_IMAGE_TEMPLATE_NAME,

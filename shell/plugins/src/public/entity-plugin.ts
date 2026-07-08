@@ -1,5 +1,6 @@
 import { EntityPlugin as RuntimeEntityPlugin } from "../entity/entity-plugin";
 import type { EntityPluginContext as RuntimeEntityPluginContext } from "../entity/context";
+import type { PluginConfigSchema } from "../config";
 import type {
   IShell,
   PluginCapabilities,
@@ -14,12 +15,14 @@ import type {
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
-import type { z } from "@brains/utils/zod";
 import type { EntityPluginContext, Plugin } from "./types";
+
+type EntitySchema<TEntity extends BaseEntity> =
+  EntityAdapter<TEntity>["schema"];
 
 interface EntityPluginHooks<TEntity extends BaseEntity> {
   getEntityType(): string;
-  getSchema(): z.ZodSchema<TEntity>;
+  getSchema(): EntitySchema<TEntity>;
   getAdapter(): EntityAdapter<TEntity>;
   onRegister(context: EntityPluginContext): Promise<void>;
   onReady(context: EntityPluginContext): Promise<void>;
@@ -37,22 +40,25 @@ interface EntityPluginHooks<TEntity extends BaseEntity> {
 class EntityPluginDelegate<
   TEntity extends BaseEntity,
   TConfig,
-> extends RuntimeEntityPlugin<TEntity, TConfig> {
+  TConfigInput,
+> extends RuntimeEntityPlugin<TEntity, TConfig, TConfigInput> {
+  private readonly hooks: EntityPluginHooks<TEntity>;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
-    private readonly hooks: EntityPluginHooks<TEntity>,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
+    hooks: EntityPluginHooks<TEntity>,
   ) {
     super(id, packageJson, config, configSchema);
+    this.hooks = hooks;
   }
 
   override get entityType(): string {
     return this.hooks.getEntityType();
   }
 
-  override get schema(): z.ZodSchema<TEntity> {
+  override get schema(): EntitySchema<TEntity> {
     return this.hooks.getSchema();
   }
 
@@ -98,8 +104,9 @@ class EntityPluginDelegate<
 }
 
 export abstract class EntityPlugin<
-  TEntity extends BaseEntity = BaseEntity,
-  TConfig = unknown,
+  TEntity extends BaseEntity,
+  TConfig,
+  TConfigInput,
 > implements Plugin {
   public readonly type = "entity" as const;
   public readonly id: string;
@@ -107,15 +114,19 @@ export abstract class EntityPlugin<
   public readonly packageName: string;
   public readonly description?: string;
   public abstract readonly entityType: string;
-  public abstract readonly schema: z.ZodSchema<TEntity>;
+  public abstract readonly schema: EntitySchema<TEntity>;
   public abstract readonly adapter: EntityAdapter<TEntity>;
-  private readonly delegate: EntityPluginDelegate<TEntity, TConfig>;
+  private readonly delegate: EntityPluginDelegate<
+    TEntity,
+    TConfig,
+    TConfigInput
+  >;
 
   protected constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;
@@ -130,7 +141,7 @@ export abstract class EntityPlugin<
       configSchema,
       {
         getEntityType: (): string => this.entityType,
-        getSchema: (): z.ZodSchema<TEntity> => this.schema,
+        getSchema: (): EntitySchema<TEntity> => this.schema,
         getAdapter: (): EntityAdapter<TEntity> => this.adapter,
         onRegister: (context): Promise<void> => this.onRegister(context),
         onReady: (context): Promise<void> => this.onReady(context),

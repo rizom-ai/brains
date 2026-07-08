@@ -1,20 +1,20 @@
-import type { Plugin } from "@brains/plugins";
+import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
 import {
   entityActionPolicyConfigSchema,
   type EntityActionPolicyConfig,
   type EntityActionRequiredLevel,
 } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
-import { z, ZodError } from "@brains/utils/zod";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import type {
   BrainDefinition,
   BrainEnvironment,
   PluginFactory,
   PresetName,
 } from "./brain-definition";
-import type { AppConfig, DeploymentConfigInput } from "./types";
+import type { AppConfig, AppConfigInput, DeploymentConfigInput } from "./types";
 import {
   CONVENTIONAL_SITE_PACKAGE_REF,
   getExternalPluginDeclarations,
@@ -54,6 +54,14 @@ const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
     delete: "never",
   },
 };
+
+const recordSchema = z.record(z.string(), z.unknown());
+const pluginFactorySchema = z.custom<PluginFactory>(
+  (value) => typeof value === "function",
+);
+const externalPluginPackageSchema = z.looseObject({
+  plugin: pluginFactorySchema.optional(),
+});
 
 /**
  * Determine which plugin/interface IDs are active.
@@ -137,7 +145,7 @@ function resolveActiveIds(
  */
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return recordSchema.safeParse(value).success;
 }
 
 function deepMerge(
@@ -150,10 +158,7 @@ function deepMerge(
     if (overrideVal === null) {
       delete result[key];
     } else if (isPlainObject(result[key]) && isPlainObject(overrideVal)) {
-      result[key] = deepMerge(
-        result[key] as Record<string, unknown>,
-        overrideVal,
-      );
+      result[key] = deepMerge(result[key], overrideVal);
     } else {
       result[key] = overrideVal;
     }
@@ -283,7 +288,7 @@ function instantiateCapabilities(
       const result = factory(merged);
       capabilities.push(...ensureArray(result));
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (error instanceof PluginConfigValidationError) {
         logger?.warn(`Skipping capability "${id}": missing required config`);
       } else {
         throw error;
@@ -331,7 +336,7 @@ function instantiateInterfaces(
     try {
       interfaces.push(new ctor(merged));
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (error instanceof PluginConfigValidationError) {
         logger?.warn(`Skipping interface "${id}": missing required config`);
       } else {
         throw error;
@@ -344,7 +349,7 @@ function instantiateInterfaces(
 
 function buildIdentity(
   definition: BrainDefinition,
-): AppConfig["identity"] | undefined {
+): AppConfigInput["identity"] | undefined {
   return definition.identity
     ? {
         name: definition.identity.characterName,
@@ -379,7 +384,7 @@ function buildDeployment(
 function buildRuntimeOverrides(
   env: BrainEnvironment,
   overrides?: Omit<InstanceOverrides, "brain">,
-): Partial<Pick<AppConfig, "database" | "logFile" | "logLevel">> {
+): Partial<Pick<AppConfigInput, "database" | "logFile" | "logLevel">> {
   return {
     // Log level: yaml overrides > env > undefined
     ...(overrides?.logLevel
@@ -405,7 +410,7 @@ function buildRuntimeOverrides(
 }
 
 function applyExtraConfig(
-  appConfig: AppConfig,
+  appConfig: AppConfigInput,
   definition: BrainDefinition,
 ): void {
   if (definition.extra) {
@@ -414,7 +419,7 @@ function applyExtraConfig(
 }
 
 function applySharedTheme(
-  appConfig: AppConfig,
+  appConfig: AppConfigInput,
   themeCSS: string | undefined,
 ): void {
   if (themeCSS === undefined) return;
@@ -426,7 +431,7 @@ function applySharedTheme(
 }
 
 function applySiteEntityDisplay(
-  appConfig: AppConfig,
+  appConfig: AppConfigInput,
   site: SitePackage | undefined,
 ): void {
   if (!site) return;
@@ -508,7 +513,7 @@ export function resolve(
   const deployment = buildDeployment(definition, overrides);
 
   // Build the app config
-  const appConfig: AppConfig = {
+  const appConfig: AppConfigInput = {
     name: overrides?.name ?? definition.name,
     version: definition.version,
     plugins: [...capabilities, ...interfaces],
@@ -710,18 +715,11 @@ function getRegisteredExternalPluginPackage(
 // or a named `plugin` export — the public authoring contract documented in
 // docs/external-plugin-authoring.md accepts both.
 function pluginFactoryFromPackage(pkg: unknown): PluginFactory | undefined {
-  if (typeof pkg === "function") {
-    return pkg as PluginFactory;
-  }
+  const directFactory = pluginFactorySchema.safeParse(pkg);
+  if (directFactory.success) return directFactory.data;
 
-  if (pkg && typeof pkg === "object") {
-    const namedPlugin = (pkg as { plugin?: unknown }).plugin;
-    if (typeof namedPlugin === "function") {
-      return namedPlugin as PluginFactory;
-    }
-  }
-
-  return undefined;
+  const packageShape = externalPluginPackageSchema.safeParse(pkg);
+  return packageShape.success ? packageShape.data.plugin : undefined;
 }
 
 function resolveExternalPluginFactory(
@@ -745,28 +743,28 @@ function resolveExternalPluginFactory(
  * Resolve the site package from brain.yaml override or brain definition default.
  * brain.yaml `site.package` (a @-prefixed package ref) takes priority.
  */
-const routeDefinitionOverrideSchema = z
-  .object({
-    id: z.string().min(1),
-  })
-  .passthrough();
+const routeDefinitionOverrideSchema = z.looseObject({
+  id: z.string().min(1),
+});
 
-const entityDisplayEntryOverrideSchema = z
-  .object({
-    label: z.string().min(1),
-  })
-  .passthrough();
+const entityDisplayEntryOverrideSchema = z.looseObject({
+  label: z.string().min(1),
+});
 
-const sitePackageOverridesShapeSchema = z
-  .object({
-    layouts: z.record(z.unknown()).optional(),
-    plugin: z.function().optional(),
-    pluginConfig: z.record(z.unknown()).optional(),
-    routes: z.array(routeDefinitionOverrideSchema).optional(),
-    entityDisplay: z.record(entityDisplayEntryOverrideSchema).optional(),
-    staticAssets: z.record(z.string()).optional(),
-  })
-  .passthrough();
+const sitePackagePluginOverrideSchema = z.custom<(...args: never[]) => unknown>(
+  (value) => typeof value === "function",
+);
+
+const sitePackageOverridesShapeSchema = z.looseObject({
+  layouts: z.record(z.string(), z.unknown()).optional(),
+  plugin: sitePackagePluginOverrideSchema.optional(),
+  pluginConfig: z.record(z.string(), z.unknown()).optional(),
+  routes: z.array(routeDefinitionOverrideSchema).optional(),
+  entityDisplay: z
+    .record(z.string(), entityDisplayEntryOverrideSchema)
+    .optional(),
+  staticAssets: z.record(z.string(), z.string()).optional(),
+});
 
 // Validate the shape loosely (plugin as a bare function, layouts/routes as
 // records) but declare the trusted output type once here at the parse

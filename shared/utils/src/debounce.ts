@@ -8,13 +8,15 @@
  * Result: N rapid calls within a window → at most 2 executions.
  */
 export class LeadingTrailingDebounce {
+  private readonly fn: () => void;
+  private readonly delayMs: number;
   private timeout: Timer | undefined;
   private pending = false;
 
-  constructor(
-    private readonly fn: () => void,
-    private readonly delayMs: number,
-  ) {}
+  constructor(fn: () => void, delayMs: number) {
+    this.fn = fn;
+    this.delayMs = delayMs;
+  }
 
   trigger(): void {
     if (!this.timeout) {

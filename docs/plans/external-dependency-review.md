@@ -2,99 +2,226 @@
 
 ## Status
 
-Proposed. Trigger: the zod version policy decided in
+In progress in `~/Documents/brains-worktrees/external-deps` on branch
+`chore/external-deps-phase1`. Trigger: the zod version policy decided in
 `npm-package-boundaries.md` (2026-06-10) — the blessed `z` ships as the
 workspace zod, and the zod 4 migration is a release blocker for the
 first stable `@rizom/brain`. That decision needs a home for sequencing
 and mechanics, and the same review surfaced broader drift worth
 handling deliberately instead of ad hoc.
 
-## Inventory (root, verified 2026-06-10 via `bun outdated`)
+Execution rule: dependency-changing work happens in a dedicated worktree
+(e.g. `~/Documents/brains-worktrees/external-deps`), never in the main
+checkout.
 
-Safe drift (minor/patch, no API changes expected):
+Progress as of 2026-06-15: Phases 1a, 1b, 1c, and 2 are implemented in
+the worktree and pass `deps:check`, `typecheck`, `lint`, and `test`.
+Rover evals were run with `bun run eval --skip-llm-judge --max-parallel
+1`; result was 157/161 passing, so the dependency work is not eval-green
+yet. A 2026-06-16 follow-up safe-drift slice updated newly surfaced
+patch/minor drift for AI SDK React bindings, `ai`, TypeScript-ESLint,
+`radix-ui`, and `playwright-core`; targeted consumer checks and root
+lint pass. The first Phase 2b runtime-major slice updated `croner` 9 →
+10 for `@brains/content-pipeline`; package typecheck, lint, and tests
+pass. A second Phase 2b slice updated `p-limit` 6 → 7 behind the
+`@brains/utils` re-export; utils and direct consumer package checks pass.
+A third Phase 2b slice updated `tailwind-merge` 2 → 3 for UI packages
+and added the missing direct dependency declaration for `@brains/web-chat`;
+UI typecheck/lint/test/build checks pass. A fourth Phase 2b slice updated
+`lucide-preact` 0.x → 1.x for `@brains/product-site-content`; package
+checks pass. A small tooling slice updated `@changesets/changelog-github`
+0.6 → 0.7 and verified Changesets status. Another Phase 2b slice
+updated `sharp` 0.34 → 0.35 across site-engine, brain-cli optional deps,
+and generated model package optional deps; affected package checks pass.
+Another Phase 2b slice updated `@clack/prompts` 0.11 → 1.5 for the
+`@rizom/brain` init prompt flow; `@rizom/brain` typecheck, lint, and
+tests pass. Another Phase 2b slice updated `chokidar` 3 → 5 for
+`@brains/directory-sync`; package typecheck, lint, and tests pass.
+Another Phase 2b slice updated `marked` 12 → 18 for `@brains/chat-repl`
+and `@brains/ui-library`; package typecheck, lint, and tests pass.
+Another Phase 2b slice updated `pdfjs-dist` 5 → 6 for
+`@brains/document`; package typecheck, lint, and tests pass. Another
+Phase 2b slice updated `@libsql/client` 0.15 → 0.17 across entity,
+conversation, and job-queue services plus published optional dependency
+metadata; targeted DB/service checks pass. Another Phase 2b slice
+updated `drizzle-orm` 0.44 → 0.45 across the same DB services; targeted
+DB/service checks pass. Another Phase 2b slice updated `ink` 6 → 7 for
+`@brains/chat-repl`; package typecheck, lint, and tests pass. Another
+Phase 2b slice updated `varlock` 0.5 → 1.7 for `@brains/app`; package
+typecheck, lint, and tests pass. A follow-up delete-vs-upgrade slice
+removed unused `better-sqlite3` optional dependency metadata now that DB
+runtime paths consistently use `@libsql/client`; targeted package checks
+pass. A follow-up icon-package drift slice updated `lucide-react` and
+`lucide-preact` 1.18 → 1.20; targeted consumer checks pass. A Phase 3
+ESLint tightening slice now enforces `--max-warnings 0` through the root
+lint entrypoint and cleaned up existing warnings; root `lint` and
+`typecheck` pass. A follow-up ESLint tightening slice enabled
+`preserve-caught-error` and updated symptom rethrows to retain `cause`;
+forced root lint and typecheck pass. Another ESLint tightening slice enabled
+`no-useless-assignment` and removed dead initial assignments; forced root
+lint and typecheck pass. Another ESLint tightening slice promoted
+`@typescript-eslint/consistent-type-imports` to error; forced root lint and
+typecheck pass. Another ESLint tightening slice promoted
+`@typescript-eslint/prefer-nullish-coalescing` to error; forced root lint
+passes. Another ESLint tightening slice promoted
+`@typescript-eslint/no-unnecessary-condition` to error; forced root lint
+passes. The TypeScript tooling-major slice updated `typescript` 5.9 →
+6.0 across synced workspace devDependency ranges, acknowledged the TS6
+`baseUrl` deprecation window, and made the shared Bun ambient types
+explicit; root typecheck passes. A TypeScript strictness slice enabled
+`noUncheckedSideEffectImports`; root typecheck passes without code changes.
+Another TypeScript strictness slice enabled `moduleDetection: "force"`;
+root typecheck passes without code changes. Another TypeScript strictness
+slice enabled `verbatimModuleSyntax`; root typecheck passes without code
+changes. Another TypeScript strictness slice enabled `erasableSyntaxOnly`
+and removed runtime TypeScript-only syntax such as enums and constructor
+parameter properties; forced root typecheck and lint pass. A follow-up
+`isolatedDeclarations` probe was reverted on 2026-06-17: the first pass
+made exported Zod schemas more maintenance-hostile by spelling large Zod
+internal object shapes in public annotations. Do not continue that direction.
+Sequence Zod 4 before retrying `isolatedDeclarations`, then treat declaration
+strictness as public API-boundary cleanup rather than schema-internal type
+annotation work. Remaining outdated entries are deliberate holds/migrations
+from Phase 2b+. As of the latest Phase 4 work, Zod 3 has been replaced in
+repo-owned schema code and dependency resolution: the public `@rizom/brain`
+root `z`, `@brains/utils`, and the compatibility `@brains/utils/zod` subpath
+all route to Zod 4; durable entity/frontmatter/CMS boundaries are Zod 4-owned;
+package-local `main-zod` wrappers are removed; direct implementation imports of
+`zod`/`@brains/utils/zod` are gone; framework schema slots are Zod 4-owned;
+plugin config validation failures normalize through a domain error; directory
+sync quarantine classification now uses entity validation domain errors instead
+of domain message fragments; and full `typecheck`, `lint`, `deps:check`, and
+`workspace:check` pass. Residual schema-introspection debt is tracked below as
+future API design work, not active Zod 3 usage.
 
-| Package                     | Current | Latest  |
-| --------------------------- | ------- | ------- |
-| `@ai-sdk/anthropic`         | 3.0.58  | 3.0.82  |
-| `@ai-sdk/openai`            | 3.0.41  | 3.0.69  |
-| `ai`                        | 6.0.116 | 6.0.199 |
-| `@modelcontextprotocol/sdk` | 1.27.1  | 1.29.0  |
-| `@changesets/cli`           | 2.30.0  | 2.31.0  |
-| `dependency-cruiser`        | 17.3.8  | 17.4.3  |
-| `preact`                    | 10.28.4 | 10.29.2 |
-| `prettier`                  | 3.8.1   | 3.8.4   |
-| `turbo`                     | 2.8.14  | 2.9.17  |
+## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
-Major jumps (real migration work, one slice each):
+Safe root drift (minor/patch, no API changes expected):
 
-| Package       | Current | Latest | Notes                                                                                  |
-| ------------- | ------- | ------ | -------------------------------------------------------------------------------------- |
-| `eslint`      | 8.57.1  | 10.4.1 | Two majors behind; v8 is EOL; flat-config migration touches every package's lint setup |
-| `typescript`  | 5.9.3   | 6.0.3  | Check `@brains/typescript-config` strictness flags against 6.0 behavior changes        |
-| `lint-staged` | 15.5.2  | 17.0.7 | Hook pipeline; low blast radius                                                        |
-| `syncpack`    | 13.0.4  | 15.3.1 | Config format changes between majors; verify the version-group rules survive           |
+| Package                     | Current | Latest  | Notes                              |
+| --------------------------- | ------- | ------- | ---------------------------------- |
+| `@ai-sdk/anthropic`         | 3.0.58  | 3.0.84  | Sweep with AI SDK family           |
+| `@ai-sdk/openai`            | 3.0.41  | 3.0.71  | Sweep with AI SDK family           |
+| `ai`                        | 6.0.116 | 6.0.205 | AI SDK patch/minor drift           |
+| `@modelcontextprotocol/sdk` | 1.27.1  | 1.29.0  | Also used by MCP workspaces        |
+| `@changesets/cli`           | 2.30.0  | 2.31.0  | Safe tooling drift                 |
+| `dependency-cruiser`        | 17.3.8  | 17.4.3  | Safe tooling drift                 |
+| `preact`                    | 10.28.4 | 10.29.2 | Sync with workspace Preact drift   |
+| `prettier`                  | 3.8.1   | 3.8.4   | Safe tooling drift                 |
+| `turbo`                     | 2.8.14  | 2.9.18  | Also replace root `"latest"` range |
 
-Workspace majors (verified 2026-06-10 via `bun outdated --filter '*'`):
+Safe workspace drift to include in Phase 1a when low-risk and already
+covered by broad checks:
 
-| Package                                                                        | Current         | Latest  | Notes                                                                                                                                                                                                     |
-| ------------------------------------------------------------------------------ | --------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `zod`                                                                          | 3.25.76         | 4.4.3   | Already resolves to 3.25.76 — Phase 2 is just aligning the declared `^3.23.8` ranges; v4 is Phase 4                                                                                                       |
-| `express`                                                                      | 4.22.1          | 5.2.1   | **Unused** — `interfaces/mcp` declares `express`, `express-async-handler`, and `@types/express` but imports none of them (the HTTP transport uses `createServer`). Delete instead of upgrading            |
-| `marked`                                                                       | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                                                                                                                       |
-| `chokidar`                                                                     | 3.6.0           | 5.0.0   | Watcher API changes (directory-sync)                                                                                                                                                                      |
-| `storybook`                                                                    | 8.6 + 9.1 mixed | 10.4    | **Unused** — only `shared/ui-library`, one demo story, no turbo/CI wiring, and the 8.x-addons/9.x-core mix can't launch. Remove (deps, scripts, `.storybook/`, `Button.stories.tsx`) instead of upgrading |
-| `vite`                                                                         | 7.3.3           | 8.0.16  |                                                                                                                                                                                                           |
-| `pdfjs-dist`                                                                   | 5.7.284         | 6.0.227 |                                                                                                                                                                                                           |
-| `@libsql/client`                                                               | 0.15.15         | 0.17.3  | DB client — test entity/job/conversation suites against real files                                                                                                                                        |
-| `drizzle-orm`                                                                  | 0.44.7          | 0.45.2  | Pre-1.0 minor = potentially breaking                                                                                                                                                                      |
-| `@types/node`                                                                  | 20.19.37        | 25.9.2  | Should track the runtime Node baseline, not latest — decide the baseline first                                                                                                                            |
-| `tailwind-merge`                                                               | 2.6.1           | 3.6.0   |                                                                                                                                                                                                           |
-| `lucide-preact`                                                                | 0.460.0         | 1.17.0  |                                                                                                                                                                                                           |
-| `ink`                                                                          | 6.8.0           | 7.0.5   | chat-repl TUI                                                                                                                                                                                             |
-| `@clack/prompts`                                                               | 0.11.0          | 1.5.1   | brain-cli prompts                                                                                                                                                                                         |
-| `croner` / `p-limit` / `better-sqlite3` / `varlock` / `eslint-config-prettier` | various         | various | One-major bumps, low individual risk                                                                                                                                                                      |
+| Package family / package                                                    | Current                | Latest                  | Notes                                                      |
+| --------------------------------------------------------------------------- | ---------------------- | ----------------------- | ---------------------------------------------------------- |
+| `preact`, `preact-render-to-string`                                         | 10.28.4 / 6.6.6        | 10.29.2 / 6.7           | Sync all consumers and peer ranges                         |
+| `tailwindcss`, `@tailwindcss/postcss`, `@tailwindcss/typography`, `postcss` | 4.2.1 / 0.5.19 / 8.5.8 | 4.3.1 / 0.5.20 / 8.5.15 | Patch/minor CSS toolchain drift                            |
+| `js-yaml`, `yaml`, `dotenv`, `simple-git`, `xstate`, `sanitize-html`        | various                | minor/patch             | Consumer-specific smoke tests plus repo checks             |
+| `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`             | 8.56.1                 | 8.61.0                  | Safe within current eslint 8 setup                         |
+| `@simplewebauthn/server`, `drizzle-kit`, `rollup`, `@types/react`           | various                | patch/minor             | Low-risk patch/minor drift                                 |
+| `@types/node`                                                               | 20.19.37               | 20.19.43                | Patch within Node 20 only; do not jump to 25 in this phase |
+| `@types/bun`                                                                | 1.3.11 / 1.3.13        | 1.3.14                  | Align declarations/resolution; see Phase 1c                |
 
-Inventory inconsistencies found (fix in Phase 1 regardless of
-upgrades): storybook packages span two majors, and `@types/bun` is on
-both 1.3.11 and 1.3.13 across workspaces.
+Major jumps and pre-1.0 minors (real migration work, one slice each):
 
-Everything else workspace-level is minor/patch drift (discord.js,
-hono, xstate, yaml, shiki, simple-git, tailwindcss, typescript-eslint,
-…) and folds into the Phase 1 sweep.
+| Package                        | Current | Latest | Notes                                                                                  |
+| ------------------------------ | ------- | ------ | -------------------------------------------------------------------------------------- |
+| `eslint`                       | 8.57.1  | 10.5.0 | Two majors behind; v8 is EOL; flat-config migration touches every package's lint setup |
+| `typescript`                   | 5.9.3   | 6.0.3  | Check `@brains/typescript-config` strictness flags against 6.0 behavior changes        |
+| `lint-staged`                  | 15.5.2  | 17.0.7 | Hook pipeline; low blast radius                                                        |
+| `syncpack`                     | 13.0.4  | 15.3.1 | Config format changes between majors; verify version-group rules survive               |
+| `eslint-config-prettier`       | 8.10.2  | 10.1.8 | Pair with eslint flat-config work                                                      |
+| `@changesets/changelog-github` | 0.6.0   | 0.7.0  | 0.x minor; treat as a migration, not safe drift                                        |
+
+Workspace majors and delete-vs-upgrade decisions:
+
+| Package                                              | Current         | Latest  | Decision / notes                                                                                       |
+| ---------------------------------------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `zod`                                                | 3.25.76         | 4.4.3   | Done in Phase 4: workspace/public schema boundary now resolves to Zod 4                                |
+| `express`, `express-async-handler`, `@types/express` | 4.x             | 5.x     | **Delete** — `interfaces/mcp` imports none of them; HTTP transport uses `createServer`                 |
+| `storybook` + `@storybook/*`                         | 8.6 + 9.1 mixed | 10.4.4  | **Delete** — only `shared/ui-library`, one demo story, no turbo/CI wiring, mixed install cannot launch |
+| `marked`                                             | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                    |
+| `chokidar`                                           | 3.6.0           | 5.0.0   | Watcher API changes (`directory-sync`)                                                                 |
+| `vite`                                               | 7.3.3           | 8.0.16  | Patch to 7.3.5 is safe drift; v8 is a separate migration                                               |
+| `pdfjs-dist`                                         | 5.7.284         | 6.0.227 | Lazily imported; grep usage must include dynamic imports                                               |
+| `@libsql/client`                                     | 0.15.15         | 0.17.3  | DB client — test entity/job/conversation suites against real files                                     |
+| `drizzle-orm`                                        | 0.44.7          | 0.45.2  | Pre-1.0 minor = potentially breaking                                                                   |
+| `@types/node`                                        | 20.19.37        | 25.9.3  | Hold at Node 20 until runtime baseline is decided; patch within 20 is okay                             |
+| `tailwind-merge`                                     | 2.6.1           | 3.6.0   | Runtime UI helper migration                                                                            |
+| `lucide-preact`                                      | 0.460.0         | 1.18.0  | Runtime icon package migration                                                                         |
+| `ink`                                                | 6.8.0           | 7.0.5   | `chat-repl` TUI                                                                                        |
+| `@clack/prompts`                                     | 0.11.0          | 1.x     | `brain-cli` prompts; verify against current inventory before starting                                  |
+| `croner` / `p-limit` / `varlock` / `sharp`           | various         | various | One-major or pre-1.0 bumps; take individually with consumer tests                                      |
+
+Inventory inconsistencies to fix deliberately:
+
+- Storybook packages span two majors and are not wired into CI or turbo.
+- `@types/bun` declarations mix `latest` and caret ranges, and the lock
+  currently resolves multiple versions (`1.3.11` / `1.3.13`). Align the
+  policy before touching the lockfile.
+- Root `package.json` declares `"turbo": "latest"`; replace with a
+  deterministic semver range during Phase 1.
+
+Everything else workspace-level is minor/patch drift and folds into the
+Phase 1a sweep when the relevant consumer checks are included.
 
 ## Phasing
 
-All of this happens in a dedicated worktree (e.g.
+All dependency-changing work happens in a dedicated worktree (e.g.
 `~/Documents/brains-worktrees/external-deps`), never in the main
 checkout — dependency bumps rewrite `bun.lock` and `node_modules`, and
 must not disturb in-flight work. Thin slices; each lands green
-(`typecheck`, `test`, `lint`) and merges to main on its own, so a
-stalled major (eslint, zod 4) never holds completed sweeps hostage.
+(`typecheck`, relevant tests, and `lint`) and merges to main on its own,
+so a stalled major (eslint, zod 4) never holds completed sweeps hostage.
 
 ### Phase 0 — full workspace inventory
 
-Done 2026-06-10 (tables above). On future passes: run
-`bun outdated --filter '*'` — the root-only form misses every
+Done 2026-06-10; refreshed 2026-06-15 (tables above). On future passes:
+run `bun outdated --filter '*'` — the root-only form misses every
 workspace dependency — and pair it with a usage check before planning
-any major migration: a declared-but-unimported dependency is a
-deletion, not an upgrade (express in `interfaces/mcp` was exactly
-this). When grepping for usage, check dynamic `import("pkg")` too —
-`pdfjs-dist` is only loaded lazily and looks unused to a naive grep.
-Anything held back deliberately gets a one-line reason here so it
-isn't re-flagged.
+any major migration: a declared-but-unimported dependency is a deletion,
+not an upgrade (express in `interfaces/mcp` was exactly this). When
+grepping for usage, check dynamic `import("pkg")` too — `pdfjs-dist` is
+only loaded lazily and looks unused to a naive grep. Anything held back
+deliberately gets a one-line reason here so it isn't re-flagged.
 
-### Phase 1 — safe drift sweep and dead-weight removal
+### Phase 1a — safe drift sweep (done in worktree)
 
-Update everything in the safe-drift table in one commit; run the full
-suite. AI SDK and MCP SDK patches occasionally tighten types — fix
-fallout in the same slice. In the same phase: delete the unused
-express trio from `interfaces/mcp`, remove the vestigial storybook
-setup from `shared/ui-library` (five devDeps, two scripts,
-`.storybook/`, the lone demo story — it has no pipeline wiring and the
-mixed 8.x/9.x install cannot launch), and align the split `@types/bun`
-pins.
+Update safe root and workspace patch/minor drift in one focused slice.
+Include AI SDK and MCP SDK families, Preact, Tailwind/PostCSS patches,
+TypeScript-ESLint 8.x patches, and other low-risk minor/patch drift
+listed above. AI SDK and MCP SDK patches occasionally tighten types —
+fix fallout in the same slice.
 
-### Phase 2 — zod pin bump (`^3.23.8` → `^3.25.x`)
+Validation: run `bun run deps:check`, `bun run typecheck`, relevant
+consumer tests for touched packages, then `bun run lint`.
+
+### Phase 1b — dead-weight removal (done in worktree)
+
+Delete instead of upgrading unused dependencies:
+
+- `interfaces/mcp`: remove `express`, `express-async-handler`, and
+  `@types/express`.
+- `shared/ui-library`: remove Storybook devDeps, `storybook` scripts,
+  `.storybook/`, `src/Button.stories.tsx`, Storybook README instructions,
+  and the `.storybook` entry in `tailwind.config.js`.
+
+Validation: package-local typecheck/build where available, plus repo
+`typecheck` and `lint`.
+
+### Phase 1c — declaration and lockfile hygiene (done in worktree)
+
+Normalize non-deterministic or inconsistent declarations without taking
+runtime majors:
+
+- Replace root `"turbo": "latest"` with the selected semver range.
+- Align `@types/bun` declarations/resolution across workspaces according
+  to the syncpack policy.
+- Optionally patch `@types/node` within Node 20 only; do not move to
+  Node 25 until the runtime baseline is decided.
+
+### Phase 2 — zod pin bump (`^3.23.8` → `^3.25.x`) (done in worktree)
 
 Pure housekeeping — the lockfile already resolves zod to 3.25.76, so
 this only aligns the declared ranges with reality. Every upstream peer
@@ -106,23 +233,129 @@ Syncpack keeps the version aligned across workspaces.
 
 From the workspace-majors table: chokidar 5, marked 18, pdfjs-dist 6,
 @libsql/client 0.17, drizzle-orm 0.45, ink 7, @clack/prompts 1.x,
-tailwind-merge 3, lucide 1.x, vite 8. None is urgent; take each only
-when touching its consumer package. Decide the Node runtime baseline
-before touching `@types/node` (20 → 25 should track the deploy
+tailwind-merge 3, lucide 1.x, and optional/runtime majors such
+as sharp 0.35. None is urgent; take each only when touching its consumer
+package. Decide the Node runtime baseline before
+touching `@types/node` 25 (the type package should track the deploy
 baseline, not npm latest).
+
+Done in worktree:
+
+- `croner` 9 → 10 for `@brains/content-pipeline`; usage is encapsulated
+  in `CronerBackend`, with package typecheck, lint, and tests passing.
+- `p-limit` 6 → 7 for `@brains/utils`; usage remains the default
+  `pLimit(concurrency)` API, with utils checks and direct consumer
+  package tests passing.
+- `tailwind-merge` 2 → 3 for `@rizom/ui`, `@brains/ui-library`, and
+  `@brains/web-chat`; usage remains `twMerge`/`extendTailwindMerge`, and
+  the web-chat manifest now declares the package it imports directly.
+- `lucide-preact` 0.x → 1.x for `@brains/product-site-content`; usage
+  remains named/icon-map component imports, with package typecheck,
+  lint, and tests passing.
+- `sharp` 0.34 → 0.35 for `@brains/site-engine`, `@rizom/brain` optional
+  deps, and generated model package optional deps; lazy import policy is
+  unchanged and affected package tests pass.
+- `@clack/prompts` 0.11 → 1.5 for `@rizom/brain`; usage remains the
+  existing `intro`/`password`/`confirm`/`text`/`isCancel` prompt flow,
+  with package typecheck, lint, and tests passing.
+- `chokidar` 3 → 5 for `@brains/directory-sync`; watcher usage remains
+  the existing `watch()` + `FSWatcher` event API, with package typecheck,
+  lint, and tests passing.
+- `marked` 12 → 18 for `@brains/chat-repl` and `@brains/ui-library`;
+  custom renderers now use Marked's token-object renderer API, with
+  package typecheck, lint, and tests passing.
+- `pdfjs-dist` 5 → 6 for `@brains/document`; lazy import path remains
+  `pdfjs-dist/legacy/build/pdf.mjs`, and cleanup now goes through the
+  v6 loading-task `destroy()` API, with package typecheck, lint, and
+  tests passing.
+- `@libsql/client` 0.15 → 0.17 for `@brains/entity-service`,
+  `@brains/conversation-service`, `@brains/job-queue`, and
+  `@rizom/brain`/model package optional dependency metadata; existing
+  `createClient` usage remains unchanged, with affected package
+  typecheck, lint, and tests passing.
+- `drizzle-orm` 0.44 → 0.45 for `@brains/entity-service`,
+  `@brains/conversation-service`, and `@brains/job-queue`; existing
+  query-builder and migrator usage remains unchanged, with affected
+  package typecheck, lint, and tests passing.
+- `ink` 6 → 7 for `@brains/chat-repl`; existing dynamic `render()` and
+  component hook usage remains unchanged, with package typecheck, lint,
+  and tests passing.
+- `varlock` 0.5 → 1.7 for `@brains/app`; the internal graph-loader call
+  now uses v1's `entryFilePaths` option, with package typecheck, lint,
+  and tests passing.
+- Deleted unused `better-sqlite3` optional dependency declarations from
+  `@rizom/brain`, generated model package metadata, and Docker runtime
+  metadata; runtime DB usage is consistently `@libsql/client` via
+  Drizzle's libSQL adapter.
+- `lucide-react`/`lucide-preact` 1.18 → 1.20 for `@brains/web-chat` and
+  `@brains/product-site-content`; named icon imports remain unchanged,
+  with targeted consumer checks passing.
+- `react-devtools-core` 6 → 7 for `@rizom/brain`, generated model
+  package optional deps, and Docker runtime metadata; it remains
+  externalized for Ink, with app/CLI checks passing.
+- `vite` 7 → 8 for `@brains/web-chat`; the minimal alias-only config
+  remains unchanged, with package typecheck, lint, tests, and UI build
+  passing.
 
 ### Phase 3 — tooling majors, one slice each
 
-In rough order of value:
+Done in worktree:
 
-1. `eslint` 8 → 10 (flat config). Biggest lift; touches
-   `@brains/eslint-config` and every package's lint script — pairs
-   naturally with the package.json script-drift cleanup in
-   `codebase-cleanup-backlog.md`.
-2. `syncpack` 13 → 15 (verify version-group config survives).
-3. `lint-staged` 15 → 17.
-4. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
-   it can surface new diagnostics repo-wide.
+- `@changesets/changelog-github` 0.6 → 0.7; config remains unchanged and
+  `changeset status --since=HEAD` passes.
+- `lint-staged` 15 → 17; root package-json config remains valid, and the
+  hook command was exercised with `lint-staged --diff HEAD`.
+- `syncpack` 13 → 15; root scripts now use the v15 `lint`/`fix`
+  commands, preserving the old `deps:check` mismatch-only semantics, and
+  `syncpack lint` passes with the existing version-group policy.
+- `eslint` 8 → 10 and `eslint-config-prettier` 8 → 10; root flat config
+  uses `FlatCompat` to preserve the shared legacy policy, old `--ext`
+  scripts were converted to equivalent glob scopes, ESLint 10-only core
+  rules absent from the ESLint 8 baseline are disabled, and representative
+  `--print-config` comparisons show no loosened existing rule severities.
+  Full repo `bun run lint` passes.
+- Root lint now uses `scripts/lint.mjs` to run Turbo with
+  `--max-warnings 0` passed to package ESLint commands, keeping package
+  scripts local while failing the repo lint on any warning and preserving
+  Turbo flags such as the pre-commit hook's `--continue`. The initial
+  warning cleanup fixed stale disables, type-only imports, missing return
+  types, unnecessary conditionals, and one closure-state false positive;
+  full repo `bun run lint` and `bun run typecheck` pass.
+- `preserve-caught-error` is now an error. Existing symptom rethrows were
+  updated to preserve their original caught errors with `cause`; forced full
+  repo lint and root typecheck pass.
+- `no-useless-assignment` is now an error. Existing dead initial assignments
+  were removed or rewritten to direct initialization/definite assignment;
+  forced full repo lint, root typecheck, and targeted package tests pass.
+- `@typescript-eslint/consistent-type-imports` is now an error. No code
+  changes were needed after the previous zero-warning cleanup; forced full
+  repo lint and root typecheck pass.
+- `@typescript-eslint/prefer-nullish-coalescing` is now an error. No code
+  changes were needed after the previous zero-warning cleanup; forced full
+  repo lint passes.
+- `@typescript-eslint/no-unnecessary-condition` is now an error. No code
+  changes were needed after the previous zero-warning cleanup; forced full
+  repo lint passes.
+- `typescript` 5.9 → 6.0.3 across synced workspace devDependency ranges;
+  root config now explicitly includes Bun ambient types and acknowledges
+  the TS6 `baseUrl` deprecation window until path/baseUrl config is
+  migrated before TypeScript 7. Root typecheck passes.
+- `noUncheckedSideEffectImports` is now enabled. No code changes were
+  needed; root typecheck passes.
+- `moduleDetection: "force"` is now enabled. No code changes were needed;
+  root typecheck passes.
+- `verbatimModuleSyntax` is now enabled. No code changes were needed;
+  root typecheck passes.
+- `erasableSyntaxOnly` is now enabled. Runtime TypeScript-only syntax was
+  removed by replacing enums with const-object unions and expanding
+  constructor parameter properties into explicit fields/assignments. Forced
+  root typecheck and lint pass.
+- `isolatedDeclarations` was probed and explicitly deferred. The reverted
+  probe showed that enabling it directly on the then-Zod-3-heavy public
+  API pushed the repo toward broad, ugly annotations of Zod internals. That
+  is the wrong direction. Do not use broad codemods, casts, blanket `as const`,
+  invented domain literals, or giant `z.ZodObject<{ ... }>` annotations as the
+  migration strategy.
 
 ### Phase 4 — zod 4 migration
 
@@ -132,13 +365,958 @@ The big one, and a **release blocker for the first stable
 `shared/atproto-contracts` alone holds 200+ schemas, and v4 changes
 behavior this codebase leans on (`.passthrough()`, error
 customization, record/enum typing — `conversation-service` and the
-entity schemas use passthrough deliberately). Use the `zod/v4` subpath
-for incremental, package-by-package migration behind the
-`@brains/utils` re-export; migrate leaf packages first, contracts last.
+entity schemas use passthrough deliberately). The repo default has now moved
+to Zod 4; keep the import boundary clean by importing through
+`@brains/utils/zod` or the centralized `@brains/utils` export in internal
+code, and through the public `@rizom/brain` root `z` export in external plugin
+authoring docs/examples. The public `@rizom/brain` root export owns the
+external authoring boundary by re-exporting blessed `z`, so external plugins
+should not declare their own `zod` dependency.
+
+Incremental migration progress:
+
+- Added `@brains/utils/zod` as an explicit opt-in wrapper around the
+  `zod/v4` subpath during the incremental migration; it is now the canonical
+  Zod 4 helper used by the workspace Zod exports.
+- Migrated self-contained web-chat request/upload/card payload schemas to
+  `@brains/utils/zod`. This is intentionally narrow: avoid switching
+  APIs that accept schemas from other packages until both sides of that
+  boundary move together.
+- Split more defaulted plugin configs into parsed output and caller input:
+  `directory-sync`, `atproto`, `atproto-registry`, and `site-builder` now use
+  `z.output<typeof schema>` for runtime config and `z.input<typeof schema>` for
+  constructor/factory input. `site-builder` keeps its typed runtime fields
+  (`templates`, `layouts`, `routes`, `entityDisplay`) while still allowing
+  defaulted schema fields to be omitted by callers.
+- Audited site plugin config inputs for `site-personal`, `site-professional`,
+  and `site-rizom`. Professional site config now has an explicit Post/Deck
+  homepage entity-display default so the optional `SitePackage` plugin callback
+  stays schema-true without `Partial<Config>`.
+- Audited interface plugin configs for `a2a`, `webserver`, and `chat-repl`.
+  Defaulted interface config fields now use schema input types at constructor
+  boundaries. `discord` remains a visible `Partial<Config>` marker because its
+  required `botToken` crosses the dynamic brain-model `PluginConfig` constructor
+  boundary and should be handled as a separate framework-boundary cleanup.
+- Audited service plugin config inputs for `analytics`, `buttondown`,
+  `email-resend`, and `stock-photo`; factory/constructor inputs now use
+  schema-derived input types, while runtime config remains parsed schema output.
+- Removed the hidden `Partial<TConfig>` input from the `MCPBridgePlugin` base;
+  bridge subclasses now spell their config input type explicitly. `notion` and
+  `hackmd` keep required token inputs schema-true and test missing-token
+  failures at the schema boundary.
+- Audited schema-owned service plugin config inputs for `dashboard` and
+  `content-pipeline`; runtime config uses `z.output<typeof schema>`, while
+  constructors and factories accept `z.input<typeof schema>`. Nested
+  content-pipeline publish registration payloads use schema input, while parsed
+  publish/generation configs use schema output.
+- Audited defaulted entity plugin config inputs for `blog`, `note`, and
+  `products`; their parsed configs use `z.output<typeof schema>` and caller
+  inputs use `z.input<typeof schema>`.
+- Audited additional defaulted/empty entity plugin config inputs for
+  `conversation-memory`, `topics`, `wishlist`, and `image`; removed visible
+  `Partial<Config>` markers where the schema now owns the input contract.
+- Audited more schema-owned entity plugin config inputs for `portfolio`,
+  `newsletter`, and `social-media`, including defaulted constructor/factory
+  inputs where every caller-provided field is optional before parsing. Nested
+  social-media LinkedIn config now exposes runtime output and caller input
+  aliases separately.
+- Audited schema-owned config inputs for `link`, `document`, `obsidian-vault`,
+  and `cms`; callers now use schema-derived input types and parsed runtime
+  config remains schema output.
+- Audited `site-content` config by typing its shallow schema validator against
+  the existing rich `SiteContentDefinition` contract, then deriving runtime and
+  caller config types from that schema.
+- Updated plugin examples and the external public plugin fixture to use
+  schema-derived config input/output types, so authoring examples match the
+  production plugin config boundary.
+- Audited `auth-service` config by deriving parsed runtime config with
+  `z.output<typeof schema>` and caller input with `z.input<typeof schema>`.
+- Replaced `Shell.getInstance`'s raw `Partial<ShellConfig>` parameter with the
+  named `ShellConfigInput` pre-parse contract.
+- Added a named `AppConfigInput` caller contract for `App.create`/`App.run`,
+  then split app config runtime/input around defaulted deployment parsing:
+  runtime `AppConfig` carries schema output, while callers can still provide
+  `DeploymentConfigInput` before defaults.
+- Audited Discord by deriving runtime/direct schema input types and replacing
+  `Partial<DiscordConfig>` with an explicit raw constructor config boundary for
+  the post-merge brain model resolver path.
+- Named the AI service's partial runtime update contract as
+  `AIModelConfigUpdate`.
+- Replaced remaining test helper inline `Partial<...Config>` markers with named
+  `...Overrides` aliases or schema-derived input contracts.
+- Audited composite factory config inputs for `agent-discovery`, `assessment`,
+  and `newsletter`; factories now accept schema input while exported runtime
+  config aliases remain schema output.
+- Audited the public `brain.yaml` parser boundary: parsed configs use schema
+  output and the exported input alias represents the raw YAML shape before
+  validation/normalization.
+- Audited the plugin eval `eval.yaml` parser boundary the same way: parsed eval
+  configs use schema output and the input alias represents pre-parse YAML data.
+- Audited template permission entity-action policy schemas: stored policy types
+  use schema output, while `PermissionConfig` accepts schema input before the
+  service parses it.
+- Audited `brains-ops` YAML registry config aliases (`pilot`, `user`, and
+  `cohort`) so runtime config uses schema output and input aliases represent
+  pre-parse YAML shapes.
+- Named the shell config schema output used by the runtime `ShellConfig` type;
+  the existing named partial `ShellConfigInput` remains the visible pre-parse
+  override boundary.
+- Clarified plugin config helper aliases so `PluginConfigInput<T>` is schema
+  input and runtime `PluginConfig<T>` is schema output.
+- Completed the originally identified config-boundary `z.infer` inventory. The
+  remaining `z.infer` uses are mostly domain DTOs, tool payloads, and exported
+  schemas composed across package boundaries; explicit `@brains/utils/zod`
+  migration should happen at those composition boundaries instead of mixing v3
+  and v4 schemas inside a single schema tree.
+- Started safe explicit Zod 4 islands beyond web chat by migrating local
+  `ai-service` agent-result and SDK tool-output parsing schemas to
+  `@brains/utils/zod`, using `z.looseObject` for intentional passthrough
+  shapes and Zod 4 record syntax.
+- Migrated notification message payload/result schemas to explicit Zod 4 while
+  keeping the plugin config schema on the main Zod export until plugin base
+  config-schema boundaries are migrated together.
+- Migrated shared email message contracts to explicit Zod 4 and split sender
+  input from parsed payload output where schema defaults apply.
+- Migrated A2A client response parsing to explicit Zod 4 with
+  `z.looseObject` for intentionally open response parts.
+- Migrated A2A JSON-RPC request and stream parameter protocol schemas to
+  explicit Zod 4, with named input/output aliases for request boundaries.
+- Migrated Brain CLI Bitwarden API response parsing schemas to explicit Zod 4,
+  using `z.looseObject` for third-party JSON objects with additional fields.
+- Migrated Brain CLI Origin CA bootstrap environment parsing to explicit Zod 4,
+  using `z.looseObject` for `process.env`.
+- Made the Brain CLI `parseJsonResponse` helper structural over `safeParse` so
+  local callers can pass either Zod generation, then migrated Hetzner SSH key
+  response schemas to explicit Zod 4.
+- Made `parseYamlDocument` structural over `safeParse` so YAML callers can pass
+  either Zod generation, then migrated ops registry YAML schemas to explicit
+  Zod 4 with `z.strictObject`.
+- Migrated auth-service OAuth dynamic client registration request parsing to
+  explicit Zod 4 while keeping plugin config schemas on the main Zod boundary.
+- Migrated conversation metadata JSON coercion to explicit Zod 4 and the Zod 4
+  `z.record(z.string(), value)` form.
+- Migrated ops health-check response parsing and encrypted user-secret parsing
+  to explicit Zod 4, using `z.looseObject` for third-party health JSON and
+  `z.strictObject` for sealed secret files.
+- Made shared `parseJsonResponse` structural over `safeParse`, then migrated
+  deploy-support Cloudflare Origin CA responses and ops Hetzner SSH key
+  responses to explicit Zod 4 with `z.looseObject` for provider JSON.
+- Migrated site-builder content-enrichment local entity/image guard schemas to
+  explicit Zod 4 with `z.looseObject` for enriched runtime objects.
+- Migrated shared UI widget render-time data guards to explicit Zod 4 and used
+  Zod 4 `z.record(z.string(), value)` syntax for open widget data maps,
+  including list/system widget parsers.
+- Migrated the ai-evaluation `eval.yaml` local parse schema to explicit Zod 4,
+  while leaving AI-service/template-composed schemas on the current boundary.
+- Migrated dashboard widget-card render-time data guards to explicit Zod 4,
+  keeping registry schemas on the existing permission-schema boundary.
+- Migrated the assessment SWOT widget render-time data guard to explicit Zod 4,
+  while leaving entity-composed widget data builders on the existing boundary.
+- Migrated directory-sync cover-image frontmatter detection to explicit Zod 4
+  and used the Zod 4 `z.url()` string helper.
+- Migrated the series optional metadata field guard to explicit Zod 4.
+- Made `parseMarkdownWithFrontmatter` structural over `parse`, matching the
+  prior JSON/YAML parser-helper approach and allowing either Zod generation at
+  markdown frontmatter parse boundaries.
+- Migrated content-pipeline publish-content local frontmatter/document reference
+  guards to explicit Zod 4 with `z.record(z.string(), value)` syntax.
+- Migrated blog eval-handler input parsers to explicit Zod 4 with parsed
+  handler inputs typed as schema output.
+- Migrated agent-discovery skill eval-handler input parsing to explicit Zod 4
+  while leaving entity/template schemas on their existing composition boundary.
+- Migrated topics eval-handler input parsers to explicit Zod 4 with parsed
+  handler inputs typed as schema output and Zod 4 record syntax.
+- Migrated the plugins tool-activity message parser to explicit Zod 4 while
+  keeping exported event contracts as plain TypeScript types.
+- Migrated the plugins runtime-upload metadata parser to explicit Zod 4 while
+  keeping the exported upload contracts as plain TypeScript interfaces.
+- Migrated the plugins prompt-resolver frontmatter body extraction schema to
+  explicit Zod 4 now that the markdown parser accepts structural schemas.
+- Migrated the content-formatters simple-text formatter guard to explicit Zod 4
+  while leaving formatter constructor/schema contracts on the existing boundary.
+- Migrated series generation-handler job/member-summary local guards to explicit
+  Zod 4 while leaving series entity/frontmatter schemas on the existing boundary.
+- Migrated the series projection job-data parser to explicit Zod 4 while the
+  entity schema remains on the existing plugin schema boundary.
+- Migrated the note eval-handler input parser to explicit Zod 4 while keeping
+  note config/entity schemas on the existing plugin boundary.
+- Migrated the blog, agent-discovery, newsletter, and social-media entity
+  datasource query parsers to explicit Zod 4; datasource output schemas stay
+  typed to existing framework-facing parser boundaries.
+- Migrated the link eval-handler input parser to explicit Zod 4 while keeping
+  link config/entity schemas on the existing plugin boundary.
+- Migrated the social-media eval-handler input parsers to explicit Zod 4 while
+  keeping generation job schemas on their existing job-handler boundary.
+- Migrated the newsletter eval-handler input parser to explicit Zod 4 while
+  keeping newsletter config/entity schemas on the existing plugin boundary.
+- Migrated the portfolio eval-handler input parser to explicit Zod 4 while
+  keeping portfolio template/entity schemas on the existing framework boundary.
+- Migrated the products datasource query parser to explicit Zod 4 while keeping
+  datasource output/entity schemas on the existing framework boundary.
+- Migrated the decks eval-handler input parsers to explicit Zod 4 while keeping
+  deck entity/template schemas on the existing plugin boundary.
+- Migrated the rizom ecosystem datasource query parser to explicit Zod 4 using
+  `z.looseObject` for the intentional passthrough query boundary.
+- Migrated the conversation-memory summary datasource query parser to explicit
+  Zod 4 while keeping summary entity/template schemas on existing boundaries.
+- Migrated the series datasource query parsers to explicit Zod 4, using
+  `z.looseObject` for dynamic route query passthrough while leaving series
+  entity/template schemas on existing boundaries.
+- Migrated the directory-sync internal options normalizer to explicit Zod 4;
+  kept plugin config/job/template schemas on existing framework boundaries.
+- Migrated the site-builder navigation datasource query parser to explicit Zod 4
+  while keeping the framework-provided output schema on the existing boundary.
+- Migrated the site-builder Preact section-content record guards to explicit
+  Zod 4 while leaving template schema parsing on the existing framework boundary.
+- Migrated the shell core entity datasource query parser to explicit Zod 4 while
+  keeping the framework-provided output schema on the existing boundary.
+- Migrated the shared plugin base entity datasource query/input parser boundary
+  to explicit Zod 4 with `z.looseObject(...)`; datasource output validation
+  remains a structural parse-only contract.
+- Migrated the shell core AI content datasource generation-context parser and
+  local entity slug guard to explicit Zod 4 while keeping template/output schemas
+  on existing framework boundaries.
+- Migrated media-page-composer render-time content record guards to explicit
+  Zod 4 while leaving media template schemas on existing framework boundaries.
+- Migrated the social-media generation-handler local source metadata slug guard
+  to explicit Zod 4 with `z.looseObject`, while leaving generation job/result
+  schemas on the existing job-handler/framework boundary.
+- Migrated entity-service list/search option parser schemas to explicit Zod 4;
+  these remain local parser guards over service call options, not exported
+  framework schema contracts.
+- Migrated the conversation-memory projection event payload parser to explicit
+  Zod 4 while leaving entity/config/projection schemas on their existing plugin
+  boundaries.
+- Migrated the entity-service embedding job-data validator to explicit Zod 4;
+  the schema remains local to the manual job handler and is not exported or
+  composed into the job framework.
+- Migrated the MCP service tool-execution message envelope guard to explicit
+  Zod 4 while leaving exported tool response schemas on the current framework
+  boundary.
+- Migrated the content-formatters structured-content markdown text-node guard
+  to explicit Zod 4 while keeping formatter constructor schemas on the existing
+  caller-provided framework boundary.
+- Migrated app resolver package-shape guards for conventional site package
+  overrides to explicit Zod 4, using `z.looseObject(...)` and two-argument
+  `z.record(...)`, while leaving imported app/site/template schemas on the
+  current framework boundary.
+- Migrated the email-resend external API response guard to explicit Zod 4 while
+  keeping plugin config on the current ServicePlugin config-schema boundary.
+- Migrated the ATProto registry validate-lexicon tool's handler-local input
+  parser and plugin config schema to explicit Zod 4 while keeping the
+  framework-facing tool input schema on the current main-Zod boundary.
+- Migrated the templates permission/entity-action policy parser boundary to
+  explicit Zod 4 with `z.strictObject(...)` and two-argument `z.record(...)`;
+  app override parsing stays locally duplicated to avoid mixed schema trees.
+- Migrated the stock-photo search/select tool handler-local input parsers to
+  explicit Zod 4, using `z.url()`, while keeping framework-facing tool input
+  schemas on the current main-Zod boundary for MCP introspection.
+- Migrated the ATProto publish/discovery tool handler-local input parsers to
+  explicit Zod 4 while keeping framework-facing tool input schemas on the
+  current main-Zod boundary for MCP introspection.
+- Migrated the content-pipeline publish tool handler-local input parser to
+  explicit Zod 4 while keeping exported/tool-facing input and output schemas on
+  the current main-Zod boundary.
+- Migrated the site-builder site metadata message response guard to explicit
+  Zod 4 while keeping shared site-composition schemas on the current boundary.
+- Migrated the A2A client call tool handler-local input parser to explicit Zod
+  4; its tool-facing schema moved in the MCP-compatible tool schema batch below.
+- Decoupled the MCP tool schema contract to the MCP SDK's Zod v3/v4-compatible
+  raw-shape helpers, then migrated a batch of framework-facing tool schemas and
+  outputs to explicit Zod 4: A2A call, ATProto registry/publish/discovery,
+  stock-photo search/select, Buttondown subscriber tools, directory-sync
+  sync/status/history, content-pipeline publish/queue/ensure-assets,
+  Obsidian sync, site-content generate options, site-builder build, system
+  status/execute routing, and MCP bridge JSON-Schema-derived remote tools.
+- Migrated Buttondown external API response guards to explicit Zod 4 while
+  leaving plugin config and tool schemas on the current main-Zod boundary.
+- Migrated analytics Cloudflare GraphQL response guards to explicit Zod 4 while
+  leaving plugin config and tool schemas on the current main-Zod boundary.
+- Migrated ATProto handle/DID document network response guards to explicit Zod
+  4 while leaving plugin config and projection schemas on their current
+  boundaries.
+- Migrated stock-photo Unsplash API response guards to explicit Zod 4 while
+  leaving provider contracts and tool schemas on their current boundaries.
+- Migrated social-media LinkedIn API response guards to explicit Zod 4 while
+  leaving provider contracts and publish schemas on their current boundaries.
+- Migrated ATProto PDS client external API response guards to explicit Zod 4
+  while preserving the existing exported client result interfaces.
+- Migrated CMS GitHub OAuth token response guards to explicit Zod 4 while
+  keeping the plugin config schema on the current main-Zod boundary.
+- Migrated auth-service JSON request-body normalization to explicit Zod 4 while
+  leaving OAuth client/session contracts on the current boundary.
+- Replaced auth-service OAuth client-store persisted JSON hand guards with
+  explicit Zod 4 schemas and `z.url()` request metadata validation.
+- Replaced auth-service persisted JSON hand guards for refresh tokens,
+  authorization codes, operator sessions, and setup state with explicit Zod 4
+  schemas while preserving exact optional output shapes.
+- Replaced auth-service passkey store and signing-key JSON hand guards with
+  explicit Zod 4 schemas, preserving generated/public JWK output contracts.
+- Replaced auth-service WebAuthn clientData challenge JSON hand guard with an
+  explicit Zod 4 schema.
+- Migrated web-chat browser-side session, message history, and attachment job
+  status response guards to explicit Zod 4.
+- Replaced web-chat persisted message metadata record hand guard with explicit
+  Zod 4 parsing.
+- Migrated A2A SSE client event parsing to explicit Zod 4 and replaced the
+  public conversation metadata JSON hand guard with the shared Zod 4 coercer.
+- Reused the shared conversation metadata coercer in AI conversation history
+  upload-ref parsing and migrated the app usage-log line parser to explicit
+  Zod 4 schemas.
+- Migrated the default YAML content formatter parser to an explicit Zod 4
+  record schema.
+- Migrated core system tool conversation upload metadata JSON parsing to Zod 4
+  record schemas for create/upload-save access checks.
+- Migrated shared image frontmatter ID extraction to a Zod 4 record guard.
+- Replaced dashboard/widget key-value hand guards and nested stats casts with
+  explicit Zod 4 record guards.
+- Migrated directory-sync document sidecar and cover-image conversion
+  frontmatter record guards to Zod 4.
+- Migrated brain CLI self-package version JSON parsing to an explicit Zod 4
+  guard.
+- Migrated core system update JSON field normalization to explicit Zod 4
+  record guards while keeping tool schema types on the main Zod boundary.
+- Migrated entity-search metadata and job-progress result JSON parsing to
+  explicit Zod 4 record guards while keeping service/job framework schemas on
+  their current boundaries.
+- Migrated app headless CLI JSON flag parsing to Zod 4 local guards for
+  argument arrays and flag records while preserving raw tool-input JSON.
+- Migrated ai-evaluation result/summary schemas and comparison baseline JSON
+  parsing to explicit Zod 4 while leaving eval fixture/config schemas on their
+  existing framework-composed boundary.
+- Migrated web-chat UI data-part record access helpers to an explicit Zod 4
+  record guard inside the existing UI-local parser island.
+- Migrated the web-chat UI progress data guard to an explicit Zod 4 loose
+  object schema.
+- Migrated content-formatters property access helpers and ai-evaluation dotted
+  path lookups to explicit Zod 4 record guards.
+- Migrated structured-content formatter path access, app config deep-merge object
+  checks, and app CLI diagnostics metadata reads to explicit Zod 4 record
+  guards.
+- Migrated AI-service confirmation/card upload metadata reads and web-chat stream
+  redaction helpers to explicit Zod 4 local record/object guards.
+- Tightened core upload-ref conversation metadata checks plus topic/skill
+  derivation metadata reads with explicit Zod 4 local guards.
+- Replaced local record casts in job log summaries, MCP bridge request/schema
+  helpers, and brain.yaml null stripping with explicit Zod 4 record guards.
+- Replaced local frontmatter/metadata record casts in conversation-memory,
+  identity, site-info, and note adapters/data sources with explicit Zod 4
+  guards.
+- Replaced entity-service metadata row/frontmatter generation guards and stable
+  JSON object traversal casts with explicit Zod 4 local guards.
+- Removed remaining local record/preset casts in ai-evaluation plugin eval
+  loading and directory-sync watcher job data using explicit guards or string
+  literal narrowing.
+- Tightened app resolver external-plugin/site-package guards and model package
+  JSON reads with explicit Zod 4 schemas; replaced built-in model-name narrowing
+  with literal checks.
+- Replaced MCP HTTP agent request body and transport logger casts with explicit
+  Zod 4 guards, and declared the direct utils workspace dependency.
+- Replaced auth-service persisted-store ENOENT error casts with a shared Zod 4
+  filesystem error-code guard and removed redundant JSON.parse unknown casts.
+- Replaced the site-content route-list message response cast with a Zod 4 local
+  guard, preserving the site-builder/framework route schemas on their current
+  boundary.
+- Replaced the job-queue deduplication metadata cast with a Zod 4 loose-object
+  guard while keeping queue option schemas on the current boundary.
+- Migrated the new chat interface's raw Discord message and card-output local
+  guards to explicit Zod 4 while keeping its config schema on the current
+  plugin boundary.
+- Replaced new message-interface stored-metadata, confirmation-result, and
+  artifact-display record hand guards with explicit Zod 4 local parsers while
+  leaving shared agent card schemas on the current public plugin contract
+  boundary.
+- Replaced ai-evaluation eval-suite YAML record predicate checks with explicit
+  Zod 4 parse helpers, and removed redundant `JSON.parse(... ) as unknown`
+  casts from shared/CLI JSON response helpers without changing response shapes.
+- Replaced the remaining shared ATProto contract record predicate helper with
+  an explicit schema parser while keeping the contract schemas on the current
+  main-Zod public boundary.
+- Started public/framework boundary cleanup by moving shared contracts and
+  plugin public contract schema authoring off direct `zod` imports and onto the
+  current `@brains/utils` Zod boundary; do not switch these to Zod 4 until their
+  composing consumers can move as one unmixed boundary.
+- Pointed shared contract, shared site/media/document/image/content schemas,
+  messaging-service contract helpers, entity/content/conversation/identity
+  service schemas, entity package schemas/templates/data sources, interface
+  config/transport schemas, selected site package and Relay site-composition
+  schemas, plugin integration config/tool/site-builder schemas, shell
+  app/AI/auth/evaluation schemas, brain CLI YAML/schema-mapping helpers, core
+  system and config schemas, MCP service and bridge schemas, job-queue,
+  runtime-state, template schemas, workspace test schema helpers, plugin public
+  contract schema imports, plugin author-facing Zod type references, and
+  plugin framework schema/type imports at the explicit
+  `@brains/utils/zod` subpath while keeping them on the current main Zod
+  boundary.
+- Moved the public `@rizom/brain` root `z` export to the centralized
+  `@brains/utils/zod` boundary while preserving the generated public declaration
+  contract for plugin authors.
+- Cleared the remaining direct test import of `zod`; direct `zod` references are
+  now limited to the centralized utils export and public API assertions.
+- Replaced remaining test `JSON.parse(... as ...)` shape casts with explicit Zod
+  4 guards in CLI/ops bootstrap tests, web-chat package metadata assertions,
+  Notion header checks, utils logger JSON assertions, conversation metadata
+  checks, and social-media LinkedIn request-body assertions.
+- Normalized the chat interface Bun type metadata from `latest` to the pinned
+  workspace range so `deps:check` stays stable after the merge refresh.
+- Cleaned direct Zod package metadata after public contract centralization:
+  shared contracts now depend on `@brains/utils`, and plugins no longer declare
+  an unused direct `zod` dependency.
+- Started Phase 2 boundary migration with `shared/atproto-contracts`: the whole
+  package now authors its generated ATProto lexicon/record/event schemas on
+  explicit `@brains/utils/zod`, uses Zod 4 record/loose/strict/url helpers,
+  removes the prior typed record-schema cast, and validates its only direct
+  runtime consumer (`agent-discovery`) without mixing schema trees.
+- Migrated the shared agent action/response contract boundary to explicit
+  `@brains/utils/zod` after the local-main merge introduced new direct
+  `zod` imports. The slice keeps unrelated shared-contract config/template
+  schemas on the current main Zod boundary, switches contract parsed types to
+  `z.output<typeof schema>`, updates Zod 4 records to two-argument form, and
+  moves stored message metadata card parsing to the same Zod 4 tree to avoid
+  mixed schemas.
+- Migrated the shared default query/simple text/create/update response schemas
+  to `@brains/utils/zod`. These response schemas are passed through parse or
+  template structural boundaries and are not composed into main-Zod schema
+  trees.
+- Migrated the shared agent-context request/response parser boundary to
+  `@brains/utils/zod`. Consumers only parse message payloads or coerce agent
+  context items, so the schemas are not composed into the remaining main-Zod
+  contract/config trees.
+- Migrated the plugin public identity DTO parser boundary to
+  `@brains/utils/zod`. Runtime identity/profile data is converted through
+  standalone parse helpers and is not composed into plugin config/tool schemas.
+- Migrated the shared generation-result base schema and downstream generation
+  job/result schemas for agent-discovery, blog, decks, note, portfolio, and
+  social-media to `@brains/utils/zod` where their handler boundary is
+  structural. Agent-discovery keeps its status-bearing job input on main Zod to
+  avoid composing with the still-main entity status schema.
+- Migrated additional internal job-input parser boundaries to
+  `@brains/utils/zod`: newsletter generation, content generation,
+  conversation summary projection, topics projection, and the remaining
+  directory-sync job schemas. These handlers validate through structural
+  `.parse()`/`.safeParse()` contracts rather than composing with framework/tool
+  schemas.
+- Migrated additional standalone parser/generation-output boundaries to
+  `@brains/utils/zod`: directory-sync status/result schemas, content-service
+  query-response template schema, AI-evaluation judge output schemas, and the
+  AI-service async-generation tool-result guard. Plugin config/tool schemas in
+  those packages remain on the current main-Zod boundary.
+- Migrated standalone deck, blog, portfolio, products, newsletter,
+  social-media, link, and topics AI/media parser schemas to
+  `@brains/utils/zod`; entity, config, and route/data template schemas that
+  compose remaining main-Zod entity/template trees stay on the current boundary.
+- Migrated additional standalone AI parser schemas for note generation, series
+  descriptions, agent-discovery skill derivation, and conversation-memory
+  summary extraction/projection decisions to `@brains/utils/zod`; note
+  frontmatter record probing now uses the Zod 4 record helper through the
+  structural frontmatter parser. The entity plugin AI namespace now accepts the
+  same main-Zod/Zod 4 generation schema union as the shell AI service, while
+  still-main entity/config/template-list schemas stay unmixed.
+- Migrated the AI-service brain call-options schema, AI-service object
+  generation test fixture, and template/content-service structural schema test
+  fixtures to `@brains/utils/zod`; the production template/config schemas
+  that define framework metadata remain on the current main-Zod boundary.
+- Migrated assessment SWOT derivation job/AI-output schemas and the newsletter
+  composite factory config parser to `@brains/utils/zod`; assessment keeps
+  the Zod 4 job/AI parser schemas in a separate module from the durable SWOT
+  entity schema, and service-plugin config schemas that compose framework
+  boundaries remain on the current main-Zod boundary.
+- Migrated additional structural test fixture schemas for datasource outputs,
+  insight result parsing, and dynamic site-route template placeholders to
+  `@brains/utils/zod`; production entity/template schemas that still compose
+  main-Zod framework trees remain unmixed.
+- Migrated more entity-owned structural test fixtures for agent-discovery,
+  decks, and site-info datasource outputs and parser assertions to
+  `@brains/utils/zod`; these tests exercise structural `.parse()`/datasource
+  contracts without composing with production entity schema trees.
+- Migrated auth-service, analytics, ai-evaluation, and site-builder
+  parser-only test assertions plus site-builder structural template/datasource
+  test fixtures to `@brains/utils/zod`; the schemas validate
+  response/notification/config/enrichment payloads or flow through structural
+  template/data-source slots rather than plugin config or tool definitions.
+- Decoupled typed plugin message channels from main-Zod nominal types by using
+  a structural `safeParse(input)` schema contract and moved the channel guard
+  plus channel/judge/runtime-state context tests to `@brains/utils/zod`.
+  Existing main-Zod channel schemas remain compatible because the messaging
+  namespace only calls `safeParse`; the public plugin-author channel type now
+  mirrors that structural contract. Entity plugin entity-schema typing now
+  derives from `EntityAdapter` instead of spelling main-Zod generics locally.
+- Migrated MCP bridge remote-tool and call-result response guards to
+  `@brains/utils/zod` while keeping generated tool input schemas on the
+  current main-Zod boundary required by tool registration.
+- Migrated shell core structural test fixtures for AI/entity datasource output
+  parsing, runtime-state shutdown validation, mock system frontmatter parsing,
+  and system tool response/request assertions to `@brains/utils/zod`;
+  production system tool schemas and route/config registration boundaries remain
+  on the current main-Zod boundary.
+- Migrated the entity-service frontmatter utility test parser fixtures to
+  `@brains/utils/zod`; entity adapter/frontmatter production schemas remain
+  on the current entity-schema boundary.
+- Migrated the site-content dynamic template schema builder plus standalone
+  topic and conversation-memory list template data schemas to
+  `@brains/utils/zod`; entity/frontmatter schemas they do not own remain on
+  their existing boundaries.
+- Migrated Relay's local homepage diagram/content schemas and counts datasource
+  query/output parsing to `@brains/utils/zod`; Rover's profile-extension
+  plugin config remains on the current plugin-constructor schema boundary.
+- Migrated additional standalone template/widget parser boundaries to
+  `@brains/utils/zod` for agent-discovery network widget data,
+  conversation-memory recent/detail views, blog/doc/series/social-media
+  list/detail views, deck list/detail views, and link/newsletter list/detail
+  view data, agent-discovery skill markdown formatting guards, and playbooks
+  tool-result test parsers; durable entity/frontmatter schemas and plugin config
+  boundaries remain on their existing main-Zod contracts.
+- Decoupled `@brains/media-page-composer`'s template contract from main-Zod
+  type imports by replacing the public template schema field with a structural
+  `parse(input: unknown): unknown` interface. Its tests now author template
+  schemas with `@brains/utils/zod`, while existing main-Zod template
+  providers remain structurally compatible because the package only calls
+  `.parse()` and does not compose schema trees.
+- Decoupled `@brains/runtime-state` from main-Zod type imports by replacing its
+  scoped store schema type with a structural `parse(input: unknown): T`
+  contract. Runtime-state tests now use `@brains/utils/zod`; existing
+  callers that pass main-Zod schemas remain compatible because runtime-state
+  only invokes `.parse()` at the persistence boundary.
+- Decoupled `@brains/content-formatters` structured body formatting from
+  main-Zod type imports by replacing `StructuredContentFormatter`'s constructor
+  schema type with a structural `parse(input: unknown): T` contract. The
+  formatter package's owned schemas/tests now use `@brains/utils/zod`, while
+  callers may still pass existing main-Zod schemas without composing schema
+  trees.
+- Migrated the Discord thread subscription runtime-state boundary in
+  `@brains/chat` to `@brains/utils/zod`. The interface package's remaining
+  main-Zod import is now its plugin config schema; subscription persistence and
+  related tests use the runtime-state structural parser contract.
+- Migrated `@brains/content-pipeline` publishable metadata and publish-asset
+  registry schemas to `@brains/utils/zod`. These schemas are internal
+  metadata/message validation boundaries used for publish-state parsing,
+  publish asset registration, and type definitions, separate from the package's
+  plugin config and tool-facing schemas that remain on main Zod.
+- Decoupled data source output schemas from main-Zod nominal types by replacing
+  the `DataSource`/`BaseEntityDataSource` schema parameters with a structural
+  `parse(input: unknown): T` contract. Existing main-Zod data source callers
+  remain compatible, and downstream query parser schemas can continue migrating
+  to `@brains/utils/zod` without composing mixed schema trees.
+- Decoupled template/content-service schema slots from main-Zod-only nominal
+  types by accepting either current main-Zod schemas or `@brains/utils/zod`
+  schemas at template/AI-generation/view-render boundaries. This enabled the
+  self-contained `@brains/product-site-content` landing-section schemas to move
+  to `@brains/utils/zod` while template config/permission schemas remain on
+  the current main-Zod boundary.
+- Migrated `@brains/messaging-service`'s owned base message, handler response,
+  and internal response schemas to `@brains/utils/zod`. The message
+  validation helper now accepts a structural parser so callers can validate with
+  either Zod generation without composing mixed schema trees.
+- Migrated `@brains/job-queue`'s job context/status/result/progress, batch,
+  job info, and test schemas to `@brains/utils/zod`. `BaseJobHandler` and
+  the generation job handler config now take a structural `.parse()` parser, so
+  job input schemas can remain on either Zod generation without mixed schema
+  composition.
+- Migrated the first downstream `BaseJobHandler` job-input schemas to
+  `@brains/utils/zod` now that the handler boundary is structural: stock
+  photo selection, link capture, note upload import, image generation/source
+  render/upload promotion, and directory cleanup. Tool/config and AI-generation
+  schemas that still sit on main-Zod framework boundaries were left there.
+- Migrated `@brains/dashboard` widget registry/data-source output schemas to
+  `@brains/utils/zod` while leaving the plugin config and message payload
+  schemas on the current main-Zod plugin/tool boundary. Dashboard data continues
+  through the structural data-source parser boundary.
+- Migrated `@brains/ai-evaluation` test-case YAML schemas and the
+  conversation-memory eval-handler input parsers to `@brains/utils/zod` with
+  local chat-context/provenance/visibility parser shapes, avoiding mixed
+  composition with plugin/framework schemas.
+- Decoupled the internal base plugin constructor to accept any typed parser with
+  `parse(input)`, then migrated standalone service plugin config schemas for
+  analytics, ATProto, Buttondown, email-resend, HackMD, notifications, Notion,
+  and stock-photo to `@brains/utils/zod`. Durable entity schemas and
+  tool-facing framework schemas stay on their current boundaries.
+- Decoupled the public plugin-author interface/message-interface/service
+  delegates to accept structural config parsers, then migrated interface plugin
+  config schemas for A2A, chat-repl, chat, Discord, MCP, web-chat, and
+  webserver to `@brains/utils/zod`. Chat/Discord duplicated the tiny URL
+  capture config shape locally to avoid composing main-Zod plugin schemas into
+  Zod 4 config trees.
+- Decoupled the entity plugin constructors and public entity delegate to accept
+  structural config parsers, then migrated standalone entity plugin config
+  schemas for blog, note, portfolio, products, social-media, topics, link,
+  wishlist, and conversation-memory summary projection to
+  `@brains/utils/zod`. Durable entity/frontmatter schemas remain on their
+  current main-Zod entity-service registration boundary.
+- Migrated another standalone config-schema batch to `@brains/utils/zod`:
+  content-pipeline, directory-sync, Obsidian vault, site-content, CMS,
+  newsletter, rizom-ecosystem, Rover profile extension, professional site, and
+  Rizom runtime. Tool-facing and durable entity schemas in those packages remain
+  on existing boundaries where applicable.
+- Migrated the site-builder plugin config, build-option, and site-build job
+  parser boundaries to `@brains/utils/zod` using local route/site metadata
+  parser shapes, keeping the shared site-composition and site-info entity
+  schemas on their existing main-Zod boundaries.
+- Migrated additional service/internal parser boundaries to
+  `@brains/utils/zod`: dashboard plugin config/widget message payloads,
+  auth-service plugin config, and playbook runtime-state/run/config parser
+  schemas. Playbooks keeps durable entity/frontmatter schemas on main Zod.
+- Migrated the agent-discovery, portfolio, and products list/detail template
+  parser boundaries to `@brains/utils/zod` by defining local view-only
+  entity, singleton, and pagination shapes. Durable entity/frontmatter schemas
+  remain on main Zod.
+- Migrated the agent-discovery skill projection job-data parser to
+  `@brains/utils/zod` with a local content-visibility parser; entity,
+  config, and projection registration boundaries remain on existing contracts.
+- Migrated `@brains/web-chat` internal bootstrap/action request parsers to
+  `@brains/utils/zod`; the interface plugin config schema remains on the
+  current constructor/config boundary.
+- Migrated another plugin/template framework-adjacent parser batch to
+  `@brains/utils/zod`: base-plugin internal tool/resource request parsers,
+  API route definition parsing, content-service template validation,
+  templates render/build schemas, and plugin/core/mcp-bridge example tests.
+  Template schema parser types still explicitly accept both main-Zod and Zod 4
+  generation schemas; tool-facing raw shape schemas remain on main Zod.
+- Migrated shared message-role, conversation message metadata/digest, and
+  public plugin contract parsers (agent, conversation, messaging, metadata)
+  to `@brains/utils/zod`, plus the small plugin config/message-content and
+  title-regeneration helper schemas. The migration keeps binary attachment
+  types broad enough for Buffer-backed upload flows.
+- Migrated site composition route/site-package runtime parser boundaries and
+  the app-level dynamic site-package gate to `@brains/utils/zod`. Site
+  composition layout metadata has also moved to Zod 4; main-Zod site-info and
+  professional-site template schemas duplicate their small local CTA/section
+  shapes instead of composing the shared Zod 4 metadata schemas into durable
+  entity/template schema trees. The standalone site-info view schema is now
+  Zod 4-owned with duplicated local body/CTA/section shapes, leaving the
+  durable site-info entity/body schemas on main Zod. Personal and professional
+  site homepage/about template schemas now use local Zod 4 view shapes for
+  profile, CTA, post, and deck data instead of composing durable entity schemas
+  from the entity packages. The agent-discovery adapter body formatter now uses
+  a local Zod 4 body parser instead of composing durable agent schema pieces.
+- Migrated brain definition preset/mode schemas, app `brain.yaml` instance
+  override parsing, and CLI `brain.yaml` parsing to `@brains/utils/zod`.
+  The app parser duplicates the small permission/action-policy validation
+  shapes locally so it does not compose main-Zod template schemas.
+- Migrated shared DB config, shell config, and app config parser boundaries to
+  `@brains/utils/zod`. The app/core config schemas now use local plugin and
+  identity metadata validators to avoid composing plugin/template main-Zod
+  schemas; nested defaults use Zod 4 prefaults where defaults must still be
+  parsed through child object schemas.
+- Migrated plugin runtime app-info/daemon-status parser boundaries to
+  `@brains/utils/zod`, using a local public permission enum for endpoint and
+  interaction metadata so the plugin interfaces boundary does not compose the
+  templates permission schema.
+- Migrated Playbooks' remaining model-facing tool input and judge-result
+  schemas to `@brains/utils/zod` now MCP tools and AI generation accept
+  Zod 4 parser boundaries. Also migrated plugin example schemas and AI-service
+  tool-schema tests to Zod 4.
+- Migrated core system tool schemas and helper validation to
+  `@brains/utils/zod`, using a local attachment result shape to avoid
+  composing the entity-service main-Zod schema. Also migrated document and
+  image plugin config/job/tool parser boundaries to Zod 4 while leaving their
+  durable entity schemas on main Zod.
+- Updated app brain-definition resolution tests to use Zod 4 config validators
+  and taught the resolver's skip-on-validation path to recognize both current
+  main-Zod and Zod 4 validation errors.
+- Decoupled additional parser-only type slots from nominal main-Zod imports by
+  using structural `parse(input)` contracts for site-builder view templates and
+  public plugin-author config delegates. Migrated the agent-discovery composite
+  config, agent generation job parser, directory-sync quarantine ZodError
+  guard/test parser, content-pipeline mock entity test schemas, entity
+  pagination parser, entity frontmatter visibility parsing, assessment
+  capability-profile parsing helpers, and public URL-capture config parser to
+  `@brains/utils/zod` without touching durable entity/frontmatter schemas.
+- Removed more nominal main-Zod type slots from complete parse-only boundaries:
+  Obsidian Vault frontmatter introspection now accepts both main-Zod and Zod 4
+  object shapes structurally, its introspector tests use Zod 4 schemas, and
+  binary/media/profile adapters use structural parser inputs or schema-owned
+  output types instead of importing main-Zod only for helper signatures. The
+  shared base entity adapter's public frontmatter parser now accepts structural
+  parsers too, allowing identity adapter tests to exercise Zod 4 parser inputs
+  without migrating durable identity entity schemas.
+- Tightened additional entity-service/plugin helper type slots without changing
+  durable entity schema ownership: base entity display frontmatter parsing now
+  uses a Zod 4 record parser, service-plugin and entity-plugin namespace/
+  public delegate registration derive schema/frontmatter types from
+  `EntityAdapter`, conversation-memory derived-entity adapters use a typed
+  structural frontmatter parser slot, entity-service test helper mocks no longer
+  import nominal main-Zod types solely for adapter/schema signatures, shared
+  site-composition metadata is Zod 4-owned with local main-Zod duplicates where
+  durable site-info/professional template schemas still need them, the A2A
+  agent-card parser moved to Zod 4 after splitting the main-Zod `skillDataSchema`
+  durable entity contract into its own file, and entity-service now exposes a
+  shared empty frontmatter schema so tests/adapters no longer import main-Zod
+  only to spell `z.object({})`, with a few registration-only tests reusing the
+  base entity schema instead of local literal refinements.
+- Decoupled entity-plugin frontmatter validation access from the main-Zod
+  namespace return type by narrowing the entity-plugin context/public context
+  `getEffectiveFrontmatterSchema` view to the structural `.parse()` contract
+  used by generation-stub merging. Service/CMS-facing entity namespaces still
+  expose the main-Zod schema object for CMS field introspection, while the
+  generation handler test now validates its local required-frontmatter guard
+  with `@brains/utils/zod`.
+- Migrated assessment eval/test body and input parser schemas to
+  `@brains/utils/zod`, duplicating small agent skill/status shapes locally
+  so parser-only eval inputs do not compose with main-Zod durable agent/skill
+  entity schemas used by the in-test adapters.
+- Centralized entity-service registry Zod helper type aliases in
+  `shell/entity-service/src/types.ts` and switched registry helper annotations
+  to those aliases. This removes a local main-Zod type-only import without
+  changing durable entity/frontmatter schema ownership.
+- Migrated the runtime `EntityPlugin` empty config schema to
+  `@brains/utils/zod` and made no-config entity plugins pass the shared empty
+  config schema explicitly. Durable entity/frontmatter schemas remain on their
+  current main-Zod boundary; this only removes the entity-plugin base class's
+  nominal main-Zod config parser slot.
+- Consolidated entity-service tests that intentionally compose with durable
+  main-Zod entity/frontmatter schemas behind `test/helpers/main-zod.ts`, keeping
+  that test-only main-Zod dependency explicit in one place rather than scattered
+  across local test files.
+- Centralized several remaining durable main-Zod schema boundaries behind
+  package-local `main-zod` modules: entity-service core schemas, identity-service
+  entity/profile schemas, assessment eval/durable schemas, conversation-memory
+  durable schemas, and products durable schemas. This reduces scattered direct
+  imports while preserving the rule that durable entity/frontmatter schema trees
+  do not mix Zod generations.
+- Migrated the public A2A `skillDataSchema` parser contract to
+  `@brains/utils/zod`. Durable skill entity schemas in agent-discovery and
+  assessment now duplicate the small SkillData shape locally on their main-Zod
+  entity boundaries instead of composing the Zod 4 public parser into main-Zod
+  entity schemas.
+- Centralized CMS config's remaining main-Zod introspection dependency behind
+  `shared/cms-config/src/main-zod.ts`, without adding a Zod 4 compatibility
+  layer for CMS schema introspection.
+- Migrated the public `@rizom/brain` root Zod re-export to
+  `@brains/utils/zod`, removed the public plugin-author judge input's
+  main-Zod alias, and changed template schema storage to a structural parser
+  slot. Core now explicitly narrows template schemas before using them for AI
+  object generation so display-only main-Zod templates can remain registered
+  without being passed to the AI SDK generation boundary. Entity schema slots
+  are also structural `parse`/`safeParse` parsers now, allowing public Zod 4
+  entity schemas without changing durable frontmatter/CMS schema ownership.
+- Added a Zod 4-owned `baseEntityParserSchema` for entity schema registration
+  boundaries and migrated complete non-CMS entity parser trees for image and
+  document. Also split several mixed durable/frontmatter packages so their
+  registered entity schema is Zod 4-owned while their frontmatter/CMS schema
+  remained main-Zod-owned during the transition: site-content, prompt,
+  rizom-ecosystem, site-info, `link`, `newsletter`, `wishlist`, `doc`, `note`,
+  `portfolio`, `series`, `blog`, `decks`, `social-media`, `topics`, `playbook`,
+  `products`, and `conversation-memory`. The agent-discovery list/detail display
+  parser schemas followed the same temporary split.
+- Migrated the durable entity/frontmatter boundary to Zod 4: `baseEntitySchema`,
+  `BaseEntityAdapter` frontmatter schemas, `EntityRegistry.extendFrontmatterSchema`,
+  identity/profile schemas, assessment/agent-discovery durable schemas, all
+  split entity frontmatter schemas, CMS config generation, and CMS/Obsidian test
+  fixtures now use `@brains/utils/zod`. Deleted the package-local `main-zod`
+  modules rather than leaving renamed compatibility wrappers.
+- Trimmed legacy Zod compatibility branches after the durable migration: app
+  config handling and directory quarantine now classify Zod 4 errors directly,
+  Obsidian introspection reads only Zod 4 internals, the `@brains/utils` root and
+  compatibility zod subpath re-export the Zod 4 helper, direct `zod` package
+  metadata now resolves to Zod 4 with a root override to avoid nested mixed Zod
+  instances, AI object-generation schema inputs are Zod 4-owned rather than
+  AI SDK `FlexibleSchema`/dual-Zod typed, and the base entity adapter no longer
+  casts frontmatter schemas to recover parsed frontmatter types.
+- Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
+  not just to swap imports. Defaulted schemas must be audited as two contracts:
+  `z.input<typeof schema>` for caller-provided config/options before defaults,
+  and `z.output<typeof schema>`/`z.infer<typeof schema>` for parsed values after
+  defaults. Do not hide this behind compatibility generic defaults in plugin
+  base classes. Plugin base classes should make config input types explicit; if
+  a package is not yet audited, spell the temporary debt as `Partial<Config>` at
+  the subclass boundary so it remains visible. Other verified examples: object
+  fields using `z.unknown()` infer as required under Zod 4, loose objects should
+  use `z.looseObject(...)` instead of `.passthrough()`, and record schemas
+  should state both key and value schemas explicitly
+  (`z.record(z.string(), z.unknown())`).
+
+### Zod migration status
+
+Direct source imports from `@brains/utils/zod` are now eliminated. The
+`shared/utils/src/zod.ts` subpath is retained as a stable internal alias that
+routes to the Zod 4 helper; prefer `@brains/utils/zod` for new internal code
+when the Zod major matters at the call site. Local Zod bindings have been
+normalized back to `z`; transitional `z4` aliases are removed from repo-owned
+schema code. The Zod 3 replacement and Phase 4 schema-boundary hardening work is
+complete in repo-owned schema code, dependency resolution, and framework-facing
+validation contracts.
+
+Ongoing rules:
+
+- Do not reintroduce parser twins for shared exported contracts. Identity/profile
+  moved with the durable frontmatter boundary; keep that as the pattern.
+- Do not add new `main-zod` wrapper modules. The previous package-local wrappers
+  were removed once their boundaries moved to Zod 4.
+- Treat any future dual-Zod detection as transitional debt. Either remove it
+  when callers are confirmed Zod 4-only, or replace it with an explicit
+  domain/schema metadata contract chosen intentionally.
+
+### Schema contract cleanup
+
+Plugin config schema contracts now use the centralized Zod 4-owned
+`PluginConfigSchema<TConfig>` alias instead of repeated local
+parser interfaces. Entity registration schema slots now use the Zod 4-owned
+`EntitySchema<T>` alias directly, and job handlers now use a Zod 4-owned
+`JobDataSchema<T>` alias. This keeps public/plugin, entity, and job framework
+schemas on the blessed Zod boundary and removes accidental parser-interface
+duplication.
+
+The remaining template, datasource, runtime-state, messaging, media-template,
+and structured-content schema slots were reviewed and moved to Zod 4-owned
+`ZodType<T, unknown>` aliases where they are real framework validation
+boundaries. Compatibility aliases remain only for previously exported
+`*SchemaParser` type names in template packages. Job and plugin-message
+validation now uses `safeParse` results instead of classifying thrown Zod
+exceptions. Plugin config constructor failures now surface as
+`PluginConfigValidationError`, with Zod issues normalized at the plugin boundary.
+For AI object generation, `shell/core/src/datasources/ai-content-datasource.ts`
+still narrows template schemas to Zod 4 before invoking the AI SDK boundary. MCP
+tool contracts are Zod 4-owned locally; the MCP schema mapper no longer imports
+the SDK `zod-compat.js` helper and reads only Zod 4 internals for
+optional/default unwrapping and primitive coercion.
+
+### Residual schema metadata debt — not endgame
+
+These compatibility/design points are tracked explicitly, but they are not
+active Zod 3 migration work:
+
+- `packages/brain-cli/src/entries/index.ts` now exports Zod 4 from the public
+  `@rizom/brain` root, and published package metadata now depends on Zod 4.
+  Keep declaration/runtime output aligned with that single public Zod contract.
+- `plugins/directory-sync/src/lib/quarantine.ts` no longer depends on the
+  `ZodError` class or domain message fragments; it delegates quarantine reason
+  extraction to the entity validation domain error/issue guard exported through
+  `@brains/plugins`.
+- `plugins/obsidian-vault/src/lib/schema-introspector.ts` now introspects Zod 4
+  object internals only. Future improvement: replace internal-shape reads with
+  explicit schema-owned field metadata if Obsidian generation grows beyond
+  simple field mapping.
+- The former package-local `main-zod` modules and test helpers were removed when
+  durable entity/frontmatter schemas moved to Zod 4. Do not recreate them.
+- `shared/cms-config/src/index.ts` now introspects Zod 4 internals directly for
+  CMS widget generation. Future improvement: replace internal-shape reads with
+  explicit schema-owned field metadata if CMS behavior grows beyond simple
+  widgets.
+
+### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
+
+Phase 5 is proceeding one package at a time. The first pilot enabled
+`isolatedDeclarations` for `@brains/email-contracts`, a small public-contract
+package. Its exported email payload schema now has explicit domain input/output
+interfaces and a `z.ZodType<Output, Input>` annotation, avoiding generated
+declarations that leak inferred Zod object internals. The second pilot enabled
+`isolatedDeclarations` for `@brains/email-resend`, using explicit private
+config/response domain interfaces for its package-local schemas. The third pilot
+enabled `isolatedDeclarations` for `@brains/notifications`, making the public
+notification input/result contracts explicit while keeping parser schemas local.
+The fourth pilot enabled `isolatedDeclarations` for `@brains/newsletter`, adding
+an explicit composite config contract around its exported config schema. The
+fifth pilot enabled `isolatedDeclarations` for `@brains/atproto-registry`, using
+explicit config/tool-input contracts around its exported and local schemas. The
+sixth pilot enabled `isolatedDeclarations` for `@brains/hackmd`, adding an
+explicit config contract around its exported config schema. The seventh pilot
+enabled `isolatedDeclarations` for `@brains/notion`, mirroring that explicit
+config contract pattern for its MCP bridge config schema. The eighth pilot
+enabled `isolatedDeclarations` for `@brains/buttondown`, replacing exported enum
+schema inference with explicit union contracts and annotating the plugin config
+schema. The ninth pilot enabled `isolatedDeclarations` for `@brains/stock-photo`,
+using explicit config, job payload, and Unsplash response contracts around the
+package-local Zod parsers. The tenth pilot enabled `isolatedDeclarations` for
+`@brains/plugin-examples`, replacing example config-schema inference with
+explicit input/output contracts while preserving the example runtime behavior.
+The eleventh pilot enabled `isolatedDeclarations` for `@brains/analytics`,
+annotating exported config schemas, the plugin factory alias, and the Cloudflare
+analytics response parser boundary. The next batch enabled `isolatedDeclarations`
+for `@brains/atproto`, `@brains/cms`, `@brains/dashboard`,
+`@brains/obsidian-vault`, and `@brains/site-content`, using explicit config,
+widget, entity, and parser-boundary contracts where declaration emit required
+stable names. The following batch enabled `isolatedDeclarations` for the
+remaining plugin packages: `@brains/content-pipeline`, `@brains/directory-sync`,
+`@brains/playbooks`, and `@brains/site-builder-plugin`. After the local `main`
+integration added Rover onboarding, `@brains/rover-onboarding` also enabled
+`isolatedDeclarations` with an explicit config input/output contract and typed
+dependency list. At this point every package under `plugins/` has
+`isolatedDeclarations` enabled. The next shared
+package batch enabled `isolatedDeclarations` for `@brains/atproto-contracts`,
+`@brains/cms-config`, `@brains/contracts`, `@brains/content-formatters`,
+`@brains/deploy-support`, `@brains/document`, `@brains/image`,
+`@brains/mcp-bridge`, `@brains/media-page-composer`, `@brains/media-renderer`,
+`@brains/product-site-content`, `@rizom/ui`, `@brains/site-composition`,
+`@brains/site-engine`, `@brains/test-utils`, `@brains/theme-base`, `@brains/theme-default`,
+`@brains/theme-rizom`, `@brains/ui-library`, and `@brains/utils`, adding only
+explicit declarations/annotations where required. The rollout then resumed in
+shell package contracts with `@brains/auth-service`, `@brains/content-service`,
+`@brains/identity-service`, `@brains/mcp-service`, `@brains/messaging-service`,
+and `@brains/templates`. The first interface package batch enabled
+`isolatedDeclarations` for `@brains/a2a`, `@brains/chat`, `@brains/discord`, and
+`@brains/webserver`, using explicit transport config and JSON-RPC/streaming
+contracts rather than exported inferred schema internals. The next interface
+batch enabled `isolatedDeclarations` for `@brains/chat-repl` and `@brains/mcp`
+with explicit CLI/MCP config contracts. The next interface follow-up enabled
+`isolatedDeclarations` for `@brains/web-chat`, adding explicit chat request,
+upload, history-message, config, and React bridge contracts while leaving the
+standalone React UI tsconfig for a later component-wide pass. The first entity
+package batches enabled
+`isolatedDeclarations` for `@brains/doc`, `@brains/document-plugin`,
+`@brains/image-plugin`, `@brains/newsletter-entity`, `@brains/note`,
+`@brains/playbook`, `@brains/prompt`, `@brains/rizom-ecosystem`,
+`@brains/series`, `@brains/site-info`, and `@brains/wishlist`, keeping
+entity/frontmatter schema annotations object-preserving for adapter contracts.
+The next site batch enabled `isolatedDeclarations` for `@brains/site-default`,
+`@brains/site-personal`, `@brains/site-professional`, and `@brains/site-rizom`,
+adding explicit site config contracts and dependency list annotations where
+needed. The next entity follow-up enabled `isolatedDeclarations` for
+`@brains/assessment`, `@brains/topics`, and `@brains/portfolio`, adding explicit
+SWOT/topic/project schema/domain contracts while keeping frontmatter schemas
+object-preserving for adapter registration. The next entity follow-up enabled
+`isolatedDeclarations` for `@brains/products`, `@brains/link`, `@brains/blog`,
+`@brains/conversation-memory`, `@brains/agent-discovery`, and `@brains/decks`,
+adding explicit product/overview/link/blog/conversation-memory/agent/skill/deck
+schema contracts plus typed job, template, datasource, widget, and
+attachment-template contracts. The next entity follow-up enabled
+`isolatedDeclarations` for `@brains/social-media`, adding explicit social-post
+schema, config, generation job, datasource, and LinkedIn template contracts
+while keeping object schemas composable for adapters/templates. A shell follow-up
+enabled `isolatedDeclarations` for `@brains/ai-evaluation`, adding explicit
+evaluation/test-case schema
+contracts while preserving discriminated attachment validation. The next shell
+follow-up enabled `isolatedDeclarations` for `@brains/app`, adding explicit
+brain definition, instance override, site package, app config, deployment, and
+usage aggregation schema contracts. The package follow-up enabled
+`isolatedDeclarations` for `@rizom/ops`, adding explicit pilot/user/cohort and
+encrypted-secret schema contracts and including package metadata in the
+composite project for declaration emit. The
+first brain-model batch enabled
+`isolatedDeclarations` for `@brains/ranger` and `@brains/rover`, replacing
+inferred default exports with explicit `BrainDefinition` constants and annotating
+Rover's profile-extension config schema. The next brain-model follow-up enabled
+`isolatedDeclarations` for `@brains/relay`, adding explicit Relay site/home
+content schema contracts and replacing its inferred default export with a named
+`BrainDefinition`. The package-fixture pass enabled
+`isolatedDeclarations` for `@rizom/brain`'s external plugin, brain definition,
+and site authoring compile fixtures so the public authoring examples exercise
+declaration-safe contracts too. The next test-app pass enabled
+`isolatedDeclarations` for Rover and Relay preset test-app tsconfigs, with
+explicit Relay local-site override declarations for the authored `src/site.ts`
+fixtures. The next service follow-up enabled `isolatedDeclarations` for
+`@brains/runtime-state`, adding an explicit Drizzle table contract for the
+package-owned runtime state records table.
+Drizzle-backed service packages such as `@brains/conversation-service` remain
+separate follow-ups.
+
+The objective is clean public declarations, not making every exported runtime
+schema expose its inferred implementation type. Preferred fixes, in order:
+
+1. Stop exporting raw schemas that are not public API; keep them private and
+   export typed parser/validator functions instead.
+2. For schemas that are intentionally public and parse-only, annotate with a
+   domain type such as `z.ZodType<DomainType, ...>` when it preserves behavior.
+3. For schemas that callers compose with `.extend()`, `.merge()`, `.shape`,
+   etc., treat that as an API design question: either expose an intentional
+   schema factory/composition helper, or keep composition inside the owning
+   package. Avoid publishing hand-written Zod-internal shape types as the
+   solution.
+4. Enable and validate one package at a time, with visible manual edits and
+   rationale.
 
 ## Cadence policy
 
-Re-run the Phase 0 inventory at each release cut. Patch/minor drift
-gets swept opportunistically (Phase 1 style); any new major gets an
-entry in this doc with a decision — migrate, hold (with reason), or
-drop the dependency.
+Re-run the Phase 0 inventory at each release cut. Patch/minor drift gets
+swept opportunistically (Phase 1a style); any new major gets an entry in
+this doc with a decision — migrate, hold (with reason), or drop the
+dependency.

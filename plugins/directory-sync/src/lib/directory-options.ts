@@ -1,9 +1,24 @@
 import type { IEntityService } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import { resolveSyncPath } from "./directory-path";
 
-export const directorySyncOptionsSchema = z.object({
+export interface DirectorySyncOptionsInput {
+  syncPath: string;
+  autoSync?: boolean | undefined;
+  watchInterval?: number | undefined;
+  includeMetadata?: boolean | undefined;
+  entityTypes?: string[] | undefined;
+  deleteOnFileRemoval?: boolean | undefined;
+}
+
+export interface DirectorySyncOptions extends DirectorySyncOptionsInput {
+  entityService: IEntityService;
+  logger: Logger;
+}
+
+export const directorySyncOptionsSchema: z.ZodObject<z.ZodRawShape> &
+  z.ZodType<DirectorySyncOptionsInput, DirectorySyncOptionsInput> = z.object({
   syncPath: z.string(),
   autoSync: z.boolean().optional(),
   watchInterval: z.number().optional(),
@@ -11,13 +26,6 @@ export const directorySyncOptionsSchema = z.object({
   entityTypes: z.array(z.string()).optional(),
   deleteOnFileRemoval: z.boolean().optional(),
 });
-
-export type DirectorySyncOptions = z.infer<
-  typeof directorySyncOptionsSchema
-> & {
-  entityService: IEntityService;
-  logger: Logger;
-};
 
 export interface NormalizedDirectorySyncOptions {
   originalSyncPath: string;

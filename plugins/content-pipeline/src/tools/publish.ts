@@ -15,7 +15,18 @@ import {
 /**
  * Input schema for publish-pipeline:publish tool
  */
-export const publishInputSchema = z.object({
+export interface PublishInput {
+  entityType: string;
+  id?: string | undefined;
+  slug?: string | undefined;
+  confirmed?: boolean | undefined;
+  confirmationToken?: string | undefined;
+  contentHash?: string | undefined;
+  expiresAt?: string | undefined;
+}
+
+export const publishInputSchema: z.ZodObject<z.ZodRawShape> &
+  z.ZodType<PublishInput, PublishInput> = z.object({
   entityType: z
     .string()
     .describe("Entity type to publish (e.g., social-post, post, deck)"),
@@ -27,12 +38,56 @@ export const publishInputSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 });
 
-export type PublishInput = z.infer<typeof publishInputSchema>;
+const publishInputParserSchema: z.ZodObject<z.ZodRawShape> &
+  z.ZodType<PublishInput, PublishInput> = z.object({
+  entityType: z.string(),
+  id: z.string().optional(),
+  slug: z.string().optional(),
+  confirmed: z.boolean().optional(),
+  confirmationToken: z.string().optional(),
+  contentHash: z.string().optional(),
+  expiresAt: z.string().datetime().optional(),
+});
 
 /**
  * Output schema for publish-pipeline:publish tool - discriminated union for success/error cases
  */
-export const publishSuccessSchema = z.object({
+export interface PublishSuccessData {
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  platformId?: string | undefined;
+  url?: string | undefined;
+}
+
+export interface PublishSuccessOutput {
+  success: true;
+  message?: string | undefined;
+  data?: PublishSuccessData | undefined;
+}
+
+export interface PublishErrorOutput {
+  success: false;
+  error: string;
+  code?: string | undefined;
+}
+
+export interface PublishConfirmationOutput {
+  success?: false | undefined;
+  error?: string | undefined;
+  needsConfirmation: true;
+  toolName: string;
+  summary: string;
+  preview?: string | undefined;
+  args: unknown;
+}
+
+export type PublishOutput =
+  PublishSuccessOutput | PublishErrorOutput | PublishConfirmationOutput;
+
+export const publishSuccessSchema: z.ZodType<
+  PublishSuccessOutput,
+  PublishSuccessOutput
+> = z.object({
   success: z.literal(true),
   message: z.string().optional(),
   data: z
@@ -45,13 +100,19 @@ export const publishSuccessSchema = z.object({
     .optional(),
 });
 
-export const publishErrorSchema = z.object({
+export const publishErrorSchema: z.ZodType<
+  PublishErrorOutput,
+  PublishErrorOutput
+> = z.object({
   success: z.literal(false),
   error: z.string(),
   code: z.string().optional(),
 });
 
-export const publishConfirmationSchema = z.object({
+export const publishConfirmationSchema: z.ZodType<
+  PublishConfirmationOutput,
+  PublishConfirmationOutput
+> = z.object({
   success: z.literal(false).optional(),
   error: z.string().optional(),
   needsConfirmation: z.literal(true),
@@ -61,13 +122,12 @@ export const publishConfirmationSchema = z.object({
   args: z.unknown(),
 });
 
-export const publishOutputSchema = z.union([
-  publishSuccessSchema,
-  publishErrorSchema,
-  publishConfirmationSchema,
-]);
-
-export type PublishOutput = z.infer<typeof publishOutputSchema>;
+export const publishOutputSchema: z.ZodType<PublishOutput, PublishOutput> =
+  z.union([
+    publishSuccessSchema,
+    publishErrorSchema,
+    publishConfirmationSchema,
+  ]);
 
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 
@@ -104,11 +164,11 @@ export function createPublishTool(
     visibility: "anchor",
     sideEffects: "external",
     handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-      const parsed = publishInputSchema.safeParse(rawInput);
+      const parsed = publishInputParserSchema.safeParse(rawInput);
       if (!parsed.success) {
         return {
           success: false,
-          error: `Invalid input: ${parsed.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+          error: `Invalid input: ${parsed.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
         };
       }
 

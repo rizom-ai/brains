@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types -- JavaScript Rollup config uses JSDoc types; TypeScript return annotations are not valid in .mjs. */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import process from "node:process";
 import dts from "rollup-plugin-dts";
 
 const root = resolve(import.meta.dirname, "../../..");
@@ -31,14 +33,25 @@ const excludedSubpaths = new Set([
   "./types",
 ]);
 
+/**
+ * @param {unknown} target
+ * @returns {string | null}
+ */
 function resolveExportTarget(target) {
   if (typeof target === "string") return target;
   if (target && typeof target === "object") {
-    return target.types ?? target.default ?? null;
+    const exportTarget = /** @type {{ types?: unknown; default?: unknown }} */ (
+      target
+    );
+    const file = exportTarget.types ?? exportTarget.default;
+    return typeof file === "string" ? file : null;
   }
   return null;
 }
 
+/**
+ * @returns {Map<string, string>}
+ */
 function buildAliases() {
   const aliases = new Map();
   for (const { name, dir } of declarationInlinePackages) {
@@ -64,12 +77,20 @@ export default {
   plugins: [
     {
       name: "brain-dts-alias",
+      /**
+       * @param {string} source
+       * @returns {string | null}
+       */
       resolveId(source) {
         if (source.endsWith(".css")) {
           return "\0brain-empty-css";
         }
         return aliases.get(source) ?? null;
       },
+      /**
+       * @param {string} id
+       * @returns {string | null}
+       */
       load(id) {
         if (id === "\0brain-empty-css") {
           return "const content = ''; export default content;";

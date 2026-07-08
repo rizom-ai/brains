@@ -4,7 +4,8 @@
     "outDir": "./dist",
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "isolatedDeclarations": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist"]

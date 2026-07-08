@@ -7,6 +7,7 @@ import { fetchImageAsBase64 } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import {
   parseDataUrl,
   detectImageFormat,
@@ -19,8 +20,11 @@ import type { CoverImageConversionJobData } from "../types";
  * Schema for cover image conversion job data.
  * Alias the canonical schema from types.ts for backward-compatible imports.
  */
-export const coverImageConversionJobDataSchema = coverImageConversionJobSchema;
+export const coverImageConversionJobDataSchema: typeof coverImageConversionJobSchema =
+  coverImageConversionJobSchema;
 export type { CoverImageConversionJobData };
+
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 export interface ImageConversionResult {
   success: boolean;
@@ -109,7 +113,12 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         return JobResult.failure(error);
       }
 
-      const frontmatter = parsed.frontmatter as Record<string, unknown>;
+      const frontmatterParsed = frontmatterRecordSchema.safeParse(
+        parsed.frontmatter,
+      );
+      const frontmatter = frontmatterParsed.success
+        ? frontmatterParsed.data
+        : {};
 
       // Skip if already has coverImageId
       if (frontmatter["coverImageId"]) {

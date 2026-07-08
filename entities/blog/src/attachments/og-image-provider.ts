@@ -41,15 +41,20 @@ export class BlogOgImageAttachmentProvider implements AttachmentProvider {
     targetField: "ogImageId",
   } as const;
 
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
   private readonly screenshotPng: ScreenshotPng;
 
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
     deps: BlogOgImageAttachmentProviderDeps = {},
   ) {
+    this.context = context;
     this.screenshotPng = deps.screenshotPng ?? defaultScreenshotPng;
   }
 

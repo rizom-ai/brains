@@ -92,4 +92,4 @@ export function registerDecisionsWidget(params: {
   );
 }
 
-export const DECISIONS_WIDGET_ID = WIDGET_ID;
+export const DECISIONS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

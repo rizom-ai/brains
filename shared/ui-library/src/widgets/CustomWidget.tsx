@@ -8,7 +8,7 @@ import type { BaseWidgetProps } from "./types";
 /**
  * Schema for custom widget data - accepts any record
  */
-const customDataSchema = z.record(z.unknown());
+const customDataSchema = z.record(z.string(), z.unknown());
 
 export type CustomWidgetProps = BaseWidgetProps;
 

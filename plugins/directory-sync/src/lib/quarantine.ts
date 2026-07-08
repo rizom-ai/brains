@@ -1,28 +1,20 @@
-import type { Logger } from "@brains/utils/logger";
 import type { ImportResult } from "../types.js";
-import { z } from "@brains/utils/zod";
+import { isEntityValidationError } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 import { rename, appendFile, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
 
 export class Quarantine {
-  constructor(
-    private logger: Logger,
-    private syncPath: string,
-  ) {}
+  private logger: Logger;
+  private syncPath: string;
+  constructor(logger: Logger, syncPath: string) {
+    this.logger = logger;
+    this.syncPath = syncPath;
+  }
 
   isValidationError(error: unknown): boolean {
-    if (error instanceof z.ZodError) {
-      return true;
-    }
-    const message = getErrorMessage(error);
-    return (
-      message.includes("invalid_type") ||
-      message.includes("invalid_enum_value") ||
-      message.includes("Required") ||
-      message.includes("Invalid frontmatter") ||
-      message.includes("Unknown entity type")
-    );
+    return isEntityValidationError(error);
   }
 
   async quarantineInvalidFile(

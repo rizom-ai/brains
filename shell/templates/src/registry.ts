@@ -11,7 +11,7 @@ export class TemplateRegistry {
   private static instance: TemplateRegistry | null = null;
 
   private templates = new Map<string, Template>();
-  private logger?: Logger | undefined;
+  private logger: Logger | undefined | undefined;
 
   /**
    * Get the singleton instance of TemplateRegistry

@@ -1,6 +1,6 @@
 import { Shell } from "@brains/core";
+import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
 import { Logger, LogLevel } from "@brains/utils/logger";
-import { appConfigSchema, type AppConfig } from "./types";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
 import { resolveStandardConfig } from "./standard-paths";
@@ -22,7 +22,7 @@ export class App {
   private isShuttingDown = false;
   private hasCLI = false;
 
-  public static create(config?: Partial<AppConfig>, shell?: Shell): App {
+  public static create(config?: AppConfigInput, shell?: Shell): App {
     const validatedConfig = appConfigSchema.parse(config ?? {});
 
     // Follow Shell's pattern: validate schema then add full Plugin objects
@@ -179,11 +179,11 @@ export class App {
     shellConfig.version = this.config.version;
 
     // Set site base URL from deployment domain for entity link generation
-    if (this.config.deployment?.domain) {
+    if (this.config.deployment.domain) {
       shellConfig.siteBaseUrl = this.config.deployment.domain;
     }
 
-    shellConfig.localSiteUrl = `http://localhost:${this.config.deployment?.ports?.production ?? 8080}`;
+    shellConfig.localSiteUrl = `http://localhost:${this.config.deployment.ports.production}`;
     shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
   }
 
@@ -269,7 +269,7 @@ export class App {
    * Static convenience method to create and run an app in one call
    */
   public static async run(
-    config?: Partial<AppConfig>,
+    config?: AppConfigInput,
     shell?: Shell,
   ): Promise<void> {
     const app = App.create(config, shell);

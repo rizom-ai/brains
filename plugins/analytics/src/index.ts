@@ -1,6 +1,10 @@
 import type { Plugin, Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { analyticsConfigSchema, type AnalyticsConfig } from "./config";
+import {
+  analyticsConfigSchema,
+  type AnalyticsConfig,
+  type AnalyticsConfigInput,
+} from "./config";
 import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
 import { CloudflareClient } from "./lib/cloudflare-client";
@@ -20,10 +24,13 @@ import packageJson from "../package.json";
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
-export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
+export class AnalyticsPlugin extends ServicePlugin<
+  AnalyticsConfig,
+  AnalyticsConfigInput
+> {
   private cloudflareClient: CloudflareClient | undefined;
 
-  constructor(config: Partial<AnalyticsConfig> = {}) {
+  constructor(config: AnalyticsConfigInput = {}) {
     super("analytics", packageJson, config, analyticsConfigSchema);
   }
 
@@ -68,7 +75,7 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
  * Create an analytics plugin instance
  */
 export function createAnalyticsPlugin(
-  config: Partial<AnalyticsConfig> = {},
+  config: AnalyticsConfigInput = {},
 ): Plugin {
   return new AnalyticsPlugin(config);
 }
@@ -76,8 +83,13 @@ export function createAnalyticsPlugin(
 /**
  * Convenience function matching other plugin patterns
  */
-export const analyticsPlugin = createAnalyticsPlugin;
+export const analyticsPlugin: typeof createAnalyticsPlugin =
+  createAnalyticsPlugin;
 
 // Export types and schemas
-export type { AnalyticsConfig, CloudflareConfig } from "./config";
+export type {
+  AnalyticsConfig,
+  AnalyticsConfigInput,
+  CloudflareConfig,
+} from "./config";
 export { analyticsConfigSchema, cloudflareConfigSchema } from "./config";

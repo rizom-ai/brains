@@ -3362,7 +3362,7 @@ describe("AgentService", () => {
         inputSchema: {
           entityType: z.string(),
           id: z.string(),
-          fields: z.record(z.unknown()).optional(),
+          fields: z.record(z.string(), z.unknown()).optional(),
           confirmed: z.boolean(),
           contentHash: z.string(),
         },

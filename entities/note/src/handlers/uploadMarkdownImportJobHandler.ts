@@ -1,11 +1,11 @@
 import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
+import { JobResult } from "@brains/contracts";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
+import { updateFrontmatterField } from "@brains/utils/markdown";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { getErrorMessage } from "@brains/utils/error";
-import { updateFrontmatterField } from "@brains/utils/markdown";
-import { JobResult } from "@brains/contracts";
 import { noteAdapter } from "../adapters/note-adapter";
 import { extractMarkdownFromUpload } from "../lib/upload-markdown-import";
 
@@ -15,33 +15,34 @@ const webChatUploadsScope = {
   routePath: "/api/chat/uploads",
 } as const;
 
-export const uploadMarkdownImportJobSchema = z.object({
-  uploadId: z.string().min(1),
-  entityId: z.string().min(1),
-  title: z.string().optional(),
-});
+export interface UploadMarkdownImportJobData {
+  uploadId: string;
+  entityId: string;
+  title?: string | undefined;
+}
 
-export type UploadMarkdownImportJobData = z.infer<
-  typeof uploadMarkdownImportJobSchema
->;
+export const uploadMarkdownImportJobSchema: z.ZodType<UploadMarkdownImportJobData> =
+  z.object({
+    uploadId: z.string().min(1),
+    entityId: z.string().min(1),
+    title: z.string().optional(),
+  });
 
 export type UploadMarkdownImportJobResult =
-  | { entityId: string; status: "created" }
-  | { success: false; error: string };
+  { entityId: string; status: "created" } | { success: false; error: string };
 
 export class UploadMarkdownImportJobHandler extends BaseJobHandler<
   "upload-import",
   UploadMarkdownImportJobData,
   UploadMarkdownImportJobResult
 > {
-  constructor(
-    logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {
+  private readonly context: EntityPluginContext;
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, {
       schema: uploadMarkdownImportJobSchema,
       jobTypeName: "upload-import",
     });
+    this.context = context;
   }
 
   async process(

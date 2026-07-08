@@ -25,10 +25,12 @@ export interface SelectPriorUploadsInput {
 }
 
 export class MessageUploadContinuity {
+  private readonly options: MessageUploadContinuityOptions;
   private readonly recentUploads = new Map<string, ChatAttachment[]>();
   private readonly maxRecent: number;
 
-  public constructor(private readonly options: MessageUploadContinuityOptions) {
+  public constructor(options: MessageUploadContinuityOptions) {
+    this.options = options;
     this.maxRecent = options.maxRecent ?? 20;
   }
 

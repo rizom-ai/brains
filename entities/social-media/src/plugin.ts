@@ -31,16 +31,17 @@ import packageJson from "../package.json";
 
 export class SocialMediaPlugin extends EntityPlugin<
   SocialPost,
-  SocialMediaConfig
+  SocialMediaConfig,
+  SocialMediaConfigInput
 > {
-  readonly entityType = socialPostAdapter.entityType;
-  readonly schema = socialPostSchema;
-  readonly adapter = socialPostAdapter;
+  readonly entityType: string = socialPostAdapter.entityType;
+  readonly schema: typeof socialPostSchema = socialPostSchema;
+  readonly adapter: typeof socialPostAdapter = socialPostAdapter;
 
   private providers = new Map<string, PublishProvider>();
   private unregisterAtprotoProjection: (() => void) | undefined;
 
-  constructor(config: SocialMediaConfigInput) {
+  constructor(config: SocialMediaConfigInput = {}) {
     super("social-media", packageJson, config, socialMediaConfigSchema);
   }
 
@@ -111,7 +112,7 @@ export class SocialMediaPlugin extends EntityPlugin<
 }
 
 export function socialMediaPlugin(
-  config: SocialMediaConfigInput,
+  config: SocialMediaConfigInput = {},
 ): SocialMediaPlugin {
   return new SocialMediaPlugin(config);
 }

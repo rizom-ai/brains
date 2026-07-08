@@ -1,15 +1,15 @@
 import { describe, expect, it, mock, beforeEach, afterEach } from "bun:test";
 import { handleCLI } from "../src/cli";
 import { App } from "../src/app";
-import type { AppConfig } from "../src/types";
+import { defineConfig } from "../src/config";
 
 describe("handleCLI", () => {
-  const testConfig: AppConfig = {
+  const testConfig = defineConfig({
     name: "test-app",
     version: "2.1.0",
     aiApiKey: "test-key",
     plugins: [],
-  };
+  });
 
   // Store original values
   const originalArgv = process.argv;
@@ -149,11 +149,11 @@ describe("handleCLI", () => {
 
 describe("CLI Integration", () => {
   it("should have proper help message format", async () => {
-    const testConfig: AppConfig = {
+    const testConfig = defineConfig({
       name: "my-brain",
       version: "1.2.3",
       plugins: [],
-    };
+    });
 
     const mockConsoleLog = mock(() => {});
     const mockExit = mock((_code?: number): never => {

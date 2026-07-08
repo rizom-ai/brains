@@ -128,7 +128,7 @@ export function renderKamalDeploy(options: KamalDeployTemplateOptions): string {
   return kamalDeployTemplate.replace("__SERVICE_NAME__", options.serviceName);
 }
 
-export const legacyStandaloneDeployYmlContents = [
+export const legacyStandaloneDeployYmlContents: readonly string[] = [
   `service: brain
 image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
 

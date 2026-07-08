@@ -23,16 +23,22 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
   DirectorySyncRequestJobData,
   DirectorySyncRequestJobResult
 > {
+  private readonly context: ServicePluginContext;
+  private readonly directorySync: IDirectorySync;
+  private readonly gitSync: IGitSync;
   constructor(
     logger: Logger,
-    private readonly context: ServicePluginContext,
-    private readonly directorySync: IDirectorySync,
-    private readonly gitSync: IGitSync,
+    context: ServicePluginContext,
+    directorySync: IDirectorySync,
+    gitSync: IGitSync,
   ) {
     super(logger, {
       schema: directorySyncRequestJobSchema,
       jobTypeName: "sync-request",
     });
+    this.context = context;
+    this.directorySync = directorySync;
+    this.gitSync = gitSync;
   }
 
   async process(

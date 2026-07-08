@@ -7,7 +7,6 @@ export {
 
 // Schema and type exports
 export type {
-  LinkConfig,
   LinkEntity,
   LinkFrontmatter,
   LinkSource,
@@ -20,8 +19,9 @@ export {
   linkSourceSchema,
   linkStatusSchema,
   linkMetadataSchema,
-  linkConfigSchema,
 } from "./schemas/link";
+export { linkConfigSchema } from "./schemas/link-config";
+export type { LinkConfig, LinkConfigInput } from "./schemas/link-config";
 
 // Adapter exports
 export { LinkAdapter, linkAdapter } from "./adapters/link-adapter";

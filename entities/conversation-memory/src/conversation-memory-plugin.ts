@@ -11,12 +11,12 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
+import { summarySchema, type SummaryEntity } from "./schemas/summary";
 import {
   summaryConfigSchema,
-  summarySchema,
   type SummaryConfig,
-  type SummaryEntity,
-} from "./schemas/summary";
+  type SummaryConfigInput,
+} from "./schemas/summary-config";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import {
   ActionItemAdapter,
@@ -47,25 +47,31 @@ import {
 } from "./lib/constants";
 import packageJson from "../package.json";
 
-const summaryAdapter = new SummaryAdapter();
-const decisionAdapter = new DecisionAdapter();
-const actionItemAdapter = new ActionItemAdapter();
+const summaryAdapter: SummaryAdapter = new SummaryAdapter();
+const decisionAdapter: DecisionAdapter = new DecisionAdapter();
+const actionItemAdapter: ActionItemAdapter = new ActionItemAdapter();
 
-const conversationMessageAddedSchema = z.object({
-  conversationId: z.string(),
-});
+interface ConversationMessageAddedPayload {
+  conversationId: string;
+}
+
+const conversationMessageAddedSchema: z.ZodType<ConversationMessageAddedPayload> =
+  z.object({
+    conversationId: z.string(),
+  });
 
 export class ConversationMemoryPlugin extends EntityPlugin<
   SummaryEntity,
-  SummaryConfig
+  SummaryConfig,
+  SummaryConfigInput
 > {
-  readonly entityType = SUMMARY_ENTITY_TYPE;
-  readonly schema = summarySchema;
-  readonly adapter = summaryAdapter;
+  readonly entityType: typeof SUMMARY_ENTITY_TYPE = SUMMARY_ENTITY_TYPE;
+  readonly schema: typeof summarySchema = summarySchema;
+  readonly adapter: typeof summaryAdapter = summaryAdapter;
 
   declare protected config: SummaryConfig;
 
-  constructor(config: Partial<SummaryConfig> = {}) {
+  constructor(config: SummaryConfigInput = {}) {
     super(SUMMARY_PLUGIN_ID, packageJson, config, summaryConfigSchema);
   }
 
@@ -233,7 +239,7 @@ export class ConversationMemoryPlugin extends EntityPlugin<
 }
 
 export function conversationMemoryPlugin(
-  config?: Partial<SummaryConfig>,
+  config: SummaryConfigInput = {},
 ): ConversationMemoryPlugin {
   return new ConversationMemoryPlugin(config);
 }

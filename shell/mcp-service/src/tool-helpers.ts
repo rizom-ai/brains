@@ -1,24 +1,37 @@
 import type { Tool, Resource, ToolResponse, ToolContext } from "./types";
-import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import { Logger } from "@brains/utils/logger";
+import { z, type ZodRawShape } from "@brains/utils/zod";
+
+export interface ToolSuccessResult<T = unknown> {
+  success: true;
+  data: T;
+  message?: string | undefined;
+}
+
+export interface ToolErrorResult {
+  success: false;
+  error: string;
+  code?: string | undefined;
+}
 
 /**
  * Zod schema for tool result validation
  * Use this to parse/validate tool results at runtime
  */
-export const toolResultSchema = z.union([
-  z.object({
-    success: z.literal(true),
-    data: z.unknown(),
-    message: z.string().optional(),
-  }),
-  z.object({
-    success: z.literal(false),
-    error: z.string(),
-    code: z.string().optional(),
-  }),
-]);
+export const toolResultSchema: z.ZodType<ToolSuccessResult | ToolErrorResult> =
+  z.union([
+    z.object({
+      success: z.literal(true),
+      data: z.unknown(),
+      message: z.string().optional(),
+    }),
+    z.object({
+      success: z.literal(false),
+      error: z.string(),
+      code: z.string().optional(),
+    }),
+  ]);
 
 /**
  * Standardized tool result type derived from schema
@@ -26,12 +39,7 @@ export const toolResultSchema = z.union([
  *
  * @template T - The type of data returned on success (defaults to unknown)
  */
-export type ToolResult<T = unknown> =
-  | (Omit<
-      Extract<z.infer<typeof toolResultSchema>, { success: true }>,
-      "data"
-    > & { data: T })
-  | Extract<z.infer<typeof toolResultSchema>, { success: false }>;
+export type ToolResult<T = unknown> = ToolSuccessResult<T> | ToolErrorResult;
 
 /**
  * Helper to create a success result
@@ -75,8 +83,17 @@ export function toolError(error: string, code?: string): ToolResult<never> {
  * );
  * ```
  */
+function formatZodError(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => {
+      const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
+      return `${path}: ${issue.message}`;
+    })
+    .join(", ");
+}
+
 export function createTool<
-  TSchema extends z.ZodObject<z.ZodRawShape>,
+  TSchema extends z.ZodObject<ZodRawShape>,
   TOutput = unknown,
 >(
   pluginId: string,
@@ -84,7 +101,7 @@ export function createTool<
   description: string,
   inputSchema: TSchema,
   handler: (
-    input: z.infer<TSchema>,
+    input: z.output<TSchema>,
     context: ToolContext,
   ) => Promise<ToolResult<TOutput>>,
   options: {
@@ -103,20 +120,19 @@ export function createTool<
     cli,
   } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
+  const inputShape = inputSchema.shape;
 
   return {
     name: `${pluginId}_${name}`,
     description,
-    inputSchema: inputSchema.shape,
+    inputSchema: inputShape,
     handler: async (input, context): Promise<ToolResponse> => {
       logger?.debug(`Tool ${name} started`);
       try {
         // Auto-validate input
         const parseResult = inputSchema.safeParse(input);
         if (!parseResult.success) {
-          const errorMessage = parseResult.error.errors
-            .map((e) => `${e.path.join(".")}: ${e.message}`)
-            .join(", ");
+          const errorMessage = formatZodError(parseResult.error);
           logger?.debug(`Tool ${name} validation failed: ${errorMessage}`);
           return {
             success: false,

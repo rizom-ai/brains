@@ -1,30 +1,41 @@
 import type { EntityPluginContext, JobHandler } from "@brains/plugins";
+import type { SummaryConfig } from "../schemas/summary-config";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { getErrorMessage } from "@brains/utils/error";
-import type { SummaryConfig } from "../schemas/summary";
 import {
   SummaryProjector,
   type ProjectSummaryResult,
 } from "../lib/summary-projector";
 import type { SUMMARY_PROJECTION_JOB_TYPE } from "../lib/constants";
 
-export const summaryProjectionJobDataSchema = z.discriminatedUnion("mode", [
-  z.object({
-    mode: z.literal("conversation"),
-    conversationId: z.string(),
-    reason: z.string().optional(),
-  }),
-  z.object({
-    mode: z.literal("rebuild-all"),
-    reason: z.string().optional(),
-  }),
-]);
+export interface SummaryProjectionConversationJobData {
+  mode: "conversation";
+  conversationId: string;
+  reason?: string | undefined;
+}
 
-export type SummaryProjectionJobData = z.infer<
-  typeof summaryProjectionJobDataSchema
->;
+export interface SummaryProjectionRebuildAllJobData {
+  mode: "rebuild-all";
+  reason?: string | undefined;
+}
+
+export type SummaryProjectionJobData =
+  SummaryProjectionConversationJobData | SummaryProjectionRebuildAllJobData;
+
+export const summaryProjectionJobDataSchema: z.ZodType<SummaryProjectionJobData> =
+  z.discriminatedUnion("mode", [
+    z.object({
+      mode: z.literal("conversation"),
+      conversationId: z.string(),
+      reason: z.string().optional(),
+    }),
+    z.object({
+      mode: z.literal("rebuild-all"),
+      reason: z.string().optional(),
+    }),
+  ]);
 
 export interface SummaryProjectionResult {
   projected: number;
@@ -37,13 +48,17 @@ export class SummaryProjectionHandler implements JobHandler<
   SummaryProjectionJobData,
   SummaryProjectionResult
 > {
+  private readonly context: EntityPluginContext;
+  private readonly logger: Logger;
   private readonly projector: SummaryProjector;
 
   constructor(
-    private readonly context: EntityPluginContext,
-    private readonly logger: Logger,
+    context: EntityPluginContext,
+    logger: Logger,
     config: SummaryConfig,
   ) {
+    this.context = context;
+    this.logger = logger;
     this.projector = new SummaryProjector(context, logger, config);
   }
 

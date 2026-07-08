@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import { join } from "node:path";
-import { nowSeconds } from "@brains/utils/date";
 import { JsonFileStore } from "./json-file-store";
+import { nowSeconds } from "@brains/utils/date";
+import { z } from "@brains/utils/zod";
+import { join } from "node:path";
 
 const DEFAULT_SESSION_STORE_FILE = "oauth-sessions.json";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
@@ -34,33 +35,21 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("base64url");
 }
 
-function isOperatorSessionRecord(
-  value: unknown,
-): value is OperatorSessionRecord {
-  if (!value || typeof value !== "object") return false;
-  const session = value as Record<string, unknown>;
-  return (
-    typeof session["id"] === "string" &&
-    typeof session["token_hash"] === "string" &&
-    typeof session["subject"] === "string" &&
-    typeof session["created_at"] === "number" &&
-    typeof session["expires_at"] === "number"
-  );
-}
+const operatorSessionRecordSchema = z.looseObject({
+  id: z.string(),
+  token_hash: z.string(),
+  subject: z.string(),
+  created_at: z.number(),
+  expires_at: z.number(),
+});
+
+const sessionStoreFileSchema = z.looseObject({
+  sessions: z.array(operatorSessionRecordSchema).optional(),
+});
 
 function parseStoreFile(value: unknown): SessionStoreFile {
-  if (!value || typeof value !== "object") {
-    return { sessions: [] };
-  }
-
-  const sessions = (value as { sessions?: unknown }).sessions;
-  if (!Array.isArray(sessions)) {
-    return { sessions: [] };
-  }
-
-  return {
-    sessions: sessions.filter(isOperatorSessionRecord),
-  };
+  const parsed = sessionStoreFileSchema.safeParse(value);
+  return { sessions: parsed.success ? (parsed.data.sessions ?? []) : [] };
 }
 
 function sessionCookie(

@@ -95,10 +95,8 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
   });
 
   it("should demonstrate widget consumer pattern: subscribe in onRegister before all-registered signal", async () => {
-    let consumerSubscribedTime = 0;
+    const consumerSubscribedTime = Date.now();
     let widgetReceivedTime = 0;
-
-    consumerSubscribedTime = Date.now();
     harness.subscribe("dashboard:register-widget", (message) => {
       widgetReceivedTime = Date.now();
       const payload = message.payload as { id: string; pluginId: string };

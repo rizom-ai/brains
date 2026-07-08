@@ -1,9 +1,9 @@
-import { createTemplate } from "@brains/plugins";
+import { createTemplate, type Template } from "@brains/plugins";
 import { topicDetailSchema, type TopicDetailData } from "./schema";
 import { TopicDetailLayout } from "./layout";
 import { TopicDetailFormatter } from "./formatter";
 
-export const topicDetailTemplate = createTemplate<TopicDetailData>({
+export const topicDetailTemplate: Template = createTemplate<TopicDetailData>({
   name: "topics:topic-detail",
   description: "Detailed view of a single topic",
   schema: topicDetailSchema,

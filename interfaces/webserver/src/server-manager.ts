@@ -148,6 +148,7 @@ export class ServerManager {
       ) {
         throw new Error(
           `Port ${this.options.productionPort} is already in use. Another brain may be running — stop it first or configure a different port.`,
+          { cause: error },
         );
       }
       throw error;

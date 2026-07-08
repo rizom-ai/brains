@@ -1,10 +1,7 @@
 import type { Plugin, EntityPluginContext } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
-import {
-  swotEntitySchema,
-  type SwotEntity,
-  type SwotDerivationJobData,
-} from "./schemas/swot";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
+import type { SwotDerivationJobData } from "./schemas/swot-generation";
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
 import { SwotWidget } from "./widgets/swot-widget";
@@ -13,15 +10,19 @@ import packageJson from "../package.json";
 
 const swotAdapter = new SwotAdapter();
 
-export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
-  readonly entityType = "swot";
-  readonly schema = swotEntitySchema;
-  readonly adapter = swotAdapter;
+export class SwotAssessmentPlugin extends EntityPlugin<
+  SwotEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  readonly entityType = "swot" as const;
+  readonly schema: typeof swotEntitySchema = swotEntitySchema;
+  readonly adapter: SwotAdapter = swotAdapter;
 
   private initialSyncComplete = false;
 
   constructor() {
-    super("swot", packageJson);
+    super("swot", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override async onRegister(

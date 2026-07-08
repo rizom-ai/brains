@@ -2,7 +2,11 @@ import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import { GitSync } from "./lib/git-sync";
-import { directorySyncConfigSchema, type DirectorySyncConfig } from "./types";
+import {
+  directorySyncConfigSchema,
+  type DirectorySyncConfig,
+  type DirectorySyncConfigInput,
+} from "./types";
 import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 import { directorySyncStatusSchema } from "./schemas";
 import { DirectorySyncRequestJobHandler } from "./handlers";
@@ -17,12 +21,15 @@ import { createDirectorySyncTools } from "./tools";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
-export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
+export class DirectorySyncPlugin extends ServicePlugin<
+  DirectorySyncConfig,
+  DirectorySyncConfigInput
+> {
   private directorySync?: DirectorySync;
   private gitSync?: GitSync;
   private gitCleanups: Array<() => void> = [];
 
-  constructor(config: Partial<DirectorySyncConfig> = {}) {
+  constructor(config: DirectorySyncConfigInput = {}) {
     super("directory-sync", packageJson, config, directorySyncConfigSchema);
   }
 
@@ -231,10 +238,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   }
 }
 
-export function directorySync(
-  config: Partial<DirectorySyncConfig> = {},
-): Plugin {
+export function directorySync(config: DirectorySyncConfigInput = {}): Plugin {
   return new DirectorySyncPlugin(config);
 }
 
-export const directorySyncPlugin = directorySync;
+export const directorySyncPlugin: typeof directorySync = directorySync;

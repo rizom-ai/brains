@@ -1,12 +1,12 @@
 import { InterfacePlugin as RuntimeInterfacePlugin } from "../interface/interface-plugin";
 import type { InterfacePluginContext as RuntimeInterfacePluginContext } from "../interface/context";
+import type { PluginConfigSchema } from "../config";
 import type {
   IShell,
   PluginCapabilities,
   PluginRegistrationContext,
 } from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
-import type { z } from "@brains/utils/zod";
 import type {
   BaseJobTrackingInfo,
   InterfacePluginContext,
@@ -28,16 +28,19 @@ interface InterfacePluginHooks {
 
 class InterfacePluginDelegate<
   TConfig,
+  TConfigInput,
   TTrackingInfo extends BaseJobTrackingInfo,
-> extends RuntimeInterfacePlugin<TConfig, TTrackingInfo> {
+> extends RuntimeInterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
+  private readonly hooks: InterfacePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
-    private readonly hooks: InterfacePluginHooks,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
+    hooks: InterfacePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
+    this.hooks = hooks;
   }
 
   protected override onRegister(
@@ -78,7 +81,8 @@ class InterfacePluginDelegate<
 }
 
 export abstract class InterfacePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TTrackingInfo extends BaseJobTrackingInfo = BaseJobTrackingInfo,
 > implements Plugin {
   public readonly type = "interface" as const;
@@ -86,13 +90,17 @@ export abstract class InterfacePlugin<
   public readonly version: string;
   public readonly packageName: string;
   public readonly description?: string;
-  private readonly delegate: InterfacePluginDelegate<TConfig, TTrackingInfo>;
+  private readonly delegate: InterfacePluginDelegate<
+    TConfig,
+    TConfigInput,
+    TTrackingInfo
+  >;
 
   protected constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;

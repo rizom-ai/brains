@@ -6,17 +6,27 @@ import {
 } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
 import { rizomBaseSite } from "./runtime";
-import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
+import {
+  type RizomRuntimeConfigInput,
+  RizomRuntimePlugin,
+  type RizomThemeProfile,
+} from "./runtime/plugin";
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
+  private readonly contentNamespace: string;
+  private readonly extraTemplates: Record<string, Template>;
+  private readonly dataSources: DataSource[];
   constructor(
     packageName: string,
-    config: Record<string, unknown>,
-    private readonly contentNamespace: string,
-    private readonly extraTemplates: Record<string, Template>,
-    private readonly dataSources: DataSource[] = [],
+    config: RizomRuntimeConfigInput,
+    contentNamespace: string,
+    extraTemplates: Record<string, Template>,
+    dataSources: DataSource[] = [],
   ) {
     super(packageName, config);
+    this.contentNamespace = contentNamespace;
+    this.extraTemplates = extraTemplates;
+    this.dataSources = dataSources;
   }
 
   protected override async onRegister(
@@ -42,9 +52,9 @@ export interface CreateRizomSiteOptions {
 
 export function createRizomSite(
   options: CreateRizomSiteOptions,
-): SitePackage<Record<string, unknown>, Plugin> {
-  const plugin: SitePackage<Record<string, unknown>, Plugin>["plugin"] = (
-    config?: Record<string, unknown>,
+): SitePackage<RizomRuntimeConfigInput, Plugin> {
+  const plugin: SitePackage<RizomRuntimeConfigInput, Plugin>["plugin"] = (
+    config?: RizomRuntimeConfigInput,
   ): Plugin =>
     new RizomVariantPlugin(
       options.packageName,

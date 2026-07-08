@@ -7,22 +7,20 @@ import type { BaseEntity } from "@brains/entity-service";
 import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 
-const updateEntityRequestSchema = z
-  .object({
-    options: z
-      .object({
-        eventContext: z
-          .object({
-            conversationId: z.string().optional(),
-            channelId: z.string().optional(),
-            runId: z.string().optional(),
-            toolCallId: z.string().optional(),
-          })
-          .optional(),
-      })
-      .optional(),
-  })
-  .passthrough();
+const updateEntityRequestSchema = z.looseObject({
+  options: z
+    .object({
+      eventContext: z
+        .object({
+          conversationId: z.string().optional(),
+          channelId: z.string().optional(),
+          runId: z.string().optional(),
+          toolCallId: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
 
 describe("system_update tool", () => {
   it("describes id as accepting entity id, slug, or title", () => {

@@ -18,13 +18,12 @@ A plugin package should declare `@rizom/brain` as a peer dependency. The instanc
     }
   },
   "peerDependencies": {
-    "@rizom/brain": "^0.2.0-alpha.54",
-    "zod": "^3.0.0"
+    "@rizom/brain": "^0.2.0-alpha.54"
   }
 }
 ```
 
-Do not import internal `@brains/*` workspaces from external plugins. `PLUGIN_API_VERSION` is available from the root `@rizom/brain` export for diagnostics; compatibility during alpha is enforced through `peerDependencies`. The minimal reference package is [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello). `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
+Do not import internal `@brains/*` workspaces or `zod` directly from external plugins. Use the blessed `z` export from `@rizom/brain` for schema authoring so the SDK owns schema-version compatibility. `PLUGIN_API_VERSION` is available from the root `@rizom/brain` export for diagnostics; compatibility during alpha is enforced through `peerDependencies`. The minimal reference package is [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello). `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
 
 - `@rizom/brain`
 - `@rizom/brain/plugins`
@@ -38,6 +37,7 @@ Do not import internal `@brains/*` workspaces from external plugins. `PLUGIN_API
 Export a plugin factory as either the default export or a named `plugin` export. Exporting both is fine.
 
 ```ts
+import { z } from "@rizom/brain";
 import {
   ServicePlugin,
   createTool,
@@ -46,15 +46,13 @@ import {
   type ServicePluginContext,
   type Tool,
 } from "@rizom/brain/plugins";
-import { z } from "zod";
-
-interface CalendarConfig {
-  timezone?: string;
-}
 
 const configSchema = z.object({
   timezone: z.optional(z.string()),
 });
+
+type CalendarConfig = z.output<typeof configSchema>;
+type CalendarConfigInput = z.input<typeof configSchema>;
 
 const packageJson = {
   name: "@rizom/brain-plugin-calendar",
@@ -62,8 +60,11 @@ const packageJson = {
   description: "Calendar integration",
 };
 
-class CalendarPlugin extends ServicePlugin<CalendarConfig> {
-  constructor(config: Partial<CalendarConfig> = {}) {
+class CalendarPlugin extends ServicePlugin<
+  CalendarConfig,
+  CalendarConfigInput
+> {
+  constructor(config: CalendarConfigInput = {}) {
     super("calendar", packageJson, config, configSchema);
   }
 
@@ -142,12 +143,12 @@ Reach for context calls when registration is conditional on config, when you nee
 Use `InterfacePlugin` for generic/non-chat interfaces. Use `MessageInterfacePlugin` when building a channel/chat surface such as Slack, Teams, Matrix, Telegram, or Discord. It extends `InterfacePlugin` with shared message-routing helpers, progress-message tracking, URL capture helpers, and text-upload validation.
 
 ```ts
+import { z } from "@rizom/brain";
 import {
   MessageInterfacePlugin,
   type JobProgressEvent,
   type PluginFactory,
 } from "@rizom/brain/plugins";
-import { z } from "zod";
 
 const packageJson = {
   name: "@rizom/brain-plugin-chat-example",

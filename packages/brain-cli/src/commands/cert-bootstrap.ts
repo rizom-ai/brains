@@ -28,12 +28,10 @@ export interface CertBootstrapResult {
   certificatePem: string;
 }
 
-const certBootstrapEnvSchema = z
-  .object({
-    CF_API_TOKEN: z.string().min(1).optional(),
-    CF_ZONE_ID: z.string().min(1).optional(),
-  })
-  .passthrough();
+const certBootstrapEnvSchema = z.looseObject({
+  CF_API_TOKEN: z.string().min(1).optional(),
+  CF_ZONE_ID: z.string().min(1).optional(),
+});
 
 export async function runCertBootstrap(
   cwd: string,

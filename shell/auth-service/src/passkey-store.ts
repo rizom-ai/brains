@@ -1,7 +1,8 @@
 import { join } from "node:path";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
-import { nowSeconds } from "@brains/utils/date";
 import { JsonFileStore } from "./json-file-store";
+import { nowSeconds } from "@brains/utils/date";
+import { z } from "@brains/utils/zod";
 
 const DEFAULT_PASSKEY_STORE_FILE = "oauth-passkeys.json";
 const CHALLENGE_TTL_SECONDS = 10 * 60;
@@ -37,47 +38,72 @@ export interface PasskeyStoreOptions {
   storeFile?: string;
 }
 
-function isCredential(value: unknown): value is StoredPasskeyCredential {
-  if (!value || typeof value !== "object") return false;
-  const credential = value as Record<string, unknown>;
-  return (
-    typeof credential["id"] === "string" &&
-    typeof credential["public_key"] === "string" &&
-    typeof credential["counter"] === "number" &&
-    typeof credential["subject"] === "string" &&
-    typeof credential["user_name"] === "string" &&
-    typeof credential["created_at"] === "number" &&
-    typeof credential["updated_at"] === "number"
-  );
-}
+const authenticatorTransportSchema = z.custom<AuthenticatorTransportFuture>(
+  (value) => typeof value === "string",
+);
 
-function isChallenge(value: unknown): value is StoredWebAuthnChallenge {
-  if (!value || typeof value !== "object") return false;
-  const challenge = value as Record<string, unknown>;
-  return (
-    typeof challenge["challenge"] === "string" &&
-    typeof challenge["subject"] === "string" &&
-    typeof challenge["created_at"] === "number" &&
-    typeof challenge["expires_at"] === "number"
-  );
-}
+const credentialSchema = z
+  .looseObject({
+    id: z.string(),
+    public_key: z.string(),
+    counter: z.number(),
+    transports: z.array(authenticatorTransportSchema).optional(),
+    subject: z.string(),
+    user_name: z.string(),
+    credential_device_type: z.string().optional(),
+    credential_backed_up: z.boolean().optional(),
+    created_at: z.number(),
+    updated_at: z.number(),
+  })
+  .transform((credential): StoredPasskeyCredential => ({
+    id: credential.id,
+    public_key: credential.public_key,
+    counter: credential.counter,
+    ...(credential.transports !== undefined
+      ? { transports: credential.transports }
+      : {}),
+    subject: credential.subject,
+    user_name: credential.user_name,
+    credential_device_type: credential.credential_device_type ?? "unknown",
+    credential_backed_up: credential.credential_backed_up ?? false,
+    created_at: credential.created_at,
+    updated_at: credential.updated_at,
+  }));
+
+const challengeSchema = z.looseObject({
+  challenge: z.string(),
+  subject: z.string(),
+  created_at: z.number(),
+  expires_at: z.number(),
+});
+
+const passkeyStoreFileSchema = z.looseObject({
+  credentials: z.array(z.unknown()).optional(),
+  registrationChallenges: z.array(z.unknown()).optional(),
+  authenticationChallenges: z.array(z.unknown()).optional(),
+});
 
 function parseStoreFile(value: unknown): PasskeyStoreFile {
-  if (!value || typeof value !== "object") {
-    return emptyStore();
-  }
-  const file = value as Partial<Record<keyof PasskeyStoreFile, unknown>>;
+  const parsed = passkeyStoreFileSchema.safeParse(value);
+  if (!parsed.success) return emptyStore();
+
   return {
-    credentials: Array.isArray(file.credentials)
-      ? file.credentials.filter(isCredential)
-      : [],
-    registrationChallenges: Array.isArray(file.registrationChallenges)
-      ? file.registrationChallenges.filter(isChallenge)
-      : [],
-    authenticationChallenges: Array.isArray(file.authenticationChallenges)
-      ? file.authenticationChallenges.filter(isChallenge)
-      : [],
+    credentials: parsed.data.credentials?.flatMap(parseCredential) ?? [],
+    registrationChallenges:
+      parsed.data.registrationChallenges?.flatMap(parseChallenge) ?? [],
+    authenticationChallenges:
+      parsed.data.authenticationChallenges?.flatMap(parseChallenge) ?? [],
   };
+}
+
+function parseCredential(value: unknown): StoredPasskeyCredential[] {
+  const parsed = credentialSchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
+}
+
+function parseChallenge(value: unknown): StoredWebAuthnChallenge[] {
+  const parsed = challengeSchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
 }
 
 function emptyStore(): PasskeyStoreFile {

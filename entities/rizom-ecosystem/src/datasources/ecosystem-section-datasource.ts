@@ -1,16 +1,20 @@
-import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { parseEcosystemContent } from "../lib";
 
-const querySchema = z
-  .object({
-    query: z
-      .object({
-        id: z.string().optional(),
-      })
-      .optional(),
-  })
-  .passthrough();
+const querySchema = z.looseObject({
+  query: z
+    .object({
+      id: z.string().optional(),
+    })
+    .optional(),
+});
+
+type EcosystemSectionQuery = z.output<typeof querySchema>;
 
 export class EcosystemSectionDataSource implements DataSource {
   public readonly id = "rizom-ecosystem:entities";
@@ -20,10 +24,10 @@ export class EcosystemSectionDataSource implements DataSource {
 
   public async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const input = querySchema.parse(query ?? {});
+    const input: EcosystemSectionQuery = querySchema.parse(query ?? {});
     const id = input.query?.id ?? "rizom-ecosystem";
     const entity = await context.entityService.getEntity({
       entityType: "ecosystem-section",

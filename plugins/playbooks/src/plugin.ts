@@ -78,14 +78,63 @@ import {
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
 
-const playbooksConfigSchema = z
-  .object({
-    lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
-    triggers: z.record(z.string(), z.boolean()).default({}),
-  })
-  .strict();
+export interface LifecyclePlaybookConfigInput {
+  trigger: string;
+  playbookId: string;
+  once?: boolean | undefined;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
 
-const lifecycleStartersRequestSchema = z
+export interface PlaybooksConfig {
+  lifecycle: Record<string, LifecyclePlaybookConfig>;
+  triggers: Record<string, boolean>;
+}
+
+export interface PlaybooksConfigInput {
+  lifecycle?: Record<string, LifecyclePlaybookConfigInput> | undefined;
+  triggers?: Record<string, boolean> | undefined;
+}
+
+interface LifecycleStartersRequest {
+  lifecycle?: string | undefined;
+  interfaceType: string;
+  userPermissionLevel: "anchor" | "trusted" | "public";
+}
+
+export interface PlaybookEntityMetadata extends Record<string, unknown> {
+  title: string;
+  status: "draft" | "active" | "archived";
+  audience: "anchor" | "trusted" | "public";
+  trigger?: string | undefined;
+  lifecycle?: string | undefined;
+  once?: boolean | undefined;
+  starterText?: string | undefined;
+  description?: string | undefined;
+  starterPrompt?: string | undefined;
+  completionMode: "agent-confirmed" | "manual";
+}
+
+export interface PlaybookEntity extends Record<string, unknown> {
+  id: string;
+  entityType: "playbook";
+  content: string;
+  metadata: PlaybookEntityMetadata;
+}
+
+const playbooksConfigSchema: z.ZodType<PlaybooksConfig, PlaybooksConfigInput> =
+  z
+    .object({
+      lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
+      triggers: z.record(z.string(), z.boolean()).default({}),
+    })
+    .strict();
+
+const lifecycleStartersRequestSchema: z.ZodType<
+  LifecycleStartersRequest,
+  LifecycleStartersRequest
+> = z
   .object({
     lifecycle: z.string().min(1).optional(),
     interfaceType: z.string().min(1),
@@ -93,7 +142,7 @@ const lifecycleStartersRequestSchema = z
   })
   .strict();
 
-const playbookEntitySchema = z
+const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
   .object({
     id: z.string().min(1),
     entityType: z.literal("playbook"),
@@ -132,9 +181,6 @@ const sendEventInputSchema = {
   fromState: z.string().min(1).optional(),
   context: z.record(z.string(), z.unknown()).optional(),
 };
-
-export type PlaybooksConfig = z.infer<typeof playbooksConfigSchema>;
-export type PlaybookEntity = z.infer<typeof playbookEntitySchema>;
 
 export interface ParsedPlaybook {
   entity: PlaybookEntity;
@@ -198,7 +244,10 @@ export interface PlaybooksPluginDeps {
   goalCheck?: GoalCheck | undefined;
 }
 
-export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
+export class PlaybooksPlugin extends ServicePlugin<
+  PlaybooksConfig,
+  PlaybooksConfigInput
+> {
   private store!: PlaybookRunStore;
   private ctx: ServicePluginContext | undefined;
   private goalCheck: GoalCheck;
@@ -209,7 +258,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private runs!: RunEngine;
 
   constructor(
-    config: Partial<PlaybooksConfig> = {},
+    config: PlaybooksConfigInput = {},
     deps: PlaybooksPluginDeps = {},
   ) {
     super("playbooks", packageJson, config, playbooksConfigSchema);
@@ -251,7 +300,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     );
 
     context.messaging.subscribe<
-      z.infer<typeof lifecycleStartersRequestSchema>,
+      LifecycleStartersRequest,
       LifecycleStartersResponse
     >(PLAYBOOKS_LIFECYCLE_STARTERS, async (message) => {
       const input = lifecycleStartersRequestSchema.parse(message.payload);
@@ -1068,7 +1117,7 @@ const defaultGoalCheck: GoalCheck = {
 };
 
 export function playbooksPlugin(
-  config: Partial<PlaybooksConfig> = {},
+  config: PlaybooksConfigInput = {},
   deps: PlaybooksPluginDeps = {},
 ): PlaybooksPlugin {
   return new PlaybooksPlugin(config, deps);

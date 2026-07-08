@@ -38,7 +38,22 @@ import { z } from "@brains/utils/zod";
  * Schema for runtime call options
  * Defines type-safe inputs passed at generation time
  */
-export const brainCallOptionsSchema = z.object({
+const brainCallOptionsSchemaInternal: z.ZodObject<{
+  userPermissionLevel: z.ZodEnum<{
+    anchor: "anchor";
+    trusted: "trusted";
+    public: "public";
+  }>;
+  conversationId: z.ZodString;
+  channelId: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodOptional<z.ZodString>;
+  interfaceType: z.ZodString;
+  agentContextInstructions: z.ZodOptional<z.ZodString>;
+  disableTools: z.ZodOptional<z.ZodBoolean>;
+  enableCreateUpload: z.ZodOptional<z.ZodBoolean>;
+  enableCreateTransform: z.ZodOptional<z.ZodBoolean>;
+  hasPriorResponseCandidate: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
   conversationId: z.string(),
   channelId: z.string().optional(),
@@ -50,6 +65,9 @@ export const brainCallOptionsSchema = z.object({
   enableCreateTransform: z.boolean().optional(),
   hasPriorResponseCandidate: z.boolean().optional(),
 });
+
+export const brainCallOptionsSchema: typeof brainCallOptionsSchemaInternal =
+  brainCallOptionsSchemaInternal;
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
 

@@ -1,6 +1,6 @@
 import type { PublishProvider } from "@brains/contracts";
 import type { ToolContext } from "@brains/plugins";
-import type { PublishConfig } from "./config";
+import type { PublishConfigInput } from "./config";
 import type { PublishAssetDefinition } from "../publish-assets";
 
 export interface PublishAuthContext {
@@ -25,7 +25,7 @@ export const SYSTEM_PUBLISH_AUTH_CONTEXT: PublishAuthContext = {
 export interface PublishRegisterPayload {
   entityType: string;
   provider?: PublishProvider;
-  config?: PublishConfig;
+  config?: PublishConfigInput;
 }
 
 /** Add entity to publish queue */
