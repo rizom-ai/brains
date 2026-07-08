@@ -109,6 +109,34 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('class="tab-badge tab-badge--muted">1</span>');
     expect(html).toContain('data-dashboard-group="publishing"');
     expect(html).toContain('data-dashboard-group="network"');
+    // Built-in tabs carry no plain-count badge (mockup: System has no badge).
+    expect(html).not.toContain('class="tab-badge tab-badge--muted">0</span>');
+  });
+
+  it("should wrap the console chrome and panels in a single frame", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('class="frame"');
+    expect(html).toContain('class="canvas"');
+    // Strip, masthead, tab bar, and panels all live inside the frame.
+    const frameIndex = html.indexOf('class="frame"');
+    expect(frameIndex).toBeGreaterThan(-1);
+    expect(frameIndex).toBeLessThan(html.indexOf('class="console-strip"'));
+    expect(frameIndex).toBeLessThan(html.indexOf('class="masthead"'));
+    expect(frameIndex).toBeLessThan(html.indexOf('class="dashboard-tabs"'));
+    expect(frameIndex).toBeLessThan(
+      html.indexOf('class="dashboard-tab-panels"'),
+    );
   });
 
   it("should render overview vitals and digest lines from widgets", () => {
@@ -161,13 +189,26 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Runtime vitals");
     expect(html).toContain("Semantic index");
     expect(html).toContain("Ready");
+    // Vitals carry sub-lines and semantic status dots per the mockup.
+    expect(html).toContain('class="vital-sub"');
+    expect(html).toContain("vital-card--ok");
     expect(html).toContain("Queued");
     expect(html).toContain("Published");
     expect(html).toContain('href="#publishing"');
-    expect(html).toContain("Activity ledger");
+    expect(html).toContain("open →");
+    expect(html).toContain("Activity");
     expect(html).toContain(
       "No entity activity has been observed this session.",
     );
+    // Overview is a fixed composition: no entity-summary or interactions
+    // cards on the overview panel (they live in their group tabs).
+    const overviewPanel = html.slice(
+      html.indexOf('id="overview"'),
+      html.indexOf('id="knowledge"'),
+    );
+    expect(overviewPanel).not.toContain("card--entity-summary");
+    expect(overviewPanel).not.toContain("Ways to connect");
+    expect(overviewPanel).toContain("overview-grid");
   });
 
   it("should render all tab panels in the no-JS HTML output", () => {
@@ -226,9 +267,10 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("Activity ledger");
+    // Ledger entries follow the mockup shape: time | glyph | what.
+    expect(html).toContain('class="ledger-entry"');
     expect(html).toContain("updated");
-    expect(html).toContain("note:project-plan");
+    expect(html).toContain("note/project-plan");
   });
 
   it("should render a built-in System tab with runtime status", () => {
@@ -291,11 +333,11 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).toContain('href="#system"');
     expect(html).toContain('id="system"');
-    expect(html).toContain("System health");
-    expect(html).toContain("1/1 healthy");
+    // System tab splits into the mockup's instrument cards.
+    expect(html).toContain("Semantic index");
+    expect(html).toContain("Content sync");
     expect(html).toContain("Job queue");
-    expect(html).toContain("1 recent");
-    expect(html).toContain("<dt>Semantic index</dt><dd>Ready</dd>");
+    expect(html).toContain("1/1 healthy");
     expect(html).toContain("Semantic index · ready · 0 active");
     expect(html).toContain("Watching");
     expect(html).toContain("/brain/content");
@@ -304,6 +346,14 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("last sync");
     expect(html).toContain("site:build");
     expect(html).toContain("1/3");
+    // Job queue renders as a table with status pills.
+    expect(html).toContain('class="jobs"');
+    expect(html).toContain('class="status-pill status-pill--run"');
+    // Content sync shows the mini write pipeline.
+    expect(html).toContain('class="pipeline-mini"');
+    expect(html).toContain("entity db");
+    expect(html).toContain("exported");
+    expect(html).toContain("committed");
   });
 
   it("should render the shared console strip", () => {
@@ -331,9 +381,13 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('href="/chat"');
     expect(html).toContain('href="/cms"');
     expect(html).toContain("Operator");
+    // Mockup strip chrome: brandmark, command palette hint, session chip.
+    expect(html).toContain("Console");
+    expect(html).toContain("<kbd>⌘K</kbd>");
+    expect(html).toContain('class="session-chip"');
   });
 
-  it("should not render the masthead scoreboard", () => {
+  it("should render the mockup masthead with the theme toggle", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -353,8 +407,13 @@ describe("renderDashboardPageHtml", () => {
     const html = renderDashboardPageHtml(input);
 
     expect(html).not.toContain('class="scoreboard"');
-    expect(html).not.toContain("operator · sign out");
-    expect(html).toContain('class="masthead-action"');
+    expect(html).not.toContain('class="masthead-action"');
+    // Theme toggle lives in the masthead (mockup), session exit in the strip.
+    const masthead = html.slice(
+      html.indexOf('class="masthead"'),
+      html.indexOf('class="dashboard-tabs"'),
+    );
+    expect(masthead).toContain('id="themeToggle"');
     expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
   });
 
@@ -396,18 +455,20 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("Identity capsule");
-    expect(html).toContain("Values: clarity");
-    expect(html).toContain("Research brain");
-    expect(html).toContain("Ways to connect");
+    // Identity capsule: quoted role plus value chips (mockup composition).
+    expect(html).toContain('class="card identity-capsule"');
+    expect(html).toContain("“Research brain”");
+    expect(html).toContain('class="value">clarity</span>');
     expect(html).toContain("Operator access");
+    // Interactions move to the System tab; entity summary to Knowledge.
+    expect(html).toContain("Ways to connect");
     expect(html).toContain("Let other agents talk to this brain.");
     expect(html).toContain('href="https://brain.test/a2a"');
-    expect(html.indexOf("Ways to connect")).toBeLessThan(
-      html.indexOf("Operator access"),
-    );
     expect(html.indexOf("Operator access")).toBeLessThan(
-      html.indexOf("Entities"),
+      html.indexOf('id="knowledge"'),
+    );
+    expect(html.indexOf('id="knowledge"')).toBeLessThan(
+      html.indexOf("Ways to connect"),
     );
   });
 

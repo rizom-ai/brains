@@ -158,8 +158,12 @@ function groupExternalWidgets(
 
   const usedAnchors = new Map<string, number>();
 
-  if (!groupedWidgets.has("system")) {
-    groupedWidgets.set("system", createEmptyWidgetGroups());
+  // Tabs with dashboard built-ins exist even without registered widgets:
+  // knowledge (entity summary) and system (index/sync/jobs/runtime).
+  for (const builtInGroup of ["knowledge", "system"]) {
+    if (!groupedWidgets.has(builtInGroup)) {
+      groupedWidgets.set(builtInGroup, createEmptyWidgetGroups());
+    }
   }
 
   return sortDashboardGroups(Array.from(groupedWidgets.keys())).map((group) => {
@@ -179,8 +183,9 @@ function groupExternalWidgets(
 
     return {
       ...tabWithoutCounts,
-      widgetCount:
-        countTabWidgets(tabWithoutCounts) + (group === "system" ? 2 : 0),
+      // Built-ins are not counted: the muted badge reports registered
+      // widget volume only (the mockup's System tab carries no badge).
+      widgetCount: countTabWidgets(tabWithoutCounts),
       needsOperator: countNeedsOperator(tabWithoutCounts),
     };
   });
@@ -334,7 +339,9 @@ function ConsoleStrip({
     <header class="console-strip" aria-label="Operator surfaces">
       <a class="console-mark" href={dashboardPath} aria-label="Dashboard home">
         <span class="pulse"></span>
-        <span>Brain</span>
+        <span>
+          Brain · <b>Console</b>
+        </span>
       </a>
       <nav class="surface-nav" aria-label="Console surfaces">
         <a class="surface-nav-link is-active" href={dashboardPath}>
@@ -348,7 +355,8 @@ function ConsoleStrip({
         </a>
       </nav>
       <button class="command-chip" type="button" aria-label="Command menu">
-        ⌘K
+        <span class="command-chip-hint">Search or jump…</span>
+        <kbd>⌘K</kbd>
       </button>
       <a class="session-chip" href={sessionHref}>
         <span>{sessionLabel}</span>
@@ -382,9 +390,9 @@ function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
           <span>{tab.label}</span>
           {tab.needsOperator > 0 ? (
             <span class="tab-badge tab-badge--needs">{tab.needsOperator}</span>
-          ) : (
+          ) : tab.widgetCount > 0 ? (
             <span class="tab-badge tab-badge--muted">{tab.widgetCount}</span>
-          )}
+          ) : null}
         </a>
       ))}
     </nav>
@@ -400,26 +408,54 @@ function resolveIndexReady(input: DashboardRenderInput): boolean {
 function VitalsRow({ input }: { input: DashboardRenderInput }): JSX.Element {
   const indexReady = resolveIndexReady(input);
   const latestWrite = input.activityLog?.[0];
+  const typeCount = input.appInfo.entityCounts.length;
+  const channels = input.appInfo.interactions
+    .map((interaction) => interaction.id)
+    .slice(0, 3)
+    .join(" / ");
+  const embedded = input.appInfo.embeddings;
+  const hasActiveWrite = (input.jobProgress ?? []).some(
+    (job) => job.status === "processing" || job.status === "pending",
+  );
 
   return (
     <section class="overview-vitals" aria-label="Runtime vitals">
       <article class="vital-card">
-        <span>Entities</span>
-        <strong>{input.appInfo.entities}</strong>
+        <span class="vital-label">Entities</span>
+        <strong class="vital-num">{input.appInfo.entities}</strong>
+        <span class="vital-sub">
+          {typeCount === 1 ? "1 type" : `${typeCount} types`}
+        </span>
       </article>
       <article class="vital-card">
-        <span>Interactions</span>
-        <strong>{input.appInfo.interactions.length}</strong>
+        <span class="vital-label">Interactions</span>
+        <strong class="vital-num">{input.appInfo.interactions.length}</strong>
+        <span class="vital-sub">{channels || "no channels"}</span>
       </article>
-      <article class="vital-card">
-        <span>Semantic index</span>
-        <strong>{indexReady ? "Ready" : "Pending"}</strong>
-      </article>
-      <article class="vital-card vital-card--muted">
-        <span>Last write</span>
-        <strong>
-          {latestWrite ? formatTimestamp(latestWrite.timestamp) : "—"}
+      <article
+        class={`vital-card ${indexReady ? "vital-card--ok" : "vital-card--warm"}`}
+      >
+        <span class="vital-label">Semantic index</span>
+        <strong class="vital-num vital-num--text">
+          {indexReady ? "Ready" : "Pending"}
         </strong>
+        <span class="vital-sub">
+          <b>
+            {embedded}/{input.appInfo.entities}
+          </b>{" "}
+          embedded
+        </span>
+      </article>
+      <article class={`vital-card${hasActiveWrite ? " vital-card--warm" : ""}`}>
+        <span class="vital-label">Last write</span>
+        <strong class="vital-num vital-num--text">
+          {latestWrite ? formatClock(latestWrite.timestamp) : "—"}
+        </strong>
+        <span class="vital-sub">
+          {latestWrite
+            ? `${latestWrite.entityType}/${latestWrite.entityId}`
+            : "no writes observed"}
+        </span>
       </article>
     </section>
   );
@@ -430,20 +466,28 @@ function IdentityCapsule({
 }: {
   input: DashboardRenderInput;
 }): JSX.Element | null {
-  const fragments = [
-    input.character.role,
-    input.character.purpose,
-    input.character.values.length > 0
-      ? `Values: ${input.character.values.join(", ")}`
-      : "",
-  ].filter(Boolean);
-
-  if (fragments.length === 0) return null;
+  const { role, purpose, values } = input.character;
+  if (!role && !purpose && values.length === 0) return null;
 
   return (
     <aside class="card identity-capsule">
-      <span class="card-title">Identity capsule</span>
-      <p>{fragments.join(" · ")}</p>
+      <div class="card-head">
+        <span class="card-title">Identity</span>
+        <span class="card-from">identity</span>
+      </div>
+      <div class="identity-capsule-body">
+        {role && <span class="identity-role">“{role}”</span>}
+        {values.length > 0 && (
+          <span class="values">
+            {values.map((value) => (
+              <span class="value" key={value}>
+                {value}
+              </span>
+            ))}
+          </span>
+        )}
+        {purpose && <span class="identity-purpose">{purpose}</span>}
+      </div>
     </aside>
   );
 }
@@ -461,12 +505,12 @@ function DigestCards({ cards }: { cards: OverviewDigestCard[] }): JSX.Element {
   }
 
   return (
-    <section class="digest-grid" aria-label="Group digests">
+    <section class="digests" aria-label="Group digests">
       {cards.map((card) => (
         <a class="card digest-card" href={card.href} key={card.id}>
-          <div class="card-head">
-            <span class="card-title">{card.label}</span>
-            <span class="card-subtitle">Open tab</span>
+          <div class="digest-head">
+            <h4>{card.label}</h4>
+            <span class="digest-go">open →</span>
           </div>
           <dl class="digest-lines">
             {card.lines.map((line) => (
@@ -496,6 +540,24 @@ function formatTimestamp(timestamp: string): string {
   });
 }
 
+function formatClock(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const LEDGER_GLYPHS: Record<
+  DashboardActivityEvent["action"],
+  { glyph: string; tone: string }
+> = {
+  created: { glyph: "＋", tone: "" },
+  updated: { glyph: "✓", tone: " ledger-glyph--ok" },
+  deleted: { glyph: "−", tone: " ledger-glyph--warn" },
+};
+
 function ActivityLedger({
   events,
 }: {
@@ -504,25 +566,33 @@ function ActivityLedger({
   return (
     <section class="card activity-ledger">
       <div class="card-head">
-        <span class="card-title">Activity ledger</span>
-        <span class="card-subtitle">Recent events</span>
+        <span class="card-title">Activity</span>
+        <span class="card-from">entity events</span>
       </div>
       {events.length === 0 ? (
         <p class="muted">No entity activity has been observed this session.</p>
       ) : (
-        <ol class="activity-list">
+        <ol class="ledger">
           {events.map((event) => (
             <li
-              class={`activity-item activity-item--${event.action}`}
+              class="ledger-entry"
               key={`${event.timestamp}:${event.action}:${event.entityType}:${event.entityId}`}
             >
-              <span class="activity-action">{event.action}</span>
-              <strong>
-                {event.entityType}:{event.entityId}
-              </strong>
-              <time dateTime={event.timestamp}>
-                {formatTimestamp(event.timestamp)}
+              <time class="ledger-time" dateTime={event.timestamp}>
+                {formatClock(event.timestamp)}
               </time>
+              <span
+                class={`ledger-glyph${LEDGER_GLYPHS[event.action].tone}`}
+                aria-hidden="true"
+              >
+                {LEDGER_GLYPHS[event.action].glyph}
+              </span>
+              <span class="ledger-what">
+                <b>{event.entityType}</b> {event.action} —{" "}
+                <code>
+                  {event.entityType}/{event.entityId}
+                </code>
+              </span>
             </li>
           ))}
         </ol>
@@ -597,12 +667,41 @@ function IndexGauge({
   );
 }
 
-function formatDirectorySyncDetails(
-  status: NonNullable<DashboardRenderInput["directorySyncStatus"]>,
-): string {
+function SemanticIndexCard({
+  input,
+}: {
+  input: DashboardRenderInput;
+}): JSX.Element {
+  const indexReady = resolveIndexReady(input);
+
+  return (
+    <section class="card semantic-index-card">
+      <div class="card-head">
+        <span class="card-title">Semantic index</span>
+        <span class="card-from">entity-service</span>
+      </div>
+      {input.indexStatus ? (
+        <IndexGauge status={input.indexStatus} />
+      ) : (
+        <dl class="kv">
+          <div class="kv-row">
+            <dt>Semantic index</dt>
+            <dd>{indexReady ? "Ready" : "Pending"}</dd>
+          </div>
+        </dl>
+      )}
+    </section>
+  );
+}
+
+function ContentSyncCard({
+  status,
+}: {
+  status: NonNullable<DashboardRenderInput["directorySyncStatus"]>;
+}): JSX.Element {
   const fileSummary =
     status.totalFiles === undefined
-      ? undefined
+      ? "—"
       : status.totalFiles === 1
         ? "1 file"
         : `${status.totalFiles} files`;
@@ -614,112 +713,117 @@ function formatDirectorySyncDetails(
         .join(", ")
     : undefined;
 
-  return [
-    status.syncPath,
-    status.isInitialized ? "ready" : "missing",
-    fileSummary,
-    typeSummary,
-    status.lastSync
-      ? `last sync ${formatTimestamp(status.lastSync)}`
-      : undefined,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  return (
+    <section class="card content-sync-card">
+      <div class="card-head">
+        <span class="card-title">Content sync</span>
+        <span class="card-from">directory-sync</span>
+      </div>
+      <dl class="kv">
+        <div class="kv-row">
+          <dt>Path</dt>
+          <dd>{status.syncPath}</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Files</dt>
+          <dd>
+            {typeSummary ? `${fileSummary} · ${typeSummary}` : fileSummary}
+          </dd>
+        </div>
+        <div class="kv-row">
+          <dt>Watch</dt>
+          <dd>
+            {status.watchEnabled
+              ? "Watching"
+              : status.isInitialized
+                ? "Manual"
+                : "Not initialized"}
+          </dd>
+        </div>
+        <div class="kv-row">
+          <dt>Last sync</dt>
+          <dd>
+            {status.lastSync
+              ? `last sync ${formatTimestamp(status.lastSync)}`
+              : "—"}
+          </dd>
+        </div>
+      </dl>
+      <div class="pipeline-mini" aria-label="Write pipeline">
+        <span class={`pipeline-step${status.isInitialized ? " is-done" : ""}`}>
+          entity db
+        </span>
+        <span class="pipeline-track"></span>
+        <span
+          class={`pipeline-step${(status.totalFiles ?? 0) > 0 ? " is-done" : ""}`}
+        >
+          exported
+        </span>
+        <span class="pipeline-track"></span>
+        <span class={`pipeline-step${status.lastSync ? " is-done" : ""}`}>
+          committed
+        </span>
+      </div>
+    </section>
+  );
 }
 
-function JobQueueTable({
+const JOB_PILL_TONES: Record<DashboardJobProgressItem["status"], string> = {
+  pending: "run",
+  processing: "run",
+  completed: "done",
+  failed: "fail",
+};
+
+const JOB_PILL_LABELS: Record<DashboardJobProgressItem["status"], string> = {
+  pending: "pending",
+  processing: "running",
+  completed: "done",
+  failed: "failed",
+};
+
+function JobQueueCard({
   jobs,
 }: {
   jobs: DashboardJobProgressItem[];
 }): JSX.Element {
-  if (jobs.length === 0) {
-    return (
-      <div class="job-queue-empty">
-        <span>Job queue</span>
-        <strong>No recent job progress observed</strong>
-      </div>
-    );
-  }
-
   return (
-    <div class="job-queue-table">
-      {jobs.map((job) => (
-        <div class="job-queue-row" key={`${job.kind}:${job.id}`}>
-          <span
-            class={`pill pill--${
-              job.status === "failed"
-                ? "err"
-                : job.status === "completed"
-                  ? "ok"
-                  : "warn"
-            }`}
-          >
-            {job.status}
-          </span>
-          <strong>{job.jobType ?? job.kind}</strong>
-          <em>
-            {job.progressLabel ?? job.message ?? formatTimestamp(job.updatedAt)}
-          </em>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SystemHealthCard({
-  input,
-}: {
-  input: DashboardRenderInput;
-}): JSX.Element {
-  const daemonCount = input.appInfo.daemons.length;
-  const healthyDaemons = input.appInfo.daemons.filter(
-    (daemon) => daemon.health?.status === "healthy",
-  ).length;
-  const indexReady = resolveIndexReady(input);
-
-  return (
-    <section class="card system-health-card">
+    <section class="card widget-card--wide job-queue-card">
       <div class="card-head">
-        <span class="card-title">System health</span>
-        <span class="card-subtitle">Runtime signals</span>
+        <span class="card-title">Job queue</span>
+        <span class="card-from">job-queue</span>
       </div>
-      <dl class="kv">
-        <div class="kv-row">
-          <dt>Daemons</dt>
-          <dd>
-            {daemonCount === 0
-              ? "—"
-              : `${healthyDaemons}/${daemonCount} healthy`}
-          </dd>
-        </div>
-        <div class="kv-row">
-          <dt>Semantic index</dt>
-          <dd>{indexReady ? "Ready" : "Pending"}</dd>
-        </div>
-        <div class="kv-row">
-          <dt>Job queue</dt>
-          <dd>{(input.jobProgress ?? []).length} recent</dd>
-        </div>
-        <div class="kv-row">
-          <dt>Directory sync</dt>
-          <dd>
-            {input.directorySyncStatus
-              ? input.directorySyncStatus.watchEnabled
-                ? "Watching"
-                : input.directorySyncStatus.isInitialized
-                  ? "Initialized"
-                  : "Not initialized"
-              : "Unavailable"}
-          </dd>
-        </div>
-      </dl>
-      {input.indexStatus && <IndexGauge status={input.indexStatus} />}
-      {input.directorySyncStatus && (
-        <p class="sync-status-line">
-          {formatDirectorySyncDetails(input.directorySyncStatus)}
-        </p>
+      {jobs.length === 0 ? (
+        <p class="muted">No recent job progress observed.</p>
+      ) : (
+        <table class="jobs">
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th>Type</th>
+              <th>Updated</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {jobs.map((job) => (
+              <tr key={`${job.kind}:${job.id}`}>
+                <td class="mono">{job.id.slice(0, 8)}</td>
+                <td>{job.jobType ?? job.kind}</td>
+                <td class="mono">{formatClock(job.updatedAt)}</td>
+                <td>
+                  <span
+                    class={`status-pill status-pill--${JOB_PILL_TONES[job.status]}`}
+                  >
+                    {JOB_PILL_LABELS[job.status]}
+                    {job.progressLabel ? ` · ${job.progressLabel}` : ""}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-      <JobQueueTable jobs={input.jobProgress ?? []} />
     </section>
   );
 }
@@ -727,19 +831,12 @@ function SystemHealthCard({
 function OverviewPanel({
   input,
   tabs,
-  layoutClass,
-  hasCharacter,
   showOperatorGate,
 }: {
   input: DashboardRenderInput;
   tabs: WidgetTab[];
-  layoutClass: string;
-  hasCharacter: boolean;
   showOperatorGate: boolean;
 }): JSX.Element {
-  const totalEntities = input.appInfo.entities;
-  const entityCounts = input.appInfo.entityCounts;
-  const interactions = input.appInfo.interactions;
   const digestCards = buildOverviewDigestCards(tabs, input);
   const activityLog = input.activityLog ?? [];
 
@@ -750,45 +847,17 @@ function OverviewPanel({
       data-dashboard-tab-panel
       aria-labelledby="dashboard-tab-overview"
     >
-      <div class={layoutClass}>
-        {hasCharacter && (
-          <div class="identity-column">
-            <IdentityCapsule input={input} />
-            <InteractionsCard
-              interactions={interactions}
-              baseUrl={input.baseUrl}
-            />
-            {showOperatorGate && input.operatorAccess && (
-              <OperatorGate
-                hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
-                loginUrl={input.operatorAccess.loginUrl}
-              />
-            )}
-          </div>
-        )}
-        <div class="main-column">
-          <VitalsRow input={input} />
-          <DigestCards cards={digestCards} />
-          <EntitySummaryCard
-            total={totalEntities}
-            entityCounts={entityCounts}
-          />
-          <ActivityLedger events={activityLog} />
-          {!hasCharacter && showOperatorGate && input.operatorAccess && (
-            <OperatorGate
-              hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
-              loginUrl={input.operatorAccess.loginUrl}
-            />
-          )}
-        </div>
-        <div class="sidebar-column">
-          {!hasCharacter && (
-            <InteractionsCard
-              interactions={interactions}
-              baseUrl={input.baseUrl}
-            />
-          )}
-        </div>
+      <VitalsRow input={input} />
+      <IdentityCapsule input={input} />
+      {showOperatorGate && input.operatorAccess && (
+        <OperatorGate
+          hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
+          loginUrl={input.operatorAccess.loginUrl}
+        />
+      )}
+      <div class="overview-grid">
+        <DigestCards cards={digestCards} />
+        <ActivityLedger events={activityLog} />
       </div>
     </section>
   );
@@ -805,6 +874,7 @@ function WidgetTabPanel({
 }): JSX.Element {
   const mainWidgets = [...tab.widgets.primary, ...tab.widgets.secondary];
   const hasSystemBuiltIns = tab.group === "system";
+  const hasKnowledgeBuiltIns = tab.group === "knowledge";
   const hasSidebar = tab.widgets.sidebar.length > 0 || hasSystemBuiltIns;
 
   return (
@@ -815,14 +885,27 @@ function WidgetTabPanel({
       data-dashboard-group={tab.group}
     >
       <header class="tab-section-head">
-        <p class="eyebrow">{tab.label} Tab</p>
         <h2>{tab.label}</h2>
       </header>
       <div
         class={`layout tab-layout${hasSidebar ? "" : " tab-layout--main-only"}`}
       >
         <div class="main-column">
-          {hasSystemBuiltIns && <SystemHealthCard input={input} />}
+          {hasKnowledgeBuiltIns && (
+            <EntitySummaryCard
+              total={input.appInfo.entities}
+              entityCounts={input.appInfo.entityCounts}
+            />
+          )}
+          {hasSystemBuiltIns && (
+            <>
+              <SemanticIndexCard input={input} />
+              {input.directorySyncStatus && (
+                <ContentSyncCard status={input.directorySyncStatus} />
+              )}
+              <JobQueueCard jobs={input.jobProgress ?? []} />
+            </>
+          )}
           {mainWidgets.map((widget) => (
             <WidgetCard
               key={`${widget.widget.pluginId}:${widget.widget.id}`}
@@ -839,6 +922,10 @@ function WidgetTabPanel({
                   baseUrl={input.baseUrl}
                 />
                 <RuntimeCard appInfo={input.appInfo} now={now} />
+                <InteractionsCard
+                  interactions={input.appInfo.interactions}
+                  baseUrl={input.baseUrl}
+                />
               </>
             )}
             {tab.widgets.sidebar.map((widget) => (
@@ -860,11 +947,6 @@ function DashboardDocument({
   input: DashboardRenderInput;
 }): JSX.Element {
   const tabs = groupExternalWidgets(input.widgets);
-  const hasCharacter =
-    Boolean(input.character.role) ||
-    Boolean(input.character.purpose) ||
-    input.character.values.length > 0;
-  const layoutClass = `layout${hasCharacter ? " has-identity" : ""}`;
   const showOperatorGate =
     input.operatorAccess &&
     !input.operatorAccess.isOperator &&
@@ -898,28 +980,31 @@ function DashboardDocument({
       </head>
       <body>
         <main class="console" data-component="dashboard:dashboard">
-          <ConsoleStrip
-            dashboardPath={dashboardPath}
-            operatorAccess={input.operatorAccess}
-          />
-          <Masthead
-            title={input.title}
-            tagline={input.profile.description}
-            operatorAccess={input.operatorAccess}
-          />
-          <TabBar tabs={tabs} />
-
-          <div class="dashboard-tab-panels">
-            <OverviewPanel
-              input={input}
-              tabs={tabs}
-              layoutClass={layoutClass}
-              hasCharacter={hasCharacter}
-              showOperatorGate={Boolean(showOperatorGate)}
+          <div class="frame">
+            <ConsoleStrip
+              dashboardPath={dashboardPath}
+              operatorAccess={input.operatorAccess}
             />
-            {tabs.map((tab) => (
-              <WidgetTabPanel key={tab.id} tab={tab} input={input} now={now} />
-            ))}
+            <Masthead title={input.title} tagline={input.profile.description} />
+            <TabBar tabs={tabs} />
+
+            <div class="canvas">
+              <div class="dashboard-tab-panels">
+                <OverviewPanel
+                  input={input}
+                  tabs={tabs}
+                  showOperatorGate={Boolean(showOperatorGate)}
+                />
+                {tabs.map((tab) => (
+                  <WidgetTabPanel
+                    key={tab.id}
+                    tab={tab}
+                    input={input}
+                    now={now}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
 
           <Colophon

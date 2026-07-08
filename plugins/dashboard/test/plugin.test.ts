@@ -213,13 +213,13 @@ describe("DashboardPlugin", () => {
       );
       const html = await response?.text();
 
-      expect(html).toContain("note:project-plan");
+      expect(html).toContain("note/project-plan");
       expect(html).toContain("site:build");
       expect(html).toContain("1/3");
       expect(html).toContain("/brain/content");
       expect(html).toContain("2 files");
       expect(html).toContain("note 2");
-      expect(html).toContain("<dt>Semantic index</dt><dd>Ready</dd>");
+      expect(html).toContain("Content sync");
       expect(html).toContain("Semantic index · ready · 0 active");
     });
 
