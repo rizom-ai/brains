@@ -23,7 +23,10 @@ turns:
             entityType: note
             source.kind: text
 
-  - userMessage: "Save this memo about the launch timeline"
+  - userMessage: "yes"
+    confirmPendingAction: true
+
+  - userMessage: "Save this memo as a note: Launch timeline starts with beta invites on Monday and pilot feedback on Friday."
     successCriteria:
       expectedTools:
         - toolName: system_create
@@ -32,8 +35,11 @@ turns:
             entityType: note
             source.kind: text
 
+  - userMessage: "yes"
+    confirmPendingAction: true
+
   - userMessage: |
-      save this file
+      Capture this uploaded markdown transcript as a note:
 
       User uploaded a file "meeting-notes.md":
 
@@ -51,5 +57,5 @@ turns:
 successCriteria: {}
 
 efficiency:
-  maxToolCalls: 9
-  maxTokens: 60000
+  maxToolCalls: 11
+  maxTokens: 70000
