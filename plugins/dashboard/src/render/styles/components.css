@@ -44,7 +44,7 @@ body::after {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1560px;
   margin: 0 auto;
   padding: clamp(24px, 4vw, 48px) 32px 60px;
 }
@@ -1487,6 +1487,65 @@ table.jobs {
 @media (max-width: 700px) {
   .colophon { flex-direction: column; align-items: flex-start; }
   .colophon-actions { justify-content: flex-start; }
+}
+
+/* The mockup was authored as a 1280px exhibit inside a documentation page.
+   As a full-viewport app the same proportions step up one size on wide
+   screens; ratios between elements stay those of the approved mockups. */
+@media (min-width: 1440px) {
+  body { font-size: 15px; }
+  .console { --col-gap: 16px; }
+  .console-strip { min-height: 54px; }
+  .surface-nav-link { font-size: 13.5px; }
+  .command-chip { font-size: 13px; }
+  .session-chip { font-size: 11.5px; }
+  .masthead { padding: 32px 32px 0; }
+  .brand { font-size: 43px; }
+  .tagline { font-size: 14.5px; }
+  .dashboard-tabs { padding: 20px 32px 0; }
+  .dashboard-tab {
+    font-size: 12.5px;
+    padding: 10px 18px 12px;
+  }
+  .tab-badge { font-size: 10.5px; }
+  .canvas { padding: 32px; }
+  .card { padding: 16px 20px 18px; }
+  .card-title { font-size: 11px; }
+  .card-from,
+  .card-subtitle { font-size: 10.5px; }
+  .overview-vitals { margin-bottom: 26px; }
+  .vital-card { padding: 18px 20px 16px; }
+  .vital-label { font-size: 10.5px; }
+  .vital-num { font-size: 39px; }
+  .vital-num--text { font-size: 30px; }
+  .vital-sub { font-size: 11.5px; }
+  .identity-role { font-size: 17.5px; }
+  .identity-purpose { font-size: 13.5px; }
+  .digest-card { padding: 18px 20px; }
+  .digest-head h4 { font-size: 20px; }
+  .digest-go { font-size: 11.5px; }
+  .digest-line { font-size: 13.5px; }
+  .digest-line dd { font-size: 12.5px; }
+  .ledger-entry { grid-template-columns: 56px 15px minmax(0, 1fr); }
+  .ledger-time { font-size: 11px; }
+  .ledger-what { font-size: 14px; }
+  .ledger-what code { font-size: 11.5px; }
+  table.jobs { font-size: 13.5px; }
+  .jobs td.mono { font-size: 11.5px; }
+  .status-pill { font-size: 10.5px; }
+  .kv-row dt { font-size: 12.5px; }
+  .kv-row dd { font-size: 13.5px; }
+  .index-gauge-ring { width: 82px; height: 82px; }
+  .index-gauge-ring span {
+    width: 64px;
+    height: 64px;
+    font-size: 14px;
+  }
+  .index-gauge-copy strong { font-size: 14.5px; }
+  .index-gauge-copy span { font-size: 11px; }
+  .list-name { font-size: 14.5px; }
+  .list-desc { font-size: 13px; }
+  .muted { font-size: 13.5px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
