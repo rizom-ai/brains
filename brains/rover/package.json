@@ -45,6 +45,8 @@
   },
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",
+    "@brains/site-rizom-ai": "workspace:*",
+    "@brains/theme-rizom": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "typescript": "^6.0.3"
   },
@@ -69,6 +71,7 @@
     "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:rizom-ai": "bun run build:web-chat && cd test-apps/rizom-ai && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

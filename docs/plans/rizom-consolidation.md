@@ -103,9 +103,19 @@ avoided; that call belongs to that plan's lane.
 
 ### Phase 1 — One site in the monorepo
 
-- `sites/rizom` absorbs the work/foundation routes, layouts, and sections behind the
-  merged sitemap; one theme profile with per-route accents; delete the variant machinery
-  that has no remaining consumer.
+- **Walking skeleton landed** (`work/rizom-consolidated-site`): `sites/rizom-ai`
+  (`@brains/site-rizom-ai`) composes `createRizomSite` from the shared core with the
+  rev-5 two-tier chrome (faces strip + per-face nav with old-domain nameplates), the
+  `/`, `/work`, `/foundation` routes carrying verbatim live copy as static fallbacks,
+  and package-registered templates (self-contained — no site-content plugin required).
+  Test brain: `brains/rover/test-apps/rizom-ai` boots rover's default preset with
+  `site.package: "@brains/site-rizom-ai"` — the same override rover-pilot will use.
+  A new package (rather than absorbing into `sites/rizom`) because relay still consumes
+  the shared core as a variant substrate; the variant machinery gets deleted when that
+  consumer folds in, not before.
+- Remaining: port the full section sets behind the merged sitemap (home bands, /work
+  diagnostic + personas + proof, /foundation essays + chapters), the rev-5 visual theme,
+  and per-route accents on the one theme profile.
 - Tests first: route table renders the merged sitemap; work/foundation sections render
   under their new routes; theme override contract holds.
 

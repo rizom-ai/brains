@@ -1,0 +1,21 @@
+brain: rover
+preset: default
+
+add:
+  - web-chat
+
+# Test brain for the consolidated rizom.ai site (docs/plans/rizom-consolidation.md
+# Phase 1): rover's default composition serving @brains/site-rizom-ai — the same
+# site.package override rover-pilot will use after the port.
+site:
+  package: "@brains/site-rizom-ai"
+  theme: "@brains/theme-rizom"
+
+plugins:
+  directory-sync:
+    seedContentPath: ../../eval-content-default
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/rover-test-content
+      gitUrl: file:///tmp/rover-rizom-ai-test-content.git
