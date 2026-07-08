@@ -4,7 +4,6 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "isolatedDeclarations": false,
     "moduleResolution": "bundler",
     "rootDir": "..",
     "baseUrl": "..",

@@ -2,7 +2,10 @@ import * as React from "react";
 
 import { cn } from "@/ui-react/src/lib/utils";
 
-function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+function Textarea({
+  className,
+  ...props
+}: React.ComponentProps<"textarea">): React.ReactNode {
   return (
     <textarea
       data-slot="textarea"

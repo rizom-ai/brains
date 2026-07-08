@@ -2,7 +2,11 @@ import * as React from "react";
 
 import { cn } from "@/ui-react/src/lib/utils";
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({
+  className,
+  type,
+  ...props
+}: React.ComponentProps<"input">): React.ReactNode {
   return (
     <input
       type={type}
