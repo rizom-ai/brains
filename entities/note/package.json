@@ -1,19 +1,7 @@
 {
   "name": "@brains/note",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "Personal knowledge capture with markdown-first workflow",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
-    "eval": "cd evals && bun run brain-eval"
-  },
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
@@ -29,5 +17,17 @@
     "bun-types": "^1.3.14",
     "eslint": "^10.5.0",
     "typescript": "^6.0.3"
-  }
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "eval": "cd evals && bun run brain-eval",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
 }

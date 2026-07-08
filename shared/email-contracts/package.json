@@ -1,18 +1,7 @@
 {
   "name": "@brains/email-contracts",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "Shared email delivery message contracts",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
   "dependencies": {
     "@brains/utils": "workspace:*"
   },
@@ -21,5 +10,16 @@
     "@brains/typescript-config": "workspace:*",
     "eslint": "^10.5.0",
     "typescript": "^6.0.3"
-  }
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
 }

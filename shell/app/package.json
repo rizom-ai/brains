@@ -1,20 +1,22 @@
 {
   "name": "@brains/app",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "High-level factory for creating Brain applications",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts",
-    "./contracts/brain-definition": "./src/contracts/brain-definition.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
+  "keywords": [
+    "brain",
+    "app",
+    "factory"
+  ],
+  "license": "MIT",
+  "author": "",
+  "bin": {
+    "brains": "./src/runner.ts",
+    "brain-build": "./scripts/build.ts",
+    "brain-migrate": "./scripts/migrate.ts",
+    "brain-migrate-entities": "./scripts/migrate-entities.ts",
+    "brain-migrate-job-queue": "./scripts/migrate-job-queue.ts",
+    "brain-migrate-conversations": "./scripts/migrate-conversations.ts",
+    "brain-migrate-runtime-state": "./scripts/migrate-runtime-state.ts"
   },
   "dependencies": {
     "@brains/core": "workspace:*",
@@ -31,24 +33,22 @@
     "typescript": "^6.0.3",
     "varlock": "^1.7.0"
   },
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts/brain-definition": "./src/contracts/brain-definition.ts"
+  },
   "files": [
     "src",
     "scripts"
   ],
-  "bin": {
-    "brains": "./src/runner.ts",
-    "brain-build": "./scripts/build.ts",
-    "brain-migrate": "./scripts/migrate.ts",
-    "brain-migrate-entities": "./scripts/migrate-entities.ts",
-    "brain-migrate-job-queue": "./scripts/migrate-job-queue.ts",
-    "brain-migrate-conversations": "./scripts/migrate-conversations.ts",
-    "brain-migrate-runtime-state": "./scripts/migrate-runtime-state.ts"
+  "main": "src/index.ts",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "brain",
-    "app",
-    "factory"
-  ],
-  "author": "",
-  "license": "MIT"
+  "type": "module",
+  "types": "src/index.ts"
 }

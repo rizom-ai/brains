@@ -1,25 +1,7 @@
 {
   "name": "@brains/web-chat",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "Web chat interface for Brains",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "files": [
-    "src",
-    "dist",
-    "package.json"
-  ],
-  "scripts": {
-    "build": "bun scripts/build-ui.ts",
-    "build:ui": "bun scripts/build-ui.ts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
-    "test": "bun test"
-  },
   "dependencies": {
     "@ai-sdk/react": "^3.0.208",
     "@brains/auth-service": "workspace:*",
@@ -51,5 +33,23 @@
     "@types/react-dom": "^19.0.3",
     "typescript": "^6.0.3",
     "vite": "^8.0.16"
-  }
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "package.json"
+  ],
+  "private": true,
+  "scripts": {
+    "build": "bun scripts/build-ui.ts",
+    "build:ui": "bun scripts/build-ui.ts",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json"
+  },
+  "type": "module"
 }

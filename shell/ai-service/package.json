@@ -1,16 +1,7 @@
 {
   "name": "@brains/ai-service",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "AI service for text/object generation and agent conversation orchestration",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.84",
     "@ai-sdk/google": "^3.0.82",
@@ -42,5 +33,14 @@
   },
   "files": [
     "src"
-  ]
+  ],
+  "main": "src/index.ts",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "types": "src/index.ts"
 }
