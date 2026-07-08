@@ -69,6 +69,8 @@ function createMockEntityService(): EntityService {
       missingEmbeddings: 0,
       staleEmbeddings: 0,
       failedEmbeddings: 0,
+      embeddableEntities: 0,
+      embeddedEntities: 0,
     }),
     searchWithDistances: async () => [],
     countEmbeddings: async () => 0,

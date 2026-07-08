@@ -147,7 +147,7 @@ describe("renderDashboardPageHtml", () => {
       profile: { name: "Test Owner" },
       appInfo: createMockAppInfo({
         uptime: 100,
-        entities: 12,
+        entities: 15,
         embeddings: 12,
         interactions: [
           {
@@ -162,6 +162,15 @@ describe("renderDashboardPageHtml", () => {
           },
         ],
       }),
+      indexStatus: {
+        ready: true,
+        activeEmbeddingJobs: 0,
+        missingEmbeddings: 0,
+        staleEmbeddings: 0,
+        failedEmbeddings: 0,
+        embeddableEntities: 12,
+        embeddedEntities: 12,
+      },
       widgets: {
         "content-pipeline:pipeline": {
           widget: {
@@ -192,10 +201,10 @@ describe("renderDashboardPageHtml", () => {
     // Vitals carry sub-lines and semantic status dots per the mockup.
     expect(html).toContain('class="vital-sub"');
     expect(html).toContain("vital-card--ok");
-    // The index sub-line reports embedded count + queue state, never an
-    // all-entities denominator (non-embeddable types would make it lie).
-    expect(html).toContain("12 embedded");
-    expect(html).not.toContain("12/12");
+    // The index fraction uses the embeddable denominator, never all
+    // entities (non-embeddable types would make the fraction lie).
+    expect(html).toContain("12/12 embedded");
+    expect(html).not.toContain("12/15");
     expect(html).toContain("Queued");
     expect(html).toContain("Published");
     expect(html).toContain('href="#publishing"');

@@ -60,6 +60,8 @@ export interface DashboardIndexStatus {
   missingEmbeddings?: number | undefined;
   staleEmbeddings?: number | undefined;
   failedEmbeddings?: number | undefined;
+  embeddableEntities?: number | undefined;
+  embeddedEntities?: number | undefined;
 }
 
 export interface DashboardRenderInput {

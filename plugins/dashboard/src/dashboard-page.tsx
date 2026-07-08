@@ -413,20 +413,22 @@ function VitalsRow({ input }: { input: DashboardRenderInput }): JSX.Element {
     .map((interaction) => interaction.id)
     .slice(0, 3)
     .join(" / ");
-  const embedded = input.appInfo.embeddings;
-  // Readiness is about the embedding queue, not all entities: some entity
-  // types are never embedded, so an entities denominator would mislead.
+  const embedded =
+    input.indexStatus?.embeddedEntities ?? input.appInfo.embeddings;
+  // The denominator is embeddable entities only: some entity types never
+  // embed by design, so an all-entities denominator would mislead.
+  const embeddable = input.indexStatus?.embeddableEntities;
   const indexQueue = input.indexStatus
     ? (input.indexStatus.activeEmbeddingJobs ?? 0) +
       (input.indexStatus.missingEmbeddings ?? 0) +
       (input.indexStatus.staleEmbeddings ?? 0)
-    : undefined;
+    : 0;
+  const indexFraction =
+    embeddable === undefined ? `${embedded}` : `${embedded}/${embeddable}`;
   const indexSub =
-    indexQueue === undefined
-      ? `${embedded} embedded`
-      : indexQueue === 0
-        ? `${embedded} embedded · queue clear`
-        : `${embedded} embedded · ${indexQueue} queued`;
+    indexQueue > 0
+      ? `${indexFraction} embedded · ${indexQueue} queued`
+      : `${indexFraction} embedded`;
   const hasActiveWrite = (input.jobProgress ?? []).some(
     (job) => job.status === "processing" || job.status === "pending",
   );
