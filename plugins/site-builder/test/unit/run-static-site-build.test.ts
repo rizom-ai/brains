@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import type {
   BuildContext,
   StaticSiteBuilder,

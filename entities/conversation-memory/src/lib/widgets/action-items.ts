@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { firstSentence } from "@brains/utils";
+import { firstSentence } from "@brains/utils/string-utils";
 import type { ActionItemEntity } from "../../schemas/conversation-memory";
 import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatAge } from "./format";
@@ -100,4 +100,4 @@ export function registerActionItemsWidget(params: {
   );
 }
 
-export const ACTION_ITEMS_WIDGET_ID = WIDGET_ID;
+export const ACTION_ITEMS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

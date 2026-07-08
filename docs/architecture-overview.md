@@ -63,7 +63,7 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 
 ### Entity packages
 
-Entity packages live in `entities/`. Most packages define one entity type; a few define more than one.
+Entity packages live in `entities/`. Most packages define one entity type; a few define more than one. Tightly coupled 1:1 entity + service capabilities may instead be compound packages under `plugins/`.
 
 | Package                        | Entity type(s)                       | Notes                                               |
 | ------------------------------ | ------------------------------------ | --------------------------------------------------- |
@@ -73,7 +73,6 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/document`            | `document`                           | Generated PDFs and publishable document attachments |
 | `entities/image`               | `image`                              | AI image generation                                 |
 | `entities/link`                | `link`                               | URL capture and extraction                          |
-| `entities/newsletter`          | `newsletter`                         | Newsletter content                                  |
 | `entities/note`                | `note`                               | General markdown notes / notes                      |
 | `entities/portfolio`           | `project`                            | Case studies and portfolio entries                  |
 | `entities/products`            | `product`, `products-overview`       | Product catalog content                             |
@@ -97,21 +96,17 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/analytics`        | Analytics integration and insights                                 |
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                 |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                       |
-| `plugins/buttondown`       | Buttondown API integration                                         |
 | `plugins/content-pipeline` | Publishing queue, scheduling, retries                              |
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                     |
 | `plugins/directory-sync`   | File sync + git operations                                         |
 | `plugins/email-resend`     | Generic email delivery adapter for Resend                          |
-| `plugins/hackmd`           | HackMD MCP bridge                                                  |
-| `plugins/newsletter`       | Composite newsletter capability                                    |
+| `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability       |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages |
-| `plugins/notion`           | Notion MCP bridge                                                  |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                          |
 | `plugins/site-builder`     | Static site build orchestration                                    |
 | `plugins/site-content`     | Site section content generation                                    |
 | `plugins/stock-photo`      | Stock-photo search and selection                                   |
 | `plugins/cms`              | Browser authoring routes + CMS config                              |
-| `plugins/examples`         | Reference patterns and examples                                    |
 
 ### Interface plugins
 
@@ -176,7 +171,6 @@ Service plugins provide the system's operational surface area:
 - external integrations
 - background job handlers
 - publishing pipelines
-- MCP-bridged services
 - specialized tools such as sync, stock photo search, or analytics insights
 
 ### InterfacePlugin behavior

@@ -4,7 +4,10 @@
 
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
-export { EntityPlugin } from "./entity/entity-plugin";
+export {
+  EntityPlugin,
+  emptyEntityPluginConfigSchema,
+} from "./entity/entity-plugin";
 export {
   hasPersistedTargets,
   reconcileDerivedEntities,
@@ -178,6 +181,9 @@ export type {
   ContentVisibility,
   EntityAdapter,
   EntityInput,
+  EntitySchema,
+  EntitySchemaParser,
+  BaseEntityFrontmatterSchema,
   EntityMutationResult,
   EntityTypeConfig,
   ICoreEntityService,
@@ -186,8 +192,10 @@ export type {
 } from "@brains/entity-service";
 export {
   BaseEntityAdapter,
+  baseEntityParserSchema,
   baseEntitySchema,
   contentVisibilitySchema,
+  emptyFrontmatterSchema,
   internalFullScope,
   isVisibleWithinScope,
   permissionToVisibilityScope,
@@ -196,11 +204,16 @@ export {
   resolveEntityOrError,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  EntityValidationError,
+  hasValidationIssues,
+  isEntityValidationError,
+  toEntityValidationError,
 } from "@brains/entity-service";
 
 // Data source infrastructure
 export type {
   DataSource,
+  DataSourceSchema,
   BaseDataSourceContext,
   PaginationInfo,
 } from "@brains/entity-service";
@@ -345,13 +358,12 @@ export type { IAgentService } from "@brains/ai-service";
 export type { IMessageBus } from "@brains/messaging-service";
 
 export type { ContentFormatter } from "@brains/content-formatters";
-export type { ProgressCallback } from "@brains/utils";
+export type { ProgressCallback } from "@brains/utils/progress";
 
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
   MessageInterfacePlugin,
   MessageUploadContinuity,
-  buildAgentResponseTextParts,
   buildCoalescedInput,
   buildConfirmationResponseParts,
   buildMessageActorMetadata,
@@ -378,9 +390,14 @@ export {
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   PendingApprovalTracker,
+  parseConfirmationIntent,
   parseConfirmationResponse,
   routeConfirmationResponse,
   artifactStatusLabel,
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
   collectPendingApprovalIdsFromStoredMessages,
   collectUploadIdsFromStoredMessages,
   defaultMessageUploadFilename,
@@ -392,7 +409,6 @@ export {
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
-  formatConfirmationPrompt,
   formatConfirmationResult,
   formatContentDispositionHeader,
   formatToolStatusLabel,
@@ -400,11 +416,14 @@ export {
   formatPendingConfirmationsFallback,
   formatStructuredCardFallback,
   formatStructuredOutputSummary,
+  buildResponsePlan,
   getArtifactCardState,
-  getDeliverableArtifactCards,
   getMessageUploadKind,
-  getResponseJobIds,
-  getSupplementalCards,
+  type ResponsePlan,
+  type ResponseRenderDirective,
+  type AttachmentChatCard,
+  type SupplementalChatCard,
+  type ToolApprovalChatCard,
   getToolStatusDisplay,
   getToolStatusKey,
   getStoredAttachmentCards,
@@ -438,7 +457,8 @@ export {
   type ArtifactEntityRef,
   type ArtifactEntityType,
   type ArtifactJobStatus,
-  type AgentResponseTextPartsInput,
+  type ApprovalResolution,
+  type ApprovalResultView,
   type ConfirmationDecision,
   type ConfirmationResultDisplay,
   type ConfirmationResultInput,
@@ -485,7 +505,7 @@ export {
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
 
-export { createId } from "@brains/utils";
+export { createId } from "@brains/utils/id";
 
 // ============================================================================
 // Routing & Navigation (Site Builder)
@@ -525,8 +545,11 @@ export type {
 
 export {
   basePluginConfigSchema,
+  PluginConfigValidationError,
   type PluginConfig,
   type PluginConfigInput,
+  type PluginConfigSchema,
+  type PluginConfigValidationIssue,
 } from "./config";
 
 export type { IAnchorProfileService } from "@brains/identity-service";
@@ -537,6 +560,7 @@ export {
   baseProfileExtension,
   professionalProfileExtension,
   fetchAnchorProfile,
+  fetchAnchorProfileData,
 } from "@brains/identity-service";
 
 // ============================================================================
@@ -549,9 +573,8 @@ export {
   anchorExtensionParamsSchema,
   parseAgentCard,
   type ParsedAgentCard,
-  skillDataSchema,
-  type SkillData,
 } from "./a2a/agent-card-schema";
+export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
 
 // ============================================================================
 // System Integration (Daemons, Interface Plugins)

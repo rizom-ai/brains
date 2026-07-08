@@ -6,15 +6,28 @@ export type {
   CreateAuthorizationCodeInput,
 } from "./auth-code-store";
 export { AuthService } from "./auth-service";
-export type { AuthServiceOptions, OperatorSetupRequired } from "./auth-service";
+export type {
+  A2ASigningKey,
+  AuthServiceOptions,
+  OperatorSetupRequired,
+} from "./auth-service";
 export {
   AuthServicePlugin,
   authServicePlugin,
   getActiveAuthService,
 } from "./auth-service-plugin";
-export type { AuthServiceConfig } from "./auth-service-plugin";
+export type {
+  AuthServiceConfig,
+  AuthServiceConfigInput,
+} from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
+export { A2APeerTrustStore } from "./peer-trust-store";
+export type {
+  A2APeerTrustRecord,
+  A2APeerTrustStoreOptions,
+  GrantA2APeerTrustInput,
+} from "./peer-trust-store";
 export { InvalidClientMetadataError, OAuthClientStore } from "./client-store";
 export type {
   ClientRegistrationRequest,
@@ -71,8 +84,12 @@ export type {
   OperatorSessionStoreOptions,
 } from "./session-store";
 export type {
+  A2APrivateJwk,
+  A2APublicJwk,
   AuthorizationServerMetadata,
   JwksResponse,
+  OAuthPrivateJwk,
+  OAuthPublicJwk,
   PrivateJwk,
   ProtectedResourceMetadata,
   PublicJwk,

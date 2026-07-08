@@ -39,29 +39,25 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 
 ## Shared
 
-| Package                       | Purpose                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------ |
-| `shared/utils`                | Zod, slugify, markdown, YAML, logging, IDs, and other low-level primitives     |
-| `shared/contracts`            | Shared result, job progress, and publish contracts                             |
-| `shared/ui-library`           | Preact components (Header, Footer, Cards, CTA)                                 |
-| `shared/rizom-ui`             | `@rizom/ui` — Rizom-brand UI primitives shared across app-owned Rizom variants |
-| `shared/site-composition`     | Shared site composition contract and merge helpers                             |
-| `shared/site-engine`          | Renderer-agnostic site build engine utilities                                  |
-| `shared/theme-base`           | `composeTheme()`, shared CSS utilities, Tailwind setup                         |
-| `shared/theme-default`        | Simplified editorial default theme (warm neutrals)                             |
-| `shared/theme-rizom`          | Rizom brand theme — amber + purple bioluminescent palette                      |
-| `shared/cms-config`           | Shared CMS config types consumed by the `cms` plugin                           |
-| `shared/product-site-content` | Product page layouts and templates                                             |
-| `shared/image`                | Image schema, adapter, utilities                                               |
-| `shared/mcp-bridge`           | Base class for upstream MCP integration                                        |
-| `shared/deploy-support`       | Canonical deploy templates, script helpers, env parsing, and cert support      |
-| `shared/test-utils`           | Mock factories, test harnesses                                                 |
-| `shared/eslint-config`        | Shared ESLint config                                                           |
-| `shared/typescript-config`    | Shared TS configs (root, library, instance)                                    |
+| Package                    | Purpose                                                                    |
+| -------------------------- | -------------------------------------------------------------------------- |
+| `shared/utils`             | Zod, slugify, markdown, YAML, logging, IDs, and other low-level primitives |
+| `shared/contracts`         | Shared result, job progress, and publish contracts                         |
+| `shared/ui-library`        | Preact components (Header, Footer, Cards, CTA)                             |
+| `shared/site-composition`  | Shared site composition contract and merge helpers                         |
+| `shared/site-engine`       | Renderer-agnostic site build engine utilities                              |
+| `shared/theme-base`        | `composeTheme()`, shared CSS utilities, Tailwind setup                     |
+| `shared/theme-default`     | Simplified editorial default theme (warm neutrals)                         |
+| `shared/theme-rizom`       | Rizom brand theme — amber + purple bioluminescent palette                  |
+| `shared/image`             | Image schema, adapter, utilities                                           |
+| `shared/deploy-support`    | Canonical deploy templates, script helpers, env parsing, and cert support  |
+| `shared/test-utils`        | Mock factories, test harnesses                                             |
+| `shared/eslint-config`     | Shared ESLint config                                                       |
+| `shared/typescript-config` | Shared TS configs (root, library, instance)                                |
 
 ## Entities (EntityPlugin — content type definitions)
 
-Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`.
+Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`. If an entity type has exactly one operating service plugin and is not independently reused, it may live inside that service plugin as a compound package under `plugins/` instead of appearing here.
 
 | Package                        | Purpose                                                           |
 | ------------------------------ | ----------------------------------------------------------------- |
@@ -75,7 +71,6 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/conversation-memory` | Conversation summaries, decisions, and action items               |
 | `entities/social-media`        | Social media posts                                                |
 | `entities/wishlist`            | Feature request tracking                                          |
-| `entities/newsletter`          | Email newsletters                                                 |
 | `entities/image`               | AI-generated images                                               |
 | `entities/series`              | Derived from posts                                                |
 | `entities/prompt`              | Editable AI prompts                                               |
@@ -95,21 +90,18 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 | `plugins/site-builder`     | SSR static site generation                                       |
 | `plugins/cms`              | Browser authoring routes + CMS config                            |
 | `plugins/content-pipeline` | Publish orchestration, scheduling                                |
-| `plugins/buttondown`       | Buttondown subscriber + newsletter                               |
-| `plugins/newsletter`       | Composite plugin bundling the newsletter entity + buttondown     |
+| `plugins/newsletter`       | Compound newsletter entity + Buttondown-backed service           |
+| `plugins/playbooks`        | Compound playbook entity + runtime orchestration service         |
 | `plugins/analytics`        | Cloudflare analytics + query tool                                |
 | `plugins/dashboard`        | Widget system                                                    |
 | `plugins/directory-sync`   | File + git sync                                                  |
 | `plugins/obsidian-vault`   | Obsidian template generation                                     |
-| `plugins/notion`           | MCP bridge to Notion                                             |
-| `plugins/hackmd`           | MCP bridge to HackMD                                             |
 | `plugins/stock-photo`      | Unsplash stock photo search                                      |
 | `plugins/site-content`     | Site section content generation                                  |
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds               |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                     |
 | `plugins/email-resend`     | Generic email delivery adapter for Resend                        |
 | `plugins/notifications`    | Notification routing for transactional + administrative messages |
-| `plugins/examples`         | Reference plugin patterns (`@brains/plugin-examples`)            |
 
 Note: system tools (create/update/delete/search/status) are registered directly on the shell, not a plugin. See `shell/core/src/system/`.
 

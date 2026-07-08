@@ -1,10 +1,32 @@
 import type { BaseEntity, ServicePluginContext, Tool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
 import type { PublishAssetRegistry } from "../publish-assets";
 
-export const ensureAssetsInputSchema = z.object({
+export interface EnsureAssetsInput {
+  entityType: string;
+  status?: string | undefined;
+  assetType?: string | undefined;
+}
+
+export interface EnsureAssetsOutputData {
+  entityType: string;
+  assetType?: string | undefined;
+  checkedEntities: number;
+  checkedAssets: number;
+  enqueued: number;
+  skipped: number;
+}
+
+export interface EnsureAssetsOutput {
+  success: true;
+  data: EnsureAssetsOutputData;
+  message?: string | undefined;
+}
+
+export const ensureAssetsInputSchema: z.ZodObject<z.ZodRawShape> &
+  z.ZodType<EnsureAssetsInput, EnsureAssetsInput> = z.object({
   entityType: z.string().min(1).describe("Entity type to reconcile"),
   status: z
     .string()
@@ -18,9 +40,10 @@ export const ensureAssetsInputSchema = z.object({
     .describe("Optional attachment type filter, e.g. og-image"),
 });
 
-export type EnsureAssetsInput = z.infer<typeof ensureAssetsInputSchema>;
-
-export const ensureAssetsOutputSchema = z.object({
+export const ensureAssetsOutputSchema: z.ZodType<
+  EnsureAssetsOutput,
+  EnsureAssetsOutput
+> = z.object({
   success: z.literal(true),
   data: z.object({
     entityType: z.string(),
@@ -32,8 +55,6 @@ export const ensureAssetsOutputSchema = z.object({
   }),
   message: z.string().optional(),
 });
-
-export type EnsureAssetsOutput = z.infer<typeof ensureAssetsOutputSchema>;
 
 export function createEnsureAssetsTool(
   context: ServicePluginContext,

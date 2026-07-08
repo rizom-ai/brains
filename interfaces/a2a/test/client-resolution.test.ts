@@ -46,6 +46,25 @@ function createMockFetch(): ReturnType<typeof mock> {
   });
 }
 
+/**
+ * Create a mock fetch that serves an Agent Card advertising the given
+ * endpoint url and fails the test if the endpoint is ever contacted.
+ */
+function createCardFetch(cardEndpointUrl: string): ReturnType<typeof mock> {
+  return mock(async (url: string | URL | Request) => {
+    const urlStr = typeof url === "string" ? url : url.toString();
+
+    if (urlStr.includes("agent-card.json")) {
+      return new Response(
+        JSON.stringify({ name: "Remote Brain", url: cardEndpointUrl }),
+        { status: 200 },
+      );
+    }
+
+    throw new Error(`Unexpected request to ${urlStr}`);
+  });
+}
+
 function createMockEntityService(
   entities: Map<
     string,
@@ -102,7 +121,6 @@ describe("agent_call agent resolution", () => {
     const tool = createAgentCallTool({
       fetch: fetchFn,
       entityService: createMockEntityService(entities),
-      outboundTokens: { "yeehaa.io": "token-123" },
     });
 
     const result = await tool.handler(
@@ -283,6 +301,109 @@ describe("agent_call agent resolution", () => {
         source: { kind: "url", url: "https://unknown.io" },
       },
     });
+  });
+
+  it("should reject a one-shot card whose url points at a non-HTTPS endpoint", async () => {
+    const fetchFn = createCardFetch("http://localhost:8080/a2a");
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(new Map()),
+    });
+
+    const result = await tool.handler(
+      { agent: "unknown.io", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toContain("endpoint URL");
+    }
+    // Only the card fetch — never the endpoint
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("should reject a one-shot card whose url points at an unrelated host", async () => {
+    const fetchFn = createCardFetch("https://attacker.example/a2a");
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(new Map()),
+    });
+
+    const result = await tool.handler(
+      { agent: "unknown.io", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toContain("endpoint URL");
+    }
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("should reject an approved agent card whose url points at a non-HTTPS endpoint", async () => {
+    const entities = new Map();
+    entities.set("yeehaa.io", {
+      id: "yeehaa.io",
+      entityType: "agent",
+      content:
+        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+      metadata: {
+        name: "Yeehaa",
+        url: "https://yeehaa.io/a2a",
+        status: "approved",
+      },
+    });
+
+    const fetchFn = createCardFetch("http://localhost:8080/a2a");
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(entities),
+    });
+
+    const result = await tool.handler(
+      { agent: "yeehaa.io", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toContain("endpoint URL");
+    }
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("should reject an approved agent card whose url points at an unrelated host", async () => {
+    const entities = new Map();
+    entities.set("yeehaa.io", {
+      id: "yeehaa.io",
+      entityType: "agent",
+      content:
+        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+      metadata: {
+        name: "Yeehaa",
+        url: "https://yeehaa.io/a2a",
+        status: "approved",
+      },
+    });
+
+    const fetchFn = createCardFetch("https://attacker.example/a2a");
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(entities),
+    });
+
+    const result = await tool.handler(
+      { agent: "yeehaa.io", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toContain("endpoint URL");
+    }
+    expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
   it("should reject non-HTTPS agent URLs before network contact", async () => {

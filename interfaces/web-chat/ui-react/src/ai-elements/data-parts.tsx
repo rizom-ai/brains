@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import { useEffect, useState } from "react";
-import { z } from "@brains/utils";
+import { ActionsCardSchema, type EventChatAction } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import {
   artifactStatusLabel as attachmentStatusLabel,
   formatArtifactDisplay as formatAttachmentDisplay,
@@ -45,6 +46,12 @@ const TOOL_STATES: readonly ToolPart["state"][] = [
   "output-error",
 ];
 
+const attachmentJobStatusResponseSchema = z.looseObject({
+  status: z.string().optional(),
+});
+
+const dataRecordSchema = z.record(z.string(), z.unknown());
+
 function narrowToolState(value: string | undefined): ToolPart["state"] {
   if (value && (TOOL_STATES as readonly string[]).includes(value)) {
     return value as ToolPart["state"];
@@ -52,13 +59,9 @@ function narrowToolState(value: string | undefined): ToolPart["state"] {
   return "input-available";
 }
 
-function isRecord(data: unknown): data is Record<string, unknown> {
-  return typeof data === "object" && data !== null && !Array.isArray(data);
-}
-
 function getRecordValue(data: unknown, key: string): unknown {
-  if (!isRecord(data)) return undefined;
-  return data[key];
+  const parsed = dataRecordSchema.safeParse(data);
+  return parsed.success ? parsed.data[key] : undefined;
 }
 
 function getStringValue(data: unknown, key: string): string | undefined {
@@ -190,8 +193,12 @@ function useAttachmentJobStatus(
           return;
         }
         transientFailures = 0;
-        const body = (await response.json()) as { status?: string };
-        const nextStatus = narrowAttachmentJobStatus(body.status);
+        const parsed = attachmentJobStatusResponseSchema.safeParse(
+          await response.json(),
+        );
+        const nextStatus = narrowAttachmentJobStatus(
+          parsed.success ? parsed.data.status : undefined,
+        );
         if (!cancelled) setStatus(nextStatus);
         if (nextStatus !== "completed" && nextStatus !== "failed") {
           scheduleNextPoll(2000);
@@ -421,7 +428,7 @@ const sourceCitationSchema = z.object({
   entityType: z.string().min(1).optional(),
   entityId: z.string().min(1).optional(),
   excerpt: z.string().min(1).optional(),
-  provenance: z.record(z.unknown()).optional(),
+  provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
 const sourcesCardSchema = z.object({
@@ -445,42 +452,12 @@ function getSourceScore(
   source: z.infer<typeof sourceCitationSchema>,
 ): number | undefined {
   const parsed = z
-    .object({ score: z.number().finite() })
-    .passthrough()
+    .looseObject({ score: z.number().finite() })
     .safeParse(source.provenance);
   return parsed.success ? parsed.data.score : undefined;
 }
 
-const promptChatActionSchema = z.object({
-  type: z.literal("prompt"),
-  id: z.string().min(1),
-  label: z.string().min(1),
-  prompt: z.string().min(1),
-  description: z.string().min(1).optional(),
-});
-
-const eventChatActionSchema = z.object({
-  type: z.literal("event"),
-  id: z.string().min(1),
-  label: z.string().min(1),
-  event: z.string().min(1),
-  description: z.string().min(1).optional(),
-});
-
-const actionsCardSchema = z.object({
-  kind: z.literal("actions"),
-  id: z.string().min(1),
-  title: z.string().min(1).optional(),
-  defaultOpen: z.boolean().optional(),
-  actions: z
-    .array(
-      z.discriminatedUnion("type", [
-        promptChatActionSchema,
-        eventChatActionSchema,
-      ]),
-    )
-    .min(1),
-});
+const actionsCardSchema = ActionsCardSchema;
 
 export function SourcesPart({ data }: { data: unknown }): React.ReactElement {
   const parsed = sourcesCardSchema.safeParse(data);
@@ -540,7 +517,7 @@ export function ActionsPart({
 }: {
   data: unknown;
   onPromptAction: (prompt: string) => void;
-  onEventAction: (event: string) => void;
+  onEventAction: (action: EventChatAction) => void;
 }): React.ReactElement {
   const parsed = actionsCardSchema.safeParse(data);
   if (!parsed.success) {
@@ -571,7 +548,7 @@ export function ActionsPart({
                 aria-disabled={false}
                 onClick={() => {
                   if (action.type === "prompt") onPromptAction(action.prompt);
-                  else onEventAction(action.event);
+                  else onEventAction(action);
                 }}
               >
                 {action.label}

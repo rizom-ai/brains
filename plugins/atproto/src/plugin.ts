@@ -4,7 +4,9 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { getErrorMessage, type FetchLike } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import { type FetchLike } from "@brains/utils/fetch-like";
+import { z } from "@brains/utils/zod";
 import {
   atprotoConfigSchema,
   type AtprotoConfig,
@@ -28,6 +30,22 @@ import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import packageJson from "../package.json";
 
 const brainCardLexicon = canonicalAtprotoLexicons["ai.rizom.brain.card"];
+
+const handleResolutionResponseSchema = z.looseObject({
+  did: z.string(),
+});
+
+const didDocumentSchema = z.looseObject({
+  service: z
+    .array(
+      z.looseObject({
+        id: z.string().optional(),
+        type: z.string().optional(),
+        serviceEndpoint: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
 
 export interface AtprotoPluginDeps {
   createPdsClient?: (config: {
@@ -101,7 +119,10 @@ const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
 const MAX_DISCOVERY_REPOS = 50;
 
-export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
+export class AtprotoPlugin extends ServicePlugin<
+  AtprotoConfig,
+  AtprotoConfigInput
+> {
   private readonly deps: AtprotoPluginDeps;
   private readonly projectionRegistry: AtprotoProjectionRegistry;
 
@@ -482,11 +503,10 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     url.searchParams.set("handle", handle);
     const response = await this.fetch(url.toString());
     if (!response.ok) return undefined;
-    const body = (await response.json()) as unknown;
-    if (typeof body !== "object" || body === null || !("did" in body)) {
-      return undefined;
-    }
-    return typeof body.did === "string" ? body.did : undefined;
+    const body = handleResolutionResponseSchema.safeParse(
+      await response.json(),
+    );
+    return body.success ? body.data.did : undefined;
   }
 
   private async resolveDidToPdsEndpoint(
@@ -497,31 +517,15 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       : did.startsWith("did:web:")
         ? await this.fetchJson(didWebDocumentUrl(did))
         : undefined;
-    if (typeof didDocument !== "object" || didDocument === null) {
-      return undefined;
-    }
-    const services = (didDocument as { service?: unknown }).service;
-    if (!Array.isArray(services)) return undefined;
-    const pdsService = services.find(
-      (
-        service,
-      ): service is {
-        id?: unknown;
-        type?: unknown;
-        serviceEndpoint?: unknown;
-      } => {
-        return (
-          typeof service === "object" &&
-          service !== null &&
-          ((service as { id?: unknown }).id === "#atproto_pds" ||
-            (service as { type?: unknown }).type ===
-              "AtprotoPersonalDataServer")
-        );
-      },
+    const parsed = didDocumentSchema.safeParse(didDocument);
+    if (!parsed.success) return undefined;
+
+    const pdsService = parsed.data.service?.find(
+      (service) =>
+        service.id === "#atproto_pds" ||
+        service.type === "AtprotoPersonalDataServer",
     );
-    return typeof pdsService?.serviceEndpoint === "string"
-      ? pdsService.serviceEndpoint
-      : undefined;
+    return pdsService?.serviceEndpoint;
   }
 
   private async fetchJson(url: string): Promise<unknown> {

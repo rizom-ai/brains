@@ -2,16 +2,73 @@ import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
 } from "@brains/runtime-state";
-import { createPrefixedId, z } from "@brains/utils";
+import { createPrefixedId } from "@brains/utils/id";
+import { z } from "@brains/utils/zod";
 
-export const playbookRunStatusSchema = z.enum([
-  "offered",
-  "active",
-  "completed",
-  "dismissed",
-]);
+export type PlaybookRunStatus =
+  "offered" | "active" | "completed" | "dismissed";
 
-export const playbookRunEvidenceSchema = z
+export interface PlaybookRunEvidence {
+  id: string;
+  kind: "entity_event";
+  stateId?: string | undefined;
+  observedAt: string;
+  data: Record<string, unknown>;
+}
+
+export interface PlaybookGateVerdict {
+  stateId: string;
+  goal: string[];
+  met: boolean;
+  reason: string;
+  evaluatedAt: string;
+}
+
+export interface PlaybookRun {
+  id: string;
+  playbookId: string;
+  playbookVersion: string;
+  lifecycle?: string | undefined;
+  status: PlaybookRunStatus;
+  conversationId?: string | undefined;
+  currentState: string;
+  completedStates: string[];
+  snapshot?: unknown;
+  context: Record<string, unknown>;
+  evidence: PlaybookRunEvidence[];
+  gateVerdicts: PlaybookGateVerdict[];
+  startedAt?: string | undefined;
+  completedAt?: string | undefined;
+  updatedAt: string;
+}
+
+export interface PlaybookRunInput {
+  id: string;
+  playbookId: string;
+  playbookVersion: string;
+  lifecycle?: string | undefined;
+  status: PlaybookRunStatus;
+  conversationId?: string | undefined;
+  currentState: string;
+  completedStates?: string[] | undefined;
+  snapshot?: unknown;
+  context?: Record<string, unknown> | undefined;
+  evidence?: PlaybookRunEvidence[] | undefined;
+  gateVerdicts?: PlaybookGateVerdict[] | undefined;
+  startedAt?: string | undefined;
+  completedAt?: string | undefined;
+  updatedAt: string;
+}
+
+export const playbookRunStatusSchema: z.ZodType<
+  PlaybookRunStatus,
+  PlaybookRunStatus
+> = z.enum(["offered", "active", "completed", "dismissed"]);
+
+export const playbookRunEvidenceSchema: z.ZodType<
+  PlaybookRunEvidence,
+  PlaybookRunEvidence
+> = z
   .object({
     id: z.string().min(1),
     kind: z.enum(["entity_event"]),
@@ -21,7 +78,10 @@ export const playbookRunEvidenceSchema = z
   })
   .strict();
 
-export const playbookGateVerdictSchema = z
+export const playbookGateVerdictSchema: z.ZodType<
+  PlaybookGateVerdict,
+  PlaybookGateVerdict
+> = z
   .object({
     stateId: z.string().min(1),
     goal: z.array(z.string().min(1)),
@@ -31,7 +91,7 @@ export const playbookGateVerdictSchema = z
   })
   .strict();
 
-export const playbookRunSchema = z
+export const playbookRunSchema: z.ZodType<PlaybookRun, PlaybookRunInput> = z
   .object({
     id: z.string().min(1),
     playbookId: z.string().min(1),
@@ -41,6 +101,7 @@ export const playbookRunSchema = z
     conversationId: z.string().min(1).optional(),
     currentState: z.string().min(1),
     completedStates: z.array(z.string().min(1)).default([]),
+    /** Legacy XState snapshot. No longer read or written; kept so stored runs still parse. */
     snapshot: z.unknown().optional(),
     context: z.record(z.string(), z.unknown()).default({}),
     evidence: z.array(playbookRunEvidenceSchema).default([]),
@@ -51,13 +112,7 @@ export const playbookRunSchema = z
   })
   .strict();
 
-export type PlaybookRun = z.infer<typeof playbookRunSchema>;
-export type PlaybookRunStatus = z.infer<typeof playbookRunStatusSchema>;
-export type PlaybookRunEvidence = z.infer<typeof playbookRunEvidenceSchema>;
-export type PlaybookGateVerdict = z.infer<typeof playbookGateVerdictSchema>;
-
 const playbookRunsNamespace = "playbooks.runs";
-const playbookRunStorageSchema = playbookRunSchema as z.ZodType<PlaybookRun>;
 
 export class PlaybookRunStore {
   private readonly store: IRuntimeStateStore<PlaybookRun>;
@@ -66,7 +121,7 @@ export class PlaybookRunStore {
   constructor(runtimeState: IRuntimeStateNamespace) {
     this.store = runtimeState.scoped<PlaybookRun>({
       namespace: playbookRunsNamespace,
-      schema: playbookRunStorageSchema,
+      schema: playbookRunSchema,
     });
   }
 
@@ -183,7 +238,6 @@ export function createPlaybookRun(input: {
   lifecycle?: string | undefined;
   conversationId?: string | undefined;
   status?: PlaybookRunStatus | undefined;
-  snapshot?: unknown;
 }): PlaybookRun {
   const now = new Date().toISOString();
   return playbookRunSchema.parse({
@@ -195,7 +249,6 @@ export function createPlaybookRun(input: {
     ...(input.conversationId ? { conversationId: input.conversationId } : {}),
     currentState: input.initialState,
     completedStates: [],
-    ...(input.snapshot !== undefined ? { snapshot: input.snapshot } : {}),
     context: {},
     evidence: [],
     gateVerdicts: [],

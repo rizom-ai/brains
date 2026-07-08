@@ -4,7 +4,8 @@ import {
   renderOgImagePng,
   type ScreenshotPng,
 } from "@brains/media-page-composer";
-import { parseMarkdown, slugify } from "@brains/utils";
+import { parseMarkdown } from "@brains/utils/markdown";
+import { slugify } from "@brains/utils/string-utils";
 import type { Product } from "../schemas/product";
 import { productFrontmatterSchema } from "../schemas/product";
 import {
@@ -23,13 +24,21 @@ export class ProductOgImageAttachmentProvider implements AttachmentProvider {
     targetField: "ogImageId",
   } as const;
 
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
+  private readonly deps: ProductOgImageAttachmentProviderDeps;
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
-    private readonly deps: ProductOgImageAttachmentProviderDeps = {},
-  ) {}
+    deps: ProductOgImageAttachmentProviderDeps = {},
+  ) {
+    this.context = context;
+    this.deps = deps;
+  }
 
   async resolve(request: {
     sourceEntityType: string;

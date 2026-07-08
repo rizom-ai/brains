@@ -1,12 +1,12 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
-import type { Logger } from "@brains/utils";
-import { ChatContextSchema, type AgentNamespace } from "@brains/plugins";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 
 export interface VerifiedBearerToken {
   subject: string;
@@ -27,7 +27,12 @@ export interface StreamableHTTPServerConfig {
   host?: string;
   logger?: Logger | TransportLogger;
   auth?: AuthConfig;
+  /** Idle time after which a session is closed and evicted (default: 30 min) */
+  sessionIdleTtlMs?: number;
 }
+
+const DEFAULT_SESSION_IDLE_TTL_MS = 30 * 60 * 1000;
+const MAX_EVICTION_SWEEP_INTERVAL_MS = 60 * 1000;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -37,6 +42,10 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
 } as const;
+
+const errorCodeSchema = z.looseObject({
+  code: z.string().optional(),
+});
 
 function requestOrigin(request: Request): string {
   const url = new URL(request.url);
@@ -58,14 +67,16 @@ export class StreamableHTTPServer {
   private static instance: StreamableHTTPServer | null = null;
   private transports: Record<string, WebStandardStreamableHTTPServerTransport> =
     {};
+  private sessionLastActivity = new Map<string, number>();
   private mcpServer: McpServer | null = null;
   private mcpTransport: IMCPTransport | null = null;
-  private agentService: AgentNamespace | null = null;
   private server: ReturnType<typeof Bun.serve> | null = null;
   private boundPort: number | null = null;
+  private evictionTimer: ReturnType<typeof setInterval> | null = null;
   private readonly config: StreamableHTTPServerConfig;
   private readonly logger: TransportLogger;
   private readonly authConfig: AuthConfig;
+  private readonly sessionIdleTtlMs: number;
 
   constructor(config: StreamableHTTPServerConfig = {}) {
     this.config = config;
@@ -74,6 +85,17 @@ export class StreamableHTTPServer {
       : createConsoleLogger();
 
     this.authConfig = config.auth ?? {};
+    this.sessionIdleTtlMs =
+      config.sessionIdleTtlMs ?? DEFAULT_SESSION_IDLE_TTL_MS;
+
+    // The transport is often mounted on a shared webserver without start(),
+    // so the eviction sweep runs from construction. unref'd — it never
+    // keeps the process alive.
+    this.evictionTimer = setInterval(
+      () => this.evictIdleSessions(),
+      Math.min(this.sessionIdleTtlMs, MAX_EVICTION_SWEEP_INTERVAL_MS),
+    );
+    this.evictionTimer.unref();
 
     if (
       !this.authConfig.disabled &&
@@ -169,9 +191,15 @@ export class StreamableHTTPServer {
     request: Request,
     params: Record<string, string> = {},
   ): string {
-    const resourceMetadata = `${requestOrigin(request)}/.well-known/oauth-protected-resource`;
+    // Static-token mode rejects OAuth-issued JWTs, so advertising the OAuth
+    // resource metadata would lure spec-compliant clients (Claude Desktop,
+    // MCP Inspector) through a full auth ceremony that always ends in 401.
     const entries = {
-      resource_metadata: resourceMetadata,
+      ...(this.authConfig.token
+        ? {}
+        : {
+            resource_metadata: `${requestOrigin(request)}/.well-known/oauth-protected-resource`,
+          }),
       ...params,
     };
     const serialized = Object.entries(entries)
@@ -207,7 +235,7 @@ export class StreamableHTTPServer {
 
     if (this.authConfig.token) {
       const token = authHeader.substring(7);
-      if (token !== this.authConfig.token) {
+      if (!constantTimeEquals(token, this.authConfig.token)) {
         this.logger.warn("Authentication failed: Invalid token");
         return this.getAuthErrorResponse(
           "Unauthorized: Invalid token",
@@ -261,6 +289,30 @@ export class StreamableHTTPServer {
     }
   }
 
+  private touchSession(sessionId: string): void {
+    this.sessionLastActivity.set(sessionId, Date.now());
+  }
+
+  private evictIdleSessions(): void {
+    const now = Date.now();
+    for (const [sessionId, lastActivity] of this.sessionLastActivity) {
+      if (now - lastActivity < this.sessionIdleTtlMs) continue;
+
+      this.logger.info(`Evicting idle session ${sessionId}`);
+      this.sessionLastActivity.delete(sessionId);
+      const transport = this.transports[sessionId];
+      if (transport) {
+        delete this.transports[sessionId];
+        transport.close().catch((error: unknown) => {
+          this.logger.error(
+            `Error closing idle transport for session ${sessionId}:`,
+            error,
+          );
+        });
+      }
+    }
+  }
+
   private async handleMcpRequest(request: Request): Promise<Response> {
     const sessionId = request.headers.get("mcp-session-id") ?? undefined;
 
@@ -269,6 +321,7 @@ export class StreamableHTTPServer {
         return this.createTextResponse("Invalid or missing session ID", 400);
       }
 
+      this.touchSession(sessionId);
       this.logger.debug(`GET /mcp - SSE stream for session ${sessionId}`);
       return this.withCors(
         await this.transports[sessionId].handleRequest(request),
@@ -308,7 +361,22 @@ export class StreamableHTTPServer {
       );
     }
 
-    const parsedBody = await request.json();
+    let parsedBody: unknown;
+    try {
+      parsedBody = await request.json();
+    } catch {
+      return this.createJsonResponse(
+        {
+          jsonrpc: "2.0",
+          error: {
+            code: -32700,
+            message: "Parse error: Invalid JSON body",
+          },
+          id: null,
+        },
+        400,
+      );
+    }
     this.logger.debug(`POST /mcp - Session: ${sessionId ?? "new"}`);
 
     try {
@@ -316,16 +384,19 @@ export class StreamableHTTPServer {
 
       if (sessionId && this.transports[sessionId]) {
         transport = this.transports[sessionId];
+        this.touchSession(sessionId);
       } else if (!sessionId && isInitializeRequest(parsedBody)) {
         transport = new WebStandardStreamableHTTPServerTransport({
           sessionIdGenerator: (): string => randomUUID(),
           onsessioninitialized: (newSessionId: string): void => {
             this.logger.info(`Session initialized: ${newSessionId}`);
             this.transports[newSessionId] = transport;
+            this.touchSession(newSessionId);
           },
           onsessionclosed: (closedSessionId: string): void => {
             this.logger.info(`Session closed: ${closedSessionId}`);
             delete this.transports[closedSessionId];
+            this.sessionLastActivity.delete(closedSessionId);
           },
         });
 
@@ -365,115 +436,6 @@ export class StreamableHTTPServer {
     }
   }
 
-  private async handleAgentChatRequest(request: Request): Promise<Response> {
-    if (!this.agentService) {
-      return this.createJsonResponse(
-        {
-          error: "Agent service not connected",
-        },
-        503,
-      );
-    }
-
-    const { message, conversationId } = (await request.json()) as {
-      message?: string;
-      conversationId?: string;
-    };
-
-    if (!message || typeof message !== "string") {
-      return this.createJsonResponse(
-        { error: "Missing or invalid 'message' field" },
-        400,
-      );
-    }
-
-    const convId = conversationId ?? randomUUID();
-    this.logger.debug(`POST /api/chat - conversation: ${convId}`);
-
-    try {
-      const response = await this.agentService.chat(message, convId);
-      return this.createJsonResponse(response);
-    } catch (error) {
-      this.logger.error("Agent chat error:", error);
-      return this.createJsonResponse(
-        {
-          error: error instanceof Error ? error.message : "Internal error",
-        },
-        500,
-      );
-    }
-  }
-
-  private async handleAgentConfirmRequest(request: Request): Promise<Response> {
-    if (!this.agentService) {
-      return this.createJsonResponse(
-        {
-          error: "Agent service not connected",
-        },
-        503,
-      );
-    }
-
-    const { conversationId, confirmed, approvalId, context } =
-      (await request.json()) as {
-        conversationId?: string;
-        confirmed?: boolean;
-        approvalId?: string;
-        context?: unknown;
-      };
-
-    if (!conversationId || typeof conversationId !== "string") {
-      return this.createJsonResponse(
-        { error: "Missing or invalid 'conversationId' field" },
-        400,
-      );
-    }
-
-    if (typeof confirmed !== "boolean") {
-      return this.createJsonResponse(
-        { error: "Missing or invalid 'confirmed' field" },
-        400,
-      );
-    }
-
-    if (typeof approvalId !== "string" || approvalId.length === 0) {
-      return this.createJsonResponse(
-        { error: "Missing or invalid 'approvalId' field" },
-        400,
-      );
-    }
-
-    const parsedContext = ChatContextSchema.safeParse(context);
-    if (!parsedContext.success || !parsedContext.data.userPermissionLevel) {
-      return this.createJsonResponse(
-        { error: "Missing or invalid 'context' field" },
-        400,
-      );
-    }
-
-    this.logger.debug(
-      `POST /api/chat/confirm - conversation: ${conversationId}`,
-    );
-
-    try {
-      const response = await this.agentService.confirmPendingAction(
-        conversationId,
-        confirmed,
-        approvalId,
-        parsedContext.data,
-      );
-      return this.createJsonResponse(response);
-    } catch (error) {
-      this.logger.error("Agent confirm error:", error);
-      return this.createJsonResponse(
-        {
-          error: error instanceof Error ? error.message : "Internal error",
-        },
-        500,
-      );
-    }
-  }
-
   public async handleRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     this.logger.debug(`${request.method} ${url.pathname}`);
@@ -493,23 +455,13 @@ export class StreamableHTTPServer {
 
     if (url.pathname === "/status") {
       return this.createJsonResponse({
+        status: "ok",
         sessions: Object.keys(this.transports).length,
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        port: this.boundPort ?? this.config.port ?? 3333,
       });
     }
 
     if (url.pathname === "/mcp") {
       return this.handleMcpRequest(request);
-    }
-
-    if (url.pathname === "/api/chat" && request.method === "POST") {
-      return this.handleAgentChatRequest(request);
-    }
-
-    if (url.pathname === "/api/chat/confirm" && request.method === "POST") {
-      return this.handleAgentConfirmRequest(request);
     }
 
     return this.createTextResponse("Not Found", 404);
@@ -522,11 +474,6 @@ export class StreamableHTTPServer {
     this.mcpServer = mcpServer;
     this.mcpTransport = mcpTransport ?? null;
     this.logger.debug("MCP server connected to StreamableHTTP transport");
-  }
-
-  public connectAgentService(agentService: AgentNamespace): void {
-    this.agentService = agentService;
-    this.logger.debug("Agent service connected to StreamableHTTP transport");
   }
 
   public async start(): Promise<void> {
@@ -548,8 +495,8 @@ export class StreamableHTTPServer {
         `StreamableHTTP server listening on http://${host}:${this.boundPort}/mcp`,
       );
     } catch (error) {
-      const err = error as Error & { code?: string };
-      if (err.code === "EADDRINUSE") {
+      const parsedError = errorCodeSchema.safeParse(error);
+      if (parsedError.success && parsedError.data.code === "EADDRINUSE") {
         this.logger.error(`Port ${port} is already in use`);
       }
       throw error;
@@ -557,6 +504,12 @@ export class StreamableHTTPServer {
   }
 
   public async stop(): Promise<void> {
+    if (this.evictionTimer) {
+      clearInterval(this.evictionTimer);
+      this.evictionTimer = null;
+    }
+    this.sessionLastActivity.clear();
+
     for (const sessionId in this.transports) {
       try {
         const transport = this.transports[sessionId];
@@ -606,4 +559,13 @@ export class StreamableHTTPServer {
 
 function escapeChallengeValue(value: string): string {
   return value.replace(/["\\]/g, (match) => `\\${match}`);
+}
+
+function constantTimeEquals(a: string, b: string): boolean {
+  const aBuffer = Buffer.from(a);
+  const bBuffer = Buffer.from(b);
+  if (aBuffer.length !== bBuffer.length) {
+    return false;
+  }
+  return timingSafeEqual(aBuffer, bBuffer);
 }

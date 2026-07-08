@@ -8,10 +8,10 @@ import {
   BaseEntityAdapter,
   baseEntitySchema,
   createEntityPluginContext,
-  skillDataSchema,
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { ProgressReporter, z } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import packageJson from "../../package.json";
 import { SwotAdapter } from "../adapters/swot-adapter";
 import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";
@@ -48,9 +48,18 @@ const evalAgentEntitySchema = baseEntitySchema.extend({
   }),
 });
 
+const evalSkillDataSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  examples: z.array(z.string()),
+});
+
+type EvalSkillData = z.infer<typeof evalSkillDataSchema>;
+
 const evalSkillEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("skill"),
-  metadata: skillDataSchema,
+  metadata: evalSkillDataSchema,
 });
 
 const evalAgentBodySchema = z.object({
@@ -59,9 +68,9 @@ const evalAgentBodySchema = z.object({
   notes: z.string(),
 });
 
-type EvalAgentBody = z.infer<typeof evalAgentBodySchema>;
+type EvalAgentBody = z.output<typeof evalAgentBodySchema>;
 type EvalAgentFrontmatter = z.infer<typeof evalAgentFrontmatterSchema>;
-type EvalAgentSkill = z.infer<typeof evalAgentSkillSchema>;
+type EvalAgentSkill = z.output<typeof evalAgentSkillSchema>;
 
 function formatSkills(value: unknown): string {
   if (!Array.isArray(value) || value.length === 0) return "";
@@ -112,7 +121,8 @@ const agentBodyFormatter = new StructuredContentFormatter<EvalAgentBody>(
 
 class EvalAgentAdapter extends BaseEntityAdapter<
   z.infer<typeof evalAgentEntitySchema>,
-  z.infer<typeof evalAgentEntitySchema>["metadata"]
+  z.infer<typeof evalAgentEntitySchema>["metadata"],
+  z.infer<typeof evalAgentFrontmatterSchema>
 > {
   constructor() {
     super({
@@ -160,18 +170,18 @@ class EvalSkillAdapter extends BaseEntityAdapter<
       entityType: "skill",
       purpose: "A skill entity used for SWOT evaluation.",
       schema: evalSkillEntitySchema,
-      frontmatterSchema: skillDataSchema,
+      frontmatterSchema: evalSkillDataSchema,
     });
   }
 
   public fromMarkdown(
     markdown: string,
   ): Partial<z.infer<typeof evalSkillEntitySchema>> {
-    const frontmatter = this.parseFrontMatter(markdown, skillDataSchema);
+    const frontmatter = this.parseFrontMatter(markdown, evalSkillDataSchema);
     return { content: markdown, entityType: "skill", metadata: frontmatter };
   }
 
-  public createSkillContent(input: z.infer<typeof skillDataSchema>): string {
+  public createSkillContent(input: EvalSkillData): string {
     return this.buildMarkdown("", input);
   }
 }
@@ -179,8 +189,15 @@ class EvalSkillAdapter extends BaseEntityAdapter<
 const agentAdapter = new EvalAgentAdapter();
 const skillAdapter = new EvalSkillAdapter();
 
+const swotEvalSkillSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  examples: z.array(z.string()),
+});
+
 const swotEvalInputSchema = z.object({
-  skills: z.array(skillDataSchema),
+  skills: z.array(swotEvalSkillSchema),
   agents: z.array(
     z.object({
       id: z.string().optional(),
@@ -188,9 +205,9 @@ const swotEvalInputSchema = z.object({
       kind: z.enum(["professional", "team", "collective"]),
       organization: z.string().optional(),
       brainName: z.string(),
-      url: z.string().url(),
+      url: z.url(),
       did: z.string().optional(),
-      status: evalAgentStatusSchema,
+      status: z.enum(["discovered", "approved"]),
       discoveredAt: z.string().datetime().optional(),
       about: z.string(),
       skills: z.array(evalAgentSkillSchema),
@@ -230,7 +247,7 @@ async function deleteAllEntities(
 
 async function seedSwotEvalEntities(
   context: EntityPluginContext,
-  input: z.infer<typeof swotEvalInputSchema>,
+  input: z.output<typeof swotEvalInputSchema>,
 ): Promise<void> {
   await deleteAllEntities(context, "swot");
   await deleteAllEntities(context, "agent");

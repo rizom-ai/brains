@@ -1,7 +1,7 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { EntityPluginContext } from "@brains/plugins";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 /**
  * Subscribe to entity:updated to trigger auto-generation when blog posts are queued.

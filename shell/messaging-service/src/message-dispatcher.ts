@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { InternalMessageResponse, MessageWithPayload } from "./types";
 import type { HandlerEntry } from "./handler-registry";
 
@@ -7,10 +7,12 @@ export async function publishBroadcast(
   handlers: HandlerEntry[],
   logger: Logger,
 ): Promise<null> {
-  // For broadcast messages, call ALL matching handlers regardless of responses
-  for (const entry of handlers) {
-    await invokeHandler(entry, message, logger);
-  }
+  // For broadcast messages, call ALL matching handlers regardless of responses.
+  // Handlers run concurrently so one slow subscriber can't block the rest;
+  // invokeHandler already catches individual handler errors.
+  await Promise.all(
+    handlers.map((entry) => invokeHandler(entry, message, logger)),
+  );
   return null; // Broadcast messages don't return responses
 }
 

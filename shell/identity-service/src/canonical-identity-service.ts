@@ -1,5 +1,5 @@
 import type { ConversationMessageActor } from "@brains/conversation-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 export interface CanonicalIdentityActor {
   actorId: string;

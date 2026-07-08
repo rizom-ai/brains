@@ -5,13 +5,23 @@ import type {
   ToolResult,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 
 /**
  * Input schema for publish-pipeline:queue tool
  */
-export const queueInputSchema = z.object({
+export type QueueAction = "list" | "add" | "remove" | "reorder";
+
+export interface QueueInput {
+  action: QueueAction;
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  position?: number | undefined;
+}
+
+export const queueInputSchema: z.ZodObject<z.ZodRawShape> &
+  z.ZodType<QueueInput, QueueInput> = z.object({
   action: z
     .enum(["list", "add", "remove", "reorder"])
     .describe("Queue action to perform"),
@@ -31,24 +41,51 @@ export const queueInputSchema = z.object({
     .describe("New position for reorder action (1-based)"),
 });
 
-export type QueueInput = z.infer<typeof queueInputSchema>;
-
 /**
  * Queue item in list response
  */
-export const queueItemSchema = z.object({
+export interface QueueItem {
+  position: number;
+  entityType: string;
+  entityId: string;
+  queuedAt: string;
+}
+
+export const queueItemSchema: z.ZodType<QueueItem, QueueItem> = z.object({
   position: z.number(),
   entityType: z.string(),
   entityId: z.string(),
   queuedAt: z.string(),
 });
 
-export type QueueItem = z.infer<typeof queueItemSchema>;
-
 /**
  * Output schema for publish-pipeline:queue tool - discriminated union for success/error cases
  */
-export const queueSuccessSchema = z.object({
+export interface QueueSuccessData {
+  queue?: QueueItem[] | undefined;
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  position?: number | undefined;
+}
+
+export interface QueueSuccessOutput {
+  success: true;
+  message?: string | undefined;
+  data?: QueueSuccessData | undefined;
+}
+
+export interface QueueErrorOutput {
+  success: false;
+  error: string;
+  code?: string | undefined;
+}
+
+export type QueueOutput = QueueSuccessOutput | QueueErrorOutput;
+
+export const queueSuccessSchema: z.ZodType<
+  QueueSuccessOutput,
+  QueueSuccessOutput
+> = z.object({
   success: z.literal(true),
   message: z.string().optional(),
   data: z
@@ -61,18 +98,17 @@ export const queueSuccessSchema = z.object({
     .optional(),
 });
 
-export const queueErrorSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
-  code: z.string().optional(),
-});
+export const queueErrorSchema: z.ZodType<QueueErrorOutput, QueueErrorOutput> =
+  z.object({
+    success: z.literal(false),
+    error: z.string(),
+    code: z.string().optional(),
+  });
 
-export const queueOutputSchema = z.union([
+export const queueOutputSchema: z.ZodType<QueueOutput, QueueOutput> = z.union([
   queueSuccessSchema,
   queueErrorSchema,
 ]);
-
-export type QueueOutput = z.infer<typeof queueOutputSchema>;
 
 /**
  * Create the publish-pipeline:queue tool
@@ -319,8 +355,7 @@ function requireQueueTarget(
 }
 
 type QueuePositionResult =
-  | { success: true; position: number }
-  | { success: false; error: ToolResult };
+  { success: true; position: number } | { success: false; error: ToolResult };
 
 function requirePosition(position?: number): QueuePositionResult {
   if (position === undefined) {

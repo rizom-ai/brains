@@ -1,4 +1,4 @@
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import type { BuildContext, StaticSiteBuilder } from "./static-site-builder";
 
 const STATIC_BUILD_PROGRESS_START = 85;

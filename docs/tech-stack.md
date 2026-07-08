@@ -293,14 +293,10 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - `@brains/utils` — Logger (JSON mode + log file), markdown, YAML, IDs, permissions, progress, Zod re-export (overloaded; split tracked separately)
 - `@brains/ui-library` — Preact UI components (Header, Footer, ThemeToggle, widgets)
-- `@rizom/ui` (`shared/rizom-ui`) — Rizom-brand UI primitives shared across app-owned Rizom site variants
 - `@brains/site-engine` — renderer-agnostic site build engine utilities
 - `@brains/site-composition` — shared site composition contract and merge helpers
 - `@brains/test-utils` — mock factories, test harnesses, MockShell
-- `@brains/mcp-bridge` — base class for bridging upstream MCP servers
 - `@brains/image` — image schema, adapter, utilities
-- `@brains/cms-config` — CMS config types consumed by the `cms` plugin
-- `@brains/product-site-content` — product page layouts and templates
 - `@brains/deploy-support` — canonical deploy templates, deploy script helpers, env parsing, and cert support
 - `@brains/theme-base` / `@brains/theme-default` / `@brains/theme-rizom` — shared CSS themes
 - `@brains/eslint-config` / `@brains/typescript-config` — shared lint and TS configs

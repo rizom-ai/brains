@@ -1,11 +1,41 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Configuration schema for the Topics plugin
  */
-const extractionVisibilitySchema = z.enum(["public", "shared", "restricted"]);
+export type TopicExtractionVisibility = "public" | "shared" | "restricted";
 
-export const topicsPluginConfigSchema = z.object({
+const extractionVisibilitySchema: z.ZodType<
+  TopicExtractionVisibility,
+  TopicExtractionVisibility
+> = z.enum(["public", "shared", "restricted"]);
+
+export interface TopicsPluginConfig {
+  includeEntityTypes: string[];
+  minRelevanceScore: number;
+  mergeSimilarityThreshold: number;
+  autoMerge: boolean;
+  extractableStatuses: string[];
+  enableAutoExtraction: boolean;
+  extractionVisibility: TopicExtractionVisibility;
+  sourceChangeBatchDelayMs: number;
+}
+
+export interface TopicsPluginConfigInput {
+  includeEntityTypes?: string[] | undefined;
+  minRelevanceScore?: number | undefined;
+  mergeSimilarityThreshold?: number | undefined;
+  autoMerge?: boolean | undefined;
+  extractableStatuses?: string[] | undefined;
+  enableAutoExtraction?: boolean | undefined;
+  extractionVisibility?: TopicExtractionVisibility | undefined;
+  sourceChangeBatchDelayMs?: number | undefined;
+}
+
+export const topicsPluginConfigSchema: z.ZodType<
+  TopicsPluginConfig,
+  TopicsPluginConfigInput
+> = z.object({
   /**
    * Whitelist of entity types to extract topics from.
    * Only these types are processed. If empty, no types are processed.
@@ -48,5 +78,3 @@ export const topicsPluginConfigSchema = z.object({
    */
   sourceChangeBatchDelayMs: z.number().int().min(0).default(1000),
 });
-
-export type TopicsPluginConfig = z.infer<typeof topicsPluginConfigSchema>;

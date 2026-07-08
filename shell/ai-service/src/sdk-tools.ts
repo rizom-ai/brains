@@ -1,5 +1,5 @@
 import { dynamicTool, type ToolSet } from "ai";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
@@ -31,12 +31,7 @@ const MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS = new Set([
 ]);
 
 type JsonValue =
-  | null
-  | string
-  | number
-  | boolean
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
 
 const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([
@@ -45,38 +40,43 @@ const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
     z.number(),
     z.boolean(),
     z.array(jsonValueSchema),
-    z.record(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
   ]),
 );
 
-const attachmentToolOutputSchema = z
-  .object({
-    success: z.literal(true),
-    data: z
-      .object({
-        documentId: z.string().min(1).optional(),
-        entityId: z.string().min(1).optional(),
-        attachment: z
-          .object({
-            mediaType: z.string().min(1),
-            url: z.string().min(1),
-            downloadUrl: z.string().min(1).optional(),
-            previewUrl: z.string().min(1).optional(),
-            filename: z.string().min(1).optional(),
-            sizeBytes: z.number().nonnegative().optional(),
-            source: z
-              .object({
-                entityType: z.string().optional(),
-                entityId: z.string().optional(),
-                attachmentType: z.string().optional(),
-              })
-              .optional(),
-          })
-          .passthrough(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
+const attachmentToolOutputSchema = z.looseObject({
+  success: z.literal(true),
+  data: z.looseObject({
+    documentId: z.string().min(1).optional(),
+    entityId: z.string().min(1).optional(),
+    attachment: z.looseObject({
+      mediaType: z.string().min(1),
+      url: z.string().min(1),
+      downloadUrl: z.string().min(1).optional(),
+      previewUrl: z.string().min(1).optional(),
+      filename: z.string().min(1).optional(),
+      sizeBytes: z.number().nonnegative().optional(),
+      source: z
+        .object({
+          entityType: z.string().optional(),
+          entityId: z.string().optional(),
+          attachmentType: z.string().optional(),
+        })
+        .optional(),
+    }),
+  }),
+});
+
+type ModelVisibleInputSchema = Record<string, z.ZodType>;
+
+function isModelVisibleInputField(value: unknown): value is z.ZodType {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "safeParse" in value &&
+    typeof value.safeParse === "function"
+  );
+}
 
 export function toModelVisibleInputSchema(
   inputSchema: Tool["inputSchema"],
@@ -85,14 +85,21 @@ export function toModelVisibleInputSchema(
     enableCreateUpload?: boolean;
     enableCreateTransform?: boolean;
   } = {},
-): Tool["inputSchema"] {
-  return Object.fromEntries(
-    Object.entries(inputSchema).filter(([key]) => {
-      if (INTERNAL_CONFIRMATION_FIELDS.has(key)) return false;
-      if (options.toolName !== "system_create") return true;
-      return !MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS.has(key);
-    }),
-  );
+): ModelVisibleInputSchema {
+  const visibleSchema: ModelVisibleInputSchema = {};
+  for (const [key, schema] of Object.entries(inputSchema)) {
+    if (INTERNAL_CONFIRMATION_FIELDS.has(key)) continue;
+    if (
+      options.toolName === "system_create" &&
+      MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS.has(key)
+    ) {
+      continue;
+    }
+    if (isModelVisibleInputField(schema)) {
+      visibleSchema[key] = schema;
+    }
+  }
+  return visibleSchema;
 }
 
 export function toModelToolOutput(output: unknown): {

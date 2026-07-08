@@ -3,13 +3,17 @@ import {
   formatPendingConfirmationsFallback,
   type PendingConfirmation,
 } from "@brains/plugins";
-import type { SentMessage, Thread } from "chat";
+import type { SentMessage } from "chat";
 import type { ChatCardBuilder } from "./chat-cards";
+import type { ChatThread } from "./types";
 
 interface ApprovalCardTrackerDeps {
   cardBuilder: ChatCardBuilder;
   /** Strip interactive components from a resolved approval message (Discord). */
-  clearMessageComponents: (threadId: string, messageId: string) => Promise<void>;
+  clearMessageComponents: (
+    threadId: string,
+    messageId: string,
+  ) => Promise<void>;
 }
 
 /**
@@ -19,15 +23,18 @@ interface ApprovalCardTrackerDeps {
  * dependency (clearing Discord message components) is injected.
  */
 export class ApprovalCardTracker {
+  private readonly deps: ApprovalCardTrackerDeps;
   private readonly cards = new Map<
     string,
     { message: SentMessage; summary: string; threadId: string }
   >();
 
-  constructor(private readonly deps: ApprovalCardTrackerDeps) {}
+  constructor(deps: ApprovalCardTrackerDeps) {
+    this.deps = deps;
+  }
 
   async trackPendingConfirmations(
-    thread: Thread,
+    thread: ChatThread,
     conversationId: string,
     pendingConfirmations: PendingConfirmation[] | undefined,
   ): Promise<void> {
@@ -80,7 +87,10 @@ export class ApprovalCardTracker {
       ),
       fallbackText: `Approval ${label}: ${tracked.summary}`,
     });
-    await this.deps.clearMessageComponents(tracked.threadId, tracked.message.id);
+    await this.deps.clearMessageComponents(
+      tracked.threadId,
+      tracked.message.id,
+    );
   }
 
   private key(conversationId: string, approvalId: string): string {

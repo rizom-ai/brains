@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ImagePlugin } from "../src/image-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { JobHandler } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 
 describe("ImagePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;

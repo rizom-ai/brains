@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>rizom.ai — Consolidated Site Mockup · rev 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400;1,450&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --night: #14132b;        /* deep indigo — brand book #16213e family, live-site violet family */
+    --night-deep: #0e0d20;
+    --white: #faf8f3;        /* brand book warm off-white */
+    --w70: rgba(250,248,243,0.72);
+    --w45: rgba(250,248,243,0.46);
+    --w28: rgba(250,248,243,0.28);
+    --rule: rgba(250,248,243,0.14);
+    --rule-soft: rgba(250,248,243,0.07);
+    --brass: #d4af37;        /* brand book warm brass — the platform */
+    --brass-soft: #e8cc6a;
+    --ruby: #d0453a;         /* brand book crimson/ruby — the practice */
+    --ruby-soft: #e07a6a;
+    --moss: #9caf88;         /* brand book moss/sage — the foundation */
+    --moss-deep: #6f8a5e;
+    --cta-ink: var(--night-deep);
+    --myc-root: rgba(212,175,55,.24);
+    --myc-twig: rgba(250,248,243,.1);
+    --display: "Fraunces", serif;
+    --ui: "IBM Plex Sans", sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+  }
+  html[data-theme="light"] {
+    /* brand book light: warm off-white ground, charcoal/indigo ink */
+    --night: #faf8f3;
+    --night-deep: #f2eee5;
+    --white: #23213a;
+    --w70: rgba(35,33,58,0.76);
+    --w45: rgba(35,33,58,0.52);
+    --w28: rgba(35,33,58,0.34);
+    --rule: rgba(35,33,58,0.18);
+    --rule-soft: rgba(35,33,58,0.09);
+    --brass: #a8821c;
+    --brass-soft: #8a6a12;
+    --ruby: #b83a2e;
+    --ruby-soft: #b8503f;
+    --moss: #5e7a4e;
+    --moss-deep: #4c633f;
+    --cta-ink: #faf8f3;
+    --myc-root: rgba(168,130,28,.35);
+    --myc-twig: rgba(35,33,58,.14);
+  }
+  html[data-theme="light"] body::before { opacity: .3; }
+  html[data-theme="light"] .frame { box-shadow: 0 30px 70px -34px rgba(35,33,58,.35); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--ui); background: var(--night-deep); color: var(--white); font-size: 15.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 999; pointer-events: none; opacity: .45;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection { background: rgba(212,175,55,.35); }
+  a { color: inherit; }
+
+  /* ---------- mockup chrome ---------- */
+  .mock-header { max-width: 1300px; margin: 0 auto; padding: 52px 40px 16px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--brass); }
+  .mock-header h1 { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 90; font-weight: 500; font-size: clamp(28px,3.8vw,42px); line-height: 1.1; margin-top: 10px; max-width: 26em; letter-spacing: -.01em; }
+  .mock-header h1 em { font-style: italic; color: var(--brass-soft); font-weight: 450; }
+  .lede { margin-top: 12px; max-width: 70ch; color: var(--w70); font-size: 14.5px; }
+  .mock-nav { max-width: 1300px; margin: 20px auto 0; padding: 0 40px; display: flex; border-bottom: 1px solid var(--rule); }
+  .mock-nav a { font-family: var(--mono); font-size: 12px; text-decoration: none; color: var(--w45); padding: 10px 16px 12px; transform: translateY(1px); }
+  .mock-nav a span { color: var(--brass); margin-right: 6px; }
+  .mock-nav a:hover { color: var(--white); }
+  .screen { max-width: 1300px; margin: 60px auto 0; padding: 0 40px; }
+  .screen-label { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
+  .screen-label .num { font-family: var(--mono); font-size: 12px; color: var(--brass); }
+  .screen-label h2 { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 500; font-size: 20px; }
+  .screen-label .note { font-size: 12.5px; color: var(--w28); margin-left: auto; text-align: right; max-width: 48ch; }
+  .frame { position: relative; background: var(--night); border: 1px solid var(--rule-soft); overflow: hidden; box-shadow: 0 34px 80px -30px rgba(0,0,0,.9); }
+
+  /* ---------- mycelium thread ---------- */
+  .mycelium { position: absolute; top: 0; left: 0; height: 100%; width: 220px; pointer-events: none; opacity: .8; }
+  .mycelium path { fill: none; stroke-linecap: round; }
+  .mycelium .root { stroke: var(--myc-root); stroke-width: 1.4; }
+  .mycelium .twig { stroke: var(--myc-twig); stroke-width: 1; }
+  .mycelium circle { fill: var(--night); stroke-width: 1.6; }
+  .node-pulse { animation: nodepulse 3.4s ease-in-out infinite; transform-origin: center; }
+  @keyframes nodepulse { 0%,100% { opacity: .7; } 50% { opacity: 1; } }
+
+  /* ---------- site nav ---------- */
+  .sitenav { position: relative; display: flex; align-items: baseline; gap: 34px; padding: 26px 56px 24px 130px; }
+  .wordmark { font-family: var(--display); font-variation-settings: "SOFT" 100; font-weight: 600; font-size: 22px; letter-spacing: -.01em; }
+  .wordmark i { font-style: normal; color: var(--brass); }
+  .sitenav .links { display: flex; gap: 30px; }
+  .sitenav .links a { font-size: 14px; text-decoration: none; color: var(--w45); }
+  .sitenav .links a:hover { color: var(--white); }
+  .sitenav .links a.here { color: var(--white); border-bottom: 2px solid var(--accent, var(--brass)); padding-bottom: 3px; }
+  .sitenav .spacer { flex: 1; }
+  .cta-mini { font-size: 14px; font-weight: 500; text-decoration: none; color: var(--cta-ink); background: var(--brass); padding: 9px 18px; border-radius: 3px; }
+  .cta-mini:hover { background: var(--brass-soft); }
+
+  /* ---------- HOME hero — real copy, staged asymmetrically ---------- */
+  .hero { position: relative; padding: 84px 56px 60px 130px; }
+  .hero h3 { font-family: var(--display); font-variation-settings: "SOFT" 90, "opsz" 130; font-weight: 440; font-size: clamp(42px, 6vw, 84px); line-height: 1.0; letter-spacing: -.02em; max-width: 11em; }
+  .hero h3 em { font-style: italic; color: var(--brass-soft); font-weight: 400; }
+  .hero .standfirst { display: flex; gap: 60px; align-items: baseline; margin-top: 36px; }
+  .hero .standfirst p { max-width: 42ch; font-size: 18px; color: var(--w70); }
+  .hero .standfirst p b { color: var(--white); font-weight: 500; }
+  .hero .actions { display: flex; gap: 24px; align-items: baseline; white-space: nowrap; }
+  .cta { font-size: 15px; font-weight: 500; text-decoration: none; color: var(--cta-ink); background: var(--brass); padding: 13px 26px; border-radius: 3px; }
+  .cta:hover { background: var(--brass-soft); }
+  .quiet { font-size: 14.5px; color: var(--w45); text-decoration: none; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
+  .quiet:hover { color: var(--white); border-color: var(--w45); }
+
+  /* three layers — live site's own diagram, now the product story */
+  .layers { position: relative; padding: 30px 56px 74px 130px; }
+  .layers .l-cap { font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--w28); margin-bottom: 26px; }
+  .layers .l-row { display: flex; align-items: stretch; gap: 0; max-width: 900px; }
+  .layer { flex: 1; padding: 0 30px; border-left: 1px solid var(--rule); }
+  .layer:first-child { border-left: none; padding-left: 0; }
+  .layer .l-you { font-family: var(--display); font-variation-settings: "SOFT" 70; font-weight: 520; font-size: 24px; }
+  .layer .l-what { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; margin-top: 3px; }
+  .layer p { font-size: 13.5px; color: var(--w45); margin-top: 10px; }
+  .layer .l-tag { font-family: var(--mono); font-size: 10px; margin-top: 12px; display: inline-block; padding: 2px 9px; border: 1px solid var(--rule); border-radius: 99px; color: var(--w45); }
+  .layer.you .l-what { color: var(--brass); } .layer.you .l-tag { color: var(--brass); border-color: rgba(212,175,55,.4); }
+  .layer.team .l-what { color: var(--ruby-soft); }
+  .layer.net .l-what { color: var(--moss); }
+  .layers .l-note { font-size: 14px; color: var(--w45); font-style: italic; font-family: var(--display); font-variation-settings: "SOFT" 80; margin-top: 26px; }
+
+  /* the problem — real 01/02/03 */
+  .problems { position: relative; border-top: 1px solid var(--rule); padding: 60px 56px 30px 130px; }
+  .sect-cap { font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--w28); }
+  .problems h4 { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 70; font-weight: 480; font-size: clamp(26px,3vw,36px); letter-spacing: -.012em; margin-top: 12px; }
+  .problems h4 em { font-style: italic; color: var(--ruby-soft); }
+  .prob-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px; margin: 40px 0 30px; max-width: 1020px; }
+  .prob .p-no { font-family: var(--mono); font-size: 11px; color: var(--brass); }
+  .prob b { display: block; font-family: var(--display); font-variation-settings: "SOFT" 50; font-weight: 520; font-size: 19px; margin-top: 8px; letter-spacing: -.005em; }
+  .prob p { font-size: 14px; color: var(--w45); margin-top: 8px; }
+
+  /* chapters into the rooms */
+  .rooms-index { position: relative; border-top: 1px solid var(--rule); padding: 56px 56px 64px 130px; }
+  .room-link { display: grid; grid-template-columns: 1fr auto; gap: 30px; align-items: baseline; padding: 30px 0; border-bottom: 1px solid var(--rule-soft); text-decoration: none; }
+  .room-link:last-of-type { border-bottom: none; }
+  .room-link .r-kicker { font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; }
+  .room-link h5 { font-family: var(--display); font-variation-settings: "SOFT" 80, "opsz" 80; font-weight: 460; font-size: clamp(24px,2.8vw,34px); letter-spacing: -.012em; margin-top: 6px; max-width: 24em; }
+  .room-link h5 em { font-style: italic; }
+  .room-link .r-sub { font-size: 14.5px; color: var(--w45); margin-top: 6px; max-width: 60ch; }
+  .room-link .r-go { font-family: var(--mono); font-size: 12px; color: var(--w28); transition: color .2s, transform .2s; }
+  .room-link:hover .r-go { color: var(--accent); transform: translateX(4px); }
+  .room-link:hover h5 em { color: var(--accent); }
+  .rl-work { --accent: var(--ruby-soft); } .rl-work .r-kicker { color: var(--ruby-soft); }
+  .rl-fnd { --accent: var(--moss); } .rl-fnd .r-kicker { color: var(--moss); }
+
+  /* data rules + living proof — real copy */
+  .yourdata { position: relative; border-top: 1px solid var(--rule); padding: 56px 56px 50px 130px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 44px; max-width: 1120px; }
+  .yourdata .yd-head { grid-column: 1 / -1; }
+  .yourdata h4 { font-family: var(--display); font-variation-settings: "SOFT" 70; font-weight: 480; font-size: clamp(24px,2.6vw,32px); letter-spacing: -.01em; margin-top: 12px; }
+  .yourdata h4 em { font-style: italic; color: var(--brass-soft); }
+  .yd b { display: block; font-weight: 500; font-size: 15.5px; }
+  .yd p { font-size: 13.5px; color: var(--w45); margin-top: 6px; }
+  .yd .yd-m { font-family: var(--mono); font-size: 11px; color: var(--brass); }
+
+  .alive { position: relative; border-top: 1px solid var(--rule); padding: 34px 56px 40px 130px; }
+  .alive .a-claim { font-family: var(--display); font-variation-settings: "SOFT" 90; font-style: italic; font-weight: 430; font-size: 21px; color: var(--w70); }
+  .alive .a-claim b { color: var(--white); font-weight: 500; font-style: normal; }
+  .alive .a-row { display: flex; gap: 0; margin-top: 18px; flex-wrap: wrap; }
+  .alive .a-row a { text-decoration: none; padding-right: 26px; margin-right: 26px; border-right: 1px solid var(--rule-soft); font-family: var(--mono); font-size: 11.5px; color: var(--w45); }
+  .alive .a-row a:last-child { border-right: none; }
+  .alive .a-row a:hover { color: var(--brass-soft); }
+
+  .siteband { border-top: 1px solid var(--rule-soft); padding: 18px 56px 18px 130px; display: flex; gap: 26px; font-family: var(--mono); font-size: 11px; color: var(--w28); position: relative; }
+  .siteband b { color: var(--w45); font-weight: 500; }
+  .siteband .spacer { flex: 1; }
+
+  /* ---------- ROOMS ---------- */
+  .room-head { position: relative; padding: 70px 56px 10px 130px; }
+  .room-head .r-kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
+  .room-head .r-kicker small { color: var(--w28); margin-left: 14px; letter-spacing: .14em; }
+  .room-head h3 { font-family: var(--display); font-variation-settings: "SOFT" 88, "opsz" 110; font-weight: 450; font-size: clamp(34px,4.8vw,58px); line-height: 1.05; letter-spacing: -.018em; margin-top: 18px; max-width: 16em; }
+  .room-head h3 em { font-style: italic; color: var(--accent); }
+  .room-head .standfirst { font-size: 17px; color: var(--w70); max-width: 54ch; margin-top: 18px; }
+  .room-head .actions { display: flex; gap: 24px; align-items: baseline; margin-top: 28px; }
+
+  /* the /work diagnostic panel — faithful to the live rizom.work hero visual */
+  .exhibit-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: start; }
+  @media (max-width: 1020px) { .exhibit-grid { grid-template-columns: 1fr; gap: 30px; } }
+  .diag { position: relative; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 16px; padding: 20px 30px 26px; margin-top: 8px; overflow: hidden; }
+  .diag .bar { position: absolute; inset: 0 0 auto 0; height: 2px; background: var(--accent); border-radius: 16px 16px 0 0; }
+  .diag .radar { display: block; width: 100%; height: auto; padding-bottom: 10px; }
+  .diag .radar .tri-outer { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+  .diag .radar .tri-score { fill: color-mix(in srgb, var(--accent) 20%, transparent); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .diag .radar .vertex { fill: var(--white); stroke: var(--night); stroke-width: 2; }
+  .diag .radar text { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; fill: var(--w45); }
+  .diag .d-type { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 1px solid var(--rule-soft); padding: 18px 0; }
+  .diag .d-type .k { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--w45); white-space: nowrap; }
+  .diag .d-type b { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 96; font-style: italic; font-weight: 500; font-size: 22px; letter-spacing: -.015em; text-align: right; }
+  .diag .d-acts { border-top: 1px solid var(--rule-soft); padding-top: 18px; }
+  .diag .d-acts-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--w45); }
+  .diag .d-acts-head .score { letter-spacing: .18em; }
+  .diag .d-acts-head .score .arr { color: var(--w28); margin-right: 6px; }
+  .diag .d-acts-head .score .dim { color: var(--accent); }
+  .diag .d-acts-head .score .n { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .diag .d-acts-head .score .n span { opacity: .6; }
+  .diag ul { list-style: none; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .diag li { display: flex; align-items: baseline; gap: 12px; font-size: 13px; line-height: 1.5; color: var(--w70); }
+  .diag li .no { min-width: 26px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; color: color-mix(in srgb, var(--accent) 80%, var(--white)); }
+  .diag .d-run { margin-top: 20px; display: flex; width: 100%; align-items: center; justify-content: center; border: 1px solid var(--rule); border-radius: 10px; padding: 12px 16px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--w70); text-decoration: none; transition: border-color .15s, color .15s; }
+  .diag .d-run:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--white); }
+  .exhibit-caption { font-family: var(--mono); font-size: 10.5px; color: var(--w28); margin-top: 10px; }
+
+  .rsect { position: relative; padding: 54px 56px 20px 130px; }
+  .rsect .sect-cap { display: block; }
+  .rsect h4 { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 70; font-weight: 470; font-size: clamp(24px,2.8vw,34px); letter-spacing: -.012em; margin-top: 12px; max-width: 22em; }
+  .rsect h4 em { font-style: italic; color: var(--accent); }
+  .rsect .r-intro { font-size: 15px; color: var(--w45); max-width: 62ch; margin-top: 12px; }
+
+  .steps { counter-reset: step; margin-top: 34px; max-width: 860px; }
+  .step { display: grid; grid-template-columns: 60px 190px 1fr; gap: 26px; padding: 24px 0; border-top: 1px solid var(--rule-soft); align-items: baseline; }
+  .step .s-no { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+  .step b { font-family: var(--display); font-variation-settings: "SOFT" 60; font-weight: 520; font-size: 19px; }
+  .step div p { font-size: 14px; color: var(--w45); }
+  .step div p:first-child { color: var(--w70); font-size: 14.5px; margin-bottom: 3px; }
+
+  .findings { display: grid; grid-template-columns: 1fr 1fr; gap: 34px 54px; margin-top: 34px; max-width: 920px; }
+  .finding .f-no { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+  .finding b { display: block; font-family: var(--display); font-variation-settings: "SOFT" 50; font-weight: 520; font-size: 17.5px; margin-top: 6px; }
+  .finding p { font-size: 13.5px; color: var(--w45); margin-top: 6px; }
+
+  .pull { position: relative; padding: 66px 56px 60px 130px; }
+  .pull blockquote { font-family: var(--display); font-variation-settings: "SOFT" 100, "opsz" 100; font-style: italic; font-weight: 410; font-size: clamp(24px,3.4vw,40px); line-height: 1.25; letter-spacing: -.01em; max-width: 22em; color: var(--white); }
+  .pull blockquote::before { content: "“"; color: var(--accent); }
+  .pull blockquote::after { content: "”"; color: var(--accent); }
+  .pull .by { font-family: var(--mono); font-size: 11px; color: var(--w28); margin-top: 16px; }
+
+  /* essays — journal index, real titles */
+  .essay { display: grid; grid-template-columns: 64px 200px 1fr auto; gap: 26px; align-items: baseline; padding: 24px 0; border-top: 1px solid var(--rule-soft); text-decoration: none; max-width: 1020px; }
+  .essay .e-no { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+  .essay .e-series { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--w28); }
+  .essay h6 { font-family: var(--display); font-variation-settings: "SOFT" 75, "opsz" 60; font-weight: 470; font-size: 23px; letter-spacing: -.01em; color: var(--white); }
+  .essay:hover h6 { color: var(--accent); }
+  .essay p { font-size: 13.5px; color: var(--w45); margin-top: 5px; max-width: 58ch; }
+  .essay .e-go { font-family: var(--mono); font-size: 12px; color: var(--w28); }
+  .essay:hover .e-go { color: var(--accent); }
+
+  .gathering { display: grid; grid-template-columns: 64px 150px 1fr 150px auto; gap: 26px; align-items: baseline; padding: 22px 0; border-top: 1px solid var(--rule-soft); max-width: 1020px; }
+  .gathering .g-no { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+  .gathering .g-city { font-family: var(--display); font-variation-settings: "SOFT" 70; font-size: 21px; font-weight: 500; }
+  .gathering .g-what { font-size: 13.5px; color: var(--w45); max-width: 52ch; }
+  .gathering .g-when { font-family: var(--mono); font-size: 11px; color: var(--w45); }
+  .gathering .g-when small { display: block; color: var(--w28); }
+  .gathering .g-apply { font-family: var(--mono); font-size: 11.5px; color: var(--w45); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .gathering .g-apply:hover { color: var(--accent); border-color: var(--accent); }
+
+  .support { display: grid; grid-template-columns: 1fr 1fr; gap: 54px; margin-top: 34px; max-width: 920px; padding-bottom: 40px; }
+  .support .sup .s-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  .support .sup .s-amt { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 480; font-size: 27px; margin-top: 8px; }
+  .support .sup p { font-size: 13.5px; color: var(--w45); margin-top: 8px; }
+
+  .footer-note { max-width: 1300px; margin: 80px auto 70px; padding: 22px 40px 0; border-top: 1px solid var(--rule); display: flex; gap: 34px; font-size: 13px; color: var(--w28); }
+  .footer-note .col { max-width: 48ch; }
+  .footer-note b { color: var(--w45); font-weight: 500; }
+
+  @media (max-width: 1020px) {
+    .mycelium { display: none; }
+    .sitenav, .hero, .layers, .problems, .rooms-index, .yourdata, .alive, .siteband, .room-head, .rsect, .pull { padding-left: 40px; padding-right: 40px; }
+    .prob-row, .findings, .support, .yourdata { grid-template-columns: 1fr; }
+    .layers .l-row { flex-direction: column; gap: 24px; }
+    .layer { border-left: none; padding: 0; }
+    .essay { grid-template-columns: 50px 1fr; }
+    .gathering { grid-template-columns: 50px 1fr; }
+    .hero .standfirst { flex-direction: column; gap: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mock-header">
+  <div class="kicker">rizom.ai — consolidated site · rev 3 · built from the real copy + the brand book</div>
+  <h1>Every word below is from the live sites or the brand book — reworked only where the
+  <em>one-brain</em> direction outdates it.</h1>
+  <p class="lede">What changed against the live rizom.ai: Rover/Relay/Ranger stop being three
+  coming-soon products and become the three layers of one brain (your own You→Team→Network
+  diagram, promoted to the product story). The practice and foundation fold in as rooms with
+  their real content: the TMS workshop, the Team Type quiz, essays №1–3, the city chapters,
+  the funding tiers. Visual language per the brand book: mycelial thread, brass/ruby/moss on
+  deep indigo, asymmetric left rail, italics for flow.</p>
+</header>
+
+<nav class="mock-nav">
+  <button id="themeToggle" style="margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--w45); background:none; border:1px solid var(--rule); border-radius:6px; padding:5px 12px; cursor:pointer; align-self:center">Light mode</button>
+  <a href="#s1"><span>01</span>Home</a>
+  <a href="#s2"><span>02</span>/work</a>
+  <a href="#s3"><span>03</span>/foundation</a>
+</nav>
+
+<!-- ==================== 01 HOME ==================== -->
+<section class="screen" id="s1">
+  <div class="screen-label">
+    <span class="num">01</span>
+    <h2>Home — the platform, with two doors</h2>
+    <span class="note">Hero, problem trio, data principles: verbatim from live rizom.ai.
+    Products section reworked: one brain, three layers.</span>
+  </div>
+  <div class="frame">
+    <svg class="mycelium" viewBox="0 0 220 1600" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+      <path class="root" d="M80,0 C60,140 110,220 84,360 C58,500 118,600 88,780 C62,930 112,1050 86,1220 C66,1360 104,1470 90,1600" />
+      <path class="twig" d="M84,360 C130,390 160,370 196,400" />
+      <path class="twig" d="M88,780 C40,820 30,880 12,900" />
+      <path class="twig" d="M86,1220 C140,1250 150,1310 190,1330" />
+      <path class="twig" d="M74,180 C40,200 36,240 18,250" />
+      <circle class="node-pulse" cx="84" cy="360" r="4" stroke="#d4af37" />
+      <circle class="node-pulse" cx="88" cy="780" r="4" stroke="#e07a6a" style="animation-delay:.8s" />
+      <circle class="node-pulse" cx="86" cy="1220" r="4" stroke="#9caf88" style="animation-delay:1.6s" />
+    </svg>
+
+    <nav class="sitenav">
+      <div class="wordmark">rizom<i>.</i></div>
+      <div class="links">
+        <a class="here" href="#s1">Platform</a>
+        <a href="#s1">Docs</a>
+        <a href="#s2">Work</a>
+        <a href="#s3">Foundation</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="cta-mini" href="#s1">Get Started</a>
+    </nav>
+
+    <div class="hero">
+      <h3>Build the agent that <em>represents you</em></h3>
+      <div class="standfirst">
+        <p>Your knowledge becomes an AI agent. Your agent joins a network. The network finds
+        the right expert for every problem, <b>matched by what people actually know</b>.</p>
+        <div class="actions">
+          <a class="cta" href="#s1">Get Your Brain →</a>
+          <a class="quiet" href="#s1">Running in under a minute</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="layers">
+      <div class="l-cap">One brain · three layers — each one makes the others smarter</div>
+      <div class="l-row">
+        <div class="layer you">
+          <div class="l-you">You</div>
+          <div class="l-what">Personal brain</div>
+          <p>Capture what you know — notes, links, ideas — and your brain turns it into blog
+          posts, presentations, and social content. In your voice.</p>
+          <span class="l-tag">available now</span>
+        </div>
+        <div class="layer team">
+          <div class="l-you">Team</div>
+          <div class="l-what">Shared intelligence</div>
+          <p>Brains connect into shared memory: who knows what, tracked as it evolves. When
+          someone leaves, their knowledge stays.</p>
+          <span class="l-tag">the team bundle</span>
+        </div>
+        <div class="layer net">
+          <div class="l-you">Network</div>
+          <div class="l-what">Distributed expertise</div>
+          <p>Agents discover and call each other. Work is scored against every brain for fit —
+          by what each has been thinking about, not job titles.</p>
+          <span class="l-tag">emerging</span>
+        </div>
+      </div>
+      <div class="l-note">It starts with you. It scales to everyone.</div>
+    </div>
+
+    <div class="problems">
+      <span class="sect-cap">How the network works — and why it has to</span>
+      <h4>Your best thinking <em>never ships</em></h4>
+      <div class="prob-row">
+        <div class="prob">
+          <span class="p-no">01</span>
+          <b>Your best thinking never ships</b>
+          <p>You have notes, drafts, and ideas scattered everywhere. Turning them into
+          something the world can see takes so long that most of it dies in your head.</p>
+        </div>
+        <div class="prob">
+          <span class="p-no">02</span>
+          <b>Your team forgets what it knows</b>
+          <p>People leave, context disappears, and hard-won expertise gets buried in chat
+          threads no one will ever search.</p>
+        </div>
+        <div class="prob">
+          <span class="p-no">03</span>
+          <b>The right people never find each other</b>
+          <p>You match collaborators by job titles and résumés, not by what they actually
+          know. The perfect expert might be one connection away.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rooms-index">
+      <span class="sect-cap">Two more doors</span>
+      <a class="room-link rl-work" href="#s2">
+        <div>
+          <div class="r-kicker">The practice · rizom/work</div>
+          <h5>Your team has a knowledge problem. <em>AI is making it visible.</em></h5>
+          <div class="r-sub">TMS-based consulting: one session produces a coordination map
+          your whole team can act on. Take the Team Type quiz.</div>
+        </div>
+        <span class="r-go">/work →</span>
+      </a>
+      <a class="room-link rl-fnd" href="#s3">
+        <div>
+          <div class="r-kicker">The foundation · Stichting Rizom</div>
+          <h5>Work is broken — the institutions organizing it were built for a
+          <em>different century</em>.</h5>
+          <div class="r-sub">Essays, city-by-city gatherings, and stewardship of the open AI
+          infrastructure this community runs on.</div>
+        </div>
+        <span class="r-go">/foundation →</span>
+      </a>
+    </div>
+
+    <div class="yourdata">
+      <div class="yd-head">
+        <span class="sect-cap">Your data, your rules</span>
+        <h4>Everything is a plain text file you can read with <em>any editor</em></h4>
+      </div>
+      <div class="yd">
+        <span class="yd-m">M</span>
+        <b>Markdown, not databases</b>
+        <p>Every entity — posts, notes, links, decks — lives as a markdown file with
+        frontmatter. Version-controlled with git. Readable without the brain running.</p>
+      </div>
+      <div class="yd">
+        <span class="yd-m">S</span>
+        <b>Self-hosted, open source</b>
+        <p>Deploy to your own server with one command. Or run locally. Apache-2.0 licensed.
+        No vendor lock-in, no fine print.</p>
+      </div>
+      <div class="yd">
+        <span class="yd-m">A</span>
+        <b>AI model agnostic</b>
+        <p>Not tied to any single provider. Swap models, combine them, or bring your own.</p>
+      </div>
+    </div>
+
+    <div class="alive">
+      <div class="a-claim"><b>This site is a brain</b> — running the platform it describes.</div>
+      <div class="a-row">
+        <a href="#s3">latest essay · published through the pipeline</a>
+        <a href="#s1">talk to this brain</a>
+        <a href="#s1">/.well-known/agent-card</a>
+        <a href="#s1">ai.rizom.brain.* lexicons · served live</a>
+      </div>
+    </div>
+
+    <div class="siteband">
+      <span><b>rizom.work</b> and <b>rizom.foundation</b> now live here — old links redirect.</span>
+      <span class="spacer"></span>
+      <span>Stichting Rizom · steward-owned · Apache-2.0</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 02 WORK ==================== -->
+<section class="screen" id="s2">
+  <div class="screen-label">
+    <span class="num">02</span>
+    <h2>/work — verbatim practice content, ruby accent</h2>
+    <span class="note">Hero, problem, workshop steps, methodology: word-for-word from live
+    rizom.work. The quiz keeps top billing.</span>
+  </div>
+  <div class="frame" style="--accent: var(--ruby-soft)">
+    <svg class="mycelium" viewBox="0 0 220 1200" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+      <path class="root" d="M80,0 C60,140 110,260 84,420 C58,580 118,700 88,900 C68,1050 104,1120 92,1200" />
+      <path class="twig" d="M84,420 C130,450 160,430 196,460" />
+      <path class="twig" d="M88,900 C40,940 30,1000 12,1020" />
+      <circle class="node-pulse" cx="84" cy="420" r="4" stroke="#e07a6a" />
+      <circle class="node-pulse" cx="88" cy="900" r="4" stroke="#e07a6a" style="animation-delay:1s" />
+    </svg>
+    <nav class="sitenav">
+      <div class="wordmark">rizom<i>.</i></div>
+      <div class="links">
+        <a href="#s1">Platform</a>
+        <a href="#s1">Docs</a>
+        <a class="here" href="#s2">Work</a>
+        <a href="#s3">Foundation</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="cta-mini" href="#s2" style="background: var(--ruby-soft); color: var(--cta-ink)">Take the quiz</a>
+    </nav>
+
+    <div class="room-head">
+      <div class="r-kicker">Coordination for the AI era <small>previously rizom.work</small></div>
+      <div class="exhibit-grid">
+        <div>
+          <h3>Your team has a knowledge problem. <em>AI is making it visible.</em></h3>
+          <p class="standfirst">TMS-based consulting that helps teams coordinate better, so your
+          people and your AI tools can actually do their best work.</p>
+          <div class="actions">
+            <a class="cta" href="#s2" style="background: var(--ruby-soft); color: var(--cta-ink)">Take the Team Type quiz →</a>
+            <a class="quiet" href="#s2">Book a discovery call</a>
+          </div>
+        </div>
+        <div>
+          <div class="diag">
+            <div class="bar"></div>
+            <svg class="radar" viewBox="0 4 360 248" role="img" aria-label="Three-axis TMS radar — Specialization, Credibility, Coordination">
+              <polygon class="tri-outer" points="180,50 266.60,200 93.40,200"></polygon>
+              <polygon class="tri-score" points="180,95 233.69,181 150.56,167"></polygon>
+              <circle class="vertex" cx="180" cy="95" r="4"></circle>
+              <circle class="vertex" cx="233.69" cy="181" r="4"></circle>
+              <circle class="vertex" cx="150.56" cy="167" r="4"></circle>
+              <text x="180" y="34" text-anchor="middle">Specialization</text>
+              <text x="252" y="222" text-anchor="start">Credibility</text>
+              <text x="108" y="222" text-anchor="end">Coordination</text>
+            </svg>
+            <div class="d-type">
+              <span class="k">Your team type</span>
+              <b>Distributed specialists</b>
+            </div>
+            <div class="d-acts">
+              <div class="d-acts-head">
+                <span>Priority actions</span>
+                <span class="score"><span class="arr">→</span><span class="dim">Coordination</span> <span class="n">34<span>/100</span></span></span>
+              </div>
+              <ul>
+                <li><span class="no">[01]</span><span>Clarify decision authority in the 4 highest-friction roles</span></li>
+                <li><span class="no">[02]</span><span>Surface tacit expertise via a weekly ritual</span></li>
+                <li><span class="no">[03]</span><span>Install coordination layer before further AI pilots</span></li>
+              </ul>
+            </div>
+            <a class="d-run" href="#s2">Run the diagnostic →</a>
+          </div>
+          <div class="exhibit-caption">the live rizom.work diagnostic panel, carried over as-is</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rsect">
+      <span class="sect-cap">The problem</span>
+      <h4>Talent isn't the bottleneck. <em>Coordination</em> is.</h4>
+      <p class="r-intro">Teams don't fail because people are untalented. They fail because
+      nobody has mapped who knows what, who decides what, and how information moves. When you
+      add AI into that, it doesn't help — it just automates the confusion.</p>
+    </div>
+
+    <div class="rsect">
+      <span class="sect-cap">The workshop</span>
+      <h4>One session. A map your whole team <em>can act on</em>.</h4>
+      <p class="r-intro">Outcomes-first: we map your team's transactive memory system — who
+      knows what, how decisions flow, where information drops on the floor — and hand you a
+      working diagnosis you can act on the next day.</p>
+      <div class="steps">
+        <div class="step">
+          <span class="s-no">01</span>
+          <b>Survey</b>
+          <div><p>A short async survey.</p>
+          <p>A questionnaire maps your team's current coordination patterns. We come
+          prepared, so the workshop starts where the data leaves off.</p></div>
+        </div>
+        <div class="step">
+          <span class="s-no">02</span>
+          <b>Workshop</b>
+          <div><p>A facilitated half-day in the room.</p>
+          <p>Your team builds a shared map of expertise, decision authority, and information
+          flow. Everybody sees the same picture — often for the first time ever.</p></div>
+        </div>
+        <div class="step">
+          <span class="s-no">03</span>
+          <b>Playbook</b>
+          <div><p>A diagnostic report and a thirty-day playbook.</p>
+          <p>Concrete changes to roles, rituals, and tooling — including how AI fits in
+          without making the existing confusion worse.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rsect">
+      <span class="sect-cap">The methodology</span>
+      <h4>Thirty years of research. <em>One consistent finding.</em></h4>
+      <div class="findings">
+        <div class="finding"><span class="f-no">01</span><b>Proven across industries</b>
+          <p>TMS is one of the most replicated findings in organizational psychology —
+          validated across tech, healthcare, finance, and creative industries.</p></div>
+        <div class="finding"><span class="f-no">02</span><b>Performance, not theory</b>
+          <p>Teams with strong TMS consistently outperform — across creativity, technical
+          innovation, budget adherence, and problem-solving speed.</p></div>
+        <div class="finding"><span class="f-no">03</span><b>The 70% benchmark</b>
+          <p>High-performing teams score above 70% on TMS measures. Most teams start well
+          below that. The gap is always structural, not personal.</p></div>
+        <div class="finding"><span class="f-no">04</span><b>Built for the field</b>
+          <p>Developed by Jan Hein Hoogstad through years of academic work and hands-on
+          organizational practice.</p></div>
+      </div>
+    </div>
+
+    <div class="pull">
+      <blockquote>The smartest thing in any room is rarely a person. It's the pattern by
+      which the people in the room are connected.</blockquote>
+      <div class="by">— from “Coordination is the unit of intelligence” · the foundation's essay series</div>
+    </div>
+
+    <div class="siteband"><span>previously <b>rizom.work</b> — you were redirected here</span><span class="spacer"></span><span>a commercial practice with a non-profit research arm → /foundation</span></div>
+  </div>
+</section>
+
+<!-- ==================== 03 FOUNDATION ==================== -->
+<section class="screen" id="s3">
+  <div class="screen-label">
+    <span class="num">03</span>
+    <h2>/foundation — verbatim research content, moss accent</h2>
+    <span class="note">Essays №1–3, the three city chapters, and the funding tiers are the
+    real ones. "Vol. 01 · 2026" survives as the journal masthead.</span>
+  </div>
+  <div class="frame" style="--accent: var(--moss)">
+    <svg class="mycelium" viewBox="0 0 220 1300" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+      <path class="root" d="M80,0 C60,160 110,280 84,460 C58,640 118,760 88,960 C68,1120 104,1200 92,1300" />
+      <path class="twig" d="M84,460 C130,490 160,470 196,500" />
+      <path class="twig" d="M88,960 C40,1000 30,1060 12,1080" />
+      <circle class="node-pulse" cx="84" cy="460" r="4" stroke="#9caf88" />
+      <circle class="node-pulse" cx="88" cy="960" r="4" stroke="#9caf88" style="animation-delay:1.2s" />
+    </svg>
+    <nav class="sitenav">
+      <div class="wordmark">rizom<i>.</i></div>
+      <div class="links">
+        <a href="#s1">Platform</a>
+        <a href="#s1">Docs</a>
+        <a href="#s2">Work</a>
+        <a class="here" href="#s3">Foundation</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="cta-mini" href="#s3" style="background: var(--moss); color: var(--cta-ink)">Read Manifesto</a>
+    </nav>
+
+    <div class="room-head">
+      <div class="r-kicker">Vol. 01 · 2026 · Essays · Events · Public infrastructure <small>previously rizom.foundation</small></div>
+      <h3>Work is broken<em> — and the institutions organizing it were built for a
+      different century.</em></h3>
+      <p class="standfirst">A research arm for the social contracts that quietly hold both
+      work and technology together. Rizom Foundation publishes essays, runs city-by-city
+      gatherings, and stewards the open AI infrastructure the community runs on.</p>
+      <div class="actions">
+        <a class="cta" href="#s3" style="background: var(--moss); color: var(--cta-ink)">Join our Discord →</a>
+        <a class="quiet" href="#s3">Find an event near you</a>
+      </div>
+    </div>
+
+    <div class="rsect">
+      <span class="sect-cap">The research — featured essays from the ongoing series</span>
+      <p class="r-intro" style="margin-top:8px">A working bibliography. New entries land
+      roughly monthly.</p>
+      <div style="margin-top: 22px">
+        <a class="essay" href="#s3">
+          <span class="e-no">01</span>
+          <span class="e-series">Future of Work is Play</span>
+          <div><h6>The future of work is play</h6>
+          <p>When machines handle the busywork, what remains is the deeply human. A sketch of
+          what work could look like once we stop pretending the industrial frame still fits.</p></div>
+          <span class="e-go">→</span>
+        </a>
+        <a class="essay" href="#s3">
+          <span class="e-no">02</span>
+          <span class="e-series">Urging New Institutions</span>
+          <div><h6>Social contracts, not constitutions</h6>
+          <p>Why the documents we venerate aren't what's actually holding institutions
+          together — and what that means for anyone building new ones inside the old.</p></div>
+          <span class="e-go">→</span>
+        </a>
+        <a class="essay" href="#s3">
+          <span class="e-no">03</span>
+          <span class="e-series">Urging New Institutions</span>
+          <div><h6>Coordination is the unit of intelligence</h6>
+          <p>The smartest thing in any room is rarely a person — it's the pattern by which
+          the people in the room are connected.</p></div>
+          <span class="e-go">→</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="rsect">
+      <span class="sect-cap">The series — small, curated gatherings, city by city</span>
+      <p class="r-intro" style="margin-top:8px">Twenty to forty people. Jan Hein as
+      intellectual anchor. Local organizers picking the room and the rhythm.</p>
+      <div style="margin-top: 22px">
+        <div class="gathering">
+          <span class="g-no">01</span>
+          <span class="g-city">Amsterdam</span>
+          <span class="g-what">The original chapter. Quarterly gatherings on social
+          contracts, AI, and the institutions that organize knowledge work.</span>
+          <span class="g-when">Spring 2026<small>anchor: Jan Hein</small></span>
+          <a class="g-apply" href="#s3">apply →</a>
+        </div>
+        <div class="gathering">
+          <span class="g-no">02</span>
+          <span class="g-city">Rotterdam</span>
+          <span class="g-what">A working chapter focused on industry, ports, and the
+          practical frictions of building new institutions inside old ones.</span>
+          <span class="g-when">Summer 2026<small>local: TBA</small></span>
+          <a class="g-apply" href="#s3">apply →</a>
+        </div>
+        <div class="gathering">
+          <span class="g-no">03</span>
+          <span class="g-city">Berlin</span>
+          <span class="g-what">The newest chapter. Civic tech, digital rights, and the
+          public-infrastructure question.</span>
+          <span class="g-when">Autumn 2026<small>local: TBA</small></span>
+          <a class="g-apply" href="#s3">apply →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="rsect">
+      <span class="sect-cap">How to support — two ways the work gets funded</span>
+      <div class="support">
+        <div class="sup">
+          <span class="s-k">For individuals</span>
+          <div class="s-amt">€1,000 – €10,000</div>
+          <p>Funds a meaningful slice of the research and event series. Contributors are
+          acknowledged in the essays, invited to closer-circle gatherings, and get early
+          access to new writing.</p>
+        </div>
+        <div class="sup">
+          <span class="s-k">Through the practice</span>
+          <div class="s-amt">Commercial work → research</div>
+          <p>The practice's consulting revenue funds the foundation — a commercial practice
+          with a non-profit research arm.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="siteband"><span>previously <b>rizom.foundation</b> — you were redirected here</span><span class="spacer"></span><span>Stichting Rizom · Amsterdam · Rotterdam · Berlin</span></div>
+  </div>
+</section>
+
+<footer class="footer-note">
+  <div class="col"><b>Content provenance:</b> hero, problem trio, data principles, workshop,
+  methodology, essays, gatherings, and funding tiers are verbatim from the live sites. The
+  one rework: Rover/Relay/Ranger as three separate coming-soon products → one brain with
+  three layers (your existing You/Team/Network diagram, promoted), matching the one-brain
+  direction and the bundle model.</div>
+  <div class="col"><b>Visual provenance:</b> the brand book — mycelial thread with pulsing
+  nodes, deep indigo ground, brass (platform) / ruby (practice) / moss (foundation), warm
+  off-white text, asymmetric left rail, italics as flow. Fraunces fits its "organic serif
+  suggesting natural growth."</div>
+  <div class="col"><b>Function:</b> one brain serves it all — essays and events are
+  entities, the pipeline publishes them, the same agent answers the chat, exposes the agent
+  card, and serves the lexicon registry. Old domains 301 per-path.</div>
+</footer>
+
+<script>
+(function(){var r=document.documentElement,b=document.getElementById("themeToggle");function sync(){b.textContent=r.getAttribute("data-theme")==="light"?"Dark mode":"Light mode";}b.addEventListener("click",function(){r.setAttribute("data-theme",r.getAttribute("data-theme")==="light"?"dark":"light");sync();});sync();})();
+</script>
+</body>
+</html>

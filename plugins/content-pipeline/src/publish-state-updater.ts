@@ -1,6 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { PublishResult } from "@brains/contracts";
-import { updateFrontmatterField } from "@brains/utils";
+import { updateFrontmatterField } from "@brains/utils/markdown";
 
 const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 

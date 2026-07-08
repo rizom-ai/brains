@@ -12,8 +12,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "postpack": "publish-manifest restore",
     "prepack": "publish-manifest prepare"
   },
@@ -28,9 +28,9 @@
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
+    "@types/bun": "^1.3.14",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3"
   },
   "publishConfig": {
     "access": "public"

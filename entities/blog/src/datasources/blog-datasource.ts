@@ -1,14 +1,18 @@
 import {
   BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
   type BaseQuery,
   type NavigationResult,
   type PaginationInfo,
+  type EntityDataSourceConfig,
 } from "@brains/plugins";
-import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import type {
+  BaseDataSourceContext,
+  DataSourceSchema,
+  IEntityService,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils/logger";
+import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import type { BlogPost } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../schemas/blog-post";
 import { parsePostData as parsePostDataBase } from "./parse-helpers";
@@ -18,16 +22,36 @@ export type { BlogPostWithData };
 
 type BlogPostTransformed = BlogPostWithData & { seriesUrl?: string };
 
-const blogQuerySchema = baseQuerySchema.extend({
+interface BlogQuery {
+  [key: string]: unknown;
+  id?: string | undefined;
+  limit?: number | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+  baseUrl?: string | undefined;
+  latest?: boolean | undefined;
+  "metadata.seriesName"?: string | undefined;
+}
+
+interface BlogInput {
+  entityType?: string | undefined;
+  query?: BlogQuery | undefined;
+}
+
+const blogQuerySchema: z.ZodType<BlogQuery> = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
   latest: z.boolean().optional(),
   "metadata.seriesName": z.string().optional(),
 });
 
-const blogInputSchema = baseInputSchema.extend({
+const blogInputSchema: z.ZodType<BlogInput> = z.looseObject({
+  entityType: z.string().optional(),
   query: blogQuerySchema.optional(),
 });
-
-type BlogQuery = z.infer<typeof blogQuerySchema>;
 
 interface BlogDetailData {
   post: BlogPostTransformed;
@@ -62,7 +86,7 @@ export class BlogDataSource extends BaseEntityDataSource<
   readonly description =
     "Fetches and transforms blog post entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "post",
     defaultSort: [
       { field: "publishedAt" as const, direction: "desc" as const },
@@ -122,7 +146,7 @@ export class BlogDataSource extends BaseEntityDataSource<
    */
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);
@@ -164,7 +188,7 @@ export class BlogDataSource extends BaseEntityDataSource<
    * Returns in detail format without navigation.
    */
   private async fetchLatestPost<T>(
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const publishedPosts = await entityService.listEntities<BlogPost>({
@@ -205,7 +229,7 @@ export class BlogDataSource extends BaseEntityDataSource<
    */
   private async fetchSinglePost<T>(
     slug: string,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     // Look up the entity first (needed to know seriesName and for navigation)
@@ -256,7 +280,7 @@ export class BlogDataSource extends BaseEntityDataSource<
 
   private async fetchSeriesPosts<T>(
     seriesName: string,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const posts = await this.fetchPostsBySeries(seriesName, entityService);

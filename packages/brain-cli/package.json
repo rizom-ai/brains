@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.141",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "type": "module",
   "bin": {
@@ -57,27 +57,28 @@
     "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
-    "@clack/prompts": "^0.11.0",
-    "@modelcontextprotocol/sdk": "^1.24.0",
-    "@tailwindcss/postcss": "^4.1.13",
-    "@tailwindcss/typography": "^0.5.19",
-    "postcss": "^8.5.6",
+    "@clack/prompts": "^1.5.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@tailwindcss/postcss": "^4.3.1",
+    "@tailwindcss/typography": "^0.5.20",
+    "postcss": "^8.5.15",
     "preact": "^10.27.2",
-    "preact-render-to-string": "^6.3.1",
-    "tailwindcss": "^4.1.11"
+    "preact-render-to-string": "^6.7.0",
+    "tailwindcss": "^4.3.1",
+    "zod": "^4.1.8"
   },
   "optionalDependencies": {
     "@bitwarden/sdk-napi": "^1.0.0",
-    "@libsql/client": "^0.15.7",
+    "@libsql/client": "^0.17.4",
     "@tailwindcss/oxide": "^4.1.4",
-    "better-sqlite3": "^11.8.1",
     "lightningcss": "^1.29.2",
-    "playwright-core": "^1.56.0",
-    "react-devtools-core": "^6.1.1",
-    "sharp": "^0.34.5"
+    "playwright-core": "^1.61.0",
+    "react-devtools-core": "^7.0.1",
+    "sharp": "^0.35.1"
   },
   "devDependencies": {
     "@brains/app": "workspace:*",
@@ -98,10 +99,10 @@
     "@brains/theme-rizom": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@types/bun": "latest",
-    "rollup": "^4.60.2",
+    "@types/bun": "^1.3.14",
+    "rollup": "^4.62.0",
     "rollup-plugin-dts": "^6.4.1",
-    "typescript": "^5.3.3"
+    "typescript": "^6.0.3"
   },
   "publishConfig": {
     "access": "public"

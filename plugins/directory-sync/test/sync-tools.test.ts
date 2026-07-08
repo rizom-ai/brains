@@ -33,18 +33,17 @@ function createMockDirectorySync(): {
   queueSyncBatchMock: ReturnType<typeof mock>;
   getStatusMock: ReturnType<typeof mock>;
 } {
-  const queueSyncBatchMock = mock(
-    (): Promise<BatchResult | null> =>
-      Promise.resolve({
-        batchId: "batch-123",
-        operationCount: 5,
-        exportOperationsCount: 0,
-        importOperationsCount: 5,
-        totalFiles: 10,
-      }),
+  const queueSyncBatchMock = mock((): Promise<BatchResult | null> =>
+    Promise.resolve({
+      batchId: "batch-123",
+      operationCount: 5,
+      exportOperationsCount: 0,
+      importOperationsCount: 5,
+      totalFiles: 10,
+    }),
   );
-  const getStatusMock = mock(
-    (): Promise<DirectorySyncStatus> => Promise.resolve(defaultStatus()),
+  const getStatusMock = mock((): Promise<DirectorySyncStatus> =>
+    Promise.resolve(defaultStatus()),
   );
 
   return {

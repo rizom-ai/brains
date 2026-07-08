@@ -1,8 +1,16 @@
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 // Schema for the AI response
-const linkExtractionSchema = z.object({
+export interface LinkExtractionResult {
+  success: boolean;
+  error: string;
+  title: string;
+  description: string;
+  summary: string;
+}
+
+const linkExtractionSchema: z.ZodType<LinkExtractionResult> = z.object({
   success: z
     .boolean()
     .describe(
@@ -31,9 +39,9 @@ const linkExtractionSchema = z.object({
     ),
 });
 
-export type LinkExtractionResult = z.infer<typeof linkExtractionSchema>;
-
-export const linkExtractionTemplate = createTemplate<LinkExtractionResult>({
+export const linkExtractionTemplate: ReturnType<
+  typeof createTemplate<LinkExtractionResult>
+> = createTemplate<LinkExtractionResult>({
   name: "link:extraction",
   description: "Extract structured content from webpage markdown",
   dataSourceId: "shell:ai-content",

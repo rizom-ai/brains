@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import { join } from "path";
 import { spawn } from "child_process";
-import type { CommandResult } from "../run-command";
+import type { CommandResult } from "../lib/command-result";
 import { findRunner, resolveRunnerType } from "./start";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { getModel, getAvailableModels } from "../lib/model-registry";

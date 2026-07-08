@@ -37,7 +37,7 @@ import type {
   MessageResponse,
 } from "@brains/messaging-service";
 import type { ContentService } from "@brains/content-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import {
   getVisibleContentVisibilities,
@@ -163,14 +163,12 @@ function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
             .filter(
               ([key]) => keyPrefix === undefined || key.startsWith(keyPrefix),
             )
-            .map(
-              ([key, record]): RuntimeStateRecordValue<T> => ({
-                key,
-                value: options.schema.parse(record.value),
-                createdAt: record.createdAt,
-                updatedAt: record.updatedAt,
-              }),
-            ),
+            .map(([key, record]): RuntimeStateRecordValue<T> => ({
+              key,
+              value: options.schema.parse(record.value),
+              createdAt: record.createdAt,
+              updatedAt: record.updatedAt,
+            })),
         clear: async ({ keyPrefix } = {}): Promise<number> => {
           const keys = Array.from(records.keys()).filter(
             (key) => keyPrefix === undefined || key.startsWith(keyPrefix),

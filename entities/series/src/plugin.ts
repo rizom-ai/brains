@@ -8,11 +8,11 @@ import type {
   BaseEntity,
   DerivedEntityProjection,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { seriesSchema, type Series } from "./schemas/series";
-import { seriesAdapter } from "./adapters/series-adapter";
+import { seriesAdapter, type SeriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
 import { SeriesDataSource } from "./datasources/series-datasource";
 import { SeriesGenerationHandler } from "./handlers/seriesGenerationHandler";
@@ -22,25 +22,40 @@ import { getSeriesName, parseSeriesFields } from "./lib/series-metadata";
 import { createSeriesAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-const seriesProjectionJobDataSchema = z.discriminatedUnion("mode", [
-  z.object({
-    mode: z.literal("derive"),
-    reason: z.string().optional(),
-  }),
-  z.object({
-    mode: z.literal("source"),
-    entityId: z.string(),
-    entityType: z.string(),
-    // The source's current series, if it still has one. Absent when an update
-    // cleared `seriesName` entirely (the source remains but joined no series).
-    seriesName: z.string().optional(),
-    // The series the source previously belonged to, when an update moved it to
-    // a different series (or cleared it). Drives orphan cleanup of the old one.
-    previousSeriesName: z.string().optional(),
-  }),
-]);
+interface SeriesProjectionDeriveJobData {
+  mode: "derive";
+  reason?: string | undefined;
+}
 
-type SeriesProjectionJobData = z.infer<typeof seriesProjectionJobDataSchema>;
+interface SeriesProjectionSourceJobData {
+  mode: "source";
+  entityId: string;
+  entityType: string;
+  seriesName?: string | undefined;
+  previousSeriesName?: string | undefined;
+}
+
+type SeriesProjectionJobData =
+  SeriesProjectionDeriveJobData | SeriesProjectionSourceJobData;
+
+const seriesProjectionJobDataSchema: z.ZodType<SeriesProjectionJobData> =
+  z.discriminatedUnion("mode", [
+    z.object({
+      mode: z.literal("derive"),
+      reason: z.string().optional(),
+    }),
+    z.object({
+      mode: z.literal("source"),
+      entityId: z.string(),
+      entityType: z.string(),
+      // The source's current series, if it still has one. Absent when an update
+      // cleared `seriesName` entirely (the source remains but joined no series).
+      seriesName: z.string().optional(),
+      // The series the source previously belonged to, when an update moved it to
+      // a different series (or cleared it). Drives orphan cleanup of the old one.
+      previousSeriesName: z.string().optional(),
+    }),
+  ]);
 
 /**
  * Series EntityPlugin — auto-derives series from entities with seriesName metadata.
@@ -48,15 +63,19 @@ type SeriesProjectionJobData = z.infer<typeof seriesProjectionJobDataSchema>;
  * Cross-content: watches entity events across ALL types, not just blog posts.
  * Uses explicit projection jobs for event-driven and batch synchronization.
  */
-export class SeriesPlugin extends EntityPlugin<Series> {
-  readonly entityType = "series";
-  readonly schema = seriesSchema;
-  readonly adapter = seriesAdapter;
+export class SeriesPlugin extends EntityPlugin<
+  Series,
+  Record<string, never>,
+  Record<string, never>
+> {
+  readonly entityType = "series" as const;
+  readonly schema: typeof seriesSchema = seriesSchema;
+  readonly adapter: SeriesAdapter = seriesAdapter;
   private manager?: SeriesManager;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor() {
-    super("series", packageJson);
+    super("series", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {

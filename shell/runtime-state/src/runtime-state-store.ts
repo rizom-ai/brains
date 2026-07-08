@@ -1,23 +1,35 @@
 import { and, eq } from "drizzle-orm";
-import type { z } from "@brains/utils";
 import {
   runtimeStateRecords,
   type RuntimeStateRecord,
 } from "./schema/runtime-state";
 import type { RuntimeStateDB } from "./db";
-import type { IRuntimeStateStore, RuntimeStateRecordValue } from "./types";
+import type {
+  IRuntimeStateStore,
+  RuntimeStateRecordValue,
+  RuntimeStateValueSchema,
+} from "./types";
 
 const namespacePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/;
 const maxKeyLength = 512;
 
 export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
+  private readonly db: RuntimeStateDB;
+  private readonly namespace: string;
+  private readonly schema: RuntimeStateValueSchema<T>;
+  private readonly now: () => Date;
+
   constructor(
-    private readonly db: RuntimeStateDB,
-    private readonly namespace: string,
-    private readonly schema: z.ZodType<T>,
-    private readonly now: () => Date = () => new Date(),
+    db: RuntimeStateDB,
+    namespace: string,
+    schema: RuntimeStateValueSchema<T>,
+    now: () => Date = () => new Date(),
   ) {
     assertValidNamespace(namespace);
+    this.db = db;
+    this.namespace = namespace;
+    this.schema = schema;
+    this.now = now;
   }
 
   async get(key: string): Promise<T | null> {

@@ -1,6 +1,10 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import type { BaseEntity } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import type {
+  BaseEntity,
+  BaseEntityFrontmatterSchema,
+  EntitySchema,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   actionItemMetadataSchema,
   actionItemSchema,
@@ -16,6 +20,12 @@ import {
   DECISION_ENTITY_TYPE,
 } from "../lib/constants";
 
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+
+interface TypedFrontmatterSchema<T> {
+  parse(data: unknown): T;
+}
+
 /**
  * Shared adapter for derived conversation memory entities (decisions,
  * action items). Both entity types share an identical markdown shape:
@@ -25,14 +35,15 @@ import {
 class ConversationMemoryEntityAdapter<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata extends object,
-> extends BaseEntityAdapter<TEntity, TMetadata> {
-  private readonly metadataSchema: z.ZodSchema<TMetadata>;
+> extends BaseEntityAdapter<TEntity, TMetadata, Record<string, unknown>> {
+  private readonly metadataSchema: { parse(data: unknown): TMetadata };
 
   constructor(config: {
     entityType: string;
     purpose: string;
-    schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
-    metadataSchema: z.ZodObject<z.ZodRawShape>;
+    schema: EntitySchema<TEntity>;
+    metadataSchema: BaseEntityFrontmatterSchema<Record<string, unknown>>;
+    parseMetadata: TypedFrontmatterSchema<TMetadata>;
   }) {
     super({
       entityType: config.entityType,
@@ -40,8 +51,7 @@ class ConversationMemoryEntityAdapter<
       schema: config.schema,
       frontmatterSchema: config.metadataSchema,
     });
-    this.metadataSchema =
-      config.metadataSchema as unknown as z.ZodSchema<TMetadata>;
+    this.metadataSchema = config.parseMetadata;
   }
 
   public composeContent(
@@ -51,7 +61,7 @@ class ConversationMemoryEntityAdapter<
   ): string {
     return this.buildMarkdown(
       [`# ${title}`, "", text.trim(), ""].join("\n"),
-      metadata as Record<string, unknown>,
+      frontmatterRecordSchema.parse(metadata),
     );
   }
 
@@ -78,6 +88,7 @@ export class DecisionAdapter extends ConversationMemoryEntityAdapter<
       purpose: "A decision recorded from a conversation.",
       schema: decisionSchema,
       metadataSchema: decisionMetadataSchema,
+      parseMetadata: decisionMetadataSchema,
     });
   }
 }
@@ -92,6 +103,7 @@ export class ActionItemAdapter extends ConversationMemoryEntityAdapter<
       purpose: "An action item captured from a conversation.",
       schema: actionItemSchema,
       metadataSchema: actionItemMetadataSchema,
+      parseMetadata: actionItemMetadataSchema,
     });
   }
 }

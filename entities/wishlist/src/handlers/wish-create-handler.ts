@@ -1,6 +1,7 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { slugify } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { slugify } from "@brains/utils/string-utils";
 import { WishAdapter } from "../adapters/wish-adapter";
 import type { WishEntity } from "../schemas/wish";
 import { findExistingWish } from "../lib/wish-dedup";
@@ -27,12 +28,14 @@ export interface WishCreateResult {
  * Semantic dedup — if a similar wish exists, increments its count instead of creating.
  */
 export class WishCreateHandler {
+  private readonly logger: Logger;
+  private readonly context: EntityPluginContext;
   private readonly adapter = new WishAdapter();
 
-  constructor(
-    private readonly logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {}
+  constructor(logger: Logger, context: EntityPluginContext) {
+    this.logger = logger;
+    this.context = context;
+  }
 
   async process(
     data: WishCreateData,

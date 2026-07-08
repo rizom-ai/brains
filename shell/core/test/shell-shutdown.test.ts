@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { Plugin } from "@brains/plugins";
 import type { ShellConfigInput } from "../src/config";
-import { resetAllSingletons } from "../src/initialization/shellInitializer";
+import { resetAllSingletons } from "../src/initialization/reset";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {

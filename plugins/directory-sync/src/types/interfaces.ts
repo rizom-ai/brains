@@ -1,5 +1,5 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import type { BatchMetadata } from "./batch";
 import type {
   CleanupResult,

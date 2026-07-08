@@ -1,27 +1,40 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Configuration for publish behavior per entity type
  */
-export const publishExecutionModeSchema = z.enum(["provider"]);
-export type PublishExecutionMode = z.infer<typeof publishExecutionModeSchema>;
+export type PublishExecutionMode = "provider";
 
-export const publishConfigSchema = z
-  .object({
-    /** Publishing execution mode. Only provider execution is supported. */
-    executionMode: publishExecutionModeSchema.optional(),
+export const publishExecutionModeSchema: z.ZodType<
+  PublishExecutionMode,
+  PublishExecutionMode
+> = z.enum(["provider"]);
 
-    /** Optional metadata/frontmatter field for storing provider result IDs. */
-    publishResultIdField: z.string().min(1).optional(),
+export interface PublishConfig {
+  executionMode?: PublishExecutionMode | undefined;
+  publishResultIdField?: string | undefined;
+  publishTimestampField?: string | undefined;
+  enabled?: boolean | undefined;
+}
 
-    /** Optional metadata/frontmatter field for storing publish timestamps. */
-    publishTimestampField: z.string().min(1).optional(),
+export type PublishConfigInput = PublishConfig;
 
-    /** Whether this entity type is enabled for publishing */
-    enabled: z.boolean().optional(),
-  })
-  .strict();
-export type PublishConfig = z.infer<typeof publishConfigSchema>;
+export const publishConfigSchema: z.ZodType<PublishConfig, PublishConfigInput> =
+  z
+    .object({
+      /** Publishing execution mode. Only provider execution is supported. */
+      executionMode: publishExecutionModeSchema.optional(),
+
+      /** Optional metadata/frontmatter field for storing provider result IDs. */
+      publishResultIdField: z.string().min(1).optional(),
+
+      /** Optional metadata/frontmatter field for storing publish timestamps. */
+      publishTimestampField: z.string().min(1).optional(),
+
+      /** Whether this entity type is enabled for publishing */
+      enabled: z.boolean().optional(),
+    })
+    .strict();
 
 /**
  * Default configuration values
@@ -56,7 +69,17 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
  * Generation condition schema
  * Controls when automatic draft generation should occur
  */
-export const generationConditionSchema = z.object({
+export interface GenerationCondition {
+  skipIfDraftExists?: boolean | undefined;
+  minSourceEntities?: number | undefined;
+  maxUnpublishedDrafts?: number | undefined;
+  sourceEntityType?: string | undefined;
+}
+
+export type GenerationConditionInput = GenerationCondition;
+
+export const generationConditionSchema: z.ZodObject<z.ZodRawShape> &
+  z.ZodType<GenerationCondition, GenerationConditionInput> = z.object({
   /** Skip generation if a draft already exists for this period (default: true) */
   skipIfDraftExists: z.boolean().optional(),
 
@@ -70,12 +93,21 @@ export const generationConditionSchema = z.object({
   sourceEntityType: z.string().optional(),
 });
 
-export type GenerationCondition = z.infer<typeof generationConditionSchema>;
-
 /**
  * Plugin configuration schema
  */
-export const contentPipelineConfigSchema = z.object({
+export interface ContentPipelineConfig {
+  entitySchedules?: Record<string, string> | undefined;
+  generationSchedules?: Record<string, string> | undefined;
+  generationConditions?: Record<string, GenerationCondition> | undefined;
+}
+
+export type ContentPipelineConfigInput = ContentPipelineConfig;
+
+export const contentPipelineConfigSchema: z.ZodType<
+  ContentPipelineConfig,
+  ContentPipelineConfigInput
+> = z.object({
   /**
    * Per-entity-type publish schedules (cron syntax).
    * Entity types without a schedule are processed immediately when queued.
@@ -117,5 +149,3 @@ export const contentPipelineConfigSchema = z.object({
     .record(z.string(), generationConditionSchema)
     .optional(),
 });
-
-export type ContentPipelineConfig = z.infer<typeof contentPipelineConfigSchema>;

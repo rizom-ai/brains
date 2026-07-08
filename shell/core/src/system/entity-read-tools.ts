@@ -8,6 +8,8 @@ import type { SystemServices } from "./types";
 import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
 
+const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
+
 export function createEntityReadTools(services: SystemServices): Tool[] {
   const { entityService, logger } = services;
 
@@ -15,7 +17,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "search",
-      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
+      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
       searchInputSchema,
       async (input, context) => {
         const visibilityScope = permissionToVisibilityScope(
@@ -24,8 +26,6 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         return {
           success: true,
           data: {
-            guidance:
-              "Search results are semantic candidates, not guaranteed exact matches. If the results do not clearly answer the requested item/category, say no clear matching content was found instead of presenting weak candidates as matches.",
             results: (
               await entityService.search({
                 query: input.query,
@@ -34,6 +34,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
                   ...(input.scope.kind === "type" && {
                     types: [input.scope.entityType],
                   }),
+                  minScore: input.minScore ?? DEFAULT_SYSTEM_SEARCH_MIN_SCORE,
                   ...(input.includeUngenerated !== undefined && {
                     includeUngenerated: input.includeUngenerated,
                   }),
@@ -96,7 +97,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "list",
-      "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests.",
+      "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests. Use system_list to inspect metadata dates such as publishedAt when the user asks for the latest item of a known type, such as latest blog post.",
       listInputSchema,
       async (input, context) => {
         if (!entityService.getEntityTypes().includes(input.entityType)) {
@@ -124,6 +125,17 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,
         );
+        if (input.entityType === "post" && input.status === "published") {
+          items.sort((left, right) => {
+            const leftDate = left.metadata["publishedAt"];
+            const rightDate = right.metadata["publishedAt"];
+            const leftTime =
+              typeof leftDate === "string" ? Date.parse(leftDate) : 0;
+            const rightTime =
+              typeof rightDate === "string" ? Date.parse(rightDate) : 0;
+            return rightTime - leftTime;
+          });
+        }
         return {
           success: true,
           data: { entities: items, count: items.length },

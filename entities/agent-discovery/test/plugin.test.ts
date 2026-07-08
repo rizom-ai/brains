@@ -1,4 +1,7 @@
-import { describe, it, expect } from "bun:test";
+import { afterEach, describe, it, expect } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   createPluginHarness,
   expectConfirmation,
@@ -9,6 +12,12 @@ import {
   ATPROTO_BRAIN_CARD_REFRESHED,
   ATPROTO_BRAIN_DISCOVERED,
 } from "@brains/atproto-contracts";
+import {
+  AuthService,
+  AuthServicePlugin,
+  getActiveAuthService,
+} from "@brains/auth-service";
+import { keyFingerprint } from "@brains/http-signatures";
 import type { Plugin } from "@brains/plugins";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
@@ -43,6 +52,20 @@ function createAgentCard(domain: string): Record<string, unknown> {
   };
 }
 
+const tempDirs: string[] = [];
+
+async function tempStorageDir(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), "brains-agent-discovery-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
+});
+
 function createMockAgentCardFetch(
   cards: Record<string, Record<string, unknown>>,
 ): { fetch: FetchFn; calls: string[] } {
@@ -56,6 +79,24 @@ function createMockAgentCardFetch(
       const card = cards[hostname];
       if (!card) return new Response("not found", { status: 404 });
       return new Response(JSON.stringify(card), { status: 200 });
+    },
+  };
+}
+
+function createMockJwksFetch(jwksByDomain: Record<string, unknown>): {
+  fetch: FetchFn;
+  calls: string[];
+} {
+  const calls: string[] = [];
+  return {
+    calls,
+    fetch: async (url: string | URL | Request): Promise<Response> => {
+      const urlString = typeof url === "string" ? url : url.toString();
+      calls.push(urlString);
+      const hostname = new URL(urlString).hostname;
+      const jwks = jwksByDomain[hostname];
+      if (!jwks) return new Response("not found", { status: 404 });
+      return Response.json(jwks);
     },
   };
 }
@@ -196,6 +237,138 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(saved?.content).toContain("Research");
 
+    harness.reset();
+  });
+
+  it("registers agent_set_trust_level as the explicit inbound trust tool", async () => {
+    const harness = createPluginHarness<Plugin>({});
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin());
+
+    const tool = harness
+      .getCapabilities()
+      .tools.find((candidate) => candidate.name === "agent_set_trust_level");
+    expect(tool?.visibility).toBe("anchor");
+    expect(tool?.sideEffects).toBe("external");
+    expect(tool?.description).toContain("inbound A2A trust");
+    expect(tool?.description).toContain("does not add or remove");
+
+    harness.reset();
+  });
+
+  it("agent_set_trust_level pins a peer key for inbound trusted access", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await tempStorageDir(),
+      issuer: "https://local.example",
+    });
+    const remoteAuth = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://trust.example",
+    });
+    const remoteJwks = await remoteAuth.getJwks();
+    const remoteA2AKey = remoteJwks.keys.find((key) => key.alg === "EdDSA");
+    if (!remoteA2AKey) throw new Error("Expected remote A2A public key");
+    const fetchMock = createMockJwksFetch({ "trust.example": remoteJwks });
+
+    await harness.installPlugin(authPlugin);
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "trust.example",
+        name: "Trusted Peer",
+        url: "https://trust.example/a2a",
+        status: "approved",
+      }),
+    });
+
+    const confirmation = await harness.executeTool("agent_set_trust_level", {
+      agent: "trust.example",
+      level: "trusted",
+    });
+    expectConfirmation(confirmation);
+    expect(confirmation.toolName).toBe("agent_set_trust_level");
+    expect(confirmation.summary).toBe(
+      "Grant inbound trusted A2A access to trust.example?",
+    );
+    expect(confirmation.preview).toContain(keyFingerprint(remoteA2AKey));
+
+    const result = await harness.executeTool(
+      "agent_set_trust_level",
+      confirmation.args as Record<string, unknown>,
+    );
+
+    expectSuccess(result);
+    expect(result.data).toMatchObject({
+      agent: "trust.example",
+      level: "trusted",
+      keyFingerprint: keyFingerprint(remoteA2AKey),
+    });
+    const activeAuth = getActiveAuthService();
+    if (!activeAuth) throw new Error("Expected active auth service");
+    expect(await activeAuth.getA2APeerTrust("trust.example")).toMatchObject({
+      domain: "trust.example",
+      grantedLevel: "trusted",
+      keyFingerprint: keyFingerprint(remoteA2AKey),
+    });
+    expect(fetchMock.calls).toEqual([
+      "https://trust.example/.well-known/jwks.json",
+    ]);
+
+    if (authPlugin.shutdown) await authPlugin.shutdown();
+    harness.reset();
+  });
+
+  it("agent_set_trust_level revokes inbound trusted access", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await tempStorageDir(),
+      issuer: "https://local.example",
+    });
+
+    await harness.installPlugin(authPlugin);
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin());
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "trust.example",
+        name: "Trusted Peer",
+        url: "https://trust.example/a2a",
+        status: "approved",
+      }),
+    });
+    const activeAuth = getActiveAuthService();
+    if (!activeAuth) throw new Error("Expected active auth service");
+    await activeAuth.grantA2APeerTrust({
+      domain: "trust.example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
+    });
+
+    const confirmation = await harness.executeTool("agent_set_trust_level", {
+      agent: "trust.example",
+      level: "public",
+    });
+    expectConfirmation(confirmation);
+    expect(confirmation.summary).toBe(
+      "Revoke inbound trusted A2A access from trust.example?",
+    );
+
+    const result = await harness.executeTool(
+      "agent_set_trust_level",
+      confirmation.args as Record<string, unknown>,
+    );
+
+    expectSuccess(result);
+    expect(result.data).toMatchObject({
+      agent: "trust.example",
+      level: "public",
+    });
+    expect(await activeAuth.getA2APeerTrust("trust.example")).toBeUndefined();
+
+    if (authPlugin.shutdown) await authPlugin.shutdown();
     harness.reset();
   });
 

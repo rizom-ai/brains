@@ -21,9 +21,7 @@ const binaryFileExtensionMediaTypes = new Map([
 const binaryMimeTypes = new Set(binaryFileExtensionMediaTypes.values());
 
 export type MessageUploadPolicyErrorCode =
-  | "unsupported_type"
-  | "file_too_large"
-  | "binary_content";
+  "unsupported_type" | "file_too_large" | "binary_content";
 
 export interface ValidatedTextUpload {
   ok: true;
@@ -50,12 +48,10 @@ export interface InvalidUpload {
 export type TextUploadValidationResult = ValidatedTextUpload | InvalidUpload;
 
 export type ValidatedMessageUpload =
-  | (ValidatedTextUpload & { kind: "text" })
-  | ValidatedFileUpload;
+  (ValidatedTextUpload & { kind: "text" }) | ValidatedFileUpload;
 
 export type MessageUploadValidationResult =
-  | ValidatedMessageUpload
-  | InvalidUpload;
+  ValidatedMessageUpload | InvalidUpload;
 
 export interface ValidateUploadInput {
   filename: string;
@@ -66,11 +62,11 @@ export interface ValidateUploadInput {
 
 export function sanitizeUploadFilename(
   filename: string,
-  fallbackFilename = defaultMessageUploadFilename,
+  fallbackFilename: string = defaultMessageUploadFilename,
 ): string {
   const leaf = filename.split(/[\\/]/).at(-1)?.trim() ?? "";
   const cleaned = Array.from(leaf)
-    .filter((char) => {
+    .filter((char: string) => {
       const code = char.charCodeAt(0);
       return code > 31 && code !== 127;
     })

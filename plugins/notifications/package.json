@@ -1,7 +1,7 @@
 {
   "name": "@brains/notifications",
   "private": true,
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.141",
   "description": "Generic notification routing for transactional and administrative messages",
   "type": "module",
   "exports": {
@@ -10,8 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint src test --ext .ts",
-    "lint:fix": "eslint src test --ext .ts --fix"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@brains/email-contracts": "workspace:*",
@@ -22,9 +22,9 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "bun-types": "latest",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
+    "@types/bun": "^1.3.14",
+    "bun-types": "^1.3.14",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3"
   }
 }

@@ -11,7 +11,7 @@ import type {
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { registerConfigRoutes } from "./route-helpers";
 
 /**

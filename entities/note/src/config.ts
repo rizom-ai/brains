@@ -1,20 +1,25 @@
-import { z } from "@brains/utils";
-
-/**
- * Note plugin configuration schema
- */
-export const noteConfigSchema = z.object({
-  defaultPrompt: z
-    .string()
-    .default("Create a note summarizing key concepts from my knowledge base"),
-});
+import { z } from "@brains/utils/zod";
 
 /**
  * Note plugin configuration type (output, with all defaults applied)
  */
-export type NoteConfig = z.infer<typeof noteConfigSchema>;
+export interface NoteConfig {
+  defaultPrompt: string;
+}
 
 /**
  * Note plugin configuration input type (allows optional fields with defaults)
  */
-export type NoteConfigInput = Partial<NoteConfig>;
+export interface NoteConfigInput {
+  defaultPrompt?: string | undefined;
+}
+
+/**
+ * Note plugin configuration schema
+ */
+export const noteConfigSchema: z.ZodType<NoteConfig, NoteConfigInput> =
+  z.object({
+    defaultPrompt: z
+      .string()
+      .default("Create a note summarizing key concepts from my knowledge base"),
+  });

@@ -1,12 +1,10 @@
-import type { Logger } from "@brains/utils";
-import {
-  getStandardConfigWithDirectories,
-  type StandardConfig,
-} from "@brains/core";
+import type { Logger } from "@brains/utils/logger";
+import type { StandardConfig } from "@brains/core";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
+import { resolveStandardConfigWithDirectories } from "./standard-paths";
 
 /**
  * Database configuration with URL and optional auth token
@@ -41,7 +39,8 @@ export class MigrationManager {
   constructor(logger: Logger, migrations?: IMigrationFunctions) {
     this.logger = logger;
     this.migrations = migrations ?? {
-      getStandardConfigWithDirectories,
+      getStandardConfigWithDirectories: (): Promise<StandardConfig> =>
+        resolveStandardConfigWithDirectories(),
       migrateEntities,
       migrateJobQueue,
       migrateConversations,

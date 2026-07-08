@@ -1,6 +1,5 @@
 ---
 "@brains/theme-rizom": patch
-"@rizom/ui": patch
 ---
 
 Unify the rizom-family type system and lift the ecosystem section into shared UI.

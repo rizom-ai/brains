@@ -1,8 +1,14 @@
 import type { JSX, ComponentChildren } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const buttonVariants = cva(
+export interface ButtonVariantProps {
+  variant?: VariantValue<"default" | "secondary" | "ghost">;
+  size?: VariantValue<"sm" | "md" | "lg">;
+}
+
+const buttonVariants: VariantFunction<ButtonVariantProps> = cva(
   "inline-flex items-center justify-center font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
   {
     variants: {
@@ -25,7 +31,7 @@ const buttonVariants = cva(
   },
 );
 
-export interface ButtonProps extends VariantProps<typeof buttonVariants> {
+export interface ButtonProps extends ButtonVariantProps {
   onClick?: (() => void) | undefined;
   children?: ComponentChildren;
   className?: string;

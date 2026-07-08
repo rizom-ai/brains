@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type {
   EntityDisplayEntry,
   RouteDefinitionInput,
@@ -195,35 +195,32 @@ export function extendSite<
   };
 }
 
-export const themeCssSchema = z.string();
+export const themeCssSchema: z.ZodString = z.string();
 
 // Runtime gate for site packages loaded dynamically from a package ref at
 // boot. The full structural type is enforced statically by `SitePackage`
 // for in-tree consumers; this only catches dynamic-import shapes.
-const sitePackageRouteShapeSchema = z
-  .object({
-    id: z.string().min(1),
-  })
-  .passthrough();
+const sitePackageRouteShapeSchema: z.ZodType<{ id: string }> = z.looseObject({
+  id: z.string().min(1),
+});
 
-const entityDisplayEntrySchema = z
-  .object({
-    label: z.string().min(1),
-  })
-  .passthrough();
+const entityDisplayEntrySchema: z.ZodType<{ label: string }> = z.looseObject({
+  label: z.string().min(1),
+});
 
-const sitePackageShapeSchema = z
-  .object({
-    layouts: z.record(z.unknown()),
-    plugin: z.function().optional(),
-    routes: z.array(sitePackageRouteShapeSchema),
-    entityDisplay: z.record(entityDisplayEntrySchema),
-    themeOverride: z.string().optional(),
-    headScripts: z.array(z.string()).optional(),
-    staticAssets: z.record(z.string()).optional(),
-  })
-  .passthrough();
+const sitePackageShapeSchema: z.ZodType<unknown> = z.looseObject({
+  layouts: z.record(z.string(), z.unknown()),
+  plugin: z
+    .custom<SitePackage["plugin"]>((value) => typeof value === "function")
+    .optional(),
+  routes: z.array(sitePackageRouteShapeSchema),
+  entityDisplay: z.record(z.string(), entityDisplayEntrySchema),
+  content: z.unknown().optional(),
+  themeOverride: z.string().optional(),
+  headScripts: z.array(z.string()).optional(),
+  staticAssets: z.record(z.string(), z.string()).optional(),
+});
 
-export const sitePackageSchema = z.custom<SitePackage>(
+export const sitePackageSchema: z.ZodType<SitePackage> = z.custom<SitePackage>(
   (value) => sitePackageShapeSchema.safeParse(value).success,
 );

@@ -1,14 +1,32 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { BlogPostTemplate } from "./blog-post";
 import { Head, useMarkdownToHtml } from "@brains/ui-library";
-import { templateBlogPostSchema } from "../schemas/blog-post";
+import {
+  templateBlogPostSchema,
+  type TemplateBlogPost,
+} from "./template-blog-post-schema";
+
+export interface HomepagePostContent {
+  type: "post";
+  post: TemplateBlogPost;
+  prevPost: TemplateBlogPost | null;
+  nextPost: TemplateBlogPost | null;
+  seriesPosts: TemplateBlogPost[] | null;
+}
+
+export interface HomepageMarkdownContent {
+  type: "markdown";
+  content: string;
+}
+
+export type HomepageContent = HomepagePostContent | HomepageMarkdownContent;
 
 /**
  * Homepage can show either the latest blog post or markdown content
  */
-export const homepageSchema = z.union([
+export const homepageSchema: z.ZodType<HomepageContent> = z.union([
   // Blog post variant
   z.object({
     type: z.literal("post"),
@@ -23,8 +41,6 @@ export const homepageSchema = z.union([
     content: z.string(),
   }),
 ]);
-
-export type HomepageContent = z.infer<typeof homepageSchema>;
 
 /**
  * Homepage template - renders either blog post or markdown content
@@ -61,7 +77,9 @@ export const HomepageTemplate = (props: HomepageContent): JSX.Element => {
   );
 };
 
-export const homepageTemplate = createTemplate({
+export const homepageTemplate: ReturnType<
+  typeof createTemplate<HomepageContent>
+> = createTemplate<HomepageContent>({
   name: "homepage",
   description: "Homepage showing latest blog post or fallback content",
   schema: homepageSchema,

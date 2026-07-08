@@ -1,4 +1,4 @@
-import type { z } from "@brains/utils";
+import type { ZodType } from "@brains/utils/zod";
 
 export interface RuntimeStateDbConfig {
   url: string;
@@ -7,11 +7,13 @@ export interface RuntimeStateDbConfig {
 
 export type RuntimeStateServiceConfig = RuntimeStateDbConfig;
 
+export type RuntimeStateValueSchema<T> = ZodType<T, unknown>;
+
 export interface RuntimeStateScopeOptions<T> {
   /** Stable consumer namespace, e.g. "chat.discord.subscriptions". */
   namespace: string;
-  /** Zod schema used to validate values crossing the persistence boundary. */
-  schema: z.ZodType<T>;
+  /** Schema used to validate values crossing the persistence boundary. */
+  schema: RuntimeStateValueSchema<T>;
 }
 
 export interface RuntimeStateRecordValue<T> {

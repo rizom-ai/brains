@@ -39,9 +39,12 @@ export type ProgressCallback = (
  * ```
  */
 export class ProgressReporter {
+  private readonly callback: ProgressCallback;
   private heartbeatInterval: Timer | undefined;
 
-  private constructor(private readonly callback: ProgressCallback) {}
+  private constructor(callback: ProgressCallback) {
+    this.callback = callback;
+  }
 
   /**
    * Create a progress reporter from a callback

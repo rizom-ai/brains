@@ -1,5 +1,6 @@
 import { createSign, generateKeyPairSync } from "node:crypto";
-import { parseJsonResponse, z } from "@brains/utils";
+import { parseJsonResponse } from "@brains/utils/http-response";
+import { z } from "@brains/utils/zod";
 
 export interface OriginKeyPair {
   privateKeyPem: string;
@@ -37,38 +38,28 @@ function cfHeaders(token: string): Record<string, string> {
   };
 }
 
-const cloudflareErrorEntrySchema = z
-  .object({
-    message: z.string().optional(),
-  })
-  .passthrough();
+const cloudflareErrorEntrySchema = z.looseObject({
+  message: z.string().optional(),
+});
 
-const cloudflareResponseMetaSchema = z
-  .object({
-    errors: z.array(cloudflareErrorEntrySchema).optional(),
-    messages: z.array(cloudflareErrorEntrySchema).optional(),
-  })
-  .passthrough();
+const cloudflareResponseMetaSchema = z.looseObject({
+  errors: z.array(cloudflareErrorEntrySchema).optional(),
+  messages: z.array(cloudflareErrorEntrySchema).optional(),
+});
 
-const cloudflareOriginCaResultSchema = z
-  .object({
-    certificate: z.string().min(1),
-    expires_on: z.string().optional(),
-  })
-  .passthrough();
+const cloudflareOriginCaResultSchema = z.looseObject({
+  certificate: z.string().min(1),
+  expires_on: z.string().optional(),
+});
 
-const cloudflareOriginCaResponseSchema = z
-  .object({
-    success: z.literal(true),
-    result: cloudflareOriginCaResultSchema,
-  })
-  .passthrough();
+const cloudflareOriginCaResponseSchema = z.looseObject({
+  success: z.literal(true),
+  result: cloudflareOriginCaResultSchema,
+});
 
-const cloudflareSuccessResponseSchema = z
-  .object({
-    success: z.literal(true),
-  })
-  .passthrough();
+const cloudflareSuccessResponseSchema = z.looseObject({
+  success: z.literal(true),
+});
 
 export function generateOriginKeyPair(): OriginKeyPair {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", {

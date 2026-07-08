@@ -1,4 +1,5 @@
 import type { ContentFormatter } from "../types";
+import { z } from "@brains/utils/zod";
 import * as yaml from "js-yaml";
 
 /**
@@ -7,10 +8,12 @@ import * as yaml from "js-yaml";
  * Formats data as YAML within a markdown code block, making it easy
  * for humans to edit structured data in a familiar format.
  */
+const contentDataSchema = z.record(z.string(), z.unknown());
+
 export class DefaultYamlFormatter implements ContentFormatter<
   Record<string, unknown>
 > {
-  protected yaml = yaml;
+  protected yaml: typeof yaml = yaml;
 
   format(data: Record<string, unknown>): string {
     const yamlContent = this.yaml
@@ -43,22 +46,20 @@ Edit the YAML above to modify the content.`;
     }
 
     try {
-      const parsed = this.yaml.load(yamlContent);
-      if (
-        typeof parsed !== "object" ||
-        parsed === null ||
-        Array.isArray(parsed)
-      ) {
+      const parsed = contentDataSchema.safeParse(this.yaml.load(yamlContent));
+      if (!parsed.success) {
         throw new Error("YAML content must be an object");
       }
-      return parsed as Record<string, unknown>;
+      return parsed.data;
     } catch (error) {
       if (error instanceof Error) {
         // If it's our custom error, re-throw as is
         if (error.message === "YAML content must be an object") {
           throw error;
         }
-        throw new Error(`Failed to parse YAML: ${error.message}`);
+        throw new Error(`Failed to parse YAML: ${error.message}`, {
+          cause: error,
+        });
       }
       throw error;
     }

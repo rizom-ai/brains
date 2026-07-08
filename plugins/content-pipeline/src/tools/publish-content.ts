@@ -1,6 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
 
@@ -10,7 +10,7 @@ const publishDocumentReferenceSchema = z.object({
   id: z.string().min(1),
 });
 
-type PublishDocumentReference = z.infer<typeof publishDocumentReferenceSchema>;
+type PublishDocumentReference = z.output<typeof publishDocumentReferenceSchema>;
 
 interface ParsedPublishContent {
   bodyContent: string;
@@ -70,7 +70,10 @@ export async function preparePublishContent(
 
 function parsePublishContent(content: string): ParsedPublishContent {
   try {
-    const parsed = parseMarkdownWithFrontmatter(content, z.record(z.unknown()));
+    const parsed = parseMarkdownWithFrontmatter(
+      content,
+      z.record(z.string(), z.unknown()),
+    );
     const rawCoverImageId = parsed.metadata["coverImageId"];
     const coverImageId =
       typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;

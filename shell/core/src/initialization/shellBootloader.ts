@@ -1,6 +1,7 @@
 import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
-import { ShellInitializer, type ShellServices } from "./shellInitializer";
+import { ShellInitializer } from "./shellInitializer";
+import type { ShellServices } from "../types/shell-types";
 
 const INDEX_READINESS_TIMEOUT_MS = 30_000;
 const INDEX_READINESS_RETRY_MS = 5_000;
@@ -35,11 +36,18 @@ export interface ShellBootloaderHooks {
  * lifecycle semantics are explicit and testable.
  */
 export class ShellBootloader {
+  private readonly config: ShellConfig;
+  private readonly services: ShellServices;
+  private readonly hooks: ShellBootloaderHooks;
   constructor(
-    private readonly config: ShellConfig,
-    private readonly services: ShellServices,
-    private readonly hooks: ShellBootloaderHooks,
-  ) {}
+    config: ShellConfig,
+    services: ShellServices,
+    hooks: ShellBootloaderHooks,
+  ) {
+    this.config = config;
+    this.services = services;
+    this.hooks = hooks;
+  }
 
   public async boot(options?: ShellBootloaderOptions): Promise<void> {
     this.services.logger.debug("Starting Shell boot");

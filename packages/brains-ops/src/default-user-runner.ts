@@ -1,4 +1,4 @@
-import { toYaml } from "@brains/utils";
+import { toYaml } from "@brains/utils/yaml";
 import { renderContentRepoRef as renderRepoRef } from "./content-repo-ref";
 import type { ResolvedUser } from "./load-registry";
 import type { ContentRepoFile, UserRunResult } from "./user-runner";

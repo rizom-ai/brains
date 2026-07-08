@@ -9,7 +9,7 @@ import type {
   ListOptions,
 } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ContentService as IContentService } from "./types";
 import type { TemplateRegistry, Template } from "@brains/templates";
 import { TemplateCapabilities } from "@brains/templates";
@@ -36,10 +36,13 @@ export interface ContentServiceDependencies {
  * Implements Component Interface Standardization pattern.
  */
 export class ContentService implements IContentService {
+  private readonly dependencies: ContentServiceDependencies;
   /**
    * Create a new instance of ContentService
    */
-  constructor(private readonly dependencies: ContentServiceDependencies) {}
+  constructor(dependencies: ContentServiceDependencies) {
+    this.dependencies = dependencies;
+  }
 
   /**
    * Apply template scoping logic

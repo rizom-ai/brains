@@ -1,5 +1,40 @@
 # @brains/site-default
 
+## 0.2.0-alpha.141
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.141
+
+## 0.2.0-alpha.140
+
+### Patch Changes
+
+- Updated dependencies [[`a30edc7`](https://github.com/rizom-ai/brains/commit/a30edc7ac66807c66cba2bc94e78206f133710d6)]:
+  - @brains/site-professional@0.2.0-alpha.140
+
+## 0.2.0-alpha.139
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.139
+
+## 0.2.0-alpha.138
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.138
+
+## 0.2.0-alpha.137
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.137
+
 ## 0.2.0-alpha.136
 
 ### Patch Changes

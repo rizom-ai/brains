@@ -14,7 +14,7 @@ import themeCSSOnly from "./theme.css" with { type: "text" };
  * Dark mode is the designed experience (the marketing sites are built
  * to be read dark-first). Light mode is a supported fallback.
  */
-const themeCSS = `${defaultThemeCSS}\n\n${themeCSSOnly}`;
+const themeCSS: string = `${defaultThemeCSS}\n\n${themeCSSOnly}`;
 
 export default themeCSS;
 export { themeCSS, themeCSSOnly };

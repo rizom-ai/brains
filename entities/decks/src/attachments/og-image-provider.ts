@@ -4,7 +4,8 @@ import {
   renderOgImagePng,
   type ScreenshotPng,
 } from "@brains/media-page-composer";
-import { parseMarkdown, slugify } from "@brains/utils";
+import { parseMarkdown } from "@brains/utils/markdown";
+import { slugify } from "@brains/utils/string-utils";
 import type { DeckEntity } from "../schemas/deck";
 import { deckFrontmatterSchema } from "../schemas/deck";
 import {
@@ -23,13 +24,22 @@ export class DeckOgImageAttachmentProvider implements AttachmentProvider {
     targetField: "ogImageId",
   } as const;
 
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
+  private readonly deps: DeckOgImageAttachmentProviderDeps;
+
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
-    private readonly deps: DeckOgImageAttachmentProviderDeps = {},
-  ) {}
+    deps: DeckOgImageAttachmentProviderDeps = {},
+  ) {
+    this.context = context;
+    this.deps = deps;
+  }
 
   async resolve(request: {
     sourceEntityType: string;

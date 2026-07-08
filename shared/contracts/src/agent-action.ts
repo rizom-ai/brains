@@ -1,13 +1,37 @@
-import { z } from "zod";
+import { z } from "@brains/utils/zod";
 
 export const AGENT_ACTION_REQUEST_CHANNEL = "agent:action:request";
 
-export const agentEventActionSchema = z.object({
+export interface AgentEventAction {
+  type: "event";
+  event: string;
+  /** State id the action was rendered for; lets handlers reject stale events. */
+  fromState?: string | undefined;
+}
+
+export interface AgentActionRequest {
+  conversationId: string;
+  interfaceType: string;
+  channelId?: string | undefined;
+  channelName: string;
+  userPermissionLevel: "anchor" | "trusted" | "public";
+  action: AgentEventAction;
+}
+
+export const agentEventActionSchema: z.ZodType<
+  AgentEventAction,
+  AgentEventAction
+> = z.object({
   type: z.literal("event"),
   event: z.string().min(1),
+  /** State id the action was rendered for; lets handlers reject stale events. */
+  fromState: z.string().min(1).optional(),
 });
 
-export const agentActionRequestSchema = z.object({
+export const agentActionRequestSchema: z.ZodType<
+  AgentActionRequest,
+  AgentActionRequest
+> = z.object({
   conversationId: z.string().min(1),
   interfaceType: z.string().min(1),
   channelId: z.string().min(1).optional(),
@@ -15,6 +39,3 @@ export const agentActionRequestSchema = z.object({
   userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
   action: agentEventActionSchema,
 });
-
-export type AgentEventAction = z.infer<typeof agentEventActionSchema>;
-export type AgentActionRequest = z.infer<typeof agentActionRequestSchema>;

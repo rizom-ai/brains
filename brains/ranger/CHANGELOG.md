@@ -1,5 +1,135 @@
 # @brains/ranger
 
+## 0.2.0-alpha.141
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/discord@0.2.0-alpha.141
+  - @brains/app@0.2.0-alpha.141
+  - @brains/site-info@0.2.0-alpha.141
+  - @brains/link@0.2.0-alpha.141
+  - @brains/note@0.2.0-alpha.141
+  - @brains/products@0.2.0-alpha.141
+  - @brains/social-media@0.2.0-alpha.141
+  - @brains/atproto-registry@0.2.0-alpha.141
+  - @brains/site-rizom@0.2.0-alpha.141
+  - @brains/directory-sync@0.2.0-alpha.141
+  - @brains/site-builder-plugin@0.2.0-alpha.141
+  - @brains/prompt@0.2.0-alpha.141
+  - @brains/wishlist@0.2.0-alpha.141
+  - @brains/mcp@0.2.0-alpha.141
+  - @brains/webserver@0.2.0-alpha.141
+  - @brains/analytics@0.2.0-alpha.141
+  - @brains/cms@0.2.0-alpha.141
+  - @brains/dashboard@0.2.0-alpha.141
+  - @brains/site-content@0.2.0-alpha.141
+  - @brains/theme-rizom@0.2.0-alpha.141
+
+## 0.2.0-alpha.140
+
+### Patch Changes
+
+- Updated dependencies [[`070541b`](https://github.com/rizom-ai/brains/commit/070541b535e3977c8fe2d590ae7ad114cee09417), [`f30d603`](https://github.com/rizom-ai/brains/commit/f30d603ef2384df63381227754f8178ef6b88a06), [`a30edc7`](https://github.com/rizom-ai/brains/commit/a30edc7ac66807c66cba2bc94e78206f133710d6)]:
+  - @brains/analytics@0.2.0-alpha.140
+  - @brains/dashboard@0.2.0-alpha.140
+  - @brains/discord@0.2.0-alpha.140
+  - @brains/mcp@0.2.0-alpha.140
+  - @brains/webserver@0.2.0-alpha.140
+  - @brains/note@0.2.0-alpha.140
+  - @brains/site-content@0.2.0-alpha.140
+  - @brains/cms@0.2.0-alpha.140
+  - @brains/site-info@0.2.0-alpha.140
+  - @brains/link@0.2.0-alpha.140
+  - @brains/products@0.2.0-alpha.140
+  - @brains/prompt@0.2.0-alpha.140
+  - @brains/social-media@0.2.0-alpha.140
+  - @brains/wishlist@0.2.0-alpha.140
+  - @brains/atproto-registry@0.2.0-alpha.140
+  - @brains/directory-sync@0.2.0-alpha.140
+  - @brains/site-builder-plugin@0.2.0-alpha.140
+  - @brains/app@0.2.0-alpha.140
+  - @brains/site-rizom@0.2.0-alpha.140
+  - @brains/theme-rizom@0.2.0-alpha.140
+
+## 0.2.0-alpha.139
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/discord@0.2.0-alpha.139
+  - @brains/app@0.2.0-alpha.139
+  - @brains/link@0.2.0-alpha.139
+  - @brains/note@0.2.0-alpha.139
+  - @brains/products@0.2.0-alpha.139
+  - @brains/prompt@0.2.0-alpha.139
+  - @brains/site-info@0.2.0-alpha.139
+  - @brains/social-media@0.2.0-alpha.139
+  - @brains/wishlist@0.2.0-alpha.139
+  - @brains/mcp@0.2.0-alpha.139
+  - @brains/webserver@0.2.0-alpha.139
+  - @brains/analytics@0.2.0-alpha.139
+  - @brains/atproto-registry@0.2.0-alpha.139
+  - @brains/cms@0.2.0-alpha.139
+  - @brains/dashboard@0.2.0-alpha.139
+  - @brains/directory-sync@0.2.0-alpha.139
+  - @brains/site-builder-plugin@0.2.0-alpha.139
+  - @brains/site-content@0.2.0-alpha.139
+  - @brains/theme-rizom@0.2.0-alpha.139
+  - @brains/site-rizom@0.2.0-alpha.139
+
+## 0.2.0-alpha.138
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/discord@0.2.0-alpha.138
+  - @brains/app@0.2.0-alpha.138
+  - @brains/link@0.2.0-alpha.138
+  - @brains/note@0.2.0-alpha.138
+  - @brains/products@0.2.0-alpha.138
+  - @brains/prompt@0.2.0-alpha.138
+  - @brains/site-info@0.2.0-alpha.138
+  - @brains/social-media@0.2.0-alpha.138
+  - @brains/wishlist@0.2.0-alpha.138
+  - @brains/mcp@0.2.0-alpha.138
+  - @brains/webserver@0.2.0-alpha.138
+  - @brains/analytics@0.2.0-alpha.138
+  - @brains/atproto-registry@0.2.0-alpha.138
+  - @brains/cms@0.2.0-alpha.138
+  - @brains/dashboard@0.2.0-alpha.138
+  - @brains/directory-sync@0.2.0-alpha.138
+  - @brains/site-builder-plugin@0.2.0-alpha.138
+  - @brains/site-content@0.2.0-alpha.138
+  - @brains/theme-rizom@0.2.0-alpha.138
+  - @brains/site-rizom@0.2.0-alpha.138
+
+## 0.2.0-alpha.137
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/link@0.2.0-alpha.137
+  - @brains/note@0.2.0-alpha.137
+  - @brains/products@0.2.0-alpha.137
+  - @brains/prompt@0.2.0-alpha.137
+  - @brains/site-info@0.2.0-alpha.137
+  - @brains/social-media@0.2.0-alpha.137
+  - @brains/wishlist@0.2.0-alpha.137
+  - @brains/discord@0.2.0-alpha.137
+  - @brains/mcp@0.2.0-alpha.137
+  - @brains/webserver@0.2.0-alpha.137
+  - @brains/analytics@0.2.0-alpha.137
+  - @brains/atproto-registry@0.2.0-alpha.137
+  - @brains/cms@0.2.0-alpha.137
+  - @brains/dashboard@0.2.0-alpha.137
+  - @brains/directory-sync@0.2.0-alpha.137
+  - @brains/site-builder-plugin@0.2.0-alpha.137
+  - @brains/site-content@0.2.0-alpha.137
+  - @brains/theme-rizom@0.2.0-alpha.137
+  - @brains/app@0.2.0-alpha.137
+  - @brains/site-rizom@0.2.0-alpha.137
+
 ## 0.2.0-alpha.136
 
 ### Patch Changes

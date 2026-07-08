@@ -1,21 +1,36 @@
-import type { DataSource } from "@brains/entity-service";
-import type { IAIService } from "@brains/ai-service";
+import type { DataSource, DataSourceSchema } from "@brains/entity-service";
+import type { AIGenerationSchema, IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 import { EntityUrlGenerator } from "@brains/site-composition";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { resolvePrompt } from "@brains/plugins";
 
-export const GenerationContextSchema = z.object({
-  prompt: z.string().optional(),
-  conversationHistory: z.string().optional(),
-  data: z.record(z.string(), z.unknown()).optional(),
-  templateName: z.string(),
-});
+export interface GenerationContext {
+  prompt?: string | undefined;
+  conversationHistory?: string | undefined;
+  data?: Record<string, unknown> | undefined;
+  templateName: string;
+}
 
-export type GenerationContext = z.infer<typeof GenerationContextSchema>;
+const generationContextSchemaInternal: z.ZodType<GenerationContext, unknown> =
+  z.object({
+    prompt: z.string().optional(),
+    conversationHistory: z.string().optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
+    templateName: z.string(),
+  });
+
+export const GenerationContextSchema: typeof generationContextSchemaInternal =
+  generationContextSchemaInternal;
 
 const entitySlugSchema = z.object({ slug: z.string() });
+
+function isAIGenerationSchema<T>(schema: {
+  parse(data: unknown): T;
+}): schema is AIGenerationSchema<T> {
+  return schema instanceof z.ZodType;
+}
 
 function normalizeSiteBaseUrl(
   siteBaseUrl: string | undefined,
@@ -25,25 +40,35 @@ function normalizeSiteBaseUrl(
 }
 
 export class AIContentDataSource implements DataSource {
+  private readonly aiService: IAIService;
+  private readonly entityService: IEntityService;
+  private readonly templateRegistry: TemplateRegistry;
+  private readonly getIdentityContent: () => string;
+  private readonly getProfileContent: () => string;
   readonly id = "ai-content";
   readonly name = "AI Content Generator";
   readonly description =
     "Generates content using AI based on templates and prompts";
 
   constructor(
-    private readonly aiService: IAIService,
-    private readonly entityService: IEntityService,
-    private readonly templateRegistry: TemplateRegistry,
-    private readonly getIdentityContent: () => string,
-    private readonly getProfileContent: () => string,
+    aiService: IAIService,
+    entityService: IEntityService,
+    templateRegistry: TemplateRegistry,
+    getIdentityContent: () => string,
+    getProfileContent: () => string,
     siteBaseUrl?: string,
   ) {
+    this.aiService = aiService;
+    this.entityService = entityService;
+    this.templateRegistry = templateRegistry;
+    this.getIdentityContent = getIdentityContent;
+    this.getProfileContent = getProfileContent;
     this.siteBaseUrl = normalizeSiteBaseUrl(siteBaseUrl);
   }
 
   private readonly siteBaseUrl: string | undefined;
 
-  async generate<T>(request: unknown, schema: z.ZodSchema<T>): Promise<T> {
+  async generate<T>(request: unknown, schema: DataSourceSchema<T>): Promise<T> {
     const context = GenerationContextSchema.parse(request);
 
     const template = this.templateRegistry.get(context.templateName);
@@ -88,6 +113,12 @@ export class AIContentDataSource implements DataSource {
     );
 
     const systemPrompt = this.buildSystemPrompt(basePrompt);
+
+    if (!isAIGenerationSchema(template.schema)) {
+      throw new Error(
+        `Template ${template.name} cannot be used for AI generation: schema is not an AI generation schema`,
+      );
+    }
 
     const result = await this.aiService.generateObject(
       systemPrompt,

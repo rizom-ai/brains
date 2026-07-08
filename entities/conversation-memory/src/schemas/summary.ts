@@ -1,40 +1,91 @@
-import { z } from "@brains/utils";
-import { baseEntitySchema, type ContentVisibility } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import { baseEntityParserSchema } from "@brains/plugins";
 
-export const summaryTimeRangeSchema = z.object({
+export interface SummaryTimeRange {
+  start: string;
+  end: string;
+}
+
+export const summaryTimeRangeSchema: z.ZodType<SummaryTimeRange> = z.object({
   start: z.string().datetime(),
   end: z.string().datetime(),
 });
 
-export type SummaryTimeRange = z.infer<typeof summaryTimeRangeSchema>;
+const summaryTimeRangeParserSchema: z.ZodType<SummaryTimeRange> = z.object({
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+});
 
-export const summaryEntrySchema = z.object({
+export interface SummaryEntry {
+  title: string;
+  summary: string;
+  timeRange: SummaryTimeRange;
+  sourceMessageCount: number;
+  keyPoints: string[];
+}
+
+export const summaryEntrySchema: z.ZodType<SummaryEntry> = z.object({
   title: z.string().min(1).describe("Brief topic or phase title"),
   summary: z.string().min(1).describe("Grounded prose summary"),
-  timeRange: summaryTimeRangeSchema,
+  timeRange: summaryTimeRangeParserSchema,
   sourceMessageCount: z.number().int().min(0),
   keyPoints: z.array(z.string()),
 });
 
-export type SummaryEntry = z.infer<typeof summaryEntrySchema>;
+export interface SummaryBody {
+  entries: SummaryEntry[];
+}
 
-export const summaryBodySchema = z.object({
+export const summaryBodySchema: z.ZodType<SummaryBody> = z.object({
   entries: z.array(summaryEntrySchema),
 });
 
-export type SummaryBody = z.infer<typeof summaryBodySchema>;
+export interface SummaryParticipant {
+  actorId: string;
+  canonicalId?: string | undefined;
+  displayName?: string | undefined;
+  roles: Array<"user" | "assistant" | "system">;
+  sourceActorIds?: string[] | undefined;
+}
 
-export const summaryParticipantSchema = z.object({
-  actorId: z.string(),
-  canonicalId: z.string().optional(),
-  displayName: z.string().optional(),
-  roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
-  sourceActorIds: z.array(z.string()).optional(),
-});
+export const summaryParticipantSchema: z.ZodType<SummaryParticipant> = z.object(
+  {
+    actorId: z.string(),
+    canonicalId: z.string().optional(),
+    displayName: z.string().optional(),
+    roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
+    sourceActorIds: z.array(z.string()).optional(),
+  },
+);
 
-export type SummaryParticipant = z.infer<typeof summaryParticipantSchema>;
+export interface SummaryMetadata {
+  [key: string]: unknown;
+  conversationId: string;
+  channelId: string;
+  channelName?: string | undefined;
+  interfaceType: string;
+  timeRange?: SummaryTimeRange | undefined;
+  messageCount: number;
+  entryCount: number;
+  participants?: SummaryParticipant[] | undefined;
+  sourceHash: string;
+  projectionVersion: number;
+}
 
-export const summaryMetadataSchema = z.object({
+type SummaryMetadataSchema = z.ZodObject<{
+  conversationId: z.ZodString;
+  channelId: z.ZodString;
+  channelName: z.ZodOptional<z.ZodString>;
+  interfaceType: z.ZodString;
+  timeRange: z.ZodOptional<z.ZodType<SummaryTimeRange>>;
+  messageCount: z.ZodNumber;
+  entryCount: z.ZodNumber;
+  participants: z.ZodOptional<z.ZodArray<z.ZodType<SummaryParticipant>>>;
+  sourceHash: z.ZodString;
+  projectionVersion: z.ZodNumber;
+}>;
+
+export const summaryMetadataSchema: SummaryMetadataSchema = z.object({
   conversationId: z.string(),
   channelId: z.string(),
   channelName: z.string().optional(),
@@ -47,63 +98,35 @@ export const summaryMetadataSchema = z.object({
   projectionVersion: z.number().int().min(1),
 });
 
-export type SummaryMetadata = z.infer<typeof summaryMetadataSchema>;
+const summaryParticipantParserSchema: z.ZodType<SummaryParticipant> = z.object({
+  actorId: z.string(),
+  canonicalId: z.string().optional(),
+  displayName: z.string().optional(),
+  roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
+  sourceActorIds: z.array(z.string()).optional(),
+});
 
-export const summarySchema = baseEntitySchema.extend({
+const summaryEntityMetadataParserSchema: z.ZodType<SummaryMetadata> = z.object({
+  conversationId: z.string(),
+  channelId: z.string(),
+  channelName: z.string().optional(),
+  interfaceType: z.string(),
+  timeRange: summaryTimeRangeParserSchema.optional(),
+  messageCount: z.number().int().min(0),
+  entryCount: z.number().int().min(0),
+  participants: z.array(summaryParticipantParserSchema).optional(),
+  sourceHash: z.string(),
+  projectionVersion: z.number().int().min(1),
+});
+
+export const summarySchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"summary">;
+    metadata: z.ZodType<SummaryMetadata>;
+  }>
+> = baseEntityParserSchema.extend({
   entityType: z.literal("summary"),
-  metadata: summaryMetadataSchema,
+  metadata: summaryEntityMetadataParserSchema,
 });
 
-export type SummaryEntity = z.infer<typeof summarySchema>;
-
-export const summaryMemoryVisibilitySchema = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value): ContentVisibility => {
-    if (value === undefined || value === "private") return "restricted";
-    return value;
-  });
-
-export const summaryConfigSchema = z.object({
-  enableProjection: z
-    .boolean()
-    .default(true)
-    .describe("Project summaries from stored conversation messages"),
-  maxSourceMessages: z
-    .number()
-    .int()
-    .min(1)
-    .default(1000)
-    .describe("Maximum recent messages to load for one projection"),
-  maxMessagesPerChunk: z
-    .number()
-    .int()
-    .min(1)
-    .default(40)
-    .describe("Maximum messages sent to one summary extraction call"),
-  projectionDelayMs: z
-    .number()
-    .int()
-    .min(0)
-    .default(90_000)
-    .describe("Delay after the first new eligible message before projecting"),
-  maxEntries: z
-    .number()
-    .int()
-    .min(1)
-    .default(50)
-    .describe("Maximum summary entries per conversation"),
-  maxEntryLength: z
-    .number()
-    .int()
-    .min(100)
-    .default(800)
-    .describe("Target maximum length of each generated summary entry"),
-  includeKeyPoints: z.boolean().default(true),
-  projectionVersion: z.number().int().min(1).default(1),
-  memoryVisibility: summaryMemoryVisibilitySchema.describe(
-    "Visibility applied to projected summaries, decisions, and action items",
-  ),
-});
-
-export type SummaryConfig = z.infer<typeof summaryConfigSchema>;
+export type SummaryEntity = z.output<typeof summarySchema>;

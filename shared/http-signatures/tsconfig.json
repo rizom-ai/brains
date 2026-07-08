@@ -1,0 +1,10 @@
+{
+  "extends": "@brains/typescript-config/base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "composite": true,
+    "types": ["node", "bun-types"]
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules"]
+}

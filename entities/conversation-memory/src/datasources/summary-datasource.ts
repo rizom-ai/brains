@@ -1,41 +1,59 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity } from "../schemas/summary";
 import type { SummaryListData } from "../templates/summary-list/schema";
 import type { SummaryDetailData } from "../templates/summary-detail/schema";
 import { SUMMARY_DATASOURCE_ID, SUMMARY_ENTITY_TYPE } from "../lib/constants";
 
-const entityFetchQuerySchema = z.object({
+interface SummaryDataSourceQuery {
+  id?: string | undefined;
+  conversationId?: string | undefined;
+  limit?: number | undefined;
+}
+
+interface EntityFetchQuery {
+  entityType: typeof SUMMARY_ENTITY_TYPE;
+  query?: SummaryDataSourceQuery | undefined;
+}
+
+const summaryDataSourceQuerySchema: z.ZodType<SummaryDataSourceQuery> =
+  z.object({
+    id: z.string().optional(),
+    conversationId: z.string().optional(),
+    limit: z.number().optional(),
+  });
+
+const entityFetchQuerySchema: z.ZodType<EntityFetchQuery> = z.object({
   entityType: z.literal(SUMMARY_ENTITY_TYPE),
-  query: z
-    .object({
-      id: z.string().optional(),
-      conversationId: z.string().optional(),
-      limit: z.number().optional(),
-    })
-    .optional(),
+  query: summaryDataSourceQuerySchema.optional(),
 });
 
 export class SummaryDataSource implements DataSource {
-  public readonly id = SUMMARY_DATASOURCE_ID;
-  public readonly name = "Summary Entity DataSource";
-  public readonly description =
+  private readonly logger: Logger;
+  public readonly id: typeof SUMMARY_DATASOURCE_ID = SUMMARY_DATASOURCE_ID;
+  public readonly name: string = "Summary Entity DataSource";
+  public readonly description: string =
     "Fetches and transforms summary entities for rendering";
 
-  private readonly adapter = new SummaryAdapter();
+  private readonly adapter: SummaryAdapter = new SummaryAdapter();
 
-  constructor(private readonly logger: Logger) {
+  constructor(logger: Logger) {
+    this.logger = logger;
     this.logger.debug("SummaryDataSource initialized");
   }
 
   async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = entityFetchQuerySchema.parse(query);
+    const params: EntityFetchQuery = entityFetchQuerySchema.parse(query);
     const entityService = context.entityService;
     const queryId = params.query?.conversationId ?? params.query?.id;
 

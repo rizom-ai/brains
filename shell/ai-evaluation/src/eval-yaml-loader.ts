@@ -1,15 +1,25 @@
-import { z, fromYaml } from "@brains/utils";
+import { fromYaml } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 import { defineConfig, type AppConfig } from "@brains/app";
 import { pluginMetadataSchema, type Plugin } from "@brains/plugins";
 import { resolveProviderKey } from "./multi-model";
 
-const evalYamlSchema = z.object({
+const evalYamlSchema: z.ZodObject<{
+  plugin: z.ZodString;
+  model: z.ZodOptional<z.ZodString>;
+  config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.object({
   plugin: z.string(),
   model: z.string().optional(),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
+const moduleExportsSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> = z.record(
+  z.string(),
+  z.unknown(),
+);
 
-export type EvalYamlConfig = z.infer<typeof evalYamlSchema>;
+export type EvalYamlConfig = z.output<typeof evalYamlSchema>;
+export type EvalYamlConfigInput = z.input<typeof evalYamlSchema>;
 
 /**
  * Parse an eval.yaml string. Returns the config if it has a `plugin` field,
@@ -30,12 +40,8 @@ export function parseEvalYaml(content: string): EvalYamlConfig | null {
 function isPlugin(value: unknown): value is Plugin {
   if (typeof value !== "object" || value === null) return false;
   if (!pluginMetadataSchema.safeParse(value).success) return false;
-  return typeof (value as Plugin).register === "function";
-}
-
-interface PluginFactoryCandidate {
-  (config: Record<string, unknown>): unknown;
-  new (config: Record<string, unknown>): unknown;
+  if (!("register" in value)) return false;
+  return typeof value.register === "function";
 }
 
 async function resolvePluginExport(
@@ -68,11 +74,9 @@ async function resolvePluginExport(
       continue;
     }
 
-    const factoryCandidate = candidate as PluginFactoryCandidate;
-
     try {
       const instance = await Promise.resolve(
-        new factoryCandidate(pluginConfig),
+        Reflect.construct(candidate, [pluginConfig]),
       );
       if (isPlugin(instance)) {
         return instance;
@@ -84,7 +88,9 @@ async function resolvePluginExport(
     }
 
     try {
-      const instance = await Promise.resolve(factoryCandidate(pluginConfig));
+      const instance = await Promise.resolve(
+        Reflect.apply(candidate, undefined, [pluginConfig]),
+      );
       if (isPlugin(instance)) {
         return instance;
       }
@@ -111,7 +117,9 @@ async function resolvePluginExport(
 export async function loadPluginEvalConfig(
   evalConfig: EvalYamlConfig,
 ): Promise<AppConfig> {
-  const mod = (await import(evalConfig.plugin)) as Record<string, unknown>;
+  const mod = moduleExportsSchema.parse(
+    Object.fromEntries(Object.entries(await import(evalConfig.plugin))),
+  );
   const pluginConfig = evalConfig.config ?? {};
   const plugin = await resolvePluginExport(
     mod,

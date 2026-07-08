@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { messageRoleSchema, type MessageRole } from "@brains/contracts";
 import type { Message, Conversation } from "./schema";
 
@@ -51,7 +51,15 @@ export interface StartConversationRequest {
   metadata: ConversationMetadata;
 }
 
-export const conversationMessageActorSchema = z.object({
+export const conversationMessageActorSchema: z.ZodObject<{
+  actorId: z.ZodString;
+  canonicalId: z.ZodOptional<z.ZodString>;
+  interfaceType: z.ZodString;
+  role: typeof messageRoleSchema;
+  displayName: z.ZodOptional<z.ZodString>;
+  username: z.ZodOptional<z.ZodString>;
+  isBot: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   actorId: z.string(),
   canonicalId: z.string().optional(),
   interfaceType: z.string(),
@@ -61,32 +69,41 @@ export const conversationMessageActorSchema = z.object({
   isBot: z.boolean().optional(),
 });
 
-export type ConversationMessageActor = z.infer<
+export type ConversationMessageActor = z.output<
   typeof conversationMessageActorSchema
 >;
 
-export const conversationMessageSourceSchema = z.object({
+export const conversationMessageSourceSchema: z.ZodObject<{
+  messageId: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodOptional<z.ZodString>;
+  threadId: z.ZodOptional<z.ZodString>;
+  metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.object({
   messageId: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   threadId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type ConversationMessageSource = z.infer<
+export type ConversationMessageSource = z.output<
   typeof conversationMessageSourceSchema
 >;
 
-export const conversationMessageMetadataSchema = z
-  .object({
-    actor: conversationMessageActorSchema.optional(),
-    source: conversationMessageSourceSchema.optional(),
-  })
-  .passthrough();
+export interface ConversationMessageMetadata {
+  [key: string]: unknown;
+  actor?: ConversationMessageActor | undefined;
+  source?: ConversationMessageSource | undefined;
+}
 
-export type ConversationMessageMetadata = z.infer<
-  typeof conversationMessageMetadataSchema
->;
+export const conversationMessageMetadataSchema: z.ZodType<
+  ConversationMessageMetadata,
+  unknown
+> = z.looseObject({
+  actor: conversationMessageActorSchema.optional(),
+  source: conversationMessageSourceSchema.optional(),
+});
 
 export function parseConversationMessageMetadata(
   metadata: unknown,
@@ -179,7 +196,14 @@ export interface IConversationService {
  * Schema for Message validation - manually defined to match Drizzle Message type
  * Note: role is string in DB schema, but we validate it as enum for payload validation
  */
-export const messageSchema = z.object({
+export const messageSchema: z.ZodObject<{
+  id: z.ZodString;
+  conversationId: z.ZodString;
+  role: z.ZodString;
+  content: z.ZodString;
+  timestamp: z.ZodString;
+  metadata: z.ZodNullable<z.ZodString>;
+}> = z.object({
   id: z.string(),
   conversationId: z.string(),
   role: z.string(), // Keep as string to match Drizzle type, enum validation happens at API boundaries
@@ -191,7 +215,15 @@ export const messageSchema = z.object({
 /**
  * Schema for conversation digest payload validation
  */
-export const conversationDigestPayloadSchema = z.object({
+export const conversationDigestPayloadSchema: z.ZodObject<{
+  conversationId: z.ZodString;
+  messageCount: z.ZodNumber;
+  messages: z.ZodArray<typeof messageSchema>;
+  windowStart: z.ZodNumber;
+  windowEnd: z.ZodNumber;
+  windowSize: z.ZodNumber;
+  timestamp: z.ZodString;
+}> = z.object({
   conversationId: z.string(),
   messageCount: z.number(),
   messages: z.array(messageSchema),
@@ -205,7 +237,7 @@ export const conversationDigestPayloadSchema = z.object({
  * Payload for conversation digest events
  * Broadcast every N messages with overlapping message windows
  */
-export type ConversationDigestPayload = z.infer<
+export type ConversationDigestPayload = z.output<
   typeof conversationDigestPayloadSchema
 >;
 

@@ -1,13 +1,18 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   docSchema,
   docFrontmatterSchema,
   type Doc,
   type DocMetadata,
+  type DocFrontmatter,
 } from "../schemas/doc";
 
-export class DocAdapter extends BaseEntityAdapter<Doc, DocMetadata> {
+export class DocAdapter extends BaseEntityAdapter<
+  Doc,
+  DocMetadata,
+  DocFrontmatter
+> {
   constructor() {
     super({
       entityType: "doc",
@@ -46,4 +51,4 @@ export class DocAdapter extends BaseEntityAdapter<Doc, DocMetadata> {
   }
 }
 
-export const docAdapter = new DocAdapter();
+export const docAdapter: DocAdapter = new DocAdapter();

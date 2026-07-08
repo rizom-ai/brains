@@ -1,5 +1,5 @@
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { IDirectorySync } from "../types";
 import {
   DirectoryExportJobHandler,

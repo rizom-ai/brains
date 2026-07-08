@@ -2,16 +2,36 @@ import type {
   ServicePluginContext,
   JobContext,
   JobOptions,
-  RouteDefinition,
-  SectionDefinition,
 } from "@brains/plugins";
-import type { SiteInfoBody } from "@brains/site-info";
+import type { SiteMetadata } from "@brains/site-composition";
+import { z } from "@brains/utils/zod";
 import type { GenerateOptions } from "../schemas/generate-options";
 
-export type SiteGenerationConfig = Pick<SiteInfoBody, "title" | "description">;
+export type SiteGenerationConfig = Pick<SiteMetadata, "title" | "description">;
+
+const routeSectionSchema = z.looseObject({
+  id: z.string(),
+  template: z.string().optional(),
+  content: z.unknown().optional(),
+});
+
+const routeSchema = z.looseObject({
+  id: z.string(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  sections: z.array(routeSectionSchema),
+});
+
+const routesResponseSchema = z.array(routeSchema);
+
+type SiteContentRoute = z.output<typeof routeSchema>;
+type SiteContentSection = z.output<typeof routeSectionSchema>;
 
 export class SiteContentOperations {
-  constructor(private readonly context: ServicePluginContext) {}
+  private readonly context: ServicePluginContext;
+  constructor(context: ServicePluginContext) {
+    this.context = context;
+  }
 
   private createJobOptions(
     metadata: Partial<JobContext> | undefined,
@@ -30,7 +50,7 @@ export class SiteContentOperations {
     };
   }
 
-  private async fetchRoutes(): Promise<RouteDefinition[]> {
+  private async fetchRoutes(): Promise<SiteContentRoute[]> {
     const response = await this.context.messaging.send({
       type: "site-builder:routes:list",
       payload: {},
@@ -43,7 +63,11 @@ export class SiteContentOperations {
     if (!response.success || !response.data) {
       throw new Error("Failed to fetch routes from site-builder");
     }
-    return response.data as RouteDefinition[];
+    const parsed = routesResponseSchema.safeParse(response.data);
+    if (!parsed.success) {
+      throw new Error("Failed to parse routes from site-builder");
+    }
+    return parsed.data;
   }
 
   async generate(
@@ -69,8 +93,8 @@ export class SiteContentOperations {
     }
 
     const sectionsToGenerate: Array<{
-      route: RouteDefinition;
-      section: SectionDefinition;
+      route: SiteContentRoute;
+      section: SiteContentSection;
     }> = [];
 
     for (const route of targetRoutes) {
@@ -171,9 +195,8 @@ export class SiteContentOperations {
           data: {
             routeId: route.id,
             sectionId: section.id,
-            routeTitle: route.title ?? siteConfig?.title ?? "",
-            routeDescription:
-              route.description ?? siteConfig?.description ?? "",
+            routeTitle: route.title,
+            routeDescription: route.description,
             sectionContent: section.content,
           },
           conversationId: "system",

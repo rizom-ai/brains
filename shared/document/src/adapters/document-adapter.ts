@@ -1,5 +1,4 @@
 import type { EntityAdapter } from "@brains/entity-service";
-import type { z } from "@brains/utils";
 import {
   documentSchema,
   type DocumentEntity,
@@ -30,7 +29,7 @@ export class DocumentAdapter implements EntityAdapter<
   public readonly entityType = "document" as const;
   public readonly purpose =
     "A durable rendered file artifact such as a printable or carousel PDF.";
-  public readonly schema = documentSchema;
+  public readonly schema: typeof documentSchema = documentSchema;
 
   public toMarkdown(entity: DocumentEntity): string {
     return entity.content;
@@ -55,7 +54,7 @@ export class DocumentAdapter implements EntityAdapter<
 
   public parseFrontMatter<TFrontmatter>(
     _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
+    schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter {
     return schema.parse({});
   }
@@ -85,4 +84,4 @@ export class DocumentAdapter implements EntityAdapter<
   }
 }
 
-export const documentAdapter = new DocumentAdapter();
+export const documentAdapter: DocumentAdapter = new DocumentAdapter();

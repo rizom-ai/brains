@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { z } from "@brains/utils/zod";
 
 import {
   bootstrapPilotOriginCertificate,
@@ -19,6 +20,17 @@ import {
   generateOriginKeyPair,
   type FetchLike,
 } from "../src/origin-ca";
+
+const originCertificateRequestBodySchema = z.strictObject({
+  hostnames: z.array(z.string()),
+  requested_validity: z.number(),
+  request_type: z.string(),
+  csr: z.string(),
+});
+
+const cloudflareSslSettingBodySchema = z.strictObject({
+  value: z.string(),
+});
 
 describe("pilot origin CA bootstrap", () => {
   let testDir: string;
@@ -77,12 +89,9 @@ describe("pilot origin CA bootstrap", () => {
       calls.push({ url, init });
 
       if (url.endsWith("/certificates")) {
-        const body = JSON.parse(String(init?.body)) as {
-          hostnames: string[];
-          requested_validity: number;
-          request_type: string;
-          csr: string;
-        };
+        const body = originCertificateRequestBodySchema.parse(
+          JSON.parse(String(init?.body)),
+        );
 
         expect(body.hostnames).toEqual(["rizom.ai", "*.rizom.ai"]);
         expect(body.requested_validity).toBe(5475);
@@ -103,7 +112,9 @@ describe("pilot origin CA bootstrap", () => {
       }
 
       if (url.endsWith("/settings/ssl")) {
-        const body = JSON.parse(String(init?.body)) as { value: string };
+        const body = cloudflareSslSettingBodySchema.parse(
+          JSON.parse(String(init?.body)),
+        );
         expect(body.value).toBe("strict");
         return new Response(JSON.stringify({ success: true, result: {} }), {
           status: 200,

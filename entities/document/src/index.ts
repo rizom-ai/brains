@@ -8,7 +8,6 @@ export {
   type DocumentGenerationResult,
   type RenderPdf,
 } from "./handlers/documentGenerationHandler";
-export { createDocumentTools, type DocumentGenerateInput } from "./tools";
 export {
   DocumentAdapter,
   documentAdapter,

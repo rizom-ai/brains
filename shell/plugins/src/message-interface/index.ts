@@ -43,11 +43,16 @@ export {
   type ToolStatusUpdate,
 } from "./tool-status";
 
+export { parseConfirmationResponse } from "./confirmation-handler";
+
 export {
-  parseConfirmationResponse,
-  formatConfirmationPrompt,
-  ConfirmationTracker,
-} from "./confirmation-handler";
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
+  type ApprovalResolution,
+  type ApprovalResultView,
+} from "./approval-cards";
 
 export {
   containsApprovalIdToken,
@@ -66,18 +71,17 @@ export {
 } from "./pending-approval-tracker";
 
 export {
-  buildAgentResponseTextParts,
   buildConfirmationResponseParts,
+  buildResponsePlan,
   formatPendingConfirmationHelp,
   formatPendingConfirmationsFallback,
-  getDeniedAttachmentCards,
-  getDeliverableArtifactCards,
-  getMainResponseSummaryCards,
-  getResponseJobIds,
-  getSupplementalCards,
-  type AgentResponseTextPartsInput,
+  type AttachmentChatCard,
   type ConfirmationResponseParts,
   type ConfirmationResponsePartsInput,
+  type ResponsePlan,
+  type ResponseRenderDirective,
+  type SupplementalChatCard,
+  type ToolApprovalChatCard,
 } from "./response-render-plan";
 
 export {

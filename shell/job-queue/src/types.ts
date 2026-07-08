@@ -2,8 +2,8 @@ import { JobContextSchema } from "./schema/types";
 import type { JobOptions, JobContext } from "./schema/types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import type { DbConfig } from "@brains/contracts";
-import type { ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 
 // Re-export types that are used internally
 export type { JobOptions, JobContext, BatchOperation };
@@ -20,11 +20,29 @@ export interface JobQueueEnqueueRequest {
   options?: JobOptions;
 }
 
+export interface JobInfo {
+  id: string;
+  type: string;
+  data: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  source: string | null;
+  priority: number;
+  retryCount: number;
+  maxRetries: number;
+  lastError: string | null;
+  createdAt: number;
+  scheduledFor: number;
+  startedAt: number | null;
+  completedAt: number | null;
+  metadata: JobContext;
+  result?: unknown;
+}
+
 /**
  * Simplified job info schema for external packages
  * Avoids exposing the complex Drizzle-inferred JobQueue type
  */
-export const JobInfoSchema = z.object({
+export const JobInfoSchema: z.ZodType<JobInfo, unknown> = z.object({
   id: z.string(),
   type: z.string(),
   data: z.string(),
@@ -41,8 +59,6 @@ export const JobInfoSchema = z.object({
   metadata: JobContextSchema,
   result: z.unknown().nullable().optional(), // Job result (type varies by job type)
 });
-
-export type JobInfo = z.infer<typeof JobInfoSchema>;
 
 /**
  * Job handler interface for processing specific job types

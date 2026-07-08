@@ -28,10 +28,11 @@ export type {
   BatchOperation,
 } from "./src/index";
 // Logger comes from @brains/utils
-export type { Logger } from "@brains/utils";
+export type { Logger } from "@brains/utils/logger";
 export { createMockMessageBus } from "@brains/messaging-service/test";
 export {
   baseEntitySchema,
+  emptyFrontmatterSchema,
   BaseEntityAdapter,
   createServicePluginContext,
   createEntityPluginContext,

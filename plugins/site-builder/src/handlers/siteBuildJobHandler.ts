@@ -1,6 +1,7 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
 import type { ISiteBuilder } from "../types/site-builder-types";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
 import type { SiteBuilderConfig } from "../config";
@@ -34,15 +35,19 @@ export class SiteBuildJobHandler extends BaseJobHandler<
   SiteBuildJobData,
   SiteBuildJobResult
 > {
+  private sendMessage: ServicePluginContext["messaging"]["send"];
+  private cfg: SiteBuildJobHandlerConfig;
   constructor(
     logger: Logger,
-    private sendMessage: ServicePluginContext["messaging"]["send"],
-    private cfg: SiteBuildJobHandlerConfig,
+    sendMessage: ServicePluginContext["messaging"]["send"],
+    cfg: SiteBuildJobHandlerConfig,
   ) {
     super(logger, {
       schema: siteBuildJobSchema,
       jobTypeName: "site-build",
     });
+    this.sendMessage = sendMessage;
+    this.cfg = cfg;
   }
 
   async process(

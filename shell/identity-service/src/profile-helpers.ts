@@ -1,11 +1,24 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { ICoreEntityService } from "@brains/entity-service";
+import { AnchorProfileAdapter } from "./anchor-profile-adapter";
+
+export interface BaseProfileExtension {
+  tagline?: string | undefined;
+  intro?: string | undefined;
+  story?: string | undefined;
+}
+
+export type BaseProfileExtensionSchema = z.ZodObject<{
+  tagline: z.ZodOptional<z.ZodString>;
+  intro: z.ZodOptional<z.ZodString>;
+  story: z.ZodOptional<z.ZodString>;
+}>;
 
 /**
  * Shared profile fields used by all layout packages.
  * Layout-specific extensions (e.g. expertise, availability) extend this.
  */
-export const baseProfileExtension = z.object({
+export const baseProfileExtension: BaseProfileExtensionSchema = z.object({
   tagline: z
     .string()
     .optional()
@@ -20,6 +33,26 @@ export const baseProfileExtension = z.object({
     .describe("Extended bio/narrative (multi-paragraph markdown)"),
 });
 
+export interface ProfessionalProfileExtension extends BaseProfileExtension {
+  role?: string | undefined;
+  audience?: string | undefined;
+  expertise?: string[] | undefined;
+  currentFocus?: string | undefined;
+  availability?: string | undefined;
+  desiredTone?: string | undefined;
+}
+
+export type ProfessionalProfileExtensionSchema = ReturnType<
+  typeof baseProfileExtension.extend<{
+    role: z.ZodOptional<z.ZodString>;
+    audience: z.ZodOptional<z.ZodString>;
+    expertise: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    currentFocus: z.ZodOptional<z.ZodString>;
+    availability: z.ZodOptional<z.ZodString>;
+    desiredTone: z.ZodOptional<z.ZodString>;
+  }>
+>;
+
 /**
  * Shared professional profile fields.
  *
@@ -27,29 +60,33 @@ export const baseProfileExtension = z.object({
  * and site compositions that operate on professional profiles can opt into
  * this extension explicitly.
  */
-export const professionalProfileExtension = baseProfileExtension.extend({
-  role: z.string().optional().describe("Professional role or working identity"),
-  audience: z
-    .string()
-    .optional()
-    .describe("Primary audience or community served"),
-  expertise: z
-    .array(z.string())
-    .optional()
-    .describe("Skills, domains, areas of focus"),
-  currentFocus: z
-    .string()
-    .optional()
-    .describe("What you're currently working on"),
-  availability: z
-    .string()
-    .optional()
-    .describe("What you're open to (consulting, speaking, etc.)"),
-  desiredTone: z
-    .string()
-    .optional()
-    .describe("Preferred tone for profile-shaped outputs"),
-});
+export const professionalProfileExtension: ProfessionalProfileExtensionSchema =
+  baseProfileExtension.extend({
+    role: z
+      .string()
+      .optional()
+      .describe("Professional role or working identity"),
+    audience: z
+      .string()
+      .optional()
+      .describe("Primary audience or community served"),
+    expertise: z
+      .array(z.string())
+      .optional()
+      .describe("Skills, domains, areas of focus"),
+    currentFocus: z
+      .string()
+      .optional()
+      .describe("What you're currently working on"),
+    availability: z
+      .string()
+      .optional()
+      .describe("What you're open to (consulting, speaking, etc.)"),
+    desiredTone: z
+      .string()
+      .optional()
+      .describe("Preferred tone for profile-shaped outputs"),
+  });
 
 /**
  * Fetch the anchor-profile entity content.
@@ -70,4 +107,17 @@ export async function fetchAnchorProfile(
     throw new Error("Profile not found — create an anchor-profile entity");
   }
   return entity.content;
+}
+
+/**
+ * Fetch the anchor-profile entity and parse its body with the given schema.
+ * Combines {@link fetchAnchorProfile} with the adapter parse step that every
+ * profile consumer otherwise repeats.
+ */
+export async function fetchAnchorProfileData<T extends Record<string, unknown>>(
+  entityService: ICoreEntityService,
+  schema: z.ZodSchema<T>,
+): Promise<T> {
+  const content = await fetchAnchorProfile(entityService);
+  return new AnchorProfileAdapter().parseProfileBody(content, schema);
 }

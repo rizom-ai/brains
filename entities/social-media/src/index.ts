@@ -8,6 +8,7 @@ export {
   type SocialMediaConfig,
   type SocialMediaConfigInput,
   type LinkedinConfig,
+  type LinkedinConfigInput,
 } from "./config";
 
 // Schema exports

@@ -19,7 +19,7 @@ import {
 } from "@brains/job-queue";
 import { DataSourceRegistry } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 async function resetAllSingletons(): Promise<void> {
   await Shell.resetInstance();
@@ -142,7 +142,10 @@ describe("Shell register-only mode", () => {
   });
 
   it("should fail initialization when a required daemon cannot start", async () => {
-    class RequiredDaemonInterface extends InterfacePlugin {
+    class RequiredDaemonInterface extends InterfacePlugin<
+      Record<string, never>,
+      Record<string, never>
+    > {
       constructor() {
         super(
           "required-daemon",
@@ -178,7 +181,10 @@ describe("Shell register-only mode", () => {
     let daemonStarted = false;
 
     // Real InterfacePlugin subclass — matches how webserver/mcp/a2a work
-    class TestDaemonInterface extends InterfacePlugin {
+    class TestDaemonInterface extends InterfacePlugin<
+      Record<string, never>,
+      Record<string, never>
+    > {
       constructor() {
         super(
           "test-daemon",

@@ -1,12 +1,27 @@
 import type { JSX } from "preact";
 import { MarkdownContent } from "@brains/ui-library";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const PROJECT_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const PROJECT_PRINTABLE_TEMPLATE_NAME = "portfolio:project-printable";
 
-export const projectPrintableTemplateSchema = z.object({
+export interface ProjectPrintableTemplateData {
+  title: string;
+  description?: string | undefined;
+  year?: number | undefined;
+  publishedAt?: string | undefined;
+  url?: string | undefined;
+  canonicalUrl?: string | undefined;
+  coverImageUrl?: string | undefined;
+  body: string;
+  brandLabel?: string | undefined;
+}
+
+export const projectPrintableTemplateSchema: z.ZodType<
+  ProjectPrintableTemplateData,
+  ProjectPrintableTemplateData
+> = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   year: z.number().optional(),
@@ -17,10 +32,6 @@ export const projectPrintableTemplateSchema = z.object({
   body: z.string(),
   brandLabel: z.string().optional(),
 });
-
-export type ProjectPrintableTemplateData = z.infer<
-  typeof projectPrintableTemplateSchema
->;
 
 export const projectPrintableTemplate: MediaPageTemplate = {
   name: PROJECT_PRINTABLE_TEMPLATE_NAME,
@@ -219,7 +230,9 @@ function renderProjectPrintablePdf(
           <img className="printable-cover" src={data.coverImageUrl} alt="" />
         )}
         <MarkdownContent markdown={data.body} className="printable-body" />
-        {(data.canonicalUrl || data.url || data.brandLabel) && (
+        {(Boolean(data.canonicalUrl) ||
+          Boolean(data.url) ||
+          Boolean(data.brandLabel)) && (
           <footer className="printable-footer">
             <span>{data.brandLabel ?? "Project printable"}</span>
             {data.canonicalUrl || data.url ? (

@@ -1,9 +1,44 @@
-import { z } from "zod";
+import { z } from "@brains/utils/zod";
 
 /**
  * Query response schemas used throughout the system
  */
-export const defaultQueryResponseSchema = z
+export interface DefaultQuerySource {
+  id: string;
+  type: string;
+  excerpt?: string | undefined;
+  relevance?: number | undefined;
+}
+
+export interface DefaultQueryResponse {
+  message: string;
+  summary?: string | undefined;
+  topics?: string[] | undefined;
+  sources?: DefaultQuerySource[] | undefined;
+  metadata?: Record<string, unknown> | undefined;
+}
+
+export interface SimpleTextResponse {
+  message: string;
+}
+
+export interface CreateEntityResponse {
+  success: boolean;
+  entityId?: string | undefined;
+  message: string;
+}
+
+export interface UpdateEntityResponse {
+  success: boolean;
+  entityId: string;
+  changes?: string[] | undefined;
+  message: string;
+}
+
+export const defaultQueryResponseSchema: z.ZodType<
+  DefaultQueryResponse,
+  DefaultQueryResponse
+> = z
   .object({
     message: z.string().describe("Natural language response to the query"),
     summary: z.string().optional().describe("Brief summary if applicable"),
@@ -23,17 +58,19 @@ export const defaultQueryResponseSchema = z
   })
   .describe("defaultQueryResponse");
 
-export type DefaultQueryResponse = z.infer<typeof defaultQueryResponseSchema>;
-
-export const simpleTextResponseSchema = z
+export const simpleTextResponseSchema: z.ZodType<
+  SimpleTextResponse,
+  SimpleTextResponse
+> = z
   .object({
     message: z.string(),
   })
   .describe("simpleTextResponse");
 
-export type SimpleTextResponse = z.infer<typeof simpleTextResponseSchema>;
-
-export const createEntityResponseSchema = z
+export const createEntityResponseSchema: z.ZodType<
+  CreateEntityResponse,
+  CreateEntityResponse
+> = z
   .object({
     success: z.boolean(),
     entityId: z.string().optional(),
@@ -41,9 +78,10 @@ export const createEntityResponseSchema = z
   })
   .describe("createEntityResponse");
 
-export type CreateEntityResponse = z.infer<typeof createEntityResponseSchema>;
-
-export const updateEntityResponseSchema = z
+export const updateEntityResponseSchema: z.ZodType<
+  UpdateEntityResponse,
+  UpdateEntityResponse
+> = z
   .object({
     success: z.boolean(),
     entityId: z.string(),
@@ -51,5 +89,3 @@ export const updateEntityResponseSchema = z
     message: z.string(),
   })
   .describe("updateEntityResponse");
-
-export type UpdateEntityResponse = z.infer<typeof updateEntityResponseSchema>;

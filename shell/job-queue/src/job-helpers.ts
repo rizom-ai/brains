@@ -6,7 +6,7 @@ import type {
   JobInfo,
 } from "./types";
 import type { Batch, BatchJobStatus } from "./batch-schemas";
-import { createId } from "@brains/utils";
+import { createId } from "@brains/utils/id";
 import type { ToolContext } from "@brains/mcp-service";
 
 /**

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type {
   ContentVisibility,
   Tool,
@@ -23,12 +23,23 @@ interface A2AError {
 
 type A2AResult = A2ASuccess | A2AError;
 
+export interface A2ARequestToSign {
+  method: "POST";
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+}
+
+export type A2ARequestSigner = (
+  request: A2ARequestToSign,
+) => Promise<void> | void;
+
 const textPartSchema = z.object({
   kind: z.literal("text"),
   text: z.string(),
 });
 
-const partsSchema = z.array(z.object({ kind: z.string() }).passthrough());
+const partsSchema = z.array(z.looseObject({ kind: z.string() }));
 
 const rpcErrorSchema = z.object({
   error: z.object({ message: z.string() }),
@@ -50,10 +61,33 @@ const taskResultSchema = z.object({
 
 const resultEnvelopeSchema = z.object({ result: z.unknown() });
 
+const sseTextPartSchema = z.looseObject({
+  kind: z.string(),
+  text: z.string().optional(),
+});
+
+const sseEventSchema = z.looseObject({
+  result: z
+    .looseObject({
+      final: z.boolean().optional(),
+      status: z
+        .looseObject({
+          state: z.string().optional(),
+          message: z
+            .looseObject({
+              parts: z.array(sseTextPartSchema).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
+
 /**
  * Extract text from a parts array
  */
-function extractText(parts: z.infer<typeof partsSchema>): string {
+function extractText(parts: z.output<typeof partsSchema>): string {
   const texts: string[] = [];
   for (const part of parts) {
     const parsed = textPartSchema.safeParse(part);
@@ -141,6 +175,11 @@ const a2aCallInputSchema = {
   message: z.string().describe("Message to send to the remote agent"),
 };
 
+const a2aCallInputParserSchema = z.object({
+  agent: z.string(),
+  message: z.string(),
+});
+
 type NormalizedAgentTarget =
   | { ok: true; agentId: string; sourceUrl?: string | undefined }
   | { ok: false; error: string };
@@ -183,6 +222,33 @@ function isExactDomainLikeAgentId(agentId: string): boolean {
   return /^[^\s/.][^\s/]*\.[^\s/]+$/.test(agentId);
 }
 
+/**
+ * Validate a remote-supplied Agent Card endpoint URL before contacting it.
+ * The card is fetched from https://<agentId>, so the endpoint must stay on
+ * that host over HTTPS — anything else is an SSRF vector.
+ */
+function validateCardEndpoint(
+  cardUrl: string,
+  agentId: string,
+): { ok: true } | { ok: false; error: string } {
+  let url: URL;
+  try {
+    url = new URL(cardUrl);
+  } catch {
+    return {
+      ok: false,
+      error: `Agent Card for ${agentId} has an invalid endpoint URL.`,
+    };
+  }
+  if (url.protocol !== "https:" || url.hostname.toLowerCase() !== agentId) {
+    return {
+      ok: false,
+      error: `Agent Card for ${agentId} has an untrusted endpoint URL (${cardUrl}). The endpoint must be https:// on ${agentId}.`,
+    };
+  }
+  return { ok: true };
+}
+
 async function fetchAgentCard(
   agentUrl: string,
   fetchFn: FetchFn,
@@ -206,10 +272,11 @@ async function sendMessage(
   endpointUrl: string,
   message: string,
   fetchFn: FetchFn,
-  authToken: string | undefined,
+  requestSigner: A2ARequestSigner | undefined,
   options: Required<A2ANetworkOptions>,
 ): Promise<ToolResponse> {
   const maxAttempts = Math.max(1, options.maxNetworkAttempts);
+  const clientMessageId = crypto.randomUUID();
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -217,8 +284,27 @@ async function sendMessage(
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (authToken) {
-        headers["Authorization"] = `Bearer ${authToken}`;
+      const body = JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "message/stream",
+        params: {
+          message: {
+            kind: "message",
+            messageId: clientMessageId,
+            role: "user",
+            parts: [{ kind: "text", text: message }],
+          },
+        },
+      });
+
+      if (requestSigner) {
+        await requestSigner({
+          method: "POST",
+          url: endpointUrl,
+          headers,
+          body,
+        });
       }
 
       const response = await fetchWithTimeout(
@@ -227,19 +313,7 @@ async function sendMessage(
         {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: crypto.randomUUID(),
-            method: "message/stream",
-            params: {
-              message: {
-                kind: "message",
-                messageId: crypto.randomUUID(),
-                role: "user",
-                parts: [{ kind: "text", text: message }],
-              },
-            },
-          }),
+          body,
         },
         options.requestTimeoutMs,
       );
@@ -255,16 +329,26 @@ async function sendMessage(
         return { success: false, error: "No response body (SSE expected)" };
       }
 
-      return await readStreamToCompletion(
-        response.body,
-        options.streamIdleTimeoutMs,
-      );
+      try {
+        return await readStreamToCompletion(
+          response.body,
+          options.streamIdleTimeoutMs,
+        );
+      } catch (err) {
+        return {
+          success: false,
+          error: formatNetworkFailure(err, attempt),
+        };
+      }
     } catch (err) {
       lastError = err;
-      if (attempt < maxAttempts && isRetryableNetworkError(err)) {
-        continue;
+      const shouldRetry = attempt < maxAttempts && isRetryableNetworkError(err);
+      if (!shouldRetry) {
+        return {
+          success: false,
+          error: formatNetworkFailure(err, attempt),
+        };
       }
-      break;
     }
   }
 
@@ -298,9 +382,13 @@ async function readStreamToCompletion(
       const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
       if (!dataLine) continue;
 
-      let event: Record<string, unknown>;
+      let event: z.output<typeof sseEventSchema>;
       try {
-        event = JSON.parse(dataLine.slice(6)) as Record<string, unknown>;
+        const parsedEvent = sseEventSchema.safeParse(
+          JSON.parse(dataLine.slice(6)),
+        );
+        if (!parsedEvent.success) continue;
+        event = parsedEvent.data;
       } catch {
         reader.cancel().catch(() => {});
         return {
@@ -310,20 +398,12 @@ async function readStreamToCompletion(
       }
 
       // Check if this is a JSON-RPC envelope with a result
-      const result = event["result"] as Record<string, unknown> | undefined;
-      if (!result) continue;
-
-      const isFinal = result["final"] === true;
-      if (!isFinal) continue;
+      const result = event.result;
+      if (!result?.final) continue;
 
       // Terminal event — extract response
       reader.cancel().catch(() => {});
-      const status = result["status"] as
-        | {
-            state: string;
-            message?: { parts: Array<{ kind: string; text?: string }> };
-          }
-        | undefined;
+      const status = result.status;
 
       const state = status?.state ?? "unknown";
       const responseParts = status?.message?.parts ?? [];
@@ -349,15 +429,19 @@ async function readStreamToCompletion(
 }
 
 class A2ARequestTimeoutError extends Error {
-  constructor(readonly timeoutMs: number) {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`request timed out after ${timeoutMs}ms`);
+    this.timeoutMs = timeoutMs;
     this.name = "A2ARequestTimeoutError";
   }
 }
 
 class A2AStreamIdleTimeoutError extends Error {
-  constructor(readonly timeoutMs: number) {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`A2A stream stalled waiting for final event after ${timeoutMs}ms`);
+    this.timeoutMs = timeoutMs;
     this.name = "A2AStreamIdleTimeoutError";
   }
 }
@@ -425,7 +509,7 @@ function isRetryableNetworkError(error: unknown): boolean {
     error instanceof A2ARequestTimeoutError ||
     error instanceof A2AStreamIdleTimeoutError
   ) {
-    return true;
+    return false;
   }
 
   return error instanceof Error;
@@ -456,8 +540,8 @@ export interface A2ANetworkOptions {
 
 export interface A2AClientDeps extends A2ANetworkOptions {
   fetch?: FetchFn;
-  /** Map of remote agent domain → bearer token to send */
-  outboundTokens?: Record<string, string>;
+  /** Signs outbound A2A requests. */
+  requestSigner?: A2ARequestSigner;
   /** Entity service for agent directory resolution */
   entityService?: {
     getEntity(request: {
@@ -492,7 +576,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
     visibility: "trusted",
     sideEffects: "external",
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(a2aCallInputSchema).safeParse(input);
+      const parsed = a2aCallInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
@@ -545,11 +629,16 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
           };
         }
 
+        const oneShotEndpoint = validateCardEndpoint(card.url, agentId);
+        if (!oneShotEndpoint.ok) {
+          return { success: false, error: oneShotEndpoint.error };
+        }
+
         const oneShotResult = await sendMessage(
           card.url,
           message,
           fetchFn,
-          undefined,
+          deps.requestSigner,
           networkOptions,
         );
         if ("success" in oneShotResult && oneShotResult.success === true) {
@@ -597,24 +686,18 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
         };
       }
 
-      const endpointUrl = card.url;
-
-      // Look up outbound token by agent domain
-      let authToken: string | undefined;
-      if (deps.outboundTokens) {
-        try {
-          const domain = new URL(endpointUrl).hostname;
-          authToken = deps.outboundTokens[domain];
-        } catch {
-          // Invalid URL — skip token
-        }
+      const approvedEndpoint = validateCardEndpoint(card.url, agentId);
+      if (!approvedEndpoint.ok) {
+        return { success: false, error: approvedEndpoint.error };
       }
+
+      const endpointUrl = card.url;
 
       return sendMessage(
         endpointUrl,
         message,
         fetchFn,
-        authToken,
+        deps.requestSigner,
         networkOptions,
       );
     },

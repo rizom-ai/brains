@@ -1,6 +1,6 @@
 {
   "name": "@brains/templates",
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.141",
   "private": true,
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -15,8 +15,8 @@
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",
-    "bun-types": "latest",
-    "typescript": "^5.3.3"
+    "bun-types": "^1.3.14",
+    "typescript": "^6.0.3"
   },
   "exports": {
     ".": {

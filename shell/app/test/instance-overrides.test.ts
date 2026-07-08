@@ -691,7 +691,7 @@ describe("resolve with instance overrides", () => {
     });
 
     const config = resolve(def, {}, { domain: "staging.example.com" });
-    expect(config.deployment?.domain).toBe("staging.example.com");
+    expect(config.deployment.domain).toBe("staging.example.com");
   });
 
   test("should set domain in deployment when definition has no deployment", () => {
@@ -703,7 +703,7 @@ describe("resolve with instance overrides", () => {
     });
 
     const config = resolve(def, {}, { domain: "my.example.com" });
-    expect(config.deployment?.domain).toBe("my.example.com");
+    expect(config.deployment.domain).toBe("my.example.com");
   });
 
   test("should override port in deployment", () => {
@@ -715,7 +715,7 @@ describe("resolve with instance overrides", () => {
     });
 
     const config = resolve(def, {}, { port: 9090 });
-    expect(config.deployment?.ports?.production).toBe(9090);
+    expect(config.deployment.ports.production).toBe(9090);
   });
 
   test("should apply plugin config overrides to capabilities", () => {

@@ -3,12 +3,9 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import {
-  PermissionService,
-  ServicePlugin,
-  UserPermissionLevelSchema,
-} from "@brains/plugins";
-import { getErrorMessage, z } from "@brains/utils";
+import { PermissionService, ServicePlugin } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import {
   BUILT_IN_WIDGET_RENDERERS,
   DashboardWidgetRegistry,
@@ -28,13 +25,24 @@ import { resolveWidgetsForRender } from "./render/resolve-widgets";
 import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
-const dashboardConfigSchema = z.object({
-  version: z.string().default("1.0.0"),
-  routePath: z.string().default("/dashboard"),
-  themeCSS: z.string().optional(),
-});
+export interface DashboardConfig {
+  version: string;
+  routePath: string;
+  themeCSS?: string | undefined;
+}
 
-type DashboardConfig = z.infer<typeof dashboardConfigSchema>;
+export interface DashboardConfigInput {
+  version?: string | undefined;
+  routePath?: string | undefined;
+  themeCSS?: string | undefined;
+}
+
+const dashboardConfigSchema: z.ZodType<DashboardConfig, DashboardConfigInput> =
+  z.object({
+    version: z.string().default("1.0.0"),
+    routePath: z.string().default("/dashboard"),
+    themeCSS: z.string().optional(),
+  });
 
 const registerWidgetPayloadSchema = z
   .object({
@@ -45,15 +53,18 @@ const registerWidgetPayloadSchema = z
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
-    visibility: UserPermissionLevelSchema.default("public"),
+    visibility: z.enum(["public", "trusted", "anchor"]).default("public"),
     component: z.custom<WidgetComponent>().optional(),
     clientScript: z.string().optional(),
-    dataProvider: z.function().returns(z.promise(z.unknown())),
+    dataProvider: z.custom<() => Promise<unknown>>(
+      (value) => typeof value === "function",
+      { message: "Expected dashboard widget data provider function" },
+    ),
   })
   .superRefine((payload, refinementContext) => {
     if (!isBuiltInWidgetRenderer(payload.rendererName) && !payload.component) {
       refinementContext.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Custom dashboard widgets must register a Preact component.",
         path: ["component"],
       });
@@ -66,7 +77,7 @@ const unregisterWidgetPayloadSchema = z.object({
 });
 
 function createRegisteredWidget(
-  payload: z.infer<typeof registerWidgetPayloadSchema>,
+  payload: z.output<typeof registerWidgetPayloadSchema>,
 ): RegisteredWidget {
   return {
     id: payload.id,
@@ -83,14 +94,17 @@ function createRegisteredWidget(
   };
 }
 
-export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
+export class DashboardPlugin extends ServicePlugin<
+  DashboardConfig,
+  DashboardConfigInput
+> {
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
   private ctx: ServicePluginContext | undefined;
 
-  constructor(config?: Partial<DashboardConfig>) {
-    super("dashboard", packageJson, config ?? {}, dashboardConfigSchema);
+  constructor(config: DashboardConfigInput = {}) {
+    super("dashboard", packageJson, config, dashboardConfigSchema);
   }
 
   protected override async onRegister(
@@ -147,13 +161,21 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     context.messaging.subscribe(
       "dashboard:unregister-widget",
       async (message) => {
-        const payload = unregisterWidgetPayloadSchema.parse(message.payload);
-        this.widgetRegistry?.unregister(payload.pluginId, payload.widgetId);
-        this.logger.debug("Widget unregistered via messaging", {
-          pluginId: payload.pluginId,
-          widgetId: payload.widgetId,
-        });
-        return { success: true };
+        try {
+          const payload = unregisterWidgetPayloadSchema.parse(message.payload);
+          this.widgetRegistry?.unregister(payload.pluginId, payload.widgetId);
+          this.logger.debug("Widget unregistered via messaging", {
+            pluginId: payload.pluginId,
+            widgetId: payload.widgetId,
+          });
+          return { success: true };
+        } catch (error) {
+          this.logger.error("Failed to unregister widget", {
+            error: getErrorMessage(error),
+            payload: message.payload,
+          });
+          return { success: false, error: "Widget unregistration failed" };
+        }
       },
     );
 
@@ -270,7 +292,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
 }
 
 export function dashboardPlugin(
-  config?: Partial<DashboardConfig>,
+  config: DashboardConfigInput = {},
 ): DashboardPlugin {
   return new DashboardPlugin(config);
 }

@@ -1,5 +1,5 @@
 import type { IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ImportResult, RawEntity } from "../types";
 import type { FileOperations } from "./file-operations";
 import type { Quarantine } from "./quarantine";

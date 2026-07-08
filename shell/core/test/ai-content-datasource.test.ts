@@ -10,10 +10,10 @@ import {
 } from "@brains/test-utils";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const messageSchema = z.object({ message: z.string() });
-type Message = z.infer<typeof messageSchema>;
+type Message = z.output<typeof messageSchema>;
 
 const defaultIdentityContent = `# Identity
 

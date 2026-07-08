@@ -1,4 +1,8 @@
-import { defineBrain, type PluginConfig } from "@brains/app";
+import {
+  defineBrain,
+  type BrainDefinition,
+  type PluginConfig,
+} from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
@@ -105,7 +109,7 @@ const agentInstructions = [
   `Relay is not Rover-for-teams: do not default to personal branding, blog publishing, newsletters, social media, portfolio, or marketing workflows unless the installed plugins and user request explicitly support them.`,
 ];
 
-export default defineBrain({
+const relayBrain: BrainDefinition = defineBrain({
   name: "relay",
   version: packageJson.version,
   model: "gpt-5.4-mini",
@@ -224,3 +228,5 @@ export default defineBrain({
     },
   },
 });
+
+export default relayBrain;

@@ -1,5 +1,5 @@
-import type { Logger } from "@brains/utils";
-import { LeadingTrailingDebounce } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import type { SiteBuilderConfig } from "../config";
 
 interface EntityChangeMessage {
@@ -44,15 +44,24 @@ interface AutoRebuildContext {
  * do not interfere with each other.
  */
 export class RebuildManager {
+  private readonly config: SiteBuilderConfig;
+  private readonly context: AutoRebuildContext;
+  private readonly pluginId: string;
+  private readonly logger: Logger;
   private debounces = new Map<string, LeadingTrailingDebounce>();
   private unsubscribeFunctions: Array<() => void> = [];
 
   constructor(
-    private readonly config: SiteBuilderConfig,
-    private readonly context: AutoRebuildContext,
-    private readonly pluginId: string,
-    private readonly logger: Logger,
-  ) {}
+    config: SiteBuilderConfig,
+    context: AutoRebuildContext,
+    pluginId: string,
+    logger: Logger,
+  ) {
+    this.config = config;
+    this.context = context;
+    this.pluginId = pluginId;
+    this.logger = logger;
+  }
 
   /**
    * Request a site rebuild through the shared debounce.

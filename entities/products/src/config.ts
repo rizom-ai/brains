@@ -1,8 +1,16 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
-export const productsConfigSchema = z.object({
+export interface ProductsConfig {
+  route: string;
+}
+
+export interface ProductsConfigInput {
+  route?: string | undefined;
+}
+
+export const productsConfigSchema: z.ZodType<
+  ProductsConfig,
+  ProductsConfigInput
+> = z.object({
   route: z.string().default("/products"),
 });
-
-export type ProductsConfig = z.infer<typeof productsConfigSchema>;
-export type ProductsConfigInput = Partial<ProductsConfig>;

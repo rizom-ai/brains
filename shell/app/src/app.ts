@@ -1,8 +1,9 @@
 import { Shell } from "@brains/core";
-import { Logger, LogLevel } from "@brains/utils";
-import { appConfigSchema, type AppConfig } from "./types";
+import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
+import { Logger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
+import { resolveStandardConfig } from "./standard-paths";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];
@@ -21,7 +22,7 @@ export class App {
   private isShuttingDown = false;
   private hasCLI = false;
 
-  public static create(config?: Partial<AppConfig>, shell?: Shell): App {
+  public static create(config?: AppConfigInput, shell?: Shell): App {
     const validatedConfig = appConfigSchema.parse(config ?? {});
 
     // Follow Shell's pattern: validate schema then add full Plugin objects
@@ -74,6 +75,7 @@ export class App {
       ...this.config.shellConfig, // Allow overriding for tests/advanced use
     };
 
+    this.applyStandardStorageConfig(shellConfig);
     this.applySimpleConfigOverrides(shellConfig);
     this.applyAIConfig(shellConfig, options);
     this.applyLoggingConfig(shellConfig);
@@ -84,6 +86,21 @@ export class App {
     this.applyAppMetadata(shellConfig);
 
     return shellConfig;
+  }
+
+  /**
+   * Environment policy lives here, not in core: resolve XDG-based storage
+   * paths and pass them as explicit config. Anything the caller already
+   * set (tests, advanced use) wins.
+   */
+  private applyStandardStorageConfig(shellConfig: ShellConfig): void {
+    const standard = resolveStandardConfig();
+    shellConfig.database ??= standard.database;
+    shellConfig.jobQueueDatabase ??= standard.jobQueueDatabase;
+    shellConfig.conversationDatabase ??= standard.conversationDatabase;
+    shellConfig.runtimeStateDatabase ??= standard.runtimeStateDatabase;
+    shellConfig.embeddingDatabase ??= standard.embeddingDatabase;
+    shellConfig.embedding ??= standard.embedding;
   }
 
   private applySimpleConfigOverrides(shellConfig: ShellConfig): void {
@@ -162,11 +179,11 @@ export class App {
     shellConfig.version = this.config.version;
 
     // Set site base URL from deployment domain for entity link generation
-    if (this.config.deployment?.domain) {
+    if (this.config.deployment.domain) {
       shellConfig.siteBaseUrl = this.config.deployment.domain;
     }
 
-    shellConfig.localSiteUrl = `http://localhost:${this.config.deployment?.ports?.production ?? 8080}`;
+    shellConfig.localSiteUrl = `http://localhost:${this.config.deployment.ports.production}`;
     shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
   }
 
@@ -252,7 +269,7 @@ export class App {
    * Static convenience method to create and run an app in one call
    */
   public static async run(
-    config?: Partial<AppConfig>,
+    config?: AppConfigInput,
     shell?: Shell,
   ): Promise<void> {
     const app = App.create(config, shell);

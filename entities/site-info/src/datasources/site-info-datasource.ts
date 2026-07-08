@@ -1,10 +1,30 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { type z as zType } from "@brains/utils";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 import type { SiteInfoBody } from "../schemas/site-info-schema";
 
 const adapter = new SiteInfoAdapter();
+
+const socialLinkSchema = z
+  .looseObject({
+    platform: z.string(),
+    url: z.string(),
+    label: z.string().optional(),
+  })
+  .transform((link) => ({
+    platform: link.platform,
+    url: link.url,
+    ...(link.label !== undefined ? { label: link.label } : {}),
+  }));
+
+const profileMetadataSchema = z.looseObject({
+  socialLinks: z.array(socialLinkSchema).optional(),
+});
 
 /**
  * DataSource for site-info entity data.
@@ -12,16 +32,19 @@ const adapter = new SiteInfoAdapter();
  * Navigation is NOT included — layouts get that from site-builder's NavigationDataSource.
  */
 export class SiteInfoDataSource implements DataSource {
+  private readonly logger: Logger;
   public readonly id = "site-info:entities";
   public readonly name = "Site Info DataSource";
   public readonly description =
     "Provides site metadata (title, description, CTA) and profile social links";
 
-  constructor(private readonly logger: Logger) {}
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
 
   async fetch<T>(
     _query: unknown,
-    outputSchema: zType.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { entityService } = context;
@@ -48,16 +71,15 @@ export class SiteInfoDataSource implements DataSource {
 
     // Get profile socialLinks from entity
     let socialLinks:
-      | Array<{ platform: string; url: string; label?: string }>
-      | undefined;
+      Array<{ platform: string; url: string; label?: string }> | undefined;
     try {
       const profileEntity = await entityService.getEntity({
         entityType: "anchor-profile",
         id: "anchor-profile",
       });
       if (profileEntity) {
-        const metadata = profileEntity.metadata as Record<string, unknown>;
-        socialLinks = metadata["socialLinks"] as typeof socialLinks;
+        const parsed = profileMetadataSchema.safeParse(profileEntity.metadata);
+        socialLinks = parsed.success ? parsed.data.socialLinks : undefined;
       }
     } catch {
       // Profile not available

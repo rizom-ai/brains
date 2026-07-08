@@ -7,35 +7,21 @@
  * - activeTools for permission-based tool filtering
  */
 import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
-import { z } from "@brains/utils";
-import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
-import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { BrainAgent, BrainAgentFactory } from "./agent-types";
+import {
+  brainCallOptionsSchema,
+  type BrainAgent,
+  type BrainAgentConfig,
+  type BrainAgentFactory,
+  type BrainCallOptions,
+} from "./agent-types";
 import { supportsTemperature } from "./provider-selection";
 import { buildInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 
-/**
- * Schema for runtime call options
- * Defines type-safe inputs passed at generation time
- */
-export const brainCallOptionsSchema = z.object({
-  userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
-  conversationId: z.string(),
-  channelId: z.string().optional(),
-  channelName: z.string().optional(),
-  interfaceType: z.string(),
-  agentContextInstructions: z.string().optional(),
-  disableTools: z.boolean().optional(),
-  enableCreateUpload: z.boolean().optional(),
-  enableCreateTransform: z.boolean().optional(),
-  hasPriorResponseCandidate: z.boolean().optional(),
-});
-
-export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
+export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
 export function filterToolsForCallOptions(
   tools: Tool[],
@@ -59,20 +45,6 @@ export function shouldStopToolLoop(input: {
         result.toolName === "playbook_start",
     ) ?? false
   );
-}
-
-/**
- * Configuration for creating a BrainAgent
- * Model and provider options are set at factory creation time
- */
-export interface BrainAgentConfig {
-  identity: BrainCharacter;
-  profile?: AnchorProfile;
-  tools: Tool[];
-  pluginInstructions?: string[];
-  agentInstructions?: string[];
-  stepLimit?: number;
-  getToolsForPermission: (level: UserPermissionLevel) => Tool[];
 }
 
 /**

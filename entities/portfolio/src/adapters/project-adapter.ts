@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   projectSchema,
   projectFrontmatterSchema,
@@ -18,7 +18,8 @@ const bodyFormatter = new ProjectBodyFormatter();
  */
 export class ProjectAdapter extends BaseEntityAdapter<
   Project,
-  ProjectMetadata
+  ProjectMetadata,
+  ProjectFrontmatter
 > {
   constructor() {
     super({
@@ -111,4 +112,4 @@ export class ProjectAdapter extends BaseEntityAdapter<
   }
 }
 
-export const projectAdapter = new ProjectAdapter();
+export const projectAdapter: ProjectAdapter = new ProjectAdapter();

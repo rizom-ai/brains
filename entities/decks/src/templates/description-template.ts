@@ -1,10 +1,12 @@
-import { z } from "@brains/utils";
-import { createTemplate } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import { createTemplate, type Template } from "@brains/plugins";
 
 /**
  * Schema for AI-generated deck description
  */
-export const deckDescriptionSchema = z.object({
+export const deckDescriptionSchema: z.ZodObject<{
+  description: z.ZodString;
+}> = z.object({
   description: z
     .string()
     .describe(
@@ -12,19 +14,20 @@ export const deckDescriptionSchema = z.object({
     ),
 });
 
-export type DeckDescription = z.infer<typeof deckDescriptionSchema>;
+export type DeckDescription = z.output<typeof deckDescriptionSchema>;
 
 /**
  * Template for AI-powered description generation
  */
-export const deckDescriptionTemplate = createTemplate<DeckDescription>({
-  name: "decks:description",
-  description:
-    "Template for AI to generate descriptions from slide deck content",
-  schema: deckDescriptionSchema,
-  dataSourceId: "shell:ai-content",
-  requiredPermission: "public",
-  basePrompt: `Write a short description (1-2 sentences) for this presentation.
+export const deckDescriptionTemplate: Template =
+  createTemplate<DeckDescription>({
+    name: "decks:description",
+    description:
+      "Template for AI to generate descriptions from slide deck content",
+    schema: deckDescriptionSchema,
+    dataSourceId: "shell:ai-content",
+    requiredPermission: "public",
+    basePrompt: `Write a short description (1-2 sentences) for this presentation.
 
 Guidelines:
 1. Capture the core argument or idea, not just the topic
@@ -34,4 +37,4 @@ Guidelines:
 
 Bad: "An exploration of modern web development practices and their implications"
 Good: "Why most web frameworks are solving the wrong problems"`,
-});
+  });

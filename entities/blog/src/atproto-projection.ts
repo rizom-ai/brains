@@ -1,4 +1,4 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
@@ -6,6 +6,7 @@ import type {
   AtprotoBrainPostRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
+  AtprotoProjectionContext,
 } from "@brains/atproto-contracts";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
@@ -35,7 +36,7 @@ function dataUrlToUploadInput(dataUrl: string): {
 }
 
 async function uploadCoverImage(
-  context: ServicePluginContext,
+  context: AtprotoProjectionContext,
   entity: BaseEntity,
   client: BlobUploader | undefined,
   dryRun: boolean,

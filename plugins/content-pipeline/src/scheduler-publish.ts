@@ -1,4 +1,4 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 /**
  * Scheduler publish helpers - extracted from ContentScheduler
  *
@@ -75,6 +75,7 @@ async function executeWithPublishExecutor(
           type: PUBLISH_MESSAGES.FAILED,
           payload: event,
           sender: "publish-service",
+          broadcast: true,
         });
       }
       deps.onFailed?.(event);
@@ -119,6 +120,7 @@ export function sendPublishCompleted(
       type: PUBLISH_MESSAGES.COMPLETED,
       payload: { entityType, entityId, result },
       sender: "publish-service",
+      broadcast: true,
     });
   }
 
@@ -150,6 +152,7 @@ export function sendPublishFailed(
       type: PUBLISH_MESSAGES.FAILED,
       payload: event,
       sender: "publish-service",
+      broadcast: true,
     });
   }
 

@@ -1,5 +1,6 @@
 import {
   redactUploadRefsInStructuredCard,
+  type ResponsePlan,
   type StructuredChatCard,
 } from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
@@ -14,17 +15,29 @@ export function writeTextPart(
   writer.write({ type: "text-end", id });
 }
 
-export function writeStructuredCards(
+/**
+ * Stream the card directives of a response plan. Text is written by the
+ * caller (it needs display stripping); denied artifacts are not exposed
+ * at all — not even their card metadata — matching the discrete-message
+ * interfaces. Approval-requested cards stream from the approvals
+ * directive, which is web-chat's approval UX.
+ */
+export function writePlanCards(
   writer: UIMessageStreamWriter<UIMessage>,
-  cards: StructuredChatCard[],
-  deniedCardIds: ReadonlySet<string> = new Set(),
+  plan: ResponsePlan,
 ): void {
-  for (const rawCard of cards) {
-    // Permission-denied artifacts are not exposed at all — not even their card
-    // metadata — matching the discrete-message interfaces.
-    if (rawCard.kind === "attachment" && deniedCardIds.has(rawCard.id)) {
-      continue;
+  const cards = plan.directives.flatMap((directive): StructuredChatCard[] => {
+    switch (directive.kind) {
+      case "artifact":
+      case "supplemental":
+        return [directive.card];
+      case "approvals":
+        return directive.cards;
+      default:
+        return [];
     }
+  });
+  for (const rawCard of cards) {
     const card = redactUploadRefsInStructuredCard(rawCard);
     if (card.kind === "attachment") {
       writer.write({

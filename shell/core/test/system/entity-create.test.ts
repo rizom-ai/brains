@@ -15,7 +15,8 @@ import type {
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
-import { z, slugify } from "@brains/utils";
+import { z } from "@brains/utils/zod";
+import { slugify } from "@brains/utils/string-utils";
 
 const createEntityRequestSchema = z
   .object({
@@ -129,8 +130,7 @@ function registerLinkCreateInterceptor(services: MockServices): void {
           const adapter = services.entityRegistry.getAdapter("link");
           const parsed = adapter.fromMarkdown(input.content);
           const parsedMetadata = parsed.metadata as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
           const parsedTitle =
             typeof parsedMetadata?.["title"] === "string"
               ? parsedMetadata["title"]
@@ -1475,7 +1475,7 @@ status: draft
 
     expect(result).toHaveProperty("success", false);
     expect((result as { error: string }).error).toContain(
-      "Invalid input: source: Required",
+      "Invalid input: source: Invalid input",
     );
   });
 
@@ -1504,7 +1504,9 @@ status: draft
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
     expect(enqueuedJob.type).toBe("agent:generation");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData["prompt"]).toBe("https://yeehaa.io");
   });
 
@@ -1634,7 +1636,9 @@ A saved research link.`;
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
     expect(enqueuedJob.type).toBe("post:generation");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData["title"]).toBeUndefined();
     expect(rawJobData["content"]).toBeUndefined();
     expect(rawJobData["targetEntityType"]).toBeUndefined();
@@ -1801,7 +1805,9 @@ A saved research link.`;
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
     expect(enqueuedJob.type).toBe("newsletter:generation");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData["sourceEntityType"]).toBe("post");
     expect(rawJobData["sourceEntityId"]).toBe("event-sourcing-sustainability");
     expect(rawJobData["sourceEntityIds"]).toEqual([
@@ -2306,7 +2312,9 @@ A saved research link.`;
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
     expect(enqueuedJob.type).toBe("image:generation");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData["targetEntityType"]).toBe("post");
     expect(rawJobData["targetEntityId"]).toBe("cover-ready-post");
     expect(rawJobData["coverImage"]).toBeUndefined();
@@ -2403,7 +2411,9 @@ A saved research link.`;
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    const rawJobData = z
+      .record(z.string(), z.unknown())
+      .parse(enqueuedJob.data);
     expect(rawJobData).not.toHaveProperty("options");
     const jobData = enqueuedCreateJobSchema.parse(rawJobData);
     expect(jobData.targetEntityType).toBe("post");

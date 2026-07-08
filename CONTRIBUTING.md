@@ -122,7 +122,6 @@ Start here:
 
 For example code:
 
-- `plugins/examples/`
 - `shell/plugins/src/test/`
 
 ## Code conventions
@@ -166,7 +165,6 @@ Useful references:
 - [docs/plugin-system.md](docs/plugin-system.md)
 - [docs/external-plugin-authoring.md](docs/external-plugin-authoring.md)
 - [docs/plugin-quick-reference.md](docs/plugin-quick-reference.md)
-- `plugins/examples/`
 
 ## Response expectations
 

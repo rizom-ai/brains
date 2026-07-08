@@ -1,12 +1,19 @@
 import type { JSX } from "preact";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { OgCard } from "@brains/ui-library";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const DECK_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const DECK_OG_IMAGE_TEMPLATE_NAME = "decks:og-image";
 
-export const deckOgImageTemplateSchema = z.object({
+export const deckOgImageTemplateSchema: z.ZodObject<{
+  title: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  event: z.ZodOptional<z.ZodString>;
+  brandLabel: z.ZodOptional<z.ZodString>;
+  slideCount: z.ZodOptional<z.ZodNumber>;
+  coverImageUrl: z.ZodOptional<z.ZodString>;
+}> = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   event: z.string().optional(),
@@ -15,7 +22,9 @@ export const deckOgImageTemplateSchema = z.object({
   coverImageUrl: z.string().optional(),
 });
 
-export type DeckOgImageTemplateData = z.infer<typeof deckOgImageTemplateSchema>;
+export type DeckOgImageTemplateData = z.output<
+  typeof deckOgImageTemplateSchema
+>;
 
 export const deckOgImageTemplate: MediaPageTemplate = {
   name: DECK_OG_IMAGE_TEMPLATE_NAME,

@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { firstSentence } from "@brains/utils";
+import { firstSentence } from "@brains/utils/string-utils";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
 import { toTopicContentProjection } from "./topic-presenter";
 import type { TopicEntity } from "../schemas/topic";

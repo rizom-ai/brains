@@ -1,5 +1,5 @@
-import type { ProgressCallback } from "@brains/utils";
-import { ProgressReporter } from "@brains/utils";
+import type { ProgressCallback } from "@brains/utils/progress";
+import { ProgressReporter } from "@brains/utils/progress";
 import type {
   BuildResult,
   SiteBuilderOptions,

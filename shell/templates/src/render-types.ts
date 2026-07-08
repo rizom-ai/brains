@@ -1,37 +1,29 @@
-import { z } from "@brains/utils";
-import type { ProgressCallback } from "@brains/utils";
+import type { ProgressCallback } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
-import type { ComponentType, RuntimeScript } from "./types";
+import type { ComponentType, RuntimeScript, TemplateDataSchema } from "./types";
 
 /**
  * Site content entity types
  */
-export const SiteContentEntityTypeSchema = z.enum([
-  "site-content-preview",
-  "site-content-production",
-]);
-export type SiteContentEntityType = z.infer<typeof SiteContentEntityTypeSchema>;
+export type SiteContentEntityType =
+  "site-content-preview" | "site-content-production";
+
+export const SiteContentEntityTypeSchema: z.ZodType<SiteContentEntityType> =
+  z.enum(["site-content-preview", "site-content-production"]);
 
 /**
  * Renderer output formats supported by view templates.
  */
-export const OutputFormatSchema = z.enum(["web", "image", "pdf"]);
-export type OutputFormat = z.infer<typeof OutputFormatSchema>;
+export type OutputFormat = "web" | "image" | "pdf";
 
-/**
- * View template schema
- */
-export const ViewTemplateSchema = z.object({
-  name: z.string(),
-  schema: z.any(), // ZodType can't be validated at runtime
-  description: z.string().optional(),
-  pluginId: z.string(),
-  renderers: z.object({
-    web: z.union([z.function(), z.string()]).optional(),
-    image: z.union([z.function(), z.string()]).optional(),
-    pdf: z.union([z.function(), z.string()]).optional(),
-  }),
-});
+export const OutputFormatSchema: z.ZodType<OutputFormat> = z.enum([
+  "web",
+  "image",
+  "pdf",
+]);
+
+type RendererFunction = (...args: unknown[]) => unknown;
 
 /**
  * Renderer types for different output formats
@@ -42,12 +34,44 @@ export type PdfRenderer<T = unknown> = ComponentType<T> | string;
 export type MediaRenderer<T = unknown> = ImageRenderer<T> | PdfRenderer<T>;
 export type Renderer<T = unknown> = WebRenderer<T> | MediaRenderer<T>;
 
+export interface ViewTemplateSchemaOutput {
+  name: string;
+  schema: unknown;
+  description?: string | undefined;
+  pluginId: string;
+  renderers: {
+    web?: RendererFunction | string | undefined;
+    image?: RendererFunction | string | undefined;
+    pdf?: RendererFunction | string | undefined;
+  };
+}
+
+/**
+ * View template schema
+ */
+const rendererFunctionSchema: z.ZodType<RendererFunction> =
+  z.custom<RendererFunction>((value) => typeof value === "function");
+
+export const ViewTemplateSchema: z.ZodType<ViewTemplateSchemaOutput> = z.object(
+  {
+    name: z.string(),
+    schema: z.any(), // ZodType can't be validated at runtime
+    description: z.string().optional(),
+    pluginId: z.string(),
+    renderers: z.object({
+      web: z.union([rendererFunctionSchema, z.string()]).optional(),
+      image: z.union([rendererFunctionSchema, z.string()]).optional(),
+      pdf: z.union([rendererFunctionSchema, z.string()]).optional(),
+    }),
+  },
+);
+
 /**
  * View template with support for multiple output formats
  */
 export interface ViewTemplate<T = unknown> {
   name: string;
-  schema: z.ZodType<T>;
+  schema: TemplateDataSchema<T>;
   description?: string;
   pluginId: string; // ID of the plugin that registered this template
 
@@ -78,10 +102,41 @@ export interface ViewTemplateRegistry {
   validate(templateName: string, content: unknown): boolean;
 }
 
+export interface SiteBuilderOptionsInput {
+  enableContentGeneration?: boolean | undefined;
+  outputDir: string;
+  workingDir?: string | undefined;
+  environment?: "preview" | "production" | undefined;
+  siteConfig?:
+    | {
+        title: string;
+        description: string;
+        url?: string | undefined;
+      }
+    | undefined;
+}
+
+export interface SiteBuilderOptions {
+  enableContentGeneration: boolean;
+  outputDir: string;
+  workingDir?: string | undefined;
+  environment: "preview" | "production";
+  siteConfig?:
+    | {
+        title: string;
+        description: string;
+        url?: string | undefined;
+      }
+    | undefined;
+}
+
 /**
  * Site builder options
  */
-export const SiteBuilderOptionsSchema = z.object({
+export const SiteBuilderOptionsSchema: z.ZodType<
+  SiteBuilderOptions,
+  SiteBuilderOptionsInput
+> = z.object({
   enableContentGeneration: z.boolean().default(false),
   outputDir: z.string(),
   workingDir: z.string().optional(),
@@ -95,19 +150,22 @@ export const SiteBuilderOptionsSchema = z.object({
     .optional(),
 });
 
-export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema>;
+export interface BuildResult {
+  success: boolean;
+  routesBuilt: number;
+  errors?: string[] | undefined;
+  warnings?: string[] | undefined;
+}
 
 /**
  * Build result schema
  */
-export const BuildResultSchema = z.object({
+export const BuildResultSchema: z.ZodType<BuildResult> = z.object({
   success: z.boolean(),
   routesBuilt: z.number(),
   errors: z.array(z.string()).optional(),
   warnings: z.array(z.string()).optional(),
 });
-
-export type BuildResult = z.infer<typeof BuildResultSchema>;
 
 /**
  * Site builder interface

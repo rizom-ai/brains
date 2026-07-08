@@ -1,22 +1,30 @@
 import type { JSX, ComponentChildren } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const alertVariants = cva("p-4 rounded-lg border", {
-  variants: {
-    variant: {
-      warning: "bg-warning border-warning text-warning",
-      error: "bg-error border-error text-error",
-      success: "bg-success border-success text-success",
-      info: "bg-info border-info text-info",
+export interface AlertVariantProps {
+  variant?: VariantValue<"warning" | "error" | "success" | "info">;
+}
+
+const alertVariants: VariantFunction<AlertVariantProps> = cva(
+  "p-4 rounded-lg border",
+  {
+    variants: {
+      variant: {
+        warning: "bg-warning border-warning text-warning",
+        error: "bg-error border-error text-error",
+        success: "bg-success border-success text-success",
+        info: "bg-info border-info text-info",
+      },
+    },
+    defaultVariants: {
+      variant: "info",
     },
   },
-  defaultVariants: {
-    variant: "info",
-  },
-});
+);
 
-export interface AlertProps extends VariantProps<typeof alertVariants> {
+export interface AlertProps extends AlertVariantProps {
   title?: string;
   children: ComponentChildren;
   className?: string;

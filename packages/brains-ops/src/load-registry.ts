@@ -1,7 +1,10 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 
-import { parseYamlDocument, type ZodType } from "@brains/utils";
+import {
+  parseYamlDocument,
+  type YamlValidationSchema,
+} from "@brains/utils/yaml";
 
 import {
   type CohortConfig,
@@ -256,12 +259,10 @@ async function loadCohortFiles(rootDir: string): Promise<LoadedCohortFile[]> {
   const cohortFiles = await listYamlFiles(cohortDir);
 
   const loaded = await Promise.all(
-    cohortFiles.map(
-      async (filePath): Promise<LoadedCohortFile> => ({
-        id: stripYamlExtension(basename(filePath)),
-        data: await readYamlFile(filePath, cohortSchema),
-      }),
-    ),
+    cohortFiles.map(async (filePath): Promise<LoadedCohortFile> => ({
+      id: stripYamlExtension(basename(filePath)),
+      data: await readYamlFile(filePath, cohortSchema),
+    })),
   );
 
   return loaded.sort((left, right) => left.id.localeCompare(right.id));
@@ -362,7 +363,7 @@ async function listYamlFiles(dirPath: string): Promise<string[]> {
 
 async function readYamlFile<T>(
   filePath: string,
-  schema: ZodType<T>,
+  schema: YamlValidationSchema<T>,
 ): Promise<T> {
   const content = await readFile(filePath, "utf8");
   const result = parseYamlDocument(content, schema);

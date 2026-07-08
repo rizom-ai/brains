@@ -6,7 +6,7 @@ import {
   createSilentLogger,
 } from "@brains/test-utils";
 import { SummaryProjectionHandler } from "../../src/handlers/summary-projection-handler";
-import { summaryConfigSchema } from "../../src/schemas/summary";
+import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
 const conversations: Conversation[] = ["conv-1", "conv-2"].map((id) => ({
   id,

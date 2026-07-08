@@ -1,10 +1,15 @@
-import { z } from "@brains/utils";
-import { createTemplate } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import { createTemplate, type Template } from "@brains/plugins";
 
 /**
  * Schema for AI-generated note
  */
-export const noteGenerationSchema = z.object({
+export interface NoteGeneration {
+  title: string;
+  body: string;
+}
+
+export const noteGenerationSchema: z.ZodType<NoteGeneration> = z.object({
   title: z
     .string()
     .max(80)
@@ -16,12 +21,10 @@ export const noteGenerationSchema = z.object({
     ),
 });
 
-export type NoteGeneration = z.infer<typeof noteGenerationSchema>;
-
 /**
  * Template for AI-powered note generation
  */
-export const noteGenerationTemplate = createTemplate<NoteGeneration>({
+export const noteGenerationTemplate: Template = createTemplate<NoteGeneration>({
   name: "note:generation",
   description: "Template for AI to generate notes from prompts",
   schema: noteGenerationSchema,

@@ -1,26 +1,23 @@
 import {
   MessageInterfacePlugin,
-  buildAgentResponseTextParts,
   buildCoalescedInput,
   buildConfirmationResponseParts,
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
+  buildResponsePlan,
   formatArtifactDisplay,
   getConfirmationResultTitle,
-  getDeliverableArtifactCards,
-  getResponseJobIds,
-  getSupplementalCards,
   formatPendingConfirmationHelp,
   PendingApprovalTracker,
   MessageUploadContinuity,
+  parseConfirmationIntent,
   routeConfirmationResponse,
   type AgentResponse,
   type ChatAttachment,
   type InterfacePluginContext,
   type MessageInterfaceOutput,
-  type PendingConfirmation,
-  type StructuredChatCard,
-  type PermissionLookupContext,
+  type ResponsePlan,
+  type RuntimeUploadStore,
   type ToolActivityEvent,
   type ToolStatusUpdate,
   type UserPermissionLevel,
@@ -39,15 +36,16 @@ import {
   type Message,
   type MessageContext,
   type SentMessage,
-  type Thread,
 } from "chat";
-import { z } from "zod";
-import { createPrefixedId } from "@brains/utils";
+import type { ChatThread } from "./types";
+import { z } from "@brains/utils/zod";
 import {
   chatConfigSchema,
   type ChatConfig,
+  type ChatConfigInput,
   type DiscordChatAdapterConfig,
 } from "./config";
+import { PromptActionStore } from "./prompt-action-store";
 import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
 import {
@@ -74,26 +72,35 @@ import {
   type DiscordThreadSubscriptionStore,
 } from "./subscription-state";
 import { createDiscordChatUploadStoreScope } from "./upload-store";
+import {
+  getChannelName,
+  getPermissionContext,
+  getThreadIdParts,
+  isAllowedChannel,
+  isBotCreatedDiscordThread,
+  shouldHandleDiscordAction,
+  shouldRouteDiscordMessage,
+} from "./discord-routing";
+import { clearDiscordMessageComponents } from "./discord-message-components";
 import packageJson from "../package.json";
 
 const URL_PATTERN = /https?:\/\/\S+/i;
 const ANY_MESSAGE_PATTERN = /[\s\S]+/;
-const DISCORD_API_BASE = "https://discord.com/api/v10";
+/** Cap on retained prompt-action tokens; oldest never-clicked ones evict. */
+const MAX_PROMPT_ACTIONS = 1000;
 
 interface DiscordCardOutput {
   card: CardElement;
   fallbackText?: string;
 }
 
-const chatCardElementSchema = z
-  .object({
-    type: z.literal("card"),
-    children: z.array(z.object({ type: z.string() }).passthrough()),
-    imageUrl: z.string().optional(),
-    subtitle: z.string().optional(),
-    title: z.string().optional(),
-  })
-  .passthrough();
+const chatCardElementSchema = z.looseObject({
+  type: z.literal("card"),
+  children: z.array(z.looseObject({ type: z.string() })),
+  imageUrl: z.string().optional(),
+  subtitle: z.string().optional(),
+  title: z.string().optional(),
+});
 
 const discordCardOutputSchema = z.object({
   card: z.custom<CardElement>(
@@ -102,64 +109,74 @@ const discordCardOutputSchema = z.object({
   fallbackText: z.string().optional(),
 });
 
-export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
+export class ChatInterface extends MessageInterfacePlugin<
+  ChatConfig,
+  ChatConfigInput
+> {
   declare protected config: ChatConfig;
 
   private readonly threadRegistry = new ThreadRegistry();
   private readonly pendingApprovals: PendingApprovalTracker;
   private readonly uploadContinuity: MessageUploadContinuity;
-  private readonly promptActions = new Map<
-    string,
-    { threadId: string; label: string; prompt: string }
-  >();
+  private readonly promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
   private readonly toolStatusMessenger = new ToolStatusMessenger(
     this.threadRegistry,
   );
   private readonly cardBuilder = new ChatCardBuilder({
-    getDisplayBaseUrl: () => this.getPreferredDisplayBaseUrl(),
-    registerPromptAction: (threadId, action) =>
+    getDisplayBaseUrl: (): string | undefined =>
+      this.getPreferredDisplayBaseUrl(),
+    registerPromptAction: (threadId, action): string =>
       this.registerPromptAction(threadId, action),
   });
   private readonly artifactDelivery = new ArtifactDeliveryResolver({
-    getContext: () => this.context,
-    getDisplayBaseUrl: () => this.getPreferredDisplayBaseUrl(),
+    getContext: (): InterfacePluginContext | undefined => this.context,
+    getDisplayBaseUrl: (): string | undefined =>
+      this.getPreferredDisplayBaseUrl(),
     logger: this.logger,
   });
   private readonly approvalCards = new ApprovalCardTracker({
     cardBuilder: this.cardBuilder,
-    clearMessageComponents: (threadId, messageId) =>
-      this.clearDiscordMessageComponents(threadId, messageId),
+    clearMessageComponents: async (threadId, messageId): Promise<void> => {
+      const botToken = this.config.adapters.discord?.botToken;
+      if (!botToken) return;
+      await clearDiscordMessageComponents({
+        threadId,
+        messageId,
+        botToken,
+        logger: this.logger,
+      });
+    },
   });
   private readonly subscriptionRouter = new SubscriptionRouter({
-    getSubscriptions: () => this.discordSubscriptions,
-    getPlatform: (thread) => this.getPlatform(thread),
-    isBotCreatedThread: (thread, message) =>
-      this.isBotCreatedDiscordThread(thread, message),
+    getSubscriptions: (): DiscordThreadSubscriptionStore | undefined =>
+      this.discordSubscriptions,
+    getPlatform: (thread): string => this.getPlatform(thread),
+    isBotCreatedThread: isBotCreatedDiscordThread,
     logger: this.logger,
   });
   private readonly chatInputBuilder = new ChatInputBuilder({
-    getUploadStore: () =>
+    getUploadStore: (): RuntimeUploadStore | undefined =>
       this.context?.uploads.scoped(createDiscordChatUploadStoreScope()),
-    getThreadIdParts: (threadId) => this.getThreadIdParts(threadId),
+    getThreadIdParts,
     logger: this.logger,
   });
   private readonly gatewayLoop: DiscordGatewayLoop;
   private readonly discordApp: DiscordChatApp;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
 
-  constructor(config: Partial<ChatConfig> = {}) {
+  constructor(config: ChatConfigInput = {}) {
     super("chat", packageJson, config, chatConfigSchema);
     this.gatewayLoop = new DiscordGatewayLoop({
-      getApp: () => this.discordApp.instance,
+      getApp: (): ChatSdkApp | undefined => this.discordApp.instance,
       gatewayRunMs: this.config.gatewayRunMs,
       gatewayRestartDelayMs: this.config.gatewayRestartDelayMs,
       logger: this.logger,
     });
     this.discordApp = new DiscordChatApp({
       discord: this.config.adapters.discord,
-      getUploadStore: () =>
+      getUploadStore: (): RuntimeUploadStore | undefined =>
         this.context?.uploads.scoped(createDiscordChatUploadStoreScope()),
-      buildApp: (runtimeState) =>
+      buildApp: (runtimeState): ChatSdkApp =>
         createDiscordChatSdkApp({
           userName: this.config.userName,
           discord: this.config.adapters.discord,
@@ -421,7 +438,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       const platformConfig = this.getPlatformConfig(thread);
       if (
         platformConfig &&
-        this.shouldRouteDiscordMessage(thread, message, platformConfig) &&
+        shouldRouteDiscordMessage(thread, message, platformConfig) &&
         !thread.isDM &&
         platformConfig.useThreads
       ) {
@@ -474,8 +491,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const platform = event.adapter.name;
     if (!this.isEnabledPlatform(platform)) return;
 
-    const thread = event.thread as Thread;
-    if (!this.shouldHandleDiscordAction(thread, platform)) return;
+    const thread = event.thread;
+    if (
+      !shouldHandleDiscordAction(thread, platform, this.config.adapters.discord)
+    )
+      return;
 
     const action = this.promptActions.get(event.value);
     if (action?.threadId !== thread.id) {
@@ -487,8 +507,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       );
       return;
     }
+    this.promptActions.consume(event.value);
 
-    const ids = this.getThreadIdParts(thread.id);
+    const ids = getThreadIdParts(thread.id);
     const userPermissionLevel = this.context.permissions.getUserLevel(
       platform,
       event.user.userId,
@@ -513,7 +534,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
             userPermissionLevel,
             interfaceType: platform,
             channelId,
-            channelName: thread.isDM ? "DM" : thread.channelId,
+            channelName: getChannelName(thread),
             ...this.buildActionEventMetadata(platform, thread, event),
           },
         );
@@ -542,10 +563,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    const thread = event.thread as Thread;
-    if (!this.shouldHandleDiscordAction(thread, platform)) return;
+    const thread = event.thread;
+    if (
+      !shouldHandleDiscordAction(thread, platform, this.config.adapters.discord)
+    )
+      return;
 
-    const ids = this.getThreadIdParts(thread.id);
+    const ids = getThreadIdParts(thread.id);
     const userPermissionLevel = this.context.permissions.getUserLevel(
       platform,
       event.user.userId,
@@ -565,31 +589,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     });
   }
 
-  private shouldHandleDiscordAction(thread: Thread, platform: string): boolean {
-    if (platform !== "discord") return true;
-    const platformConfig = this.config.adapters.discord;
-    if (!platformConfig) return false;
-    if (thread.isDM && !platformConfig.allowDMs) return false;
-    return this.isAllowedChannel(thread, platformConfig);
-  }
-
-  private isBotCreatedDiscordThread(thread: Thread, message: Message): boolean {
-    if (thread.isDM) return false;
-    const ids = this.getThreadIdParts(thread.id);
-    if (!ids.threadId) return false;
-    const rawChannelId = this.getRawDiscordChannelId(message);
-    return rawChannelId !== undefined && rawChannelId !== ids.threadId;
-  }
-
-  private getRawDiscordChannelId(message: Message): string | undefined {
-    const raw = message.raw;
-    if (typeof raw !== "object" || raw === null) return undefined;
-    const value = (raw as Record<string, unknown>)["channel_id"];
-    return typeof value === "string" ? value : undefined;
-  }
-
   private async handleRoutedMessage(
-    thread: Thread,
+    thread: ChatThread,
     message: Message,
     context?: MessageContext,
   ): Promise<void> {
@@ -599,22 +600,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     const platformConfig = this.getPlatformConfig(thread);
     if (!platformConfig) return;
-    if (!this.shouldRouteDiscordMessage(thread, message, platformConfig))
-      return;
+    if (!shouldRouteDiscordMessage(thread, message, platformConfig)) return;
 
     await this.routeToAgent(platform, thread, message, context);
-  }
-
-  private shouldRouteDiscordMessage(
-    thread: Thread,
-    message: Message,
-    platformConfig: DiscordChatAdapterConfig,
-  ): boolean {
-    if (thread.isDM && !platformConfig.allowDMs) return false;
-    if (message.author.isMe) return false;
-    if (message.author.isBot && !message.isMention) return false;
-    if (!this.isAllowedChannel(thread, platformConfig)) return false;
-    return true;
   }
 
   /**
@@ -625,7 +613,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
    * it is driven by a button press, not user input processing.
    */
   private async runAgentTurn(input: {
-    thread: Thread;
+    thread: ChatThread;
     channelId: string;
     logLabel: string;
     body: () => Promise<void>;
@@ -650,7 +638,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private async postTurnError(
-    thread: Thread,
+    thread: ChatThread,
     channelId: string,
     error: unknown,
   ): Promise<void> {
@@ -668,7 +656,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private async routeToAgent(
     platform: string,
-    thread: Thread,
+    thread: ChatThread,
     message: Message,
     context?: MessageContext,
   ): Promise<void> {
@@ -677,7 +665,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.threadRegistry.set(thread);
     const conversationId = this.getConversationId(platform, thread.id);
     const channelId = thread.id;
-    const permissionContext = this.getPermissionContext(thread, message);
+    const permissionContext = getPermissionContext(thread, message);
     const userPermissionLevel = this.context.permissions.getUserLevel(
       platform,
       message.author.userId,
@@ -709,7 +697,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         const pendingApprovalIds =
           await this.getPendingApprovalIds(conversationId);
         if (pendingApprovalIds.size > 0) {
-          await this.handleConfirmationResponse(
+          const handledConfirmation = await this.handleConfirmationResponse(
             agentInput.message,
             conversationId,
             thread,
@@ -717,7 +705,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
             userPermissionLevel,
             this.buildUserMessageMetadata(platform, thread, message),
           );
-          return;
+          if (handledConfirmation) return;
         }
 
         const coalescedInput = this.buildCoalescedAgentInput(
@@ -731,7 +719,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
             userPermissionLevel,
             interfaceType: platform,
             channelId,
-            channelName: this.getChannelName(thread),
+            channelName: getChannelName(thread),
             ...this.buildUserMessageMetadata(
               platform,
               thread,
@@ -766,7 +754,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
    * tracking; routing it here fixes that.)
    */
   private async renderAgentResponse(input: {
-    thread: Thread;
+    thread: ChatThread;
     channelId: string;
     conversationId: string;
     response: AgentResponse;
@@ -793,6 +781,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       input.response.cards,
       input.userPermissionLevel,
     );
+    const plan = buildResponsePlan(input.response, {
+      deniedCardIds: artifactDelivery.deniedCardIds,
+    });
     if (input.confirmation) {
       await this.approvalCards.resolve(
         input.conversationId,
@@ -807,37 +798,27 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           this.getRemainingApprovalHelp(input.conversationId, input.response),
           artifactDelivery.deniedCardIds,
         )
-      : this.formatAgentResponseText(
-          input.response.text,
-          input.response.cards,
-          input.response.pendingConfirmations,
-          artifactDelivery.deniedCardIds,
-        );
+      : this.formatAgentResponseText(plan, artifactDelivery.deniedCardIds);
     const messageId = await this.sendAgentResponseWithFiles({
       thread: input.thread,
       channelId: input.channelId,
       message,
       files: artifactDelivery.files,
     });
-    const artifactMessageId = await this.sendArtifactCards(
-      input.thread,
-      input.response.cards,
-      artifactDelivery.deniedCardIds,
-    );
-    await this.sendSupplementalCards(
-      input.thread,
-      input.response.cards,
-      input.response.pendingConfirmations,
+    const artifactMessageId = await this.sendArtifactCards(input.thread, plan);
+    await this.sendSupplementalCards(input.thread, plan);
+    const approvals = plan.directives.find(
+      (directive) => directive.kind === "approvals",
     );
     await this.approvalCards.trackPendingConfirmations(
       input.thread,
       input.conversationId,
-      input.response.pendingConfirmations,
+      approvals?.confirmations,
     );
 
     const progressMessageId = artifactMessageId ?? messageId;
     if (progressMessageId) {
-      for (const jobId of getResponseJobIds(input.response)) {
+      for (const jobId of plan.jobIds) {
         this.trackAgentResponseForJob(
           jobId,
           progressMessageId,
@@ -863,23 +844,25 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private async handleConfirmationResponse(
     message: string,
     conversationId: string,
-    thread: Thread,
+    thread: ChatThread,
     approvalIds: Set<string>,
     userPermissionLevel: UserPermissionLevel,
     metadata?: Record<string, unknown>,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    if (!parseConfirmationIntent(message, approvalIds)) return false;
+
     const routed = routeConfirmationResponse({ message, approvalIds });
     if (routed.kind === "not-confirmation") {
       this.pendingApprovals.deleteConversation(conversationId);
       await thread.post(
         this.formatNoticePayload("No pending approval to resolve."),
       );
-      return;
+      return true;
     }
 
     if (routed.kind === "notice") {
       await thread.post(this.formatNoticePayload(routed.message));
-      return;
+      return true;
     }
 
     await this.confirmApproval({
@@ -890,10 +873,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       userPermissionLevel,
       ...(metadata ? { metadata } : {}),
     });
+    return true;
   }
 
   private async confirmApproval(input: {
-    thread: Thread;
+    thread: ChatThread;
     conversationId: string;
     approvalId: string;
     confirmed: boolean;
@@ -908,7 +892,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         userPermissionLevel: input.userPermissionLevel,
         interfaceType: "discord",
         channelId: input.thread.id,
-        channelName: input.thread.isDM ? "DM" : input.thread.channelId,
+        channelName: getChannelName(input.thread),
         ...input.metadata,
       },
     );
@@ -955,19 +939,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private formatAgentResponseText(
-    text: string,
-    cards: StructuredChatCard[] | undefined,
-    pendingConfirmations?: PendingConfirmation[],
+    plan: ResponsePlan,
     deniedCardIds?: Set<string>,
   ): string {
-    return buildAgentResponseTextParts({
-      text,
-      cards,
-      pendingConfirmations,
-      deniedCardIds,
-      formatCard: (card): string =>
-        this.cardBuilder.formatStructuredCard(card, deniedCardIds),
-    }).join("\n\n");
+    return plan.directives
+      .flatMap((directive): string[] => {
+        if (directive.kind === "text") return [directive.text];
+        if (directive.kind === "denied-artifact") {
+          return [
+            this.cardBuilder.formatStructuredCard(
+              directive.card,
+              deniedCardIds,
+            ),
+          ];
+        }
+        return [];
+      })
+      .filter((part) => part.trim().length > 0)
+      .join("\n\n");
   }
 
   private formatConfirmationResponsePayload(
@@ -997,7 +986,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private async sendAgentResponseWithFiles(input: {
-    thread: Thread;
+    thread: ChatThread;
     channelId: string;
     message: MessageInterfaceOutput;
     files: FileUpload[];
@@ -1051,13 +1040,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private async sendArtifactCards(
-    thread: Thread,
-    cards: StructuredChatCard[] | undefined,
-    deniedCardIds?: Set<string>,
+    thread: ChatThread,
+    plan: ResponsePlan,
   ): Promise<string | undefined> {
     let lastMessageId: string | undefined;
-    for (const card of getDeliverableArtifactCards(cards, deniedCardIds)) {
-      const display = formatArtifactDisplay(card);
+    for (const directive of plan.directives) {
+      if (directive.kind !== "artifact") continue;
+      const display = formatArtifactDisplay(directive.card);
       if (!display) continue;
       const sent = await thread.post({
         card: this.cardBuilder.buildArtifactCard(display),
@@ -1070,16 +1059,19 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private async sendSupplementalCards(
-    thread: Thread,
-    cards: StructuredChatCard[] | undefined,
-    pendingConfirmations?: PendingConfirmation[],
+    thread: ChatThread,
+    plan: ResponsePlan,
   ): Promise<void> {
-    for (const card of getSupplementalCards(cards, pendingConfirmations)) {
-      const built = this.cardBuilder.buildSupplementalCard(thread.id, card);
+    for (const directive of plan.directives) {
+      if (directive.kind !== "supplemental") continue;
+      const built = this.cardBuilder.buildSupplementalCard(
+        thread.id,
+        directive.card,
+      );
       if (!built) continue;
       const sent = await thread.post({
         card: built,
-        fallbackText: this.cardBuilder.formatStructuredCard(card),
+        fallbackText: this.cardBuilder.formatStructuredCard(directive.card),
       });
       this.threadRegistry.trackMessage(thread.id, sent);
     }
@@ -1089,44 +1081,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     threadId: string,
     action: { label: string; prompt: string },
   ): string {
-    const token = createPrefixedId("action");
-    this.promptActions.set(token, { threadId, ...action });
-    return token;
-  }
-
-  private async clearDiscordMessageComponents(
-    threadId: string,
-    messageId: string,
-  ): Promise<void> {
-    const ids = this.getThreadIdParts(threadId);
-    const channelId = ids.threadId ?? ids.channelId;
-    if (!channelId || !this.config.adapters.discord) return;
-    try {
-      const response = await fetch(
-        `${DISCORD_API_BASE}/channels/${channelId}/messages/${messageId}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bot ${this.config.adapters.discord.botToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ components: [] }),
-        },
-      );
-      if (!response.ok) {
-        this.logger.debug("Failed to clear Discord message components", {
-          messageId,
-          channelId,
-          status: response.status,
-        });
-      }
-    } catch (error) {
-      this.logger.debug("Failed to clear Discord message components", {
-        error,
-        messageId,
-        channelId,
-      });
-    }
+    return this.promptActions.register(threadId, action);
   }
 
   private getPreferredDisplayBaseUrl(): string | undefined {
@@ -1156,7 +1111,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private async handlePassiveUrlCapture(
-    thread: Thread,
+    thread: ChatThread,
     message: Message,
   ): Promise<void> {
     const platform = this.getPlatform(thread);
@@ -1164,7 +1119,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const platformConfig = this.getPlatformConfig(thread);
     if (!platformConfig?.captureUrls) return;
     if (!platformConfig.requireMention) return;
-    if (!this.isAllowedChannel(thread, platformConfig)) return;
+    if (!isAllowedChannel(thread, platformConfig)) return;
     if (message.author.isMe) return;
     if (message.author.isBot) return;
     if (message.isMention) return;
@@ -1176,7 +1131,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (urls.length === 0) return;
 
     this.threadRegistry.set(thread);
-    const permissionContext = this.getPermissionContext(thread, message);
+    const permissionContext = getPermissionContext(thread, message);
     for (const url of urls) {
       await this.captureUrlViaAgent(
         url,
@@ -1191,7 +1146,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private async postUploadNotices(
-    thread: Thread,
+    thread: ChatThread,
     notices: string[],
   ): Promise<void> {
     const uniqueNotices = [...new Set(notices)];
@@ -1223,12 +1178,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.uploadContinuity.remember(conversationId, attachments);
   }
 
-  private getPlatform(thread: Thread): string {
+  private getPlatform(thread: ChatThread): string {
     return thread.adapter.name;
   }
 
   private getPlatformConfig(
-    thread: Thread,
+    thread: ChatThread,
   ): DiscordChatAdapterConfig | undefined {
     const platform = this.getPlatform(thread);
     if (platform === "discord") return this.config.adapters.discord;
@@ -1237,32 +1192,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private getConversationId(platform: string, threadId: string): string {
     return `${platform}-${threadId}`;
-  }
-
-  private isAllowedChannel(
-    thread: Thread,
-    config: DiscordChatAdapterConfig,
-  ): boolean {
-    if (config.allowedChannels.length === 0 || thread.isDM) return true;
-    const ids = this.getThreadIdParts(thread.id);
-    return [thread.id, thread.channelId, ids.channelId, ids.threadId].some(
-      (id) => typeof id === "string" && config.allowedChannels.includes(id),
-    );
-  }
-
-  private getPermissionContext(
-    thread: Thread,
-    message: Message,
-  ): PermissionLookupContext {
-    const ids = this.getThreadIdParts(thread.id);
-    return {
-      channelId: ids.channelId ?? thread.channelId,
-      isBot: Boolean(message.author.isBot),
-    };
-  }
-
-  private getChannelName(thread: Thread): string {
-    return thread.isDM ? "DM" : thread.channelId;
   }
 
   private buildCoalescedAgentInput(
@@ -1285,7 +1214,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private buildUserMessageMetadata(
     platform: string,
-    thread: Thread,
+    thread: ChatThread,
     message: Message,
     metadata?: Record<string, unknown>,
   ): Record<string, unknown> {
@@ -1298,7 +1227,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       }),
       source: this.buildSourceMetadata(thread, {
         messageId: message.id,
-        channelName: this.getChannelName(thread),
+        channelName: getChannelName(thread),
         ...(metadata ? { metadata } : {}),
       }),
     };
@@ -1306,7 +1235,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private buildActionEventMetadata(
     platform: string,
-    thread: Thread,
+    thread: ChatThread,
     event: ActionEvent,
   ): Record<string, unknown> {
     return {
@@ -1318,7 +1247,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       }),
       source: this.buildSourceMetadata(thread, {
         messageId: event.messageId,
-        channelName: this.getChannelName(thread),
+        channelName: getChannelName(thread),
         metadata: {
           actionId: event.actionId,
           ...(event.value ? { actionValue: event.value } : {}),
@@ -1346,14 +1275,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private buildSourceMetadata(
-    thread: Thread,
+    thread: ChatThread,
     input: {
       messageId: string;
       channelName: string;
       metadata?: Record<string, unknown>;
     },
   ): Record<string, unknown> {
-    const ids = this.getThreadIdParts(thread.id);
+    const ids = getThreadIdParts(thread.id);
     return buildMessageSourceMetadata({
       messageId: input.messageId,
       channelId: thread.id,
@@ -1364,19 +1293,5 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         ...(ids.guildId ? { guildId: ids.guildId } : {}),
       },
     });
-  }
-
-  private getThreadIdParts(threadId: string): {
-    guildId?: string;
-    channelId?: string;
-    threadId?: string;
-  } {
-    const parts = threadId.split(":");
-    if (parts[0] !== "discord") return {};
-    return {
-      ...(parts[1] ? { guildId: parts[1] } : {}),
-      ...(parts[2] ? { channelId: parts[2] } : {}),
-      ...(parts[3] ? { threadId: parts[3] } : {}),
-    };
   }
 }

@@ -1,10 +1,10 @@
-import { describe, expect, it, beforeEach, mock } from "bun:test";
+import { describe, expect, it, beforeEach, mock, type Mock } from "bun:test";
 import { compileFilter } from "@/filter-matcher";
 import { MessageBus } from "@/messageBus";
 
 import { createSilentLogger } from "@brains/test-utils";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 
 describe("MessageBus", () => {
   let messageBus: MessageBus;
@@ -733,6 +733,35 @@ describe("MessageBus", () => {
       expect(handler1).toHaveBeenCalledTimes(1);
       expect(handler2).toHaveBeenCalledTimes(1);
       expect(handler3).toHaveBeenCalledTimes(1);
+    });
+
+    it("should invoke broadcast handlers concurrently", async () => {
+      let inFlight = 0;
+      let maxInFlight = 0;
+      const makeSlowHandler = (): Mock<
+        () => Promise<{ readonly noop: true }>
+      > =>
+        mock(async () => {
+          inFlight++;
+          maxInFlight = Math.max(maxInFlight, inFlight);
+          await new Promise((r) => setTimeout(r, 20));
+          inFlight--;
+          return { noop: true } as const;
+        });
+
+      messageBus.subscribe("test.broadcast", makeSlowHandler());
+      messageBus.subscribe("test.broadcast", makeSlowHandler());
+      messageBus.subscribe("test.broadcast", makeSlowHandler());
+
+      await messageBus.send({
+        type: "test.broadcast",
+        payload: { content: "broadcast message" },
+        sender: "sender",
+        broadcast: true,
+      });
+
+      // One slow subscriber must not serialize delivery to the others
+      expect(maxInFlight).toBe(3);
     });
 
     it("should stop at first success for non-broadcast messages", async () => {

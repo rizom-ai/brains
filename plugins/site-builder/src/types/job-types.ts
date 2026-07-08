@@ -1,21 +1,26 @@
-import { z } from "@brains/utils";
-import { siteMetadataSchema } from "@brains/site-composition";
+import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
+import type { SiteMetadata } from "@brains/site-composition";
+import { z } from "@brains/utils/zod";
 
 /**
  * Schema for site build job data
  */
-export const siteBuildJobSchema = z.object({
-  environment: z.enum(["preview", "production"]).optional(),
-  outputDir: z.string(),
-  workingDir: z.string().optional(),
-  enableContentGeneration: z.boolean().optional(),
-  siteConfig: siteMetadataSchema.optional(),
-});
+export interface SiteBuildJobData {
+  environment?: "preview" | "production" | undefined;
+  outputDir: string;
+  workingDir?: string | undefined;
+  enableContentGeneration?: boolean | undefined;
+  siteConfig?: SiteMetadata | undefined;
+}
 
-/**
- * Site build job data type
- */
-export type SiteBuildJobData = z.infer<typeof siteBuildJobSchema>;
+export const siteBuildJobSchema: z.ZodType<SiteBuildJobData, SiteBuildJobData> =
+  z.object({
+    environment: z.enum(["preview", "production"]).optional(),
+    outputDir: z.string(),
+    workingDir: z.string().optional(),
+    enableContentGeneration: z.boolean().optional(),
+    siteConfig: siteBuilderSiteMetadataSchema.optional(),
+  });
 
 /**
  * Site build job result type

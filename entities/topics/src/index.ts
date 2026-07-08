@@ -10,9 +10,11 @@ import {
   isVisibleWithinScope,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import { z } from "@brains/utils/zod";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
+  type TopicsPluginConfigInput,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
 import { topicExtractionTemplate } from "./templates/extraction-template";
@@ -43,21 +45,29 @@ import {
 import { createTopicAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-const topicAdapter = new TopicAdapter();
+interface SourceMetadata {
+  status?: unknown;
+}
+
+const topicAdapter: TopicAdapter = new TopicAdapter();
+const sourceMetadataSchema: z.ZodType<SourceMetadata, unknown> = z.looseObject({
+  status: z.unknown().optional(),
+});
 
 export class TopicsPlugin extends EntityPlugin<
   TopicEntity,
-  TopicsPluginConfig
+  TopicsPluginConfig,
+  TopicsPluginConfigInput
 > {
-  readonly entityType = TOPIC_ENTITY_TYPE;
-  readonly schema = topicEntitySchema;
-  readonly adapter = topicAdapter;
+  readonly entityType: typeof TOPIC_ENTITY_TYPE = TOPIC_ENTITY_TYPE;
+  readonly schema: typeof topicEntitySchema = topicEntitySchema;
+  readonly adapter: TopicAdapter = topicAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   declare protected config: TopicsPluginConfig;
   private readonly sourceBatch = new TopicSourceBatchBuffer();
 
-  constructor(config: Partial<TopicsPluginConfig> = {}) {
+  constructor(config: TopicsPluginConfigInput = {}) {
     super(TOPICS_PLUGIN_ID, packageJson, config, topicsPluginConfigSchema);
   }
 
@@ -208,8 +218,8 @@ export class TopicsPlugin extends EntityPlugin<
   }
 
   public isEntityPublished(entity: BaseEntity): boolean {
-    const metadata = entity.metadata as Record<string, unknown>;
-    const status = metadata["status"];
+    const parsed = sourceMetadataSchema.safeParse(entity.metadata);
+    const status = parsed.success ? parsed.data.status : undefined;
     if (status === undefined || status === null) return true;
     if (typeof status !== "string") return false;
     return this.config.extractableStatuses.includes(status);
@@ -243,12 +253,15 @@ export class TopicsPlugin extends EntityPlugin<
 export default TopicsPlugin;
 
 export function topicsPlugin(
-  config?: Partial<TopicsPluginConfig>,
+  config: TopicsPluginConfigInput = {},
 ): TopicsPlugin {
   return new TopicsPlugin(config);
 }
 
-export type { TopicsPluginConfig } from "./schemas/config";
+export type {
+  TopicsPluginConfig,
+  TopicsPluginConfigInput,
+} from "./schemas/config";
 export type { TopicEntity } from "./types";
 export {
   buildTopicAtprotoRecord,

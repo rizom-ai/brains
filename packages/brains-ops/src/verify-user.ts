@@ -1,5 +1,5 @@
 import type { FetchLike } from "@brains/deploy-support/origin-ca";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 import { loadPilotRegistry, type ResolvedUser } from "./load-registry";
 
@@ -22,15 +22,15 @@ export interface VerifyPilotUserResult {
   failedChecks: FailedCheck[];
 }
 
-const healthResponseSchema = z.object({
+const healthResponseSchema = z.looseObject({
   status: z.string().optional(),
   daemons: z
     .array(
-      z.object({
+      z.looseObject({
         name: z.string().optional(),
         status: z.string().optional(),
         health: z
-          .object({
+          .looseObject({
             status: z.string().optional(),
             message: z.string().optional(),
           })

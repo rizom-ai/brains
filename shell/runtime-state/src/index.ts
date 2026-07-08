@@ -7,4 +7,5 @@ export type {
   RuntimeStateRecordValue,
   RuntimeStateScopeOptions,
   RuntimeStateServiceConfig,
+  RuntimeStateValueSchema,
 } from "./types";

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Publish status states
@@ -7,20 +7,31 @@ import { z } from "@brains/utils";
  * - published: Successfully published
  * - failed: Publish error after max retries
  */
-export const publishStatusSchema = z.enum([
-  "draft",
-  "queued",
-  "published",
-  "failed",
-]);
+export type PublishStatus = "draft" | "queued" | "published" | "failed";
 
-export type PublishStatus = z.infer<typeof publishStatusSchema>;
+export const publishStatusSchema: z.ZodType<PublishStatus, PublishStatus> =
+  z.enum(["draft", "queued", "published", "failed"]);
 
 /**
  * Publishable metadata fields that plugins should include in their entity metadata.
  * These fields enable queue management and retry tracking.
  */
-export const publishableMetadataSchema = z.object({
+export interface PublishableMetadata extends Record<string, unknown> {
+  status: PublishStatus;
+  queueOrder?: number | undefined;
+  publishedAt?: string | undefined;
+}
+
+export interface PublishableMetadataInput extends Record<string, unknown> {
+  status?: PublishStatus | undefined;
+  queueOrder?: number | undefined;
+  publishedAt?: string | undefined;
+}
+
+export const publishableMetadataSchema: z.ZodType<
+  PublishableMetadata,
+  PublishableMetadataInput
+> = z.object({
   status: publishStatusSchema.default("draft"),
   queueOrder: z
     .number()
@@ -28,5 +39,3 @@ export const publishableMetadataSchema = z.object({
     .describe("Position in publish queue (lower = sooner)"),
   publishedAt: z.string().datetime().optional(),
 });
-
-export type PublishableMetadata = z.infer<typeof publishableMetadataSchema>;

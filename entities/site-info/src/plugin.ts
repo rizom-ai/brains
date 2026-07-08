@@ -4,7 +4,7 @@ import type {
   EntityTypeConfig,
   DataSource,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import {
   SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
@@ -19,7 +19,8 @@ import { SiteInfoService } from "./services/site-info-service";
 import { SiteInfoDataSource } from "./datasources/site-info-datasource";
 import packageJson from "../package.json";
 
-const siteInfoAdapter = new SiteInfoAdapter();
+const siteInfoAdapter: SiteInfoAdapter = new SiteInfoAdapter();
+const siteInfoEntityType = "site-info";
 
 /**
  * Site-info EntityPlugin — manages the site's metadata (title, description, CTA, etc.).
@@ -27,15 +28,19 @@ const siteInfoAdapter = new SiteInfoAdapter();
  * Singleton entity (id: "site-info"). Created with defaults on first boot.
  * Zero tools — edited via system_update or CMS.
  */
-export class SiteInfoPlugin extends EntityPlugin<SiteInfoEntity> {
-  readonly entityType = "site-info";
-  readonly schema = siteInfoSchema;
-  readonly adapter = siteInfoAdapter;
+export class SiteInfoPlugin extends EntityPlugin<
+  SiteInfoEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  readonly entityType: typeof siteInfoEntityType = siteInfoEntityType;
+  readonly schema: typeof siteInfoSchema = siteInfoSchema;
+  readonly adapter: SiteInfoAdapter = siteInfoAdapter;
 
   private defaultSiteInfo: Partial<SiteInfoBody>;
 
   constructor(config?: { siteInfo?: Partial<SiteInfoBody> }) {
-    super("site-info", packageJson);
+    super("site-info", packageJson, {}, emptyEntityPluginConfigSchema);
     this.defaultSiteInfo = config?.siteInfo ?? {};
   }
 

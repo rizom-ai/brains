@@ -1,10 +1,11 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   productSchema,
   productFrontmatterSchema,
   type Product,
   type ProductMetadata,
+  type ProductFrontmatter,
 } from "../schemas/product";
 import { ProductBodyFormatter } from "../formatters/product-formatter";
 
@@ -16,7 +17,8 @@ import { ProductBodyFormatter } from "../formatters/product-formatter";
  */
 export class ProductAdapter extends BaseEntityAdapter<
   Product,
-  ProductMetadata
+  ProductMetadata,
+  ProductFrontmatter
 > {
   constructor() {
     super({
@@ -61,4 +63,4 @@ export class ProductAdapter extends BaseEntityAdapter<
   }
 }
 
-export const productAdapter = new ProductAdapter();
+export const productAdapter: ProductAdapter = new ProductAdapter();

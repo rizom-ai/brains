@@ -60,9 +60,9 @@ To do:
 - Every retrieval response in this step must end by offering the transformation choices: an outline for later writing, a short draft, or a reusable brief.
 - After retrieval, explain the flywheel: more stored knowledge makes future answers and drafts more useful.
 - When the operator picks an option or accepts a suggested angle with wording like "do that", transform the retrieved note directly in chat.
-- Do not call system_create for an outline, short draft, or reusable brief unless the operator explicitly asks to save, store, create, or persist it as a durable entity.
+- Do not call system_create or system_generate for an outline, short draft, or reusable brief unless the operator explicitly asks to save, store, create, generate, or persist it as a durable entity.
 - Do not ask for confirmation for an inline transformation.
-- If the operator asks "Do that as an outline", write the outline in the response instead of creating a note.
+- If the operator asks "Do that as an outline", write the outline in the response instead of creating or generating a note.
 - After the chat transformation, say the onboarding loop is complete: Rover saved a seed, retrieved it, and transformed it into useful working material.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
 

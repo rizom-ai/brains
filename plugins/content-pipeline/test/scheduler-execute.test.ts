@@ -9,6 +9,8 @@ import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { IMessageBus } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 
+type SchedulerConfigOverrides = Partial<SchedulerConfig>;
+
 // Mock message bus
 function createMockMessageBus(): IMessageBus & {
   _sentMessages: Array<{ type: string; payload: unknown }>;
@@ -35,7 +37,7 @@ describe("ContentScheduler - provider execution", () => {
   let retryTracker: RetryTracker;
   let messageBus: ReturnType<typeof createMockMessageBus>;
 
-  function baseConfig(overrides?: Partial<SchedulerConfig>): SchedulerConfig {
+  function baseConfig(overrides?: SchedulerConfigOverrides): SchedulerConfig {
     return {
       queueManager,
       providerRegistry,
@@ -147,6 +149,7 @@ describe("ContentScheduler - provider execution", () => {
           result: { id: "platform-123", url: "https://example.com/post/123" },
         }),
         sender: "publish-service",
+        broadcast: true,
       });
     });
 
@@ -175,6 +178,7 @@ describe("ContentScheduler - provider execution", () => {
           error: "Network error",
         }),
         sender: "publish-service",
+        broadcast: true,
       });
     });
 

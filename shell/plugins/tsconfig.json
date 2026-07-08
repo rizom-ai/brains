@@ -4,12 +4,8 @@
     "rootDir": ".",
     "outDir": "dist",
     "baseUrl": ".",
-    "types": [
-      "bun-types"
-    ]
+    "isolatedDeclarations": true,
+    "types": ["bun-types"]
   },
-  "include": [
-    "src/**/*",
-    "test/**/*"
-  ]
+  "include": ["src/**/*", "test/**/*", "test.ts"]
 }

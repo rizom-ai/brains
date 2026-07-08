@@ -25,6 +25,37 @@ describe("TaskManager", () => {
       const record = tm.createTask("Hello");
       expect(record.task.contextId).toBeDefined();
     });
+
+    it("should index client message ids by caller domain", () => {
+      const first = tm.createTask("Hello", undefined, {
+        callerDomain: "peer-a.example",
+        messageId: "msg-1",
+      });
+      const second = tm.createTask("Hello", undefined, {
+        callerDomain: "peer-b.example",
+        messageId: "msg-1",
+      });
+
+      expect(
+        tm.getTaskByClientMessageId("peer-a.example", "msg-1")?.task.id,
+      ).toBe(first.task.id);
+      expect(
+        tm.getTaskByClientMessageId("peer-b.example", "msg-1")?.task.id,
+      ).toBe(second.task.id);
+    });
+
+    it("should remove client message id index entries when deleting tasks", () => {
+      const record = tm.createTask("Hello", undefined, {
+        callerDomain: "peer.example",
+        messageId: "msg-1",
+      });
+
+      tm.deleteTask(record.task.id);
+
+      expect(
+        tm.getTaskByClientMessageId("peer.example", "msg-1"),
+      ).toBeUndefined();
+    });
   });
 
   describe("updateState", () => {
@@ -102,6 +133,38 @@ describe("TaskManager", () => {
   });
 
   describe("stale task protection", () => {
+    it("should fail overdue working tasks during the eviction sweep", () => {
+      const tm = new TaskManager(60_000, 100); // 100ms processing timeout
+      const record = tm.createTask("Hello");
+      tm.updateState(record.task.id, "working");
+
+      const start = Date.now();
+      while (Date.now() - start < 150) {
+        // busy wait
+      }
+
+      // Creating a new task triggers the sweep — no poll of the stale task
+      tm.createTask("Second");
+
+      expect(tm.getTask(record.task.id)?.task.status.state).toBe("failed");
+    });
+
+    it("should evict overdue working tasks once the terminal TTL has also passed", () => {
+      const tm = new TaskManager(0, 100); // immediate TTL, 100ms timeout
+      const record = tm.createTask("Hello");
+      tm.updateState(record.task.id, "working");
+
+      const start = Date.now();
+      while (Date.now() - start < 150) {
+        // busy wait
+      }
+
+      tm.createTask("Second");
+
+      expect(tm.getTask(record.task.id)).toBeUndefined();
+      expect(tm.size).toBe(1);
+    });
+
     it("should auto-fail working tasks that exceed processing timeout", () => {
       const tm = new TaskManager(60_000, 100); // 100ms processing timeout
       const record = tm.createTask("Hello");

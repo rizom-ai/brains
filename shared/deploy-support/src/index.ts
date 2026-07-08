@@ -85,6 +85,17 @@ export function backendBootstrapEnvSchema(backend: string): string {
 `;
 }
 
+/**
+ * Canonical deploy scripts live in src/deploy-scripts/. They are copied
+ * verbatim into scaffolded user projects (where workspace imports cannot
+ * resolve), so they must stay self-contained apart from "./helpers".
+ *
+ * brain-cli (templates/deploy/scripts) and brains-ops
+ * (templates/rover-pilot/deploy/scripts) commit generated copies that their
+ * scripts/build.ts regenerate via copyDeployScripts. Never edit those copies
+ * by hand — edit src/deploy-scripts/ here; each package's
+ * package-metadata.test.ts fails on drift.
+ */
 export const deployScriptNames = [
   "provision-server.ts",
   "update-dns.ts",
@@ -117,7 +128,7 @@ export function renderKamalDeploy(options: KamalDeployTemplateOptions): string {
   return kamalDeployTemplate.replace("__SERVICE_NAME__", options.serviceName);
 }
 
-export const legacyStandaloneDeployYmlContents = [
+export const legacyStandaloneDeployYmlContents: readonly string[] = [
   `service: brain
 image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
 

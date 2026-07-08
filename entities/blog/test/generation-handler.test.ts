@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
 import type { EntityPluginContext } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createSilentLogger,
   createMockProgressReporter,

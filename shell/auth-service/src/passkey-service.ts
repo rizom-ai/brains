@@ -9,7 +9,8 @@ import {
   type RegistrationResponseJSON,
   type WebAuthnCredential,
 } from "@simplewebauthn/server";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import {
   base64UrlToBytes,
   bytesToBase64Url,
@@ -20,6 +21,10 @@ import {
 const DEFAULT_SUBJECT = "single-operator";
 const DEFAULT_USER_NAME = "Operator";
 const DEFAULT_RP_NAME = "Brain";
+
+const clientDataSchema = z.looseObject({
+  challenge: z.string().optional(),
+});
 
 export interface PasskeyServiceOptions {
   storageDir: string;
@@ -212,10 +217,9 @@ function getChallengeFromClientData(
   clientDataJSON: string,
 ): string | undefined {
   try {
-    const json = JSON.parse(
-      Buffer.from(clientDataJSON, "base64url").toString("utf8"),
-    ) as { challenge?: unknown };
-    return typeof json.challenge === "string" ? json.challenge : undefined;
+    return clientDataSchema.parse(
+      JSON.parse(Buffer.from(clientDataJSON, "base64url").toString("utf8")),
+    ).challenge;
   } catch {
     return undefined;
   }

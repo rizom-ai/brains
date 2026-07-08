@@ -2,31 +2,41 @@
 
 ## Status
 
-The preset-aware harness has landed and merged to main. A `--preset <name>` runner flag
-boots a named preset hermetically (atproto, email-resend, and other live-effect plugins
-stay in `evalDisable`); eval suites are declarative and inheritable in `brain.eval.yaml`
-(`core` runs `preset-core`, `default` extends `core` with `preset-default`, `full`
-extends `default` with `preset-full`); a committed tool-coverage ledger keeps "exhaustive"
-measurable (17/17 core tools asserted); and a case-level `permissions:` matrix plus
-turn-level multi-user context exercise public/trusted/anchor boundaries — including
-approval-hijack and shared-thread write denials — inside single multi-turn conversations.
-The 136 existing fixtures split 67 / 33 / 36 across the three tiers.
+Active coverage backlog. The preset-aware harness has landed and merged to `main`:
 
-Remaining work is filling the behavioral coverage so the suite stays exhaustive as new
-core behavior lands.
+- `brain.eval.yaml` defines inheritable `core`, `default`, and `full` suites.
+- `core` runs `preset-core`, `default` extends `core` with `preset-default`, and `full` extends `default` with `preset-full`.
+- `--preset <name>` boots a named preset hermetically for eval runs.
+- The committed tool-coverage ledger keeps "exhaustive" measurable; core tool assertions are populated.
+- Permission matrices and turn-level multi-user context cover public/trusted/anchor behavior, including approval hijack and shared-thread denial cases.
 
-## Remaining: fill the coverage
+Current tree snapshot:
 
-The tool-assertion ledger is populated (17/17 core tools asserted), but behavioral depth is still thin. Write cases for the
-known gaps: `system_status`, `system_insights` (topics), `system_job_status`,
-`system_extract` on topics, conversation tools, wishlist beyond the single lasagna
-regression, and multi-turn plus response-quality cases on core content (note/link/topic
-recall, empty states, follow-ups) — the current multi-turn set is half web-chat upload
-flows, which are full-preset territory. Filling new default/full coverage gaps is the
-natural follow-up; multi-model parallelism stays in `parallel-eval-workers.md`.
+- 143 Rover eval YAML files under `brains/rover/test-cases`.
+- Tagged suite counts: 73 `preset-core`, 34 `preset-default`, 34 `preset-full`.
+- 140 files have at least one preset tag.
+
+## Remaining: keep coverage exhaustive
+
+The plan is no longer about building the harness; it is now the standing backlog for keeping Rover eval coverage deep enough as core behavior changes.
+
+Immediate cleanup:
+
+- Add or intentionally classify the currently untagged evals:
+  - `brains/rover/test-cases/plugin/playbook-goal-check-met.yaml`
+  - `brains/rover/test-cases/plugin/playbook-goal-check-not-met.yaml`
+  - `brains/rover/test-cases/tool-invocation/job-status-dispute.yaml`
+
+Known coverage follow-ups:
+
+- Conversation-tool behavior remains thin compared with entity/tool invocation coverage.
+- Existing `system_status`, `system_insights`, `system_job_status`, `system_extract`, and wishlist coverage should be reviewed for behavioral depth rather than mere tool-call presence.
+- Add more response-quality and multi-turn cases for core content recall, empty states, follow-ups, and note/link/topic workflows.
+- Keep web-chat upload-heavy scenarios tagged at the appropriate higher preset when they rely on full interface/upload behavior.
+- Re-tag toward future bundle combinations as brain model unification lands.
+
+Multi-model subprocess parallelism is intentionally tracked separately in [parallel-eval-workers.md](./parallel-eval-workers.md).
 
 ## Cost note
 
-The full-preset suite averages ~15k tokens per case. The core subset is smaller, but the
-permission matrix multiplies runs — keep `--tags` subsets first-class so day-to-day runs
-stay cheap, and reserve the full matrix for the release gate.
+The full-preset suite is token-heavy, and permission matrices multiply runs. Keep tag subsets first-class for day-to-day checks and reserve broad preset/matrix runs for release gates.

@@ -43,7 +43,7 @@ import type {
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
 import { sql } from "drizzle-orm";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
@@ -186,12 +186,10 @@ export class EntityService implements IEntityService {
     this.dbInitPromise = this.initializeDatabase(
       options.embeddingDbConfig,
       options.embeddingService.dimensions,
-    ).catch((error) => {
-      this.logger.warn(
-        "Failed to initialize database settings (non-fatal)",
-        error,
-      );
-    });
+    );
+    // Failures surface in initialize(); this no-op handler only prevents an
+    // unhandled rejection in the window before initialize() awaits.
+    this.dbInitPromise.catch(() => {});
   }
 
   /**
@@ -206,12 +204,30 @@ export class EntityService implements IEntityService {
     embeddingDbConfig: EntityDbConfig,
     embeddingDimensions: number,
   ): Promise<void> {
-    await enableWALModeForEntities(this.dbClient, this.dbUrl);
+    // WAL pragmas are a performance setting — failure is non-fatal
+    try {
+      await enableWALModeForEntities(this.dbClient, this.dbUrl);
+    } catch (error) {
+      this.logger.warn(
+        "Failed to enable WAL mode for entity database (non-fatal)",
+        error,
+      );
+    }
+    try {
+      await enableWALModeForEmbeddings(
+        this.embeddingDbClient,
+        embeddingDbConfig.url,
+      );
+    } catch (error) {
+      this.logger.warn(
+        "Failed to enable WAL mode for embedding database (non-fatal)",
+        error,
+      );
+    }
+
+    // Everything below is required for search/embedding correctness —
+    // failures must propagate so Shell.initialize() fails loudly.
     await ensureFtsTable(this.dbClient);
-    await enableWALModeForEmbeddings(
-      this.embeddingDbClient,
-      embeddingDbConfig.url,
-    );
     await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
     await ensureEmbeddingIndexes(this.embeddingDbClient);
     await attachEmbeddingDatabase(

@@ -1,4 +1,5 @@
-import type { FetchLike } from "@brains/utils";
+import type { FetchLike } from "@brains/utils/fetch-like";
+import { z } from "@brains/utils/zod";
 
 export interface AtprotoSession {
   did: string;
@@ -62,6 +63,46 @@ export interface UploadBlobResult {
   blob: AtprotoBlobRef;
 }
 
+const atprotoErrorResponseSchema = z.looseObject({
+  message: z.string(),
+});
+
+const atprotoSessionSchema = z.looseObject({
+  did: z.string(),
+  handle: z.string(),
+  accessJwt: z.string(),
+  refreshJwt: z.string(),
+});
+
+const recordResultSchema = z.looseObject({
+  uri: z.string(),
+  cid: z.string(),
+});
+
+const getRecordResultSchema = recordResultSchema.extend({
+  value: z.record(z.string(), z.unknown()),
+});
+
+const blobRefSchema = z
+  .looseObject({
+    $type: z.literal("blob").optional(),
+    ref: z.looseObject({
+      $link: z.string(),
+    }),
+    mimeType: z.string(),
+    size: z.number().int().nonnegative(),
+  })
+  .transform((blob): AtprotoBlobRef => ({
+    ...(blob.$type !== undefined ? { $type: blob.$type } : {}),
+    ref: { $link: blob.ref.$link },
+    mimeType: blob.mimeType,
+    size: blob.size,
+  }));
+
+const uploadBlobResultSchema = z.looseObject({
+  blob: blobRefSchema,
+});
+
 function trimEndpoint(endpoint: string): string {
   return endpoint.replace(/\/+$/, "");
 }
@@ -69,19 +110,30 @@ function trimEndpoint(endpoint: string): string {
 const defaultFetch: FetchLike = (input, init): Promise<Response> =>
   fetch(input, init);
 
-async function parseJsonResponse<T>(response: Response): Promise<T> {
-  const body = (await response.json()) as unknown;
-  if (!response.ok) {
-    const message =
-      typeof body === "object" &&
-      body !== null &&
-      "message" in body &&
-      typeof body.message === "string"
-        ? body.message
-        : `AT Protocol request failed with ${response.status}`;
-    throw new Error(message);
+async function parseJsonResponse<T>(
+  response: Response,
+  schema: z.ZodType<T>,
+): Promise<T> {
+  const text = await response.text();
+  let body: unknown;
+  try {
+    body = text.length > 0 ? JSON.parse(text) : undefined;
+  } catch {
+    if (!response.ok) {
+      throw new Error(`AT Protocol request failed with ${response.status}`);
+    }
+    throw new Error("Failed to parse JSON");
   }
-  return body as T;
+
+  if (!response.ok) {
+    const error = atprotoErrorResponseSchema.safeParse(body);
+    throw new Error(
+      error.success
+        ? error.data.message
+        : `AT Protocol request failed with ${response.status}`,
+    );
+  }
+  return schema.parse(body);
 }
 
 export class AtprotoPdsClient {
@@ -111,7 +163,7 @@ export class AtprotoPdsClient {
       },
     );
 
-    const session = await parseJsonResponse<AtprotoSession>(response);
+    const session = await parseJsonResponse(response, atprotoSessionSchema);
     this.session = session;
     return session;
   }
@@ -136,7 +188,7 @@ export class AtprotoPdsClient {
       },
     );
 
-    return parseJsonResponse<CreateRecordResult>(response);
+    return parseJsonResponse(response, recordResultSchema);
   }
 
   async putRecord(input: PutRecordInput): Promise<PutRecordResult> {
@@ -162,7 +214,7 @@ export class AtprotoPdsClient {
       },
     );
 
-    return parseJsonResponse<PutRecordResult>(response);
+    return parseJsonResponse(response, recordResultSchema);
   }
 
   async getRecord(input: GetRecordInput): Promise<GetRecordResult> {
@@ -176,7 +228,7 @@ export class AtprotoPdsClient {
       { method: "GET" },
     );
 
-    return parseJsonResponse<GetRecordResult>(response);
+    return parseJsonResponse(response, getRecordResultSchema);
   }
 
   async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
@@ -195,7 +247,7 @@ export class AtprotoPdsClient {
       },
     );
 
-    return parseJsonResponse<UploadBlobResult>(response);
+    return parseJsonResponse(response, uploadBlobResultSchema);
   }
 
   private async getSession(): Promise<AtprotoSession> {

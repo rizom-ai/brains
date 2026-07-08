@@ -1,5 +1,4 @@
-import { z } from "@brains/utils";
-import type { DataSource } from "./datasource-types";
+import { z } from "@brains/utils/zod";
 import {
   contentVisibilitySchema,
   type ContentVisibility,
@@ -92,7 +91,16 @@ export interface StoreEmbeddingData {
 /**
  * Base entity schema that all entities must extend
  */
-export const baseEntitySchema = z.object({
+export const baseEntitySchema: z.ZodObject<{
+  id: z.ZodString;
+  entityType: z.ZodString;
+  content: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+  visibility: typeof contentVisibilitySchema;
+  metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+  contentHash: z.ZodString;
+}> = z.object({
   id: z.string(),
   entityType: z.string(),
   content: z.string(),
@@ -102,6 +110,61 @@ export const baseEntitySchema = z.object({
   metadata: z.record(z.string(), z.unknown()),
   contentHash: z.string(),
 });
+
+const canonicalContentVisibilityParserSchema: z.ZodEnum<{
+  public: "public";
+  shared: "shared";
+  restricted: "restricted";
+}> = z.enum(["public", "shared", "restricted"]);
+
+/** Zod 4-owned parser base for entity schemas whose registration slot is structural. */
+export const baseEntityParserSchema: z.ZodObject<{
+  id: z.ZodString;
+  entityType: z.ZodString;
+  content: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+  visibility: z.ZodPipe<
+    z.ZodOptional<
+      z.ZodUnion<
+        readonly [
+          typeof canonicalContentVisibilityParserSchema,
+          z.ZodLiteral<"private">,
+        ]
+      >
+    >,
+    z.ZodTransform<ContentVisibility, RawContentVisibility | undefined>
+  >;
+  metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+  contentHash: z.ZodString;
+}> = z.object({
+  id: z.string(),
+  entityType: z.string(),
+  content: z.string(),
+  created: z.string().datetime(),
+  updated: z.string().datetime(),
+  visibility: z
+    .union([canonicalContentVisibilityParserSchema, z.literal("private")])
+    .optional()
+    .transform((value): ContentVisibility => {
+      if (value === undefined) return "public";
+      if (value === "private") return "restricted";
+      return value;
+    }),
+  metadata: z.record(z.string(), z.unknown()),
+  contentHash: z.string(),
+});
+
+/** Shared empty frontmatter schema for entity types with no typed frontmatter. */
+export const emptyFrontmatterSchema: z.ZodObject<Record<string, never>> =
+  z.object({});
+
+export type EntitySchema<T> = z.ZodType<T, unknown>;
+/** @deprecated Use EntitySchema<T>. */
+export type EntitySchemaParser<T> = EntitySchema<T>;
+
+export type UnknownEntitySchema = EntitySchema<unknown>;
+export type FrontmatterSchema = z.ZodObject<z.ZodRawShape>;
 
 /**
  * Base entity type - generic to support typed metadata
@@ -204,7 +267,21 @@ export interface CreateExecutionContext {
 /**
  * Result returned to system_create when a plugin fully handles creation.
  */
-export const createResultAttachmentSchema = z.object({
+export const createResultAttachmentSchema: z.ZodObject<{
+  mediaType: z.ZodString;
+  url: z.ZodString;
+  downloadUrl: z.ZodOptional<z.ZodString>;
+  previewUrl: z.ZodOptional<z.ZodString>;
+  filename: z.ZodOptional<z.ZodString>;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<
+    z.ZodObject<{
+      entityType: z.ZodOptional<z.ZodString>;
+      entityId: z.ZodOptional<z.ZodString>;
+      attachmentType: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+}> = z.object({
   mediaType: z.string(),
   url: z.string(),
   downloadUrl: z.string().optional(),
@@ -310,7 +387,7 @@ export interface EntityAdapter<
    */
   purpose: string;
 
-  schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
+  schema: EntitySchema<TEntity>;
 
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)
   toMarkdown(entity: TEntity): string;
@@ -325,7 +402,7 @@ export interface EntityAdapter<
   // Parse frontmatter metadata from markdown
   parseFrontMatter<TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
+    schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter;
 
   // Generate frontmatter for markdown
@@ -407,6 +484,8 @@ export interface SearchOptions {
   visibilityScope?: ContentVisibility;
   /** Include queued/failed generation stubs in search results (default: false) */
   includeUngenerated?: boolean;
+  /** Minimum relevance score to return. Omit for no score cutoff. */
+  minScore?: number;
 }
 
 /**
@@ -489,6 +568,90 @@ export interface SearchWithDistancesRequest {
   query: string;
 }
 
+/**
+ * Context passed to all DataSource operations
+ * Contains internal state that should not be mixed with user query parameters
+ */
+export interface BaseDataSourceContext {
+  /**
+   * Whether to filter to only published/complete content
+   * Set by site-builder: true for production, false for preview
+   */
+  publishedOnly?: boolean;
+
+  /**
+   * Scoped entity service that auto-applies publishedOnly filter
+   * Datasources should use this instead of their injected entityService
+   * to ensure consistent filtering behavior across environments
+   */
+  entityService: EntityService;
+}
+
+export type DataSourceSchema<T> = z.ZodType<T, unknown>;
+
+/**
+ * DataSource Interface
+ *
+ * Provides data for templates through fetch, generate, or transform operations.
+ * DataSources are registered in the DataSourceRegistry and referenced by templates
+ * via their dataSourceId property.
+ */
+export interface DataSource {
+  /**
+   * Unique identifier for this data source
+   */
+  id: string;
+
+  /**
+   * Human-readable name for this data source
+   */
+  name: string;
+
+  /**
+   * Optional description of what this data source provides
+   */
+  description?: string;
+
+  /**
+   * Optional: Fetch existing data
+   * Used by data sources that aggregate or retrieve data (e.g., dashboard stats, API data)
+   * DataSources validate output using the provided schema
+   * @param query - Query parameters for fetching data
+   * @param outputSchema - Schema for validating output data
+   * @param context - Context with environment
+   */
+  fetch?: <T>(
+    query: unknown,
+    outputSchema: z.ZodSchema<T>,
+    context: BaseDataSourceContext,
+  ) => Promise<T>;
+
+  /**
+   * Optional: Generate new content
+   * Used by data sources that create content (e.g., AI-generated content, reports)
+   */
+  generate?: <T>(request: unknown, schema: z.ZodSchema<T>) => Promise<T>;
+
+  /**
+   * Optional: Transform content between formats
+   * Used by data sources that convert content (e.g., markdown to HTML, data formatting)
+   */
+  transform?: <T>(
+    content: unknown,
+    format: string,
+    schema: z.ZodSchema<T>,
+  ) => Promise<T>;
+}
+
+/**
+ * DataSource capabilities for discovery and validation
+ */
+export interface DataSourceCapabilities {
+  canFetch: boolean;
+  canGenerate: boolean;
+  canTransform: boolean;
+}
+
 export interface ICoreEntityService {
   // Read-only operations
   getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
@@ -538,7 +701,7 @@ export interface IEntitiesNamespace {
   /** Register a new entity type with schema and adapter */
   register<TEntity extends BaseEntity>(
     entityType: string,
-    schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>,
+    schema: EntitySchema<TEntity>,
     adapter: EntityAdapter<TEntity>,
     config?: EntityTypeConfig,
   ): void;
@@ -663,12 +826,12 @@ export interface EntityRegistry {
     TMetadata = Record<string, unknown>,
   >(
     type: string,
-    schema: z.ZodType<unknown>,
+    schema: UnknownEntitySchema,
     adapter: EntityAdapter<TEntity, TMetadata>,
     config?: EntityTypeConfig,
   ): void;
 
-  getSchema(type: string): z.ZodType<unknown>;
+  getSchema(type: string): UnknownEntitySchema;
 
   getAdapter<
     TEntity extends BaseEntity<TMetadata>,

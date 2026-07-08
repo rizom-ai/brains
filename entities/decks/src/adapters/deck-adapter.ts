@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   assertPublishedDeckHasPublishedAt,
   deckSchema,
@@ -139,4 +139,4 @@ export class DeckAdapter extends BaseEntityAdapter<
   }
 }
 
-export const deckAdapter = new DeckAdapter();
+export const deckAdapter: DeckAdapter = new DeckAdapter();

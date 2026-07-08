@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site",
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.141",
   "description": "Public authoring SDK for Rizom site packages",
   "type": "module",
   "exports": {
@@ -12,8 +12,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix"
   },
   "peerDependencies": {
     "preact": "^10.27.2"
@@ -21,10 +21,10 @@
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "eslint": "^8.56.0",
+    "@types/bun": "^1.3.14",
+    "eslint": "^10.5.0",
     "preact": "^10.27.2",
-    "typescript": "^5.3.3"
+    "typescript": "^6.0.3"
   },
   "publishConfig": {
     "access": "public"

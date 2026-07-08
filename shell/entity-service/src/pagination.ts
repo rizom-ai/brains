@@ -1,10 +1,17 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Schema for pagination information
  * Used by datasources that return paginated lists
  */
-export const paginationInfoSchema = z.object({
+export const paginationInfoSchema: z.ZodObject<{
+  currentPage: z.ZodNumber;
+  totalPages: z.ZodNumber;
+  totalItems: z.ZodNumber;
+  pageSize: z.ZodNumber;
+  hasNextPage: z.ZodBoolean;
+  hasPrevPage: z.ZodBoolean;
+}> = z.object({
   currentPage: z.number(),
   totalPages: z.number(),
   totalItems: z.number(),
@@ -16,7 +23,7 @@ export const paginationInfoSchema = z.object({
 /**
  * Pagination information type
  */
-export type PaginationInfo = z.infer<typeof paginationInfoSchema>;
+export type PaginationInfo = z.output<typeof paginationInfoSchema>;
 
 /**
  * Build pagination info from total count and page parameters

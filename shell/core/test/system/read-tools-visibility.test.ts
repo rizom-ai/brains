@@ -2,36 +2,40 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
 import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createSystemTools } from "../../src/system/tools";
 import { listInputSchema, searchInputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 
-const baseEntityResponseSchema = z.object({
+const baseEntityResponseSchema = z.looseObject({
   id: z.string(),
   entityType: z.string(),
 });
 
-const searchDataSchema = z.object({
-  results: z.array(
-    z.object({
-      entity: baseEntityResponseSchema.passthrough(),
-    }),
-  ),
-});
+const searchDataSchema = z
+  .object({
+    results: z.array(
+      z.object({
+        entity: baseEntityResponseSchema.passthrough(),
+        score: z.number(),
+      }),
+    ),
+  })
+  .strict();
 
 const listDataSchema = z.object({
-  entities: z.array(baseEntityResponseSchema.passthrough()),
+  entities: z.array(baseEntityResponseSchema),
 });
 
 const getDataSchema = z.object({
-  entity: baseEntityResponseSchema.passthrough(),
+  entity: baseEntityResponseSchema,
 });
 
-function expectSuccess<TSchema extends z.ZodTypeAny>(
-  raw: unknown,
-  schema: TSchema,
-): z.infer<TSchema> {
+interface Parser<T> {
+  parse(input: unknown): T;
+}
+
+function expectSuccess<T>(raw: unknown, schema: Parser<T>): T {
   const response = toolResponseSchema.parse(raw);
   if (!("success" in response) || !response.success) {
     throw new Error(
@@ -51,13 +55,17 @@ function expectError(raw: unknown): string {
   return response.error;
 }
 
-const makeEntity = (id: string, visibility: ContentVisibility): BaseEntity => ({
+const makeEntity = (
+  id: string,
+  visibility: ContentVisibility,
+  searchScore?: number,
+): BaseEntity => ({
   id,
   entityType: "doc",
   content: `body of ${id}`,
   contentHash: `hash-${id}`,
   visibility,
-  metadata: { title: id },
+  metadata: { title: id, ...(searchScore !== undefined && { searchScore }) },
   created: "2026-05-01T00:00:00.000Z",
   updated: "2026-05-01T00:00:00.000Z",
 });
@@ -76,6 +84,7 @@ describe("read tool model contracts", () => {
       "query",
       "scope",
       "limit",
+      "minScore",
       "includeUngenerated",
     ]);
     expect(searchInputSchema.shape.scope.description).toContain("kind: 'all'");
@@ -86,6 +95,42 @@ describe("read tool model contracts", () => {
     expect(tool?.description).toContain(
       "For broad search, make one system_search call with scope.kind all",
     );
+    expect(tool?.description).toContain("default minScore of 0.5");
+    expect(searchInputSchema.shape.minScore.description).toContain(
+      "lower it only for exploratory",
+    );
+  });
+
+  it("applies a default search score cutoff and allows explicit override", async () => {
+    const services = createMockSystemServices();
+    services.addEntities([
+      makeEntity("strong", "public", 0.7),
+      makeEntity("weak", "public", 0.4),
+    ]);
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_search",
+    );
+    if (!tool) throw new Error("system_search not found");
+
+    const defaultRaw = await tool.handler(
+      { query: "body", scope: { kind: "all" } },
+      baseContext("anchor"),
+    );
+    expect(
+      expectSuccess(defaultRaw, searchDataSchema).results.map(
+        (r) => r.entity.id,
+      ),
+    ).toEqual(["strong"]);
+
+    const overrideRaw = await tool.handler(
+      { query: "body", scope: { kind: "all" }, minScore: 0.3 },
+      baseContext("anchor"),
+    );
+    expect(
+      expectSuccess(overrideRaw, searchDataSchema).results.map(
+        (r) => r.entity.id,
+      ),
+    ).toEqual(["strong", "weak"]);
   });
 
   it("describes status as optional and warns against invented statuses", () => {
@@ -105,6 +150,7 @@ describe("read tool model contracts", () => {
     expect(tool?.description).toContain(
       "Use system_search, not system_list, for broad or vague lookup requests",
     );
+    expect(tool?.description).toContain("latest blog post");
   });
 });
 
@@ -240,6 +286,49 @@ describe("read tools enforce caller visibility scope", () => {
         "doc-public",
         "doc-restricted",
         "doc-shared",
+      ]);
+    });
+
+    it("sorts published posts by publishedAt descending", async () => {
+      services.addEntities([
+        {
+          id: "older-post",
+          entityType: "post",
+          content: "older",
+          contentHash: "hash-older",
+          visibility: "public",
+          metadata: {
+            title: "Older",
+            status: "published",
+            publishedAt: "2025-01-01T00:00:00.000Z",
+          },
+          created: "2026-05-01T00:00:00.000Z",
+          updated: "2026-05-02T00:00:00.000Z",
+        },
+        {
+          id: "newer-post",
+          entityType: "post",
+          content: "newer",
+          contentHash: "hash-newer",
+          visibility: "public",
+          metadata: {
+            title: "Newer",
+            status: "published",
+            publishedAt: "2025-02-01T00:00:00.000Z",
+          },
+          created: "2026-05-01T00:00:00.000Z",
+          updated: "2026-05-01T00:00:00.000Z",
+        },
+      ]);
+
+      const raw = await getTool("system_list").handler(
+        { entityType: "post", status: "published" },
+        baseContext("anchor"),
+      );
+      const data = expectSuccess(raw, listDataSchema);
+      expect(data.entities.map((entity) => entity.id)).toEqual([
+        "newer-post",
+        "older-post",
       ]);
     });
   });

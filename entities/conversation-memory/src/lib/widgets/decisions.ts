@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { firstSentence } from "@brains/utils";
+import { firstSentence } from "@brains/utils/string-utils";
 import type { DecisionEntity } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatTimeRange } from "./format";
@@ -92,4 +92,4 @@ export function registerDecisionsWidget(params: {
   );
 }
 
-export const DECISIONS_WIDGET_ID = WIDGET_ID;
+export const DECISIONS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

@@ -1,30 +1,35 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 // Remove ContentGenerationRequest import - we'll define our own schema
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import type { ContentService, GenerationContext } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
+
+export interface ContentGenerationJobData {
+  templateName: string;
+  context: GenerationContext;
+  userId?: string | undefined;
+  entityId: string;
+  entityType: string;
+}
 
 /**
  * Zod schema for content generation job data validation
  */
-export const contentGenerationJobDataSchema = z.object({
-  templateName: z.string().min(1, "Template name is required"),
-  context: z.object({
-    prompt: z.string().optional(),
-    data: z.record(z.string(), z.unknown()).optional(),
-    conversationHistory: z.string().optional(),
-  }),
-  userId: z.string().optional(),
-  // Entity information for saving generated content
-  entityId: z.string(),
-  entityType: z.string(),
-});
-
-export type ContentGenerationJobData = z.infer<
-  typeof contentGenerationJobDataSchema
->;
+export const contentGenerationJobDataSchema: z.ZodType<ContentGenerationJobData> =
+  z.object({
+    templateName: z.string().min(1, "Template name is required"),
+    context: z.object({
+      prompt: z.string().optional(),
+      data: z.record(z.string(), z.unknown()).optional(),
+      conversationHistory: z.string().optional(),
+    }),
+    userId: z.string().optional(),
+    // Entity information for saving generated content
+    entityId: z.string(),
+    entityType: z.string(),
+  });
 
 /**
  * Job handler for content generation
@@ -140,8 +145,7 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
       if (data.entityId && data.entityType) {
         const routeId = data.context.data?.["routeId"] as string | undefined;
         const sectionId = data.context.data?.["sectionId"] as
-          | string
-          | undefined;
+          string | undefined;
 
         // Only save if we have the required metadata
         if (routeId && sectionId) {
@@ -205,23 +209,22 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
    * Ensures type safety and data integrity
    */
   public validateAndParse(data: unknown): ContentGenerationJobData | null {
-    try {
-      const result = contentGenerationJobDataSchema.parse(data);
-
-      this.logger.debug("Content generation job data validation successful", {
-        templateName: result.templateName,
-        hasPrompt: !!result.context.prompt,
-        hasData: !!result.context.data,
-        userId: result.userId,
-      });
-
-      return result;
-    } catch (error) {
+    const parsed = contentGenerationJobDataSchema.safeParse(data);
+    if (!parsed.success) {
       this.logger.warn("Invalid content generation job data", {
         data,
-        validationError: error instanceof z.ZodError ? error.issues : error,
+        validationError: parsed.error.issues,
       });
       return null;
     }
+
+    this.logger.debug("Content generation job data validation successful", {
+      templateName: parsed.data.templateName,
+      hasPrompt: !!parsed.data.context.prompt,
+      hasData: !!parsed.data.context.data,
+      userId: parsed.data.userId,
+    });
+
+    return parsed.data;
   }
 }

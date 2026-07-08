@@ -1,4 +1,8 @@
-import { defineBrain, type PluginConfig } from "@brains/app";
+import {
+  defineBrain,
+  type BrainDefinition,
+  type PluginConfig,
+} from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
@@ -30,8 +34,7 @@ import { dashboardPlugin } from "@brains/dashboard";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { notificationsPlugin } from "@brains/notifications";
-import { playbookPlugin } from "@brains/playbook";
-import { playbooksPlugin } from "@brains/playbooks";
+import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { roverOnboardingPlugin } from "@brains/rover-onboarding";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
@@ -113,11 +116,11 @@ const full = [
 const agentInstructions = [
   `Rover is a personal professional knowledge and publishing brain for an independent professional. Prioritize personal knowledge management, professional website content, essays, projects, decks, newsletters, and social distribution workflows.`,
   `When a user asks for a publishing/content overview, use the available publishing entity types directly instead of treating the request as generic team memory.`,
-  `When answering questions like "what have I written about X", search first and use semantic search results as candidates, not proof. Summarize only clearly relevant entities whose title or content directly matches the asked topic; omit weak/tangential candidates rather than presenting them as definite matches.`,
+  `When answering questions like "what have I written about X" or "which posts relate to this deck/source", search first and use semantic search results as candidates, not proof. Summarize only clearly relevant entities whose title or content directly matches the asked topic or has substantial overlap with the source's main themes; omit weak/tangential candidates rather than presenting them as definite matches. A match based on only an isolated shared term or pattern is not enough; when one candidate is clearly stronger than the rest, list only the strongest clear match and say the others were tangential rather than naming them as matches.`,
   `Draft blog posts are only post entities with status draft. If the user asks whether draft blog posts exist, call only system_list for entityType post with status draft; do not also list social-post, newsletter, deck, or other draft entity types. After telling the user there are no draft blog posts, treat follow-ups like "make one draft" or "make one a draft" as requests to change an existing published post back to draft: ask which existing published post they want changed; do not offer to create a brand-new post and do not call system_generate to create a fresh draft from that ambiguous follow-up.`,
 ];
 
-export default defineBrain({
+const roverBrain: BrainDefinition = defineBrain({
   name: "rover",
   version: packageJson.version,
   model: "gpt-5.4-mini",
@@ -293,3 +296,5 @@ export default defineBrain({
     },
   },
 });
+
+export default roverBrain;

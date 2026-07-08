@@ -1,7 +1,9 @@
 import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
@@ -11,7 +13,14 @@ import { getTemplateName } from "../templates";
 /**
  * Input schema for social post generation job
  */
-const coverImageJobSchema = z.union([
+interface CoverImageJobOptions {
+  generate?: boolean | undefined;
+  prompt?: string | undefined;
+}
+
+type CoverImageJobData = boolean | CoverImageJobOptions;
+
+const coverImageJobSchema: z.ZodType<CoverImageJobData> = z.union([
   z.boolean(),
   z.object({
     generate: z.boolean().optional(),
@@ -19,7 +28,19 @@ const coverImageJobSchema = z.union([
   }),
 ]);
 
-export const generationJobSchema = z.object({
+export interface GenerationJobData {
+  prompt?: string | undefined;
+  platform?: "linkedin" | undefined;
+  sourceEntityType?: "post" | "deck" | undefined;
+  sourceEntityId?: string | undefined;
+  title?: string | undefined;
+  content?: string | undefined;
+  addToQueue?: boolean | undefined;
+  generateImage?: boolean | undefined;
+  coverImage?: CoverImageJobData | undefined;
+}
+
+export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
   prompt: z.string().optional(),
   platform: z.enum(["linkedin"]).optional(),
   sourceEntityType: z.enum(["post", "deck"]).optional(),
@@ -39,13 +60,15 @@ export const generationJobSchema = z.object({
     .describe("Generic cover image generation request"),
 });
 
-export type GenerationJobData = z.infer<typeof generationJobSchema>;
-
-export const socialMediaGenerationResultSchema = generationResultSchema.extend({
+export const socialMediaGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    slug: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   slug: z.string().optional(),
 });
 
-export type GenerationResult = z.infer<
+export type GenerationResult = z.output<
   typeof socialMediaGenerationResultSchema
 >;
 
@@ -123,7 +146,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
         message: "Generating social post from source content",
       });
 
-      const slugSchema = z.object({ slug: z.string() });
+      const slugSchema = z.looseObject({ slug: z.string() });
       const parsed = slugSchema.safeParse(sourceEntity.metadata);
       const slug = parsed.success ? parsed.data.slug : sourceEntityId;
 

@@ -2,11 +2,14 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { InterfacePlugin } from "../../src/interface/interface-plugin";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import type { BaseJobTrackingInfo } from "../../src/interfaces";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 const emptyConfigSchema = z.object({});
 
-class MinimalInterfacePlugin extends InterfacePlugin {
+class MinimalInterfacePlugin extends InterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "minimal-interface",
@@ -51,7 +54,10 @@ class MinimalInterfacePlugin extends InterfacePlugin {
   }
 }
 
-class CustomProgressInterfacePlugin extends InterfacePlugin {
+class CustomProgressInterfacePlugin extends InterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   public progressEvents: JobProgressEvent[] = [];
 
   constructor() {

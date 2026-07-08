@@ -226,17 +226,15 @@ describe("StreamableHTTPServer", () => {
       });
     });
 
-    test("should respond to status check", async () => {
+    test("should respond to status check with a minimal payload", async () => {
       if (!server) throw new Error("Server not initialized");
       const port = server.getPort();
       const response = await makeRequest("GET", "/status", { port });
 
       expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({
+      expect(response.body).toEqual({
+        status: "ok",
         sessions: 0,
-        uptime: expect.any(Number),
-        memory: expect.any(Object),
-        port,
       });
     });
   });
@@ -441,62 +439,100 @@ describe("StreamableHTTPServer", () => {
     });
   });
 
-  describe("Agent chat endpoints", () => {
-    test("should confirm pending actions with explicit approval ids", async () => {
-      const confirmPendingAction = mock(
-        async (
-          _conversationId: string,
-          _confirmed: boolean,
-          _approvalId?: string,
-          _context?: unknown,
-        ) => ({
-          text: "Action confirmed.",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-      );
+  describe("Removed agent chat endpoints", () => {
+    test.each(["/api/chat", "/api/chat/confirm"])(
+      "should return 404 for %s",
+      async (path) => {
+        server = new StreamableHTTPServer({
+          logger: mockLogger,
+          auth: { disabled: true },
+        });
+
+        const response = await server.handleRequest(
+          new Request(`http://localhost${path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: "hi" }),
+          }),
+        );
+
+        expect(response.status).toBe(404);
+      },
+    );
+  });
+
+  describe("Malformed request bodies", () => {
+    test("should return 400 for invalid JSON on POST /mcp", async () => {
       server = new StreamableHTTPServer({
         logger: mockLogger,
         auth: { disabled: true },
       });
-      server.connectAgentService({
-        chat: async () => ({
-          text: "ok",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-        confirmPendingAction,
-        invalidate: (): void => {},
-      });
+      server.connectMCPServer(
+        new McpServer({ name: "test-server", version: "1.0.0" }),
+      );
 
       const response = await server.handleRequest(
-        new Request("http://localhost/api/chat/confirm", {
+        new Request("http://localhost/mcp", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/event-stream",
+          },
+          body: "{not json",
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({
+        jsonrpc: "2.0",
+        error: {
+          code: -32700,
+          message: "Parse error: Invalid JSON body",
+        },
+        id: null,
+      });
+    });
+  });
+
+  describe("Session idle eviction", () => {
+    test("should close and evict sessions idle past the TTL", async () => {
+      server = new StreamableHTTPServer({
+        logger: mockLogger,
+        auth: { disabled: true },
+        sessionIdleTtlMs: 100,
+      });
+      server.connectMCPServer(
+        new McpServer({ name: "test-server", version: "1.0.0" }),
+      );
+
+      const response = await server.handleRequest(
+        new Request("http://localhost/mcp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/event-stream",
+          },
           body: JSON.stringify({
-            conversationId: "conversation-1",
-            confirmed: false,
-            approvalId: "approval:delete",
-            context: {
-              userPermissionLevel: "anchor",
-              interfaceType: "evaluation",
+            jsonrpc: "2.0",
+            method: "initialize",
+            params: {
+              protocolVersion: "2024-11-05",
+              capabilities: {},
+              clientInfo: { name: "test-client", version: "1.0.0" },
             },
+            id: 1,
           }),
         }),
       );
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({
-        text: "Action confirmed.",
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      });
-      expect(confirmPendingAction).toHaveBeenCalledWith(
-        "conversation-1",
-        false,
-        "approval:delete",
-        {
-          userPermissionLevel: "anchor",
-          interfaceType: "evaluation",
-        },
-      );
+      expect(server.getSessionCount()).toBe(1);
+
+      // Session dropped without DELETE — the sweep must evict it
+      await new Promise((r) => setTimeout(r, 300));
+      expect(server.getSessionCount()).toBe(0);
+
+      await server.stop();
     });
   });
 
@@ -672,12 +708,7 @@ describe("StreamableHTTPServer", () => {
             message: "Unauthorized: Bearer token required",
           },
         });
-        expect(response.headers["www-authenticate"]).toContain(
-          'resource_metadata="http://localhost:',
-        );
-        expect(response.headers["www-authenticate"]).toContain(
-          '/.well-known/oauth-protected-resource"',
-        );
+        expect(response.headers["www-authenticate"]).toContain('realm="mcp"');
         expect(mockLogger.warn).toHaveBeenCalledWith(
           expect.stringContaining(
             "Authentication failed: Missing Bearer token",
@@ -685,22 +716,27 @@ describe("StreamableHTTPServer", () => {
         );
       });
 
-      test("should use forwarded origin in OAuth resource metadata challenge", async () => {
-        const response = await makeRequest("POST", "/mcp", {
+      test("should not advertise the OAuth flow it cannot accept", async () => {
+        // Static-token mode rejects OAuth-issued JWTs, so the challenge must
+        // not point clients at the OAuth resource metadata — that lures them
+        // through a full auth ceremony that always ends in 401.
+        const missingAuth = await makeRequest("POST", "/mcp", {
           port,
-          headers: {
-            Host: "docs.rizom.ai",
-            "X-Forwarded-Proto": "https",
-          },
           body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
         });
-
-        expect(response.status).toBe(401);
-        expect(response.headers["www-authenticate"]).toContain(
-          'resource_metadata="https://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        expect(missingAuth.status).toBe(401);
+        expect(missingAuth.headers["www-authenticate"]).not.toContain(
+          "resource_metadata",
         );
-        expect(response.headers["www-authenticate"]).not.toContain(
-          'resource_metadata="http://docs.rizom.ai/.well-known/oauth-protected-resource"',
+
+        const wrongToken = await makeRequest("POST", "/mcp", {
+          port,
+          headers: { Authorization: "Bearer an-oauth-jwt-not-the-token" },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+        expect(wrongToken.status).toBe(401);
+        expect(wrongToken.headers["www-authenticate"]).not.toContain(
+          "resource_metadata",
         );
       });
 
@@ -827,6 +863,40 @@ describe("StreamableHTTPServer", () => {
             message: "Unauthorized: Invalid token",
           },
         });
+      });
+
+      test("should advertise OAuth resource metadata in the challenge", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.headers["www-authenticate"]).toContain(
+          'resource_metadata="http://localhost:',
+        );
+        expect(response.headers["www-authenticate"]).toContain(
+          '/.well-known/oauth-protected-resource"',
+        );
+      });
+
+      test("should use forwarded origin in OAuth resource metadata challenge", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Host: "docs.rizom.ai",
+            "X-Forwarded-Proto": "https",
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.headers["www-authenticate"]).toContain(
+          'resource_metadata="https://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        );
+        expect(response.headers["www-authenticate"]).not.toContain(
+          'resource_metadata="http://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        );
       });
 
       test("should reject OAuth bearer tokens without the mcp scope", async () => {

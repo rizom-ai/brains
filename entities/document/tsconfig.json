@@ -3,8 +3,9 @@
   "compilerOptions": {
     "rootDir": ".",
     "composite": true,
+    "isolatedDeclarations": true,
     "esModuleInterop": true
   },
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*", "test/**/*", "package.json"],
   "exclude": ["node_modules"]
 }

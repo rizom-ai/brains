@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ConversationService } from "../src/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ConversationDB } from "../src/database";
 import type {
   ConversationServiceConfig,
@@ -10,6 +10,7 @@ import type {
 import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
 import { MessageBus } from "@brains/messaging-service";
+import { coerceConversationMetadata } from "../src/metadata";
 
 describe("ConversationService", () => {
   let service: ConversationService;
@@ -131,8 +132,10 @@ describe("ConversationService", () => {
         args: [sessionId],
       });
 
-      const storedMetadata = JSON.parse(result.rows[0]?.["metadata"] as string);
-      expect(storedMetadata.channelName).toBe("Test Room");
+      const storedMetadata = coerceConversationMetadata(
+        result.rows[0]?.["metadata"],
+      );
+      expect(storedMetadata["channelName"]).toBe("Test Room");
     });
 
     it("should preserve existing metadata when resuming conversation", async () => {
@@ -172,8 +175,10 @@ describe("ConversationService", () => {
         args: [sessionId],
       });
 
-      const storedMetadata = JSON.parse(result.rows[0]?.["metadata"] as string);
-      expect(storedMetadata.channelName).toBe("CLI Terminal");
+      const storedMetadata = coerceConversationMetadata(
+        result.rows[0]?.["metadata"],
+      );
+      expect(storedMetadata["channelName"]).toBe("CLI Terminal");
     });
   });
 

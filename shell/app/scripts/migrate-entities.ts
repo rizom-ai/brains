@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
-import { getStandardConfigWithDirectories } from "@brains/core";
+import { resolveStandardConfigWithDirectories } from "../src/standard-paths";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 
 async function main(): Promise<void> {
-  const config = await getStandardConfigWithDirectories();
+  const config = await resolveStandardConfigWithDirectories();
   const logger = Logger.getInstance();
 
   logger.info("Running entity database migrations...");

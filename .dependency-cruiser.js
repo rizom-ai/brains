@@ -26,6 +26,8 @@ module.exports = {
           "/dist/.*\\.(js|mjs)$", // Build output files
           "/test/fixtures/", // Test fixture files
           "hydration\\.js$", // Client-side hydration entry points
+          "^docs/design/", // Design mockups; scripts are loaded by the sibling .html files
+          "/test-apps/", // Dev fixture apps; src/site.ts is convention-loaded by shell/app
         ],
       },
       to: {},
@@ -83,6 +85,10 @@ module.exports = {
       comment: "Plugins can only import from shell/* and shared/* packages",
       from: {
         path: "^plugins/",
+        // Covered by the companion rule below with a wider builtin allowlist
+        pathNot: [
+          "^plugins/directory-sync/(test/|src/lib/content-remote-bootstrap\\.ts$)",
+        ],
       },
       to: {
         path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
@@ -93,17 +99,55 @@ module.exports = {
       },
     },
     {
+      name: "plugins-git-bootstrap-can-use-process-builtins",
+      severity: "error",
+      comment:
+        "directory-sync's git bootstrap and its git tests legitimately shell out " +
+        "(child_process) and open sockets (net); otherwise same restrictions as " +
+        "plugins-can-only-import-shell-and-shared",
+      from: {
+        path: "^plugins/directory-sync/(test/|src/lib/content-remote-bootstrap\\.ts$)",
+      },
+      to: {
+        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        pathNot: [
+          "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
+          "^(bun:test|path|fs|fs/promises|crypto|os|url|child_process|net)$", // Allow Node.js/Bun builtins
+        ],
+      },
+    },
+    {
       name: "interfaces-can-only-import-shell-and-shared",
       severity: "error",
       comment: "Interfaces can only import from shell/* and shared/* packages",
       from: {
         path: "^interfaces/",
+        // Covered by the companion rule below with a wider builtin allowlist
+        pathNot: ["^interfaces/web-chat/scripts/"],
       },
       to: {
         path: "^((?!shell/|shared/|interfaces/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url)$", // Allow Node.js/Bun builtins
+        ],
+      },
+    },
+    {
+      name: "interface-build-scripts-can-use-module-builtin",
+      severity: "error",
+      comment:
+        "web-chat's build scripts legitimately use createRequire from the module " +
+        "builtin; otherwise same restrictions as " +
+        "interfaces-can-only-import-shell-and-shared",
+      from: {
+        path: "^interfaces/web-chat/scripts/",
+      },
+      to: {
+        path: "^((?!shell/|shared/|interfaces/|node_modules/).)*$",
+        pathNot: [
+          "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
+          "^(bun:test|path|fs|fs/promises|crypto|os|url|module)$", // Allow Node.js/Bun builtins
         ],
       },
     },
@@ -134,7 +178,10 @@ module.exports = {
     },
     tsPreCompilationDeps: true,
     tsConfig: {
-      fileName: "tsconfig.json",
+      // Resolution-only config that mirrors the per-package `@/*` path aliases
+      // (the root tsconfig.json has no paths, which made aliased imports
+      // unresolvable and produced false layering violations).
+      fileName: "tsconfig.depcruise.json",
     },
     enhancedResolveOptions: {
       exportsFields: ["exports"],

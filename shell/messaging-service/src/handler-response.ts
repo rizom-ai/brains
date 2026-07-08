@@ -1,12 +1,12 @@
-import { z } from "@brains/utils";
-import { messageResponseSchema } from "./base-types";
+import { z } from "@brains/utils/zod";
+import { type MessageResponse, messageResponseSchema } from "./base-types";
 
-const handlerResponseSchema = z.union([
+export type HandlerResponse = MessageResponse;
+
+const handlerResponseSchema: z.ZodType<HandlerResponse> = z.union([
   z.object({ noop: z.literal(true) }),
   messageResponseSchema,
 ]);
-
-export type HandlerResponse = z.infer<typeof handlerResponseSchema>;
 
 /**
  * Validate unknown handler output before the bus converts it to an internal

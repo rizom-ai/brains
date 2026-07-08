@@ -1,14 +1,16 @@
 import type { IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { fetchImageAsBase64, isHttpUrl } from "@brains/image";
+import { z } from "@brains/utils/zod";
+import { getErrorMessage } from "@brains/utils/error";
+import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
+import { slugify } from "@brains/utils/string-utils";
 import {
-  getErrorMessage,
-  slugify,
-  parseMarkdown,
-  generateMarkdown,
-  z,
-} from "@brains/utils";
-import { getOrCreateImageEntity } from "./image-entity-helper";
+  getOrCreateImageEntity,
+  type ImageFetcher,
+} from "./image-entity-helper";
+
+export type { ImageFetcher } from "./image-entity-helper";
 
 /**
  * Result of image URL conversion
@@ -28,7 +30,7 @@ export interface ConversionResult {
 const coverImageFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(),
-  coverImageUrl: z.string().url(),
+  coverImageUrl: z.url(),
   coverImageId: z.string().optional(),
   coverImageAlt: z.string().optional(),
 });
@@ -54,9 +56,6 @@ export interface CoverImageDetection {
   customAlt?: string | undefined;
 }
 
-/** Function to fetch an image URL and return base64 data URL */
-export type ImageFetcher = (url: string) => Promise<string>;
-
 /**
  * Converts coverImage URLs in frontmatter to coverImageId references
  *
@@ -66,13 +65,17 @@ export type ImageFetcher = (url: string) => Promise<string>;
  * 3. Replaces coverImage with coverImageId in the frontmatter
  */
 export class FrontmatterImageConverter {
+  private entityService: IEntityService;
+  private fetcher: ImageFetcher;
   private logger: Logger;
 
   constructor(
-    private entityService: IEntityService,
+    entityService: IEntityService,
     logger: Logger,
-    private fetcher: ImageFetcher = fetchImageAsBase64,
+    fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
+    this.entityService = entityService;
+    this.fetcher = fetcher;
     this.logger = logger.child("FrontmatterImageConverter");
   }
 

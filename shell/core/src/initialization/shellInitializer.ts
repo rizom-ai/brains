@@ -4,7 +4,7 @@ import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
 import type { IJobQueueService } from "@brains/job-queue";
 import type { PluginManager, IShell } from "@brains/plugins";
 import type { TemplateRegistry } from "@brains/templates";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 import { SHELL_ENTITY_TYPES } from "../constants";
 import type { ShellConfig } from "../config";
@@ -157,12 +157,4 @@ export class ShellInitializer {
 export function resetServiceSingletons(): void {
   ShellInitializer.resetInstance();
   resetCoreServiceSingletons();
-}
-
-export async function resetAllSingletons(): Promise<void> {
-  // Import Shell here to avoid circular dependency at module level
-  const { Shell } = await import("../shell");
-
-  await Shell.resetInstance();
-  resetServiceSingletons();
 }

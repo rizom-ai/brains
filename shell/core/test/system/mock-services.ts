@@ -7,12 +7,17 @@ import {
   type EntitySearchRequest,
   type ListEntitiesRequest,
 } from "@brains/entity-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { PermissionService } from "@brains/templates";
 
 type SeedEntity = Omit<BaseEntity, "visibility"> & {
   visibility?: BaseEntity["visibility"];
 };
+
+interface Parser<T> {
+  parse(input: unknown): T;
+}
+
 import { createInsightsRegistry } from "../../src/system/insights";
 
 /**
@@ -36,8 +41,7 @@ export function createMockSystemServices(
   getLastUpdateRequest: () => unknown;
   /** Get the last direct markdown create call */
   getLastMarkdownCreate: () =>
-    | { entityType: string; id: string; markdown: string }
-    | undefined;
+    { entityType: string; id: string; markdown: string } | undefined;
 } {
   const entities = new Map<string, BaseEntity>();
   // Types that have seeded entity data. Drives data-presence behavior such as
@@ -79,7 +83,7 @@ export function createMockSystemServices(
     status: z.string().optional(),
   });
 
-  const parseFrontMatter = <T>(markdown: string, schema: z.ZodSchema<T>): T =>
+  const parseFrontMatter = <T>(markdown: string, schema: Parser<T>): T =>
     parseMarkdownWithFrontmatter(markdown, schema).metadata;
 
   const buildStub = (input: {
@@ -99,7 +103,7 @@ export function createMockSystemServices(
       hasBody: boolean;
       isSingleton: boolean;
       fromMarkdown: (markdown: string) => unknown;
-      parseFrontMatter: <T>(markdown: string, schema: z.ZodSchema<T>) => T;
+      parseFrontMatter: <T>(markdown: string, schema: Parser<T>) => T;
       buildStub: (input: { id: string; title: string }) => {
         content: string;
         metadata: Record<string, unknown>;
@@ -235,7 +239,18 @@ export function createMockSystemServices(
           if (allowed && !allowed.has(e.visibility)) return false;
           return true;
         })
-        .map((entity) => ({ entity, score: 1, excerpt: entity.content }));
+        .map((entity) => ({
+          entity,
+          score:
+            typeof entity.metadata["searchScore"] === "number"
+              ? entity.metadata["searchScore"]
+              : 1,
+          excerpt: entity.content,
+        }))
+        .filter((result) => {
+          const minScore = request.options?.minScore;
+          return minScore === undefined || result.score >= minScore;
+        });
     },
     getEntity: async (request: {
       entityType: string;

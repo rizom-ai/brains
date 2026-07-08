@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "zod";
+import { z } from "@brains/utils/zod";
 import { StructuredContentFormatter } from "./structured-content";
 import type { FieldMapping } from "./structured-content";
 import {
@@ -417,6 +417,63 @@ not-a-number
 `;
 
       expect(() => formatter.parse(invalidMarkdown)).toThrow();
+    });
+
+    it("should include zod issue detail and cause on parse failure", () => {
+      const invalidMarkdown = `# Test
+
+## Title
+Hello
+
+## Description
+Test
+
+## Count
+not-a-number
+`;
+
+      let caught: unknown;
+      try {
+        formatter.parse(invalidMarkdown);
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(Error);
+      const err = caught as Error;
+      expect(err.message).toContain("Failed to parse structured content");
+      expect(err.message).toContain("count");
+      expect(err.cause).toBeInstanceOf(z.ZodError);
+    });
+
+    it("should preserve the underlying error as cause on format failure", () => {
+      const throwingFormatter = new StructuredContentFormatter(simpleSchema, {
+        title: "Test",
+        mappings: [
+          {
+            key: "title",
+            label: "Title",
+            type: "custom",
+            formatter: (): string => {
+              throw new Error("boom");
+            },
+          },
+        ],
+      });
+
+      let caught: unknown;
+      try {
+        throwingFormatter.format({ title: "x", description: "y", count: 1 });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(Error);
+      const err = caught as Error;
+      expect(err.message).toContain("Failed to format structured content");
+      expect(err.message).toContain("boom");
+      expect(err.cause).toBeInstanceOf(Error);
+      expect((err.cause as Error).message).toBe("boom");
     });
 
     it("should handle missing fields gracefully", () => {

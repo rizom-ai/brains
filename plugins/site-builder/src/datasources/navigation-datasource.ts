@@ -1,6 +1,10 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z, type z as zType } from "@brains/utils";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import { NavigationSlots } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 
@@ -10,19 +14,22 @@ const navigationQuerySchema = z.object({
   limit: z.number().optional(),
 });
 
+type NavigationQuery = z.output<typeof navigationQuerySchema>;
+
 /**
  * DataSource that provides navigation data from the RouteRegistry
  * Supports querying specific navigation slots
  */
 export class NavigationDataSource implements DataSource {
+  private readonly routeRegistry: RouteRegistry;
+  private readonly logger: Logger;
   public readonly id = "site:navigation";
   public readonly name = "Site Navigation DataSource";
   public readonly description = "Provides navigation items for site menus";
 
-  constructor(
-    private readonly routeRegistry: RouteRegistry,
-    private readonly logger: Logger,
-  ) {
+  constructor(routeRegistry: RouteRegistry, logger: Logger) {
+    this.routeRegistry = routeRegistry;
+    this.logger = logger;
     this.logger.debug("NavigationDataSource initialized");
   }
 
@@ -34,11 +41,11 @@ export class NavigationDataSource implements DataSource {
    */
   async fetch<T>(
     query: unknown,
-    outputSchema: zType.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     _context?: BaseDataSourceContext,
   ): Promise<T> {
     // Parse and validate query parameters
-    const params = navigationQuerySchema.parse(query ?? {});
+    const params: NavigationQuery = navigationQuerySchema.parse(query ?? {});
 
     this.logger.debug("NavigationDataSource fetch called", { params });
 

@@ -10,14 +10,29 @@ import type {
   IEntitiesNamespace,
 } from "@brains/entity-service";
 import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
+import type { IPromptsNamespace } from "./namespaces";
 import type {
+  AIGenerationSchema,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
 import type { DefaultQueryResponse } from "@brains/contracts";
-import type { z } from "@brains/utils";
 
 export type { IEntitiesNamespace };
+export type { IPromptsNamespace };
+
+export interface FrontmatterSchemaParser {
+  parse(data: unknown): unknown;
+}
+
+export interface EntityPluginEntitiesNamespace extends Omit<
+  IEntitiesNamespace,
+  "getEffectiveFrontmatterSchema"
+> {
+  getEffectiveFrontmatterSchema(
+    type: string,
+  ): FrontmatterSchemaParser | undefined;
+}
 
 /**
  * AI namespace for entity plugins — includes generation capabilities
@@ -32,10 +47,10 @@ export interface IEntityAINamespace {
   /** Generate content using AI with template */
   generate: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
 
-  /** Generate a structured object using AI with a Zod schema */
+  /** Generate a structured object using AI with a schema parser */
   generateObject: <T>(
     prompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ) => Promise<{ object: T }>;
 
   /** Generate an image using AI (requires AI_API_KEY) */
@@ -49,14 +64,6 @@ export interface IEntityAINamespace {
 }
 
 /**
- * Prompts namespace — resolves AI prompts from prompt entities
- */
-export interface IPromptsNamespace {
-  /** Resolve a prompt by target name. Returns entity content if found, fallback otherwise. */
-  resolve: (target: string, fallback: string) => Promise<string>;
-}
-
-/**
  * Context for entity plugins.
  *
  * Includes: entity registration, AI generation, prompt resolution, messaging, jobs.
@@ -64,7 +71,7 @@ export interface IPromptsNamespace {
  */
 export interface EntityPluginContext extends BasePluginContext {
   readonly entityService: IEntityService;
-  readonly entities: IEntitiesNamespace;
+  readonly entities: EntityPluginEntitiesNamespace;
   readonly ai: IEntityAINamespace;
   readonly prompts: IPromptsNamespace;
   readonly permissions: IPermissionsNamespace;
@@ -101,7 +108,7 @@ export function createEntityPluginContext(
       },
       generateObject: async <T>(
         prompt: string,
-        schema: z.ZodType<T>,
+        schema: AIGenerationSchema<T>,
       ): Promise<{ object: T }> => {
         return shell.generateObject(prompt, schema);
       },

@@ -1,6 +1,6 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { EntityPluginContext, BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import {
   buildTopicExtractionPrompt,
@@ -16,10 +16,12 @@ export type ExtractedTopic = ExtractedTopicData;
  * Service for extracting topics from entities using AI
  */
 export class TopicExtractor {
-  constructor(
-    private readonly context: EntityPluginContext,
-    private readonly logger: Logger,
-  ) {}
+  private readonly context: EntityPluginContext;
+  private readonly logger: Logger;
+  constructor(context: EntityPluginContext, logger: Logger) {
+    this.context = context;
+    this.logger = logger;
+  }
 
   /**
    * Extract topics from an entity (post, link, summary, etc.)

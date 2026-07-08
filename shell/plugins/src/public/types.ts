@@ -15,7 +15,7 @@ import type {
   OutputFormat,
   UserPermissionLevel,
 } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
@@ -27,12 +27,19 @@ import type {
 } from "../contracts/messaging";
 
 export type PluginConfig = Record<string, unknown>;
-export type PluginConfigInput<T extends z.ZodTypeAny> = z.input<T>;
+export type PluginConfigInput<T extends { _input: unknown }> = T["_input"];
+
+export interface SafeParserSchema<T> {
+  safeParse(
+    input: unknown,
+  ):
+    { success: true; data: T } | { success: false; error: { message: string } };
+}
 
 export interface JudgeInput<T> {
   instruction: string;
   material: string;
-  schema: z.ZodType<T>;
+  schema: z.ZodType<T, unknown>;
 }
 
 export interface Plugin {
@@ -92,7 +99,7 @@ export type ToolSideEffects = "none" | "writes" | "external";
 export interface Tool<TArgs = unknown, TResult = unknown> {
   name: string;
   description: string;
-  inputSchema: z.ZodRawShape;
+  inputSchema: Record<string, unknown>;
   handler: (args: TArgs, context: ToolContext) => Promise<TResult> | TResult;
   visibility?: ToolVisibility;
   confirmation?: ToolConfirmation;
@@ -150,10 +157,7 @@ export interface MessageJobTrackingInfo extends BaseJobTrackingInfo {
 }
 
 export type JobProgressStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed";
+  "pending" | "processing" | "completed" | "failed";
 
 export interface JobProgressContext {
   rootJobId: string;
@@ -202,7 +206,10 @@ export interface JobProgressEvent {
   metadata: JobProgressContext;
 }
 
-export const urlCaptureConfigSchema = z.object({
+export const urlCaptureConfigSchema: z.ZodObject<{
+  captureUrls: z.ZodDefault<z.ZodBoolean>;
+  blockedUrlDomains: z.ZodDefault<z.ZodArray<z.ZodString>>;
+}> = z.object({
   captureUrls: z.boolean().default(false),
   blockedUrlDomains: z
     .array(z.string())
@@ -227,13 +234,13 @@ export const urlCaptureConfigSchema = z.object({
 
 export interface Channel<TPayload, TResponse = unknown> {
   readonly name: string;
-  readonly schema: z.ZodType<TPayload>;
+  readonly schema: SafeParserSchema<TPayload>;
   readonly _response?: TResponse;
 }
 
 export function defineChannel<TPayload, TResponse = unknown>(
   name: string,
-  schema: z.ZodType<TPayload>,
+  schema: SafeParserSchema<TPayload>,
 ): Channel<TPayload, TResponse> {
   return { name, schema };
 }
@@ -411,6 +418,19 @@ export interface IViewsNamespace {
   validate(templateName: string, content: unknown): boolean;
 }
 
+export interface FrontmatterSchemaParser {
+  parse(data: unknown): unknown;
+}
+
+export interface EntityPluginEntitiesNamespace extends Omit<
+  IEntitiesNamespace,
+  "getEffectiveFrontmatterSchema"
+> {
+  getEffectiveFrontmatterSchema(
+    type: string,
+  ): FrontmatterSchemaParser | undefined;
+}
+
 export interface ServicePluginContext extends BasePluginContext {
   readonly entities: IEntitiesNamespace;
   readonly templates: IServiceTemplatesNamespace;
@@ -420,7 +440,7 @@ export interface ServicePluginContext extends BasePluginContext {
 }
 
 export interface EntityPluginContext extends BasePluginContext {
-  readonly entities: IEntitiesNamespace;
+  readonly entities: EntityPluginEntitiesNamespace;
   readonly prompts: IPromptsNamespace;
 }
 

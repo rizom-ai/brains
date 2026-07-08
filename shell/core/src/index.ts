@@ -4,12 +4,13 @@ export type { BootMode } from "./initialization/shellBootloader";
 
 export {
   createShellConfig,
+  createStandardConfig,
   getStandardConfig,
-  getStandardConfigWithDirectories,
   shellConfigSchema,
   STANDARD_PATHS,
 } from "./config";
-export type { ShellConfig, StandardConfig } from "./config";
+export type { ShellConfig, StandardConfig, StandardPaths } from "./config";
+export { shellEnvVars } from "./env-schema";
 
 export type { IEmbeddingService } from "@brains/entity-service";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
@@ -20,7 +21,5 @@ export {
   SHELL_TEMPLATE_NAMES,
 } from "./constants";
 
-export {
-  resetAllSingletons,
-  resetServiceSingletons,
-} from "./initialization/shellInitializer";
+export { resetAllSingletons } from "./initialization/reset";
+export { resetServiceSingletons } from "./initialization/shellInitializer";

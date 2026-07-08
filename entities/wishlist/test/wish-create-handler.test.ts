@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { WishlistPlugin } from "../src";
 import { WishCreateHandler } from "../src/handlers/wish-create-handler";
 import type { EntityPluginContext } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 
 const noopProgress = {} as ProgressReporter;
 

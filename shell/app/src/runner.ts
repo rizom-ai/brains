@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { handleCLI } from "./cli";
 import { resolve } from "./brain-resolver";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import {
   parseInstanceOverrides,
   InstanceOverridesParseError,
@@ -96,7 +96,7 @@ async function main(): Promise<void> {
   const schemaPath = join(brainPkgDir, ".env.schema");
   if (existsSync(schemaPath)) {
     const graph = await internal.loadVarlockEnvGraph({
-      entryFilePath: schemaPath,
+      entryFilePaths: [schemaPath],
     });
     await graph.resolveEnvValues();
     try {

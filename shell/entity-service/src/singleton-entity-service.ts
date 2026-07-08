@@ -1,5 +1,5 @@
 import type { ContentVisibility, EntityService, BaseEntity } from "./types";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 /**
  * Base class for singleton entity services (identity, profile, etc.)

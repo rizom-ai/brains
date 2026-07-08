@@ -3,7 +3,18 @@ export { EntityRegistry } from "./entityRegistry";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
+export type {
+  BaseEntityAdapterConfig,
+  BaseEntityFrontmatterSchema,
+  DefaultEntityFrontmatter,
+} from "./adapters";
 export { SingletonEntityService } from "./singleton-entity-service";
+export {
+  EntityValidationError,
+  hasValidationIssues,
+  isEntityValidationError,
+  toEntityValidationError,
+} from "./errors";
 
 // Embedding
 export type {
@@ -43,6 +54,8 @@ export type {
   EntityInput,
   SearchResult,
   EntityAdapter,
+  EntitySchema,
+  EntitySchemaParser,
   ListOptions,
   SearchOptions,
   GetEntityRequest,
@@ -69,11 +82,13 @@ export type {
 } from "./types";
 
 export {
+  baseEntityParserSchema,
   baseEntitySchema,
   NOTE_ENTITY_TYPE,
   canWriteVisibility,
   contentVisibilitySchema,
   createResultAttachmentSchema,
+  emptyFrontmatterSchema,
   getVisibleContentVisibilities,
   isVisibleWithinScope,
   normalizeContentVisibility,
@@ -98,9 +113,10 @@ export {
 export { DataSourceRegistry } from "./datasource-registry";
 export type {
   DataSource,
+  DataSourceSchema,
   DataSourceCapabilities,
   BaseDataSourceContext,
-} from "./datasource-types";
+} from "./types";
 export {
   paginationInfoSchema,
   paginateItems,

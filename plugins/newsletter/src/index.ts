@@ -1,7 +1,31 @@
-import type { Plugin } from "@brains/plugins";
-import { z } from "@brains/utils";
-import { newsletterPlugin } from "@brains/newsletter-entity";
-import { buttondownPlugin } from "@brains/buttondown";
+import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import { newsletterPlugin } from "./entity";
+import { buttondownPlugin } from "./provider";
+
+export { NewsletterPlugin, newsletterPlugin } from "./entity";
+export type {
+  Newsletter,
+  NewsletterMetadata,
+  NewsletterStatus,
+  CreateNewsletterInput,
+} from "./entity";
+export {
+  newsletterSchema,
+  newsletterMetadataSchema,
+  newsletterStatusSchema,
+  createNewsletter,
+} from "./entity";
+export { ButtondownPlugin, buttondownPlugin } from "./provider";
+export { ButtondownClient } from "./provider";
+export type {
+  Subscriber,
+  SubscriberType,
+  CreateSubscriberInput,
+  ButtondownEmail,
+  EmailStatus,
+  CreateEmailInput,
+} from "./provider";
 
 /**
  * Composite config for the newsletter feature.
@@ -9,7 +33,18 @@ import { buttondownPlugin } from "@brains/buttondown";
  * Distributes shared credentials and behavior to the newsletter entity plugin
  * and the buttondown service plugin. One brain.yaml block configures both.
  */
-export const newsletterCompositeConfigSchema = z.object({
+export interface NewsletterCompositeConfig {
+  apiKey?: string | undefined;
+  doubleOptIn?: boolean | undefined;
+  autoSendOnPublish?: boolean | undefined;
+}
+
+export type NewsletterCompositeConfigInput = NewsletterCompositeConfig;
+
+export const newsletterCompositeConfigSchema: z.ZodType<
+  NewsletterCompositeConfig,
+  NewsletterCompositeConfigInput
+> = z.object({
   apiKey: z.string().optional().describe("Buttondown API key"),
   doubleOptIn: z
     .boolean()
@@ -20,10 +55,6 @@ export const newsletterCompositeConfigSchema = z.object({
     .optional()
     .describe("Automatically send newsletter when a blog post is published"),
 });
-
-export type NewsletterCompositeConfig = z.infer<
-  typeof newsletterCompositeConfigSchema
->;
 
 /**
  * Composite factory: returns the newsletter entity plugin + buttondown service
@@ -40,8 +71,21 @@ export type NewsletterCompositeConfig = z.infer<
  * The composite is gated by the capability id `newsletter` — adding or removing
  * it from a preset enables or disables both sub-plugins.
  */
-export function newsletter(config: NewsletterCompositeConfig = {}): Plugin[] {
-  const parsed = newsletterCompositeConfigSchema.parse(config);
+export function newsletter(
+  config: NewsletterCompositeConfigInput = {},
+): Plugin[] {
+  const parsedConfig = newsletterCompositeConfigSchema.safeParse(config);
+  if (!parsedConfig.success) {
+    throw new PluginConfigValidationError(
+      "newsletter",
+      parsedConfig.error.issues.map((issue) => ({
+        path: issue.path.map(String).join("."),
+        code: issue.code,
+        message: issue.message,
+      })),
+    );
+  }
+  const parsed = parsedConfig.data;
   return [
     newsletterPlugin({}),
     buttondownPlugin({

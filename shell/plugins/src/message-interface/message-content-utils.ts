@@ -1,12 +1,16 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 /** Maximum size (in bytes) for an uploaded text file. */
 export const maxFileUploadBytes = 100_000;
-const TEXT_FILE_EXTENSIONS = [".md", ".txt", ".markdown"];
-const TEXT_MIME_TYPES = ["text/plain", "text/markdown", "text/x-markdown"];
+const TEXT_FILE_EXTENSIONS = [".md", ".txt", ".markdown"] as const;
+const TEXT_MIME_TYPES = [
+  "text/plain",
+  "text/markdown",
+  "text/x-markdown",
+] as const;
 const URL_PATTERN = /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/gi;
 
-export const blockedUrlDomainsDefault = [
+export const blockedUrlDomainsDefault: string[] = [
   "meet.google.com",
   "zoom.us",
   "teams.microsoft.com",
@@ -28,7 +32,10 @@ export const blockedUrlDomainsDefault = [
  * Shared URL capture config schema — spread into any MessageInterfacePlugin config.
  * Interfaces add platform-specific options (e.g. captureUrlEmoji for Discord).
  */
-export const urlCaptureConfigSchema = z.object({
+export const urlCaptureConfigSchema: z.ZodObject<{
+  captureUrls: z.ZodDefault<z.ZodBoolean>;
+  blockedUrlDomains: z.ZodDefault<z.ZodArray<z.ZodString>>;
+}> = z.object({
   /** Auto-capture URLs shared in channels (without mention) */
   captureUrls: z.boolean().default(false),
   /** Domains to skip for URL auto-capture (meetings, scheduling, media, etc.) */

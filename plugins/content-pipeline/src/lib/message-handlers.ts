@@ -1,6 +1,6 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { RetryTracker } from "../retry-tracker";
 import type { ContentScheduler } from "../scheduler";

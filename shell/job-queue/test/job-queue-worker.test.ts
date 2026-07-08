@@ -14,8 +14,11 @@ import {
   createMockProgressReporter,
   createMockJobQueueService,
 } from "@brains/test-utils";
-import { createId } from "@brains/utils";
-import type { IJobProgressMonitor, ProgressReporter } from "@brains/utils";
+import { createId } from "@brains/utils/id";
+import type {
+  IJobProgressMonitor,
+  ProgressReporter,
+} from "@brains/utils/progress";
 
 const mockProgressReporter = createMockProgressReporter();
 
@@ -294,6 +297,56 @@ describe("JobQueueWorker", () => {
       const stats = worker.getStats();
       expect(stats.isRunning).toBe(false);
       expect(stats.processedJobs).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should wait for jobs claimed by an in-flight poll during stop", async () => {
+      const handler = createMockHandler();
+      handler.process.mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        return { success: true };
+      });
+
+      let releaseDequeue: (job: JobInfo | null) => void = () => {};
+      let signalDequeueStarted: () => void = () => {};
+      const dequeueStarted = new Promise<void>((resolve) => {
+        signalDequeueStarted = resolve;
+      });
+
+      let dequeueCalls = 0;
+      const service = createMockJobQueueService({
+        returns: { getHandler: handler },
+      });
+      spyOn(service, "dequeue").mockImplementation(() => {
+        dequeueCalls++;
+        if (dequeueCalls === 1) {
+          signalDequeueStarted();
+          return new Promise<JobInfo | null>((resolve) => {
+            releaseDequeue = resolve;
+          });
+        }
+        return Promise.resolve(null);
+      });
+
+      // concurrency 2 so the poll loop would try a second dequeue after stop
+      worker = JobQueueWorker.createFresh(
+        service,
+        new MockProgressMonitor(),
+        createSilentLogger(),
+        { pollInterval: 10, concurrency: 2 },
+      );
+      await worker.start();
+
+      // Poll is past its shouldStop check and blocked inside dequeue()
+      await dequeueStarted;
+      const stopPromise = worker.stop();
+      // The in-flight dequeue claims a job after stop() was called
+      releaseDequeue(testJob);
+      await stopPromise;
+
+      // The claimed job must be fully processed before stop() resolves,
+      // and no further dequeue may happen once stop was requested
+      expect(worker.getStats().processedJobs).toBe(1);
+      expect(dequeueCalls).toBe(1);
     });
   });
 

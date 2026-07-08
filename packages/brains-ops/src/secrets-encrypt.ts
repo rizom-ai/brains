@@ -8,21 +8,25 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { toYaml, z } from "@brains/utils";
+import { toYaml } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";
 
-const encryptedUserSecretsSchema = z
-  .object({
-    gitSyncToken: z.string().min(1).optional(),
-    discordBotToken: z.string().min(1).optional(),
-    aiApiKey: z.string().min(1).optional(),
-    atprotoAppPassword: z.string().min(1).optional(),
-  })
-  .strict();
+const encryptedUserSecretsSchema: z.ZodObject<{
+  gitSyncToken: z.ZodOptional<z.ZodString>;
+  discordBotToken: z.ZodOptional<z.ZodString>;
+  aiApiKey: z.ZodOptional<z.ZodString>;
+  atprotoAppPassword: z.ZodOptional<z.ZodString>;
+}> = z.strictObject({
+  gitSyncToken: z.string().min(1).optional(),
+  discordBotToken: z.string().min(1).optional(),
+  aiApiKey: z.string().min(1).optional(),
+  atprotoAppPassword: z.string().min(1).optional(),
+});
 
-export type EncryptedUserSecrets = z.infer<typeof encryptedUserSecretsSchema>;
+export type EncryptedUserSecrets = z.output<typeof encryptedUserSecretsSchema>;
 
 export interface SecretsEncryptOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -88,6 +92,7 @@ export async function encryptPilotSecrets(
         await writePlaintextSecretsTemplate(plaintextPath, templateKeys);
         throw new Error(
           `Missing required secrets for ${handle}. Created ${plaintextDisplayPath}; fill it in and rerun secrets:encrypt. ${error.message}`,
+          { cause: error },
         );
       }
     }

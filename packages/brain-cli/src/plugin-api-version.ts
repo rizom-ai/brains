@@ -7,4 +7,4 @@ import packageJson from "../package.json" with { type: "json" };
  * published @rizom/brain package version. Once the plugin API is declared
  * stable, this can move to an independent semver contract such as 1.0.0.
  */
-export const PLUGIN_API_VERSION = packageJson.version;
+export const PLUGIN_API_VERSION: string = packageJson.version;

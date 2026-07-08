@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { introspectSchema } from "../src/lib/schema-introspector";
 
 describe("introspectSchema", () => {

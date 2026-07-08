@@ -13,7 +13,7 @@ import {
   createAttachmentsNamespace,
   type RuntimeAppInfo,
 } from "@brains/plugins";
-import type { ShellServices } from "./initialization/shellInitializer";
+import type { ShellServices } from "./types/shell-types";
 import { registerSystemCapabilities } from "./system/register";
 
 export interface ShellSystemCapabilityOptions {

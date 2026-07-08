@@ -1,5 +1,6 @@
 import type { RouteDefinition, SiteLayoutInfo } from "@brains/site-composition";
-import type { Logger, ProgressNotification } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressNotification } from "@brains/utils/progress";
 import type { LayoutComponent, LayoutSlots } from "./layout-contracts";
 import type { CSSProcessor } from "./css-processor";
 import type { RouteScriptTemplate } from "./route-scripts";

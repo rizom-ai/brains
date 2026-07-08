@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { ServicePlugin, type ApiRouteDefinition } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 // Test plugin with API routes
-class PluginWithRoutes extends ServicePlugin {
+class PluginWithRoutes extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "plugin-with-routes",
@@ -28,7 +31,10 @@ class PluginWithRoutes extends ServicePlugin {
 }
 
 // Test plugin without API routes
-class PluginWithoutRoutes extends ServicePlugin {
+class PluginWithoutRoutes extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "plugin-without-routes",

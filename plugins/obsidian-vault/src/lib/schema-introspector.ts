@@ -1,5 +1,3 @@
-import { z } from "@brains/utils";
-
 export interface FieldInfo {
   name: string;
   type: "string" | "number" | "boolean" | "array" | "enum" | "date" | "unknown";
@@ -8,51 +6,67 @@ export interface FieldInfo {
   enumValues?: string[];
 }
 
-/**
- * Unwrap Zod wrappers (optional, default, nullable) to get the base type.
- * Returns the inner type and whether the field is optional/has a default.
- */
-function unwrap(schema: z.ZodTypeAny): {
-  inner: z.ZodTypeAny;
+interface ZodObjectLike {
+  shape: Record<string, unknown>;
+}
+
+interface UnwrappedSchema {
+  inner: unknown;
   required: boolean;
   defaultValue?: unknown;
-} {
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getDefinition(schema: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(schema)) return undefined;
+  const definition = schema["def"];
+  return isRecord(definition) ? definition : undefined;
+}
+
+function getSchemaKind(schema: unknown): string | undefined {
+  const type = getDefinition(schema)?.["type"];
+  return typeof type === "string" ? type : undefined;
+}
+
+function readDefaultValue(value: unknown): unknown {
+  return typeof value === "function" ? value() : value;
+}
+
+/**
+ * Unwrap Zod 4 wrappers (optional, default, nullable) to get the base type.
+ */
+function unwrap(schema: unknown): UnwrappedSchema {
   let inner = schema;
   let required = true;
   let defaultValue: unknown = undefined;
   let hasDefault = false;
 
-  // Peel layers — order matters because ZodDefault wraps ZodOptional etc.
   let changed = true;
   while (changed) {
     changed = false;
+    const definition = getDefinition(inner);
+    const kind = getSchemaKind(inner);
 
-    if (inner instanceof z.ZodOptional) {
+    if (kind === "optional" || kind === "nullable") {
       required = false;
-      inner = inner._def.innerType;
+      inner = definition?.["innerType"];
       changed = true;
+      continue;
     }
 
-    if (inner instanceof z.ZodDefault) {
+    if (kind === "default") {
       required = false;
       hasDefault = true;
-      defaultValue = inner._def.defaultValue();
-      inner = inner._def.innerType;
-      changed = true;
-    }
-
-    if (inner instanceof z.ZodNullable) {
-      required = false;
-      inner = inner._def.innerType;
+      defaultValue = readDefaultValue(definition?.["defaultValue"]);
+      inner = definition?.["innerType"];
       changed = true;
     }
   }
 
-  const result: {
-    inner: z.ZodTypeAny;
-    required: boolean;
-    defaultValue?: unknown;
-  } = {
+  const result: UnwrappedSchema = {
     inner,
     required,
   };
@@ -62,28 +76,48 @@ function unwrap(schema: z.ZodTypeAny): {
   return result;
 }
 
+function readEnumValues(schema: unknown): string[] | undefined {
+  const definition = getDefinition(schema);
+  const entries = definition?.["entries"];
+  if (!isRecord(entries)) return undefined;
+  const entryValues = Object.values(entries);
+  if (!entryValues.every((value) => typeof value === "string"))
+    return undefined;
+  return entryValues;
+}
+
+function readLiteralValue(schema: unknown): unknown {
+  const definition = getDefinition(schema);
+  const values = definition?.["values"];
+  if (Array.isArray(values)) return values[0];
+  return definition?.["value"];
+}
+
 /**
  * Determine the field type from the unwrapped Zod type.
  */
 function classifyType(
-  schema: z.ZodTypeAny,
+  schema: unknown,
 ): Pick<FieldInfo, "type" | "enumValues" | "defaultValue"> {
-  if (schema instanceof z.ZodEnum) {
-    return { type: "enum", enumValues: schema._def.values as string[] };
-  }
-  if (schema instanceof z.ZodLiteral) {
-    return { type: "string", defaultValue: schema._def.value };
-  }
-  if (schema instanceof z.ZodString) return { type: "string" };
-  if (schema instanceof z.ZodNumber) return { type: "number" };
-  if (schema instanceof z.ZodBoolean) return { type: "boolean" };
-  if (schema instanceof z.ZodArray) return { type: "array" };
-  if (schema instanceof z.ZodDate) return { type: "date" };
+  const kind = getSchemaKind(schema);
 
-  // z.coerce.date() produces a ZodPipeline wrapping ZodDate
-  if (schema instanceof z.ZodPipeline) {
-    const out = schema._def.out;
-    if (out instanceof z.ZodDate) return { type: "date" };
+  if (kind === "enum") {
+    const enumValues = readEnumValues(schema);
+    return enumValues ? { type: "enum", enumValues } : { type: "enum" };
+  }
+  if (kind === "literal") {
+    return { type: "string", defaultValue: readLiteralValue(schema) };
+  }
+  if (kind === "string") return { type: "string" };
+  if (kind === "number") return { type: "number" };
+  if (kind === "boolean") return { type: "boolean" };
+  if (kind === "array") return { type: "array" };
+  if (kind === "date") return { type: "date" };
+
+  // Coerced date shapes can produce a pipeline/pipe wrapping ZodDate.
+  if (kind === "pipeline" || kind === "pipe") {
+    const definition = getDefinition(schema);
+    return classifyType(definition?.["out"]);
   }
 
   return { type: "unknown" };
@@ -92,13 +126,10 @@ function classifyType(
 /**
  * Introspect a Zod object schema and extract field information.
  */
-export function introspectSchema(
-  schema: z.ZodObject<z.ZodRawShape>,
-): FieldInfo[] {
-  const shape = schema.shape;
+export function introspectSchema(schema: ZodObjectLike): FieldInfo[] {
   const fields: FieldInfo[] = [];
 
-  for (const [name, fieldSchema] of Object.entries(shape)) {
+  for (const [name, fieldSchema] of Object.entries(schema.shape)) {
     const {
       inner,
       required,
@@ -112,8 +143,8 @@ export function introspectSchema(
       required,
     };
 
-    // Merge default values: unwrap default (from ZodDefault) takes precedence,
-    // then classified default (from ZodLiteral)
+    // Merge default values: explicit schema defaults take precedence, then
+    // literal-derived defaults.
     const effectiveDefault =
       unwrapDefault !== undefined ? unwrapDefault : classified.defaultValue;
     if (effectiveDefault !== undefined) {

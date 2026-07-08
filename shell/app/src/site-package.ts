@@ -7,7 +7,7 @@ import {
   type SitePackage as BaseSitePackage,
   type SitePackageOverrides as BaseSitePackageOverrides,
 } from "@brains/site-composition";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 export { createSiteContentTemplates, extendSite, themeCssSchema };
 export type { SiteContentDefinition } from "@brains/site-composition";
@@ -23,6 +23,6 @@ export type ConventionalSiteOverrides<TPluginConfig = Record<string, unknown>> =
     pluginConfig?: TPluginConfig;
   };
 
-export const sitePackageSchema = z.custom<SitePackage>(
+export const sitePackageSchema: z.ZodType<SitePackage> = z.custom<SitePackage>(
   (value) => baseSitePackageSchema.safeParse(value).success,
 );

@@ -1,7 +1,15 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
+
+export interface TopicSummary {
+  id: string;
+  title: string;
+  summary: string;
+  created: string;
+  updated: string;
+}
 
 // Schema for individual topic summary in list
-const topicSummarySchema = z.object({
+const topicSummarySchema: z.ZodType<TopicSummary, TopicSummary> = z.object({
   id: z.string(),
   title: z.string(),
   summary: z.string(),
@@ -9,11 +17,14 @@ const topicSummarySchema = z.object({
   updated: z.string(),
 });
 
-// Schema for topic list page data
-export const topicListSchema = z.object({
-  topics: z.array(topicSummarySchema),
-  totalCount: z.number(),
-});
+export interface TopicListData {
+  topics: TopicSummary[];
+  totalCount: number;
+}
 
-export type TopicSummary = z.infer<typeof topicSummarySchema>;
-export type TopicListData = z.infer<typeof topicListSchema>;
+// Schema for topic list page data
+export const topicListSchema: z.ZodType<TopicListData, TopicListData> =
+  z.object({
+    topics: z.array(topicSummarySchema),
+    totalCount: z.number(),
+  });

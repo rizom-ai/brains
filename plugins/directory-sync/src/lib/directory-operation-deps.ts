@@ -1,5 +1,5 @@
 import type { IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { CleanupPipelineDeps } from "./cleanup-pipeline";
 import type { ExportPipelineDeps } from "./export-pipeline";
 import type { FileOperations } from "./file-operations";
@@ -22,7 +22,10 @@ export interface DirectoryOperationDepsOptions {
 }
 
 export class DirectoryOperationDeps {
-  constructor(private readonly options: DirectoryOperationDepsOptions) {}
+  private readonly options: DirectoryOperationDepsOptions;
+  constructor(options: DirectoryOperationDepsOptions) {
+    this.options = options;
+  }
 
   createExportDeps(
     deleteOnFileRemoval: boolean,

@@ -7,7 +7,7 @@ import { resetBootFn, setBootFn, type BootedBrain } from "../src/lib/boot";
 import { resolveRunnerType } from "../src/commands/start";
 import { operate } from "../src/commands/operate";
 import { createTool } from "@brains/mcp-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 describe("operate with builtin models", () => {
   let testDir: string;

@@ -1,7 +1,9 @@
 import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { projectAdapter } from "../adapters/project-adapter";
@@ -9,23 +11,34 @@ import { projectAdapter } from "../adapters/project-adapter";
 /**
  * Input schema for project generation job
  */
-export const projectGenerationJobSchema = z.object({
+export interface ProjectGenerationJobData {
+  prompt: string;
+  year: number;
+  title?: string | undefined;
+}
+
+export const projectGenerationJobSchema: z.ZodType<
+  ProjectGenerationJobData,
+  ProjectGenerationJobData
+> = z.object({
   prompt: z.string(),
   year: z.number(),
   title: z.string().optional(),
 });
 
-export type ProjectGenerationJobData = z.infer<
-  typeof projectGenerationJobSchema
->;
+export interface ProjectGenerationResult extends z.output<
+  typeof generationResultSchema
+> {
+  title?: string | undefined;
+}
 
-export const projectGenerationResultSchema = generationResultSchema.extend({
+export const projectGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    title: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   title: z.string().optional(),
 });
-
-export type ProjectGenerationResult = z.infer<
-  typeof projectGenerationResultSchema
->;
 
 export function buildProjectGenerationPrompt(
   data: ProjectGenerationJobData,

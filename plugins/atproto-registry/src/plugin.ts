@@ -10,15 +10,23 @@ import type {
   AtprotoLexicon,
   AtprotoLexiconMetadata,
 } from "@brains/atproto-contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
-export const atprotoRegistryConfigSchema = z.object({
+export interface AtprotoRegistryConfig {
+  enabled: boolean;
+}
+
+export interface AtprotoRegistryConfigInput {
+  enabled?: boolean | undefined;
+}
+
+export const atprotoRegistryConfigSchema: z.ZodType<
+  AtprotoRegistryConfig,
+  AtprotoRegistryConfigInput
+> = z.object({
   enabled: z.boolean().default(true),
 });
-
-export type AtprotoRegistryConfig = z.infer<typeof atprotoRegistryConfigSchema>;
-export type AtprotoRegistryConfigInput = Partial<AtprotoRegistryConfig>;
 
 export interface AtprotoLexiconRegistryEntry extends AtprotoLexiconMetadata {
   path: string;
@@ -30,13 +38,29 @@ export interface AtprotoLexiconRegistryIndex {
 
 const BASE_PATH = "/atproto/lexicons";
 
+interface ValidateLexiconInput {
+  nsid: string;
+  record: Record<string, unknown>;
+}
+
+const validateLexiconInputSchema: z.ZodType<
+  ValidateLexiconInput,
+  ValidateLexiconInput
+> = z.strictObject({
+  nsid: z.string(),
+  record: z.record(z.string(), z.unknown()),
+});
+
 function jsonResponse(value: unknown): Response {
   return new Response(`${JSON.stringify(value, null, 2)}\n`, {
     headers: { "Content-Type": "application/json" },
   });
 }
 
-export class AtprotoRegistryPlugin extends ServicePlugin<AtprotoRegistryConfig> {
+export class AtprotoRegistryPlugin extends ServicePlugin<
+  AtprotoRegistryConfig,
+  AtprotoRegistryConfigInput
+> {
   constructor(config: AtprotoRegistryConfigInput = {}) {
     super("atproto-registry", packageJson, config, atprotoRegistryConfigSchema);
   }
@@ -51,14 +75,12 @@ export class AtprotoRegistryPlugin extends ServicePlugin<AtprotoRegistryConfig> 
         public: true,
         handler: (): Response => jsonResponse(this.getIndex()),
       },
-      ...listCanonicalAtprotoLexicons().map(
-        (lexicon): WebRouteDefinition => ({
-          path: `${BASE_PATH}/${lexicon.id}.json`,
-          method: "GET",
-          public: true,
-          handler: (): Response => jsonResponse(lexicon),
-        }),
-      ),
+      ...listCanonicalAtprotoLexicons().map((lexicon): WebRouteDefinition => ({
+        path: `${BASE_PATH}/${lexicon.id}.json`,
+        method: "GET",
+        public: true,
+        handler: (): Response => jsonResponse(lexicon),
+      })),
     ];
   }
 
@@ -102,12 +124,12 @@ export class AtprotoRegistryPlugin extends ServicePlugin<AtprotoRegistryConfig> 
         "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
       inputSchema: {
         nsid: z.string().describe("Canonical lexicon NSID"),
-        record: z.record(z.unknown()).describe("Record payload to validate"),
+        record: z
+          .record(z.string(), z.unknown())
+          .describe("Record payload to validate"),
       },
       handler: async (input): Promise<ToolResponse> => {
-        const parsed = z
-          .object({ nsid: z.string(), record: z.record(z.unknown()) })
-          .safeParse(input);
+        const parsed = validateLexiconInputSchema.safeParse(input);
         if (!parsed.success) {
           return {
             success: false,
@@ -163,4 +185,4 @@ export function atprotoRegistryPlugin(
   return new AtprotoRegistryPlugin(config);
 }
 
-export const plugin = atprotoRegistryPlugin;
+export const plugin: typeof atprotoRegistryPlugin = atprotoRegistryPlugin;

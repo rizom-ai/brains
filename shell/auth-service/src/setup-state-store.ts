@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { JsonFileStore } from "./json-file-store";
+import { z } from "@brains/utils/zod";
+import { join } from "node:path";
 
 const DEFAULT_SETUP_STATE_FILE = "oauth-setup-state.json";
 
@@ -40,54 +41,68 @@ function recipientHash(recipient: string): string {
     .digest("hex");
 }
 
-function isStoredSetupToken(value: unknown): value is StoredSetupToken {
-  if (!value || typeof value !== "object") return false;
-  const token = value as Record<string, unknown>;
-  return (
-    typeof token["token"] === "string" && typeof token["expiresAt"] === "number"
-  );
-}
+const storedSetupTokenSchema = z.looseObject({
+  token: z.string(),
+  expiresAt: z.number(),
+});
 
-function isStoredSetupDelivery(value: unknown): value is StoredSetupDelivery {
-  if (!value || typeof value !== "object") return false;
-  const delivery = value as Record<string, unknown>;
-  return (
-    typeof delivery["setupTokenId"] === "string" &&
-    typeof delivery["recipientHash"] === "string" &&
-    typeof delivery["deliveredAt"] === "number" &&
-    (delivery["deliveryId"] === undefined ||
-      typeof delivery["deliveryId"] === "string")
-  );
-}
+const storedSetupDeliverySchema = z
+  .looseObject({
+    setupTokenId: z.string(),
+    recipientHash: z.string(),
+    deliveredAt: z.number(),
+    deliveryId: z.string().optional(),
+  })
+  .transform((delivery): StoredSetupDelivery => ({
+    setupTokenId: delivery.setupTokenId,
+    recipientHash: delivery.recipientHash,
+    deliveredAt: delivery.deliveredAt,
+    ...(delivery.deliveryId !== undefined
+      ? { deliveryId: delivery.deliveryId }
+      : {}),
+  }));
+
+const setupStateFileSchema = z.looseObject({
+  setupToken: z.unknown().optional(),
+  deliveries: z.array(z.unknown()).optional(),
+});
 
 function emptyState(): SetupStateFile {
   return { deliveries: [] };
 }
 
 function parseStoreFile(value: unknown): SetupStateFile {
-  if (!value || typeof value !== "object") return emptyState();
+  const parsed = setupStateFileSchema.safeParse(value);
+  if (!parsed.success) return emptyState();
 
-  const file = value as Record<string, unknown>;
+  const setupToken = storedSetupTokenSchema.safeParse(parsed.data.setupToken);
   return {
-    ...(isStoredSetupToken(file["setupToken"])
-      ? { setupToken: file["setupToken"] }
-      : {}),
-    deliveries: Array.isArray(file["deliveries"])
-      ? file["deliveries"].filter(isStoredSetupDelivery)
-      : [],
+    ...(setupToken.success ? { setupToken: setupToken.data } : {}),
+    deliveries: parsed.data.deliveries?.flatMap(parseStoredSetupDelivery) ?? [],
   };
 }
 
+function parseStoredSetupDelivery(value: unknown): StoredSetupDelivery[] {
+  const parsed = storedSetupDeliverySchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
+}
+
 export class SetupStateStore {
-  private readonly storeFile: string;
+  private readonly store: JsonFileStore<SetupStateFile>;
   private loaded: SetupStateFile | undefined;
-  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(options: SetupStateStoreOptions) {
-    this.storeFile = join(
-      options.storageDir,
-      options.storeFile ?? DEFAULT_SETUP_STATE_FILE,
-    );
+    this.store = new JsonFileStore({
+      filePath: join(
+        options.storageDir,
+        options.storeFile ?? DEFAULT_SETUP_STATE_FILE,
+      ),
+      parse: parseStoreFile,
+      empty: emptyState,
+      // Empty setup state can read as "this brain is unclaimed", so a
+      // corrupt file must halt instead of starting empty.
+      onCorrupt: "throw",
+    });
   }
 
   async getValidSetupToken(
@@ -98,7 +113,7 @@ export class SetupStateStore {
     if (state.setupToken.expiresAt <= nowSeconds) {
       delete state.setupToken;
       state.deliveries = [];
-      await this.enqueueWrite(() => this.writeStore(state));
+      await this.store.enqueueWrite(() => this.store.write(state));
       return undefined;
     }
     return state.setupToken;
@@ -111,12 +126,14 @@ export class SetupStateStore {
     state.deliveries = state.deliveries.filter(
       (delivery) => delivery.setupTokenId === activeSetupTokenId,
     );
-    await this.enqueueWrite(() => this.writeStore(state));
+    await this.store.enqueueWrite(() => this.store.write(state));
   }
 
   async clearSetupState(): Promise<void> {
     this.loaded = emptyState();
-    await this.enqueueWrite(() => this.writeStore(this.loaded ?? emptyState()));
+    await this.store.enqueueWrite(() =>
+      this.store.write(this.loaded ?? emptyState()),
+    );
   }
 
   async hasDelivery(
@@ -147,32 +164,11 @@ export class SetupStateStore {
       ...(options.deliveryId ? { deliveryId: options.deliveryId } : {}),
     };
     state.deliveries.push(delivery);
-    await this.enqueueWrite(() => this.writeStore(state));
+    await this.store.enqueueWrite(() => this.store.write(state));
   }
 
   private async ensureLoaded(): Promise<SetupStateFile> {
-    if (this.loaded) return this.loaded;
-    try {
-      this.loaded = parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      this.loaded = emptyState();
-    }
+    this.loaded ??= await this.store.read();
     return this.loaded;
-  }
-
-  private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
-    this.writeQueue = this.writeQueue.then(operation, operation);
-    return this.writeQueue;
-  }
-
-  private async writeStore(store: SetupStateFile): Promise<void> {
-    await mkdir(dirname(this.storeFile), { recursive: true, mode: 0o700 });
-    await writeFile(this.storeFile, `${JSON.stringify(store, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(this.storeFile, 0o600);
   }
 }

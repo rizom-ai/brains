@@ -6,7 +6,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { type EventChatAction } from "@brains/contracts";
 import { Chat, useChat } from "@ai-sdk/react";
+import { z } from "@brains/utils/zod";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
@@ -44,7 +46,7 @@ import {
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
 import { groupMessagePartSections, type RenderedPart } from "./message-parts";
-import { toUiMessage, type WebChatMessagesResponse } from "./history-messages";
+import { toUiMessage, webChatMessagesResponseSchema } from "./history-messages";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
   webChatUploadAccept,
@@ -135,15 +137,17 @@ function PromptSubmitControl({
 const dayMs = 24 * 60 * 60 * 1000;
 const sessionTitleMaxLength = 48;
 
-interface WebChatSession {
-  id: string;
-  title: string;
-  lastActiveAt: string;
-}
+const webChatSessionSchema = z.looseObject({
+  id: z.string(),
+  title: z.string(),
+  lastActiveAt: z.string(),
+});
 
-interface WebChatSessionsResponse {
-  sessions: WebChatSession[];
-}
+const webChatSessionsResponseSchema = z.looseObject({
+  sessions: z.array(webChatSessionSchema),
+});
+
+type WebChatSession = z.output<typeof webChatSessionSchema>;
 
 interface WebChatStarter {
   id: string;
@@ -272,16 +276,13 @@ interface ProgressData {
   progress?: { current: number; total: number; percentage: number };
 }
 
+const progressDataSchema = z.looseObject({
+  status: z.enum(["pending", "processing", "completed", "failed"]),
+  operationType: z.string(),
+});
+
 export function isProgressData(data: unknown): data is ProgressData {
-  if (typeof data !== "object" || data === null) return false;
-  const record = data as Record<string, unknown>;
-  return (
-    typeof record["status"] === "string" &&
-    ["pending", "processing", "completed", "failed"].includes(
-      record["status"],
-    ) &&
-    typeof record["operationType"] === "string"
-  );
+  return progressDataSchema.safeParse(data).success;
 }
 
 function formatOperationType(operationType: string): string {
@@ -502,7 +503,7 @@ export function App(): React.ReactElement {
           key={key}
           data={group.data}
           onPromptAction={(prompt) => void submitMessage(prompt)}
-          onEventAction={(event) => void submitRuntimeEvent(event)}
+          onEventAction={(action) => void submitRuntimeEvent(action)}
         />
       );
     }
@@ -583,8 +584,13 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not load saved sessions."),
         );
       }
-      const body = (await response.json()) as WebChatSessionsResponse;
-      setSessions(body.sessions);
+      const parsed = webChatSessionsResponseSchema.safeParse(
+        await response.json(),
+      );
+      if (!parsed.success) {
+        throw new Error("Could not load saved sessions.");
+      }
+      setSessions(parsed.data.sessions);
       setSessionsStatus("ready");
       setSessionError(null);
     } catch (error) {
@@ -634,8 +640,13 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not reopen that session."),
         );
       }
-      const body = (await response.json()) as WebChatMessagesResponse;
-      const nextMessages = body.messages.map(toUiMessage);
+      const parsed = webChatMessagesResponseSchema.safeParse(
+        await response.json(),
+      );
+      if (!parsed.success) {
+        throw new Error("Could not reopen that session.");
+      }
+      const nextMessages = parsed.data.messages.map(toUiMessage);
       try {
         localStorage.setItem(conversationStorageKey, nextConversationId);
       } catch {
@@ -707,7 +718,7 @@ export function App(): React.ReactElement {
       });
   }
 
-  async function submitRuntimeEvent(event: string): Promise<void> {
+  async function submitRuntimeEvent(action: EventChatAction): Promise<void> {
     if (isBusyStatus(status)) return;
     setHistoryError(null);
 
@@ -718,7 +729,11 @@ export function App(): React.ReactElement {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId,
-          action: { type: "event", event },
+          action: {
+            type: "event",
+            event: action.event,
+            ...(action.fromState ? { fromState: action.fromState } : {}),
+          },
         }),
       });
       if (!response.ok) {

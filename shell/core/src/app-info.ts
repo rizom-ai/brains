@@ -5,7 +5,7 @@ import type {
 } from "@brains/plugins";
 import { internalFullScope } from "@brains/entity-service";
 import type { ShellConfig } from "./config";
-import type { ShellServices } from "./initialization/shellInitializer";
+import type { ShellServices } from "./types/shell-types";
 
 export async function getRuntimeAppInfo(options: {
   config: ShellConfig;

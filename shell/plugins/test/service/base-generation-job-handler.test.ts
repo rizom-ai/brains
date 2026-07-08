@@ -1,12 +1,12 @@
 import { describe, expect, it, mock } from "bun:test";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   createMockEntityPluginContext,
   createMockEntityService,
 } from "@brains/test-utils";
 import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
 import type { GenerationResult } from "@brains/contracts";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
 import type { EntityPluginContext } from "../../src/entity/context";
 import {
   BaseGenerationJobHandler,
@@ -18,7 +18,7 @@ const testJobSchema = z.object({
   shouldFail: z.boolean().optional(),
 });
 
-type TestJobData = z.infer<typeof testJobSchema>;
+type TestJobData = z.output<typeof testJobSchema>;
 type TestGenerationResult = GenerationResult & { slug?: string };
 
 class TestGenerationHandler extends BaseGenerationJobHandler<

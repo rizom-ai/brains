@@ -11,7 +11,6 @@ import type {
   BaseEntity,
   EntityEventBus,
 } from "../../src/types";
-import type { z } from "@brains/utils";
 import { mockEmbeddingService } from "./mock-services";
 import { createTestEntityDatabase } from "./test-entity-db";
 
@@ -26,7 +25,7 @@ export interface EntityServiceTestContext {
 
 interface EntityTypeRegistration {
   name: string;
-  schema: z.ZodType<unknown>;
+  schema: EntityAdapter<BaseEntity>["schema"];
   adapter: EntityAdapter<BaseEntity>;
   config?: { weight?: number; embeddable?: boolean };
 }

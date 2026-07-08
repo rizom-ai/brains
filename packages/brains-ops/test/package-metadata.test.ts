@@ -4,6 +4,11 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  deployScriptNames,
+  resolveDeployScriptPath,
+} from "@brains/deploy-support";
+import { z } from "@brains/utils/zod";
 
 import packageJson from "../package.json";
 
@@ -25,6 +30,18 @@ function readDeployTemplateFile(relativePath: string): string {
 // step rather than per-commit CI.
 const RUN_SMOKE = process.env["RUN_SMOKE_TESTS"] === "1";
 
+const npmPackJsonSchema = z.array(
+  z.looseObject({
+    files: z
+      .array(
+        z.looseObject({
+          path: z.string(),
+        }),
+      )
+      .optional(),
+  }),
+);
+
 describe("@rizom/ops package metadata", () => {
   it("keeps the shared deploy template source up to date", () => {
     const deployTemplate = readDeployTemplateFile("kamal-deploy.yml");
@@ -35,6 +52,27 @@ describe("@rizom/ops package metadata", () => {
     expect(deployTemplate).toContain("/opt/brain-dist:/app/dist");
     expect(dockerfile).toContain("ENV XDG_DATA_HOME=/data");
     expect(dockerfile).toContain("ENV XDG_CONFIG_HOME=/config");
+  });
+
+  it("keeps committed deploy script templates identical to @brains/deploy-support", () => {
+    // templates/rover-pilot/deploy/scripts is regenerated from
+    // @brains/deploy-support by scripts/build.ts (copyDeployScripts); this
+    // guards against hand-edits.
+    for (const script of deployScriptNames) {
+      const committed = readFileSync(
+        join(
+          packageDir,
+          "templates",
+          "rover-pilot",
+          "deploy",
+          "scripts",
+          script,
+        ),
+        "utf8",
+      );
+      const canonical = readFileSync(resolveDeployScriptPath(script), "utf8");
+      expect(committed).toBe(canonical);
+    }
   });
 
   it("publishes built dist entrypoints and templates", () => {
@@ -59,9 +97,7 @@ describe("@rizom/ops package metadata", () => {
     });
     expect(pack.status).toBe(0);
 
-    const tarballs = JSON.parse(pack.stdout) as Array<{
-      files?: Array<{ path: string }>;
-    }>;
+    const tarballs = npmPackJsonSchema.parse(JSON.parse(pack.stdout));
     const filePaths = new Set(
       tarballs[0]?.files?.map((file) => file.path) ?? [],
     );

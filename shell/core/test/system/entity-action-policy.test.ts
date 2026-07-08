@@ -7,7 +7,7 @@ import type {
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 
@@ -40,10 +40,11 @@ function expectError(raw: unknown): string {
   return response.error;
 }
 
-function expectSuccess<TSchema extends z.ZodTypeAny>(
-  raw: unknown,
-  schema: TSchema,
-): z.infer<TSchema> {
+interface Parser<T> {
+  parse(input: unknown): T;
+}
+
+function expectSuccess<T>(raw: unknown, schema: Parser<T>): T {
   const response = toolResponseSchema.parse(raw);
   if (!("success" in response) || !response.success) {
     throw new Error(

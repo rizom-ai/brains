@@ -1,5 +1,4 @@
 ---
-"@rizom/ui": patch
 "@rizom/brain": patch
 ---
 

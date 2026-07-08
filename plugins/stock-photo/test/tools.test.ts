@@ -307,7 +307,7 @@ describe("stock-photo tools", () => {
       });
     });
 
-    it("should set cover image on target entity", async () => {
+    it("should report cover as pending when queuing with a target entity", async () => {
       let updatedEntity: unknown;
 
       entityService = createMockEntityService({
@@ -355,7 +355,7 @@ describe("stock-photo tools", () => {
 
       expect(result).toMatchObject({ success: true });
       expect((result as { data: Record<string, unknown> }).data).toMatchObject({
-        coverSet: true,
+        coverSet: false,
         jobId: "queued-stock-photo-job",
         status: "generating",
       });
@@ -364,6 +364,112 @@ describe("stock-photo tools", () => {
         targetEntityId: "my-post",
       });
       expect(updatedEntity).toBeUndefined();
+    });
+
+    it("should set cover image immediately when the photo already exists", async () => {
+      let updatedEntity: { metadata?: Record<string, unknown> } | undefined;
+
+      entityService = createMockEntityService({
+        listEntities: async () => [
+          {
+            id: "existing-id",
+            entityType: "image",
+            content: TINY_PNG_DATA_URL,
+            metadata: { sourceUrl: validInput.imageUrl },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        getEntity: async (request: { entityType: string; id: string }) => {
+          if (request.id === "my-post") {
+            return {
+              id: "my-post",
+              entityType: "post",
+              content: "test",
+              metadata: { title: "My Post" },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return null;
+        },
+        updateEntity: async (request: {
+          entity: { id: string; metadata?: Record<string, unknown> };
+        }) => {
+          updatedEntity = request.entity;
+          return {
+            entityId: request.entity.id,
+            jobId: "job-2",
+            skipped: false,
+          };
+        },
+      });
+
+      tools = createStockPhotoTools("stock-photo", {
+        provider,
+        entityService,
+        fetchImage: mockFetchImage(),
+        jobs,
+      });
+
+      const tool = findTool(tools, "stock-photo_select");
+      const result = await tool.handler(
+        {
+          ...validInput,
+          targetEntityType: "post",
+          targetEntityId: "my-post",
+        },
+        mockContext,
+      );
+
+      expect(result).toMatchObject({ success: true });
+      expect((result as { data: Record<string, unknown> }).data).toMatchObject({
+        imageEntityId: "existing-id",
+        alreadyExisted: true,
+        coverSet: true,
+      });
+      expect(updatedEntity?.metadata).toMatchObject({
+        coverImageId: "existing-id",
+      });
+    });
+
+    it("should report cover as not set when the photo exists but the target is missing", async () => {
+      entityService = createMockEntityService({
+        listEntities: async () => [
+          {
+            id: "existing-id",
+            entityType: "image",
+            content: TINY_PNG_DATA_URL,
+            metadata: { sourceUrl: validInput.imageUrl },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      tools = createStockPhotoTools("stock-photo", {
+        provider,
+        entityService,
+        fetchImage: mockFetchImage(),
+        jobs,
+      });
+
+      const tool = findTool(tools, "stock-photo_select");
+      const result = await tool.handler(
+        {
+          ...validInput,
+          targetEntityType: "post",
+          targetEntityId: "missing",
+        },
+        mockContext,
+      );
+
+      expect(result).toMatchObject({ success: true });
+      expect((result as { data: Record<string, unknown> }).data).toMatchObject({
+        imageEntityId: "existing-id",
+        alreadyExisted: true,
+        coverSet: false,
+      });
     });
 
     it("should not download the image inline", async () => {

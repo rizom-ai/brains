@@ -1,19 +1,49 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { z } from "@brains/utils";
+import { JsonFileStore } from "./json-file-store";
+import { nowSeconds } from "@brains/utils/date";
+import { z } from "@brains/utils/zod";
+import { join } from "node:path";
 import type { RegisteredOAuthClient } from "./types";
 
 const DEFAULT_CLIENT_STORE_FILE = "oauth-clients.json";
 
-const tokenEndpointAuthMethodSchema = z.enum([
-  "none",
-  "client_secret_basic",
-  "client_secret_post",
-]);
+type TokenEndpointAuthMethod =
+  "none" | "client_secret_basic" | "client_secret_post";
 
-const clientRegistrationRequestSchema = z.object({
-  redirect_uris: z.array(z.string().url()).min(1),
+const tokenEndpointAuthMethodSchema: z.ZodType<
+  TokenEndpointAuthMethod,
+  TokenEndpointAuthMethod
+> = z.enum(["none", "client_secret_basic", "client_secret_post"]);
+
+export interface ClientRegistrationRequest {
+  redirect_uris: string[];
+  token_endpoint_auth_method?: TokenEndpointAuthMethod | undefined;
+  grant_types?: ("authorization_code" | "refresh_token")[] | undefined;
+  response_types?: "code"[] | undefined;
+  scope?: string | undefined;
+  client_name?: string | undefined;
+  client_uri?: string | undefined;
+  logo_uri?: string | undefined;
+  contacts?: string[] | undefined;
+}
+
+interface ParsedClientRegistrationRequest {
+  redirect_uris: string[];
+  token_endpoint_auth_method: TokenEndpointAuthMethod;
+  grant_types: ("authorization_code" | "refresh_token")[];
+  response_types: "code"[];
+  scope?: string | undefined;
+  client_name?: string | undefined;
+  client_uri?: string | undefined;
+  logo_uri?: string | undefined;
+  contacts?: string[] | undefined;
+}
+
+const clientRegistrationRequestSchema: z.ZodType<
+  ParsedClientRegistrationRequest,
+  ClientRegistrationRequest
+> = z.object({
+  redirect_uris: z.array(z.url()).min(1),
   token_endpoint_auth_method: tokenEndpointAuthMethodSchema.default("none"),
   grant_types: z
     .array(z.enum(["authorization_code", "refresh_token"]))
@@ -21,26 +51,62 @@ const clientRegistrationRequestSchema = z.object({
   response_types: z.array(z.literal("code")).default(["code"]),
   scope: z.string().optional(),
   client_name: z.string().optional(),
-  client_uri: z.string().url().optional(),
-  logo_uri: z.string().url().optional(),
+  client_uri: z.url().optional(),
+  logo_uri: z.url().optional(),
   contacts: z.array(z.string()).optional(),
 });
-
-export type ClientRegistrationRequest = z.input<
-  typeof clientRegistrationRequestSchema
->;
 
 interface ClientStoreFile {
   clients: RegisteredOAuthClient[];
 }
 
+const persistedOAuthClientSchema = z
+  .looseObject({
+    client_id: z.string(),
+    client_id_issued_at: z.number(),
+    redirect_uris: z.array(z.string()),
+    token_endpoint_auth_method: z.string().optional(),
+    grant_types: z.array(z.string()).optional(),
+    response_types: z.array(z.string()).optional(),
+    scope: z.string().optional(),
+    client_name: z.string().optional(),
+    client_uri: z.string().optional(),
+    logo_uri: z.string().optional(),
+    contacts: z.array(z.string()).optional(),
+    client_secret: z.string().optional(),
+    client_secret_expires_at: z.number().optional(),
+  })
+  .transform((client): RegisteredOAuthClient => ({
+    client_id: client.client_id,
+    client_id_issued_at: client.client_id_issued_at,
+    redirect_uris: client.redirect_uris,
+    token_endpoint_auth_method: client.token_endpoint_auth_method ?? "none",
+    grant_types: client.grant_types ?? ["authorization_code", "refresh_token"],
+    response_types: client.response_types ?? ["code"],
+    ...(client.scope !== undefined ? { scope: client.scope } : {}),
+    ...(client.client_name !== undefined
+      ? { client_name: client.client_name }
+      : {}),
+    ...(client.client_uri !== undefined
+      ? { client_uri: client.client_uri }
+      : {}),
+    ...(client.logo_uri !== undefined ? { logo_uri: client.logo_uri } : {}),
+    ...(client.contacts !== undefined ? { contacts: client.contacts } : {}),
+    ...(client.client_secret !== undefined
+      ? { client_secret: client.client_secret }
+      : {}),
+    ...(client.client_secret_expires_at !== undefined
+      ? { client_secret_expires_at: client.client_secret_expires_at }
+      : {}),
+  }));
+
+const clientStoreFileSchema = z.looseObject({
+  clients: z.array(z.unknown()).optional(),
+});
+
 export interface OAuthClientStoreOptions {
   storageDir: string;
   storeFile?: string;
-}
-
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
 }
 
 function createClientSecret(): string {
@@ -48,42 +114,31 @@ function createClientSecret(): string {
 }
 
 function parseStoreFile(value: unknown): ClientStoreFile {
-  if (!value || typeof value !== "object") {
-    return { clients: [] };
-  }
-
-  const clients = (value as { clients?: unknown }).clients;
-  if (!Array.isArray(clients)) {
-    return { clients: [] };
-  }
+  const parsed = clientStoreFileSchema.safeParse(value);
+  if (!parsed.success) return { clients: [] };
 
   return {
-    clients: clients.filter(isRegisteredOAuthClient),
+    clients: parsed.data.clients?.flatMap(parsePersistedClient) ?? [],
   };
 }
 
-function isRegisteredOAuthClient(
-  value: unknown,
-): value is RegisteredOAuthClient {
-  if (!value || typeof value !== "object") return false;
-  const client = value as Record<string, unknown>;
-  return (
-    typeof client["client_id"] === "string" &&
-    Array.isArray(client["redirect_uris"]) &&
-    client["redirect_uris"].every((uri) => typeof uri === "string") &&
-    typeof client["client_id_issued_at"] === "number"
-  );
+function parsePersistedClient(value: unknown): RegisteredOAuthClient[] {
+  const parsed = persistedOAuthClientSchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
 }
 
 export class OAuthClientStore {
-  private readonly storeFile: string;
-  private writeQueue: Promise<void> = Promise.resolve();
+  private readonly store: JsonFileStore<ClientStoreFile>;
 
   constructor(options: OAuthClientStoreOptions) {
-    this.storeFile = join(
-      options.storageDir,
-      options.storeFile ?? DEFAULT_CLIENT_STORE_FILE,
-    );
+    this.store = new JsonFileStore({
+      filePath: join(
+        options.storageDir,
+        options.storeFile ?? DEFAULT_CLIENT_STORE_FILE,
+      ),
+      parse: parseStoreFile,
+      empty: (): ClientStoreFile => ({ clients: [] }),
+    });
   }
 
   async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
@@ -117,10 +172,10 @@ export class OAuthClientStore {
         : {}),
     };
 
-    await this.enqueueWrite(async () => {
-      const store = await this.readStore();
+    await this.store.enqueueWrite(async () => {
+      const store = await this.store.read();
       store.clients.push(client);
-      await this.writeStore(store);
+      await this.store.write(store);
     });
 
     return client;
@@ -129,34 +184,8 @@ export class OAuthClientStore {
   async getClient(
     clientId: string,
   ): Promise<RegisteredOAuthClient | undefined> {
-    const store = await this.readStore();
+    const store = await this.store.read();
     return store.clients.find((client) => client.client_id === clientId);
-  }
-
-  private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
-    this.writeQueue = this.writeQueue.then(operation, operation);
-    return this.writeQueue;
-  }
-
-  private async readStore(): Promise<ClientStoreFile> {
-    try {
-      return parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return { clients: [] };
-      }
-      throw error;
-    }
-  }
-
-  private async writeStore(store: ClientStoreFile): Promise<void> {
-    await mkdir(dirname(this.storeFile), { recursive: true, mode: 0o700 });
-    await writeFile(this.storeFile, `${JSON.stringify(store, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(this.storeFile, 0o600);
   }
 }
 

@@ -5,16 +5,20 @@ import {
   type RouteDefinition,
   type RouteDefinitionInput,
 } from "@brains/site-composition";
-import { ensureArray, type Logger } from "@brains/utils";
+import { ensureArray } from "@brains/utils/array";
+import { type Logger } from "@brains/utils/logger";
 
 /**
  * Route Registry - manages route definitions for the site builder
  * This registry is owned by the site engine and populated by site-builder.
  */
 export class RouteRegistry {
+  private readonly logger: Logger;
   private routes = new Map<string, RouteDefinition>();
 
-  constructor(private readonly logger: Logger) {}
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
 
   /**
    * Register one or more route definitions

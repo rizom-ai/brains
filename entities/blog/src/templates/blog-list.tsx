@@ -28,7 +28,7 @@ export const BlogListTemplate = ({
     id: post.id,
     url: post.url,
     title: post.metadata.title,
-    date: post.metadata.publishedAt || post.created,
+    date: post.metadata.publishedAt ?? post.created,
     description: post.frontmatter.excerpt,
     series:
       post.frontmatter.seriesName && post.frontmatter.seriesIndex

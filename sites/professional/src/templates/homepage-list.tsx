@@ -74,14 +74,17 @@ export const HomepageListLayout = ({
   cta,
   sections,
 }: HomepageListData): JSX.Element => {
-  // Use tagline if available, fall back to description
-  const tagline = profile.tagline || profile.description;
+  // Use tagline if non-empty (empty string counts as absent), fall back to
+  // description
+  const tagline = profile.tagline?.length
+    ? profile.tagline
+    : profile.description;
 
   const postItems: ContentItem[] = posts.map((post) => ({
     id: post.id,
     url: post.url,
     title: post.metadata.title,
-    date: post.metadata.publishedAt || post.created,
+    date: post.metadata.publishedAt ?? post.created,
     description: post.frontmatter.excerpt,
     series:
       post.frontmatter.seriesName && post.frontmatter.seriesIndex
@@ -101,8 +104,10 @@ export const HomepageListLayout = ({
   }));
 
   const title = profile.name || "Home";
+  // First non-empty wins — empty strings fall through like absent values.
   const description =
-    profile.intro || profile.description || tagline || "Professional site";
+    [profile.intro, profile.description, tagline].find((value) => value) ??
+    "Professional site";
 
   const hasAbout =
     Boolean(profile.description) ||

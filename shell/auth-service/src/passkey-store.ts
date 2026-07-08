@@ -1,6 +1,8 @@
-import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
+import { JsonFileStore } from "./json-file-store";
+import { nowSeconds } from "@brains/utils/date";
+import { z } from "@brains/utils/zod";
 
 const DEFAULT_PASSKEY_STORE_FILE = "oauth-passkeys.json";
 const CHALLENGE_TTL_SECONDS = 10 * 60;
@@ -36,51 +38,72 @@ export interface PasskeyStoreOptions {
   storeFile?: string;
 }
 
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
-}
+const authenticatorTransportSchema = z.custom<AuthenticatorTransportFuture>(
+  (value) => typeof value === "string",
+);
 
-function isCredential(value: unknown): value is StoredPasskeyCredential {
-  if (!value || typeof value !== "object") return false;
-  const credential = value as Record<string, unknown>;
-  return (
-    typeof credential["id"] === "string" &&
-    typeof credential["public_key"] === "string" &&
-    typeof credential["counter"] === "number" &&
-    typeof credential["subject"] === "string" &&
-    typeof credential["user_name"] === "string" &&
-    typeof credential["created_at"] === "number" &&
-    typeof credential["updated_at"] === "number"
-  );
-}
+const credentialSchema = z
+  .looseObject({
+    id: z.string(),
+    public_key: z.string(),
+    counter: z.number(),
+    transports: z.array(authenticatorTransportSchema).optional(),
+    subject: z.string(),
+    user_name: z.string(),
+    credential_device_type: z.string().optional(),
+    credential_backed_up: z.boolean().optional(),
+    created_at: z.number(),
+    updated_at: z.number(),
+  })
+  .transform((credential): StoredPasskeyCredential => ({
+    id: credential.id,
+    public_key: credential.public_key,
+    counter: credential.counter,
+    ...(credential.transports !== undefined
+      ? { transports: credential.transports }
+      : {}),
+    subject: credential.subject,
+    user_name: credential.user_name,
+    credential_device_type: credential.credential_device_type ?? "unknown",
+    credential_backed_up: credential.credential_backed_up ?? false,
+    created_at: credential.created_at,
+    updated_at: credential.updated_at,
+  }));
 
-function isChallenge(value: unknown): value is StoredWebAuthnChallenge {
-  if (!value || typeof value !== "object") return false;
-  const challenge = value as Record<string, unknown>;
-  return (
-    typeof challenge["challenge"] === "string" &&
-    typeof challenge["subject"] === "string" &&
-    typeof challenge["created_at"] === "number" &&
-    typeof challenge["expires_at"] === "number"
-  );
-}
+const challengeSchema = z.looseObject({
+  challenge: z.string(),
+  subject: z.string(),
+  created_at: z.number(),
+  expires_at: z.number(),
+});
+
+const passkeyStoreFileSchema = z.looseObject({
+  credentials: z.array(z.unknown()).optional(),
+  registrationChallenges: z.array(z.unknown()).optional(),
+  authenticationChallenges: z.array(z.unknown()).optional(),
+});
 
 function parseStoreFile(value: unknown): PasskeyStoreFile {
-  if (!value || typeof value !== "object") {
-    return emptyStore();
-  }
-  const file = value as Partial<Record<keyof PasskeyStoreFile, unknown>>;
+  const parsed = passkeyStoreFileSchema.safeParse(value);
+  if (!parsed.success) return emptyStore();
+
   return {
-    credentials: Array.isArray(file.credentials)
-      ? file.credentials.filter(isCredential)
-      : [],
-    registrationChallenges: Array.isArray(file.registrationChallenges)
-      ? file.registrationChallenges.filter(isChallenge)
-      : [],
-    authenticationChallenges: Array.isArray(file.authenticationChallenges)
-      ? file.authenticationChallenges.filter(isChallenge)
-      : [],
+    credentials: parsed.data.credentials?.flatMap(parseCredential) ?? [],
+    registrationChallenges:
+      parsed.data.registrationChallenges?.flatMap(parseChallenge) ?? [],
+    authenticationChallenges:
+      parsed.data.authenticationChallenges?.flatMap(parseChallenge) ?? [],
   };
+}
+
+function parseCredential(value: unknown): StoredPasskeyCredential[] {
+  const parsed = credentialSchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
+}
+
+function parseChallenge(value: unknown): StoredWebAuthnChallenge[] {
+  const parsed = challengeSchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
 }
 
 function emptyStore(): PasskeyStoreFile {
@@ -105,30 +128,36 @@ function withoutExpiredChallenges(store: PasskeyStoreFile): PasskeyStoreFile {
 }
 
 export class PasskeyStore {
-  private readonly storeFile: string;
-  private writeQueue: Promise<void> = Promise.resolve();
+  private readonly store: JsonFileStore<PasskeyStoreFile>;
 
   constructor(options: PasskeyStoreOptions) {
-    this.storeFile = join(
-      options.storageDir,
-      options.storeFile ?? DEFAULT_PASSKEY_STORE_FILE,
-    );
+    this.store = new JsonFileStore({
+      filePath: join(
+        options.storageDir,
+        options.storeFile ?? DEFAULT_PASSKEY_STORE_FILE,
+      ),
+      parse: parseStoreFile,
+      empty: emptyStore,
+      // An empty passkey store reads as "registration open" (hasCredentials
+      // gates it), so a corrupt file must halt instead of starting empty.
+      onCorrupt: "throw",
+    });
   }
 
   async hasCredentials(): Promise<boolean> {
-    const store = await this.readStore();
+    const store = await this.store.read();
     return store.credentials.length > 0;
   }
 
   async listCredentials(): Promise<StoredPasskeyCredential[]> {
-    const store = await this.readStore();
+    const store = await this.store.read();
     return store.credentials;
   }
 
   async getCredential(
     id: string,
   ): Promise<StoredPasskeyCredential | undefined> {
-    const store = await this.readStore();
+    const store = await this.store.read();
     return store.credentials.find((credential) => credential.id === id);
   }
 
@@ -136,8 +165,8 @@ export class PasskeyStore {
     challenge: string,
     subject: string,
   ): Promise<void> {
-    await this.enqueueWrite(async () => {
-      const store = withoutExpiredChallenges(await this.readStore());
+    await this.store.enqueueWrite(async () => {
+      const store = withoutExpiredChallenges(await this.store.read());
       const createdAt = nowSeconds();
       store.registrationChallenges.push({
         challenge,
@@ -145,7 +174,7 @@ export class PasskeyStore {
         created_at: createdAt,
         expires_at: createdAt + CHALLENGE_TTL_SECONDS,
       });
-      await this.writeStore(store);
+      await this.store.write(store);
     });
   }
 
@@ -159,8 +188,8 @@ export class PasskeyStore {
     challenge: string,
     subject: string,
   ): Promise<void> {
-    await this.enqueueWrite(async () => {
-      const store = withoutExpiredChallenges(await this.readStore());
+    await this.store.enqueueWrite(async () => {
+      const store = withoutExpiredChallenges(await this.store.read());
       const createdAt = nowSeconds();
       store.authenticationChallenges.push({
         challenge,
@@ -168,7 +197,7 @@ export class PasskeyStore {
         created_at: createdAt,
         expires_at: createdAt + CHALLENGE_TTL_SECONDS,
       });
-      await this.writeStore(store);
+      await this.store.write(store);
     });
   }
 
@@ -179,26 +208,26 @@ export class PasskeyStore {
   }
 
   async addCredential(credential: StoredPasskeyCredential): Promise<void> {
-    await this.enqueueWrite(async () => {
-      const store = withoutExpiredChallenges(await this.readStore());
+    await this.store.enqueueWrite(async () => {
+      const store = withoutExpiredChallenges(await this.store.read());
       if (store.credentials.some((existing) => existing.id === credential.id)) {
         throw new Error("Passkey credential already registered");
       }
       store.credentials.push(credential);
-      await this.writeStore(store);
+      await this.store.write(store);
     });
   }
 
   async updateCredentialCounter(id: string, counter: number): Promise<void> {
-    await this.enqueueWrite(async () => {
-      const store = withoutExpiredChallenges(await this.readStore());
+    await this.store.enqueueWrite(async () => {
+      const store = withoutExpiredChallenges(await this.store.read());
       const credential = store.credentials.find((entry) => entry.id === id);
       if (!credential) {
         throw new Error("Passkey credential not found");
       }
       credential.counter = counter;
       credential.updated_at = nowSeconds();
-      await this.writeStore(store);
+      await this.store.write(store);
     });
   }
 
@@ -207,8 +236,8 @@ export class PasskeyStore {
     challenge: string,
   ): Promise<StoredWebAuthnChallenge | undefined> {
     let consumed: StoredWebAuthnChallenge | undefined;
-    await this.enqueueWrite(async () => {
-      const store = withoutExpiredChallenges(await this.readStore());
+    await this.store.enqueueWrite(async () => {
+      const store = withoutExpiredChallenges(await this.store.read());
       const index = store[type].findIndex(
         (entry) => entry.challenge === challenge,
       );
@@ -216,35 +245,9 @@ export class PasskeyStore {
         consumed = store[type][index];
         store[type].splice(index, 1);
       }
-      await this.writeStore(store);
+      await this.store.write(store);
     });
     return consumed;
-  }
-
-  private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
-    this.writeQueue = this.writeQueue.then(operation, operation);
-    return this.writeQueue;
-  }
-
-  private async readStore(): Promise<PasskeyStoreFile> {
-    try {
-      return parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return emptyStore();
-      }
-      throw error;
-    }
-  }
-
-  private async writeStore(store: PasskeyStoreFile): Promise<void> {
-    await mkdir(dirname(this.storeFile), { recursive: true, mode: 0o700 });
-    await writeFile(this.storeFile, `${JSON.stringify(store, null, 2)}\n`, {
-      mode: 0o600,
-    });
-    await chmod(this.storeFile, 0o600);
   }
 }
 

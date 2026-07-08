@@ -4,7 +4,7 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 
-export interface PublicJwk extends JsonObject {
+export interface OAuthPublicJwk extends JsonObject {
   kty: "EC";
   crv: "P-256";
   x: string;
@@ -14,9 +14,25 @@ export interface PublicJwk extends JsonObject {
   alg: "ES256";
 }
 
-export interface PrivateJwk extends PublicJwk {
+export interface OAuthPrivateJwk extends OAuthPublicJwk {
   d: string;
 }
+
+export interface A2APublicJwk extends JsonObject {
+  kty: "OKP";
+  crv: "Ed25519";
+  x: string;
+  kid: string;
+  use: "sig";
+  alg: "EdDSA";
+}
+
+export interface A2APrivateJwk extends A2APublicJwk {
+  d: string;
+}
+
+export type PublicJwk = OAuthPublicJwk | A2APublicJwk;
+export type PrivateJwk = OAuthPrivateJwk;
 
 export interface JwksResponse extends JsonObject {
   keys: PublicJwk[];

@@ -1,4 +1,4 @@
-import { PLUGIN_API_VERSION } from "@rizom/brain";
+import { PLUGIN_API_VERSION, z } from "@rizom/brain";
 import {
   EntityPlugin,
   InterfacePlugin,
@@ -31,11 +31,6 @@ import type {
   EntityTypeConfig,
 } from "@rizom/brain/entities";
 import type { WebRouteDefinition } from "@rizom/brain/interfaces";
-import { z } from "zod";
-
-interface ExamplePluginConfig {
-  greeting?: string;
-}
 
 interface ExampleEntity extends BaseEntity<{ title: string }> {
   entityType: "example";
@@ -65,9 +60,16 @@ const exampleEntityAdapter: EntityAdapter<ExampleEntity, { title: string }> = {
   getBodyTemplate: () => "",
 };
 
-const configSchema = z.object({
-  greeting: z.optional(z.string()),
-});
+interface ExamplePluginConfig {
+  greeting?: string | undefined;
+}
+
+type ExamplePluginConfigInput = ExamplePluginConfig;
+
+const configSchema: z.ZodType<ExamplePluginConfig, ExamplePluginConfigInput> =
+  z.object({
+    greeting: z.optional(z.string()),
+  });
 
 const extensionMetadata = ExtensionMetadataSchema.parse({ source: "fixture" });
 
@@ -89,10 +91,14 @@ const exampleSender: MessageSender<
 };
 void [exampleSender, extensionMetadata, PLUGIN_API_VERSION];
 
-export class ExampleEntityPlugin extends EntityPlugin<ExampleEntity> {
-  readonly entityType = "example";
-  readonly schema = exampleEntitySchema;
-  readonly adapter = exampleEntityAdapter;
+export class ExampleEntityPlugin extends EntityPlugin<
+  ExampleEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  readonly entityType = "example" as const;
+  readonly schema: typeof exampleEntitySchema = exampleEntitySchema;
+  readonly adapter: typeof exampleEntityAdapter = exampleEntityAdapter;
 
   constructor() {
     super("example-entity", packageJson, {}, z.object({}));
@@ -103,7 +109,10 @@ export class ExampleEntityPlugin extends EntityPlugin<ExampleEntity> {
   }
 }
 
-export class ExampleInterfacePlugin extends InterfacePlugin {
+export class ExampleInterfacePlugin extends InterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super("example-interface", packageJson, {}, z.object({}));
   }
@@ -129,7 +138,10 @@ export class ExampleInterfacePlugin extends InterfacePlugin {
   }
 }
 
-export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin {
+export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   private readonly sentMessages: string[] = [];
 
   constructor() {
@@ -179,10 +191,13 @@ export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin {
   }
 }
 
-export class ExampleExternalPlugin extends ServicePlugin<ExamplePluginConfig> {
+export class ExampleExternalPlugin extends ServicePlugin<
+  ExamplePluginConfig,
+  ExamplePluginConfigInput
+> {
   private readonly greeting: string;
 
-  constructor(config: Partial<ExamplePluginConfig> = {}) {
+  constructor(config: ExamplePluginConfigInput = {}) {
     super("example-external", packageJson, config, configSchema);
     this.greeting = config.greeting ?? "hello";
   }
@@ -201,11 +216,8 @@ export class ExampleExternalPlugin extends ServicePlugin<ExamplePluginConfig> {
 
     const appInfo: AppInfo = AppInfoSchema.parse(await context.appInfo());
     const daemonHealthStatus:
-      | "healthy"
-      | "warning"
-      | "error"
-      | "unknown"
-      | undefined = appInfo.daemons[0]?.health?.status;
+      "healthy" | "warning" | "error" | "unknown" | undefined =
+      appInfo.daemons[0]?.health?.status;
     const daemonLastCheck: string | undefined =
       appInfo.daemons[0]?.health?.lastCheck;
     void daemonHealthStatus;

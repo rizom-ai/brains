@@ -1,7 +1,7 @@
 import type { IEntityService, BaseEntity } from "@brains/plugins";
 import { generateMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { slugify } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { slugify } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { Series, SeriesFrontmatter } from "../schemas/series";
 import { getSeriesName } from "../lib/series-metadata";
@@ -11,10 +11,12 @@ import { getSeriesName } from "../lib/series-metadata";
  * Automatically creates/updates/deletes series based on seriesName values.
  */
 export class SeriesManager {
-  constructor(
-    private readonly entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {}
+  private readonly entityService: IEntityService;
+  private readonly logger: Logger;
+  constructor(entityService: IEntityService, logger: Logger) {
+    this.entityService = entityService;
+    this.logger = logger;
+  }
 
   /**
    * Sync all series entities from current entities across all types.

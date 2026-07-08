@@ -5,8 +5,10 @@ import {
   findEntityByIdentifier,
   saveProcessedEntity,
 } from "@brains/plugins";
-import type { ProgressReporter, Logger } from "@brains/utils";
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
   createDataUrl,
@@ -16,21 +18,30 @@ import {
   type Image,
 } from "@brains/image";
 
-export const sourceImageRenderJobDataSchema = z.object({
-  sourceEntityType: z.string().min(1),
-  sourceEntityId: z.string().min(1),
-  attachmentType: z.string().min(1),
-  imageId: z.string().min(1),
-  dedupKey: z.string().min(1).optional(),
-  replace: z.boolean().optional(),
-  targetEntityType: z.string().min(1).optional(),
-  targetEntityId: z.string().min(1).optional(),
-  targetImageField: z.enum(["coverImageId", "ogImageId"]).optional(),
-});
+export interface SourceImageRenderJobData {
+  sourceEntityType: string;
+  sourceEntityId: string;
+  attachmentType: string;
+  imageId: string;
+  dedupKey?: string | undefined;
+  replace?: boolean | undefined;
+  targetEntityType?: string | undefined;
+  targetEntityId?: string | undefined;
+  targetImageField?: "coverImageId" | "ogImageId" | undefined;
+}
 
-export type SourceImageRenderJobData = z.infer<
-  typeof sourceImageRenderJobDataSchema
->;
+export const sourceImageRenderJobDataSchema: z.ZodType<SourceImageRenderJobData> =
+  z.object({
+    sourceEntityType: z.string().min(1),
+    sourceEntityId: z.string().min(1),
+    attachmentType: z.string().min(1),
+    imageId: z.string().min(1),
+    dedupKey: z.string().min(1).optional(),
+    replace: z.boolean().optional(),
+    targetEntityType: z.string().min(1).optional(),
+    targetEntityId: z.string().min(1).optional(),
+    targetImageField: z.enum(["coverImageId", "ogImageId"]).optional(),
+  });
 
 interface SourceImageRenderResult {
   success: boolean;
@@ -44,14 +55,13 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
   SourceImageRenderJobData,
   SourceImageRenderResult
 > {
-  constructor(
-    private readonly context: EntityPluginContext,
-    logger: Logger,
-  ) {
+  private readonly context: EntityPluginContext;
+  constructor(context: EntityPluginContext, logger: Logger) {
     super(logger, {
       schema: sourceImageRenderJobDataSchema,
       jobTypeName: "image-render-source",
     });
+    this.context = context;
   }
 
   async process(

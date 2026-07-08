@@ -12,37 +12,44 @@ list.
 
 ## Verified findings
 
-### CSS-as-string monoliths
+### God classes (decomposition candidates — need a plan each)
 
-- `interfaces/web-chat/src/chat-page.ts` — 1,981 lines, ~1,600 of them
-  one CSS string literal embedded in TypeScript.
-- `plugins/dashboard/src/render/styles/components.ts` — 1,122 lines of
-  component CSS packed into a single template-string export.
+Verified line counts 2026-07-05. Each mixes transport/orchestration with
+business logic + persistence and would benefit from extracting focused
+collaborators. These are large enough to warrant a thin-vertical plan
+before touching — not opportunistic edits.
 
-Extract to dedicated style modules (or the shared theme/ui packages)
-next time either surface gets real styling work.
-
-### `@brains/utils` grab-bag split
-
-Long-known: the package mixes zod re-export, Logger, ID generation,
-markdown, YAML, and progress reporting. It needs a deliberate split,
-not more bandages. Related context: `npm-package-boundaries.md` already
-decided not to publish it as the SDK.
-
-### package.json script drift
-
-70+ packages declare lint/typecheck scripts with 5+ glob/flag
-variations (`--ext .ts` vs `.ts,.tsx`, `--max-warnings 0` vs none).
-Inconsistent quality gates; normalize when touching turbo config.
+- ~~`plugins/playbooks/src/plugin.ts`~~ — DONE 2026-07-06: decomposed
+  into src/lib/ run-machine (pure transition semantics), render,
+  lifecycle-starters, and run-engine; the plugin is down to ~1050 lines
+  of plugin surface (tools, subscriptions, locks, status assembly).
+- ~~`interfaces/chat/src/chat-interface.ts`~~ — DONE 2026-07-06: the
+  within-chat decomposition is complete; the final step extracted
+  discord-routing (pure policy/ID parsing) and
+  discord-message-components (REST call), leaving a ~1300-line
+  composition root + orchestration. The cross-package follow-on also
+  shipped: `buildResponsePlan(response, access)` in `@brains/plugins`
+  now owns response selection/sequencing, consumed by both chat and
+  web-chat (plan file deleted on completion).
+- ~~`shell/ai-service/src/agent-service.ts`~~ — DONE 2026-07-06:
+  decomposed into ConversationActorRegistry, attachment-intake,
+  ConfirmationCoordinator, and TurnProcessor; the service is now a
+  ~330-line façade.
+- ~~`interfaces/discord/src/discord-interface.ts`~~ — SUPERSEDED
+  2026-07-06: `@brains/chat` is the replacement Discord implementation
+  (per its README, pending live validation before Rover/Ranger/Relay
+  switch over). Don't decompose a package slated for deletion; effort
+  goes into `@brains/chat` instead.
 
 ### Minor (fix opportunistically)
 
-- `sites/professional` and `sites/personal` homepage datasources share
-  ~60% structure; extract a shared datasource helper if a third site
-  appears.
-- Approval-card formatting is inlined separately in the Discord and CLI
-  interfaces; a small shared formatter would help — but see
-  checked-and-cleared below, the interfaces are otherwise sound.
+- ~~`sites/professional` and `sites/personal` homepage datasource
+  overlap~~ — DONE 2026-07-04 (`a30edc7ac`): the shared logic was
+  extracted into `site-datasource-helpers.ts` in `@brains/site-info`
+  (`fetchRecentEntities`, `fetchSiteInfo`, `requireCta`) plus
+  `fetchAnchorProfileData` in `@brains/plugins`. Each site's datasource
+  is now pure declaration (entity types, counts, schemas, output
+  shape) — the right residue, nothing further to extract.
 
 ## Checked and cleared (do not re-flag)
 

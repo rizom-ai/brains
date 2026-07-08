@@ -1,7 +1,7 @@
 {
   "name": "@brains/relay",
   "private": true,
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.141",
   "description": "Relay brain model — collaborative knowledge management",
   "type": "module",
   "files": [
@@ -10,7 +10,8 @@
     "env.schema.template"
   ],
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./env-schema": "./src/env-schema.ts"
   },
   "scripts": {
     "build:web-chat": "turbo run build --filter=@brains/web-chat",
@@ -21,8 +22,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "eval": "brain-eval",
-    "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
   },
   "dependencies": {
     "@brains/a2a": "workspace:*",
@@ -63,6 +64,6 @@
     "@brains/ai-evaluation": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "typescript": "^5.3.3"
+    "typescript": "^6.0.3"
   }
 }

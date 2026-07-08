@@ -1,5 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { parseMarkdown, slugify } from "@brains/utils";
+import { parseMarkdown } from "@brains/utils/markdown";
+import { slugify } from "@brains/utils/string-utils";
 import type {
   PublishAssetDefinition,
   PublishAssetTargetField,
@@ -25,7 +26,10 @@ export interface PublishAssetPreflightDeps {
  * hashes when generated assets update the source entity frontmatter.
  */
 export class PublishAssetPreflight {
-  constructor(private readonly deps: PublishAssetPreflightDeps) {}
+  private readonly deps: PublishAssetPreflightDeps;
+  constructor(deps: PublishAssetPreflightDeps) {
+    this.deps = deps;
+  }
 
   public async ensureForEntity(
     entity: BaseEntity,

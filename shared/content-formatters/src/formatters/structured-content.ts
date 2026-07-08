@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import { z } from "zod";
+import { z, type ZodType } from "@brains/utils/zod";
 import { remark } from "remark";
 import type {
   Root,
@@ -10,6 +10,10 @@ import type {
   List,
   ListItem,
 } from "mdast";
+
+const recordSchema = z.record(z.string(), z.unknown());
+
+export type StructuredContentSchema<T> = ZodType<T, unknown>;
 
 /**
  * Field mapping configuration for structured content formatting
@@ -48,12 +52,14 @@ export interface FormatterConfig {
  * to convert between structured data and human-readable markdown.
  */
 export class StructuredContentFormatter<T> implements ContentFormatter<T> {
+  private schema: StructuredContentSchema<T>;
+  private config: FormatterConfig;
   private processor = remark();
 
-  constructor(
-    private schema: z.ZodType<T, z.ZodTypeDef, unknown>,
-    private config: FormatterConfig,
-  ) {}
+  constructor(schema: StructuredContentSchema<T>, config: FormatterConfig) {
+    this.schema = schema;
+    this.config = config;
+  }
 
   /**
    * Get section labels from the formatter configuration.
@@ -97,8 +103,11 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       }
 
       return lines.join("\n");
-    } catch {
-      throw new Error("Failed to format structured content");
+    } catch (error) {
+      throw new Error(
+        `Failed to format structured content: ${this.describeError(error)}`,
+        { cause: error },
+      );
     }
   }
 
@@ -111,9 +120,25 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       const sections = this.extractSections(tree, 2);
       const data = this.buildDataFromSections(sections, this.config.mappings);
       return this.schema.parse(data);
-    } catch {
-      throw new Error("Failed to parse structured content");
+    } catch (error) {
+      throw new Error(
+        `Failed to parse structured content: ${this.describeError(error)}`,
+        { cause: error },
+      );
     }
+  }
+
+  /**
+   * Summarize an error for inclusion in a wrapped error message,
+   * flattening zod issues to "path: reason" pairs.
+   */
+  private describeError(error: unknown): string {
+    if (error instanceof z.ZodError) {
+      return error.issues
+        .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+        .join("; ");
+    }
+    return error instanceof Error ? error.message : String(error);
   }
 
   /**
@@ -193,11 +218,9 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     let current: unknown = obj;
 
     for (const part of parts) {
-      if (current && typeof current === "object" && part in current) {
-        current = (current as Record<string, unknown>)[part];
-      } else {
-        return undefined;
-      }
+      const parsed = recordSchema.safeParse(current);
+      if (!parsed.success) return undefined;
+      current = parsed.data[part];
     }
 
     return current;
@@ -371,10 +394,16 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       const part = parts[i];
       if (!part) continue;
 
-      if (!(part in current)) {
-        current[part] = {};
+      const parsed = recordSchema.safeParse(current[part]);
+      if (parsed.success) {
+        current[part] = parsed.data;
+        current = parsed.data;
+        continue;
       }
-      current = current[part] as Record<string, unknown>;
+
+      const next: Record<string, unknown> = {};
+      current[part] = next;
+      current = next;
     }
 
     const lastPart = parts[parts.length - 1];

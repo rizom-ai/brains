@@ -1,7 +1,7 @@
 {
   "name": "@brains/job-queue",
   "private": true,
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.141",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -12,8 +12,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/migrate.ts",
     "db:push": "drizzle-kit push:sqlite",
@@ -23,16 +23,16 @@
     "@brains/contracts": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@libsql/client": "^0.15.7",
-    "drizzle-orm": "^0.44.4"
+    "@libsql/client": "^0.17.4",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "^1.1.14",
-    "@types/node": "^20.0.0",
-    "drizzle-kit": "^0.31.4",
-    "typescript": "^5.3.3"
+    "@types/bun": "^1.3.14",
+    "@types/node": "^20.19.43",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^6.0.3"
   }
 }

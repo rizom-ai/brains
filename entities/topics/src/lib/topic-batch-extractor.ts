@@ -3,8 +3,8 @@ import type {
   ContentVisibility,
   EntityPluginContext,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { getErrorMessage } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { getErrorMessage } from "@brains/utils/error";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { batchEntities } from "./batch-entities";

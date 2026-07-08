@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { basename, resolve } from "path";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { SecretPair } from "./push-secrets";
 
 export interface BitwardenProject {
@@ -41,50 +41,48 @@ export interface BitwardenSecretsClient {
 
 export type RunBwsCommand = (args: string[]) => Promise<string>;
 
-const bitwardenProjectSchema: z.ZodType<BitwardenProject> = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    organizationId: z.string(),
-  })
-  .passthrough();
+const bitwardenProjectSchema = z.looseObject({
+  id: z.string(),
+  name: z.string(),
+  organizationId: z.string(),
+});
 
-const bitwardenSecretSchema: z.ZodType<BitwardenSecret> = z
-  .object({
-    id: z.string(),
-    key: z.string(),
-    value: z.string(),
-    note: z.string().optional(),
-    organizationId: z.string(),
-    projectId: z.string().nullable().optional(),
-  })
-  .passthrough();
+const bitwardenSecretSchema = z.looseObject({
+  id: z.string(),
+  key: z.string(),
+  value: z.string(),
+  note: z.string().optional(),
+  organizationId: z.string(),
+  projectId: z.string().nullable().optional(),
+});
 
 const bitwardenProjectListSchema = z.union([
   z.array(bitwardenProjectSchema),
-  z.object({ data: z.array(bitwardenProjectSchema) }).passthrough(),
+  z.looseObject({ data: z.array(bitwardenProjectSchema) }),
 ]);
 
-const bitwardenProjectObjectSchema = z.union([
-  bitwardenProjectSchema,
-  z.object({ data: bitwardenProjectSchema }).passthrough(),
-]);
+const bitwardenProjectEnvelopeSchema = z.looseObject({
+  data: bitwardenProjectSchema,
+});
 
-const bitwardenSdkSecretSyncSchema = z
-  .object({
-    secrets: z.array(bitwardenSecretSchema).nullable().optional(),
-  })
-  .passthrough();
+const bitwardenSdkSecretSyncSchema = z.looseObject({
+  secrets: z.array(bitwardenSecretSchema).nullable().optional(),
+});
 
 export function inferBitwardenProjectName(cwd: string): string {
   return basename(resolve(cwd));
 }
 
 export class BitwardenSecretsManagerClient implements BitwardenSecretsClient {
+  private readonly runBwsCommand: RunBwsCommand;
+  private readonly secretWriter: BitwardenSecretWriter;
   constructor(
-    private readonly runBwsCommand: RunBwsCommand = runBwsCliCommand,
-    private readonly secretWriter: BitwardenSecretWriter = new SdkBitwardenSecretWriter(),
-  ) {}
+    runBwsCommand: RunBwsCommand = runBwsCliCommand,
+    secretWriter: BitwardenSecretWriter = new SdkBitwardenSecretWriter(),
+  ) {
+    this.runBwsCommand = runBwsCommand;
+    this.secretWriter = secretWriter;
+  }
 
   async pushSecrets(
     projectName: string,
@@ -167,10 +165,12 @@ export class BitwardenSecretsManagerClient implements BitwardenSecretsClient {
   }
 
   private async createProject(name: string): Promise<BitwardenProject> {
-    const parsed = bitwardenProjectObjectSchema.parse(
-      parseJson(await this.runBwsCommand(["project", "create", name])),
+    const payload = parseJson(
+      await this.runBwsCommand(["project", "create", name]),
     );
-    return "data" in parsed ? parsed.data : parsed;
+    const project = bitwardenProjectSchema.safeParse(payload);
+    if (project.success) return project.data;
+    return bitwardenProjectEnvelopeSchema.parse(payload).data;
   }
 }
 
@@ -327,6 +327,7 @@ function parseJson(output: string): unknown {
   } catch (error) {
     throw new Error(
       `Could not parse bws JSON output: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

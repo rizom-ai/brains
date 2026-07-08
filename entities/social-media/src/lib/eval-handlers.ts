@@ -1,5 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z, ProgressReporter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import { GenerationJobHandler } from "../handlers/generationHandler";
 
 const generationInputSchema = z.object({
@@ -15,10 +16,13 @@ const createInputSchema = z.object({
   platform: z.enum(["linkedin"]).optional(),
 });
 
+type GenerationInput = z.output<typeof generationInputSchema>;
+type CreateInput = z.output<typeof createInputSchema>;
+
 export function registerEvalHandlers(context: EntityPluginContext): void {
   // Eval: test AI text generation only (fast, no entity persistence)
   context.eval.registerHandler("generation", async (input: unknown) => {
-    const parsed = generationInputSchema.parse(input);
+    const parsed: GenerationInput = generationInputSchema.parse(input);
 
     const generationPrompt = parsed.content
       ? `Create an engaging LinkedIn post to share this content:\n\n${parsed.content}`
@@ -34,7 +38,7 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
 
   // Eval: run the full generation pipeline and verify entity persistence
   context.eval.registerHandler("create", async (input: unknown) => {
-    const parsed = createInputSchema.parse(input);
+    const parsed: CreateInput = createInputSchema.parse(input);
 
     const progressSteps: Array<{ progress: number; message?: string }> = [];
     const reporter = ProgressReporter.from(async (n) => {

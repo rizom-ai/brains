@@ -7,7 +7,7 @@ import {
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
 import type { EntityPluginContext } from "@brains/plugins";
-import { slugifyUrl } from "@brains/utils";
+import { slugifyUrl } from "@brains/utils/string-utils";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
 
@@ -105,7 +105,10 @@ async function upsertAgentFromCard(
   const name = existing?.metadata.name ?? record.anchor.name;
   const kind = existingParsed?.frontmatter.kind ?? record.anchor.kind;
   const discoveredAt = existing?.metadata.discoveredAt ?? now;
-  const about = record.brain.purpose || existingParsed?.body.about || "";
+  const about =
+    record.brain.purpose.length > 0
+      ? record.brain.purpose
+      : (existingParsed?.body.about ?? "");
   const skills =
     cardSkills.length > 0 ? cardSkills : (existingParsed?.body.skills ?? []);
 

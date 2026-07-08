@@ -1,5 +1,5 @@
 import type { Client } from "@libsql/client";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import {
   createRuntimeStateDatabase,
   enableRuntimeStateWALMode,

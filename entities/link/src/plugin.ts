@@ -12,14 +12,14 @@ import type {
 } from "@brains/plugins";
 import { createPendingEntity, EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z, slugify } from "@brains/utils";
+import { type LinkEntity, linkSchema, type LinkSource } from "./schemas/link";
+import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import {
   linkConfigSchema,
-  linkSchema,
   type LinkConfig,
-  type LinkEntity,
-  type LinkSource,
-} from "./schemas/link";
+  type LinkConfigInput,
+} from "./schemas/link-config";
 import { linkAdapter } from "./adapters/link-adapter";
 import {
   linkExtractionTemplate,
@@ -34,14 +34,27 @@ import { LinkCaptureJobHandler } from "./handlers/capture-handler";
 import { createLinkAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
-  readonly entityType = linkAdapter.entityType;
-  readonly schema = linkSchema;
-  readonly adapter = linkAdapter;
+interface ExtractContentEvalInput {
+  url: string;
+}
+
+const extractContentEvalInputSchema: z.ZodType<ExtractContentEvalInput> =
+  z.object({
+    url: z.url(),
+  });
+
+export class LinkPlugin extends EntityPlugin<
+  LinkEntity,
+  LinkConfig,
+  LinkConfigInput
+> {
+  readonly entityType: typeof linkAdapter.entityType = linkAdapter.entityType;
+  readonly schema: typeof linkSchema = linkSchema;
+  readonly adapter: typeof linkAdapter = linkAdapter;
   private shell?: IShell;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
-  constructor(config: Partial<LinkConfig> = {}) {
+  constructor(config: LinkConfigInput = {}) {
     super("link", packageJson, config, linkConfigSchema);
   }
 
@@ -87,8 +100,7 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
       try {
         const parsed = this.adapter.fromMarkdown(input.content);
         const parsedMetadata = parsed.metadata as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const parsedTitle =
           typeof parsedMetadata?.["title"] === "string"
             ? parsedMetadata["title"]
@@ -257,7 +269,8 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
       );
 
     context.eval.registerHandler("extractContent", async (input: unknown) => {
-      const { url } = z.object({ url: z.string().url() }).parse(input);
+      const { url }: ExtractContentEvalInput =
+        extractContentEvalInputSchema.parse(input);
       const urlFetcher = new UrlFetcher(
         this.config.jinaApiKey
           ? { jinaApiKey: this.config.jinaApiKey }
@@ -347,8 +360,8 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
   }
 }
 
-export function createLinkPlugin(config: Partial<LinkConfig> = {}): Plugin {
+export function createLinkPlugin(config: LinkConfigInput = {}): Plugin {
   return new LinkPlugin(config);
 }
 
-export const linkPlugin = createLinkPlugin;
+export const linkPlugin: typeof createLinkPlugin = createLinkPlugin;

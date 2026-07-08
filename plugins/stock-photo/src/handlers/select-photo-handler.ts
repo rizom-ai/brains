@@ -1,29 +1,48 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { IEntityService } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import { imageAdapter } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
+import { setCoverImage } from "../lib/set-cover-image";
 
-export const selectPhotoJobSchema = z.object({
+export interface SelectPhotoJobData {
+  photoId: string;
+  downloadLocation: string;
+  photographerName: string;
+  photographerUrl: string;
+  sourceUrl: string;
+  imageUrl: string;
+  title?: string | undefined;
+  alt?: string | undefined;
+  targetEntityType?: string | undefined;
+  targetEntityId?: string | undefined;
+}
+
+export type SelectPhotoJobDataInput = SelectPhotoJobData;
+
+export const selectPhotoJobSchema: z.ZodType<
+  SelectPhotoJobData,
+  SelectPhotoJobDataInput
+> = z.object({
   photoId: z.string(),
-  downloadLocation: z.string().url(),
+  downloadLocation: z.url(),
   photographerName: z.string(),
-  photographerUrl: z.string().url(),
-  sourceUrl: z.string().url(),
-  imageUrl: z.string().url(),
+  photographerUrl: z.url(),
+  sourceUrl: z.url(),
+  imageUrl: z.url(),
   title: z.string().optional(),
   alt: z.string().optional(),
   targetEntityType: z.string().optional(),
   targetEntityId: z.string().optional(),
 });
 
-export type SelectPhotoJobData = z.infer<typeof selectPhotoJobSchema>;
-
 export interface SelectPhotoJobResult {
   imageEntityId: string;
   alreadyExisted: false;
-  coverSet?: true;
+  coverSet?: boolean;
+  warning?: string;
 }
 
 export interface SelectPhotoHandlerDeps {
@@ -37,14 +56,13 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
   SelectPhotoJobData,
   SelectPhotoJobResult
 > {
-  constructor(
-    logger: Logger,
-    private readonly deps: SelectPhotoHandlerDeps,
-  ) {
+  private readonly deps: SelectPhotoHandlerDeps;
+  constructor(logger: Logger, deps: SelectPhotoHandlerDeps) {
     super(logger, {
       schema: selectPhotoJobSchema,
       jobTypeName: "select-photo",
     });
+    this.deps = deps;
   }
 
   async process(
@@ -94,13 +112,15 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
     };
 
     if (data.targetEntityType && data.targetEntityId) {
-      await setCoverImage(
+      result.coverSet = await setCoverImage(
         this.deps.entityService,
         data.targetEntityType,
         data.targetEntityId,
         entityId,
       );
-      result.coverSet = true;
+      if (!result.coverSet) {
+        result.warning = `Target entity ${data.targetEntityType}:${data.targetEntityId} not found; cover image not set`;
+      }
     }
 
     await this.reportProgress(progressReporter, {
@@ -119,27 +139,4 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
       hasTarget: data.targetEntityType !== undefined,
     };
   }
-}
-
-async function setCoverImage(
-  entityService: IEntityService,
-  entityType: string,
-  entityId: string,
-  imageEntityId: string,
-): Promise<void> {
-  const target = await entityService.getEntity({
-    entityType,
-    id: entityId,
-  });
-  if (!target) return;
-
-  await entityService.updateEntity({
-    entity: {
-      ...target,
-      metadata: {
-        ...target.metadata,
-        coverImageId: imageEntityId,
-      },
-    },
-  });
 }

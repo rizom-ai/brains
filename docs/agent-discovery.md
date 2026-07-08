@@ -176,14 +176,11 @@ grant it call access.
   unchanged.
 - **Signed peer identity** — `docs/plans/a2a-request-signing.md`. Replaces
   bearer-token secrets with domain-as-identity: each brain serves a JWKS at
-  `/.well-known/jwks.json`, approving a peer records it in `trustedAgents` with
-  a permission level, and calls are signed with RFC 9421 HTTP Message
-  Signatures. Plugs into the same discovered → approved lifecycle.
-- **External tool discovery (CQRS split)** — `docs/plans/mcp-external-redesign.md`.
-  For external MCP clients, read tools (`search`/`get`/`list`) stay individually
-  exposed and permission-filtered for composability, while writes funnel through
-  a single `chat` tool. Refines the in-brain capability layer for outside
-  callers.
+  `/.well-known/jwks.json`, approving a peer writes a runtime peer-trust
+  record (domain, pinned key fingerprint, granted permission level), and
+  calls are signed with RFC 9421 HTTP Message Signatures. Plugs into the
+  same discovered → approved lifecycle, which then covers inbound trust as
+  well as outbound calling.
 - **Agents in the core bundle** — `docs/plans/brain-model-unification.md`. The
   `agents` plugin lives in the posture-independent `core` bundle; "agents phase
   2 (ATProto firehose) — auto-discover peer brains" is the next named capability.

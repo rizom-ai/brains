@@ -32,8 +32,8 @@ Second tier, clearly team-shaped but heavier or less proven:
 Team source bridges worth adding once the import/sync UX is scoped — read-only bridges first:
 
 - **`obsidian-vault`** — power-user import/sync (an opt-in ergonomic layer).
-- **`notion`** — useful team source integration; scope the read-only bridge UX first.
-- **`hackmd`** — collaborative-doc import bridge; not required for the first POC loop.
+- **`notion`** — useful team source integration; scope the read-only bridge UX first. (The earlier `plugins/notion` MCP bridge and its `shared/mcp-bridge` base were deleted as dead code; recover from git history if useful.)
+- **`hackmd`** — collaborative-doc import bridge; not required for the first POC loop. (The earlier `plugins/hackmd` bridge was likewise deleted; recover from git history if useful.)
 
 ## Open design questions
 

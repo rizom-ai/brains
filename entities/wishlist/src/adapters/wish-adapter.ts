@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   wishSchema,
   wishFrontmatterSchema,
@@ -8,7 +8,11 @@ import {
   type WishMetadata,
 } from "../schemas/wish";
 
-export class WishAdapter extends BaseEntityAdapter<WishEntity, WishMetadata> {
+export class WishAdapter extends BaseEntityAdapter<
+  WishEntity,
+  WishMetadata,
+  WishFrontmatter
+> {
   constructor() {
     super({
       entityType: "wish",
@@ -55,4 +59,4 @@ export class WishAdapter extends BaseEntityAdapter<WishEntity, WishMetadata> {
   }
 }
 
-export const wishAdapter = new WishAdapter();
+export const wishAdapter: WishAdapter = new WishAdapter();

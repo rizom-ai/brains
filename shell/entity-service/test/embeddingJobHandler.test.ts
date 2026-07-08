@@ -6,7 +6,7 @@ import type {
   BaseEntity,
 } from "../src/types";
 import { createTestEntity } from "@brains/test-utils";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { computeContentHash } from "@brains/utils/hash";
 import { mockEmbeddingService } from "./helpers/mock-services";
 

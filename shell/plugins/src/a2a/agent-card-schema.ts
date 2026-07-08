@@ -1,5 +1,8 @@
-import { z } from "@brains/utils";
-import { anchorProfileBodySchema } from "@brains/identity-service";
+import { z } from "@brains/utils/zod";
+import {
+  type AnchorProfile,
+  anchorProfileBodySchema,
+} from "@brains/identity-service";
 
 /**
  * URI for the anchor-profile A2A Agent Card extension.
@@ -11,38 +14,52 @@ export const ANCHOR_EXTENSION_URI = "https://rizom.ai/ext/anchor-profile/v1";
  * Used by the A2A interface (client) and the agent directory plugin.
  */
 
-export const agentCardSkillSchema = z
-  .object({
-    id: z.string(),
-    description: z.string(),
-    name: z.string().optional(),
-    tags: z.array(z.string()).optional().default([]),
-  })
-  .passthrough();
+export const agentCardSkillSchema: z.ZodObject<{
+  id: z.ZodString;
+  description: z.ZodString;
+  name: z.ZodOptional<z.ZodString>;
+  tags: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+}> = z.looseObject({
+  id: z.string(),
+  description: z.string(),
+  name: z.string().optional(),
+  tags: z.array(z.string()).optional().default([]),
+});
 
-export const anchorExtensionParamsSchema = anchorProfileBodySchema;
+export const anchorExtensionParamsSchema: z.ZodType<AnchorProfile> =
+  anchorProfileBodySchema;
 
-const extensionSchema = z
-  .object({
-    uri: z.string(),
-    params: z.record(z.unknown()).optional(),
-  })
-  .passthrough();
+const extensionSchema: z.ZodObject<{
+  uri: z.ZodString;
+  params: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.looseObject({
+  uri: z.string(),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
 
-export const agentCardSchema = z
-  .object({
-    name: z.string(),
-    url: z.string(),
-    description: z.string().optional(),
-    skills: z.array(agentCardSkillSchema).optional().default([]),
-    capabilities: z
-      .object({
-        extensions: z.array(extensionSchema).optional().default([]),
-      })
-      .passthrough()
-      .optional(),
-  })
-  .passthrough();
+export const agentCardSchema: z.ZodObject<{
+  name: z.ZodString;
+  url: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  skills: z.ZodDefault<z.ZodOptional<z.ZodArray<typeof agentCardSkillSchema>>>;
+  capabilities: z.ZodOptional<
+    z.ZodObject<{
+      extensions: z.ZodDefault<
+        z.ZodOptional<z.ZodArray<typeof extensionSchema>>
+      >;
+    }>
+  >;
+}> = z.looseObject({
+  name: z.string(),
+  url: z.string(),
+  description: z.string().optional(),
+  skills: z.array(agentCardSkillSchema).optional().default([]),
+  capabilities: z
+    .looseObject({
+      extensions: z.array(extensionSchema).optional().default([]),
+    })
+    .optional(),
+});
 
 /**
  * Parsed Agent Card with anchor extension data extracted.
@@ -57,7 +74,7 @@ export interface ParsedAgentCard {
     description: string;
     tags: string[];
   }>;
-  anchor: z.infer<typeof anchorExtensionParamsSchema> | null;
+  anchor: AnchorProfile | null;
 }
 
 /**
@@ -97,17 +114,3 @@ export function parseAgentCard(data: unknown): ParsedAgentCard | null {
     anchor,
   };
 }
-
-/**
- * Skill data for Agent Card integration.
- * Defined here as the shared contract — entities adapt this into their schema,
- * the A2A interface reads it from entity metadata.
- */
-export const skillDataSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-  examples: z.array(z.string()),
-});
-
-export type SkillData = z.infer<typeof skillDataSchema>;

@@ -1,6 +1,6 @@
 import type { ConversationMessageActor } from "@brains/conversation-service";
 import type { BrainCharacter } from "@brains/identity-service";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 
 const FALLBACK_ASSISTANT_ACTOR_ID = "brain:assistant";
 const FALLBACK_ASSISTANT_DISPLAY_NAME = "Assistant";

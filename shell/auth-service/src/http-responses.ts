@@ -1,4 +1,7 @@
+import { z } from "@brains/utils/zod";
 import type { RegisteredOAuthClient } from "./types";
+
+const jsonRequestBodySchema = z.record(z.string(), z.unknown());
 
 export function jsonResponse(
   body: unknown,
@@ -80,7 +83,7 @@ export async function parseRequestBody(
 ): Promise<URLSearchParams> {
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = jsonRequestBodySchema.parse(await request.json());
     return new URLSearchParams(
       Object.entries(body).flatMap(([key, value]) =>
         typeof value === "string" ? [[key, value]] : [],

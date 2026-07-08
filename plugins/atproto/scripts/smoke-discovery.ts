@@ -25,9 +25,11 @@ import type { ServicePluginContext } from "@brains/plugins";
 import { AtprotoPdsClient } from "../src/pds-client";
 import { atprotoPlugin } from "../src/plugin";
 
-const PDS_ENDPOINT = process.env.ATPROTO_PDS_ENDPOINT ?? "https://bsky.social";
-const IDENTIFIER = process.env.ATPROTO_IDENTIFIER ?? "rizom-test.bsky.social";
-const APP_PASSWORD = process.env.ATPROTO_APP_PASSWORD;
+const PDS_ENDPOINT =
+  process.env["ATPROTO_PDS_ENDPOINT"] ?? "https://bsky.social";
+const IDENTIFIER =
+  process.env["ATPROTO_IDENTIFIER"] ?? "rizom-test.bsky.social";
+const APP_PASSWORD = process.env["ATPROTO_APP_PASSWORD"];
 
 const CARD_COLLECTION = "ai.rizom.brain.card";
 const CARD_LEXICON = canonicalAtprotoLexicons[CARD_COLLECTION];
@@ -162,8 +164,7 @@ async function main(): Promise<void> {
       repos: [IDENTIFIER],
     });
     const event = events[0]?.payload as
-      | { record?: { brain?: { did?: string } } }
-      | undefined;
+      { record?: { brain?: { did?: string } } } | undefined;
     check(
       "discover valid card",
       result.discovered === 1 && result.skipped === 0,

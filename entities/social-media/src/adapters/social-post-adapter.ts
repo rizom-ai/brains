@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   socialPostSchema,
   socialPostFrontmatterSchema,
@@ -36,7 +36,7 @@ export class SocialPostAdapter extends BaseEntityAdapter<
    * Frontmatter-only fields (not in metadata schema) are preserved from entity.content.
    */
   public override toMarkdown(entity: SocialPost): string {
-    let contentBody = "";
+    let contentBody: string;
     let existingFrontmatter: Partial<SocialPostFrontmatter> = {};
 
     try {
@@ -135,4 +135,4 @@ export class SocialPostAdapter extends BaseEntityAdapter<
 }
 
 // Create default instance
-export const socialPostAdapter = new SocialPostAdapter();
+export const socialPostAdapter: SocialPostAdapter = new SocialPostAdapter();

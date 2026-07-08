@@ -17,11 +17,9 @@ import { runCertBootstrap } from "./commands/cert-bootstrap";
 import { runSecretsPush } from "./commands/secrets-push";
 import { runSshKeyBootstrap } from "./commands/ssh-key-bootstrap";
 import { resetAuthPasskeys } from "./commands/auth-reset-passkeys";
+import type { CommandResult } from "./lib/command-result";
 
-export interface CommandResult {
-  success: boolean;
-  message?: string;
-}
+export type { CommandResult } from "./lib/command-result";
 
 /**
  * Execute a parsed CLI command.

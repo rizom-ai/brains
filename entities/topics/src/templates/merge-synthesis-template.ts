@@ -1,16 +1,20 @@
-import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { createTemplate, type Template } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 
-export const topicMergeSynthesisSchema = z.object({
+export interface TopicMergeSynthesisResult {
+  title: string;
+  content: string;
+}
+
+export const topicMergeSynthesisSchema: z.ZodType<
+  TopicMergeSynthesisResult,
+  TopicMergeSynthesisResult
+> = z.object({
   title: z.string().max(100),
   content: z.string(),
 });
 
-export type TopicMergeSynthesisResult = z.infer<
-  typeof topicMergeSynthesisSchema
->;
-
-export const topicMergeSynthesisTemplate =
+export const topicMergeSynthesisTemplate: Template =
   createTemplate<TopicMergeSynthesisResult>({
     name: "topics:merge-synthesis",
     description: "Synthesize a canonical topic from two mergeable topics",

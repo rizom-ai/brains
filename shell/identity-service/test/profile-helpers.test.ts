@@ -1,9 +1,9 @@
 import { describe, it, expect, mock } from "bun:test";
-import { z } from "@brains/utils";
 import {
   baseProfileExtension,
   professionalProfileExtension,
   fetchAnchorProfile,
+  fetchAnchorProfileData,
 } from "../src/profile-helpers";
 
 // ---- baseProfileExtension ----
@@ -29,7 +29,7 @@ describe("baseProfileExtension", () => {
 
   it("should be extendable with additional fields", () => {
     const extended = baseProfileExtension.extend({
-      expertise: z.array(z.string()).optional(),
+      expertise: professionalProfileExtension.shape.expertise,
     });
     const result = extended.parse({
       tagline: "hello",
@@ -84,5 +84,29 @@ describe("fetchAnchorProfile", () => {
     expect(fetchAnchorProfile(entityService as never)).rejects.toThrow(
       "Profile not found",
     );
+  });
+});
+
+// ---- fetchAnchorProfileData ----
+
+describe("fetchAnchorProfileData", () => {
+  it("fetches the profile entity and parses its body with the schema", async () => {
+    const entityService = {
+      listEntities: mock(() =>
+        Promise.resolve([
+          {
+            id: "anchor-profile",
+            content: "---\ntagline: Hello\n---\nBody",
+          },
+        ]),
+      ),
+    };
+
+    const profile = await fetchAnchorProfileData(
+      entityService as never,
+      baseProfileExtension,
+    );
+
+    expect(profile.tagline).toBe("Hello");
   });
 });

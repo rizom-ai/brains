@@ -4,8 +4,10 @@ import {
   saveProcessedEntity,
 } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import { JobResult } from "@brains/contracts";
 import { imageAdapter } from "@brains/image";
 import {
@@ -15,13 +17,18 @@ import {
   webChatUploadsScope,
 } from "../lib/upload-promotion";
 
-export const uploadPromotionJobSchema = z.object({
-  uploadId: z.string().min(1),
-  imageId: z.string().min(1).optional(),
-  title: z.string().optional(),
-});
+export interface UploadPromotionJobData {
+  uploadId: string;
+  imageId?: string | undefined;
+  title?: string | undefined;
+}
 
-export type UploadPromotionJobData = z.infer<typeof uploadPromotionJobSchema>;
+export const uploadPromotionJobSchema: z.ZodType<UploadPromotionJobData> =
+  z.object({
+    uploadId: z.string().min(1),
+    imageId: z.string().min(1).optional(),
+    title: z.string().optional(),
+  });
 
 export type UploadPromotionJobResult =
   | {
@@ -38,14 +45,13 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
   UploadPromotionJobData,
   UploadPromotionJobResult
 > {
-  constructor(
-    logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {
+  private readonly context: EntityPluginContext;
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, {
       schema: uploadPromotionJobSchema,
       jobTypeName: "upload-promote",
     });
+    this.context = context;
   }
 
   async process(

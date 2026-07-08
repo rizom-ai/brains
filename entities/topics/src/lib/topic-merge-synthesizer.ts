@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { TopicAdapter } from "./topic-adapter";
@@ -15,10 +15,12 @@ export interface ITopicMergeSynthesizer {
 }
 
 export class TopicMergeSynthesizer implements ITopicMergeSynthesizer {
-  constructor(
-    private readonly context: EntityPluginContext,
-    private readonly logger: Logger,
-  ) {}
+  private readonly context: EntityPluginContext;
+  private readonly logger: Logger;
+  constructor(context: EntityPluginContext, logger: Logger) {
+    this.context = context;
+    this.logger = logger;
+  }
 
   async synthesize(params: {
     existingTopic: TopicEntity;

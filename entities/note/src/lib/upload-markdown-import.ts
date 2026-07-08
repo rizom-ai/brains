@@ -1,6 +1,6 @@
 import { extractPdfMarkdown } from "@brains/document";
 import type { ResolvedRuntimeUpload } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 
 const textUploadMediaTypes = new Set([
   "text/plain",

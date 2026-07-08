@@ -72,7 +72,7 @@ export async function readJsonResponse(
     throw new Error(`${label} returned an empty response (${response.status})`);
   }
   try {
-    return JSON.parse(text) as unknown;
+    return JSON.parse(text);
   } catch {
     throw new Error(
       `${label} returned invalid JSON (${response.status}): ${text}`,

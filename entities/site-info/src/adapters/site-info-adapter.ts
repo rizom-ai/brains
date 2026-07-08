@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   siteInfoSchema,
   siteInfoBodySchema,
@@ -8,13 +8,16 @@ import {
   type SiteInfoMetadata,
 } from "../schemas/site-info-schema";
 
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+
 /**
  * Entity adapter for SiteInfo entities
  * Uses frontmatter format for CMS compatibility
  */
 export class SiteInfoAdapter extends BaseEntityAdapter<
   SiteInfoEntity,
-  SiteInfoMetadata
+  SiteInfoMetadata,
+  SiteInfoBody
 > {
   constructor() {
     super({
@@ -31,9 +34,7 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
    * Create site info content in frontmatter format
    * Validates input data through Zod schema
    */
-  public createSiteInfoContent(
-    params: z.input<typeof siteInfoBodySchema>,
-  ): string {
+  public createSiteInfoContent(params: SiteInfoBody): string {
     const validatedData = siteInfoBodySchema.parse(params);
     return this.buildMarkdown("", validatedData);
   }
@@ -42,7 +43,7 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
    * Parse site info body from content
    */
   public parseSiteInfoBody(content: string): SiteInfoBody {
-    return this.parseFrontmatter(content) as SiteInfoBody;
+    return this.parseFrontmatter(content);
   }
 
   /**
@@ -68,6 +69,6 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
    */
   public override generateFrontMatter(entity: SiteInfoEntity): string {
     const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", data as Record<string, unknown>);
+    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 }

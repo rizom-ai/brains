@@ -4,7 +4,9 @@ import {
   type EntityPluginContext,
   type Message,
 } from "@brains/plugins";
-import { pLimit, truncateText, type Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils/logger";
+import { pLimit } from "@brains/utils/p-limit";
+import { truncateText } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import {
   ACTION_ITEM_ENTITY_TYPE,
@@ -28,12 +30,12 @@ import {
   type SummaryProjectionDecision,
 } from "../schemas/extraction";
 import type {
-  SummaryConfig,
   SummaryEntity,
   SummaryEntry,
   SummaryMetadata,
   SummaryParticipant,
 } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 import {
   SummaryExtractor,
   type ExtractedConversationMemoryItem,
@@ -65,6 +67,9 @@ export interface ProjectSummaryResult {
 }
 
 export class SummaryProjector {
+  private readonly context: EntityPluginContext;
+  private readonly logger: Logger;
+  private readonly config: SummaryConfig;
   private readonly adapter = new SummaryAdapter();
   private readonly decisionAdapter = new DecisionAdapter();
   private readonly actionItemAdapter = new ActionItemAdapter();
@@ -72,10 +77,13 @@ export class SummaryProjector {
   private readonly extractor: SummaryExtractor;
 
   constructor(
-    private readonly context: EntityPluginContext,
-    private readonly logger: Logger,
-    private readonly config: SummaryConfig,
+    context: EntityPluginContext,
+    logger: Logger,
+    config: SummaryConfig,
   ) {
+    this.context = context;
+    this.logger = logger;
+    this.config = config;
     this.sourceReader = new SummarySourceReader(context, config);
     this.extractor = new SummaryExtractor(context, logger, config);
   }

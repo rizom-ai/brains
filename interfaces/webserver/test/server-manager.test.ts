@@ -7,6 +7,7 @@ import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 import {
   ServerManager,
   WEBSERVER_IDLE_TIMEOUT_SECONDS,
+  isPathContained,
 } from "../src/server-manager";
 
 describe("ServerManager (in-process)", () => {
@@ -179,6 +180,58 @@ describe("ServerManager (in-process)", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/yaml");
     expect(await res.text()).toContain("owner/repo");
+  });
+
+  it("should reject non-public web routes with 401", async () => {
+    testDir = join(tmpdir(), `webserver-nonpublic-${Date.now()}`);
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
+
+    let handlerCalled = false;
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      webRoutes: [
+        {
+          pluginId: "admin",
+          fullPath: "/private",
+          definition: {
+            path: "/private",
+            method: "GET",
+            public: false,
+            handler: async (): Promise<Response> => {
+              handlerCalled = true;
+              return new Response("secret");
+            },
+          },
+        },
+      ],
+    });
+
+    await manager.start();
+
+    const status = manager.getStatus();
+    const url = status.productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/private`);
+    expect(res.status).toBe(401);
+    expect(handlerCalled).toBe(false);
+  });
+
+  it("should not serve images from a sibling directory sharing the prefix", () => {
+    const imagesDir = join(tmpdir(), "webserver-test-images");
+
+    expect(isPathContained(join(imagesDir, "photo.png"), imagesDir)).toBe(true);
+    expect(isPathContained(imagesDir, imagesDir)).toBe(true);
+    // Sibling dir shares the string prefix but is not contained
+    expect(isPathContained(`${imagesDir}-secret/leak.png`, imagesDir)).toBe(
+      false,
+    );
   });
 
   it("should serve web routes registered after the webserver starts", async () => {

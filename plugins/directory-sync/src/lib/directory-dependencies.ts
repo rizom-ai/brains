@@ -1,5 +1,5 @@
 import type { IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { JobRequest } from "../types";
 import { DirectoryBatchQueue } from "./directory-batch-queue";
 import { DirectoryOperationDeps } from "./directory-operation-deps";

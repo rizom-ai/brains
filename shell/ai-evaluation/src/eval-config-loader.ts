@@ -8,10 +8,11 @@ import {
   type InstanceOverrides,
   type PresetName,
 } from "@brains/app";
+import { z } from "@brains/utils/zod";
 
 import { parseModelsField, parseJudgeField } from "./multi-model";
 
-const PRESET_NAMES = new Set<string>(["core", "default", "full"]);
+const rawYamlSchema = z.record(z.string(), z.unknown());
 
 /**
  * Load eval config from brain.eval.yaml (preferred) or brain.eval.config.ts (legacy).
@@ -172,8 +173,8 @@ function resolveEvalSuite(
   rawYaml: Record<string, unknown>,
   suiteName: string,
 ): EvalSelection {
-  const suites = rawYaml["suites"];
-  if (!isRecord(suites)) {
+  const suites = parseRawYamlRecord(rawYaml["suites"]);
+  if (!suites) {
     throw new Error(
       `Eval suite "${suiteName}" was requested, but brain.eval.yaml has no suites block.`,
     );
@@ -189,8 +190,8 @@ function resolveEvalSuite(
     const cached = resolved.get(name);
     if (cached) return cached;
 
-    const rawSuite = suites[name];
-    if (!isRecord(rawSuite)) {
+    const rawSuite = parseRawYamlRecord(suites[name]);
+    if (!rawSuite) {
       throw new Error(`Unknown eval suite "${name}".`);
     }
 
@@ -271,8 +272,8 @@ function parseSuitePreset(
   suiteName: string,
 ): PresetName | undefined {
   if (value === undefined) return undefined;
-  if (typeof value === "string" && PRESET_NAMES.has(value)) {
-    return value as PresetName;
+  if (value === "core" || value === "default" || value === "full") {
+    return value;
   }
   throw new Error(
     `Eval suite "${suiteName}" has invalid preset; expected core, default, or full.`,
@@ -289,25 +290,34 @@ function parseSuiteTags(value: unknown, suiteName: string): string[] {
   );
 }
 
+function parseRawYamlRecord(
+  value: unknown,
+): z.output<typeof rawYamlSchema> | undefined {
+  const parsed = rawYamlSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
 function parseSuitePlugins(
   value: unknown,
   suiteName: string,
 ): Record<string, Record<string, unknown>> {
   if (value === undefined) return {};
-  if (!isRecord(value)) {
+  const rawPlugins = parseRawYamlRecord(value);
+  if (!rawPlugins) {
     throw new Error(
       `Eval suite "${suiteName}" has invalid plugins; expected a plugin config map.`,
     );
   }
 
   const plugins: Record<string, Record<string, unknown>> = {};
-  for (const [pluginId, config] of Object.entries(value)) {
-    if (!isRecord(config)) {
+  for (const [pluginId, config] of Object.entries(rawPlugins)) {
+    const pluginConfig = parseRawYamlRecord(config);
+    if (!pluginConfig) {
       throw new Error(
         `Eval suite "${suiteName}" has invalid plugins.${pluginId}; expected an object.`,
       );
     }
-    plugins[pluginId] = config;
+    plugins[pluginId] = pluginConfig;
   }
   return plugins;
 }
@@ -318,17 +328,14 @@ function mergeRecords(
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...base };
   for (const [key, value] of Object.entries(override)) {
-    const existing = merged[key];
+    const existingRecord = parseRawYamlRecord(merged[key]);
+    const valueRecord = parseRawYamlRecord(value);
     merged[key] =
-      isRecord(existing) && isRecord(value)
-        ? mergeRecords(existing, value)
+      existingRecord && valueRecord
+        ? mergeRecords(existingRecord, valueRecord)
         : value;
   }
   return merged;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -358,10 +365,12 @@ async function parseRawBrainEvalYaml(
   content: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const { fromYaml, interpolateEnv } = await import("@brains/utils");
-    const parsed = fromYaml(content);
-    if (parsed && typeof parsed === "object") {
-      return interpolateEnv(parsed) as Record<string, unknown>;
+    const { fromYaml } = await import("@brains/utils/yaml");
+    const { interpolateEnv } = await import("@brains/utils/string-utils");
+    const parsed = rawYamlSchema.safeParse(fromYaml(content));
+    if (parsed.success) {
+      const interpolated = rawYamlSchema.safeParse(interpolateEnv(parsed.data));
+      if (interpolated.success) return interpolated.data;
     }
   } catch {
     // Ignore parse errors — overrides already parsed above.

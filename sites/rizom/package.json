@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom",
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.141",
   "description": "Shared Rizom site core — structural base for rizom.ai, rizom.foundation, and rizom.work",
   "type": "module",
   "exports": {
@@ -24,8 +24,8 @@
   ],
   "scripts": {
     "build": "bun scripts/build.ts",
-    "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint": "eslint src scripts/build.ts --max-warnings 0",
+    "lint:fix": "eslint src scripts/build.ts --max-warnings 0 --fix",
     "postpack": "publish-manifest restore",
     "prepack": "publish-manifest prepare",
     "prepublishOnly": "bun scripts/build.ts",
@@ -36,23 +36,26 @@
     "@rizom/site": "workspace:*",
     "clsx": "^2.1.0",
     "preact": "^10.27.2",
-    "tailwind-merge": "^2.2.0"
+    "tailwind-merge": "^3.6.0"
   },
   "publishPeerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.136 <0.3.0"
+    "@rizom/brain": ">=0.2.0-alpha.141 <0.3.0"
   },
   "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@rizom/ui": "workspace:*",
-    "@types/bun": "latest",
-    "eslint": "^8.56.0",
-    "rollup": "^4.60.2",
+    "@types/bun": "^1.3.14",
+    "eslint": "^10.5.0",
+    "rollup": "^4.62.0",
     "rollup-plugin-dts": "^6.4.1",
-    "typescript": "^5.3.3"
+    "typescript": "^6.0.3"
   },
   "publishConfig": {
     "access": "public"

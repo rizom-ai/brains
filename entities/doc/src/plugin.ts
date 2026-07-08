@@ -1,18 +1,22 @@
 import type { DataSource, Plugin, Template } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { docSchema, type Doc } from "./schemas/doc";
-import { docAdapter } from "./adapters/doc-adapter";
+import { docAdapter, type DocAdapter } from "./adapters/doc-adapter";
 import { DocDataSource } from "./datasources/doc-datasource";
 import { getTemplates } from "./lib/register-templates";
 import packageJson from "../package.json";
 
-export class DocsPlugin extends EntityPlugin<Doc> {
-  readonly entityType = docAdapter.entityType;
-  readonly schema = docSchema;
-  readonly adapter = docAdapter;
+export class DocsPlugin extends EntityPlugin<
+  Doc,
+  Record<string, never>,
+  Record<string, never>
+> {
+  readonly entityType: typeof docAdapter.entityType = docAdapter.entityType;
+  readonly schema: typeof docSchema = docSchema;
+  readonly adapter: DocAdapter = docAdapter;
 
   constructor() {
-    super("docs", packageJson, {}, undefined);
+    super("docs", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getTemplates(): Record<string, Template> {

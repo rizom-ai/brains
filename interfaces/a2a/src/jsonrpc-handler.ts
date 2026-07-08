@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type { AgentNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { Task } from "@a2a-js/sdk";
@@ -8,13 +8,20 @@ const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
 
 // -- Zod schemas for request validation --
 
-const messagePartsSchema = z.array(
-  z.object({
-    kind: z.string(),
-    text: z.string().optional(),
-    data: z.record(z.unknown()).optional(),
-  }),
-);
+interface MessagePartParams {
+  kind: string;
+  text?: string | undefined;
+  data?: Record<string, unknown> | undefined;
+}
+
+const messagePartsSchema: z.ZodType<MessagePartParams[], MessagePartParams[]> =
+  z.array(
+    z.object({
+      kind: z.string(),
+      text: z.string().optional(),
+      data: z.record(z.string(), z.unknown()).optional(),
+    }),
+  );
 
 const sendMessageParamsSchema = z.object({
   message: z.object({
@@ -46,7 +53,7 @@ interface JsonRpcSuccess {
   error?: never;
 }
 
-interface JsonRpcError {
+export interface JsonRpcError {
   jsonrpc: "2.0";
   id: string | number | null;
   result?: never;
@@ -69,14 +76,24 @@ function errorResponse(
 
 // -- JSON-RPC request envelope --
 
-export const jsonrpcRequestSchema = z.object({
+export interface JsonRpcRequest {
+  jsonrpc: string;
+  id: string | number;
+  method: string;
+  params?: Record<string, unknown> | undefined;
+}
+
+export type JsonRpcRequestInput = JsonRpcRequest;
+
+export const jsonrpcRequestSchema: z.ZodType<
+  JsonRpcRequest,
+  JsonRpcRequestInput
+> = z.object({
   jsonrpc: z.string(),
   id: z.union([z.string(), z.number()]),
   method: z.string(),
-  params: z.record(z.unknown()).optional(),
+  params: z.record(z.string(), z.unknown()).optional(),
 });
-
-export type JsonRpcRequest = z.infer<typeof jsonrpcRequestSchema>;
 
 // -- Handler context --
 
@@ -84,6 +101,8 @@ export interface JsonRpcHandlerContext {
   taskManager: TaskManager;
   agentService: AgentNamespace;
   callerPermissionLevel: UserPermissionLevel;
+  /** Verified caller domain for signed A2A requests; null/undefined for anonymous callers. */
+  callerDomain?: string | null;
 }
 
 // -- Main handler --
@@ -137,9 +156,22 @@ async function handleSendMessage(
 
   const messageText = textParts.map((p) => p.text).join("\n");
   const contextId = parsed.data.message.contextId;
+  const callerDomain = context.callerDomain ?? null;
+  const messageId = callerDomain ? parsed.data.message.messageId : undefined;
+
+  const existing = context.taskManager.getTaskByClientMessageId(
+    callerDomain,
+    messageId,
+  );
+  if (existing) {
+    return successResponse(id, existing.task);
+  }
 
   // Create task and move to working
-  const record = context.taskManager.createTask(messageText, contextId);
+  const record = context.taskManager.createTask(messageText, contextId, {
+    callerDomain,
+    messageId,
+  });
   const taskId = record.task.id;
   context.taskManager.updateState(taskId, "working");
 
@@ -186,13 +218,26 @@ function processInBackground(
 
 // -- Streaming (SSE) handler --
 
-export const streamParamsSchema = z.object({
-  message: z.object({
-    kind: z.string(),
-    parts: messagePartsSchema,
-    contextId: z.string().optional(),
-  }),
-});
+export interface StreamParams {
+  message: {
+    kind: string;
+    messageId?: string | undefined;
+    parts: MessagePartParams[];
+    contextId?: string | undefined;
+  };
+}
+
+export type StreamParamsInput = StreamParams;
+
+export const streamParamsSchema: z.ZodType<StreamParams, StreamParamsInput> =
+  z.object({
+    message: z.object({
+      kind: z.string(),
+      messageId: z.string().optional(),
+      parts: messagePartsSchema,
+      contextId: z.string().optional(),
+    }),
+  });
 
 interface StreamResult {
   taskId: string;
@@ -210,19 +255,46 @@ interface StreamOptions {
  */
 export function handleStreamMessage(
   requestId: string | number,
-  message: z.infer<typeof streamParamsSchema>["message"],
+  message: StreamParams["message"],
   context: JsonRpcHandlerContext,
   options: StreamOptions = {},
-): StreamResult {
+): StreamResult | JsonRpcError {
   const textParts = message.parts.filter(
     (p): p is { kind: "text"; text: string } =>
       p.kind === "text" && typeof p.text === "string",
   );
 
-  const messageText =
-    textParts.map((p) => p.text).join("\n") || "No message text";
+  if (textParts.length === 0) {
+    return errorResponse(
+      requestId,
+      -32602,
+      "Message must contain at least one text part",
+    );
+  }
 
-  const record = context.taskManager.createTask(messageText, message.contextId);
+  const messageText = textParts.map((p) => p.text).join("\n");
+  const callerDomain = context.callerDomain ?? null;
+  const messageId = callerDomain ? message.messageId : undefined;
+
+  const existing = context.taskManager.getTaskByClientMessageId(
+    callerDomain,
+    messageId,
+  );
+  if (existing) {
+    return {
+      taskId: existing.task.id,
+      stream: taskSnapshotStream(requestId, existing.task),
+    };
+  }
+
+  const record = context.taskManager.createTask(
+    messageText,
+    message.contextId,
+    {
+      callerDomain,
+      messageId,
+    },
+  );
   const taskId = record.task.id;
 
   context.taskManager.updateState(taskId, "working");
@@ -338,6 +410,42 @@ export function handleStreamMessage(
   return { taskId, stream };
 }
 
+function taskSnapshotStream(
+  requestId: string | number,
+  task: Task,
+): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    start(controller): void {
+      controller.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({
+            jsonrpc: "2.0",
+            id: requestId,
+            result: {
+              kind: "status-update",
+              taskId: task.id,
+              contextId: task.contextId,
+              status: task.status,
+              final: TERMINAL_STATES.has(task.status.state),
+            },
+          })}\n\n`,
+        ),
+      );
+      controller.close();
+    },
+  });
+}
+
+function callerCanAccessTask(
+  record: { callerDomain: string | null },
+  context: JsonRpcHandlerContext,
+): boolean {
+  return (
+    record.callerDomain !== null && record.callerDomain === context.callerDomain
+  );
+}
+
 function handleGetTask(
   id: string | number,
   params: Record<string, unknown>,
@@ -346,6 +454,11 @@ function handleGetTask(
   const parsed = taskIdParamsSchema.safeParse(params);
   if (!parsed.success) {
     return errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`);
+  }
+
+  const record = context.taskManager.getTask(parsed.data.id);
+  if (!record || !callerCanAccessTask(record, context)) {
+    return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
   }
 
   const task = context.taskManager.getTaskWithHistory(
@@ -371,7 +484,7 @@ function handleCancelTask(
   }
 
   const record = context.taskManager.getTask(parsed.data.id);
-  if (!record) {
+  if (!record || !callerCanAccessTask(record, context)) {
     return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
   }
 

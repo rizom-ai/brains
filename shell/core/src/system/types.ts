@@ -3,7 +3,7 @@ import type { JobsNamespace } from "@brains/job-queue";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type { DefaultQueryResponse } from "@brains/contracts";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type {
   IAttachmentsNamespace,
   IRuntimeUploadsNamespace,

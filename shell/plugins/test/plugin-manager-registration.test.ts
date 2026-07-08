@@ -5,10 +5,13 @@ import type { Tool, Resource } from "../src/interfaces";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 // Mock plugin for testing
-class TestPlugin extends ServicePlugin<Record<string, never>> {
+class TestPlugin extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "test-plugin",
@@ -147,7 +150,10 @@ describe("PluginManager - Direct Registration", () => {
     });
 
     it("should handle plugins with no capabilities", async () => {
-      class EmptyPlugin extends ServicePlugin<Record<string, never>> {
+      class EmptyPlugin extends ServicePlugin<
+        Record<string, never>,
+        Record<string, never>
+      > {
         constructor() {
           super(
             "empty-plugin",
@@ -168,7 +174,10 @@ describe("PluginManager - Direct Registration", () => {
     });
 
     it("should register capabilities from multiple plugins", async () => {
-      class SecondPlugin extends ServicePlugin<Record<string, never>> {
+      class SecondPlugin extends ServicePlugin<
+        Record<string, never>,
+        Record<string, never>
+      > {
         constructor() {
           super(
             "second-plugin",

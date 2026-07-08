@@ -132,6 +132,28 @@ uploads an image by creating/updating an `image` entity through `entityService` 
 pipeline writes the file to git, exactly like every other entity. This stays consistent with the
 single-writer model and introduces no new storage path.
 
+## Design mockups
+
+Interactive mockups live at [`docs/cms-editor-mockups.html`](../cms-editor-mockups.html)
+(open in a browser; approved 2026-07-07). Three screens — Library, Manuscript, States —
+extending the existing operator-console identity (Fraunces + IBM Plex, pulse mark, warm
+paper/vermilion/verdigris). Design decisions they settle for the phases below:
+
+- **The save pipeline is visible UX, not a hidden side effect**: a dark instrument strip
+  under the editor shows `entity db → exported to file → committed` stations animating on
+  save, with the latest commit ref. List rows carry a compact sync state (`committed` /
+  `exporting`). This is the interface expressing the plan's single-writer thesis.
+- **Frontmatter as a "colophon" form** in a left rail, rendered from the server field
+  descriptors (string / reference / string[] / date / image-entity widgets), body editor to
+  the right — matching the API's frontmatter/body split.
+- **Body editor ships the Floor tier** with a `Source | Split | Preview` segment control, so
+  the Phase 4 CodeMirror upgrade slots in without layout change.
+- **States**: field-level validation blocks the write before anything is sent; the stale-write
+  conflict names the other writer ("updated by directory-sync — a git import touched this
+  file") with review/overwrite actions; delete confirms by narrating its downstream effects
+  (event → file removal → commit, recoverable from git); singletons open straight into the
+  editor with no list.
+
 ## Architecture
 
 Evolve `plugins/cms` in place (it already owns the `/cms` route, operator-session auth wiring,

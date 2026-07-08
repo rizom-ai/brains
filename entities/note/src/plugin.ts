@@ -9,9 +9,9 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { noteSchema, type Note } from "./schemas/note";
-import { noteAdapter } from "./adapters/note-adapter";
+import { noteAdapter, type NoteAdapter } from "./adapters/note-adapter";
 import type { NoteConfig, NoteConfigInput } from "./config";
 import { noteConfigSchema } from "./config";
 import { noteGenerationTemplate } from "./templates/generation-template";
@@ -30,10 +30,22 @@ const webChatUploadsScope = {
   routePath: "/api/chat/uploads",
 } as const;
 
-export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
-  readonly entityType = noteAdapter.entityType;
-  readonly schema = noteSchema;
-  readonly adapter = noteAdapter;
+interface GenerateNoteEvalInput {
+  prompt: string;
+}
+
+const generateNoteEvalInputSchema: z.ZodType<GenerateNoteEvalInput> = z.object({
+  prompt: z.string(),
+});
+
+export class NotePlugin extends EntityPlugin<
+  Note,
+  NoteConfig,
+  NoteConfigInput
+> {
+  readonly entityType: typeof noteAdapter.entityType = noteAdapter.entityType;
+  readonly schema: typeof noteSchema = noteSchema;
+  readonly adapter: NoteAdapter = noteAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: NoteConfigInput = {}) {
@@ -89,10 +101,29 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
         filename: uploadRecord.filename,
         ...(input.title !== undefined ? { title: input.title } : {}),
       });
+      // Create the stub before enqueueing so the returned entityId is the
+      // real (possibly deduplicated) id and exists while "generating".
+      const stub = noteAdapter.buildStub({
+        id: identity.id,
+        title: identity.title,
+      });
+      const now = new Date().toISOString();
+      const created = await context.entityService.createEntity({
+        entity: {
+          id: identity.id,
+          entityType: "note",
+          content: stub.content,
+          metadata: stub.metadata,
+          created: now,
+          updated: now,
+        },
+        options: { deduplicateId: true },
+      });
       const jobId = await context.jobs.enqueue({
         type: "upload-import",
         data: {
           uploadId,
+          entityId: created.entityId,
           ...(input.title !== undefined ? { title: input.title } : {}),
         },
       });
@@ -101,7 +132,7 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
         kind: "handled",
         result: {
           success: true,
-          data: { entityId: identity.id, status: "generating", jobId },
+          data: { entityId: created.entityId, status: "generating", jobId },
         },
       };
     } catch (error) {
@@ -143,7 +174,8 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
     );
 
     context.eval.registerHandler("generateNote", async (input: unknown) => {
-      const parsed = z.object({ prompt: z.string() }).parse(input);
+      const parsed: GenerateNoteEvalInput =
+        generateNoteEvalInputSchema.parse(input);
       return context.ai.generate<{ title: string; body: string }>({
         prompt: parsed.prompt,
         templateName: "note:generation",

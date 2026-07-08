@@ -1,12 +1,12 @@
 import type { IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import {
   extractMarkdownImages,
   fetchImageAsBase64,
   isHttpUrl,
   type ExtractedImage,
 } from "@brains/image";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { ImageFetcher } from "./frontmatter-image-converter";
 import { getOrCreateImageEntity } from "./image-entity-helper";
 
@@ -46,13 +46,17 @@ export interface InlineConversionResult {
  * 4. Replaces URLs with entity://image/{id} references
  */
 export class MarkdownImageConverter {
+  private entityService: IEntityService;
+  private fetcher: ImageFetcher;
   private logger: Logger;
 
   constructor(
-    private entityService: IEntityService,
+    entityService: IEntityService,
     logger: Logger,
-    private fetcher: ImageFetcher = fetchImageAsBase64,
+    fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
+    this.entityService = entityService;
+    this.fetcher = fetcher;
     this.logger = logger.child("MarkdownImageConverter");
   }
 

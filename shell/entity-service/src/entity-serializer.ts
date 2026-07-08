@@ -1,12 +1,13 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import type { BaseEntity } from "./types";
 import {
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
 } from "./frontmatter";
 import type { EntityRegistry } from "./entityRegistry";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { EntityData } from "./entity-data";
+import { toEntityValidationError } from "./errors";
 
 /**
  * EntitySerializer handles conversion between entities and markdown
@@ -41,11 +42,17 @@ export class EntitySerializer {
     entityType: string,
   ): Partial<BaseEntity> {
     const adapter = this.entityRegistry.getAdapter(entityType);
+    let parsedFromMarkdown: Partial<BaseEntity>;
+    try {
+      parsedFromMarkdown = adapter.fromMarkdown(markdown);
+    } catch (error) {
+      throw toEntityValidationError(entityType, error) ?? error;
+    }
     const {
       metadata: parsedMetadata,
       visibility: _parsedVisibility,
       ...parsed
-    } = adapter.fromMarkdown(markdown);
+    } = parsedFromMarkdown;
     const visibility = extractVisibilityFromMarkdown(markdown);
     const metadata = this.stripPolicyMetadata(parsedMetadata ?? {});
     return {

@@ -1,8 +1,5 @@
-import {
-  summaryConfigSchema,
-  type SummaryEntity,
-  type SummaryMetadata,
-} from "../../src/schemas/summary";
+import type { SummaryEntity, SummaryMetadata } from "../../src/schemas/summary";
+import { summaryConfigSchema } from "../../src/schemas/summary-config";
 import { createTestEntity } from "@brains/test-utils";
 
 export const defaultSummaryMetadata: SummaryMetadata = {

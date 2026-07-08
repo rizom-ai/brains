@@ -83,10 +83,10 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§1</span>The brain and its bundles</summary>
         <div class="cards">
-        <div class="card status-partial">
+        <div class="card status-active">
           <div class="card-head">
             <span class="card-name">Exhaustive core-preset eval set for Rover</span>
-            <span class="badge badge-partial">In progress</span>
+            <span class="badge badge-active">Active</span>
           </div>
           <div class="card-desc">preset-aware eval harness merged; remaining work fills behavioral coverage and re-tags toward bundle combinations as unification lands.</div>
           <div class="card-file">rover-core-preset-evals.md</div>
@@ -135,6 +135,14 @@
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Identity &amp; trust architecture</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.</div>
+          <div class="card-file">identity-and-trust.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Multi-User &amp; Permissions</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -180,6 +188,22 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Rizom sites on hosted Rover</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">package the Rizom site variants so hosted Rover can consume them as npm-resolvable site refs, plus per-domain TLS/DNS for custom-domain brains.</div>
+          <div class="card-file">rizom-sites-on-hosted-rover.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Rizom consolidation — one brain, one site</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">follow-up end-state: one brain, one site. Fold rizom.work and rizom.foundation into rizom.ai (edge redirects for the old domains) and consolidate the three deployed brains into one relay-shaped composition carrying the atproto registry and the collective's team memory.</div>
+          <div class="card-file">rizom-consolidation.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Rover onboarding plugin plan</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -207,14 +231,6 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§5</span>Interfaces</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Chat MessageInterface Shared Workflows</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">extraction pass moving Discord/Web-chat-generic workflows into <code>MessageInterface</code> helpers before Slack duplicates them.</div>
-          <div class="card-file">chat-message-interface-shared-workflows.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">First-Party CMS Editor</span>
@@ -225,10 +241,18 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Dashboard tabbed console</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">restructure the operator dashboard into a tabbed console: tabs derived from widget groups (converging to bundle ids when bundles land), an Overview that answers &quot;anything need me?&quot;, operator-work badges, and a console strip shared with Chat and the CMS.</div>
+          <div class="card-file">dashboard-tabbed-console.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Slack Chat SDK Interface</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">first Slack slice for <code>@brains/chat</code>, separate from Discord replacement work.</div>
+          <div class="card-desc">first Slack slice for <code>@brains/chat</code>, building on the shared <code>MessageInterface</code> helpers already extracted from Discord/web-chat workflows.</div>
           <div class="card-file">slack-chat-sdk.md</div>
         </div>
         <div class="card status-parked">
@@ -278,14 +302,6 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">MCP external redesign — CQRS split (raw queries, agent-gated commands)</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">CQRS split for external MCP: raw read tools stay composable (<code>readOnlyHint</code>), all mutations route through a single agent-gated <code>chat</code> command; <code>debug</code> mode keeps raw write tools local-only.</div>
-          <div class="card-file">mcp-external-redesign.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
             <span class="card-name">Opportunity Priority Engine</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -299,6 +315,14 @@
         <div class="cards">
         <div class="card status-partial">
           <div class="card-head">
+            <span class="card-name">External dependency review and updates</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the Zod 4 migration/policy cleanup for the first stable <code>@rizom/brain</code>.</div>
+          <div class="card-file">external-dependency-review.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
             <span class="card-name">Local AI Runtime</span>
             <span class="badge badge-partial">In progress</span>
           </div>
@@ -307,35 +331,11 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">env handling — declarations and read sites</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">co-locate env declarations and move <code>process.env</code> reads out of <code>shell/core</code> into the app/deploy layer.</div>
-          <div class="card-file">env-handling.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Unify Build Pipeline</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">collapse duplicated build responsibilities.</div>
-          <div class="card-file">unify-build-pipeline.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
             <span class="card-name">Parallel Multi-Model Eval</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
           <div class="card-desc">parallelize multi-model eval runs.</div>
           <div class="card-file">parallel-eval-workers.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">External dependency review and updates</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable <code>@rizom/brain</code>.</div>
-          <div class="card-file">external-dependency-review.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -352,22 +352,6 @@
           </div>
           <div class="card-desc">reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, <code>@brains/utils</code> split, package-script drift).</div>
           <div class="card-file">codebase-cleanup-backlog.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Agent interpretation boundary — target architecture</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. Deletes the NL guards (<code>call-options.ts</code> regexes, routing prose, source-precedence sniffing) and makes <code>system_create</code> source-only at the model boundary. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.</div>
-          <div class="card-file">system-create-source-architecture.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Upload/attachment visibility — no NL selection</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">sibling of the interpretation-boundary plan: what attachments the model sees is data and cost policy, never message wording. Deletes the wording-based upload/attachment selection (<code>selectReferencedAttachments</code>, <code>conversation-messages.ts</code> narrowing helpers) so the model resolves &quot;it/this/latest&quot; against candidate refs instead of code regexes.</div>
-          <div class="card-file">upload-attachment-visibility.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

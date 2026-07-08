@@ -1,6 +1,32 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
-export const publishAssetTargetFieldSchema = z.union([
+export interface PublishAssetFieldReference {
+  location: "metadata" | "frontmatter";
+  field: string;
+}
+
+export type PublishAssetTargetField = string | PublishAssetFieldReference;
+
+export interface PublishAssetRequirement {
+  status?: string | undefined;
+  visibility?: string | undefined;
+}
+
+export interface PublishAssetDefinition {
+  entityType: string;
+  attachmentType: string;
+  mediaEntityType: "image" | "document";
+  targetEntityField?: PublishAssetTargetField | undefined;
+  requiredWhen?: PublishAssetRequirement | undefined;
+  autoGenerate?: boolean | undefined;
+  requiredForPublish?: boolean | undefined;
+  jobType?: string | undefined;
+}
+
+export const publishAssetTargetFieldSchema: z.ZodType<
+  PublishAssetTargetField,
+  PublishAssetTargetField
+> = z.union([
   z.string().min(1),
   z.object({
     location: z.enum(["metadata", "frontmatter"]),
@@ -8,11 +34,10 @@ export const publishAssetTargetFieldSchema = z.union([
   }),
 ]);
 
-export type PublishAssetTargetField = z.infer<
-  typeof publishAssetTargetFieldSchema
->;
-
-export const publishAssetDefinitionSchema = z.object({
+export const publishAssetDefinitionSchema: z.ZodType<
+  PublishAssetDefinition,
+  PublishAssetDefinition
+> = z.object({
   entityType: z.string().min(1),
   attachmentType: z.string().min(1),
   mediaEntityType: z.enum(["image", "document"]),
@@ -27,10 +52,6 @@ export const publishAssetDefinitionSchema = z.object({
   requiredForPublish: z.boolean().optional(),
   jobType: z.string().min(1).optional(),
 });
-
-export type PublishAssetDefinition = z.infer<
-  typeof publishAssetDefinitionSchema
->;
 
 function getPublishAssetKey(input: {
   entityType: string;

@@ -2,10 +2,7 @@ import type { AgentResponse, ToolApprovalCard } from "../contracts/agent";
 import type { ToolActivityEvent } from "./tool-event-handler";
 
 export type ToolStatusState =
-  | "running"
-  | "completed"
-  | "awaiting-approval"
-  | "failed";
+  "running" | "completed" | "awaiting-approval" | "failed";
 
 export interface ToolStatusUpdate {
   state: ToolStatusState;

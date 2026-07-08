@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { CleanupResult, ExportResult, ImportResult } from "../types";
 import { removeOrphanedEntities as runCleanup } from "./cleanup-pipeline";
 import type { DirectoryOperationDeps } from "./directory-operation-deps";

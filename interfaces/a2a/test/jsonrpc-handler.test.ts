@@ -285,11 +285,16 @@ describe("JSON-RPC Handler", () => {
   });
 
   describe("tasks/get", () => {
-    it("should return an existing task", async () => {
+    it("should return an existing task to the verified caller that created it", async () => {
       // First create a task
       const sendResponse = await handleJsonRpc(
         rpcRequest("message/send", userMessage("Hello")),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        },
       );
       const taskId = expectSuccess(sendResponse).id;
 
@@ -299,7 +304,12 @@ describe("JSON-RPC Handler", () => {
       // Then get it
       const getResponse = await handleJsonRpc(
         rpcRequest("tasks/get", { id: taskId }),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        },
       );
 
       const task = expectSuccess(getResponse);
@@ -307,17 +317,27 @@ describe("JSON-RPC Handler", () => {
       expect(task.status.state).toBe("completed");
     });
 
-    it("should respect historyLength parameter", async () => {
+    it("should respect historyLength parameter for the verified caller", async () => {
       const sendResponse = await handleJsonRpc(
         rpcRequest("message/send", userMessage("Hello")),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        },
       );
       await new Promise((r) => setTimeout(r, 10));
       const taskId = expectSuccess(sendResponse).id;
 
       const getResponse = await handleJsonRpc(
         rpcRequest("tasks/get", { id: taskId, historyLength: 1 }),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        },
       );
 
       const task = expectSuccess(getResponse);
@@ -344,6 +364,48 @@ describe("JSON-RPC Handler", () => {
       const error = expectError(response);
       expect(error.code).toBe(-32602);
     });
+
+    it("should hide public caller tasks from polling without a verified caller", async () => {
+      const sendResponse = await handleJsonRpc(
+        rpcRequest("message/send", userMessage("Hello")),
+        { taskManager, agentService, callerPermissionLevel: "public" },
+      );
+      const taskId = expectSuccess(sendResponse).id;
+
+      const getResponse = await handleJsonRpc(
+        rpcRequest("tasks/get", { id: taskId }),
+        { taskManager, agentService, callerPermissionLevel: "public" },
+      );
+
+      const error = expectError(getResponse);
+      expect(error.code).toBe(-32001);
+    });
+
+    it("should hide verified caller tasks from other callers", async () => {
+      const sendResponse = await handleJsonRpc(
+        rpcRequest("message/send", userMessage("Hello")),
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        },
+      );
+      const taskId = expectSuccess(sendResponse).id;
+
+      const getResponse = await handleJsonRpc(
+        rpcRequest("tasks/get", { id: taskId }),
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-b.example",
+        },
+      );
+
+      const error = expectError(getResponse);
+      expect(error.code).toBe(-32001);
+    });
   });
 
   describe("tasks/cancel", () => {
@@ -357,10 +419,15 @@ describe("JSON-RPC Handler", () => {
       expect(error.code).toBe(-32001);
     });
 
-    it("should return error for already completed task", async () => {
+    it("should return error for already completed task from the verified caller", async () => {
       const sendResponse = await handleJsonRpc(
         rpcRequest("message/send", userMessage("Hello")),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        },
       );
       const taskId = expectSuccess(sendResponse).id;
 
@@ -369,11 +436,45 @@ describe("JSON-RPC Handler", () => {
 
       const cancelResponse = await handleJsonRpc(
         rpcRequest("tasks/cancel", { id: taskId }),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        },
       );
 
       const error = expectError(cancelResponse);
       expect(error.code).toBe(-32002);
+    });
+
+    it("should hide verified caller tasks from cancellation by other callers", async () => {
+      const slowAgent = createCustomAgentService({
+        chat: async () => new Promise<AgentResponse>(() => {}),
+      });
+      const sendResponse = await handleJsonRpc(
+        rpcRequest("message/send", userMessage("Hello")),
+        {
+          taskManager,
+          agentService: slowAgent,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        },
+      );
+      const taskId = expectSuccess(sendResponse).id;
+
+      const cancelResponse = await handleJsonRpc(
+        rpcRequest("tasks/cancel", { id: taskId }),
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-b.example",
+        },
+      );
+
+      const error = expectError(cancelResponse);
+      expect(error.code).toBe(-32001);
     });
   });
 
@@ -493,6 +594,49 @@ describe("JSON-RPC Handler", () => {
       const failed = taskManager.getTask(task.id);
       expect(failed?.task.status.state).toBe("failed");
     });
+
+    it("should return the existing task for repeated message ids from the same caller", async () => {
+      let calls = 0;
+      const trackingService = createCustomAgentService({
+        chat: async () => {
+          calls++;
+          return OK_RESPONSE;
+        },
+      });
+
+      const request = rpcRequest("message/send", userMessage("Hello"));
+      const first = await handleJsonRpc(request, {
+        taskManager,
+        agentService: trackingService,
+        callerPermissionLevel: "trusted",
+        callerDomain: "peer-a.example",
+      });
+      const second = await handleJsonRpc(request, {
+        taskManager,
+        agentService: trackingService,
+        callerPermissionLevel: "trusted",
+        callerDomain: "peer-a.example",
+      });
+
+      expect(expectSuccess(second).id).toBe(expectSuccess(first).id);
+      expect(calls).toBe(1);
+    });
+
+    it("should not dedupe repeated anonymous message ids", async () => {
+      const request = rpcRequest("message/send", userMessage("Hello"));
+      const first = await handleJsonRpc(request, {
+        taskManager,
+        agentService,
+        callerPermissionLevel: "public",
+      });
+      const second = await handleJsonRpc(request, {
+        taskManager,
+        agentService,
+        callerPermissionLevel: "public",
+      });
+
+      expect(expectSuccess(second).id).not.toBe(expectSuccess(first).id);
+    });
   });
 
   describe("message/stream (SSE)", () => {
@@ -523,17 +667,52 @@ describe("JSON-RPC Handler", () => {
       return events;
     }
 
-    it("should stream status-update events with correct shape", async () => {
-      agentService = createMockAgentService({ text: "Streamed result" });
+    /** Assert a stream result (not a JSON-RPC error) and return it */
+    function expectStream(result: ReturnType<typeof handleStreamMessage>): {
+      taskId: string;
+      stream: ReadableStream<Uint8Array>;
+    } {
+      if ("error" in result) {
+        throw new Error(`Expected stream, got error: ${result.error.message}`);
+      }
+      return result;
+    }
 
+    it("should reject a message with no text parts with -32602", () => {
       const result = handleStreamMessage(
         1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+        { kind: "message", parts: [{ kind: "data", data: {} }] },
         {
           taskManager,
           agentService,
           callerPermissionLevel: "public",
         },
+      );
+
+      if (!("error" in result)) {
+        throw new Error("Expected a JSON-RPC error");
+      }
+      expect(result.error.code).toBe(-32602);
+      expect(result.error.message).toBe(
+        "Message must contain at least one text part",
+      );
+      expect(result.id).toBe(1);
+      expect(taskManager.size).toBe(0);
+    });
+
+    it("should stream status-update events with correct shape", async () => {
+      agentService = createMockAgentService({ text: "Streamed result" });
+
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService,
+            callerPermissionLevel: "public",
+          },
+        ),
       );
 
       const events = await collectEvents(result.stream);
@@ -565,14 +744,16 @@ describe("JSON-RPC Handler", () => {
         },
       });
 
-      const result = handleStreamMessage(
-        1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
-        {
-          taskManager,
-          agentService: failingAgent,
-          callerPermissionLevel: "public",
-        },
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService: failingAgent,
+            callerPermissionLevel: "public",
+          },
+        ),
       );
 
       const events = await collectEvents(result.stream);
@@ -584,18 +765,59 @@ describe("JSON-RPC Handler", () => {
     });
 
     it("should return taskId with the stream", () => {
-      const result = handleStreamMessage(
-        1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
-        {
-          taskManager,
-          agentService,
-          callerPermissionLevel: "public",
-        },
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService,
+            callerPermissionLevel: "public",
+          },
+        ),
       );
 
       expect(result.taskId).toBeDefined();
       expect(typeof result.taskId).toBe("string");
+    });
+
+    it("should return an existing task stream for repeated message ids from the same caller", async () => {
+      let calls = 0;
+      const trackingService = createCustomAgentService({
+        chat: async () => {
+          calls++;
+          return OK_RESPONSE;
+        },
+      });
+      const message = {
+        kind: "message",
+        messageId: "stream-msg-1",
+        parts: [{ kind: "text", text: "Hello" }],
+      };
+
+      const first = expectStream(
+        handleStreamMessage(1, message, {
+          taskManager,
+          agentService: trackingService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        }),
+      );
+      await collectEvents(first.stream);
+
+      const second = expectStream(
+        handleStreamMessage(2, message, {
+          taskManager,
+          agentService: trackingService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "peer-a.example",
+        }),
+      );
+      const events = await collectEvents(second.stream);
+
+      expect(second.taskId).toBe(first.taskId);
+      expect(calls).toBe(1);
+      expect(events[0]).toHaveProperty("result.taskId", first.taskId);
     });
 
     it("should emit SSE heartbeat comments while work is pending", async () => {
@@ -603,15 +825,17 @@ describe("JSON-RPC Handler", () => {
         chat: async () => new Promise<AgentResponse>(() => {}),
       });
 
-      const result = handleStreamMessage(
-        1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
-        {
-          taskManager,
-          agentService: slowAgent,
-          callerPermissionLevel: "public",
-        },
-        { heartbeatIntervalMs: 5 },
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService: slowAgent,
+            callerPermissionLevel: "public",
+          },
+          { heartbeatIntervalMs: 5 },
+        ),
       );
 
       const reader = result.stream.getReader();
@@ -632,14 +856,16 @@ describe("JSON-RPC Handler", () => {
         },
       });
 
-      const result = handleStreamMessage(
-        1,
-        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
-        {
-          taskManager,
-          agentService: slowAgent,
-          callerPermissionLevel: "public",
-        },
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            agentService: slowAgent,
+            callerPermissionLevel: "public",
+          },
+        ),
       );
 
       // Read one event then cancel

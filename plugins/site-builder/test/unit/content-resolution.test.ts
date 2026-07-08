@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import { h } from "preact";
 import type { DataSource } from "@brains/plugins";
 import { createTestConfig } from "../test-helpers";
@@ -13,7 +13,7 @@ const TestDataSchema = z.object({
   content: z.string(),
 });
 
-type TestData = z.infer<typeof TestDataSchema>;
+type TestData = z.output<typeof TestDataSchema>;
 
 // Mock DataSource for testing
 const mockDataSource: DataSource = {

@@ -1,6 +1,11 @@
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import type { JobHandler } from "./types";
+
+const logDataSchema = z.record(z.string(), z.unknown());
+
+export type JobDataSchema<T> = z.ZodType<T, unknown>;
 
 /**
  * Configuration options for BaseJobHandler
@@ -10,7 +15,7 @@ export interface BaseJobHandlerConfig<TInput> {
    * The Zod schema used to validate job input data.
    * Optional if you override validateAndParse().
    */
-  schema?: z.ZodSchema<TInput>;
+  schema?: JobDataSchema<TInput>;
   /** The name of the job type (used in log messages) */
   jobTypeName: string;
 }
@@ -58,10 +63,9 @@ export abstract class BaseJobHandler<
   TJobType extends string = string,
   TInput = unknown,
   TOutput = unknown,
-> implements JobHandler<TJobType, TInput, TOutput>
-{
+> implements JobHandler<TJobType, TInput, TOutput> {
   protected readonly logger: Logger;
-  protected readonly schema: z.ZodSchema<TInput> | undefined;
+  protected readonly schema: JobDataSchema<TInput> | undefined;
   protected readonly jobTypeName: string;
 
   /**
@@ -105,21 +109,20 @@ export abstract class BaseJobHandler<
       );
     }
 
-    try {
-      const result = this.schema.parse(data);
-
-      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
-        data: this.summarizeDataForLog(result),
-      });
-
-      return result;
-    } catch (error) {
+    const parsed = this.schema.safeParse(data);
+    if (!parsed.success) {
       this.logger.warn(`Invalid ${this.jobTypeName} job data`, {
         data,
-        validationError: error instanceof z.ZodError ? error.issues : error,
+        validationError: parsed.error.issues,
       });
       return null;
     }
+
+    this.logger.debug(`${this.jobTypeName} job data validation successful`, {
+      data: this.summarizeDataForLog(parsed.data),
+    });
+
+    return parsed.data;
   }
 
   /**
@@ -175,7 +178,7 @@ export abstract class BaseJobHandler<
    * @returns An object suitable for logging
    */
   protected summarizeDataForLog(data: TInput): Record<string, unknown> {
-    // Default: return the data as-is (subclasses can override)
-    return data as Record<string, unknown>;
+    const parsed = logDataSchema.safeParse(data);
+    return parsed.success ? parsed.data : {};
   }
 }

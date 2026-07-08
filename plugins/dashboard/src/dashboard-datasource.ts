@@ -1,7 +1,10 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { getErrorMessage } from "@brains/utils";
-import type { z } from "@brains/utils";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 import type {
   DashboardWidgetRegistry,
   StoredRegisteredWidget,
@@ -87,7 +90,7 @@ export class DashboardDataSource implements DataSource {
 
   async fetch<T>(
     _query: unknown,
-    _outputSchema: z.ZodSchema<T>,
+    _outputSchema: DataSourceSchema<T>,
     _context: BaseDataSourceContext,
   ): Promise<T> {
     return (await this.getDashboardData()) as T;

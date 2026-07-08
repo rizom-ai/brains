@@ -51,4 +51,43 @@ describe("ConfirmationArgsStore", () => {
       }),
     ).toEqual({ status: "mismatch" });
   });
+
+  it("expires unconsumed confirmations after the TTL", () => {
+    let now = 0;
+    const store = new ConfirmationArgsStore({
+      ttlMs: 1_000,
+      now: (): number => now,
+    });
+    const args = store.create((confirmationToken) => ({ confirmationToken }));
+
+    now = 999;
+    const fresh = store.create((confirmationToken) => ({ confirmationToken }));
+    expect(store.validate(fresh.confirmationToken, fresh)).toEqual({
+      status: "ok",
+    });
+
+    now = 1_001;
+    expect(store.validate(args.confirmationToken, args)).toEqual({
+      status: "missing",
+    });
+  });
+
+  it("evicts the oldest entries beyond the pending cap", () => {
+    const store = new ConfirmationArgsStore({ maxPending: 2 });
+    const first = store.create((confirmationToken) => ({ confirmationToken }));
+    const second = store.create((confirmationToken) => ({
+      confirmationToken,
+    }));
+    const third = store.create((confirmationToken) => ({ confirmationToken }));
+
+    expect(store.validate(first.confirmationToken, first)).toEqual({
+      status: "missing",
+    });
+    expect(store.validate(second.confirmationToken, second)).toEqual({
+      status: "ok",
+    });
+    expect(store.validate(third.confirmationToken, third)).toEqual({
+      status: "ok",
+    });
+  });
 });

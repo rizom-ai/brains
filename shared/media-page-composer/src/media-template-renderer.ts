@@ -6,7 +6,7 @@ import {
   HeadCollector,
   type SiteImageRendererService,
 } from "@brains/site-engine";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import type {
   MediaPageRenderer,
   MediaPageTemplate,
@@ -14,14 +14,18 @@ import type {
   RenderMediaTemplateHtmlOptions,
 } from "./types";
 
+const mediaTemplateContentSchema = z.record(z.string(), z.unknown());
+type MediaTemplateContent = z.output<typeof mediaTemplateContentSchema>;
+
 export function renderMediaTemplateHtml(
   options: RenderMediaTemplateHtmlOptions,
 ): string {
   const renderer = getRenderer(options.template, options.format);
-  const contentObj = z.record(z.unknown()).parse(options.content);
-  const validatedContent = z
-    .record(z.unknown())
-    .parse(options.template.schema.parse(contentObj));
+  const contentObj: MediaTemplateContent = mediaTemplateContentSchema.parse(
+    options.content,
+  );
+  const validatedContent: MediaTemplateContent =
+    mediaTemplateContentSchema.parse(options.template.schema.parse(contentObj));
 
   const headCollector = new HeadCollector(options.siteConfig.title);
   const imageRenderer = createImageRenderer(options.imageBuildService);

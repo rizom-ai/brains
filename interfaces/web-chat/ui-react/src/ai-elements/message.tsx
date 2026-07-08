@@ -31,7 +31,11 @@ export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
 };
 
-export const Message = ({ className, from, ...props }: MessageProps) => (
+export const Message = ({
+  className,
+  from,
+  ...props
+}: MessageProps): React.ReactNode => (
   <div
     className={cn(
       "web-chat-message group flex w-full max-w-[95%] flex-col gap-2",
@@ -48,7 +52,7 @@ export const MessageContent = ({
   children,
   className,
   ...props
-}: MessageContentProps) => (
+}: MessageContentProps): React.ReactNode => (
   <div
     className={cn(
       "web-chat-message-bubble is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
@@ -68,7 +72,7 @@ export const MessageActions = ({
   className,
   children,
   ...props
-}: MessageActionsProps) => (
+}: MessageActionsProps): React.ReactNode => (
   <div className={cn("flex items-center gap-1", className)} {...props}>
     {children}
   </div>
@@ -86,7 +90,7 @@ export const MessageAction = ({
   variant = "ghost",
   size = "icon-sm",
   ...props
-}: MessageActionProps) => {
+}: MessageActionProps): React.ReactNode => {
   const button = (
     <Button size={size} type="button" variant={variant} {...props}>
       {children}
@@ -123,7 +127,7 @@ const MessageBranchContext = createContext<MessageBranchContextType | null>(
   null,
 );
 
-const useMessageBranch = () => {
+const useMessageBranch = (): MessageBranchContextType => {
   const context = useContext(MessageBranchContext);
 
   if (!context) {
@@ -145,7 +149,7 @@ export const MessageBranch = ({
   onBranchChange,
   className,
   ...props
-}: MessageBranchProps) => {
+}: MessageBranchProps): React.ReactNode => {
   const [currentBranch, setCurrentBranch] = useState(defaultBranch);
   const [branches, setBranches] = useState<ReactElement[]>([]);
 
@@ -196,7 +200,7 @@ export type MessageBranchContentProps = HTMLAttributes<HTMLDivElement>;
 export const MessageBranchContent = ({
   children,
   ...props
-}: MessageBranchContentProps) => {
+}: MessageBranchContentProps): React.ReactNode => {
   const { currentBranch, setBranches, branches } = useMessageBranch();
   const childrenArray = useMemo(
     () => (Array.isArray(children) ? children : [children]),
@@ -229,7 +233,7 @@ export type MessageBranchSelectorProps = ComponentProps<typeof ButtonGroup>;
 export const MessageBranchSelector = ({
   className,
   ...props
-}: MessageBranchSelectorProps) => {
+}: MessageBranchSelectorProps): React.ReactNode => {
   const { totalBranches } = useMessageBranch();
 
   // Don't render if there's only one branch
@@ -254,7 +258,7 @@ export type MessageBranchPreviousProps = ComponentProps<typeof Button>;
 export const MessageBranchPrevious = ({
   children,
   ...props
-}: MessageBranchPreviousProps) => {
+}: MessageBranchPreviousProps): React.ReactNode => {
   const { goToPrevious, totalBranches } = useMessageBranch();
 
   return (
@@ -277,7 +281,7 @@ export type MessageBranchNextProps = ComponentProps<typeof Button>;
 export const MessageBranchNext = ({
   children,
   ...props
-}: MessageBranchNextProps) => {
+}: MessageBranchNextProps): React.ReactNode => {
   const { goToNext, totalBranches } = useMessageBranch();
 
   return (
@@ -300,7 +304,7 @@ export type MessageBranchPageProps = HTMLAttributes<HTMLSpanElement>;
 export const MessageBranchPage = ({
   className,
   ...props
-}: MessageBranchPageProps) => {
+}: MessageBranchPageProps): React.ReactNode => {
   const { currentBranch, totalBranches } = useMessageBranch();
 
   return (
@@ -320,21 +324,22 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 const streamdownPlugins = { cjk, code, math, mermaid };
 
-export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown
-      className={cn(
-        "web-chat-markdown-response size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        className,
-      )}
-      plugins={streamdownPlugins}
-      {...props}
-    />
-  ),
-  (prevProps, nextProps) =>
-    prevProps.children === nextProps.children &&
-    nextProps.isAnimating === prevProps.isAnimating,
-);
+export const MessageResponse: React.NamedExoticComponent<MessageResponseProps> =
+  memo(
+    ({ className, ...props }: MessageResponseProps): React.ReactNode => (
+      <Streamdown
+        className={cn(
+          "web-chat-markdown-response size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+          className,
+        )}
+        plugins={streamdownPlugins}
+        {...props}
+      />
+    ),
+    (prevProps, nextProps): boolean =>
+      prevProps.children === nextProps.children &&
+      nextProps.isAnimating === prevProps.isAnimating,
+  );
 
 MessageResponse.displayName = "MessageResponse";
 
@@ -344,7 +349,7 @@ export const MessageToolbar = ({
   className,
   children,
   ...props
-}: MessageToolbarProps) => (
+}: MessageToolbarProps): React.ReactNode => (
   <div
     className={cn(
       "mt-4 flex w-full items-center justify-between gap-4",

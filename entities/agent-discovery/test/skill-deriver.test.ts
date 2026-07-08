@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   buildSkillPrompt,
   deriveSkills,
@@ -98,13 +98,13 @@ function contextForSkills(
 
 function listEntityCalls(
   spy: ReturnType<typeof mock>,
-): z.infer<typeof listEntitiesRequestSchema>[] {
+): z.output<typeof listEntitiesRequestSchema>[] {
   return spy.mock.calls.map((call) => listEntitiesRequestSchema.parse(call[0]));
 }
 
 function createEntityCalls(
   spy: ReturnType<typeof mock>,
-): z.infer<typeof createEntityRequestSchema>[] {
+): z.output<typeof createEntityRequestSchema>[] {
   return spy.mock.calls.map((call) => createEntityRequestSchema.parse(call[0]));
 }
 
@@ -181,8 +181,8 @@ describe("deriveSkills", () => {
       replaceAll: true,
     });
 
-    expect(result.created).toBe(4);
-    expect(createEntity).toHaveBeenCalledTimes(4);
+    expect(result.created).toBe(8);
+    expect(createEntity).toHaveBeenCalledTimes(8);
   });
 
   it("scopes topic listing and stamps skill visibility to targetVisibility", async () => {
@@ -320,7 +320,7 @@ describe("buildSkillPrompt", () => {
     const prompt = buildSkillPrompt(input);
 
     expect(prompt).toContain("action-oriented");
-    expect(prompt).toContain("Return 2-4 consolidated skills");
+    expect(prompt).toContain("Return 4-8 consolidated skills");
     expect(prompt).toContain(
       "Never return as many skills as there are knowledge domains",
     );

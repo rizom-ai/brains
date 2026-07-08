@@ -1,10 +1,12 @@
 import type { VNode } from "preact";
-import type { z } from "@brains/utils";
 import type { SiteRuntimeScript } from "@brains/site-engine";
+import type { ZodType } from "@brains/utils/zod";
+
+type SiteViewTemplateSchema = ZodType<unknown, unknown>;
 
 export interface SiteViewTemplate {
   name: string;
-  schema: z.ZodType<unknown>;
+  schema: SiteViewTemplateSchema;
   pluginId: string;
   renderers: {
     web?: ((props: Record<string, unknown>) => VNode) | string;

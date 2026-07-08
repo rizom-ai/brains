@@ -9,7 +9,7 @@ import { RouteRegistry } from "@brains/site-engine";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { IAnchorProfileService } from "@brains/plugins";
 import { createSiteBuilderServices, TestLayout } from "../test-helpers";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
 describe("SiteBuilder dataQuery handling", () => {
   let siteBuilder: SiteBuilder;

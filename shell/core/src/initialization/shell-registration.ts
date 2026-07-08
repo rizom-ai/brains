@@ -15,7 +15,7 @@ import type {
   PluginRegistrationContext,
 } from "@brains/plugins";
 import type { TemplateRegistry } from "@brains/templates";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
 export interface PluginInitializeOptions {

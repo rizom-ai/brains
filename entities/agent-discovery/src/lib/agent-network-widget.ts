@@ -1,69 +1,36 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils";
 import { AgentAdapter } from "../adapters/agent-adapter";
-import { agentFrontmatterSchema, agentStatusSchema } from "../schemas/agent";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
+import type {
+  AgentNetworkAgentRow,
+  AgentNetworkSkillRow,
+  AgentNetworkWidgetData,
+} from "./agent-network-schema";
 import {
   buildAgentRows,
   buildSkillFilters,
   buildSkillRows,
+  type ParsedAgentForNetwork,
 } from "./agent-network-rows";
 
-const agentAdapter = new AgentAdapter();
+export {
+  AGENT_NETWORK_KINDS,
+  agentNetworkAgentRowSchema,
+  agentNetworkSkillRowSchema,
+  agentNetworkTagFilterSchema,
+  agentNetworkWidgetDataSchema,
+} from "./agent-network-schema";
+export type {
+  AgentNetworkKind,
+  AgentNetworkAgentRow,
+  AgentNetworkSkillRow,
+  AgentNetworkTagFilter,
+  AgentNetworkWidgetData,
+} from "./agent-network-schema";
 
-const agentKindSchema = agentFrontmatterSchema.shape.kind;
-
-export const AGENT_NETWORK_KINDS = ["all", ...agentKindSchema.options] as const;
-
-export const agentNetworkAgentRowSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-  kind: agentKindSchema,
-  status: agentStatusSchema,
-  discoveredAt: z.string(),
-});
-
-export const agentNetworkSkillRowSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  tags: z.array(z.string()),
-  sourceLabel: z.string(),
-  sourceType: z.enum(["brain", "agent"]),
-});
-
-export const agentNetworkTagFilterSchema = z.object({
-  tag: z.string(),
-  count: z.number(),
-  variant: z.enum(["gap"]).optional(),
-});
-
-export const agentNetworkWidgetDataSchema = z.object({
-  counts: z.object({
-    agents: z.number(),
-    skills: z.number(),
-  }),
-  agents: z.object({
-    all: z.array(agentNetworkAgentRowSchema),
-    professional: z.array(agentNetworkAgentRowSchema),
-    team: z.array(agentNetworkAgentRowSchema),
-    collective: z.array(agentNetworkAgentRowSchema),
-  }),
-  skillFilters: z.array(agentNetworkTagFilterSchema),
-  skills: z.array(agentNetworkSkillRowSchema),
-});
-
-export type AgentNetworkKind = (typeof AGENT_NETWORK_KINDS)[number];
-export type AgentNetworkAgentRow = z.infer<typeof agentNetworkAgentRowSchema>;
-export type AgentNetworkSkillRow = z.infer<typeof agentNetworkSkillRowSchema>;
-export type AgentNetworkTagFilter = z.infer<typeof agentNetworkTagFilterSchema>;
-export type AgentNetworkWidgetData = z.infer<
-  typeof agentNetworkWidgetDataSchema
->;
-
+const agentAdapter: AgentAdapter = new AgentAdapter();
 export async function buildAgentNetworkWidgetData(
   context: EntityPluginContext,
 ): Promise<AgentNetworkWidgetData> {
@@ -76,12 +43,15 @@ export async function buildAgentNetworkWidgetData(
     }),
   ]);
 
-  const parsedAgents = agents.map((entity) => ({
+  const parsedAgents: ParsedAgentForNetwork[] = agents.map((entity) => ({
     entity,
     ...agentAdapter.parseEntity(entity),
   }));
-  const agentRows = buildAgentRows(parsedAgents);
-  const skillRows = buildSkillRows(skills, parsedAgents);
+  const agentRows: AgentNetworkAgentRow[] = buildAgentRows(parsedAgents);
+  const skillRows: AgentNetworkSkillRow[] = buildSkillRows(
+    skills,
+    parsedAgents,
+  );
 
   return {
     counts: {

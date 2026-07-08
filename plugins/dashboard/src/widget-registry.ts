@@ -1,11 +1,7 @@
 import type { ComponentType } from "preact";
-import {
-  PermissionService,
-  UserPermissionLevelSchema,
-  type UserPermissionLevel,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import { PermissionService, type UserPermissionLevel } from "@brains/plugins";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 
 export interface WidgetComponentProps {
   title: string;
@@ -31,6 +27,8 @@ export type BuiltInWidgetRendererName =
   (typeof BUILT_IN_WIDGET_RENDERERS)[number];
 
 const builtInWidgetRendererSet = new Set<string>(BUILT_IN_WIDGET_RENDERERS);
+const widgetVisibilitySchema: z.ZodType<WidgetVisibility, WidgetVisibility> =
+  z.enum(["public", "trusted", "anchor"]);
 
 export function isBuiltInWidgetRenderer(
   rendererName: string,
@@ -38,7 +36,34 @@ export function isBuiltInWidgetRenderer(
   return builtInWidgetRendererSet.has(rendererName);
 }
 
-export const dashboardWidgetSchema = z.object({
+export type DashboardWidgetSection = "primary" | "secondary" | "sidebar";
+
+export interface DashboardWidgetMeta {
+  id: string;
+  pluginId: string;
+  title: string;
+  description?: string | undefined;
+  priority: number;
+  section: DashboardWidgetSection;
+  rendererName: string;
+  visibility: WidgetVisibility;
+}
+
+export interface DashboardWidgetInput {
+  id: string;
+  pluginId: string;
+  title: string;
+  description?: string | undefined;
+  priority?: number | undefined;
+  section?: DashboardWidgetSection | undefined;
+  rendererName: string;
+  visibility?: WidgetVisibility | undefined;
+}
+
+export const dashboardWidgetSchema: z.ZodType<
+  DashboardWidgetMeta,
+  DashboardWidgetInput
+> = z.object({
   id: z.string(),
   pluginId: z.string(),
   title: z.string(),
@@ -46,11 +71,8 @@ export const dashboardWidgetSchema = z.object({
   priority: z.number().default(50),
   section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
   rendererName: z.string(),
-  visibility: UserPermissionLevelSchema.default("public"),
+  visibility: widgetVisibilitySchema.default("public"),
 });
-
-export type DashboardWidgetMeta = z.infer<typeof dashboardWidgetSchema>;
-export type DashboardWidgetInput = z.input<typeof dashboardWidgetSchema>;
 
 export interface RegisteredWidget extends DashboardWidgetInput {
   dataProvider: WidgetDataProvider;

@@ -25,13 +25,18 @@ export interface RizomRuntimeHooks {
 }
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
+  private readonly templateGroups: TemplateGroup[];
+  private readonly dataSources: unknown[];
+
   constructor(
     packageName: string,
     config: Record<string, unknown>,
-    private readonly templateGroups: TemplateGroup[],
-    private readonly dataSources: unknown[] = [],
+    templateGroups: TemplateGroup[],
+    dataSources: unknown[] = [],
   ) {
     super(packageName, config);
+    this.templateGroups = templateGroups;
+    this.dataSources = dataSources;
   }
 
   override async register(

@@ -5,24 +5,22 @@ import { updateInputSchema } from "../../src/system/schemas";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import type { BaseEntity } from "@brains/entity-service";
 import { PermissionService } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
-const updateEntityRequestSchema = z
-  .object({
-    options: z
-      .object({
-        eventContext: z
-          .object({
-            conversationId: z.string().optional(),
-            channelId: z.string().optional(),
-            runId: z.string().optional(),
-            toolCallId: z.string().optional(),
-          })
-          .optional(),
-      })
-      .optional(),
-  })
-  .passthrough();
+const updateEntityRequestSchema = z.looseObject({
+  options: z
+    .object({
+      eventContext: z
+        .object({
+          conversationId: z.string().optional(),
+          channelId: z.string().optional(),
+          runId: z.string().optional(),
+          toolCallId: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
 
 describe("system_update tool", () => {
   it("describes id as accepting entity id, slug, or title", () => {
@@ -384,7 +382,9 @@ describe("system_update tool", () => {
           .passthrough(),
       })
       .passthrough();
-    services.entityService.updateEntity = async (request) => {
+    services.entityService.updateEntity = async (
+      request,
+    ): ReturnType<typeof originalUpdateEntity> => {
       if (request.entity.entityType === "post") {
         postUpdateSchema.parse(request.entity);
       }

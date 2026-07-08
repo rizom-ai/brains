@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils/logger";
 import { createRuntimeStateDatabase, enableRuntimeStateWALMode } from "./db";
 import type { RuntimeStateDbConfig } from "./types";
 

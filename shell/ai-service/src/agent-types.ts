@@ -25,9 +25,65 @@ import type {
   ConversationMessageActor,
   ConversationMessageSource,
 } from "@brains/conversation-service";
-import type { BrainAgentConfig, BrainCallOptions } from "./brain-agent";
-import type { ICanonicalIdentityService } from "@brains/identity-service";
+import type {
+  ICanonicalIdentityService,
+  BrainCharacter,
+  AnchorProfile,
+} from "@brains/identity-service";
+import type { Tool } from "@brains/mcp-service";
 import type { ModelMessage } from "ai";
+import { z } from "@brains/utils/zod";
+
+/**
+ * Schema for runtime call options
+ * Defines type-safe inputs passed at generation time
+ */
+const brainCallOptionsSchemaInternal: z.ZodObject<{
+  userPermissionLevel: z.ZodEnum<{
+    anchor: "anchor";
+    trusted: "trusted";
+    public: "public";
+  }>;
+  conversationId: z.ZodString;
+  channelId: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodOptional<z.ZodString>;
+  interfaceType: z.ZodString;
+  agentContextInstructions: z.ZodOptional<z.ZodString>;
+  disableTools: z.ZodOptional<z.ZodBoolean>;
+  enableCreateUpload: z.ZodOptional<z.ZodBoolean>;
+  enableCreateTransform: z.ZodOptional<z.ZodBoolean>;
+  hasPriorResponseCandidate: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
+  userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
+  conversationId: z.string(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  interfaceType: z.string(),
+  agentContextInstructions: z.string().optional(),
+  disableTools: z.boolean().optional(),
+  enableCreateUpload: z.boolean().optional(),
+  enableCreateTransform: z.boolean().optional(),
+  hasPriorResponseCandidate: z.boolean().optional(),
+});
+
+export const brainCallOptionsSchema: typeof brainCallOptionsSchemaInternal =
+  brainCallOptionsSchemaInternal;
+
+export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
+
+/**
+ * Configuration for creating a BrainAgent
+ * Model and provider options are set at factory creation time
+ */
+export interface BrainAgentConfig {
+  identity: BrainCharacter;
+  profile?: AnchorProfile;
+  tools: Tool[];
+  pluginInstructions?: string[];
+  agentInstructions?: string[];
+  stepLimit?: number;
+  getToolsForPermission: (level: UserPermissionLevel) => Tool[];
+}
 
 /**
  * Result shape from BrainAgent.generate()
@@ -105,6 +161,8 @@ export interface AgentConfig {
   ) => Promise<AgentContextItem[]>;
   /** Optional resolver for prior uploads stored in conversation metadata. */
   uploadAttachmentResolver?: UploadAttachmentResolver;
+  /** Idle TTL before stopping and removing an unused conversation actor. */
+  conversationActorIdleTtlMs?: number;
 }
 
 /**

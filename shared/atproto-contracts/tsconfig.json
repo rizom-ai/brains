@@ -2,7 +2,8 @@
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "noEmit": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "isolatedDeclarations": true
   },
   "include": ["src/**/*", "test/**/*"]
 }

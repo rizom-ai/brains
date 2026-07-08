@@ -20,12 +20,18 @@ import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
-import type { Logger } from "@brains/utils";
-import { createId, z } from "@brains/utils";
+import { createId } from "@brains/utils/id";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 import { and, eq, sql } from "drizzle-orm";
+
+const jsonObjectSchema = z.custom<object>(
+  (value) =>
+    typeof value === "object" && value !== null && !Array.isArray(value),
+);
 
 function toStableJsonValue(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -34,9 +40,10 @@ function toStableJsonValue(value: unknown): unknown {
     );
   }
 
-  if (value && typeof value === "object") {
+  const parsedObject = jsonObjectSchema.safeParse(value);
+  if (parsedObject.success) {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
+      Object.entries(parsedObject.data)
         .filter(([, item]) => item !== undefined)
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([key, item]) => [key, toStableJsonValue(item)]),
@@ -73,6 +80,19 @@ function parseEmbeddingFailureReference(
 
 function embeddingReferenceKey(reference: EmbeddingFailureReference): string {
   return `${reference.entityType}:${reference.entityId}:${reference.contentHash}`;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  // Drizzle wraps the LibsqlError, so walk the cause chain
+  for (let current = error; current instanceof Error; current = current.cause) {
+    if (
+      current.message.includes("UNIQUE constraint failed") ||
+      current.message.includes("SQLITE_CONSTRAINT")
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 interface EmbeddingBackfillCandidate {
@@ -281,8 +301,14 @@ export class EntityMutations {
 
     const existingEntity = existing.at(0);
 
+    if (!existingEntity) {
+      throw new Error(
+        `Entity not found: ${validatedEntity.entityType}:${validatedEntity.id}`,
+      );
+    }
+
     if (
-      existingEntity?.contentHash === contentHash &&
+      existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
     ) {
@@ -337,7 +363,7 @@ export class EntityMutations {
       // Prior metadata lets projections (e.g. series) reconcile a moved value
       // such as a changed `seriesName` without a full resync. Already loaded
       // above for the no-op check, so this adds no extra read.
-      existingEntity?.metadata,
+      existingEntity.metadata,
       options?.eventContext,
     );
 
@@ -399,12 +425,29 @@ export class EntityMutations {
         ...(options !== undefined && { options }),
       });
       return { ...result, created: false };
-    } else {
+    }
+
+    try {
       const result = await this.createEntity({
         entity,
         ...(options !== undefined && { options }),
       });
       return { ...result, created: true };
+    } catch (error) {
+      // A concurrent create can win between the existence check and the
+      // insert — fall through to the update path instead of surfacing the
+      // raw unique-constraint violation.
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+      this.logger.debug(
+        `Entity ${entity.entityType}:${entity.id} was created concurrently, updating instead`,
+      );
+      const result = await this.updateEntity({
+        entity,
+        ...(options !== undefined && { options }),
+      });
+      return { ...result, created: false };
     }
   }
 
@@ -709,7 +752,6 @@ export class EntityMutations {
       contentHash,
       operation,
     };
-    const rootJobId = createId();
 
     const jobId = await this.jobQueueService.enqueue({
       type: "shell:embedding",
@@ -718,12 +760,14 @@ export class EntityMutations {
         ...(priority !== undefined && { priority }),
         ...(maxRetries !== undefined && { maxRetries }),
         source: "entity-service",
-        rootJobId,
         deduplication: "coalesce",
         deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
         metadata: {
           operationType: "data_processing" as const,
           operationTarget: entityId,
+          // Embedding jobs are background bookkeeping — suppress progress
+          // and completion events (entity:embedding:ready covers consumers)
+          silent: true,
         },
       },
     });

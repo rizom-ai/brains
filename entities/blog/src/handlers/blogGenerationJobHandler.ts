@@ -1,33 +1,56 @@
 import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
-import { generationResultSchema } from "@brains/contracts";
+import {
+  type GenerationResult,
+  generationResultSchema,
+} from "@brains/contracts";
+import type { Logger } from "@brains/utils/logger";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
 
 /**
  * Input schema for blog generation job
  */
-export const blogGenerationJobSchema = z.object({
-  prompt: z.string().optional(),
-  title: z.string().optional(),
-  content: z.string().optional(),
-  excerpt: z.string().optional(),
-  coverImageId: z.string().optional(),
-  seriesName: z.string().optional(),
-  seriesIndex: z.number().optional(),
-  skipAi: z.boolean().optional(),
-});
+export interface BlogGenerationJobData {
+  prompt?: string | undefined;
+  title?: string | undefined;
+  content?: string | undefined;
+  excerpt?: string | undefined;
+  coverImageId?: string | undefined;
+  seriesName?: string | undefined;
+  seriesIndex?: number | undefined;
+  skipAi?: boolean | undefined;
+}
 
-export type BlogGenerationJobData = z.infer<typeof blogGenerationJobSchema>;
+export const blogGenerationJobSchema: z.ZodType<BlogGenerationJobData> =
+  z.object({
+    prompt: z.string().optional(),
+    title: z.string().optional(),
+    content: z.string().optional(),
+    excerpt: z.string().optional(),
+    coverImageId: z.string().optional(),
+    seriesName: z.string().optional(),
+    seriesIndex: z.number().optional(),
+    skipAi: z.boolean().optional(),
+  });
 
-export const blogGenerationResultSchema = generationResultSchema.extend({
+export interface BlogGenerationResult extends GenerationResult {
+  title?: string | undefined;
+  slug?: string | undefined;
+}
+
+export const blogGenerationResultSchema: ReturnType<
+  typeof generationResultSchema.extend<{
+    title: z.ZodOptional<z.ZodString>;
+    slug: z.ZodOptional<z.ZodString>;
+  }>
+> = generationResultSchema.extend({
   title: z.string().optional(),
   slug: z.string().optional(),
 });
-
-export type BlogGenerationResult = z.infer<typeof blogGenerationResultSchema>;
 
 /**
  * Job handler for blog post generation

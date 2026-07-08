@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { Dirent } from "fs";
 import type SharpModule from "sharp";
 import { createHash } from "crypto";
@@ -67,12 +67,11 @@ export type VariantsMap = Record<string, ImageVariants>;
  * - Filesystem cache: skips processing if output files already exist
  */
 export class ImageOptimizer {
+  private imagesDir: string;
   private logger: Logger;
 
-  constructor(
-    private imagesDir: string,
-    logger: Logger,
-  ) {
+  constructor(imagesDir: string, logger: Logger) {
+    this.imagesDir = imagesDir;
     this.logger = logger.child("ImageOptimizer");
   }
 

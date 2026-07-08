@@ -3,11 +3,19 @@ import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { BaseEntity, EntityMutationResult } from "@brains/plugins";
+import {
+  EntityValidationError,
+  type BaseEntity,
+  type EntityMutationResult,
+} from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
+
+function createEntityValidationError(message: string): EntityValidationError {
+  return new EntityValidationError("note", new Error(message));
+}
 
 describe("Invalid Entity Handling", () => {
   let dirSync: DirectorySync;
@@ -58,7 +66,7 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(invalidFile, "This is invalid markdown content");
 
       // Set up deserialization to fail with a validation error
-      deserializeError = new Error(
+      deserializeError = createEntityValidationError(
         "Invalid frontmatter: missing required fields",
       );
 
@@ -91,7 +99,9 @@ describe("Invalid Entity Handling", () => {
       });
 
       // Set up deserialization to fail with a validation error
-      deserializeError = new Error("Invalid frontmatter: parse error");
+      deserializeError = createEntityValidationError(
+        "Invalid frontmatter: parse error",
+      );
 
       // Import all
       const result = await dirSync.importEntities();
@@ -139,7 +149,9 @@ describe("Invalid Entity Handling", () => {
         content: string,
       ): Partial<BaseEntity> => {
         if (content.includes("Invalid")) {
-          throw new Error("Invalid frontmatter: missing required fields");
+          throw createEntityValidationError(
+            "Invalid frontmatter: missing required fields",
+          );
         }
         return { metadata: {} };
       };
@@ -163,7 +175,9 @@ describe("Invalid Entity Handling", () => {
       const invalidFile = join(testDir, "note", "broken.md");
       writeFileSync(invalidFile, "Broken content");
 
-      deserializeError = new Error("Invalid frontmatter: Failed to parse");
+      deserializeError = createEntityValidationError(
+        "Invalid frontmatter: Failed to parse",
+      );
 
       await dirSync.importEntities(["note/broken.md"]);
 
@@ -186,7 +200,9 @@ describe("Invalid Entity Handling", () => {
       const invalidFile = join(testDir, "note", "new-error.md");
       writeFileSync(invalidFile, "Invalid");
 
-      deserializeError = new Error("Invalid frontmatter: New error");
+      deserializeError = createEntityValidationError(
+        "Invalid frontmatter: New error",
+      );
 
       await dirSync.importEntities(["note/new-error.md"]);
 
@@ -201,7 +217,9 @@ describe("Invalid Entity Handling", () => {
       const invalidFile = join(testDir, "note", "timestamped.md");
       writeFileSync(invalidFile, "Invalid");
 
-      deserializeError = new Error("Invalid frontmatter: Parse failed");
+      deserializeError = createEntityValidationError(
+        "Invalid frontmatter: Parse failed",
+      );
 
       const before = new Date();
       await dirSync.importEntities(["note/timestamped.md"]);
@@ -228,7 +246,7 @@ describe("Invalid Entity Handling", () => {
       const invalidFile = join(testDir, "summary", "daily", "2024-01-27.md");
       writeFileSync(invalidFile, "Malformed");
 
-      deserializeError = new Error(
+      deserializeError = createEntityValidationError(
         "Invalid frontmatter: Missing required field: conversationId",
       );
 
@@ -257,7 +275,9 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(originalPath, "Invalid content");
 
       // First import fails with validation error
-      deserializeError = new Error("Invalid frontmatter: Parse error");
+      deserializeError = createEntityValidationError(
+        "Invalid frontmatter: Parse error",
+      );
       let result = await dirSync.importEntities(["note/fixable.md"]);
 
       expect(result.quarantined).toBe(1);
@@ -296,7 +316,9 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(file2, "Invalid 2");
 
       // Import with validation errors
-      deserializeError = new Error("Invalid frontmatter: Parse failed");
+      deserializeError = createEntityValidationError(
+        "Invalid frontmatter: Parse failed",
+      );
       await dirSync.importEntities();
 
       // Fix one file
@@ -327,7 +349,9 @@ describe("Invalid Entity Handling", () => {
         content: string,
       ): Partial<BaseEntity> => {
         if (content.includes("Invalid")) {
-          throw new Error("Invalid frontmatter: missing fields");
+          throw createEntityValidationError(
+            "Invalid frontmatter: missing fields",
+          );
         }
         return { metadata: {} };
       };
@@ -357,7 +381,9 @@ describe("Invalid Entity Handling", () => {
         writeFileSync(join(testDir, file), "Invalid");
       });
 
-      deserializeError = new Error("Invalid frontmatter: Parse error");
+      deserializeError = createEntityValidationError(
+        "Invalid frontmatter: Parse error",
+      );
       const result = await dirSync.importEntities();
 
       expect(result.quarantinedFiles).toHaveLength(3);
@@ -422,7 +448,7 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(invalidFile, "# Invalid\n\nContent with bad schema");
 
       // Make deserializeEntity fail with a validation error (must match isValidationError patterns)
-      deserializeError = new Error(
+      deserializeError = createEntityValidationError(
         "Invalid frontmatter: Expected 'draft' | 'published', received 'invalid'",
       );
 
@@ -451,7 +477,7 @@ describe("Invalid Entity Handling", () => {
         content: string,
       ): Partial<BaseEntity> => {
         if (content.includes("Invalid schema")) {
-          throw new Error(
+          throw createEntityValidationError(
             "Invalid frontmatter: expected string, received number",
           );
         }

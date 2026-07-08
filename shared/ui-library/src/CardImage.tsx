@@ -1,23 +1,31 @@
 import type { JSX } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
-
-const cardImageVariants = cva("object-cover rounded-lg", {
-  variants: {
-    size: {
-      small: "w-full sm:w-32 h-48 sm:h-32 flex-shrink-0",
-      medium: "w-full sm:w-48 h-48",
-      large: "w-full h-48",
-    },
-  },
-  defaultVariants: {
-    size: "medium",
-  },
-});
+import type { VariantFunction, VariantValue } from "./variant-types";
 
 export type CardImageSize = "small" | "medium" | "large";
 
-export interface CardImageProps extends VariantProps<typeof cardImageVariants> {
+export interface CardImageVariantProps {
+  size?: VariantValue<CardImageSize>;
+}
+
+const cardImageVariants: VariantFunction<CardImageVariantProps> = cva(
+  "object-cover rounded-lg",
+  {
+    variants: {
+      size: {
+        small: "w-full sm:w-32 h-48 sm:h-32 flex-shrink-0",
+        medium: "w-full sm:w-48 h-48",
+        large: "w-full h-48",
+      },
+    },
+    defaultVariants: {
+      size: "medium",
+    },
+  },
+);
+
+export interface CardImageProps extends CardImageVariantProps {
   src: string;
   alt: string;
   className?: string;

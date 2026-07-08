@@ -57,7 +57,7 @@ Use `anchor` access for identities that can administer the brain. Use `public` f
 
 ## MCP
 
-MCP is the main assistant/tooling interface. It exposes system tools and resources to MCP clients.
+MCP is the main assistant/tooling interface. It exposes raw read tools and agent-gated command tools to MCP clients.
 
 ### HTTP MCP
 
@@ -95,6 +95,31 @@ plugins:
   # Optional deprecated fallback for non-OAuth MCP clients:
   # mcp:
   #   authToken: ${MCP_AUTH_TOKEN}
+```
+
+### MCP tool modes
+
+MCP defaults to `basic` mode. In `basic`, clients see:
+
+- raw read-only query tools such as `system_search`, `system_get`, `system_list`, and `job_status`
+- `chat` for commands, writes, and reasoning requests that should run through the brain agent
+- `confirm` for approving or denying pending actions returned by `chat`
+
+Raw write tools are not advertised in `basic`. After a write, `chat`/`confirm` responses may include `toolResults` and `readYourWrites` handles with entity IDs and job IDs; use `system_get` or `job_status` to observe those results.
+
+Use `debug` mode only for local/operator inspection when you intentionally need raw tool access. It requires `anchor` permissions and is refused for unauthenticated HTTP.
+
+```yaml
+plugins:
+  mcp:
+    mode: basic # default
+
+
+# Local/debug only:
+# plugins:
+#   mcp:
+#     transport: stdio
+#     mode: debug
 ```
 
 ### Stdio MCP

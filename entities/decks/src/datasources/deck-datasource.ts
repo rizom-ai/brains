@@ -1,11 +1,12 @@
 import { BaseEntityDataSource } from "@brains/plugins";
 import type {
   BaseQuery,
+  EntityDataSourceConfig,
   IEntityService,
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import { resolveEntityCoverImage } from "@brains/image";
 import type { DeckEntity, DeckWithData } from "../schemas/deck";
 import { parseDeckData } from "./parse-helpers";
@@ -27,11 +28,12 @@ export class DeckDataSource extends BaseEntityDataSource<
   DeckEntity,
   DeckWithData
 > {
-  readonly id = "decks:entities";
-  readonly name = "Deck Entity DataSource";
-  readonly description = "Fetches and transforms deck entities for rendering";
+  readonly id: string = "decks:entities";
+  readonly name: string = "Deck Entity DataSource";
+  readonly description: string =
+    "Fetches and transforms deck entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "deck",
     defaultSort: [
       { field: "publishedAt" as const, direction: "desc" as const },

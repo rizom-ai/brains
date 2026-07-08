@@ -15,7 +15,8 @@ import type {
 } from "@brains/entity-service";
 import type { EntityActionPolicyConfig, Template } from "@brains/templates";
 import type { JobHandler } from "@brains/job-queue";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
+import type { PluginConfigSchema } from "../config";
 import type { EntityPluginContext } from "./context";
 import { createEntityPluginContext } from "./context";
 import {
@@ -24,7 +25,8 @@ import {
   type DerivedEntityProjectionController,
 } from "./derived-entity-projection";
 
-const emptyConfigSchema = z.object({});
+export const emptyEntityPluginConfigSchema: z.ZodObject<Record<string, never>> =
+  z.object({});
 
 /**
  * Base class for entity plugins — plugins that define an entity type
@@ -33,9 +35,10 @@ const emptyConfigSchema = z.object({});
  * EntityPlugins don't expose tools — all entity CRUD goes through system_create/update/delete.
  */
 export abstract class EntityPlugin<
-  TEntity extends BaseEntity = BaseEntity,
-  TConfig = Record<string, never>,
-> extends BasePlugin<TConfig, EntityPluginContext> {
+  TEntity extends BaseEntity,
+  TConfig,
+  TConfigInput,
+> extends BasePlugin<TConfig, TConfigInput, EntityPluginContext> {
   public readonly type = "entity" as const;
 
   /** The entity type name (e.g. "post", "deck", "note") */
@@ -52,8 +55,8 @@ export abstract class EntityPlugin<
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig> = {} as Partial<TConfig>,
-    configSchema: z.ZodTypeAny = emptyConfigSchema,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
     entityActionPolicy?: EntityActionPolicyConfig,
   ) {
     super(id, packageJson, config, configSchema);
@@ -62,8 +65,8 @@ export abstract class EntityPlugin<
     }
   }
 
-  /** Zod schema for validating entities of this type */
-  abstract readonly schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
+  /** Schema for validating entities of this type */
+  abstract readonly schema: EntityAdapter<TEntity>["schema"];
 
   /** Entity adapter for serialization/deserialization */
   abstract readonly adapter: EntityAdapter<TEntity>;

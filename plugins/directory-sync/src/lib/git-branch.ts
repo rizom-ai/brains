@@ -1,7 +1,7 @@
 import type { SimpleGit } from "simple-git";
 import { writeFile } from "fs/promises";
 import { join } from "path";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils/error";
 import { pathExists } from "./fs-utils";
 
 export async function checkoutGitBranch(

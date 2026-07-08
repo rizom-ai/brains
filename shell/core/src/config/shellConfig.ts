@@ -1,5 +1,5 @@
-import { dbConfigSchema } from "@brains/contracts";
-import { z } from "@brains/utils";
+import { dbConfigSchema, type DbConfig } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import type {
   Plugin,
   IEvalHandlerRegistry,
@@ -8,92 +8,131 @@ import type {
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
-import { mkdir } from "fs/promises";
 import {
   createStandardConfig,
   createStandardPaths,
   type StandardConfig,
+  type StandardPaths,
 } from "./standardConfig";
 
 export type { StandardConfig } from "./standardConfig";
 
-export const STANDARD_PATHS = createStandardPaths();
+export const STANDARD_PATHS: StandardPaths = createStandardPaths();
+
+const entityDisplayEntrySchema = z.looseObject({
+  label: z.string().min(1),
+  pluralName: z.string().optional(),
+  layout: z.string().optional(),
+  paginate: z.boolean().optional(),
+  pageSize: z.number().optional(),
+  navigation: z
+    .object({
+      show: z.boolean().optional(),
+      slot: z.enum(["primary", "secondary"]).optional(),
+      priority: z.number().optional(),
+    })
+    .optional(),
+});
 
 export function getStandardConfig(): StandardConfig {
   return createStandardConfig(STANDARD_PATHS);
 }
 
-export async function getStandardConfigWithDirectories(): Promise<StandardConfig> {
-  try {
-    await mkdir(STANDARD_PATHS.dataDir, { recursive: true });
-    await mkdir(STANDARD_PATHS.cacheDir, { recursive: true });
-    await mkdir(STANDARD_PATHS.distDir, { recursive: true });
-  } catch (error) {
-    const msg =
-      error instanceof Error && error.message.includes("EACCES")
-        ? `Cannot create data directories — permission denied. Run from a writable directory or check permissions on ${STANDARD_PATHS.dataDir}`
-        : `Cannot create data directories: ${error instanceof Error ? error.message : String(error)}`;
-    throw new Error(msg);
-  }
-
-  return getStandardConfig();
+export interface ShellConfigSchemaOutput {
+  name: string;
+  version: string;
+  database: DbConfig;
+  jobQueueDatabase: DbConfig;
+  conversationDatabase: DbConfig;
+  runtimeStateDatabase: DbConfig;
+  embeddingDatabase: DbConfig;
+  ai: {
+    apiKey: string;
+    imageApiKey?: string | undefined;
+    model: string;
+    temperature: number;
+    maxTokens: number;
+    webSearch: boolean;
+  };
+  embedding: {
+    model: "fast-all-MiniLM-L6-v2";
+    cacheDir: string;
+  };
+  logging: {
+    level: "debug" | "info" | "warn" | "error";
+    format: "text" | "json";
+    file?: string | undefined;
+    context: string;
+  };
+  features: Record<string, never>;
+  plugins: Array<{
+    id: string;
+    version: string;
+    type: "core" | "entity" | "service" | "interface";
+    description?: string | undefined;
+    dependencies?: string[] | undefined;
+    packageName: string;
+  }>;
+  dataDir: string;
+  spaces: string[];
+  siteBaseUrl?: string | undefined;
+  localSiteUrl?: string | undefined;
+  preferLocalUrls: boolean;
+  themeCSS: string;
+  entityDisplay?: Record<string, EntityDisplayEntry> | undefined;
 }
 
-export const shellConfigSchema = z.object({
-  name: z.string().default("brain-app"),
-  version: z.string().default("1.0.0"),
+const shellConfigSchemaInternal: z.ZodType<ShellConfigSchemaOutput, unknown> =
+  z.object({
+    name: z.string().default("brain-app"),
+    version: z.string().default("1.0.0"),
 
-  database: dbConfigSchema,
-  jobQueueDatabase: dbConfigSchema,
-  conversationDatabase: dbConfigSchema,
-  runtimeStateDatabase: dbConfigSchema,
-  embeddingDatabase: dbConfigSchema,
+    database: dbConfigSchema,
+    jobQueueDatabase: dbConfigSchema,
+    conversationDatabase: dbConfigSchema,
+    runtimeStateDatabase: dbConfigSchema,
+    embeddingDatabase: dbConfigSchema,
 
-  ai: z.object({
-    apiKey: z.string(),
-    imageApiKey: z.string().optional(),
-    model: z.string(),
-    temperature: z.number().min(0).max(2).default(0.7),
-    maxTokens: z.number().positive().default(1000),
-    webSearch: z.boolean().default(true),
-  }),
+    ai: z.object({
+      apiKey: z.string(),
+      imageApiKey: z.string().optional(),
+      model: z.string(),
+      temperature: z.number().min(0).max(2).default(0.7),
+      maxTokens: z.number().positive().default(1000),
+      webSearch: z.boolean().default(true),
+    }),
 
-  embedding: z.object({
-    model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
-    cacheDir: z.string(),
-  }),
+    embedding: z.object({
+      model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
+      cacheDir: z.string(),
+    }),
 
-  logging: z
-    .object({
-      level: z.enum(["debug", "info", "warn", "error"]).default("info"),
-      format: z.enum(["text", "json"]).default("text"),
-      file: z.string().optional(),
-      context: z.string().default("shell"),
-    })
-    .default({ level: "info", context: "shell" }),
+    logging: z
+      .object({
+        level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+        format: z.enum(["text", "json"]).default("text"),
+        file: z.string().optional(),
+        context: z.string().default("shell"),
+      })
+      .prefault({ level: "info", context: "shell" }),
 
-  features: z.object({}).default({}),
-  plugins: z.array(pluginMetadataSchema).default([]),
-  dataDir: z.string().default("./brain-data"),
-  spaces: z.array(z.string()).default([]),
-  siteBaseUrl: z.string().optional(),
-  localSiteUrl: z.string().optional(),
-  preferLocalUrls: z.boolean().default(false),
-  themeCSS: z.string().default(""),
-  entityDisplay: z
-    .record(
-      z
-        .object({
-          label: z.string().min(1),
-        })
-        .passthrough(),
-    )
-    .optional(),
-});
+    features: z.object({}).default({}),
+    plugins: z.array(pluginMetadataSchema).default([]),
+    dataDir: z.string().default("./brain-data"),
+    spaces: z.array(z.string()).default([]),
+    siteBaseUrl: z.string().optional(),
+    localSiteUrl: z.string().optional(),
+    preferLocalUrls: z.boolean().default(false),
+    themeCSS: z.string().default(""),
+    entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
+  });
+
+export const shellConfigSchema: typeof shellConfigSchemaInternal =
+  shellConfigSchemaInternal;
 
 export type ShellConfig = Omit<
-  z.infer<typeof shellConfigSchema>,
-  "entityDisplay"
+  ShellConfigSchemaOutput,
+  "entityDisplay" | "plugins"
 > & {
   plugins: Plugin[];
   permissions: PermissionConfig;
@@ -181,8 +220,7 @@ export function createShellConfig(
   if (overrides.preferLocalUrls !== undefined)
     result.preferLocalUrls = overrides.preferLocalUrls;
   result.themeCSS = overrides.themeCSS ?? "";
-  if (entityDisplay !== undefined)
-    result.entityDisplay = entityDisplay as Record<string, EntityDisplayEntry>;
+  if (entityDisplay !== undefined) result.entityDisplay = entityDisplay;
 
   return result;
 }

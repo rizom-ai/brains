@@ -1,5 +1,4 @@
 ---
-"@brains/cms-config": patch
 "@rizom/ops": patch
 ---
 

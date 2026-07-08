@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils";
+import { slugify } from "@brains/utils/string-utils";
 import {
   promptSchema,
   promptFrontmatterSchema,
@@ -50,4 +50,4 @@ export class PromptAdapter extends BaseEntityAdapter<Prompt, PromptMetadata> {
   }
 }
 
-export const promptAdapter = new PromptAdapter();
+export const promptAdapter: PromptAdapter = new PromptAdapter();

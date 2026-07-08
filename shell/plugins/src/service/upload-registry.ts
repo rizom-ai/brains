@@ -1,11 +1,11 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { basename, dirname, join } from "path";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 
-export const runtimeUploadIdPattern =
+export const runtimeUploadIdPattern: RegExp =
   /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export const defaultRuntimeUploadRetentionMs = 24 * 60 * 60 * 1000;
-export const defaultRuntimeUploadMaxCount = 200;
+export const defaultRuntimeUploadRetentionMs: number = 24 * 60 * 60 * 1000;
+export const defaultRuntimeUploadMaxCount: number = 200;
 
 export interface RuntimeUploadRef {
   kind: string;
@@ -57,21 +57,18 @@ export interface ResolvedRuntimeUpload {
 }
 
 export type RuntimeUploadStoreErrorCode =
-  | "invalid_ref"
-  | "not_found"
-  | "invalid_metadata";
+  "invalid_ref" | "not_found" | "invalid_metadata";
 
 export class RuntimeUploadStoreError extends Error {
-  constructor(
-    public readonly code: RuntimeUploadStoreErrorCode,
-    message: string,
-  ) {
+  public readonly code: RuntimeUploadStoreErrorCode;
+  constructor(code: RuntimeUploadStoreErrorCode, message: string) {
     super(message);
+    this.code = code;
     this.name = "RuntimeUploadStoreError";
   }
 }
 
-const runtimeUploadRecordSchema: z.ZodType<RuntimeUploadRecord> = z.object({
+const runtimeUploadRecordSchema = z.object({
   id: z.string().regex(runtimeUploadIdPattern),
   ref: z.object({
     kind: z.string().min(1),
@@ -81,7 +78,7 @@ const runtimeUploadRecordSchema: z.ZodType<RuntimeUploadRecord> = z.object({
   mediaType: z.string().min(1),
   sizeBytes: z.number().nonnegative(),
   createdAt: z.string().datetime(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export interface IRuntimeUploadsNamespace {
@@ -127,12 +124,14 @@ export interface RuntimeUploadStoreOptions extends RuntimeUploadScopeOptions {
 }
 
 export class RuntimeUploadStore {
+  private readonly options: RuntimeUploadStoreOptions;
   private readonly retentionMs: number;
   private readonly maxCount: number;
   private readonly createUploadId: () => string;
   private readonly getNow: () => Date;
 
-  constructor(private readonly options: RuntimeUploadStoreOptions) {
+  constructor(options: RuntimeUploadStoreOptions) {
+    this.options = options;
     this.retentionMs = options.retentionMs ?? defaultRuntimeUploadRetentionMs;
     this.maxCount = options.maxCount ?? defaultRuntimeUploadMaxCount;
     this.createUploadId =

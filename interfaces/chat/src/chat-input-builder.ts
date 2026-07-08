@@ -8,7 +8,8 @@ import {
   type ChatAttachment,
   type RuntimeUploadStore,
 } from "@brains/plugins";
-import type { Message, Thread } from "chat";
+import type { Message } from "chat";
+import type { ChatThread } from "./types";
 
 export interface AgentInput {
   message: string;
@@ -38,11 +39,15 @@ interface ChatInputBuilderDeps {
  * the scoped upload store, is injected so a future Slack adapter reuses this.
  */
 export class ChatInputBuilder {
-  constructor(private readonly deps: ChatInputBuilderDeps) {}
+  private readonly deps: ChatInputBuilderDeps;
+
+  constructor(deps: ChatInputBuilderDeps) {
+    this.deps = deps;
+  }
 
   async build(
     platform: string,
-    thread: Thread,
+    thread: ChatThread,
     message: Message,
     userLevel: string,
   ): Promise<AgentInput> {
@@ -136,7 +141,7 @@ export class ChatInputBuilder {
 
   private buildMetadata(
     platform: string,
-    thread: Thread,
+    thread: ChatThread,
     message: Message,
   ): Record<string, unknown> {
     const ids = this.deps.getThreadIdParts(thread.id);

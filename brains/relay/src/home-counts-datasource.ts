@@ -1,5 +1,9 @@
-import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
-import { z } from "@brains/utils";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   RELAY_HOME_DIAGRAM_FALLBACK,
   parseRelayDiagramContent,
@@ -9,16 +13,14 @@ import {
   type RelayHomeCounts,
 } from "./home-diagram-content";
 
-const querySchema = z
-  .object({
-    query: z
-      .object({
-        routeId: z.string().default("home"),
-        sectionId: z.string().default("diagram"),
-      })
-      .default({ routeId: "home", sectionId: "diagram" }),
-  })
-  .passthrough();
+const querySchema = z.looseObject({
+  query: z
+    .object({
+      routeId: z.string().default("home"),
+      sectionId: z.string().default("diagram"),
+    })
+    .default({ routeId: "home", sectionId: "diagram" }),
+});
 
 const countEntityTypes = {
   captures: "note",
@@ -36,7 +38,7 @@ export class RelayHomeCountsDataSource implements DataSource {
 
   public async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const input = querySchema.parse(query ?? {});

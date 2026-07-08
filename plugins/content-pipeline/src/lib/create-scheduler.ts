@@ -1,5 +1,5 @@
 import type { IMessageBus, ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";

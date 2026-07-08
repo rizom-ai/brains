@@ -9,7 +9,8 @@ import {
   startStaticRenderServer,
   writeMediaRenderPage,
 } from "@brains/media-page-composer";
-import { parseMarkdown, slugify } from "@brains/utils";
+import { parseMarkdown } from "@brains/utils/markdown";
+import { slugify } from "@brains/utils/string-utils";
 import type { Project } from "../schemas/project";
 import { projectFrontmatterSchema } from "../schemas/project";
 import {
@@ -33,15 +34,20 @@ export interface ProjectPrintableAttachmentProviderDeps {
 export class ProjectPrintableAttachmentProvider implements AttachmentProvider {
   readonly metadata = { outputEntityType: "document" } as const;
 
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
   private readonly renderPdf: RenderPdf;
 
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
     deps: ProjectPrintableAttachmentProviderDeps = {},
   ) {
+    this.context = context;
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
   }
 

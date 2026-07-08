@@ -1,5 +1,5 @@
 import type { Template } from "./types";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 
 /**
  * Utility class for detecting template capabilities

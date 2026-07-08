@@ -36,3 +36,13 @@ export function getDaysAgo(days: number): Date {
   date.setDate(date.getDate() - days);
   return date;
 }
+
+/**
+ * Current Unix time in whole seconds (epoch / 1000, floored).
+ *
+ * @example
+ * nowSeconds() // 1735732800
+ */
+export function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
+}

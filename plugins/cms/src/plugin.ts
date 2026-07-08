@@ -5,61 +5,108 @@ import { ServicePlugin } from "@brains/plugins";
 import {
   generateCmsConfig,
   type CmsConfig,
-  type EntityDisplayMap,
-} from "@brains/cms-config";
+  type CmsEntityDisplayMap,
+} from "./config";
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
-import { toYaml, z } from "@brains/utils";
+import { toYaml } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 const CMS_OAUTH_STATE_COOKIE = "brains_cms_oauth_state";
 const CMS_OAUTH_STATE_TTL_SECONDS = 10 * 60;
 const CMS_AUTH_ENDPOINT = "auth";
 
-const entityDisplayEntrySchema = z
-  .object({
-    label: z.string().optional(),
-    pluralName: z.string().optional(),
-  })
-  .passthrough();
+interface CmsEntityDisplayEntry {
+  label?: string | undefined;
+  pluralName?: string | undefined;
+}
 
-const githubOAuthConfigSchema = z.object({
+interface CmsGithubOAuthConfig {
+  clientId?: string | undefined;
+  clientSecret?: string | undefined;
+  scope?: string | undefined;
+}
+
+interface CmsPasskeyLoginConfig {
+  contentRepoToken?: string | undefined;
+}
+
+interface CmsPluginConfig {
+  entityDisplay?: Record<string, CmsEntityDisplayEntry> | undefined;
+  routePath: string;
+  githubOAuth?: CmsGithubOAuthConfig | undefined;
+  passkeyLogin?: CmsPasskeyLoginConfig | undefined;
+}
+
+interface CmsPluginConfigInput {
+  entityDisplay?: Record<string, CmsEntityDisplayEntry> | undefined;
+  routePath?: string | undefined;
+  githubOAuth?: CmsGithubOAuthConfig | undefined;
+  passkeyLogin?: CmsPasskeyLoginConfig | undefined;
+}
+
+const entityDisplayEntrySchema: z.ZodType<
+  CmsEntityDisplayEntry,
+  CmsEntityDisplayEntry
+> = z.looseObject({
+  label: z.string().optional(),
+  pluralName: z.string().optional(),
+});
+
+const githubOAuthConfigSchema: z.ZodType<
+  CmsGithubOAuthConfig,
+  CmsGithubOAuthConfig
+> = z.object({
   clientId: z.string().optional(),
   clientSecret: z.string().optional(),
   scope: z.string().optional(),
 });
 
-const passkeyLoginConfigSchema = z.object({
+const passkeyLoginConfigSchema: z.ZodType<
+  CmsPasskeyLoginConfig,
+  CmsPasskeyLoginConfig
+> = z.object({
   contentRepoToken: z.string().optional(),
 });
 
-const cmsPluginConfigSchema = z
-  .object({
-    entityDisplay: z.record(entityDisplayEntrySchema).optional(),
-    routePath: z.string().default("/cms"),
-    githubOAuth: githubOAuthConfigSchema.optional(),
-    passkeyLogin: passkeyLoginConfigSchema.optional(),
-  })
-  // A brain runs a single CMS login method. Enabling both would force a chooser
-  // and mix commit identities (real GitHub user vs shared PAT); keep it to one.
-  .refine(
-    (config) => {
-      const githubEnabled = Boolean(
-        configuredString(config.githubOAuth?.clientId) &&
-        configuredString(config.githubOAuth?.clientSecret),
-      );
-      const passkeyEnabled = Boolean(
-        configuredString(config.passkeyLogin?.contentRepoToken),
-      );
-      return !(githubEnabled && passkeyEnabled);
-    },
-    {
-      message:
-        "CMS login supports a single method per brain: configure githubOAuth or passkeyLogin, not both.",
-    },
-  );
+const cmsPluginConfigSchema: z.ZodType<CmsPluginConfig, CmsPluginConfigInput> =
+  z
+    .object({
+      entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
+      routePath: z.string().default("/cms"),
+      githubOAuth: githubOAuthConfigSchema.optional(),
+      passkeyLogin: passkeyLoginConfigSchema.optional(),
+    })
+    // A brain runs a single CMS login method. Enabling both would force a chooser
+    // and mix commit identities (real GitHub user vs shared PAT); keep it to one.
+    .refine(
+      (config) => {
+        const githubEnabled = Boolean(
+          configuredString(config.githubOAuth?.clientId) &&
+          configuredString(config.githubOAuth?.clientSecret),
+        );
+        const passkeyEnabled = Boolean(
+          configuredString(config.passkeyLogin?.contentRepoToken),
+        );
+        return !(githubEnabled && passkeyEnabled);
+      },
+      {
+        message:
+          "CMS login supports a single method per brain: configure githubOAuth or passkeyLogin, not both.",
+      },
+    );
 
-type CmsPluginConfig = z.infer<typeof cmsPluginConfigSchema>;
+const githubOAuthErrorResponseSchema = z
+  .looseObject({
+    error: z.string().optional(),
+    error_description: z.string().optional(),
+  })
+  .transform((payload) => payload.error_description ?? payload.error);
+
+const githubOAuthTokenResponseSchema = z.looseObject({
+  access_token: z.string().min(1),
+});
 
 interface EnabledGithubOAuthConfig {
   clientId: string;
@@ -77,7 +124,7 @@ interface EnabledLoginMethods {
 }
 
 interface CmsConfigBuildOptions {
-  entityDisplay?: EntityDisplayMap;
+  entityDisplay?: CmsEntityDisplayMap;
   authEndpoint?: string;
   baseUrl?: string;
 }
@@ -123,8 +170,8 @@ function getCmsConfigOptions(
   context?: ServicePluginContext,
 ): CmsConfigBuildOptions {
   const entityDisplay =
-    (config.entityDisplay as EntityDisplayMap | undefined) ??
-    (context?.entityDisplay as EntityDisplayMap | undefined);
+    (config.entityDisplay as CmsEntityDisplayMap | undefined) ??
+    (context?.entityDisplay as CmsEntityDisplayMap | undefined);
   return {
     ...(entityDisplay ? { entityDisplay } : {}),
     ...(hasEnabledLogin(loginMethods)
@@ -178,8 +225,11 @@ export async function buildCmsConfigYaml(
   return toYaml(await buildCmsConfig(context, options));
 }
 
-export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
-  constructor(config: Partial<CmsPluginConfig> = {}) {
+export class CmsPlugin extends ServicePlugin<
+  CmsPluginConfig,
+  CmsPluginConfigInput
+> {
+  constructor(config: CmsPluginConfigInput = {}) {
     super("cms", packageJson, config, cmsPluginConfigSchema);
   }
 
@@ -416,7 +466,7 @@ export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
   }
 }
 
-export function cmsPlugin(config?: Partial<CmsPluginConfig>): CmsPlugin {
+export function cmsPlugin(config: CmsPluginConfigInput = {}): CmsPlugin {
   return new CmsPlugin(config);
 }
 
@@ -450,41 +500,26 @@ async function exchangeGitHubCode(
     return { success: false, error: "GitHub token response was not JSON" };
   }
 
+  const error = githubOAuthErrorResponseSchema.safeParse(payload);
   if (!response.ok) {
     return {
       success: false,
-      error: githubOAuthError(payload) ?? "GitHub token exchange failed",
+      error: error.success
+        ? (error.data ?? "GitHub token exchange failed")
+        : "GitHub token exchange failed",
     };
   }
 
-  if (isRecord(payload) && typeof payload["error"] === "string") {
-    return {
-      success: false,
-      error:
-        typeof payload["error_description"] === "string"
-          ? payload["error_description"]
-          : payload["error"],
-    };
+  if (error.success && error.data) {
+    return { success: false, error: error.data };
   }
 
-  const token = isRecord(payload) ? payload["access_token"] : undefined;
-  if (typeof token !== "string" || token.length === 0) {
+  const token = githubOAuthTokenResponseSchema.safeParse(payload);
+  if (!token.success) {
     return { success: false, error: "GitHub token response omitted token" };
   }
 
-  return { success: true, token };
-}
-
-function githubOAuthError(payload: unknown): string | undefined {
-  if (!isRecord(payload)) return undefined;
-  if (typeof payload["error_description"] === "string") {
-    return payload["error_description"];
-  }
-  return typeof payload["error"] === "string" ? payload["error"] : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  return { success: true, token: token.data.access_token };
 }
 
 function resolveAuthOrigin(
@@ -753,7 +788,7 @@ function webauthnBrowserHelpers(): string {
     async function fetchJSON(url, init) {
       const response = await fetch(url, init);
       let payload = null;
-      try { payload = await response.json(); } catch {}
+      try { payload = await response.json(); } catch { /* non-JSON body; fall through to status check */ }
       if (!response.ok) {
         const message = payload && (payload.error_description || payload.error) ? (payload.error_description || payload.error) : response.statusText;
         throw new Error(message);

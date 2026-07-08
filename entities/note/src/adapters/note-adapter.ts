@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
 import {
   noteSchema,
   noteFrontmatterSchema,
@@ -8,11 +8,18 @@ import {
   type NoteMetadata,
 } from "../schemas/note";
 
+const frontmatterRecordSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
+  z.record(z.string(), z.unknown());
+
 /**
  * Entity adapter for note entities
  * Handles notes with or without frontmatter
  */
-export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
+export class NoteAdapter extends BaseEntityAdapter<
+  Note,
+  NoteMetadata,
+  NoteFrontmatter
+> {
   constructor() {
     super({
       entityType: "note",
@@ -30,7 +37,7 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
         entity.content,
         noteFrontmatterSchema,
       );
-      if (frontmatter.title) {
+      if (Object.values(frontmatter).some((value) => value !== undefined)) {
         return this.buildMarkdown(body, frontmatter);
       }
     } catch {
@@ -88,10 +95,7 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
    *  If no frontmatter, returns content as-is. */
   public createNoteContent(title: string, content: string): string {
     try {
-      const existing = this.parseFrontMatter(
-        content,
-        z.record(z.unknown()),
-      ) as Record<string, unknown>;
+      const existing = this.parseFrontMatter(content, frontmatterRecordSchema);
       // Empty record means no real frontmatter was present
       if (Object.keys(existing).length === 0) {
         return content;
@@ -112,4 +116,4 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
   }
 }
 
-export const noteAdapter = new NoteAdapter();
+export const noteAdapter: NoteAdapter = new NoteAdapter();

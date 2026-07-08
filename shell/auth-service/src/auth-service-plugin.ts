@@ -7,27 +7,58 @@ import type {
   Tool,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { createTool, ServicePlugin, toolSuccess } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { ServicePlugin } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { AuthService, type OperatorSetupRequired } from "./auth-service";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
 
-const setupEmailSchema = z.union([
-  z.string().email(),
-  z
-    .object({
-      /** Setup email recipient. */
-      to: z.string().email(),
-      /** Notification subject. */
-      subject: z.string().min(1),
-      /** Notification body template. Supports {{setupUrl}}, {{expiresAt}}, and {{origin}}. */
-      body: z.string().min(1),
-    })
-    .strict(),
-]);
+export type SetupEmailConfig =
+  | string
+  | {
+      to: string;
+      subject: string;
+      body: string;
+    };
 
-const authServiceConfigSchema = z.object({
+const setupEmailSchema: z.ZodType<SetupEmailConfig, SetupEmailConfig> = z.union(
+  [
+    z.string().email(),
+    z
+      .object({
+        /** Setup email recipient. */
+        to: z.string().email(),
+        /** Notification subject. */
+        subject: z.string().min(1),
+        /** Notification body template. Supports {{setupUrl}}, {{expiresAt}}, and {{origin}}. */
+        body: z.string().min(1),
+      })
+      .strict(),
+  ],
+);
+
+export interface AuthServiceConfig {
+  issuer?: string | undefined;
+  trustedIssuers: string[];
+  allowLocalhostIssuers?: boolean | undefined;
+  storageDir: string;
+  setupTokenTtlSeconds: number;
+  setupEmail?: SetupEmailConfig | undefined;
+}
+
+export interface AuthServiceConfigInput {
+  issuer?: string | undefined;
+  trustedIssuers?: string[] | undefined;
+  allowLocalhostIssuers?: boolean | undefined;
+  storageDir?: string | undefined;
+  setupTokenTtlSeconds?: number | undefined;
+  setupEmail?: SetupEmailConfig | undefined;
+}
+
+const authServiceConfigSchema: z.ZodType<
+  AuthServiceConfig,
+  AuthServiceConfigInput
+> = z.object({
   /** Public issuer origin. Defaults to the brain site URL, then localhost dev. */
   issuer: z.string().optional(),
   /** Additional trusted issuer origins, for example a preview host. */
@@ -46,14 +77,15 @@ const authServiceConfigSchema = z.object({
   setupEmail: setupEmailSchema.optional(),
 });
 
-const getPasskeySetupUrlInputSchema = z.object({});
-
 type PasskeySetupToolData =
   | { status: "setup_required"; setupUrl: string; expiresAt: number }
   | { status: "complete" }
   | { status: "unavailable"; reason: string };
 
-export type AuthServiceConfig = z.infer<typeof authServiceConfigSchema>;
+interface PasskeySetupToolResponse {
+  success: true;
+  data: PasskeySetupToolData;
+}
 
 let activeAuthService: AuthService | undefined;
 
@@ -61,10 +93,13 @@ export function getActiveAuthService(): AuthService | undefined {
   return activeAuthService;
 }
 
-export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
+export class AuthServicePlugin extends ServicePlugin<
+  AuthServiceConfig,
+  AuthServiceConfigInput
+> {
   private service: AuthService | undefined;
 
-  constructor(config: Partial<AuthServiceConfig> = {}) {
+  constructor(config: AuthServiceConfigInput = {}) {
     super("auth-service", packageJson, config, authServiceConfigSchema);
   }
 
@@ -107,33 +142,43 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
 
   protected override async getTools(): Promise<Tool[]> {
     return [
-      createTool<typeof getPasskeySetupUrlInputSchema, PasskeySetupToolData>(
-        this.id,
-        "get_passkey_setup_url",
-        "Get the first-passkey setup URL when operator setup is required. Anchor-only.",
-        getPasskeySetupUrlInputSchema,
-        async () => {
+      {
+        name: `${this.id}_get_passkey_setup_url`,
+        description:
+          "Get the first-passkey setup URL when operator setup is required. Anchor-only.",
+        inputSchema: {},
+        visibility: "anchor",
+        handler: async (): Promise<PasskeySetupToolResponse> => {
           const service = this.getService();
           if (await service.hasPasskeyCredentials()) {
-            return toolSuccess({ status: "complete" as const });
+            return {
+              success: true,
+              data: { status: "complete" as const },
+            };
           }
 
           const setup = await service.getOperatorSetupRequired();
           if (setup) {
-            return toolSuccess({
-              status: "setup_required" as const,
-              setupUrl: setup.setupUrl,
-              expiresAt: setup.expiresAt,
-            });
+            return {
+              success: true,
+              data: {
+                status: "setup_required" as const,
+                setupUrl: setup.setupUrl,
+                expiresAt: setup.expiresAt,
+              },
+            };
           }
 
-          return toolSuccess({
-            status: "unavailable" as const,
-            reason: "Passkey setup URL is not available.",
-          });
+          return {
+            success: true,
+            data: {
+              status: "unavailable" as const,
+              reason: "Passkey setup URL is not available.",
+            },
+          };
         },
-        { visibility: "anchor", sideEffects: "none" },
-      ),
+        sideEffects: "none",
+      } satisfies Tool<PasskeySetupToolResponse>,
     ];
   }
 
@@ -375,7 +420,7 @@ function interpolateSetupEmailTemplate(
 }
 
 export function authServicePlugin(
-  config?: Partial<AuthServiceConfig>,
+  config: AuthServiceConfigInput = {},
 ): AuthServicePlugin {
   return new AuthServicePlugin(config);
 }

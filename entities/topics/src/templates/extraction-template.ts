@@ -1,20 +1,24 @@
-import { createTemplate } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { createTemplate, type Template } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { topicExtractionResponseSchema } from "../schemas/extraction";
 
 // Schema for the AI response
-const extractionResultSchema = z.object({
-  topics: topicExtractionResponseSchema,
-});
+export interface ExtractionResult {
+  topics: z.output<typeof topicExtractionResponseSchema>;
+}
 
-export type ExtractionResult = z.infer<typeof extractionResultSchema>;
+const extractionResultSchema: z.ZodType<ExtractionResult, ExtractionResult> =
+  z.object({
+    topics: topicExtractionResponseSchema,
+  });
 
-export const topicExtractionTemplate = createTemplate<ExtractionResult>({
-  name: "topics:extraction",
-  description: "Extract topics from conversation text",
-  dataSourceId: "shell:ai-content",
-  schema: extractionResultSchema,
-  basePrompt: `You are an expert at analyzing content and extracting key topics.
+export const topicExtractionTemplate: Template =
+  createTemplate<ExtractionResult>({
+    name: "topics:extraction",
+    description: "Extract topics from conversation text",
+    dataSourceId: "shell:ai-content",
+    schema: extractionResultSchema,
+    basePrompt: `You are an expert at analyzing content and extracting key topics.
 
 Analyze the provided content and extract meaningful topics discussed.
 
@@ -64,5 +68,5 @@ Expected JSON format:
 }
 
 Return the topics in the required JSON format.`,
-  requiredPermission: "public",
-});
+    requiredPermission: "public",
+  });

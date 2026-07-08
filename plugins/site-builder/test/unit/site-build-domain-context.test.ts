@@ -4,12 +4,14 @@ import {
   type SiteBuildJobHandlerConfig,
 } from "../../src/handlers/siteBuildJobHandler";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
-import type { ProgressReporter } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createSilentLogger,
   createMockProgressReporter,
   createMockMessageSender,
 } from "@brains/test-utils";
+
+type SiteBuildJobHandlerConfigOverrides = Partial<SiteBuildJobHandlerConfig>;
 
 /**
  * Tests that SiteBuildJobHandler uses siteUrl/previewUrl from its config
@@ -35,7 +37,7 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
     mockProgressReporter = createMockProgressReporter();
   });
 
-  function createHandler(overrides: Partial<SiteBuildJobHandlerConfig> = {}): {
+  function createHandler(overrides: SiteBuildJobHandlerConfigOverrides = {}): {
     handler: SiteBuildJobHandler;
     sendMessage: ReturnType<typeof mock>;
   } {

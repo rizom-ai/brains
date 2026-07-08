@@ -6,8 +6,8 @@ import type {
   IEntityService,
   BaseDataSourceContext,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 

@@ -1,11 +1,13 @@
 import type { IEntityService } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils/logger";
 import {
   parseDataUrl,
   detectImageFormat,
   detectImageDimensions,
 } from "@brains/image";
-import type { ImageFetcher } from "./frontmatter-image-converter";
+
+/** Function to fetch an image URL and return base64 data URL */
+export type ImageFetcher = (url: string) => Promise<string>;
 
 interface ImageEntityParams {
   id: string;

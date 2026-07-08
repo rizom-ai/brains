@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "bun:test";
-import { playbookAdapter } from "@brains/playbook";
+import { playbookAdapter } from "@brains/playbooks";
 
 async function readOnboardingPlaybook(fileName: string): Promise<string> {
   return readFile(
@@ -126,7 +126,7 @@ describe("Rover onboarding playbook bundle", () => {
       "transform the retrieved note directly in chat",
     );
     expect(retrieveAndTransform?.instructions.join("\n")).toContain(
-      "Do not call system_create for an outline",
+      "Do not call system_create or system_generate for an outline",
     );
 
     for (const state of body.states) {

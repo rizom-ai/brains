@@ -1,9 +1,18 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod";
+import type {
+  DirectorySyncStatus,
+  ExportResult,
+  ImportResult,
+  SyncResult,
+} from "./types";
 
 /**
  * Schema for directory sync status
  */
-export const directorySyncStatusSchema = z
+export const directorySyncStatusSchema: z.ZodType<
+  DirectorySyncStatus,
+  DirectorySyncStatus
+> = z
   .object({
     syncPath: z.string(),
     exists: z.boolean(),
@@ -36,37 +45,42 @@ export { directorySyncConfigSchema } from "./types";
 /**
  * Schema for export result
  */
-export const exportResultSchema = z.object({
-  exported: z.number(),
-  failed: z.number(),
-  errors: z.array(
-    z.object({
-      entityId: z.string(),
-      entityType: z.string(),
-      error: z.string(),
-    }),
-  ),
-});
+export const exportResultSchema: z.ZodType<ExportResult, ExportResult> =
+  z.object({
+    exported: z.number(),
+    failed: z.number(),
+    errors: z.array(
+      z.object({
+        entityId: z.string(),
+        entityType: z.string(),
+        error: z.string(),
+      }),
+    ),
+  });
 
 /**
  * Schema for import result
  */
-export const importResultSchema = z.object({
-  imported: z.number(),
-  skipped: z.number(),
-  failed: z.number(),
-  errors: z.array(
-    z.object({
-      path: z.string(),
-      error: z.string(),
-    }),
-  ),
-});
+export const importResultSchema: z.ZodType<ImportResult, ImportResult> =
+  z.object({
+    imported: z.number(),
+    skipped: z.number(),
+    failed: z.number(),
+    quarantined: z.number(),
+    quarantinedFiles: z.array(z.string()),
+    errors: z.array(
+      z.object({
+        path: z.string(),
+        error: z.string(),
+      }),
+    ),
+    jobIds: z.array(z.string()),
+  });
 
 /**
  * Schema for sync result
  */
-export const syncResultSchema = z.object({
+export const syncResultSchema: z.ZodType<SyncResult, SyncResult> = z.object({
   export: exportResultSchema,
   import: importResultSchema,
   duration: z.number(),

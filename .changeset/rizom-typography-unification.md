@@ -1,6 +1,5 @@
 ---
 "@brains/theme-rizom": patch
-"@rizom/ui": patch
 ---
 
 Unify Fraunces display weight across the rizom site family via the central theme.

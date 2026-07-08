@@ -1,5 +1,5 @@
 /** @jsxImportSource preact */
-import { formatLabel } from "@brains/utils";
+import { formatLabel } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
 import type { EntityCount } from "./types";
 
