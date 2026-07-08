@@ -46,8 +46,8 @@
   "scripts": {
     "build": "bun scripts/build-ui.ts",
     "build:ui": "bun scripts/build-ui.ts",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
     "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json"
   },

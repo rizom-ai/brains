@@ -57,8 +57,8 @@
   },
   "scripts": {
     "build": "bun scripts/build.ts",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "prepublishOnly": "bun scripts/build.ts",
     "test": "bun run build && bun test --timeout 20000",
     "test:smoke": "bun run build && RUN_SMOKE_TESTS=1 bun test --timeout 60000",

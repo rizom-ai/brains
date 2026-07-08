@@ -120,8 +120,8 @@
   "scripts": {
     "build": "bun scripts/build.ts",
     "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "prepublishOnly": "bun scripts/build.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"

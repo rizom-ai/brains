@@ -32,8 +32,8 @@
   "main": "./src/index.ts",
   "private": true,
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

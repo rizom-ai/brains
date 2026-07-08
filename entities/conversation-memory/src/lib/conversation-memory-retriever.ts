@@ -26,9 +26,7 @@ const MAX_SUMMARY_CONTEXT_KEY_POINTS = 5;
 const summaryAdapter = new SummaryAdapter();
 
 type ConversationMemorySearchEntity =
-  | SummaryEntity
-  | DecisionEntity
-  | ActionItemEntity;
+  SummaryEntity | DecisionEntity | ActionItemEntity;
 
 export interface RetrieveConversationMemoryInput {
   query?: string | undefined;

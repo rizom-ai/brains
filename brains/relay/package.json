@@ -56,8 +56,8 @@
   "scripts": {
     "build:web-chat": "turbo run build --filter=@brains/web-chat",
     "eval": "brain-eval",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "start:docs": "bun run build:web-chat && cd test-apps/docs && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
