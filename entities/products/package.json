@@ -1,6 +1,6 @@
 {
   "name": "@brains/products",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "Product entity management and overview page for marketing showcase",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

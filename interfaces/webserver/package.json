@@ -1,6 +1,6 @@
 {
   "name": "@brains/webserver",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "dependencies": {
     "@brains/plugins": "workspace:*",
     "@hono/bun-compress": "^0.1.1",

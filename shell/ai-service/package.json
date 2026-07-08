@@ -1,6 +1,6 @@
 {
   "name": "@brains/ai-service",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "AI service for text/object generation and agent conversation orchestration",
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.84",

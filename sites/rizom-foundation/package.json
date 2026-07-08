@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-foundation",
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.142",
   "description": "Rizom Foundation site package for hosted Rover deployments",
   "type": "module",
   "exports": {

@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-docs",
-  "version": "0.2.0-alpha.136",
+  "version": "0.2.0-alpha.142",
   "description": "Docs site package for docs.rizom.ai hosted deployments",
   "type": "module",
   "exports": {

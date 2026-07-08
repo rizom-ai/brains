@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-builder-plugin",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "Static site generation plugin for Brain system",
   "dependencies": {
     "@brains/image": "workspace:*",

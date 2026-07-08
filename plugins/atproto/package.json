@@ -1,6 +1,6 @@
 {
   "name": "@brains/atproto",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "AT Protocol integration for identity, publishing, discovery, and feeds",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

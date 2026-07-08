@@ -1,6 +1,6 @@
 {
   "name": "@brains/ai-evaluation",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "AI evaluation system for testing agent and plugin performance",
   "bin": {
     "brain-eval": "./src/run-evaluations.ts"

@@ -1,6 +1,6 @@
 {
   "name": "@brains/series",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "Cross-content series — auto-derived from entities with seriesName metadata",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

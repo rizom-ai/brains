@@ -1,6 +1,6 @@
 {
   "name": "@brains/playbooks",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "Runtime orchestration for chat-native playbook runs",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

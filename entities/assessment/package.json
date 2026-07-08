@@ -1,6 +1,6 @@
 {
   "name": "@brains/assessment",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "Assessment outputs and capability-profile analysis",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

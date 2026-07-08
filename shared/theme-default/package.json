@@ -1,6 +1,6 @@
 {
   "name": "@brains/theme-default",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "Simplified editorial default theme — warm neutral surfaces with restrained Rizom-inspired accents",
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

@@ -1,6 +1,6 @@
 {
   "name": "@brains/media-page-composer",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "dependencies": {
     "@brains/media-renderer": "workspace:*",
     "@brains/site-engine": "workspace:*",
