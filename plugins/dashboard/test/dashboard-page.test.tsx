@@ -192,6 +192,10 @@ describe("renderDashboardPageHtml", () => {
     // Vitals carry sub-lines and semantic status dots per the mockup.
     expect(html).toContain('class="vital-sub"');
     expect(html).toContain("vital-card--ok");
+    // The index sub-line reports embedded count + queue state, never an
+    // all-entities denominator (non-embeddable types would make it lie).
+    expect(html).toContain("12 embedded");
+    expect(html).not.toContain("12/12");
     expect(html).toContain("Queued");
     expect(html).toContain("Published");
     expect(html).toContain('href="#publishing"');
