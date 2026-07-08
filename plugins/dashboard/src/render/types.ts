@@ -53,6 +53,15 @@ export interface DashboardDirectorySyncStatus {
   byEntityType?: Record<string, number> | undefined;
 }
 
+export interface DashboardIndexStatus {
+  ready: boolean;
+  degraded?: boolean | undefined;
+  activeEmbeddingJobs?: number | undefined;
+  missingEmbeddings?: number | undefined;
+  staleEmbeddings?: number | undefined;
+  failedEmbeddings?: number | undefined;
+}
+
 export interface DashboardRenderInput {
   title: string;
   baseUrl: string | undefined;
@@ -66,6 +75,7 @@ export interface DashboardRenderInput {
   activityLog?: DashboardActivityEvent[];
   jobProgress?: DashboardJobProgressItem[];
   indexReady?: boolean;
+  indexStatus?: DashboardIndexStatus;
   directorySyncStatus?: DashboardDirectorySyncStatus;
   operatorAccess?: DashboardOperatorAccess;
 }

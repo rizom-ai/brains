@@ -169,12 +169,31 @@ describe("DashboardPlugin", () => {
         },
       }));
       (
-        harness.getEntityService() as ReturnType<
-          typeof harness.getEntityService
-        > & {
-          isIndexReady: () => boolean;
+        harness.getEntityService() as unknown as {
+          awaitIndexReady: () => Promise<{
+            ready: boolean;
+            degraded: boolean;
+            activeEmbeddingJobs: number;
+            missingEmbeddings: number;
+            staleEmbeddings: number;
+            failedEmbeddings: number;
+          }>;
         }
-      ).isIndexReady = (): boolean => true;
+      ).awaitIndexReady = async (): Promise<{
+        ready: boolean;
+        degraded: boolean;
+        activeEmbeddingJobs: number;
+        missingEmbeddings: number;
+        staleEmbeddings: number;
+        failedEmbeddings: number;
+      }> => ({
+        ready: true,
+        degraded: false,
+        activeEmbeddingJobs: 0,
+        missingEmbeddings: 0,
+        staleEmbeddings: 0,
+        failedEmbeddings: 0,
+      });
 
       await harness.sendMessage("entity:updated", {
         entityType: "note",
@@ -201,6 +220,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("2 files");
       expect(html).toContain("note 2");
       expect(html).toContain("<dt>Semantic index</dt><dd>Ready</dd>");
+      expect(html).toContain("Semantic index · ready · 0 active");
     });
 
     it("should show anchor endpoints and interactions to signed-in operators", async () => {

@@ -204,26 +204,36 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     ].slice(0, 8);
   }
 
-  private getIndexReady(): boolean | undefined {
+  private async getIndexStatus(): Promise<DashboardRenderInput["indexStatus"]> {
     if (!this.ctx) return undefined;
 
     const entityService = this.ctx
       .entityService as typeof this.ctx.entityService & {
       isIndexReady?: () => boolean;
+      awaitIndexReady?: (options: {
+        timeoutMs: number;
+        intervalMs?: number;
+      }) => Promise<NonNullable<DashboardRenderInput["indexStatus"]>>;
     };
 
-    if (typeof entityService.isIndexReady !== "function") {
-      return undefined;
-    }
-
     try {
-      return entityService.isIndexReady();
+      if (typeof entityService.awaitIndexReady === "function") {
+        return await entityService.awaitIndexReady({
+          timeoutMs: 0,
+          intervalMs: 0,
+        });
+      }
+
+      if (typeof entityService.isIndexReady === "function") {
+        return { ready: entityService.isIndexReady() };
+      }
     } catch (error) {
       this.logger.debug("Semantic index status unavailable", {
         error: getErrorMessage(error),
       });
-      return undefined;
     }
+
+    return undefined;
   }
 
   private async getDirectorySyncStatus(): Promise<
@@ -366,7 +376,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           );
           const hiddenWidgetCount =
             anchorWidgets.length - visibleWidgets.length;
-          const [dashboardData, appInfo, directorySyncStatus] =
+          const [dashboardData, appInfo, directorySyncStatus, indexStatus] =
             await Promise.all([
               this.datasource.getDashboardData({
                 permissionLevel,
@@ -374,10 +384,10 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
               }),
               ctx.appInfo(),
               this.getDirectorySyncStatus(),
+              this.getIndexStatus(),
             ]);
           const character = ctx.identity.get();
           const profile = ctx.identity.getProfile();
-          const indexReady = this.getIndexReady();
 
           const baseUrl =
             this.siteUrl ??
@@ -425,7 +435,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             appInfo: visibleAppInfo,
             activityLog: this.activityLog,
             jobProgress: this.jobProgress,
-            ...(indexReady !== undefined && { indexReady }),
+            ...(indexStatus !== undefined && { indexStatus }),
             ...(directorySyncStatus !== undefined && { directorySyncStatus }),
             ...(this.config.themeCSS !== undefined && {
               themeCSS: this.config.themeCSS,

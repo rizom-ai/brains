@@ -392,7 +392,9 @@ function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
 }
 
 function resolveIndexReady(input: DashboardRenderInput): boolean {
-  return input.indexReady ?? input.appInfo.embeddings > 0;
+  return (
+    input.indexStatus?.ready ?? input.indexReady ?? input.appInfo.embeddings > 0
+  );
 }
 
 function VitalsRow({ input }: { input: DashboardRenderInput }): JSX.Element {
@@ -529,6 +531,34 @@ function ActivityLedger({
   );
 }
 
+function formatIndexStatus(
+  status: NonNullable<DashboardRenderInput["indexStatus"]>,
+): string {
+  const state = status.ready
+    ? status.degraded
+      ? "ready, degraded"
+      : "ready"
+    : "pending";
+  return [
+    "Semantic index",
+    state,
+    status.activeEmbeddingJobs !== undefined
+      ? `${status.activeEmbeddingJobs} active`
+      : undefined,
+    status.missingEmbeddings !== undefined
+      ? `${status.missingEmbeddings} missing`
+      : undefined,
+    status.staleEmbeddings !== undefined
+      ? `${status.staleEmbeddings} stale`
+      : undefined,
+    status.failedEmbeddings !== undefined
+      ? `${status.failedEmbeddings} failed`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function formatDirectorySyncDetails(
   status: NonNullable<DashboardRenderInput["directorySyncStatus"]>,
 ): string {
@@ -645,6 +675,9 @@ function SystemHealthCard({
           </dd>
         </div>
       </dl>
+      {input.indexStatus && (
+        <p class="sync-status-line">{formatIndexStatus(input.indexStatus)}</p>
+      )}
       {input.directorySyncStatus && (
         <p class="sync-status-line">
           {formatDirectorySyncDetails(input.directorySyncStatus)}

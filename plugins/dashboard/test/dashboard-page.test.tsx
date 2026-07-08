@@ -270,7 +270,13 @@ describe("renderDashboardPageHtml", () => {
           progressLabel: "1/3",
         },
       ],
-      indexReady: true,
+      indexStatus: {
+        ready: true,
+        activeEmbeddingJobs: 0,
+        missingEmbeddings: 0,
+        staleEmbeddings: 0,
+        failedEmbeddings: 0,
+      },
       directorySyncStatus: {
         syncPath: "/brain/content",
         isInitialized: true,
@@ -290,6 +296,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Job queue");
     expect(html).toContain("1 recent");
     expect(html).toContain("<dt>Semantic index</dt><dd>Ready</dd>");
+    expect(html).toContain("Semantic index · ready · 0 active");
     expect(html).toContain("Watching");
     expect(html).toContain("/brain/content");
     expect(html).toContain("4 files");
