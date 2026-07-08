@@ -531,6 +531,19 @@ function ActivityLedger({
   );
 }
 
+function calculateIndexPercent(
+  status: NonNullable<DashboardRenderInput["indexStatus"]>,
+): number {
+  const outstanding =
+    (status.activeEmbeddingJobs ?? 0) +
+    (status.missingEmbeddings ?? 0) +
+    (status.staleEmbeddings ?? 0);
+  if (status.ready && !status.degraded) return 100;
+  if (status.ready) return 92;
+  if (outstanding === 0) return 50;
+  return Math.max(8, Math.min(88, 100 - outstanding * 12));
+}
+
 function formatIndexStatus(
   status: NonNullable<DashboardRenderInput["indexStatus"]>,
 ): string {
@@ -557,6 +570,31 @@ function formatIndexStatus(
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+function IndexGauge({
+  status,
+}: {
+  status: NonNullable<DashboardRenderInput["indexStatus"]>;
+}): JSX.Element {
+  const percent = calculateIndexPercent(status);
+  const label = status.ready
+    ? status.degraded
+      ? "Degraded"
+      : "Ready"
+    : "Indexing";
+
+  return (
+    <div class="index-gauge" style={`--index-percent: ${percent}%`}>
+      <div class="index-gauge-ring" aria-hidden="true">
+        <span>{percent}%</span>
+      </div>
+      <div class="index-gauge-copy">
+        <strong>{label}</strong>
+        <span>{formatIndexStatus(status)}</span>
+      </div>
+    </div>
+  );
 }
 
 function formatDirectorySyncDetails(
@@ -675,9 +713,7 @@ function SystemHealthCard({
           </dd>
         </div>
       </dl>
-      {input.indexStatus && (
-        <p class="sync-status-line">{formatIndexStatus(input.indexStatus)}</p>
-      )}
+      {input.indexStatus && <IndexGauge status={input.indexStatus} />}
       {input.directorySyncStatus && (
         <p class="sync-status-line">
           {formatDirectorySyncDetails(input.directorySyncStatus)}
