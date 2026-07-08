@@ -163,6 +163,9 @@ describe("DashboardPlugin", () => {
           syncPath: "/brain/content",
           isInitialized: true,
           watchEnabled: true,
+          lastSync: "2026-07-08T09:30:00.000Z",
+          totalFiles: 2,
+          byEntityType: { note: 2 },
         },
       }));
       (
@@ -195,6 +198,8 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("site:build");
       expect(html).toContain("1/3");
       expect(html).toContain("/brain/content");
+      expect(html).toContain("2 files");
+      expect(html).toContain("note 2");
       expect(html).toContain("<dt>Semantic index</dt><dd>Ready</dd>");
     });
 

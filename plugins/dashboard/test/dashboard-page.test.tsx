@@ -275,6 +275,9 @@ describe("renderDashboardPageHtml", () => {
         syncPath: "/brain/content",
         isInitialized: true,
         watchEnabled: true,
+        lastSync: "2026-07-08T09:30:00.000Z",
+        totalFiles: 4,
+        byEntityType: { note: 3, post: 1 },
       },
     };
 
@@ -289,6 +292,9 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("<dt>Semantic index</dt><dd>Ready</dd>");
     expect(html).toContain("Watching");
     expect(html).toContain("/brain/content");
+    expect(html).toContain("4 files");
+    expect(html).toContain("note 3, post 1");
+    expect(html).toContain("last sync");
     expect(html).toContain("site:build");
     expect(html).toContain("1/3");
   });

@@ -48,6 +48,9 @@ export interface DashboardDirectorySyncStatus {
   syncPath: string;
   isInitialized: boolean;
   watchEnabled: boolean;
+  lastSync?: string | undefined;
+  totalFiles?: number | undefined;
+  byEntityType?: Record<string, number> | undefined;
 }
 
 export interface DashboardRenderInput {

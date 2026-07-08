@@ -109,13 +109,22 @@ describe("DirectorySyncPlugin", () => {
     it("should respond to sync status requests", async () => {
       const response = await harness.sendMessage<
         Record<string, never>,
-        { syncPath: string; isInitialized: boolean; watchEnabled: boolean }
+        {
+          syncPath: string;
+          isInitialized: boolean;
+          watchEnabled: boolean;
+          lastSync?: string;
+          totalFiles: number;
+          byEntityType: Record<string, number>;
+        }
       >("sync:status:request", {}, "test");
 
       expect(response).toBeDefined();
       expect(response?.syncPath).toBe(syncPath);
       expect(response?.isInitialized).toBe(true);
       expect(response?.watchEnabled).toBe(false);
+      expect(response?.totalFiles).toBeGreaterThanOrEqual(0);
+      expect(response?.byEntityType).toBeDefined();
     });
 
     it("should respond to export requests", async () => {

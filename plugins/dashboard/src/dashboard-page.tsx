@@ -529,6 +529,36 @@ function ActivityLedger({
   );
 }
 
+function formatDirectorySyncDetails(
+  status: NonNullable<DashboardRenderInput["directorySyncStatus"]>,
+): string {
+  const fileSummary =
+    status.totalFiles === undefined
+      ? undefined
+      : status.totalFiles === 1
+        ? "1 file"
+        : `${status.totalFiles} files`;
+  const typeSummary = status.byEntityType
+    ? Object.entries(status.byEntityType)
+        .sort(([, leftCount], [, rightCount]) => rightCount - leftCount)
+        .slice(0, 2)
+        .map(([entityType, count]) => `${entityType} ${count}`)
+        .join(", ")
+    : undefined;
+
+  return [
+    status.syncPath,
+    status.isInitialized ? "ready" : "missing",
+    fileSummary,
+    typeSummary,
+    status.lastSync
+      ? `last sync ${formatTimestamp(status.lastSync)}`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function JobQueueTable({
   jobs,
 }: {
@@ -617,8 +647,7 @@ function SystemHealthCard({
       </dl>
       {input.directorySyncStatus && (
         <p class="sync-status-line">
-          {input.directorySyncStatus.syncPath}
-          {input.directorySyncStatus.isInitialized ? " · ready" : " · missing"}
+          {formatDirectorySyncDetails(input.directorySyncStatus)}
         </p>
       )}
       <JobQueueTable jobs={input.jobProgress ?? []} />
