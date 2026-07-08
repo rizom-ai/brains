@@ -23,10 +23,35 @@
     --ruby-soft: #e07a6a;
     --moss: #9caf88;         /* brand book moss/sage — the foundation */
     --moss-deep: #6f8a5e;
+    --cta-ink: var(--night-deep);
+    --myc-root: rgba(212,175,55,.24);
+    --myc-twig: rgba(250,248,243,.1);
     --display: "Fraunces", serif;
     --ui: "IBM Plex Sans", sans-serif;
     --mono: "IBM Plex Mono", monospace;
   }
+  html[data-theme="light"] {
+    /* brand book light: warm off-white ground, charcoal/indigo ink */
+    --night: #faf8f3;
+    --night-deep: #f2eee5;
+    --white: #23213a;
+    --w70: rgba(35,33,58,0.76);
+    --w45: rgba(35,33,58,0.52);
+    --w28: rgba(35,33,58,0.34);
+    --rule: rgba(35,33,58,0.18);
+    --rule-soft: rgba(35,33,58,0.09);
+    --brass: #a8821c;
+    --brass-soft: #8a6a12;
+    --ruby: #b83a2e;
+    --ruby-soft: #b8503f;
+    --moss: #5e7a4e;
+    --moss-deep: #4c633f;
+    --cta-ink: #faf8f3;
+    --myc-root: rgba(168,130,28,.35);
+    --myc-twig: rgba(35,33,58,.14);
+  }
+  html[data-theme="light"] body::before { opacity: .3; }
+  html[data-theme="light"] .frame { box-shadow: 0 30px 70px -34px rgba(35,33,58,.35); }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body { font-family: var(--ui); background: var(--night-deep); color: var(--white); font-size: 15.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
@@ -57,8 +82,8 @@
   /* ---------- mycelium thread ---------- */
   .mycelium { position: absolute; top: 0; left: 0; height: 100%; width: 220px; pointer-events: none; opacity: .8; }
   .mycelium path { fill: none; stroke-linecap: round; }
-  .mycelium .root { stroke: rgba(212,175,55,.24); stroke-width: 1.4; }
-  .mycelium .twig { stroke: rgba(250,248,243,.1); stroke-width: 1; }
+  .mycelium .root { stroke: var(--myc-root); stroke-width: 1.4; }
+  .mycelium .twig { stroke: var(--myc-twig); stroke-width: 1; }
   .mycelium circle { fill: var(--night); stroke-width: 1.6; }
   .node-pulse { animation: nodepulse 3.4s ease-in-out infinite; transform-origin: center; }
   @keyframes nodepulse { 0%,100% { opacity: .7; } 50% { opacity: 1; } }
@@ -72,7 +97,7 @@
   .sitenav .links a:hover { color: var(--white); }
   .sitenav .links a.here { color: var(--white); border-bottom: 2px solid var(--accent, var(--brass)); padding-bottom: 3px; }
   .sitenav .spacer { flex: 1; }
-  .cta-mini { font-size: 14px; font-weight: 500; text-decoration: none; color: var(--night-deep); background: var(--brass); padding: 9px 18px; border-radius: 3px; }
+  .cta-mini { font-size: 14px; font-weight: 500; text-decoration: none; color: var(--cta-ink); background: var(--brass); padding: 9px 18px; border-radius: 3px; }
   .cta-mini:hover { background: var(--brass-soft); }
 
   /* ---------- HOME hero — real copy, staged asymmetrically ---------- */
@@ -83,7 +108,7 @@
   .hero .standfirst p { max-width: 42ch; font-size: 18px; color: var(--w70); }
   .hero .standfirst p b { color: var(--white); font-weight: 500; }
   .hero .actions { display: flex; gap: 24px; align-items: baseline; white-space: nowrap; }
-  .cta { font-size: 15px; font-weight: 500; text-decoration: none; color: var(--night-deep); background: var(--brass); padding: 13px 26px; border-radius: 3px; }
+  .cta { font-size: 15px; font-weight: 500; text-decoration: none; color: var(--cta-ink); background: var(--brass); padding: 13px 26px; border-radius: 3px; }
   .cta:hover { background: var(--brass-soft); }
   .quiet { font-size: 14.5px; color: var(--w45); text-decoration: none; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
   .quiet:hover { color: var(--white); border-color: var(--w45); }
@@ -156,6 +181,33 @@
   .room-head h3 em { font-style: italic; color: var(--accent); }
   .room-head .standfirst { font-size: 17px; color: var(--w70); max-width: 54ch; margin-top: 18px; }
   .room-head .actions { display: flex; gap: 24px; align-items: baseline; margin-top: 28px; }
+
+  /* the /work diagnostic panel — faithful to the live rizom.work hero visual */
+  .exhibit-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: start; }
+  @media (max-width: 1020px) { .exhibit-grid { grid-template-columns: 1fr; gap: 30px; } }
+  .diag { position: relative; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 16px; padding: 20px 30px 26px; margin-top: 8px; overflow: hidden; }
+  .diag .bar { position: absolute; inset: 0 0 auto 0; height: 2px; background: var(--accent); border-radius: 16px 16px 0 0; }
+  .diag .radar { display: block; width: 100%; height: auto; padding-bottom: 10px; }
+  .diag .radar .tri-outer { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+  .diag .radar .tri-score { fill: color-mix(in srgb, var(--accent) 20%, transparent); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .diag .radar .vertex { fill: var(--white); stroke: var(--night); stroke-width: 2; }
+  .diag .radar text { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; fill: var(--w45); }
+  .diag .d-type { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 1px solid var(--rule-soft); padding: 18px 0; }
+  .diag .d-type .k { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--w45); white-space: nowrap; }
+  .diag .d-type b { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 96; font-style: italic; font-weight: 500; font-size: 22px; letter-spacing: -.015em; text-align: right; }
+  .diag .d-acts { border-top: 1px solid var(--rule-soft); padding-top: 18px; }
+  .diag .d-acts-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--w45); }
+  .diag .d-acts-head .score { letter-spacing: .18em; }
+  .diag .d-acts-head .score .arr { color: var(--w28); margin-right: 6px; }
+  .diag .d-acts-head .score .dim { color: var(--accent); }
+  .diag .d-acts-head .score .n { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .diag .d-acts-head .score .n span { opacity: .6; }
+  .diag ul { list-style: none; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .diag li { display: flex; align-items: baseline; gap: 12px; font-size: 13px; line-height: 1.5; color: var(--w70); }
+  .diag li .no { min-width: 26px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; color: color-mix(in srgb, var(--accent) 80%, var(--white)); }
+  .diag .d-run { margin-top: 20px; display: flex; width: 100%; align-items: center; justify-content: center; border: 1px solid var(--rule); border-radius: 10px; padding: 12px 16px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--w70); text-decoration: none; transition: border-color .15s, color .15s; }
+  .diag .d-run:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--white); }
+  .exhibit-caption { font-family: var(--mono); font-size: 10.5px; color: var(--w28); margin-top: 10px; }
 
   .rsect { position: relative; padding: 54px 56px 20px 130px; }
   .rsect .sect-cap { display: block; }
@@ -236,6 +288,7 @@
 </header>
 
 <nav class="mock-nav">
+  <button id="themeToggle" style="margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--w45); background:none; border:1px solid var(--rule); border-radius:6px; padding:5px 12px; cursor:pointer; align-self:center">Light mode</button>
   <a href="#s1"><span>01</span>Home</a>
   <a href="#s2"><span>02</span>/work</a>
   <a href="#s3"><span>03</span>/foundation</a>
@@ -428,17 +481,53 @@
         <a href="#s3">Foundation</a>
       </div>
       <div class="spacer"></div>
-      <a class="cta-mini" href="#s2" style="background: var(--ruby-soft)">Take the quiz</a>
+      <a class="cta-mini" href="#s2" style="background: var(--ruby-soft); color: var(--cta-ink)">Take the quiz</a>
     </nav>
 
     <div class="room-head">
       <div class="r-kicker">Coordination for the AI era <small>previously rizom.work</small></div>
-      <h3>Your team has a knowledge problem. <em>AI is making it visible.</em></h3>
-      <p class="standfirst">TMS-based consulting that helps teams coordinate better, so your
-      people and your AI tools can actually do their best work.</p>
-      <div class="actions">
-        <a class="cta" href="#s2" style="background: var(--ruby-soft)">Take the Team Type quiz →</a>
-        <a class="quiet" href="#s2">Book a discovery call</a>
+      <div class="exhibit-grid">
+        <div>
+          <h3>Your team has a knowledge problem. <em>AI is making it visible.</em></h3>
+          <p class="standfirst">TMS-based consulting that helps teams coordinate better, so your
+          people and your AI tools can actually do their best work.</p>
+          <div class="actions">
+            <a class="cta" href="#s2" style="background: var(--ruby-soft); color: var(--cta-ink)">Take the Team Type quiz →</a>
+            <a class="quiet" href="#s2">Book a discovery call</a>
+          </div>
+        </div>
+        <div>
+          <div class="diag">
+            <div class="bar"></div>
+            <svg class="radar" viewBox="0 4 360 248" role="img" aria-label="Three-axis TMS radar — Specialization, Credibility, Coordination">
+              <polygon class="tri-outer" points="180,50 266.60,200 93.40,200"></polygon>
+              <polygon class="tri-score" points="180,95 233.69,181 150.56,167"></polygon>
+              <circle class="vertex" cx="180" cy="95" r="4"></circle>
+              <circle class="vertex" cx="233.69" cy="181" r="4"></circle>
+              <circle class="vertex" cx="150.56" cy="167" r="4"></circle>
+              <text x="180" y="34" text-anchor="middle">Specialization</text>
+              <text x="252" y="222" text-anchor="start">Credibility</text>
+              <text x="108" y="222" text-anchor="end">Coordination</text>
+            </svg>
+            <div class="d-type">
+              <span class="k">Your team type</span>
+              <b>Distributed specialists</b>
+            </div>
+            <div class="d-acts">
+              <div class="d-acts-head">
+                <span>Priority actions</span>
+                <span class="score"><span class="arr">→</span><span class="dim">Coordination</span> <span class="n">34<span>/100</span></span></span>
+              </div>
+              <ul>
+                <li><span class="no">[01]</span><span>Clarify decision authority in the 4 highest-friction roles</span></li>
+                <li><span class="no">[02]</span><span>Surface tacit expertise via a weekly ritual</span></li>
+                <li><span class="no">[03]</span><span>Install coordination layer before further AI pilots</span></li>
+              </ul>
+            </div>
+            <a class="d-run" href="#s2">Run the diagnostic →</a>
+          </div>
+          <div class="exhibit-caption">the live rizom.work diagnostic panel, carried over as-is</div>
+        </div>
       </div>
     </div>
 
@@ -535,7 +624,7 @@
         <a class="here" href="#s3">Foundation</a>
       </div>
       <div class="spacer"></div>
-      <a class="cta-mini" href="#s3" style="background: var(--moss); color: var(--night-deep)">Read Manifesto</a>
+      <a class="cta-mini" href="#s3" style="background: var(--moss); color: var(--cta-ink)">Read Manifesto</a>
     </nav>
 
     <div class="room-head">
@@ -546,7 +635,7 @@
       work and technology together. Rizom Foundation publishes essays, runs city-by-city
       gatherings, and stewards the open AI infrastructure the community runs on.</p>
       <div class="actions">
-        <a class="cta" href="#s3" style="background: var(--moss); color: var(--night-deep)">Join our Discord →</a>
+        <a class="cta" href="#s3" style="background: var(--moss); color: var(--cta-ink)">Join our Discord →</a>
         <a class="quiet" href="#s3">Find an event near you</a>
       </div>
     </div>
@@ -653,5 +742,8 @@
   card, and serves the lexicon registry. Old domains 301 per-path.</div>
 </footer>
 
+<script>
+(function(){var r=document.documentElement,b=document.getElementById("themeToggle");function sync(){b.textContent=r.getAttribute("data-theme")==="light"?"Dark mode":"Light mode";}b.addEventListener("click",function(){r.setAttribute("data-theme",r.getAttribute("data-theme")==="light"?"dark":"light");sync();});sync();})();
+</script>
 </body>
 </html>
