@@ -9,7 +9,7 @@ add:
 # site.package override rover-pilot will use after the port.
 site:
   package: "@brains/site-rizom-ai"
-  theme: "@brains/theme-rizom"
+  theme: "@brains/theme-rizom-ai"
 
 plugins:
   directory-sync:

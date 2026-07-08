@@ -1,0 +1,770 @@
+/*
+ * Consolidated rizom.ai theme — rev-5 design system.
+ *
+ * Source of truth: docs/rizom-site-mockups.html (approved 2026-07-07)
+ * and the Rizom Brand Book. Deep indigo ground, warm off-white light
+ * mode as a first-class peer, brass accent with per-room ruby/moss
+ * variants, Fraunces display over IBM Plex Sans/Mono.
+ *
+ * Mode handling:
+ *   :root                → dark mode (indigo ground)
+ *   [data-theme="light"] → warm off-white paper, ink text
+ *
+ * Room handling (replaces theme-rizom's data-theme-profile):
+ *   [data-room="work"]        → ruby accent (the practice)
+ *   [data-room="foundation"]  → moss accent (the research arm)
+ *   anything else             → brass (the platform)
+ * The site layout sets data-room on its page wrapper per route; the
+ * palette entries flip per mode, so room blocks stay mode-agnostic.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+/* Brand-specific Tailwind utilities — exposed via @theme inline so
+   `text-accent`, `font-display`, `text-display-lg`, `py-section` etc.
+   generate when this theme is loaded. */
+@theme inline {
+  --color-secondary: var(--color-secondary);
+  --color-secondary-dark: var(--color-secondary-dark);
+  --color-accent-bright: var(--color-accent-bright);
+
+  /* Brand fonts */
+  --font-display: var(--font-display);
+  --font-display--font-variation-settings: "SOFT" 70;
+  --font-body: var(--font-body);
+  --font-label: var(--font-label);
+  --font-nav: var(--font-nav);
+
+  /* Typography scale — bundles font-size + line-height + letter-spacing
+     via Tailwind v4 modifiers. */
+  --text-display-2xl: var(--text-display-2xl);
+  --text-display-2xl--line-height: 0.9;
+  --text-display-2xl--letter-spacing: -2px;
+
+  --text-display-xl: var(--text-display-xl);
+  --text-display-xl--line-height: 0.95;
+  --text-display-xl--letter-spacing: -3px;
+
+  --text-display-lg: var(--text-display-lg);
+  --text-display-lg--line-height: 1.08;
+  --text-display-lg--letter-spacing: -1px;
+
+  --text-display-md: var(--text-display-md);
+  --text-display-md--line-height: 1.1;
+  --text-display-md--letter-spacing: -1px;
+
+  --text-display-sm: var(--text-display-sm);
+  --text-display-sm--line-height: 1.2;
+  --text-display-sm--letter-spacing: -0.5px;
+
+  --text-heading-lg: var(--text-heading-lg);
+  --text-heading-lg--line-height: 1.2;
+  --text-heading-md: var(--text-heading-md);
+  --text-heading-md--line-height: 1.2;
+  --text-heading-sm: var(--text-heading-sm);
+  --text-heading-sm--line-height: 1.3;
+
+  --text-body-xl: var(--text-body-xl);
+  --text-body-xl--line-height: 1.7;
+  --text-body-lg: var(--text-body-lg);
+  --text-body-lg--line-height: 1.7;
+  --text-body-md: var(--text-body-md);
+  --text-body-md--line-height: 1.75;
+  --text-body-sm: var(--text-body-sm);
+  --text-body-sm--line-height: 1.7;
+  --text-body-xs: var(--text-body-xs);
+  --text-body-xs--line-height: 1.7;
+
+  --text-label-md: var(--text-label-md);
+  --text-label-sm: var(--text-label-sm);
+  --text-label-xs: var(--text-label-xs);
+
+  --spacing-section: var(--spacing-section);
+}
+
+/* Fraunces display default — the rev-5 register is medium weight with
+   a soft optical cut; survives per-use font-variation overrides. */
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-variation-settings: "SOFT" 70;
+}
+
+@layer theme {
+  :root {
+    /* Layout */
+    --layout-max-width: 72rem;
+
+    /* ============================================
+       PALETTE — raw values (mode-flipped below)
+       ============================================ */
+    --palette-night: #14132b;
+    --palette-night-deep: #0e0d20;
+    --palette-cream: #faf8f3;
+    --palette-ink: #23213a;
+
+    --palette-brass: #d4af37;
+    --palette-brass-soft: #e8cc6a;
+    --palette-brass-deep: #b8962e;
+    --palette-ruby: #d0453a;
+    --palette-ruby-soft: #e07a6a;
+    --palette-moss: #9caf88;
+    --palette-moss-deep: #7d9268;
+
+    /* Ink that sits on an accent-colored surface (brass CTA) */
+    --palette-cta-ink: #0e0d20;
+
+    /* ============================================
+       SEMANTIC TOKENS — dark mode default
+       ============================================ */
+    --color-bg: var(--palette-night);
+    --color-bg-subtle: var(--palette-night-deep);
+    --color-bg-card: #1b1a35;
+    --color-bg-muted: rgb(from var(--palette-cream) r g b / 0.04);
+    --color-bg-dark: var(--palette-night-deep);
+
+    /* Page grain — rev-5 lays a fine monochrome noise over the ground. */
+    --bg-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+
+    --color-text: var(--palette-cream);
+    --color-text-muted: rgb(from var(--palette-cream) r g b / 0.72);
+    --color-text-light: rgb(from var(--palette-cream) r g b / 0.46);
+    --color-text-inverse: var(--palette-night-deep);
+    --color-heading: var(--palette-cream);
+
+    /* Accent — brass by default; rooms override via [data-room]. */
+    --color-accent: var(--palette-brass);
+    --color-accent-dark: var(--palette-brass-deep);
+    --color-accent-bright: var(--palette-brass-soft);
+    --color-secondary: var(--palette-moss);
+    --color-secondary-dark: var(--palette-moss-deep);
+
+    /* Brand bridges — ui-library components (text-brand, bg-footer, …)
+       track the room accent through late-bound var() resolution. */
+    --color-brand: var(--color-accent);
+    --color-brand-dark: var(--color-accent-dark);
+    --color-brand-light: var(--color-accent-bright);
+
+    --color-on-accent: var(--palette-cta-ink);
+
+    --color-success: #4ade80;
+
+    /* Selection */
+    --color-selection-bg: rgb(from var(--palette-brass) r g b / 0.35);
+    --color-selection-text: var(--color-text);
+
+    /* Atmospheric washes — soft radials behind the hero and bands */
+    --color-wash-a: rgb(107 47 160 / 0.22);
+    --color-wash-b: rgb(from var(--palette-brass) r g b / 0.07);
+
+    /* Mycelium filaments */
+    --color-myc-root: rgb(from var(--palette-brass) r g b / 0.26);
+    --color-myc-twig: rgb(from var(--palette-cream) r g b / 0.1);
+
+    /* Rules / borders — hairlines from the mockup (.14 / .07) */
+    --color-border: rgb(from var(--palette-cream) r g b / 0.14);
+    --color-border-light: rgb(from var(--palette-cream) r g b / 0.07);
+    --color-rule: rgb(from var(--palette-cream) r g b / 0.14);
+    --color-rule-strong: rgb(from var(--palette-cream) r g b / 0.28);
+
+    /* Shared card surfaces (panel archetype) in indigo flavor */
+    --color-card-divider: rgb(from var(--palette-cream) r g b / 0.1);
+    --color-card-grid-dot: rgb(from var(--palette-cream) r g b / 0.035);
+    --color-card-panel-bg: linear-gradient(
+      135deg,
+      rgb(from var(--palette-brass) r g b / 0.05) 0%,
+      rgb(from var(--palette-cream) r g b / 0.02) 100%
+    );
+    --color-card-panel-border: rgb(from var(--palette-cream) r g b / 0.07);
+    --color-card-panel-current-bg: linear-gradient(
+      135deg,
+      rgb(from var(--color-accent) r g b / 0.12) 0%,
+      rgb(from var(--color-accent) r g b / 0.03) 100%
+    );
+    --color-card-panel-current-border: rgb(
+      from var(--color-accent) r g b / 0.25
+    );
+
+    /* CTA glow */
+    --color-glow-cta: rgb(from var(--color-accent) r g b / 0.3);
+    --color-glow-cta-strong: rgb(from var(--color-accent) r g b / 0.45);
+
+    /* ============================================
+       Button semantics — rev-5 CTA: brass plate, dark ink,
+       tight 3px radius, inner highlight + soft accent glow.
+       Secondary is the "quiet" underlined text link.
+       ============================================ */
+    --rizom-btn-gap: 8px;
+    --rizom-btn-radius: 3px;
+    --rizom-btn-font-family: var(--font-body);
+    --rizom-btn-font-style: normal;
+    --rizom-btn-letter-spacing: 0;
+    --rizom-btn-text-transform: none;
+    --rizom-btn-md-padding: 14px 28px;
+    --rizom-btn-lg-padding-mobile: 14px 28px;
+    --rizom-btn-lg-padding-desktop: 16px 34px;
+
+    --rizom-btn-primary-font-weight: 500;
+    --rizom-btn-primary-color: var(--color-on-accent);
+    --rizom-btn-primary-bg: var(--color-accent);
+    --rizom-btn-primary-border-color: transparent;
+    --rizom-btn-primary-border-width: 0px;
+    --rizom-btn-primary-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.25),
+      0 8px 22px -12px var(--color-accent);
+    --rizom-btn-primary-hover-color: var(--color-on-accent);
+    --rizom-btn-primary-hover-bg: var(--color-accent-bright);
+    --rizom-btn-primary-hover-border-color: transparent;
+    --rizom-btn-primary-hover-border-width: 0px;
+    --rizom-btn-primary-hover-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.25),
+      0 10px 26px -12px var(--color-glow-cta-strong);
+    --rizom-btn-primary-hover-transform: translateY(-1px);
+
+    --rizom-btn-primary-strong-font-weight: 500;
+    --rizom-btn-primary-strong-color: var(--color-on-accent);
+    --rizom-btn-primary-strong-bg: var(--color-accent);
+    --rizom-btn-primary-strong-border-color: transparent;
+    --rizom-btn-primary-strong-border-width: 0px;
+    --rizom-btn-primary-strong-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.25),
+      0 8px 22px -12px var(--color-accent);
+    --rizom-btn-primary-strong-hover-color: var(--color-on-accent);
+    --rizom-btn-primary-strong-hover-bg: var(--color-accent-bright);
+    --rizom-btn-primary-strong-hover-border-color: transparent;
+    --rizom-btn-primary-strong-hover-border-width: 0px;
+    --rizom-btn-primary-strong-hover-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.25),
+      0 12px 30px -12px var(--color-glow-cta-strong);
+    --rizom-btn-primary-strong-hover-transform: translateY(-1px);
+
+    --rizom-btn-secondary-font-weight: 400;
+    --rizom-btn-secondary-color: var(--color-text-light);
+    --rizom-btn-secondary-bg: transparent;
+    --rizom-btn-secondary-border-color: rgb(
+      from var(--palette-cream) r g b / 0.46
+    );
+    --rizom-btn-secondary-border-width: 0 0 1px 0;
+    --rizom-btn-secondary-shadow: none;
+    --rizom-btn-secondary-hover-color: var(--color-text);
+    --rizom-btn-secondary-hover-bg: transparent;
+    --rizom-btn-secondary-hover-border-color: var(--color-text);
+    --rizom-btn-secondary-hover-border-width: 0 0 1px 0;
+    --rizom-btn-secondary-hover-shadow: none;
+    --rizom-btn-secondary-hover-transform: none;
+
+    /* Decorative divider + highlight underline — brass hairlines */
+    --color-divider: linear-gradient(
+      90deg,
+      transparent,
+      rgb(from var(--color-accent) r g b / 0.4),
+      transparent
+    );
+    --color-highlight-underline: linear-gradient(
+      90deg,
+      transparent,
+      rgb(from var(--color-accent) r g b / 0.4) 20%,
+      rgb(from var(--color-accent) r g b / 0.4) 80%,
+      transparent
+    );
+
+    --color-logo: var(--palette-cream);
+    --color-footer: var(--palette-night-deep);
+
+    /* Status tokens (dashboard/CMS widgets rendered on-site) */
+    --color-status-neutral-bg: #34324f;
+    --color-status-neutral-text: #e5e7eb;
+    --color-status-info-bg: #1e3a5f;
+    --color-status-info-text: #93c5fd;
+    --color-status-success-bg: #14532d;
+    --color-status-success-text: #86efac;
+    --color-status-danger-bg: #7f1d1d;
+    --color-status-danger-text: #fca5a5;
+    --color-status-warning-bg: #713f12;
+    --color-status-warning-text: #fde68a;
+
+    /* Typography — Fraunces display over IBM Plex Sans/Mono */
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "IBM Plex Sans", system-ui, sans-serif;
+    --font-nav: "IBM Plex Sans", system-ui, sans-serif;
+    --font-label:
+      "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-mono:
+      "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --font-sans: var(--font-body);
+    --font-heading: var(--font-display);
+
+    /* Typography scale — fluid, same slots as the Rizom family.
+       Fixed sizes run ~9% above the mockup's: its frames render a
+       ~1440px viewport inside a ~1320px presentation column, so the
+       mock's px values are a scaled-down preview, not 1:1. */
+    --text-display-2xl: clamp(72px, 8vw, 120px);
+    --text-display-xl: clamp(52px, 8vw, 112px);
+    --text-display-lg: clamp(42px, 5.5vw, 74px);
+    --text-display-md: clamp(33px, 4vw, 54px);
+    --text-display-sm: clamp(26px, 3vw, 37px);
+
+    --text-heading-lg: 24px;
+    --text-heading-md: 22px;
+    --text-heading-sm: 18.5px;
+
+    --text-body-xl: 22px;
+    --text-body-lg: 20px;
+    --text-body-md: 17.5px;
+    --text-body-sm: 16px;
+    --text-body-xs: 15px;
+
+    --text-label-md: 14px;
+    --text-label-sm: 12px;
+    --text-label-xs: 11px;
+
+    --spacing-section: clamp(88px, 12vw, 120px);
+  }
+
+  /* ============================================
+     LIGHT MODE — warm off-white paper, first-class
+     ============================================ */
+  [data-theme="light"] {
+    --palette-brass: #a8821c;
+    --palette-brass-soft: #8a6a12;
+    --palette-brass-deep: #8a6a12;
+    --palette-ruby: #b83a2e;
+    --palette-ruby-soft: #b8503f;
+    --palette-moss: #5e7a4e;
+    --palette-moss-deep: #4c6440;
+    --palette-cta-ink: #faf8f3;
+
+    --color-bg: var(--palette-cream);
+    --color-bg-subtle: #f1ede2;
+    --color-bg-card: #f4f0e5;
+    --color-bg-muted: rgb(from var(--palette-ink) r g b / 0.04);
+    --color-bg-dark: var(--palette-night-deep);
+
+    --bg-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.02'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+
+    --color-text: var(--palette-ink);
+    --color-text-muted: rgb(from var(--palette-ink) r g b / 0.76);
+    --color-text-light: rgb(from var(--palette-ink) r g b / 0.52);
+    --color-text-inverse: var(--palette-cream);
+    --color-heading: var(--palette-ink);
+
+    --color-selection-bg: rgb(from var(--palette-brass) r g b / 0.3);
+
+    --color-wash-a: rgb(140 130 200 / 0.16);
+    --color-wash-b: rgb(from var(--palette-brass) r g b / 0.08);
+
+    --color-myc-root: rgb(from var(--palette-brass) r g b / 0.4);
+    --color-myc-twig: rgb(from var(--palette-ink) r g b / 0.14);
+
+    --color-border: rgb(from var(--palette-ink) r g b / 0.18);
+    --color-border-light: rgb(from var(--palette-ink) r g b / 0.09);
+    --color-rule: rgb(from var(--palette-ink) r g b / 0.18);
+    --color-rule-strong: rgb(from var(--palette-ink) r g b / 0.34);
+
+    --color-card-divider: rgb(from var(--palette-ink) r g b / 0.15);
+    --color-card-grid-dot: rgb(from var(--palette-ink) r g b / 0.06);
+    --color-card-panel-bg: linear-gradient(
+      var(--color-bg-card),
+      var(--color-bg-card)
+    );
+    --color-card-panel-border: rgb(from var(--palette-ink) r g b / 0.08);
+
+    --rizom-btn-secondary-border-color: rgb(
+      from var(--palette-ink) r g b / 0.52
+    );
+
+    --color-logo: var(--palette-brass);
+    --color-footer: var(--palette-cream);
+  }
+
+  /* ============================================
+     ROOM ACCENTS — the layout sets data-room per route.
+     Palette entries flip per mode above, so these blocks
+     stay mode-agnostic.
+     ============================================ */
+  [data-room="work"] {
+    --color-accent: var(--palette-ruby-soft);
+    --color-accent-dark: var(--palette-ruby);
+    --color-accent-bright: var(--palette-ruby-soft);
+  }
+
+  [data-room="foundation"] {
+    --color-accent: var(--palette-moss);
+    --color-accent-dark: var(--palette-moss-deep);
+    --color-accent-bright: var(--palette-moss);
+  }
+}
+
+/* ============================================
+   Component utilities
+   ============================================ */
+@layer theme-override {
+  html {
+    background-color: var(--color-bg);
+    background-image: var(--bg-noise);
+  }
+
+  body {
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  .text-logo {
+    color: var(--color-logo);
+  }
+
+  .text-nav {
+    color: var(--color-text-muted);
+  }
+  .text-nav:hover {
+    color: var(--color-text);
+  }
+
+  .bg-header {
+    background-color: transparent;
+  }
+
+  /* Fade from theme-bg to transparent behind the fixed chrome. */
+  .bg-nav-fade {
+    background: linear-gradient(
+      180deg,
+      rgb(from var(--color-bg) r g b / 0.95) 0%,
+      rgb(from var(--color-bg) r g b / 0.75) 100%
+    );
+  }
+
+  .bg-footer {
+    background-color: var(--color-footer);
+  }
+
+  /* Theme toggle */
+  .bg-theme-toggle {
+    background-color: var(--color-bg-card);
+  }
+  .bg-theme-toggle-hover {
+    background-color: var(--color-accent);
+  }
+  .text-theme-toggle-icon {
+    color: var(--color-text);
+  }
+  [data-theme="light"] .text-theme-toggle-icon {
+    color: var(--palette-ink);
+  }
+
+  /* Mycelium rail — dashed brass roots that seep down the page edge.
+     SVG paths carry .myc-root / .myc-twig; nodes carry .myc-node. */
+  .myc-root {
+    fill: none;
+    stroke: var(--color-myc-root);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-dasharray: 6 10;
+    animation: myc-seep 26s linear infinite;
+  }
+  .myc-twig {
+    fill: none;
+    stroke: var(--color-myc-twig);
+    stroke-width: 1;
+    stroke-linecap: round;
+  }
+  .myc-node {
+    fill: var(--color-bg);
+    stroke: var(--palette-brass);
+    stroke-width: 1.6;
+    animation: myc-nodeglow 4s ease-in-out infinite;
+  }
+  @keyframes myc-seep {
+    to {
+      stroke-dashoffset: -320;
+    }
+  }
+  @keyframes myc-nodeglow {
+    0%,
+    100% {
+      opacity: 0.65;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* ============================================
+     Growth diagram — You → Team → Network drawn as one organism.
+     The wrapper carries `growth reveal`; boot.js adds `.visible`
+     when it scrolls into view, which draws filaments (--d delays
+     set inline per path) and blooms nodes left to right.
+     ============================================ */
+  .growth svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .growth path {
+    fill: none;
+    stroke-linecap: round;
+  }
+  .growth .fil {
+    stroke: var(--color-myc-root);
+    stroke-width: 1.4;
+  }
+  .growth .fil.fine {
+    stroke-width: 1;
+    opacity: 0.8;
+  }
+  .growth .fil.hair {
+    stroke-width: 0.8;
+    opacity: 0.55;
+  }
+  .growth .fil.w-team {
+    stroke: color-mix(in srgb, var(--palette-ruby-soft) 40%, transparent);
+  }
+  .growth .fil.w-net {
+    stroke: color-mix(in srgb, var(--palette-moss) 45%, transparent);
+  }
+  .growth .draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  .growth.visible .draw {
+    animation: growth-drawin 1.5s cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes growth-drawin {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  .growth circle {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .growth .gn {
+    stroke-width: 1.6;
+    transform: scale(0);
+  }
+  .growth.visible .gn {
+    animation: growth-bloom 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.4) forwards;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes growth-bloom {
+    to {
+      transform: scale(1);
+    }
+  }
+  .growth .gn.you {
+    fill: var(--palette-brass);
+    stroke: var(--palette-brass);
+    filter: drop-shadow(
+      0 0 6px color-mix(in srgb, var(--palette-brass) 55%, transparent)
+    );
+  }
+  .growth .gn.seed {
+    fill: color-mix(in srgb, var(--palette-brass) 70%, var(--color-bg));
+    stroke: var(--palette-brass);
+  }
+  .growth .gn.peer {
+    fill: var(--color-bg);
+    stroke: rgb(from var(--color-text) r g b / 0.46);
+  }
+  .growth .gn.faint {
+    fill: none;
+    stroke: rgb(from var(--color-text) r g b / 0.28);
+    stroke-dasharray: 2.5 3.5;
+  }
+  .growth text {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    fill: rgb(from var(--color-text) r g b / 0.46);
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    transition-delay: var(--d, 0s);
+  }
+  .growth.visible text {
+    opacity: 1;
+  }
+  .growth text.gt-sub {
+    fill: rgb(from var(--color-text) r g b / 0.28);
+    letter-spacing: 0.8px;
+    text-transform: none;
+    font-size: 10px;
+  }
+  .growth text.gt-you {
+    fill: var(--palette-brass);
+  }
+  .growth text.gt-team {
+    fill: var(--palette-ruby-soft);
+  }
+  .growth text.gt-net {
+    fill: var(--palette-moss);
+  }
+  .growth .tick {
+    stroke: var(--color-border);
+    stroke-width: 1;
+  }
+
+  /* ============================================
+     Diagnostic panel — the /work TMS radar, palette-adapted from
+     the live site. Room accent (ruby on /work) drives the score
+     polygon and border through --color-accent.
+     ============================================ */
+  .diag {
+    position: relative;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+    border-radius: 16px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--color-bg-subtle) 40%, transparent);
+  }
+  .diag-bar {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: var(--color-accent);
+  }
+  .diag .radar .tri-outer {
+    fill: none;
+    stroke: var(--color-border);
+    stroke-width: 1.5;
+  }
+  .diag .radar .tri-score {
+    fill: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    stroke: var(--color-accent);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+  }
+  .diag .radar .vertex {
+    fill: var(--color-text);
+    stroke: var(--color-bg);
+    stroke-width: 2;
+  }
+  .diag .radar text {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    fill: rgb(from var(--color-text) r g b / 0.46);
+  }
+
+  /* Scroll reveal — IntersectionObserver toggles .visible. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.7s ease,
+      transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 {
+    transition-delay: 0.08s;
+  }
+  .reveal-delay-2 {
+    transition-delay: 0.16s;
+  }
+  .reveal-delay-3 {
+    transition-delay: 0.24s;
+  }
+
+  /* Hero rise-in — h1, standfirst, CTA row fade up in sequence. */
+  @keyframes heroRise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-hero-rise {
+    animation: heroRise 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .animate-hero-rise {
+      opacity: 1;
+      transform: none;
+      transition: none;
+      animation: none;
+    }
+    .myc-root,
+    .myc-node {
+      animation: none;
+    }
+    .growth .draw {
+      stroke-dashoffset: 0;
+      animation: none;
+    }
+    .growth .gn {
+      transform: scale(1);
+      animation: none;
+    }
+    .growth text {
+      opacity: 1;
+    }
+  }
+}
+
+/* Prose — entity pages (writing, docs) in the rev-5 register */
+@layer theme-override {
+  .prose {
+    color: var(--color-text);
+    font-family: var(--font-body);
+  }
+
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-variation-settings: "SOFT" 70;
+    letter-spacing: -0.02em;
+    line-height: 1.12;
+  }
+
+  .prose p,
+  .prose strong {
+    color: var(--color-text);
+  }
+  .prose em {
+    color: var(--color-accent-bright);
+  }
+
+  .prose a {
+    color: var(--color-accent);
+  }
+  .prose a:hover {
+    color: var(--color-accent-bright);
+  }
+
+  .prose code {
+    color: var(--color-text);
+    background-color: var(--color-bg-muted);
+    font-family: var(--font-mono);
+  }
+  .prose pre {
+    background-color: var(--color-bg-subtle);
+    color: var(--color-text);
+    font-family: var(--font-mono);
+  }
+}

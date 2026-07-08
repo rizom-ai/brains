@@ -46,7 +46,7 @@
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",
     "@brains/site-rizom-ai": "workspace:*",
-    "@brains/theme-rizom": "workspace:*",
+    "@brains/theme-rizom-ai": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "typescript": "^6.0.3"
   },

@@ -1290,6 +1290,19 @@
         "typescript": "^6.0.3",
       },
     },
+    "shared/theme-rizom-ai": {
+      "name": "@brains/theme-rizom-ai",
+      "version": "0.2.0-alpha.141",
+      "dependencies": {
+        "@brains/theme-default": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^10.5.0",
+        "typescript": "^6.0.3",
+      },
+    },
     "shared/typescript-config": {
       "name": "@brains/typescript-config",
       "version": "0.2.0-alpha.141",
@@ -1739,7 +1752,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
-        "preact-render-to-string": "^6.6.3",
+        "preact-render-to-string": "^6.7.0",
         "typescript": "^6.0.3",
       },
     },
@@ -1941,6 +1954,8 @@
     "@brains/theme-default": ["@brains/theme-default@workspace:shared/theme-default"],
 
     "@brains/theme-rizom": ["@brains/theme-rizom@workspace:shared/theme-rizom"],
+
+    "@brains/theme-rizom-ai": ["@brains/theme-rizom-ai@workspace:shared/theme-rizom-ai"],
 
     "@brains/topics": ["@brains/topics@workspace:entities/topics"],
 

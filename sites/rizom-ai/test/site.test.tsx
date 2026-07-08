@@ -5,18 +5,10 @@ import {
   type SiteLayoutInfo,
 } from "@brains/site-composition";
 import rizomAiSite, {
-  FoundationHeroSection,
-  HomeHeroSection,
   RizomAiLayout,
   rizomAiRoutes,
   rizomAiTemplates,
-  WorkHeroSection,
 } from "../src";
-import {
-  FOUNDATION_HERO_FALLBACK,
-  HOME_HERO_FALLBACK,
-  WORK_HERO_FALLBACK,
-} from "../src/content";
 
 const siteInfo: SiteLayoutInfo = {
   title: "Rizom",
@@ -63,6 +55,7 @@ describe("rizomAiSite package", () => {
 
   it("renders every route without content entities (static fallbacks)", () => {
     for (const route of rizomAiRoutes) {
+      expect(route.sections?.length).toBeGreaterThan(0);
       for (const section of route.sections ?? []) {
         expect(section.content).toBeDefined();
       }
@@ -83,15 +76,19 @@ describe("RizomAiLayout", () => {
     expect(html).toContain("one practice · three faces");
   });
 
+  it("sets data-room per route so the theme can switch accents", () => {
+    expect(renderLayout("/")).toContain('data-room="platform"');
+    expect(renderLayout("/work")).toContain('data-room="work"');
+    expect(renderLayout("/work/deep-link")).toContain('data-room="work"');
+    expect(renderLayout("/foundation")).toContain('data-room="foundation"');
+  });
+
   it("marks the active face from the current path", () => {
-    const home = renderLayout("/");
-    expect(home).toContain('aria-current="page">Platform');
-
-    const work = renderLayout("/work");
-    expect(work).toContain('aria-current="page">Work');
-
-    const foundation = renderLayout("/foundation");
-    expect(foundation).toContain('aria-current="page">Foundation');
+    expect(renderLayout("/")).toContain('aria-current="page">Platform');
+    expect(renderLayout("/work")).toContain('aria-current="page">Work');
+    expect(renderLayout("/foundation")).toContain(
+      'aria-current="page">Foundation',
+    );
   });
 
   it("shows the old domain as the room nameplate", () => {
@@ -99,30 +96,23 @@ describe("RizomAiLayout", () => {
     expect(renderLayout("/foundation")).toContain("foundation");
   });
 
-  it("renders the Stichting legal line in the footer", () => {
-    expect(renderLayout("/")).toContain("Stichting Rizom");
-  });
-});
+  it("gives the platform the full footer and rooms their siteband", () => {
+    const home = renderLayout("/");
+    expect(home).toContain("Stichting Rizom");
+    expect(home).toContain("The platform");
+    expect(home).toContain("old links redirect");
 
-describe("sections", () => {
-  it("home hero renders the platform pitch", () => {
-    const html = render(<HomeHeroSection {...HOME_HERO_FALLBACK} />);
-    expect(html).toContain("Build the agent that");
-    expect(html).toContain("represents you");
-    expect(html).toContain("Get Your Brain");
-  });
+    const work = renderLayout("/work");
+    expect(work).toContain("previously");
+    expect(work).toContain("rizom.work");
+    expect(work).not.toContain("old links redirect");
 
-  it("work hero renders the practice pitch with its provenance line", () => {
-    const html = render(<WorkHeroSection {...WORK_HERO_FALLBACK} />);
-    expect(html).toContain("Your team has a knowledge problem");
-    expect(html).toContain("previously rizom.work");
+    const foundation = renderLayout("/foundation");
+    expect(foundation).toContain("rizom.foundation");
+    expect(foundation).toContain("Stichting Rizom");
   });
 
-  it("foundation hero renders the research masthead", () => {
-    const html = render(
-      <FoundationHeroSection {...FOUNDATION_HERO_FALLBACK} />,
-    );
-    expect(html).toContain("Work is broken");
-    expect(html).toContain("Vol. 01");
+  it("renders the mycelium rail hooks", () => {
+    expect(renderLayout("/")).toContain("myc-root");
   });
 });

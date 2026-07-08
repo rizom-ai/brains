@@ -1,0 +1,30 @@
+{
+  "name": "@brains/theme-rizom-ai",
+  "version": "0.2.0-alpha.141",
+  "description": "Consolidated rizom.ai theme — rev-5 design system: deep indigo ground, brass/ruby/moss room accents, warm off-white light mode, Fraunces + IBM Plex.",
+  "dependencies": {
+    "@brains/theme-default": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.d.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "types": "./src/types.d.ts"
+}

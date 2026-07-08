@@ -1,13 +1,13 @@
 import type { RouteDefinitionInput } from "@brains/site-composition";
-import {
-  FOUNDATION_HERO_FALLBACK,
-  HOME_HERO_FALLBACK,
-  WORK_HERO_FALLBACK,
-} from "./content";
+import { foundationSections } from "./foundation";
+import { homeSections } from "./home";
+import { toRouteSections } from "./section-def";
+import { workSections } from "./work";
 
-// The three rooms of the consolidated rizom.ai site (rev-5 IA). Navigation
-// is owned by the layout's two-tier chrome (faces strip + per-face nav), so
-// routes stay out of the slot-based navigation model.
+// The three rooms of the consolidated rizom.ai site (rev-5 IA). Section
+// lists live with their page modules; navigation is owned by the
+// layout's two-tier chrome, so routes stay out of the slot-based
+// navigation model.
 export const rizomAiRoutes: RouteDefinitionInput[] = [
   {
     id: "home",
@@ -16,13 +16,7 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
     description: "Build the agent that represents you",
     layout: "default",
     navigation: { show: false, label: "Home", slot: "primary", priority: 10 },
-    sections: [
-      {
-        id: "hero",
-        template: "rizom-ai-site:home-hero",
-        content: HOME_HERO_FALLBACK,
-      },
-    ],
+    sections: toRouteSections(homeSections),
   },
   {
     id: "work",
@@ -31,13 +25,7 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
     description: "Coordination for the AI era",
     layout: "default",
     navigation: { show: false, label: "Work", slot: "primary", priority: 20 },
-    sections: [
-      {
-        id: "hero",
-        template: "rizom-ai-site:work-hero",
-        content: WORK_HERO_FALLBACK,
-      },
-    ],
+    sections: toRouteSections(workSections),
   },
   {
     id: "foundation",
@@ -52,12 +40,6 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
       slot: "primary",
       priority: 30,
     },
-    sections: [
-      {
-        id: "hero",
-        template: "rizom-ai-site:foundation-hero",
-        content: FOUNDATION_HERO_FALLBACK,
-      },
-    ],
+    sections: toRouteSections(foundationSections),
   },
 ];

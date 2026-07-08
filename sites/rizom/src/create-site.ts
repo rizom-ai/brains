@@ -43,7 +43,12 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
 export interface CreateRizomSiteOptions {
   packageName: string;
   contentNamespace: string;
-  themeProfile: RizomThemeProfile;
+  /**
+   * Selects the shared canvas background + accent profile. Omit for
+   * sites that bring their own theme (e.g. the consolidated rizom.ai
+   * site) — no canvas scripts or profile attribute get injected.
+   */
+  themeProfile?: RizomThemeProfile;
   layout: unknown;
   routes: RouteDefinitionInput[];
   templates: Record<string, Template>;
@@ -58,7 +63,10 @@ export function createRizomSite(
   ): Plugin =>
     new RizomVariantPlugin(
       options.packageName,
-      { themeProfile: options.themeProfile, ...(config ?? {}) },
+      {
+        ...(options.themeProfile && { themeProfile: options.themeProfile }),
+        ...(config ?? {}),
+      },
       options.contentNamespace,
       options.templates,
       options.dataSources,
