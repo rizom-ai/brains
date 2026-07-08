@@ -26,6 +26,24 @@ export interface DashboardOperatorAccess {
   logoutUrl: string;
 }
 
+export interface DashboardActivityEvent {
+  action: "created" | "updated" | "deleted";
+  entityType: string;
+  entityId: string;
+  timestamp: string;
+  conversationId?: string | undefined;
+}
+
+export interface DashboardJobProgressItem {
+  id: string;
+  kind: "job" | "batch";
+  status: "pending" | "processing" | "completed" | "failed";
+  updatedAt: string;
+  message?: string | undefined;
+  jobType?: string | undefined;
+  progressLabel?: string | undefined;
+}
+
 export interface DashboardRenderInput {
   title: string;
   baseUrl: string | undefined;
@@ -36,6 +54,8 @@ export interface DashboardRenderInput {
   profile: ProfileInput;
   appInfo: AppInfo;
   themeCSS?: string;
+  activityLog?: DashboardActivityEvent[];
+  jobProgress?: DashboardJobProgressItem[];
   operatorAccess?: DashboardOperatorAccess;
 }
 

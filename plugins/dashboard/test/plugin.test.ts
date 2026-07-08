@@ -156,6 +156,30 @@ describe("DashboardPlugin", () => {
       expect(html).not.toContain("Publication Pipeline");
     });
 
+    it("should render recent entity and job progress events", async () => {
+      await harness.sendMessage("entity:updated", {
+        entityType: "note",
+        entityId: "project-plan",
+      });
+      await harness.sendMessage("job-progress", {
+        id: "job-1",
+        type: "job",
+        status: "processing",
+        progress: { current: 1, total: 3, percentage: 33 },
+        jobDetails: { jobType: "site:build", priority: 0, retryCount: 0 },
+      });
+
+      const routes = plugin.getWebRoutes();
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain("note:project-plan");
+      expect(html).toContain("site:build");
+      expect(html).toContain("1/3");
+    });
+
     it("should show anchor endpoints and interactions to signed-in operators", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: `/tmp/dashboard-auth-${Date.now()}`,

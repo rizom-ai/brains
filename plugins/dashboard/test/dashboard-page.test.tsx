@@ -166,7 +166,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('href="#publishing"');
     expect(html).toContain("Activity ledger");
     expect(html).toContain(
-      "Recent entity activity is not available from the dashboard datasource yet.",
+      "No entity activity has been observed this session.",
     );
   });
 
@@ -205,6 +205,32 @@ describe("renderDashboardPageHtml", () => {
     expect(html).not.toContain('hidden=""');
   });
 
+  it("should render activity ledger events", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+      activityLog: [
+        {
+          action: "updated",
+          entityType: "note",
+          entityId: "project-plan",
+          timestamp: "2026-07-08T10:00:00.000Z",
+        },
+      ],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain("Activity ledger");
+    expect(html).toContain("updated");
+    expect(html).toContain("note:project-plan");
+  });
+
   it("should render a built-in System tab with runtime status", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
@@ -234,6 +260,16 @@ describe("renderDashboardPageHtml", () => {
       }),
       widgets: {},
       widgetScripts: [],
+      jobProgress: [
+        {
+          id: "job-1",
+          kind: "job",
+          status: "processing",
+          updatedAt: "2026-07-08T10:00:00.000Z",
+          jobType: "site:build",
+          progressLabel: "1/3",
+        },
+      ],
     };
 
     const html = renderDashboardPageHtml(input);
@@ -243,6 +279,9 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("System health");
     expect(html).toContain("1/1 healthy");
     expect(html).toContain("Job queue");
+    expect(html).toContain("1 recent");
+    expect(html).toContain("site:build");
+    expect(html).toContain("1/3");
     expect(html).toContain("Unavailable");
   });
 

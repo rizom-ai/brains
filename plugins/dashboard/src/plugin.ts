@@ -26,6 +26,10 @@ import {
   type DashboardRenderInput,
 } from "./dashboard-page";
 import { resolveWidgetsForRender } from "./render/resolve-widgets";
+import type {
+  DashboardActivityEvent,
+  DashboardJobProgressItem,
+} from "./render/types";
 import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
@@ -78,6 +82,33 @@ const unregisterWidgetPayloadSchema = z.object({
   widgetId: z.string().optional(),
 });
 
+const entityActivityPayloadSchema = z.object({
+  entityType: z.string(),
+  entityId: z.string(),
+  conversationId: z.string().optional(),
+});
+
+const jobProgressPayloadSchema = z.object({
+  id: z.string(),
+  type: z.enum(["job", "batch"]),
+  status: z.enum(["pending", "processing", "completed", "failed"]),
+  message: z.string().optional(),
+  progress: z
+    .object({
+      current: z.number(),
+      total: z.number(),
+      percentage: z.number(),
+    })
+    .optional(),
+  jobDetails: z
+    .object({
+      jobType: z.string(),
+      priority: z.number(),
+      retryCount: z.number(),
+    })
+    .optional(),
+});
+
 function createRegisteredWidget(
   payload: z.infer<typeof registerWidgetPayloadSchema>,
 ): RegisteredWidget {
@@ -106,9 +137,59 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
   private ctx: ServicePluginContext | undefined;
+  private activityLog: DashboardActivityEvent[] = [];
+  private jobProgress: DashboardJobProgressItem[] = [];
 
   constructor(config?: Partial<DashboardConfig>) {
     super("dashboard", packageJson, config ?? {}, dashboardConfigSchema);
+  }
+
+  private recordActivity(
+    action: DashboardActivityEvent["action"],
+    payload: unknown,
+  ): void {
+    const parsed = entityActivityPayloadSchema.safeParse(payload);
+    if (!parsed.success) return;
+
+    this.activityLog = [
+      {
+        action,
+        entityType: parsed.data.entityType,
+        entityId: parsed.data.entityId,
+        timestamp: new Date().toISOString(),
+        ...(parsed.data.conversationId
+          ? { conversationId: parsed.data.conversationId }
+          : {}),
+      },
+      ...this.activityLog,
+    ].slice(0, 12);
+  }
+
+  private recordJobProgress(payload: unknown): void {
+    const parsed = jobProgressPayloadSchema.safeParse(payload);
+    if (!parsed.success) return;
+
+    const progressLabel = parsed.data.progress
+      ? `${parsed.data.progress.current}/${parsed.data.progress.total}`
+      : undefined;
+    const nextItem: DashboardJobProgressItem = {
+      id: parsed.data.id,
+      kind: parsed.data.type,
+      status: parsed.data.status,
+      updatedAt: new Date().toISOString(),
+      ...(parsed.data.message ? { message: parsed.data.message } : {}),
+      ...(parsed.data.jobDetails?.jobType
+        ? { jobType: parsed.data.jobDetails.jobType }
+        : {}),
+      ...(progressLabel ? { progressLabel } : {}),
+    };
+
+    this.jobProgress = [
+      nextItem,
+      ...this.jobProgress.filter(
+        (item) => item.id !== nextItem.id || item.kind !== nextItem.kind,
+      ),
+    ].slice(0, 8);
   }
 
   protected override async onRegister(
@@ -134,6 +215,23 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
       kind: "admin",
       priority: 30,
       visibility: "public",
+    });
+
+    context.messaging.subscribe("entity:created", async (message) => {
+      this.recordActivity("created", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("entity:updated", async (message) => {
+      this.recordActivity("updated", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("entity:deleted", async (message) => {
+      this.recordActivity("deleted", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("job-progress", async (message) => {
+      this.recordJobProgress(message.payload);
+      return { success: true };
     });
 
     context.messaging.subscribe(
@@ -268,6 +366,8 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             character,
             profile,
             appInfo: visibleAppInfo,
+            activityLog: this.activityLog,
+            jobProgress: this.jobProgress,
             ...(this.config.themeCSS !== undefined && {
               themeCSS: this.config.themeCSS,
             }),

@@ -11,6 +11,8 @@ import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
 import type {
+  DashboardActivityEvent,
+  DashboardJobProgressItem,
   DashboardRenderInput,
   RenderableWidgetData,
 } from "./render/types";
@@ -473,18 +475,88 @@ function DigestCards({ cards }: { cards: OverviewDigestCard[] }): JSX.Element {
   );
 }
 
-function ActivityLedger(): JSX.Element {
+function formatTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function ActivityLedger({
+  events,
+}: {
+  events: DashboardActivityEvent[];
+}): JSX.Element {
   return (
     <section class="card activity-ledger">
       <div class="card-head">
         <span class="card-title">Activity ledger</span>
         <span class="card-subtitle">Recent events</span>
       </div>
-      <p class="muted">
-        Recent entity activity is not available from the dashboard datasource
-        yet.
-      </p>
+      {events.length === 0 ? (
+        <p class="muted">No entity activity has been observed this session.</p>
+      ) : (
+        <ol class="activity-list">
+          {events.map((event) => (
+            <li
+              class={`activity-item activity-item--${event.action}`}
+              key={`${event.timestamp}:${event.action}:${event.entityType}:${event.entityId}`}
+            >
+              <span class="activity-action">{event.action}</span>
+              <strong>
+                {event.entityType}:{event.entityId}
+              </strong>
+              <time dateTime={event.timestamp}>
+                {formatTimestamp(event.timestamp)}
+              </time>
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
+  );
+}
+
+function JobQueueTable({
+  jobs,
+}: {
+  jobs: DashboardJobProgressItem[];
+}): JSX.Element {
+  if (jobs.length === 0) {
+    return (
+      <div class="job-queue-empty">
+        <span>Job queue</span>
+        <strong>No recent job progress observed</strong>
+      </div>
+    );
+  }
+
+  return (
+    <div class="job-queue-table">
+      {jobs.map((job) => (
+        <div class="job-queue-row" key={`${job.kind}:${job.id}`}>
+          <span
+            class={`pill pill--${
+              job.status === "failed"
+                ? "err"
+                : job.status === "completed"
+                  ? "ok"
+                  : "warn"
+            }`}
+          >
+            {job.status}
+          </span>
+          <strong>{job.jobType ?? job.kind}</strong>
+          <em>
+            {job.progressLabel ?? job.message ?? formatTimestamp(job.updatedAt)}
+          </em>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -520,13 +592,14 @@ function SystemHealthCard({
         </div>
         <div class="kv-row">
           <dt>Job queue</dt>
-          <dd>Unavailable</dd>
+          <dd>{(input.jobProgress ?? []).length} recent</dd>
         </div>
         <div class="kv-row">
           <dt>Directory sync</dt>
           <dd>Unavailable</dd>
         </div>
       </dl>
+      <JobQueueTable jobs={input.jobProgress ?? []} />
     </section>
   );
 }
@@ -548,6 +621,7 @@ function OverviewPanel({
   const entityCounts = input.appInfo.entityCounts;
   const interactions = input.appInfo.interactions;
   const digestCards = buildOverviewDigestCards(tabs, input);
+  const activityLog = input.activityLog ?? [];
 
   return (
     <section
@@ -579,7 +653,7 @@ function OverviewPanel({
             total={totalEntities}
             entityCounts={entityCounts}
           />
-          <ActivityLedger />
+          <ActivityLedger events={activityLog} />
           {!hasCharacter && showOperatorGate && input.operatorAccess && (
             <OperatorGate
               hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
