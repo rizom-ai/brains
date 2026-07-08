@@ -130,6 +130,9 @@ describe("pilot origin CA bootstrap", () => {
     expect(existsSync(result.certificatePath)).toBe(true);
     expect(existsSync(result.privateKeyPath)).toBe(true);
     expect(readFileSync(result.certificatePath, "utf-8")).toContain("FAKECERT");
+    expect(readFileSync(result.secretsSnippetPath, "utf-8")).toContain(
+      'certificatePem: "-----BEGIN CERTIFICATE-----\\nFAKECERT\\n-----END CERTIFICATE-----\\n"',
+    );
     expect(calls).toHaveLength(2);
     const firstCall = calls[0];
     const secondCall = calls[1];
@@ -144,6 +147,84 @@ describe("pilot origin CA bootstrap", () => {
 
     const mode = statSync(result.privateKeyPath).mode & 0o777;
     expect(mode).toBe(0o600);
+  });
+
+  it("creates per-user custom-domain cert files and uses the user's Cloudflare zone", async () => {
+    writeFileSync(
+      join(testDir, "users", "rizom-ai.yaml"),
+      [
+        "handle: rizom-ai",
+        "domainOverride: rizom.ai",
+        "cloudflareZoneId: rizom-ai-zone",
+        "discord:",
+        "  enabled: false",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      join(testDir, "cohorts", "sites.yaml"),
+      ["members:", "  - rizom-ai", ""].join("\n"),
+    );
+
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const fetchImpl: FetchLike = async (input, init) => {
+      const url = typeof input === "string" ? input : input.toString();
+      calls.push({ url, init });
+
+      if (url.endsWith("/certificates")) {
+        const body = JSON.parse(String(init?.body)) as {
+          hostnames: string[];
+        };
+        expect(body.hostnames).toEqual(["rizom.ai", "*.rizom.ai"]);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            result: {
+              certificate:
+                "-----BEGIN CERTIFICATE-----\nCUSTOMCERT\n-----END CERTIFICATE-----\n",
+            },
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith("/settings/ssl")) {
+        expect(url).toContain("/zones/rizom-ai-zone/settings/ssl");
+        return new Response(JSON.stringify({ success: true, result: {} }), {
+          status: 200,
+        });
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    };
+
+    const result = await bootstrapPilotOriginCertificate(testDir, {
+      cfApiToken: "cf-token",
+      fetchImpl,
+      handle: "rizom-ai",
+      logger: () => {},
+    });
+
+    expect(result.domain).toBe("rizom.ai");
+    expect(result.certificatePath).toBe(
+      join(testDir, ".brains-ops", "certs", "rizom-ai", "origin.pem"),
+    );
+    expect(result.privateKeyPath).toBe(
+      join(testDir, ".brains-ops", "certs", "rizom-ai", "origin.key"),
+    );
+    expect(readFileSync(result.certificatePath, "utf-8")).toContain(
+      "CUSTOMCERT",
+    );
+    expect(result.secretsSnippetPath).toBe(
+      join(testDir, ".brains-ops", "certs", "rizom-ai", "secrets.yaml"),
+    );
+    expect(readFileSync(result.secretsSnippetPath, "utf-8")).toContain(
+      'certificatePem: "-----BEGIN CERTIFICATE-----\\nCUSTOMCERT\\n-----END CERTIFICATE-----\\n"',
+    );
+    expect(readFileSync(result.secretsSnippetPath, "utf-8")).toContain(
+      'privateKeyPem: "-----BEGIN PRIVATE KEY-----\\n',
+    );
+    expect(calls).toHaveLength(2);
   });
 
   it("returns a friendly failure result when pilot.yaml has an invalid domain suffix", async () => {

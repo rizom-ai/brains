@@ -12,11 +12,11 @@ Implementation started with `@rizom/site-rizom-work` in `sites/rizom-work`: pack
 
 ## Next execution plan
 
-1. **Publish the package set from this branch through the normal changesets release path.** Required public packages are `@rizom/site`, `@rizom/site-rizom`, `@rizom/site-rizom-work`, `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`, `@rizom/site-docs`, `@rizom/brain`, and `@rizom/ops`.
-2. **Update the hosted rover-pilot registry** to pin the released versions. The generated image build now derives `SITE_PACKAGES` from those pins and tags the image with the package-set hash, so the registry is the source of truth for both runtime YAML and installed site packages.
-3. **Start the staged hosted deploy with `rizom.ai`, not the easier sites.** It carries the protocol-registry behavior from Ranger (`add: [atproto-registry]`), so it should validate the hardest Rover migration path first. Rover now exposes `atproto-registry` as an opt-in capability; the `rizom.ai` registry entry should include `addOverride: [atproto-registry]` so the canonical protocol registry behavior is preserved.
-4. **Run staged hosted deploys on Rover** in this order: `rizom.ai`, `rizom.work`, `rizom.foundation`, then `docs.rizom.ai`. For each site: reconcile generated config, build the hash-tagged fleet image, deploy preview/apex, trigger/verify preview rebuild, and inspect site-specific markers.
-5. **Finish per-domain TLS/DNS automation** for custom apex domains before production cutover. Each domain needs its own Cloudflare zone handling, Origin CA cert pair, proxy hosts, and apex/`www`/`preview` DNS records.
+1. **Finish and verify per-domain TLS/DNS automation** for custom apex domains before release rollout. Each domain needs its own Cloudflare zone handling, Origin CA cert pair, proxy hosts, and apex/`www`/`preview` DNS records.
+2. **Publish the package set from this branch through the normal changesets release path.** Required public packages are `@rizom/site`, `@rizom/site-rizom`, `@rizom/site-rizom-work`, `@rizom/site-rizom-ai`, `@rizom/site-rizom-foundation`, `@rizom/site-docs`, `@rizom/brain`, and `@rizom/ops`.
+3. **Update the hosted rover-pilot registry** to pin the released versions. The generated image build now derives `SITE_PACKAGES` from those pins and tags the image with the package-set hash, so the registry is the source of truth for both runtime YAML and installed site packages.
+4. **Start the staged hosted deploy with `rizom.ai`, not the easier sites.** It carries the protocol-registry behavior from Ranger (`add: [atproto-registry]`), so it should validate the hardest Rover migration path first. Rover now exposes `atproto-registry` as an opt-in capability; the `rizom.ai` registry entry should include `addOverride: [atproto-registry]` so the canonical protocol registry behavior is preserved.
+5. **Run staged hosted deploys on Rover** in this order: `rizom.ai`, `rizom.work`, `rizom.foundation`, then `docs.rizom.ai`. For each site: reconcile generated config, build the hash-tagged fleet image, deploy preview/apex, trigger/verify preview rebuild, and inspect site-specific markers.
 6. **Only after live Rover deploys pass, retire legacy standalone deploys and Ranger/Relay site paths.** Keep old repos/workflows available until cutover rollback is no longer needed.
 
 Target hosted registry entries after publish should have this shape:
@@ -25,6 +25,7 @@ Target hosted registry entries after publish should have this shape:
 # rizom.ai
 handle: rizom-ai
 domainOverride: rizom.ai
+cloudflareZoneId: "<rizom-ai-zone-id>"
 contentRepoOverride: rizom-ai/rizom-ai-content
 # Add once Rover exposes the opt-in capability, unless protocol registry is explicitly retired.
 addOverride:
@@ -37,6 +38,7 @@ siteOverride:
 # rizom.work
 handle: rizom-work
 domainOverride: rizom.work
+cloudflareZoneId: "<rizom-work-zone-id>"
 contentRepoOverride: rizom-ai/rizom-work-content
 siteOverride:
   package: "@rizom/site-rizom-work"
@@ -46,6 +48,7 @@ siteOverride:
 # rizom.foundation
 handle: rizom-foundation
 domainOverride: rizom.foundation
+cloudflareZoneId: "<rizom-foundation-zone-id>"
 contentRepoOverride: rizom-ai/rizom-foundation-content
 siteOverride:
   package: "@rizom/site-rizom-foundation"
@@ -331,14 +334,13 @@ Current mechanism (verified, not the retired Caddy/Let's-Encrypt path):
 - Those PEMs are produced by `brain cert:bootstrap` (`packages/brains-ops/src/cert-bootstrap.ts`): it generates a keypair + CSR, calls the **Cloudflare Origin CA** API to issue a cert for `domain` **and `*.domain`** (so apex/`www`/`preview` are all covered by one wildcard), sets the zone SSL mode to **Full (strict)**, and pushes `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` to the secret backend (Bitwarden) for kamal-proxy to inject.
 - Origin CA certs are long-lived (up to 15 years), so there is **no short-cycle renewal treadmill**.
 
-Why this needs work for the three sites — `cert-bootstrap` is hardwired single-zone:
+Per-domain support added in branch:
 
-- It resolves exactly **one** domain from `registry.pilot.domainSuffix`, uses **one** `CF_ZONE_ID`, issues **one shared** `*.domain` cert, and pushes **one** `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` pair (the log says "Issued shared Origin CA cert").
-- The three rizom sites are three distinct apex domains in three distinct Cloudflare zones, so per deployed site hosted-rover must:
-  1. **Issue per-domain** — run cert bootstrap parameterized by the registry entry's `domainOverride` and that domain's own `CF_ZONE_ID` (issue `rizom.work` + `*.rizom.work`, set that zone to Full-strict). Today only the single shared pilot zone is supported.
-  2. **Store per-domain secret pairs** — distinct `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` per site, keyed so each site's Kamal proxy gets its own pair (currently one shared pair).
-  3. **Set per-site proxy `hosts`** — apex + `www` + `preview` (matches the preserve-both decision).
-  4. **Manage per-zone DNS** via the Cloudflare API (the `deploy/scripts/update-dns.ts` equivalent), pointing apex/`www`/`preview` at the origin per zone.
+- `cert:bootstrap` still supports the shared pilot wildcard when no handle is passed.
+- `cert:bootstrap --handle <handle>` now resolves that user's `domainOverride`/effective domain and optional `cloudflareZoneId`, issues `domain` + `*.domain`, writes local operator copies plus an escaped `secrets.yaml` snippet under `.brains-ops/certs/<handle>/`, and sets that Cloudflare zone to Full-strict.
+- Deploy resolves `cloudflare_zone_id` from user registry metadata, falls back to the shared `CF_ZONE_ID` secret for normal pilot subdomains, and lets encrypted per-user secrets override `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` before falling back to shared cert secrets.
+- Custom-domain deploys now derive `preview.<domain>` and `www.<domain>`; pilot subdomain deploys keep `<handle>-preview.<pilot-zone>` and no `www` alias.
+- DNS upserts now cover apex/effective domain, optional `www`, and preview using the selected Cloudflare zone.
 
 ## Onboarding a custom-domain brain
 
@@ -350,10 +352,11 @@ Prerequisite (human, one-time): the domain must become a Cloudflare zone we cont
 
 Then hosted-rover provisions from a single registry entry:
 
-1. **Register** the pilot entry: `domainOverride`, `siteOverride` (package + version), content repo override, and the new zone's `CF_ZONE_ID`.
-2. **Issue the cert** — `cert:bootstrap` parameterized by `domainOverride` + `CF_ZONE_ID`: Origin CA wildcard for `domain` + `*.domain`, set zone to Full (strict), push a per-brain `CERTIFICATE_PEM`/`PRIVATE_KEY_PEM` pair to the secret backend.
-3. **DNS** — upsert apex + `www` + `preview` records to the origin (the `update-dns.ts` equivalent), per zone.
-4. **Deploy** — generated `brain.yaml` (with `site.package`) + Kamal proxy `hosts` = apex/`www`/`preview`, injecting that brain's cert pair.
+1. **Register** the pilot entry: `domainOverride`, `cloudflareZoneId`, `siteOverride` (package + version), and content repo override.
+2. **Issue the cert** — `bunx brains-ops cert:bootstrap . --handle <handle>`: Origin CA wildcard for `domain` + `*.domain`, set zone to Full (strict), and write local operator copies plus `.brains-ops/certs/<handle>/secrets.yaml`.
+3. **Encrypt per-user cert secrets** — copy the generated `certificatePem` / `privateKeyPem` snippet into `users/<handle>.secrets.yaml`, then run `bunx brains-ops secrets:encrypt . <handle>`.
+4. **DNS** — deploy upserts apex + `www` + `preview` records to the origin per selected Cloudflare zone.
+5. **Deploy** — generated `brain.yaml` (with `site.package`) + Kamal proxy `hosts` = apex/`www`/`preview`, injecting that brain's cert pair.
 
 Net: custom onboarding = subdomain onboarding **plus** an upfront NS-delegation step. Steps 2–4 are the per-zone parameterization of machinery that already exists; nothing else is new. The cert is long-lived (15 yr), so there is no recurring renewal task per brain.
 

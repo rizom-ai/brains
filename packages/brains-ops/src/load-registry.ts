@@ -73,6 +73,7 @@ export interface ResolvedUserIdentity {
   model: "rover";
   preset: PilotPreset;
   domain: string;
+  cloudflareZoneId?: string | undefined;
   contentRepo: string;
   addOverride?: string[];
   siteOverride?: ResolvedSiteOverride;
@@ -166,6 +167,9 @@ export async function loadPilotRegistry(
         domain:
           userFile.data.domainOverride ??
           `${userFile.data.handle}${pilot.domainSuffix}`,
+        ...(userFile.data.cloudflareZoneId
+          ? { cloudflareZoneId: userFile.data.cloudflareZoneId }
+          : {}),
         contentRepo:
           userFile.data.contentRepoOverride ??
           `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,

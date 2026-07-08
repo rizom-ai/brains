@@ -10,6 +10,7 @@ export interface ParsedArgs {
     pushTo?: string | undefined;
     cohort?: string | undefined;
     anchorId?: string | undefined;
+    handle?: string | undefined;
   };
 }
 
@@ -20,6 +21,7 @@ const options = {
   "push-to": { type: "string" as const },
   cohort: { type: "string" as const },
   "anchor-id": { type: "string" as const },
+  handle: { type: "string" as const },
 };
 
 function getBoolean(
@@ -63,6 +65,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       pushTo: getString(values, "push-to"),
       cohort: getString(values, "cohort"),
       anchorId: getString(values, "anchor-id"),
+      handle: getString(values, "handle"),
     },
   };
 }

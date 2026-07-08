@@ -121,6 +121,10 @@ function formatSecretsTemplate(handle: string): string {
     "# local per-user secret staging file",
     `# fill values, run \`bunx brains-ops secrets:encrypt . ${handle}\`, then the plaintext file will be removed`,
     "discordBotToken: ",
+    "atprotoAppPassword: ",
+    "# For custom-domain sites, paste PEMs with literal \\n escapes.",
+    "certificatePem: ",
+    "privateKeyPem: ",
     "",
   ].join("\n");
 }

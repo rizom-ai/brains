@@ -166,6 +166,7 @@ agePublicKey: age1testpublickey
 `,
       "users/rizom-work.yaml": `handle: rizom-work
 domainOverride: rizom.work
+cloudflareZoneId: rizom-work-zone
 contentRepoOverride: rizom-ai/rizom-work-content
 addOverride:
   - docs
@@ -184,6 +185,7 @@ discord:
     const registry = await loadPilotRegistry(root);
 
     expect(registry.users[0]?.domain).toBe("rizom.work");
+    expect(registry.users[0]?.cloudflareZoneId).toBe("rizom-work-zone");
     expect(registry.users[0]?.contentRepo).toBe("rizom-ai/rizom-work-content");
     expect(registry.users[0]?.addOverride).toEqual(["docs"]);
     expect(registry.users[0]?.siteOverride).toEqual({

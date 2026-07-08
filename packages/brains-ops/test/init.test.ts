@@ -301,8 +301,22 @@ describe("initPilotRepo", () => {
       "PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}",
     );
     expect(deployWorkflow).toContain(
+      "WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}",
+    );
+    expect(deployWorkflow).toContain(
+      "CONFIG_CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}",
+    );
+    expect(deployWorkflow).toContain(
+      'export CF_ZONE_ID="${CONFIG_CF_ZONE_ID:-${CF_ZONE_ID:-$SHARED_CF_ZONE_ID}}"',
+    );
+    expect(deployWorkflow).toContain('if [ -n "$WWW_DOMAIN" ]; then');
+    expect(deployWorkflow).toContain(
+      'BRAIN_DOMAIN="$WWW_DOMAIN" bun deploy/scripts/update-dns.ts',
+    );
+    expect(deployWorkflow).toContain(
       'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
     );
+    expect(deployWorkflow).toContain("https://$WWW_DOMAIN/");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/write-kamal-secrets.ts",
     );
@@ -369,6 +383,8 @@ describe("initPilotRepo", () => {
     expect(decryptUserSecretsScript).toContain(
       'writeGitHubEnv("ATPROTO_APP_PASSWORD"',
     );
+    expect(decryptUserSecretsScript).toContain('"CERTIFICATE_PEM"');
+    expect(decryptUserSecretsScript).toContain('"PRIVATE_KEY_PEM"');
     expect(decryptUserSecretsScript).not.toContain(
       'writeGitHubEnv("ATPROTO_IDENTIFIER"',
     );
@@ -389,10 +405,14 @@ describe("initPilotRepo", () => {
     );
     expect(resolveScript).toContain("brain_yaml_path");
     expect(resolveScript).toContain("preview_domain");
+    expect(resolveScript).toContain("www_domain");
+    expect(resolveScript).toContain("cloudflare_zone_id");
     expect(resolveScript).toContain("image_tag");
     expect(resolveScript).toContain("resolveImageTag");
+    expect(resolveScript).toContain("const previewDomain = pilotZone");
+    expect(resolveScript).toContain(": `preview.${brainDomain}`");
     expect(resolveScript).toContain(
-      "const previewDomain = `${handle}-preview.${zone}`",
+      'const wwwDomain = pilotZone ? "" : `www.${brainDomain}`',
     );
     expect(resolveScript).toContain('from "./helpers"');
 

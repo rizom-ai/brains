@@ -22,6 +22,14 @@ writeGitHubEnv("AI_API_KEY", secrets["aiApiKey"] ?? "");
 writeGitHubEnv("GIT_SYNC_TOKEN", secrets["gitSyncToken"] ?? "");
 writeGitHubEnv("DISCORD_BOT_TOKEN", secrets["discordBotToken"] ?? "");
 writeGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"] ?? "");
+writeGitHubEnv(
+  "CERTIFICATE_PEM",
+  decodeEscapedSecret(secrets["certificatePem"]),
+);
+writeGitHubEnv(
+  "PRIVATE_KEY_PEM",
+  decodeEscapedSecret(secrets["privateKeyPem"]),
+);
 
 writeGitHubOutput(
   "shared_ai_api_key_secret_name",
@@ -64,6 +72,10 @@ function parseFlatYaml(contents: string): Record<string, string> {
   }
 
   return result;
+}
+
+function decodeEscapedSecret(value: string | undefined): string {
+  return value?.replace(/\\n/g, "\n") ?? "";
 }
 
 function requireFlatValue(

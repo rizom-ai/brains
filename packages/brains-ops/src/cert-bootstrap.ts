@@ -11,7 +11,7 @@ import {
   setCloudflareZoneSslStrict,
   type FetchLike,
 } from "@brains/deploy-support/origin-ca";
-import { loadPilotRegistry } from "./load-registry";
+import { loadPilotRegistry, type PilotRegistry } from "./load-registry";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 
@@ -19,6 +19,7 @@ export interface CertBootstrapOptions {
   env?: NodeJS.ProcessEnv | undefined;
   cfApiToken?: string | undefined;
   cfZoneId?: string | undefined;
+  handle?: string | undefined;
   fetchImpl?: FetchLike;
   logger?: (message: string) => void;
   pushTo?: string | undefined;
@@ -30,6 +31,7 @@ export interface CertBootstrapResult {
   certificatePath: string;
   privateKeyPath: string;
   certificatePem: string;
+  secretsSnippetPath: string;
 }
 
 export async function runPilotCertBootstrap(
@@ -53,14 +55,17 @@ export async function bootstrapPilotOriginCertificate(
   options: CertBootstrapOptions = {},
 ): Promise<CertBootstrapResult> {
   const registry = await loadPilotRegistry(rootDir);
-  const domain = resolvePilotZone(registry.pilot.domainSuffix);
+  const target = resolveCertificateTarget(registry, options.handle);
+  const domain = target.domain;
   const env = options.env ?? process.env;
   const localEnvValues = readLocalEnvValues(rootDir);
   const cfApiToken =
     options.cfApiToken ??
     resolveLocalEnvValue("CF_API_TOKEN", env, localEnvValues);
   const cfZoneId =
-    options.cfZoneId ?? resolveLocalEnvValue("CF_ZONE_ID", env, localEnvValues);
+    options.cfZoneId ??
+    target.cloudflareZoneId ??
+    resolveLocalEnvValue("CF_ZONE_ID", env, localEnvValues);
 
   if (!cfApiToken) {
     throw new Error("Missing CF_API_TOKEN");
@@ -87,16 +92,18 @@ export async function bootstrapPilotOriginCertificate(
     rootDir,
     ".brains-ops",
     "certs",
-    "shared",
+    target.id,
     "origin.pem",
   );
   const privateKeyPath = join(
     rootDir,
     ".brains-ops",
     "certs",
-    "shared",
+    target.id,
     "origin.key",
   );
+
+  const secretsSnippetPath = join(dirname(certificatePath), "secrets.yaml");
 
   await mkdir(dirname(certificatePath), { recursive: true });
   await Promise.all([
@@ -105,6 +112,11 @@ export async function bootstrapPilotOriginCertificate(
       encoding: "utf-8",
       mode: 0o600,
     }),
+    writeFile(
+      secretsSnippetPath,
+      formatSecretsSnippet(certResult.certificatePem, keyPair.privateKeyPem),
+      "utf-8",
+    ),
   ]);
 
   await setCloudflareZoneSslStrict(fetchImpl, cfApiToken, cfZoneId);
@@ -124,9 +136,10 @@ export async function bootstrapPilotOriginCertificate(
     );
   }
 
-  logger(`Issued shared Origin CA cert for ${domain} and *.${domain}`);
+  logger(`Issued ${target.id} Origin CA cert for ${domain} and *.${domain}`);
   logger(`Wrote ${certificatePath}`);
   logger(`Wrote ${privateKeyPath}`);
+  logger(`Wrote ${secretsSnippetPath}`);
   if (certResult.expiresOn) {
     logger(`Expires on ${certResult.expiresOn}`);
   }
@@ -140,6 +153,48 @@ export async function bootstrapPilotOriginCertificate(
     certificatePath,
     privateKeyPath,
     certificatePem: certResult.certificatePem,
+    secretsSnippetPath,
+  };
+}
+
+function formatSecretsSnippet(
+  certificatePem: string,
+  privateKeyPem: string,
+): string {
+  return [
+    `certificatePem: ${formatEscapedSecret(certificatePem)}`,
+    `privateKeyPem: ${formatEscapedSecret(privateKeyPem)}`,
+    "",
+  ].join("\n");
+}
+
+function formatEscapedSecret(value: string): string {
+  const escaped = value.replace(/"/g, '\\"').replace(/\n/g, "\\n");
+  return `"${escaped}"`;
+}
+
+function resolveCertificateTarget(
+  registry: PilotRegistry,
+  handle: string | undefined,
+): { id: string; domain: string; cloudflareZoneId?: string | undefined } {
+  if (!handle) {
+    return {
+      id: "shared",
+      domain: resolvePilotZone(registry.pilot.domainSuffix),
+    };
+  }
+
+  const user = registry.users.find((candidate) => candidate.handle === handle);
+  if (!user) {
+    throw new Error(`Unknown user handle: ${handle}`);
+  }
+
+  return {
+    id: handle,
+    domain: user.domain,
+    ...(user.cloudflareZoneId
+      ? { cloudflareZoneId: user.cloudflareZoneId }
+      : {}),
   };
 }
 
