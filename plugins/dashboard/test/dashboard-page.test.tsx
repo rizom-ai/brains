@@ -270,6 +270,11 @@ describe("renderDashboardPageHtml", () => {
           progressLabel: "1/3",
         },
       ],
+      directorySyncStatus: {
+        syncPath: "/brain/content",
+        isInitialized: true,
+        watchEnabled: true,
+      },
     };
 
     const html = renderDashboardPageHtml(input);
@@ -280,9 +285,10 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("1/1 healthy");
     expect(html).toContain("Job queue");
     expect(html).toContain("1 recent");
+    expect(html).toContain("Watching");
+    expect(html).toContain("/brain/content");
     expect(html).toContain("site:build");
     expect(html).toContain("1/3");
-    expect(html).toContain("Unavailable");
   });
 
   it("should render the shared console strip", () => {

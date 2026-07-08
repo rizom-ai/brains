@@ -109,6 +109,15 @@ const jobProgressPayloadSchema = z.object({
     .optional(),
 });
 
+const directorySyncStatusResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    syncPath: z.string(),
+    isInitialized: z.boolean(),
+    watchEnabled: z.boolean(),
+  }),
+});
+
 function createRegisteredWidget(
   payload: z.infer<typeof registerWidgetPayloadSchema>,
 ): RegisteredWidget {
@@ -190,6 +199,26 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
         (item) => item.id !== nextItem.id || item.kind !== nextItem.kind,
       ),
     ].slice(0, 8);
+  }
+
+  private async getDirectorySyncStatus(): Promise<
+    DashboardRenderInput["directorySyncStatus"]
+  > {
+    if (!this.ctx) return undefined;
+
+    try {
+      const response = await this.ctx.messaging.send({
+        type: "sync:status:request",
+        payload: {},
+      });
+      const parsed = directorySyncStatusResponseSchema.safeParse(response);
+      return parsed.success ? parsed.data.data : undefined;
+    } catch (error) {
+      this.logger.debug("Directory sync status unavailable", {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
   }
 
   protected override async onRegister(
@@ -312,13 +341,15 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           );
           const hiddenWidgetCount =
             anchorWidgets.length - visibleWidgets.length;
-          const [dashboardData, appInfo] = await Promise.all([
-            this.datasource.getDashboardData({
-              permissionLevel,
-              widgets: visibleWidgets,
-            }),
-            ctx.appInfo(),
-          ]);
+          const [dashboardData, appInfo, directorySyncStatus] =
+            await Promise.all([
+              this.datasource.getDashboardData({
+                permissionLevel,
+                widgets: visibleWidgets,
+              }),
+              ctx.appInfo(),
+              this.getDirectorySyncStatus(),
+            ]);
           const character = ctx.identity.get();
           const profile = ctx.identity.getProfile();
 
@@ -368,6 +399,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             appInfo: visibleAppInfo,
             activityLog: this.activityLog,
             jobProgress: this.jobProgress,
+            ...(directorySyncStatus !== undefined && { directorySyncStatus }),
             ...(this.config.themeCSS !== undefined && {
               themeCSS: this.config.themeCSS,
             }),

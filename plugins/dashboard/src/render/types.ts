@@ -44,6 +44,12 @@ export interface DashboardJobProgressItem {
   progressLabel?: string | undefined;
 }
 
+export interface DashboardDirectorySyncStatus {
+  syncPath: string;
+  isInitialized: boolean;
+  watchEnabled: boolean;
+}
+
 export interface DashboardRenderInput {
   title: string;
   baseUrl: string | undefined;
@@ -56,6 +62,7 @@ export interface DashboardRenderInput {
   themeCSS?: string;
   activityLog?: DashboardActivityEvent[];
   jobProgress?: DashboardJobProgressItem[];
+  directorySyncStatus?: DashboardDirectorySyncStatus;
   operatorAccess?: DashboardOperatorAccess;
 }
 

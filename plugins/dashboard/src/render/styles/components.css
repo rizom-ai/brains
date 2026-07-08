@@ -554,6 +554,16 @@ body::after {
   font-size: 10px;
   white-space: nowrap;
 }
+.sync-status-line {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  color: var(--paper-dim);
+  font-family: var(--dashboard-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  overflow-wrap: anywhere;
+}
 .job-queue-empty {
   margin-top: 14px;
   padding-top: 14px;

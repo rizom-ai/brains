@@ -596,9 +596,21 @@ function SystemHealthCard({
         </div>
         <div class="kv-row">
           <dt>Directory sync</dt>
-          <dd>Unavailable</dd>
+          <dd>
+            {input.directorySyncStatus
+              ? input.directorySyncStatus.watchEnabled
+                ? "Watching"
+                : "Initialized"
+              : "Unavailable"}
+          </dd>
         </div>
       </dl>
+      {input.directorySyncStatus && (
+        <p class="sync-status-line">
+          {input.directorySyncStatus.syncPath}
+          {input.directorySyncStatus.isInitialized ? " · ready" : " · missing"}
+        </p>
+      )}
       <JobQueueTable jobs={input.jobProgress ?? []} />
     </section>
   );

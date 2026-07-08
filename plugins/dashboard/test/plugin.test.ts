@@ -157,6 +157,15 @@ describe("DashboardPlugin", () => {
     });
 
     it("should render recent entity and job progress events", async () => {
+      harness.subscribe("sync:status:request", async () => ({
+        success: true,
+        data: {
+          syncPath: "/brain/content",
+          isInitialized: true,
+          watchEnabled: true,
+        },
+      }));
+
       await harness.sendMessage("entity:updated", {
         entityType: "note",
         entityId: "project-plan",
@@ -178,6 +187,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("note:project-plan");
       expect(html).toContain("site:build");
       expect(html).toContain("1/3");
+      expect(html).toContain("/brain/content");
     });
 
     it("should show anchor endpoints and interactions to signed-in operators", async () => {
