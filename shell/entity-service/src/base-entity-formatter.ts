@@ -1,5 +1,5 @@
-import { z } from "@brains/utils/zod";
 import { stripMarkdown } from "@brains/utils/markdown";
+import { z } from "@brains/utils/zod";
 import { type ContentFormatter } from "@brains/content-formatters";
 import type { BaseEntity } from "./types";
 import { parseMarkdownWithFrontmatter } from "./frontmatter";

@@ -1,4 +1,6 @@
-export default {
+import type { SitePackageOverrides } from "@brains/site-composition";
+
+const siteOverrides: SitePackageOverrides = {
   routes: [
     {
       id: "ecosystem",
@@ -22,3 +24,5 @@ export default {
     },
   ],
 };
+
+export default siteOverrides;

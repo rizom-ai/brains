@@ -15,12 +15,15 @@ import type { ThreadRegistry } from "./thread-registry";
  * and routing rather than tool-status card bookkeeping.
  */
 export class ToolStatusMessenger {
+  private readonly threadRegistry: ThreadRegistry;
   private readonly messages = new Map<
     string,
     { channelId: string; message: SentMessage }
   >();
 
-  constructor(private readonly threadRegistry: ThreadRegistry) {}
+  constructor(threadRegistry: ThreadRegistry) {
+    this.threadRegistry = threadRegistry;
+  }
 
   /** Drop all tracked status messages (called on interface shutdown). */
   clear(): void {

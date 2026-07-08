@@ -10,13 +10,17 @@ import { PluginError } from "../errors";
  * Extracted from PluginManager for single responsibility
  */
 export class DependencyResolver {
+  private plugins: Map<string, PluginInfo>;
+  private events: EventEmitter;
   private logger: Logger;
 
   constructor(
-    private plugins: Map<string, PluginInfo>,
-    private events: EventEmitter,
+    plugins: Map<string, PluginInfo>,
+    events: EventEmitter,
     logger: Logger,
   ) {
+    this.plugins = plugins;
+    this.events = events;
     this.logger = logger.child("DependencyResolver");
   }
 

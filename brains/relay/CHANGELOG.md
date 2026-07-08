@@ -1,5 +1,43 @@
 # @brains/relay
 
+## 0.2.0-alpha.142
+
+### Patch Changes
+
+- Updated dependencies [[`e789ec6`](https://github.com/rizom-ai/brains/commit/e789ec67cd3edc20ff1cf4ac9a7de08de0f415a5), [`6aa5d6c`](https://github.com/rizom-ai/brains/commit/6aa5d6c8f1eeec935e98e116e97f9ad64148d5ed)]:
+  - @brains/site-composition@0.2.0-alpha.142
+  - @rizom/site-rizom@0.2.0-alpha.142
+  - @brains/app@0.2.0-alpha.142
+  - @brains/site-content@0.2.0-alpha.142
+  - @brains/site-info@0.2.0-alpha.142
+  - @brains/site-builder-plugin@0.2.0-alpha.142
+  - @brains/plugins@0.2.0-alpha.142
+  - @brains/decks@0.2.0-alpha.142
+  - @brains/link@0.2.0-alpha.142
+  - @brains/note@0.2.0-alpha.142
+  - @brains/discord@0.2.0-alpha.142
+  - @brains/agent-discovery@0.2.0-alpha.142
+  - @brains/assessment@0.2.0-alpha.142
+  - @brains/conversation-memory@0.2.0-alpha.142
+  - @brains/doc@0.2.0-alpha.142
+  - @brains/image-plugin@0.2.0-alpha.142
+  - @brains/prompt@0.2.0-alpha.142
+  - @brains/rizom-ecosystem@0.2.0-alpha.142
+  - @brains/topics@0.2.0-alpha.142
+  - @brains/a2a@0.2.0-alpha.142
+  - @brains/mcp@0.2.0-alpha.142
+  - @brains/web-chat@0.2.0-alpha.142
+  - @brains/webserver@0.2.0-alpha.142
+  - @brains/cms@0.2.0-alpha.142
+  - @brains/dashboard@0.2.0-alpha.142
+  - @brains/directory-sync@0.2.0-alpha.142
+  - @brains/email-resend@0.2.0-alpha.142
+  - @brains/notifications@0.2.0-alpha.142
+  - @brains/auth-service@0.2.0-alpha.142
+  - @brains/content-formatters@0.2.0-alpha.142
+  - @brains/theme-rizom@0.2.0-alpha.142
+  - @brains/utils@0.2.0-alpha.142
+
 ## 0.2.0-alpha.141
 
 ### Patch Changes

@@ -1,18 +1,37 @@
 import { z } from "@brains/utils/zod";
 
+export type MessageResponse<T = unknown> =
+  | {
+      success: boolean;
+      data?: T | undefined;
+      error?: string | undefined;
+    }
+  | { noop: true };
+
 /**
  * Simple response schema for message handlers
  */
-export const messageResponseSchema = z.object({
+export const messageResponseSchema: z.ZodType<
+  Exclude<MessageResponse, { noop: true }>
+> = z.object({
   success: z.boolean(),
   data: z.unknown().optional(),
   error: z.string().optional(),
 });
 
+type BaseMessageSchema = z.ZodObject<{
+  id: z.ZodString;
+  timestamp: z.ZodString;
+  type: z.ZodString;
+  source: z.ZodString;
+  target: z.ZodOptional<z.ZodString>;
+  metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}>;
+
 /**
  * Base message schema - all messages must have these fields
  */
-export const baseMessageSchema = z.object({
+export const baseMessageSchema: BaseMessageSchema = z.object({
   id: z.string().min(1),
   timestamp: z.string(),
   type: z.string().min(1),
@@ -32,11 +51,7 @@ export const messageWithPayloadSchema = <T extends z.ZodType>(
   });
 
 // Derive types from schemas
-export type MessageResponse<T = unknown> =
-  | (Omit<z.infer<typeof messageResponseSchema>, "data"> & { data?: T })
-  | { noop: true };
-
-export type BaseMessage = z.infer<typeof baseMessageSchema>;
+export type BaseMessage = z.output<typeof baseMessageSchema>;
 
 export type MessageWithPayload<T = unknown> = BaseMessage & {
   payload: T;

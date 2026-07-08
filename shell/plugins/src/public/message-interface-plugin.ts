@@ -12,7 +12,7 @@ import type {
 } from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { PermissionLookupContext } from "@brains/templates";
-import type { z } from "@brains/utils/zod";
+import type { PluginConfigSchema } from "../config";
 import { InterfacePlugin } from "./interface-plugin";
 import type {
   InterfacePluginContext,
@@ -42,16 +42,19 @@ interface MessageInterfacePluginHooks {
 
 class MessageInterfacePluginDelegate<
   TConfig,
+  TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo,
-> extends RuntimeMessageInterfacePlugin<TConfig, TTrackingInfo> {
+> extends RuntimeMessageInterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
+  private readonly hooks: MessageInterfacePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
-    private readonly hooks: MessageInterfacePluginHooks,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
+    hooks: MessageInterfacePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
+    this.hooks = hooks;
   }
 
   protected override async onRegister(
@@ -147,19 +150,21 @@ class MessageInterfacePluginDelegate<
 }
 
 export abstract class MessageInterfacePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo = MessageJobTrackingInfo,
-> extends InterfacePlugin<TConfig, TTrackingInfo> {
+> extends InterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
   private readonly messageDelegate: MessageInterfacePluginDelegate<
     TConfig,
+    TConfigInput,
     TTrackingInfo
   >;
 
   protected constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     super(id, packageJson, config, configSchema);
     this.messageDelegate = new MessageInterfacePluginDelegate(

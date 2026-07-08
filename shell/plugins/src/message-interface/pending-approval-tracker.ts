@@ -11,9 +11,12 @@ export interface PendingApprovalTrackerOptions {
 }
 
 export class PendingApprovalTracker {
+  private readonly options: PendingApprovalTrackerOptions;
   private readonly pendingByConversation = new Map<string, Set<string>>();
 
-  public constructor(private readonly options: PendingApprovalTrackerOptions) {}
+  public constructor(options: PendingApprovalTrackerOptions) {
+    this.options = options;
+  }
 
   public rememberFromResponse(
     conversationId: string,

@@ -12,7 +12,7 @@ const DEFAULT_MAX_LENGTH = 2000;
  */
 export function chunkMessage(
   message: string,
-  maxLength = DEFAULT_MAX_LENGTH,
+  maxLength: number = DEFAULT_MAX_LENGTH,
 ): string[] {
   if (message.length <= maxLength) {
     return [message];
@@ -40,7 +40,7 @@ export function chunkMessage(
     }
 
     // Oversized block — split at line boundaries
-    splitOversizedBlock(block, maxLength, chunks, (remainder) => {
+    splitOversizedBlock(block, maxLength, chunks, (remainder: string) => {
       current = remainder;
     });
   }

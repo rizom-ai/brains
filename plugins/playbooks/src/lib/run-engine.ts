@@ -137,7 +137,11 @@ function previewText(value: string): string {
 }
 
 export class RunEngine {
-  constructor(private readonly deps: RunEngineDeps) {}
+  private readonly deps: RunEngineDeps;
+
+  constructor(deps: RunEngineDeps) {
+    this.deps = deps;
+  }
 
   public async createStartedRun(input: {
     playbookId: string;

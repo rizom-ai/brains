@@ -2,16 +2,15 @@ import type { EntityPluginContext, JobHandler } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { SwotAdapter } from "../adapters/swot-adapter";
+import { type SwotEntity, type SwotItem } from "../schemas/swot";
 import {
   swotDerivationJobSchema,
   swotDraftGenerationSchema,
   swotGenerationSchema,
   type SwotDerivationJobData,
-  type SwotEntity,
   type SwotDraftGeneration,
   type SwotGeneration,
-  type SwotItem,
-} from "../schemas/swot";
+} from "../schemas/swot-generation";
 import { buildSwotContext, type SwotContext } from "../lib/swot-context";
 
 function normalizeSkillText(value: string): string {
@@ -328,12 +327,14 @@ export class SwotDerivationHandler implements JobHandler<
   SwotDerivationJobData,
   { entityId: string }
 > {
+  private readonly logger: Logger;
+  private readonly context: EntityPluginContext;
   private readonly adapter = new SwotAdapter();
 
-  constructor(
-    private readonly logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {}
+  constructor(logger: Logger, context: EntityPluginContext) {
+    this.logger = logger;
+    this.context = context;
+  }
 
   validateAndParse(data: unknown): SwotDerivationJobData | null {
     const result = swotDerivationJobSchema.safeParse(data ?? {});

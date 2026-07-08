@@ -6,11 +6,11 @@ import type {
   DataSource,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
-import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import { deckAdapter } from "./adapters/deck-adapter";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
@@ -29,18 +29,45 @@ import { DeckOgImageAttachmentProvider } from "./attachments/og-image-provider";
 import { createDeckAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
+const generateDeckEvalInputSchema: z.ZodObject<{
+  prompt: z.ZodString;
+  event: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  prompt: z.string(),
+  event: z.string().optional(),
+});
+
+const generateDescriptionEvalInputSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  content: z.string(),
+});
+
+type GenerateDeckEvalInput = z.output<typeof generateDeckEvalInputSchema>;
+type GenerateDescriptionEvalInput = z.output<
+  typeof generateDescriptionEvalInputSchema
+>;
+
 export type DecksPluginDeps = DeckCarouselAttachmentProviderDeps;
 
-export class DecksPlugin extends EntityPlugin<DeckEntity> {
-  readonly entityType = deckAdapter.entityType;
-  readonly schema = deckAdapter.schema;
-  readonly adapter = deckAdapter;
+export class DecksPlugin extends EntityPlugin<
+  DeckEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  private readonly deps: DecksPluginDeps;
+  readonly entityType: typeof deckAdapter.entityType = deckAdapter.entityType;
+  readonly schema: typeof deckAdapter.schema = deckAdapter.schema;
+  readonly adapter: typeof deckAdapter = deckAdapter;
   private unregisterCarouselAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
-  constructor(private readonly deps: DecksPluginDeps = {}) {
-    super("decks", packageJson);
+  constructor(deps: DecksPluginDeps = {}) {
+    super("decks", packageJson, {}, emptyEntityPluginConfigSchema);
+    this.deps = deps;
   }
 
   protected override createGenerationHandler(
@@ -209,9 +236,8 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
 
   private registerEvalHandlers(context: EntityPluginContext): void {
     context.eval.registerHandler("generateDeck", async (input: unknown) => {
-      const parsed = z
-        .object({ prompt: z.string(), event: z.string().optional() })
-        .parse(input);
+      const parsed: GenerateDeckEvalInput =
+        generateDeckEvalInputSchema.parse(input);
       return context.ai.generate<{
         title: string;
         content: string;
@@ -225,9 +251,8 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
     context.eval.registerHandler(
       "generateDescription",
       async (input: unknown) => {
-        const parsed = z
-          .object({ title: z.string(), content: z.string() })
-          .parse(input);
+        const parsed: GenerateDescriptionEvalInput =
+          generateDescriptionEvalInputSchema.parse(input);
         return context.ai.generate<{ description: string }>({
           prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
           templateName: "decks:description",

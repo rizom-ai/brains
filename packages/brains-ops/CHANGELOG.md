@@ -1,5 +1,15 @@
 # @brains/ops
 
+## 0.2.0-alpha.142
+
+### Minor Changes
+
+- [`442a843`](https://github.com/rizom-ai/brains/commit/442a843b07b0ee90a7332df86fc56bc8fb15db37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow docs.rizom.ai to run on Rover by making the docs capability opt-in on Rover, letting hosted user config render additional `add:` capabilities, and installing selected `siteOverride.package@version` refs into hash-tagged rover-pilot fleet images.
+
+### Patch Changes
+
+- [`fcab30b`](https://github.com/rizom-ai/brains/commit/fcab30b062c076b3203f8883ee03babf9cf3d25f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add per-user custom-domain TLS and DNS deploy support for hosted Rover pilot registries.
+
 ## 0.2.0-alpha.141
 
 ## 0.2.0-alpha.140

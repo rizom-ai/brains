@@ -87,7 +87,7 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
   if (flags.mode) {
     const app = App.create(config);
     await app.initialize({ mode: flags.mode });
-    return;
+    return app;
   }
 
   if (flags.chat) {

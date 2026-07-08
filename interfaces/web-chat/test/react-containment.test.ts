@@ -1,12 +1,19 @@
 import { describe, expect, it } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join, relative, sep } from "path";
+import { z } from "@brains/utils/zod";
 
 const packageRoot = join(import.meta.dir, "..");
 const packageJsonPath = join(packageRoot, "package.json");
 const buildScriptPath = join(packageRoot, "scripts", "build-ui.ts");
 const allowedReactDir = `${join("ui-react")}${sep}`;
 const sourceExtensions = [".ts", ".tsx", ".js", ".jsx"];
+
+const webChatPackageJsonSchema = z.looseObject({
+  files: z.array(z.string()),
+  scripts: z.record(z.string(), z.string()),
+  dependencies: z.record(z.string(), z.string()),
+});
 
 function listSourceFiles(dir: string): string[] {
   const entries = readdirSync(dir);
@@ -41,10 +48,9 @@ function importsReact(content: string): boolean {
 
 describe("React containment", () => {
   it("publishes the built UI asset directory", () => {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
-      files: string[];
-      scripts: Record<string, string>;
-    };
+    const packageJson = webChatPackageJsonSchema.parse(
+      JSON.parse(readFileSync(packageJsonPath, "utf-8")),
+    );
 
     expect(packageJson.scripts["build"]).toBe("bun scripts/build-ui.ts");
     expect(packageJson.files).toContain("dist");
@@ -52,9 +58,9 @@ describe("React containment", () => {
   });
 
   it("keeps React and React DOM on the same declared range", () => {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
-      dependencies: Record<string, string>;
-    };
+    const packageJson = webChatPackageJsonSchema.parse(
+      JSON.parse(readFileSync(packageJsonPath, "utf-8")),
+    );
 
     const reactVersion = packageJson.dependencies["react"];
     const reactDomVersion = packageJson.dependencies["react-dom"];

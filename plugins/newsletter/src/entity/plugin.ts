@@ -7,13 +7,16 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import type { PublishProvider } from "@brains/contracts";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
-import { newsletterAdapter } from "./adapters/newsletter-adapter";
+import {
+  newsletterAdapter,
+  type NewsletterAdapter,
+} from "./adapters/newsletter-adapter";
 import { NewsletterDataSource } from "./datasources/newsletter-datasource";
 import { GenerationJobHandler } from "./handlers/generation-handler";
 import { generationTemplate } from "./templates/generation-template";
@@ -21,8 +24,23 @@ import { newsletterListTemplate } from "./templates/newsletter-list";
 import { newsletterDetailTemplate } from "./templates/newsletter-detail";
 import packageJson from "../../package.json";
 
-const newsletterConfigSchema = z.object({});
-type NewsletterConfig = z.infer<typeof newsletterConfigSchema>;
+type NewsletterConfig = Record<string, unknown>;
+type NewsletterConfigInput = Record<string, unknown>;
+
+const newsletterConfigSchema: z.ZodType<
+  NewsletterConfig,
+  NewsletterConfigInput
+> = z.looseObject({});
+
+interface GenerationEvalInput {
+  prompt?: string | undefined;
+  content?: string | undefined;
+}
+
+const generationEvalInputSchema: z.ZodType<GenerationEvalInput> = z.object({
+  prompt: z.string().optional(),
+  content: z.string().optional(),
+});
 
 /**
  * Newsletter EntityPlugin — manages newsletter entities with AI generation.
@@ -32,13 +50,14 @@ type NewsletterConfig = z.infer<typeof newsletterConfigSchema>;
  */
 export class NewsletterPlugin extends EntityPlugin<
   Newsletter,
-  NewsletterConfig
+  NewsletterConfig,
+  NewsletterConfigInput
 > {
-  readonly entityType = "newsletter";
-  readonly schema = newsletterSchema;
-  readonly adapter = newsletterAdapter;
+  readonly entityType = "newsletter" as const;
+  readonly schema: typeof newsletterSchema = newsletterSchema;
+  readonly adapter: NewsletterAdapter = newsletterAdapter;
 
-  constructor(config: Partial<NewsletterConfig> = {}) {
+  constructor(config: NewsletterConfigInput = {}) {
     super("newsletter", packageJson, config, newsletterConfigSchema);
   }
 
@@ -197,13 +216,9 @@ export class NewsletterPlugin extends EntityPlugin<
   }
 
   private registerEvalHandlers(context: EntityPluginContext): void {
-    const generationInputSchema = z.object({
-      prompt: z.string().optional(),
-      content: z.string().optional(),
-    });
-
     context.eval.registerHandler("generation", async (input: unknown) => {
-      const parsed = generationInputSchema.parse(input);
+      const parsed: GenerationEvalInput =
+        generationEvalInputSchema.parse(input);
       const generationPrompt = parsed.content
         ? `Create an engaging newsletter based on this content:\n\n${parsed.content}`
         : (parsed.prompt ?? "Write an engaging newsletter");
@@ -216,8 +231,6 @@ export class NewsletterPlugin extends EntityPlugin<
   }
 }
 
-export function newsletterPlugin(
-  config: Partial<NewsletterConfig> = {},
-): Plugin {
+export function newsletterPlugin(config: NewsletterConfigInput = {}): Plugin {
   return new NewsletterPlugin(config);
 }

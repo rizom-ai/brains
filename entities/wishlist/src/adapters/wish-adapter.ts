@@ -59,4 +59,4 @@ export class WishAdapter extends BaseEntityAdapter<
   }
 }
 
-export const wishAdapter = new WishAdapter();
+export const wishAdapter: WishAdapter = new WishAdapter();

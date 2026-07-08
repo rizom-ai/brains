@@ -11,6 +11,7 @@ function parseAgentResponse(json: unknown): AgentResponse {
   } catch (error) {
     throw new Error(
       `Invalid response from remote agent: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

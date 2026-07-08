@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
-import { baseEntitySchema, BaseEntityAdapter } from "@brains/plugins/test";
+import {
+  baseEntitySchema,
+  BaseEntityAdapter,
+  emptyFrontmatterSchema,
+} from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
 import { createTestEntity } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -15,7 +18,7 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
       entityType: "note",
       purpose: "Test entity for unit tests.",
       schema: baseEntitySchema,
-      frontmatterSchema: z.object({}),
+      frontmatterSchema: emptyFrontmatterSchema,
     });
   }
 

@@ -1,3 +1,5 @@
+import { z } from "@brains/utils/zod";
+
 export type ConfirmationDecision = "approved" | "declined" | null;
 export type ConfirmationResultVariant = "success" | "error" | "declined";
 
@@ -12,13 +14,15 @@ export interface ConfirmationResultDisplay {
   variant: ConfirmationResultVariant;
 }
 
-function isRecord(data: unknown): data is Record<string, unknown> {
-  return typeof data === "object" && data !== null && !Array.isArray(data);
+const recordSchema = z.record(z.string(), z.unknown());
+
+function parseRecord(data: unknown): Record<string, unknown> | null {
+  const parsed = recordSchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
 }
 
 function getRecordValue(data: unknown, key: string): unknown {
-  if (!isRecord(data)) return undefined;
-  return data[key];
+  return parseRecord(data)?.[key];
 }
 
 function getStringValue(data: unknown, key: string): string | undefined {
@@ -55,7 +59,7 @@ function parseResultJson(text: string): unknown {
   if (!json) return undefined;
 
   try {
-    return JSON.parse(json) as unknown;
+    return JSON.parse(json);
   } catch {
     return undefined;
   }
@@ -179,10 +183,12 @@ export function formatStructuredOutputSummary(
   if (typeof output === "number" || typeof output === "boolean") {
     return String(output);
   }
-  if (!isRecord(output)) return undefined;
+  const parsedOutput = parseRecord(output);
+  if (!parsedOutput) return undefined;
   const errorMessage =
-    getStringValue(output, "error") ?? getStringValue(output, "message");
-  if (getBooleanValue(output, "success") === false) {
+    getStringValue(parsedOutput, "error") ??
+    getStringValue(parsedOutput, "message");
+  if (getBooleanValue(parsedOutput, "success") === false) {
     return errorMessage ? `Failed · ${errorMessage}` : "Failed";
   }
   return undefined;

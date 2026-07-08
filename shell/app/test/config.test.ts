@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { defineConfig } from "../src/config";
-import type { AppConfig } from "../src/types";
+import type { AppConfigInput } from "../src/types";
 import type { Plugin } from "@brains/plugins";
 
 const mockPlugin = {
@@ -13,7 +13,7 @@ const mockPlugin = {
 } as unknown as Plugin;
 
 describe("defineConfig", () => {
-  const validConfig: AppConfig = {
+  const validConfig: AppConfigInput = {
     name: "test-app",
     version: "1.0.0",
     aiApiKey: "test-key",
@@ -28,11 +28,11 @@ describe("defineConfig", () => {
     expect(result.aiApiKey).toBe("test-key");
     expect(result.plugins).toHaveLength(1);
     expect(result.deployment).toBeDefined();
-    expect(result.deployment?.provider).toBe("hetzner");
+    expect(result.deployment.provider).toBe("hetzner");
   });
 
   it("should apply default values for optional fields", () => {
-    const configWithoutOptionals: AppConfig = {
+    const configWithoutOptionals: AppConfigInput = {
       name: "test-app",
       version: "1.0.0",
       plugins: [],
@@ -67,11 +67,11 @@ describe("defineConfig", () => {
     });
 
     expect(result.deployment).toBeDefined();
-    expect(result.deployment?.provider).toBe("hetzner");
-    expect(result.deployment?.serverSize).toBe("cx33");
-    expect(result.deployment?.ports?.default).toBe(3333);
-    expect(result.deployment?.cdn?.enabled).toBe(false);
-    expect(result.deployment?.dns?.enabled).toBe(false);
+    expect(result.deployment.provider).toBe("hetzner");
+    expect(result.deployment.serverSize).toBe("cx33");
+    expect(result.deployment.ports.default).toBe(3333);
+    expect(result.deployment.cdn.enabled).toBe(false);
+    expect(result.deployment.dns.enabled).toBe(false);
   });
 
   it("should merge custom deployment config with defaults", () => {
@@ -88,10 +88,10 @@ describe("defineConfig", () => {
       },
     });
 
-    expect(result.deployment?.domain).toBe("example.com");
-    expect(result.deployment?.cdn?.enabled).toBe(true);
-    expect(result.deployment?.cdn?.provider).toBe("bunny");
-    expect(result.deployment?.provider).toBe("hetzner");
-    expect(result.deployment?.serverSize).toBe("cx33");
+    expect(result.deployment.domain).toBe("example.com");
+    expect(result.deployment.cdn.enabled).toBe(true);
+    expect(result.deployment.cdn.provider).toBe("bunny");
+    expect(result.deployment.provider).toBe("hetzner");
+    expect(result.deployment.serverSize).toBe("cx33");
   });
 });

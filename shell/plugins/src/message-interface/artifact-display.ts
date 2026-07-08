@@ -1,3 +1,5 @@
+import { z } from "@brains/utils/zod";
+
 export interface ArtifactDisplay {
   jobId?: string;
   title: string;
@@ -11,11 +13,7 @@ export interface ArtifactDisplay {
 }
 
 export type ArtifactJobStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "unknown";
+  "pending" | "processing" | "completed" | "failed" | "unknown";
 
 export interface ArtifactCardState {
   status: ArtifactJobStatus | "ready";
@@ -24,8 +22,8 @@ export interface ArtifactCardState {
 }
 
 export function formatArtifactDisplay(data: unknown): ArtifactDisplay | null {
-  const attachment = getRecordValue(data, "attachment");
-  if (!isRecord(attachment)) return null;
+  const attachment = parseRecord(getRecordValue(data, "attachment"));
+  if (!attachment) return null;
 
   const jobId = getStringValue(data, "jobId");
   const description = getStringValue(data, "description");
@@ -107,13 +105,15 @@ export function getArtifactCardState(
   };
 }
 
-function isRecord(data: unknown): data is Record<string, unknown> {
-  return typeof data === "object" && data !== null && !Array.isArray(data);
+const recordSchema = z.record(z.string(), z.unknown());
+
+function parseRecord(data: unknown): Record<string, unknown> | null {
+  const parsed = recordSchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
 }
 
 function getRecordValue(data: unknown, key: string): unknown {
-  if (!isRecord(data)) return undefined;
-  return data[key];
+  return parseRecord(data)?.[key];
 }
 
 function getStringValue(data: unknown, key: string): string | undefined {

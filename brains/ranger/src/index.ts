@@ -1,4 +1,8 @@
-import { defineBrain, type PluginConfig } from "@brains/app";
+import {
+  defineBrain,
+  type BrainDefinition,
+  type PluginConfig,
+} from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
@@ -19,7 +23,7 @@ import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { dashboardPlugin } from "@brains/dashboard";
 import { join } from "path";
-import rizomSite from "@brains/site-rizom";
+import rizomSite from "@rizom/site-rizom";
 import rizomTheme from "@brains/theme-rizom";
 
 /**
@@ -36,7 +40,7 @@ import rizomTheme from "@brains/theme-rizom";
  * discord token, analytics tags) goes in brain.yaml.
  * Only secrets (tokens, API keys) come from .env.
  */
-export default defineBrain({
+const rangerBrain: BrainDefinition = defineBrain({
   name: "ranger",
   version: "0.1.0",
   model: "gpt-5.4-mini",
@@ -112,3 +116,5 @@ export default defineBrain({
     },
   },
 });
+
+export default rangerBrain;

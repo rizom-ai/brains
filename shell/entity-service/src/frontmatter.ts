@@ -1,7 +1,6 @@
 import matter from "gray-matter";
 import { z } from "@brains/utils/zod";
 import type { BaseEntity, ContentVisibility } from "./types";
-import { contentVisibilitySchema } from "./types";
 
 /**
  * Configuration for frontmatter handling
@@ -32,6 +31,10 @@ export interface FrontmatterConfig<T extends BaseEntity> {
   customDeserializers?: {
     [K in keyof T]?: (value: unknown) => T[K];
   };
+}
+
+export interface FrontmatterValidationSchema<T> {
+  parse(data: unknown): T;
 }
 
 // Default system fields that should not be in frontmatter
@@ -144,7 +147,7 @@ function convertDatesToStrings(obj: unknown): unknown {
  */
 export function parseMarkdownWithFrontmatter<T>(
   markdown: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: FrontmatterValidationSchema<T>,
 ): {
   content: string;
   metadata: T;
@@ -201,7 +204,13 @@ export function generateFrontmatter(metadata: Record<string, unknown>): string {
 }
 
 const visibilityFrontmatterSchema = z.object({
-  visibility: contentVisibilitySchema,
+  visibility: z
+    .enum(["public", "shared", "restricted", "private"])
+    .optional()
+    .transform((value): ContentVisibility => {
+      if (value === undefined) return "public";
+      return value === "private" ? "restricted" : value;
+    }),
 });
 
 export function extractVisibilityFromMarkdown(

@@ -3,13 +3,9 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import {
-  PermissionService,
-  ServicePlugin,
-  UserPermissionLevelSchema,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { PermissionService, ServicePlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import {
   BUILT_IN_WIDGET_RENDERERS,
   DashboardWidgetRegistry,
@@ -33,13 +29,24 @@ import type {
 import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
-const dashboardConfigSchema = z.object({
-  version: z.string().default("1.0.0"),
-  routePath: z.string().default("/dashboard"),
-  themeCSS: z.string().optional(),
-});
+export interface DashboardConfig {
+  version: string;
+  routePath: string;
+  themeCSS?: string | undefined;
+}
 
-type DashboardConfig = z.infer<typeof dashboardConfigSchema>;
+export interface DashboardConfigInput {
+  version?: string | undefined;
+  routePath?: string | undefined;
+  themeCSS?: string | undefined;
+}
+
+const dashboardConfigSchema: z.ZodType<DashboardConfig, DashboardConfigInput> =
+  z.object({
+    version: z.string().default("1.0.0"),
+    routePath: z.string().default("/dashboard"),
+    themeCSS: z.string().optional(),
+  });
 
 const registerWidgetPayloadSchema = z
   .object({
@@ -51,7 +58,7 @@ const registerWidgetPayloadSchema = z
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
-    visibility: UserPermissionLevelSchema.default("public"),
+    visibility: z.enum(["public", "trusted", "anchor"]).default("public"),
     needsOperator: z.number().int().nonnegative().optional(),
     digest: z
       .array(
@@ -65,12 +72,15 @@ const registerWidgetPayloadSchema = z
       .optional(),
     component: z.custom<WidgetComponent>().optional(),
     clientScript: z.string().optional(),
-    dataProvider: z.function().returns(z.promise(z.unknown())),
+    dataProvider: z.custom<() => Promise<unknown>>(
+      (value) => typeof value === "function",
+      { message: "Expected dashboard widget data provider function" },
+    ),
   })
   .superRefine((payload, refinementContext) => {
     if (!isBuiltInWidgetRenderer(payload.rendererName) && !payload.component) {
       refinementContext.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Custom dashboard widgets must register a Preact component.",
         path: ["component"],
       });
@@ -117,12 +127,14 @@ const directorySyncStatusResponseSchema = z.object({
     watchEnabled: z.boolean(),
     lastSync: z.string().datetime().optional(),
     totalFiles: z.number().int().nonnegative().optional(),
-    byEntityType: z.record(z.number().int().nonnegative()).optional(),
+    byEntityType: z
+      .record(z.string(), z.number().int().nonnegative())
+      .optional(),
   }),
 });
 
 function createRegisteredWidget(
-  payload: z.infer<typeof registerWidgetPayloadSchema>,
+  payload: z.output<typeof registerWidgetPayloadSchema>,
 ): RegisteredWidget {
   return {
     id: payload.id,
@@ -144,7 +156,10 @@ function createRegisteredWidget(
   };
 }
 
-export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
+export class DashboardPlugin extends ServicePlugin<
+  DashboardConfig,
+  DashboardConfigInput
+> {
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
@@ -152,8 +167,8 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
   private activityLog: DashboardActivityEvent[] = [];
   private jobProgress: DashboardJobProgressItem[] = [];
 
-  constructor(config?: Partial<DashboardConfig>) {
-    super("dashboard", packageJson, config ?? {}, dashboardConfigSchema);
+  constructor(config: DashboardConfigInput = {}) {
+    super("dashboard", packageJson, config, dashboardConfigSchema);
   }
 
   private recordActivity(
@@ -466,7 +481,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
 }
 
 export function dashboardPlugin(
-  config?: Partial<DashboardConfig>,
+  config: DashboardConfigInput = {},
 ): DashboardPlugin {
   return new DashboardPlugin(config);
 }

@@ -1,28 +1,81 @@
-import { z } from "@brains/utils/zod";
 import { interpolateEnv } from "@brains/utils/string-utils";
 import { parseYamlDocument } from "@brains/utils/yaml";
-import { entityActionPolicyConfigSchema } from "@brains/templates";
-import { presetNameSchema, modeSchema } from "./brain-definition";
-import { logLevelSchema } from "./types";
+import { z } from "@brains/utils/zod";
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
  *
  * Validates the structure after YAML parsing + env interpolation.
  */
-const pluginConfigOverrideSchema = z.record(z.unknown());
+const pluginConfigOverrideSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
+  z.record(z.string(), z.unknown());
+const rawRecordSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> = z.record(
+  z.string(),
+  z.unknown(),
+);
 
-export const externalPluginDeclarationSchema = z
-  .object({
-    /** npm package name to import from node_modules */
-    package: z.string().min(1),
-    /** Config object passed to the external plugin factory */
-    config: z.record(z.unknown()).optional(),
-  })
-  .strict();
+const overridePresetNameSchema: z.ZodEnum<{
+  core: "core";
+  default: "default";
+  full: "full";
+}> = z.enum(["core", "default", "full"]);
+const overrideModeSchema: z.ZodEnum<{ eval: "eval" }> = z.enum(["eval"]);
+const overrideLogLevelSchema: z.ZodEnum<{
+  debug: "debug";
+  info: "info";
+  warn: "warn";
+  error: "error";
+}> = z.enum(["debug", "info", "warn", "error"]);
+const overridePermissionLevelSchema: z.ZodEnum<{
+  anchor: "anchor";
+  trusted: "trusted";
+  public: "public";
+}> = z.enum(["anchor", "trusted", "public"]);
+const overrideEntityActionRequiredLevelSchema: z.ZodEnum<{
+  never: "never";
+  anchor: "anchor";
+  trusted: "trusted";
+  public: "public";
+}> = z.enum(["never", "anchor", "trusted", "public"]);
+const overrideEntityActionPolicyRuleSchema: z.ZodObject<{
+  create: z.ZodOptional<typeof overrideEntityActionRequiredLevelSchema>;
+  update: z.ZodOptional<typeof overrideEntityActionRequiredLevelSchema>;
+  delete: z.ZodOptional<typeof overrideEntityActionRequiredLevelSchema>;
+  extract: z.ZodOptional<typeof overrideEntityActionRequiredLevelSchema>;
+  publish: z.ZodOptional<typeof overrideEntityActionRequiredLevelSchema>;
+}> = z.strictObject({
+  create: overrideEntityActionRequiredLevelSchema.optional(),
+  update: overrideEntityActionRequiredLevelSchema.optional(),
+  delete: overrideEntityActionRequiredLevelSchema.optional(),
+  extract: overrideEntityActionRequiredLevelSchema.optional(),
+  publish: overrideEntityActionRequiredLevelSchema.optional(),
+});
+const overrideEntityActionPolicyConfigSchema: z.ZodRecord<
+  z.ZodString,
+  typeof overrideEntityActionPolicyRuleSchema
+> = z.record(z.string(), overrideEntityActionPolicyRuleSchema);
 
-export const pluginOverrideEntrySchema = pluginConfigOverrideSchema.superRefine(
-  (entry, ctx) => {
+export interface ExternalPluginDeclaration {
+  [key: string]: unknown;
+  package: string;
+  config?: Record<string, unknown> | undefined;
+}
+
+export const externalPluginDeclarationSchema: z.ZodObject<{
+  package: z.ZodString;
+  config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.strictObject({
+  /** npm package name to import from node_modules */
+  package: z.string().min(1),
+  /** Config object passed to the external plugin factory */
+  config: z.record(z.string(), z.unknown()).optional(),
+});
+
+export type PluginConfigOverride = Record<string, unknown>;
+export type PluginOverrideEntry = Record<string, unknown>;
+
+export const pluginOverrideEntrySchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
+  pluginConfigOverrideSchema.superRefine((entry, ctx) => {
     if (typeof entry["package"] !== "string") return;
 
     const parsed = externalPluginDeclarationSchema.safeParse(entry);
@@ -33,10 +86,60 @@ export const pluginOverrideEntrySchema = pluginConfigOverrideSchema.superRefine(
           'external plugin declarations may only contain "package" and optional nested "config"',
       });
     }
-  },
-);
+  });
 
-const instanceOverridesSchema = z.object({
+export interface InstanceOverrides {
+  brain?: string | undefined;
+  site?:
+    | {
+        package?: string | undefined;
+        variant?: string | undefined;
+        theme?: string | undefined;
+        themeOverride?: string | undefined;
+      }
+    | undefined;
+  name?: string | undefined;
+  logLevel?: "debug" | "info" | "warn" | "error" | undefined;
+  logFile?: string | undefined;
+  port?: number | undefined;
+  domain?: string | undefined;
+  database?: string | undefined;
+  model?: string | undefined;
+  preset?: "core" | "default" | "full" | undefined;
+  mode?: "eval" | undefined;
+  add?: string[] | undefined;
+  remove?: string[] | undefined;
+  anchors?: string[] | undefined;
+  trusted?: string[] | undefined;
+  spaces?: string[] | undefined;
+  plugins?: Record<string, PluginOverrideEntry> | undefined;
+  permissions?:
+    | {
+        anchors?: string[] | undefined;
+        trusted?: string[] | undefined;
+        rules?:
+          | Array<{
+              pattern: string;
+              level: "anchor" | "trusted" | "public";
+            }>
+          | undefined;
+        entityActions?:
+          | Record<
+              string,
+              {
+                create?: "never" | "anchor" | "trusted" | "public" | undefined;
+                update?: "never" | "anchor" | "trusted" | "public" | undefined;
+                delete?: "never" | "anchor" | "trusted" | "public" | undefined;
+                extract?: "never" | "anchor" | "trusted" | "public" | undefined;
+                publish?: "never" | "anchor" | "trusted" | "public" | undefined;
+              }
+            >
+          | undefined;
+      }
+    | undefined;
+}
+
+const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
   /** Brain package name (required) */
   brain: z.string().optional(),
 
@@ -69,7 +172,7 @@ const instanceOverridesSchema = z.object({
   name: z.string().optional(),
 
   /** Log level */
-  logLevel: logLevelSchema.optional(),
+  logLevel: overrideLogLevelSchema.optional(),
 
   /** Log file path (enables usage tracking) */
   logFile: z.string().optional(),
@@ -87,10 +190,10 @@ const instanceOverridesSchema = z.object({
   model: z.string().optional(),
 
   /** Preset name — selects a curated subset of capabilities + interfaces */
-  preset: presetNameSchema.optional(),
+  preset: overridePresetNameSchema.optional(),
 
   /** Eval mode — disables plugins with side effects (defined by evalDisable in brain model) */
-  mode: modeSchema.optional(),
+  mode: overrideModeSchema.optional(),
 
   /** Plugin/interface IDs to add on top of the preset */
   add: z.array(z.string()).optional(),
@@ -117,7 +220,7 @@ const instanceOverridesSchema = z.object({
    *   plugins.calendar.package: "@rizom/brain-plugin-calendar"
    *   plugins.calendar.config.apiKey: "${CALENDAR_API_KEY}"
    */
-  plugins: z.record(pluginOverrideEntrySchema).optional(),
+  plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
 
   /** Permission rules */
   permissions: z
@@ -128,11 +231,11 @@ const instanceOverridesSchema = z.object({
         .array(
           z.object({
             pattern: z.string(),
-            level: z.enum(["anchor", "trusted", "public"]),
+            level: overridePermissionLevelSchema,
           }),
         )
         .optional(),
-      entityActions: entityActionPolicyConfigSchema.optional(),
+      entityActions: overrideEntityActionPolicyConfigSchema.optional(),
     })
     .optional(),
 });
@@ -144,15 +247,6 @@ const instanceOverridesSchema = z.object({
  * of the same brain model. Secrets stay in .env; everything else
  * goes here (with ${ENV_VAR} interpolation for referencing secrets).
  */
-export type ExternalPluginDeclaration = z.infer<
-  typeof externalPluginDeclarationSchema
->;
-export type PluginConfigOverride = Record<string, unknown>;
-export type PluginOverrideEntry =
-  | PluginConfigOverride
-  | ExternalPluginDeclaration;
-export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
-
 export function isExternalPluginDeclaration(
   entry: PluginOverrideEntry | undefined,
 ): entry is ExternalPluginDeclaration {
@@ -339,9 +433,10 @@ function nullsToUndefined(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((v) => nullsToUndefined(v)).filter((v) => v !== undefined);
   }
-  if (typeof value === "object") {
+  const parsedRecord = rawRecordSchema.safeParse(value);
+  if (parsedRecord.success) {
     const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    for (const [k, v] of Object.entries(parsedRecord.data)) {
       const converted = nullsToUndefined(v);
       if (converted !== undefined) {
         result[k] = converted;
@@ -352,15 +447,22 @@ function nullsToUndefined(value: unknown): unknown {
   return value;
 }
 
+interface ValidationIssueList {
+  issues: readonly {
+    path: readonly PropertyKey[];
+    message: string;
+  }[];
+}
+
 /**
- * Format a Zod error's issues into an operator-readable multi-line
+ * Format validation issues into an operator-readable multi-line
  * message. Example:
  *
  *   invalid brain.yaml:
  *     - anchors: Expected array, received string
  *     - plugins.mcp.port: Expected number, received string
  */
-function formatZodIssues(error: z.ZodError): string {
+function formatValidationIssues(error: ValidationIssueList): string {
   const lines = error.issues.map((issue) => {
     const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
     return `  - ${path}: ${issue.message}`;
@@ -396,7 +498,7 @@ export function parseInstanceOverrides(yamlContent: string): InstanceOverrides {
   const parsed = instanceOverridesSchema.safeParse(normalized);
 
   if (!parsed.success) {
-    throw new InstanceOverridesParseError(formatZodIssues(parsed.error));
+    throw new InstanceOverridesParseError(formatValidationIssues(parsed.error));
   }
 
   return parsed.data;

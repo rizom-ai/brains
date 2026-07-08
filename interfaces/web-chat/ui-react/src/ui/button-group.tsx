@@ -3,8 +3,15 @@ import { Slot } from "radix-ui";
 
 import { cn } from "@/ui-react/src/lib/utils";
 import { Separator } from "@/ui-react/src/ui/separator";
+import type { CvaClassProp } from "./variant-types";
 
-const buttonGroupVariants = cva(
+type ButtonGroupVariants = (
+  props?: {
+    orientation?: "horizontal" | "vertical" | null | undefined;
+  } & CvaClassProp,
+) => string;
+
+const buttonGroupVariants: ButtonGroupVariants = cva(
   "flex w-fit items-stretch has-[>[data-slot=button-group]]:gap-2 [&>*]:focus-visible:relative [&>*]:focus-visible:z-10 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1",
   {
     variants: {
@@ -25,7 +32,8 @@ function ButtonGroup({
   className,
   orientation,
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof buttonGroupVariants>) {
+}: React.ComponentProps<"div"> &
+  VariantProps<typeof buttonGroupVariants>): React.ReactNode {
   return (
     <div
       role="group"
@@ -43,7 +51,7 @@ function ButtonGroupText({
   ...props
 }: React.ComponentProps<"div"> & {
   asChild?: boolean;
-}) {
+}): React.ReactNode {
   const Comp = asChild ? Slot.Root : "div";
 
   return (
@@ -61,7 +69,7 @@ function ButtonGroupSeparator({
   className,
   orientation = "vertical",
   ...props
-}: React.ComponentProps<typeof Separator>) {
+}: React.ComponentProps<typeof Separator>): React.ReactNode {
   return (
     <Separator
       data-slot="button-group-separator"

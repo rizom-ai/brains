@@ -1,6 +1,9 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { fetchAnchorProfileData } from "@brains/plugins";
-import type { z } from "@brains/utils/zod";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 
 interface AboutDataSourceOutput {
@@ -17,7 +20,7 @@ export class AboutDataSource implements DataSource {
 
   async fetch<T>(
     _query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const profile = await fetchAnchorProfileData(

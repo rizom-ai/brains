@@ -5,11 +5,12 @@ import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import {
   createServicePluginContext,
+  PluginConfigValidationError,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
-import { z } from "@brains/utils/zod";
 import { fromYaml } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 import { cmsPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
 
 function createCmsTestShell(
@@ -34,12 +35,7 @@ function createCmsTestShell(
     ({
       getEffectiveFrontmatterSchema: (
         type: string,
-      ):
-        | z.ZodObject<{
-            title: z.ZodOptional<z.ZodString>;
-            summary: z.ZodOptional<z.ZodString>;
-          }>
-        | undefined => {
+      ): z.ZodObject<z.ZodRawShape> | undefined => {
         if (type === "note" || type === "post") {
           return z.object({
             title: z.string().optional(),
@@ -366,7 +362,20 @@ describe("cms plugin", () => {
         githubOAuth: { clientId: "client-id", clientSecret: "client-secret" },
         passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
       }),
-    ).toThrow(/single method/i);
+    ).toThrow(PluginConfigValidationError);
+
+    try {
+      cmsPlugin({
+        githubOAuth: { clientId: "client-id", clientSecret: "client-secret" },
+        passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(PluginConfigValidationError);
+      if (!(error instanceof PluginConfigValidationError)) {
+        throw error;
+      }
+      expect(error.issues[0]?.message).toMatch(/single method/i);
+    }
   });
 
   it("redirects GitHub login with a state cookie", async () => {

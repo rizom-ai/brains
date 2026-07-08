@@ -5,17 +5,25 @@ import { z } from "@brains/utils/zod";
  * the API as a plain object. This schema accepts either shape and falls back
  * to `{}` for anything else (legacy null, parse errors, non-record JSON).
  */
-export const conversationMetadataSchema = z
-  .preprocess((value) => {
-    if (typeof value !== "string") return value;
-    try {
-      return JSON.parse(value);
-    } catch {
-      return undefined;
-    }
-  }, z.record(z.unknown()))
+export const conversationMetadataSchema: z.ZodType<
+  Record<string, unknown>,
+  unknown
+> = z
+  .preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    },
+    z.record(z.string(), z.unknown()),
+  )
   .catch({});
 
-export const coerceConversationMetadata = (
+export function coerceConversationMetadata(
   value: unknown,
-): Record<string, unknown> => conversationMetadataSchema.parse(value);
+): Record<string, unknown> {
+  return conversationMetadataSchema.parse(value);
+}

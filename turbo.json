@@ -30,6 +30,7 @@
       "persistent": true
     },
     "test": {
+      "dependsOn": ["^build", "build"],
       "inputs": [
         "src/**/*.tsx",
         "src/**/*.ts",
@@ -40,7 +41,7 @@
       "cache": true
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^typecheck", "^build", "build"],
       "inputs": [
         "src/**",
         "test/**",

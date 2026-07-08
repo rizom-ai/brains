@@ -22,20 +22,23 @@ export type {
   SummaryBody,
   SummaryEntry,
   SummaryMetadata,
-  SummaryConfig,
   SummaryParticipant,
   SummaryTimeRange,
 } from "./schemas/summary";
+export type {
+  SummaryConfig,
+  SummaryConfigInput,
+} from "./schemas/summary-config";
 
 export {
   summarySchema,
   summaryBodySchema,
   summaryEntrySchema,
   summaryMetadataSchema,
-  summaryConfigSchema,
   summaryParticipantSchema,
   summaryTimeRangeSchema,
 } from "./schemas/summary";
+export { summaryConfigSchema } from "./schemas/summary-config";
 
 export {
   actionItemAssigneeSchema,

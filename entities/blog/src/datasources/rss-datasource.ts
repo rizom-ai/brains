@@ -1,4 +1,8 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { BlogPost } from "../schemas/blog-post";
@@ -11,23 +15,27 @@ import { generateRSSFeed, type RSSFeedConfig } from "../rss/feed-generator";
  * RSS feed query schema
  */
 const rssFeedQuerySchema = z.object({
-  siteUrl: z.string().url(),
+  siteUrl: z.url(),
   title: z.string(),
   description: z.string(),
   language: z.string().optional(),
   copyright: z.string().optional(),
 });
 
+type RSSFeedQuery = z.output<typeof rssFeedQuerySchema>;
+
 /**
  * DataSource for generating RSS feed from blog posts
  */
 export class RSSDataSource implements DataSource {
+  private readonly logger: Logger;
   public readonly id = "blog:rss";
   public readonly name = "Blog RSS Feed DataSource";
   public readonly description =
     "Generates RSS 2.0 feed XML from published blog posts";
 
-  constructor(private readonly logger: Logger) {
+  constructor(logger: Logger) {
+    this.logger = logger;
     this.logger.debug("RSSDataSource initialized");
   }
 
@@ -37,11 +45,11 @@ export class RSSDataSource implements DataSource {
    */
   async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse query parameters
-    const params = rssFeedQuerySchema.parse(query);
+    const params: RSSFeedQuery = rssFeedQuerySchema.parse(query);
     // Use context.entityService for automatic publishedOnly filtering
     const entityService = context.entityService;
 

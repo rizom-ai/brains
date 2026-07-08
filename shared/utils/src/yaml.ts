@@ -1,5 +1,4 @@
 import * as yaml from "js-yaml";
-import type { z } from "zod";
 
 /**
  * Convert an object to YAML string
@@ -41,6 +40,21 @@ export interface YamlParseFailure {
 }
 export type YamlParseResult<T> = YamlParseSuccess<T> | YamlParseFailure;
 
+export interface YamlValidationIssue {
+  path: readonly PropertyKey[];
+}
+
+export interface YamlValidationError {
+  issues: readonly YamlValidationIssue[];
+}
+
+export interface YamlValidationSchema<T> {
+  safeParse(
+    value: unknown,
+  ):
+    { success: true; data: T } | { success: false; error: YamlValidationError };
+}
+
 /**
  * Parse a YAML string, validate it's an object, and optionally validate
  * against a Zod schema.
@@ -56,12 +70,12 @@ export function parseYamlDocument(
 ): YamlParseResult<Record<string, unknown>>;
 export function parseYamlDocument<T>(
   content: string,
-  schema: z.ZodType<T>,
+  schema: YamlValidationSchema<T>,
 ): YamlParseResult<T>;
-export function parseYamlDocument<T = Record<string, unknown>>(
+export function parseYamlDocument<T>(
   content: string,
-  schema?: z.ZodType<T>,
-): YamlParseResult<T> {
+  schema?: YamlValidationSchema<T>,
+): YamlParseResult<Record<string, unknown> | T> {
   if (!content.trim()) {
     return { ok: false, error: "file is empty" };
   }
@@ -76,19 +90,25 @@ export function parseYamlDocument<T = Record<string, unknown>>(
     };
   }
 
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+  if (!isYamlMapping(raw)) {
     return { ok: false, error: "expected a YAML mapping (key: value pairs)" };
   }
 
   if (!schema) {
-    return { ok: true, data: raw as T };
+    return { ok: true, data: raw };
   }
 
   const result = schema.safeParse(raw);
   if (!result.success) {
-    const fields = result.error.issues.map((i) => i.path.join(".")).join(", ");
+    const fields = result.error.issues
+      .map((issue) => issue.path.map(String).join("."))
+      .join(", ");
     return { ok: false, error: `invalid field(s): ${fields}` };
   }
 
   return { ok: true, data: result.data };
+}
+
+function isYamlMapping(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

@@ -91,7 +91,7 @@ describe("EntityDataSource", () => {
       );
 
       void expect(fetchPromise).rejects.toThrow(
-        "EntityDataSource: Invalid query - entityType: Required",
+        "EntityDataSource: Invalid query - entityType: Invalid input: expected string, received undefined",
       );
     });
 
@@ -102,7 +102,7 @@ describe("EntityDataSource", () => {
       );
 
       void expect(fetchPromise).rejects.toThrow(
-        "EntityDataSource: Invalid query - query.id: Required",
+        "EntityDataSource: Invalid query - query.id: Invalid input: expected string, received undefined",
       );
     });
 

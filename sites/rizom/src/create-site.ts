@@ -1,62 +1,108 @@
-import type { DataSource, Plugin, ServicePluginContext } from "@brains/plugins";
-import {
-  extendSite,
-  type RouteDefinitionInput,
-  type SitePackage,
-} from "@brains/site-composition";
-import type { Template } from "@brains/templates";
-import { rizomBaseSite } from "./runtime";
-import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
+import { extendSite } from "@brains/site-composition";
+import type {
+  RouteDefinitionInput,
+  SiteContentDefinition,
+  SiteDefinition,
+} from "@rizom/site";
+import rizomBaseSite from ".";
+import type {
+  RizomPluginCapabilities,
+  RizomSiteShell,
+  RizomThemeProfile,
+  SitePackage,
+} from "./contracts";
+import { buildRizomHeadScript, RizomRuntimePlugin } from "./runtime/plugin";
+
+interface TemplateGroup {
+  namespace: string;
+  templates: Record<string, unknown>;
+}
+
+export interface RizomRuntimeHooks {
+  contentNamespace: string;
+  templates?: Record<string, unknown>;
+  dataSources?: unknown[];
+}
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
+  private readonly templateGroups: TemplateGroup[];
+  private readonly dataSources: unknown[];
+
   constructor(
     packageName: string,
     config: Record<string, unknown>,
-    private readonly contentNamespace: string,
-    private readonly extraTemplates: Record<string, Template>,
-    private readonly dataSources: DataSource[] = [],
+    templateGroups: TemplateGroup[],
+    dataSources: unknown[] = [],
   ) {
     super(packageName, config);
+    this.templateGroups = templateGroups;
+    this.dataSources = dataSources;
   }
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    context.templates.register(this.extraTemplates, this.contentNamespace);
-    for (const dataSource of this.dataSources) {
-      context.entities.registerDataSource(dataSource);
+  override async register(
+    shell: RizomSiteShell,
+    _context?: unknown,
+  ): Promise<RizomPluginCapabilities> {
+    for (const group of this.templateGroups) {
+      shell.registerTemplates(group.templates, group.namespace);
     }
+    for (const dataSource of this.dataSources) {
+      shell.getDataSourceRegistry().register(dataSource);
+    }
+    return { tools: [], resources: [] };
   }
 }
 
 export interface CreateRizomSiteOptions {
   packageName: string;
-  contentNamespace: string;
   themeProfile: RizomThemeProfile;
   layout: unknown;
   routes: RouteDefinitionInput[];
-  templates: Record<string, Template>;
-  dataSources?: DataSource[];
+  content?: SiteContentDefinition | SiteContentDefinition[];
+  themeOverride?: string;
+  /** Advanced runtime hooks for in-repo sites that need custom template/data-source wiring. */
+  runtime?: RizomRuntimeHooks;
+}
+
+function buildTemplateGroups(options: CreateRizomSiteOptions): TemplateGroup[] {
+  if (!options.runtime?.templates) {
+    return [];
+  }
+  return [
+    {
+      namespace: options.runtime.contentNamespace,
+      templates: options.runtime.templates,
+    },
+  ];
+}
+
+function createRuntimePlugin(
+  options: CreateRizomSiteOptions,
+): SitePackage["plugin"] {
+  if (!options.runtime?.templates && !options.runtime?.dataSources?.length) {
+    return undefined;
+  }
+
+  return (config?: Record<string, unknown>): RizomRuntimePlugin =>
+    new RizomVariantPlugin(
+      options.packageName,
+      { themeProfile: options.themeProfile, ...(config ?? {}) },
+      buildTemplateGroups(options),
+      options.runtime?.dataSources,
+    );
 }
 
 export function createRizomSite(
   options: CreateRizomSiteOptions,
-): SitePackage<Record<string, unknown>, Plugin> {
-  const plugin: SitePackage<Record<string, unknown>, Plugin>["plugin"] = (
-    config?: Record<string, unknown>,
-  ): Plugin =>
-    new RizomVariantPlugin(
-      options.packageName,
-      { themeProfile: options.themeProfile, ...(config ?? {}) },
-      options.contentNamespace,
-      options.templates,
-      options.dataSources,
-    );
+): SiteDefinition {
+  const plugin = createRuntimePlugin(options);
 
   return extendSite(rizomBaseSite, {
     layouts: { default: options.layout },
     routes: options.routes,
-    plugin,
+    ...(options.content ? { content: options.content } : {}),
+    headScripts: [buildRizomHeadScript(options.themeProfile)],
+    ...(plugin ? { plugin } : {}),
+    ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),
   });
 }

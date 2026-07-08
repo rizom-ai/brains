@@ -28,20 +28,16 @@ const paginationSchema = z.object({
 
 const paginatedListSchema = z.object({
   posts: z.array(
-    z
-      .object({
-        id: z.string(),
-        entityType: z.string(),
-        frontmatter: z
-          .object({
-            title: z.string(),
-            slug: z.string(),
-            status: z.string(),
-          })
-          .passthrough(),
-        body: z.string(),
-      })
-      .passthrough(),
+    z.looseObject({
+      id: z.string(),
+      entityType: z.string(),
+      frontmatter: z.looseObject({
+        title: z.string(),
+        slug: z.string(),
+        status: z.string(),
+      }),
+      body: z.string(),
+    }),
   ),
   pagination: paginationSchema.nullable(),
 });

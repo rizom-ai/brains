@@ -252,12 +252,10 @@ describe("CLIInterface", () => {
           };
         },
       );
-      const confirmMock = mock(
-        async (): Promise<MockAgentResponse> => ({
-          text: "Should not confirm.",
-          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
-        }),
-      );
+      const confirmMock = mock(async (): Promise<MockAgentResponse> => ({
+        text: "Should not confirm.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }));
       harness.reset();
       harness = createPluginHarness<CLIInterface>();
 

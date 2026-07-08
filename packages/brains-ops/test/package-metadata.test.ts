@@ -8,6 +8,7 @@ import {
   deployScriptNames,
   resolveDeployScriptPath,
 } from "@brains/deploy-support";
+import { z } from "@brains/utils/zod";
 
 import packageJson from "../package.json";
 
@@ -28,6 +29,18 @@ function readDeployTemplateFile(relativePath: string): string {
 // congested CI runners, so they're gated to the Release workflow's pre-publish
 // step rather than per-commit CI.
 const RUN_SMOKE = process.env["RUN_SMOKE_TESTS"] === "1";
+
+const npmPackJsonSchema = z.array(
+  z.looseObject({
+    files: z
+      .array(
+        z.looseObject({
+          path: z.string(),
+        }),
+      )
+      .optional(),
+  }),
+);
 
 describe("@rizom/ops package metadata", () => {
   it("keeps the shared deploy template source up to date", () => {
@@ -84,9 +97,7 @@ describe("@rizom/ops package metadata", () => {
     });
     expect(pack.status).toBe(0);
 
-    const tarballs = JSON.parse(pack.stdout) as Array<{
-      files?: Array<{ path: string }>;
-    }>;
+    const tarballs = npmPackJsonSchema.parse(JSON.parse(pack.stdout));
     const filePaths = new Set(
       tarballs[0]?.files?.map((file) => file.path) ?? [],
     );

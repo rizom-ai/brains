@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>rizom.ai — Consolidated Site Mockup · rev 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400;1,450&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --night: #14132b;
+    --night-deep: #0e0d20;
+    --white: #faf8f3;
+    --w70: rgba(250,248,243,0.72);
+    --w45: rgba(250,248,243,0.46);
+    --w28: rgba(250,248,243,0.28);
+    --rule: rgba(250,248,243,0.14);
+    --rule-soft: rgba(250,248,243,0.07);
+    --brass: #d4af37;
+    --brass-soft: #e8cc6a;
+    --ruby: #d0453a;
+    --ruby-soft: #e07a6a;
+    --moss: #9caf88;
+    --cta-ink: #0e0d20;
+    --myc-root: rgba(212,175,55,.26);
+    --myc-twig: rgba(250,248,243,.1);
+    --wash-a: rgba(107,47,160,.22);
+    --wash-b: rgba(212,175,55,.07);
+    --display: "Fraunces", serif;
+    --ui: "IBM Plex Sans", sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+    --pad-x: 64px;
+    --pad-rail: 148px;
+  }
+  html[data-theme="light"] {
+    --night: #faf8f3;
+    --night-deep: #f1ede2;
+    --white: #23213a;
+    --w70: rgba(35,33,58,0.76);
+    --w45: rgba(35,33,58,0.52);
+    --w28: rgba(35,33,58,0.34);
+    --rule: rgba(35,33,58,0.18);
+    --rule-soft: rgba(35,33,58,0.09);
+    --brass: #a8821c;
+    --brass-soft: #8a6a12;
+    --ruby: #b83a2e;
+    --ruby-soft: #b8503f;
+    --moss: #5e7a4e;
+    --cta-ink: #faf8f3;
+    --myc-root: rgba(168,130,28,.4);
+    --myc-twig: rgba(35,33,58,.14);
+    --wash-a: rgba(140,130,200,.16);
+    --wash-b: rgba(168,130,28,.08);
+  }
+  html[data-theme="light"] body::before { opacity: .3; }
+  html[data-theme="light"] .frame { box-shadow: 0 30px 70px -34px rgba(35,33,58,.35); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--ui); background: var(--night-deep); color: var(--white); font-size: 15.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 999; pointer-events: none; opacity: .45;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection { background: rgba(212,175,55,.35); }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+
+  .rv { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .rv.in { opacity: 1; transform: none; }
+  .rv.d1 { transition-delay: .08s; } .rv.d2 { transition-delay: .16s; } .rv.d3 { transition-delay: .24s; }
+  @media (prefers-reduced-motion: reduce) {
+    .rv { opacity: 1; transform: none; transition: none; }
+    * { animation: none !important; }
+  }
+
+  /* ============ mockup chrome ============ */
+  .mock-header { max-width: 1320px; margin: 0 auto; padding: 52px 40px 16px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--brass); }
+  .mock-header h1 { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 90; font-weight: 500; font-size: clamp(26px,3.4vw,38px); line-height: 1.12; margin-top: 10px; max-width: 28em; letter-spacing: -.01em; }
+  .mock-header h1 em { font-style: italic; color: var(--brass-soft); font-weight: 450; }
+  .lede { margin-top: 12px; max-width: 72ch; color: var(--w70); font-size: 14.5px; }
+  .mock-nav { max-width: 1320px; margin: 20px auto 0; padding: 0 40px; display: flex; border-bottom: 1px solid var(--rule); }
+  .mock-nav a { font-family: var(--mono); font-size: 12px; text-decoration: none; color: var(--w45); padding: 10px 16px 12px; transform: translateY(1px); }
+  .mock-nav a span { color: var(--brass); margin-right: 6px; }
+  .mock-nav a:hover { color: var(--white); }
+  .mock-nav button { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--w45); background: none; border: 1px solid var(--rule); border-radius: 6px; padding: 5px 12px; cursor: pointer; align-self: center; }
+  .screen { max-width: 1320px; margin: 64px auto 0; padding: 0 40px; }
+  .screen-label { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
+  .screen-label .num { font-family: var(--mono); font-size: 12px; color: var(--brass); }
+  .screen-label h2 { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 500; font-size: 20px; }
+  .screen-label .note { font-size: 12.5px; color: var(--w28); margin-left: auto; text-align: right; max-width: 48ch; }
+  .frame { position: relative; background: var(--night); border: 1px solid var(--rule-soft); overflow: hidden; box-shadow: 0 34px 80px -30px rgba(0,0,0,.9); }
+
+  .sitemap { max-width: 1320px; margin: 30px auto 0; padding: 0 40px; }
+  .sitemap pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.9; color: var(--w45); border: 1px solid var(--rule-soft); padding: 26px 32px; overflow-x: auto; background: var(--night); }
+  .sitemap pre b { color: var(--white); font-weight: 500; }
+  .sitemap pre i { font-style: normal; color: var(--brass); }
+  .sitemap pre .rb { color: var(--ruby-soft); }
+  .sitemap pre .ms { color: var(--moss); }
+  .sitemap pre .dim { color: var(--w28); }
+
+  /* ============ shared language ============ */
+  .mycelium { position: absolute; top: 0; left: -18px; height: 100%; width: 210px; pointer-events: none; }
+  .mycelium path { fill: none; stroke-linecap: round; }
+  .mycelium .root { stroke: var(--myc-root); stroke-width: 1.4; stroke-dasharray: 6 10; animation: seep 26s linear infinite; }
+  .mycelium .twig { stroke: var(--myc-twig); stroke-width: 1; }
+  .mycelium circle { fill: var(--night); stroke-width: 1.6; animation: nodeglow 4s ease-in-out infinite; }
+  @keyframes seep { to { stroke-dashoffset: -320; } }
+  @keyframes nodeglow { 0%,100% { opacity: .65; } 50% { opacity: 1; } }
+
+  .facestrip { position: relative; z-index: 2; display: flex; gap: 22px; align-items: baseline; padding: 12px var(--pad-x) 11px var(--pad-rail); border-bottom: 1px solid var(--rule-soft); font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--w28); }
+  .facestrip .fs-org { color: var(--w45); }
+  .facestrip a { text-decoration: none; color: var(--w28); transition: color .15s; }
+  .facestrip a:hover { color: var(--w70); }
+  .facestrip a.on { color: var(--accent, var(--brass)); }
+  .facestrip .fs-right { margin-left: auto; letter-spacing: .1em; text-transform: none; font-style: italic; font-family: var(--display); font-size: 12px; }
+
+  .sitenav { position: relative; z-index: 2; display: flex; align-items: baseline; gap: 32px; padding: 24px var(--pad-x) 22px var(--pad-rail); }
+  .wordmark { font-family: var(--display); font-variation-settings: "SOFT" 100; font-weight: 600; font-size: 22px; letter-spacing: -.01em; text-decoration: none; }
+  .wordmark i { font-style: normal; color: var(--accent, var(--brass)); }
+  .wordmark small { font-weight: 480; font-size: 17px; color: var(--w70); }
+  .sitenav .links { display: flex; gap: 28px; }
+  .sitenav .links a { font-size: 14px; text-decoration: none; color: var(--w45); background: linear-gradient(var(--white), var(--white)) no-repeat 0 100% / 0 1px; transition: color .2s, background-size .25s; }
+  .sitenav .links a:hover { color: var(--white); background-size: 100% 1px; }
+  .sitenav .links a sup { font-family: var(--mono); font-size: 9px; color: var(--w28); }
+  .sitenav .spacer { flex: 1; }
+  .cta-mini { font-size: 14px; font-weight: 500; text-decoration: none; color: var(--cta-ink); background: var(--accent, var(--brass)); padding: 9px 18px; border-radius: 3px; transition: filter .15s, transform .15s; }
+  .cta-mini:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+  .sect { position: relative; padding: 62px var(--pad-x) 46px var(--pad-rail); }
+  .sect + .sect, .sect + .band, .band + .sect { border-top: 1px solid var(--rule); }
+  .cap { font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--w28); display: flex; align-items: baseline; gap: 14px; }
+  .cap::before { content: ""; width: 26px; height: 1px; background: var(--accent, var(--brass)); align-self: center; opacity: .8; }
+  .cap b { color: var(--accent, var(--brass)); font-weight: 500; }
+  .cap small { color: var(--w28); letter-spacing: .1em; text-transform: none; }
+  .sect h4 { font-family: var(--display); font-variation-settings: "SOFT" 78, "opsz" 84; font-weight: 465; font-size: clamp(26px,3vw,37px); letter-spacing: -.014em; line-height: 1.1; margin-top: 14px; max-width: 21em; }
+  .sect h4 em { font-style: italic; color: var(--accent, var(--brass-soft)); }
+  .intro { font-size: 15px; color: var(--w45); max-width: 60ch; margin-top: 12px; }
+
+  .go { font-family: var(--mono); font-size: 12px; color: var(--w28); text-decoration: none; white-space: nowrap; transition: color .2s, transform .2s; display: inline-block; }
+  a:hover > .go, .go:hover { color: var(--accent, var(--brass)); transform: translateX(4px); }
+
+  .cta { font-size: 15px; font-weight: 500; text-decoration: none; color: var(--cta-ink); background: var(--accent, var(--brass)); padding: 13px 26px; border-radius: 3px; display: inline-block; box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 8px 22px -12px var(--accent, var(--brass)); transition: filter .15s, transform .15s; }
+  .cta:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  .quiet { font-size: 14.5px; color: var(--w45); text-decoration: none; background: linear-gradient(var(--w45), var(--w45)) no-repeat 0 100% / 100% 1px; padding-bottom: 2px; transition: color .2s; }
+  .quiet:hover { color: var(--white); }
+  .actions { display: flex; gap: 26px; align-items: baseline; }
+
+  .siteband { border-top: 1px solid var(--rule-soft); padding: 16px var(--pad-x) 16px var(--pad-rail); display: flex; gap: 26px; font-family: var(--mono); font-size: 11px; color: var(--w28); position: relative; }
+  .siteband b { color: var(--w45); font-weight: 500; }
+  .siteband .spacer { flex: 1; }
+
+  .footer { position: relative; border-top: 1px solid var(--rule); padding: 44px var(--pad-x) 38px var(--pad-rail); display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 40px; }
+  .footer .f-brand .wordmark { font-size: 26px; }
+  .footer .f-brand p { font-size: 12.5px; color: var(--w28); margin-top: 10px; max-width: 26ch; }
+  .footer .f-col .f-h { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--w28); margin-bottom: 12px; }
+  .footer .f-col a { display: block; font-size: 13.5px; color: var(--w45); text-decoration: none; padding: 3px 0; }
+  .footer .f-col a:hover { color: var(--white); }
+  .footer .f-legal { grid-column: 1 / -1; display: flex; gap: 22px; border-top: 1px solid var(--rule-soft); margin-top: 8px; padding-top: 16px; font-family: var(--mono); font-size: 10.5px; color: var(--w28); }
+  .footer .f-legal .spacer { flex: 1; }
+
+  /* ============ HOME ============ */
+  .hero { position: relative; padding: 84px var(--pad-x) 72px var(--pad-rail); overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: -35% -15%;
+    background:
+      radial-gradient(760px 400px at 16% 4%, var(--wash-a), transparent 64%),
+      radial-gradient(560px 340px at 92% 90%, var(--wash-b), transparent 70%);
+    pointer-events: none;
+  }
+  .hero > * { position: relative; }
+  .hero .h-kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--brass); }
+  .hero h3 { font-family: var(--display); font-variation-settings: "SOFT" 92, "opsz" 130; font-weight: 435; font-size: clamp(46px, 6.4vw, 88px); line-height: .99; letter-spacing: -.022em; max-width: 10.5em; margin-top: 20px; }
+  .hero h3 em { font-style: italic; color: var(--brass-soft); font-weight: 395; }
+  .hero .standfirst { display: flex; gap: 60px; align-items: baseline; margin-top: 36px; }
+  .hero .standfirst p { max-width: 42ch; font-size: 18px; color: var(--w70); }
+  .hero .standfirst p b { color: var(--white); font-weight: 500; }
+  .hload { opacity: 0; transform: translateY(22px); animation: hrise .9s cubic-bezier(.2,.7,.2,1) forwards; }
+  .hload.h2 { animation-delay: .12s; } .hload.h3 { animation-delay: .26s; } .hload.h4 { animation-delay: .4s; }
+  @keyframes hrise { to { opacity: 1; transform: none; } }
+
+  .growth { margin-top: 20px; max-width: 1020px; }
+  .growth svg { display: block; width: 100%; height: auto; overflow: visible; }
+  /* filaments: one organism, drawn in when revealed, then breathing */
+  .growth path { fill: none; stroke-linecap: round; }
+  .growth .fil { stroke: var(--myc-root); stroke-width: 1.4; }
+  .growth .fil.fine { stroke-width: 1; opacity: .8; }
+  .growth .fil.hair { stroke-width: .8; opacity: .55; }
+  .growth .fil.w-team { stroke: color-mix(in srgb, var(--ruby-soft) 40%, transparent); }
+  .growth .fil.w-net { stroke: color-mix(in srgb, var(--moss) 45%, transparent); }
+  .growth .draw { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .growth.in .draw { animation: drawin 1.5s cubic-bezier(.3,.6,.3,1) forwards; animation-delay: var(--d, 0s); }
+  @keyframes drawin { to { stroke-dashoffset: 0; } }
+  /* nodes bloom left→right */
+  .growth circle { transform-box: fill-box; transform-origin: center; }
+  .growth .gn { stroke-width: 1.6; transform: scale(0); }
+  .growth.in .gn { animation: bloom .7s cubic-bezier(.2,.9,.3,1.4) forwards; animation-delay: var(--d, 0s); }
+  @keyframes bloom { to { transform: scale(1); } }
+  .growth .gn.you { fill: var(--brass); stroke: var(--brass); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--brass) 55%, transparent)); }
+  .growth .gn.seed { fill: color-mix(in srgb, var(--brass) 70%, var(--night)); stroke: var(--brass); }
+  .growth .gn.peer { fill: var(--night); stroke: var(--w45); }
+  .growth .gn.faint { fill: none; stroke: var(--w28); stroke-dasharray: 2.5 3.5; }
+  .growth text { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; fill: var(--w45); opacity: 0; transition: opacity .8s ease; transition-delay: var(--d, 0s); }
+  .growth.in text { opacity: 1; }
+  .growth text.gt-sub { fill: var(--w28); letter-spacing: .8px; text-transform: none; font-size: 10px; }
+  .growth text.gt-you { fill: var(--brass); }
+  .growth text.gt-team { fill: var(--ruby-soft); }
+  .growth text.gt-net { fill: var(--moss); }
+  .growth .tick { stroke: var(--rule); stroke-width: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .growth .draw { stroke-dashoffset: 0; }
+    .growth .gn { transform: scale(1); animation: none; }
+    .growth text { opacity: 1; }
+  }
+  .l-note { font-family: var(--display); font-variation-settings: "SOFT" 85; font-style: italic; font-size: 15px; color: var(--w45); margin-top: 20px; max-width: 52em; }
+  .l-note b { color: var(--w70); font-weight: 500; }
+
+  .trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px; margin-top: 30px; max-width: 1040px; }
+  .trio-item .t-no { font-family: var(--display); font-variation-settings: "SOFT" 30, "opsz" 100; font-weight: 300; font-size: 40px; color: var(--w28); line-height: 1; }
+  .trio-item .t-no.m { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent, var(--brass)); letter-spacing: .1em; padding: 12px 0 15px; display: inline-block; }
+  .trio-item b { display: block; font-family: var(--display); font-variation-settings: "SOFT" 55; font-weight: 520; font-size: 18.5px; margin-top: 10px; letter-spacing: -.006em; }
+  .trio-item p { font-size: 13.5px; color: var(--w45); margin-top: 8px; }
+
+  .quickstart { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; margin-top: 28px; max-width: 1000px; align-items: start; }
+  .term { font-family: var(--mono); font-size: 13px; line-height: 1.9; border: 1px solid var(--rule); background: color-mix(in srgb, var(--night-deep) 60%, transparent); padding: 20px 24px; }
+  .term .cm { color: var(--w28); }
+  .term .ps { color: var(--brass); user-select: none; }
+  .term .ok { color: var(--moss); }
+  .checks { font-size: 13.5px; color: var(--w45); }
+  .checks li { list-style: none; padding: 7px 0; border-bottom: 1px solid var(--rule-soft); display: flex; gap: 10px; }
+  .checks li::before { content: "✓"; color: var(--moss); font-family: var(--mono); }
+
+  .band { position: relative; padding: 74px var(--pad-x) 70px var(--pad-rail); overflow: hidden; }
+  .band::before { content: ""; position: absolute; inset: 0; background: radial-gradient(640px 300px at 78% 30%, var(--wash-a), transparent 68%); opacity: .5; pointer-events: none; }
+  .band > * { position: relative; }
+  .band blockquote { font-family: var(--display); font-variation-settings: "SOFT" 100, "opsz" 110; font-style: italic; font-weight: 405; font-size: clamp(26px,3.6vw,44px); line-height: 1.18; letter-spacing: -.015em; max-width: 19em; }
+  .band blockquote em { color: var(--brass-soft); }
+  .band .b-sub { font-size: 15px; color: var(--w45); max-width: 52ch; margin-top: 18px; }
+  .band .actions { margin-top: 26px; }
+
+  .faces .face { display: grid; grid-template-columns: 120px 1fr auto; gap: 30px; align-items: baseline; padding: 20px 0; border-top: 1px solid var(--rule-soft); text-decoration: none; }
+  .faces .face:first-of-type { border-top: none; }
+  .faces .face .f-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; }
+  .faces .face h5 { font-family: var(--display); font-variation-settings: "SOFT" 70; font-weight: 480; font-size: 20px; letter-spacing: -.008em; }
+  .faces .face h5 em { font-style: italic; transition: color .2s; }
+  .faces .face:hover h5 em { color: var(--accent); }
+  .f-work { --accent: var(--ruby-soft); } .f-work .f-k { color: var(--ruby-soft); }
+  .f-fnd { --accent: var(--moss); } .f-fnd .f-k { color: var(--moss); }
+  .f-plat { --accent: var(--brass); } .f-plat .f-k { color: var(--brass); }
+
+  .alive-line { display: flex; align-items: baseline; gap: 26px; flex-wrap: wrap; padding-top: 40px; padding-bottom: 40px; }
+  .alive-line .a-claim { font-family: var(--display); font-variation-settings: "SOFT" 90; font-style: italic; font-weight: 430; font-size: 19px; color: var(--w70); }
+  .alive-line .a-claim b { color: var(--white); font-weight: 500; font-style: normal; }
+  .alive-line a { font-family: var(--mono); font-size: 11px; color: var(--w45); text-decoration: none; border-bottom: 1px solid var(--rule-soft); transition: color .15s; }
+  .alive-line a:hover { color: var(--brass-soft); }
+
+  /* ============ rooms ============ */
+  .room-head { position: relative; padding: 64px var(--pad-x) 30px var(--pad-rail); overflow: hidden; }
+  .room-head::before { content: ""; position: absolute; inset: -30% -10%; background: radial-gradient(680px 360px at 14% 8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 66%); pointer-events: none; }
+  .room-head > * { position: relative; }
+  .room-head h3 { font-family: var(--display); font-variation-settings: "SOFT" 88, "opsz" 110; font-weight: 448; font-size: clamp(32px,4.4vw,54px); line-height: 1.05; letter-spacing: -.018em; margin-top: 18px; max-width: 15.5em; }
+  .room-head h3 em { font-style: italic; color: var(--accent); }
+  .room-head .standfirst { font-size: 17px; color: var(--w70); max-width: 50ch; margin-top: 16px; }
+  .exhibit-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 56px; align-items: start; }
+
+  .steps { margin-top: 28px; max-width: 880px; }
+  .step { display: grid; grid-template-columns: 64px 170px 1fr; gap: 24px; padding: 24px 0; border-top: 1px solid var(--rule-soft); align-items: baseline; }
+  .step .s-no { font-family: var(--display); font-variation-settings: "SOFT" 30; font-weight: 300; font-size: 34px; color: var(--w28); line-height: 1; }
+  .step b { font-family: var(--display); font-variation-settings: "SOFT" 60; font-weight: 520; font-size: 18.5px; }
+  .step div p { font-size: 14px; color: var(--w45); }
+  .step div p:first-child { color: var(--w70); font-size: 14.5px; margin-bottom: 3px; }
+
+  .personas { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; margin-top: 28px; max-width: 980px; }
+  .persona .p-role { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  .persona blockquote { font-family: var(--display); font-variation-settings: "SOFT" 85; font-style: italic; font-weight: 450; font-size: 21px; line-height: 1.3; margin-top: 10px; letter-spacing: -.008em; }
+  .persona p { font-size: 14px; color: var(--w45); margin-top: 10px; }
+
+  .quotes { margin-top: 28px; max-width: 980px; }
+  .quote { padding: 26px 0; border-top: 1px solid var(--rule-soft); display: grid; grid-template-columns: 44px 1fr; gap: 18px; }
+  .quote:first-of-type { border-top: none; }
+  .quote .qm { font-family: var(--display); font-size: 44px; line-height: .7; color: var(--accent); opacity: .8; }
+  .quote p { font-size: 16px; line-height: 1.65; color: var(--w70); max-width: 66ch; }
+  .quote .by { font-family: var(--mono); font-size: 11px; color: var(--w28); margin-top: 10px; }
+
+  .roster { display: flex; flex-wrap: wrap; gap: 10px 34px; margin-top: 24px; max-width: 900px; }
+  .roster .person { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; }
+  .roster .person .init { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; color: var(--accent); }
+  .roster .person b { font-size: 14.5px; font-weight: 500; }
+  .roster .person span { font-size: 12.5px; color: var(--w28); }
+
+  .index-row { display: grid; grid-template-columns: 64px 176px 1fr auto; gap: 24px; align-items: baseline; padding: 24px 0; border-top: 1px solid var(--rule-soft); text-decoration: none; max-width: 1040px; }
+  .index-row .i-no { font-family: var(--display); font-variation-settings: "SOFT" 30; font-weight: 300; font-size: 32px; color: var(--w28); line-height: 1; }
+  .index-row .i-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--w28); }
+  .index-row h6 { font-family: var(--display); font-variation-settings: "SOFT" 75, "opsz" 60; font-weight: 470; font-size: 22px; letter-spacing: -.01em; transition: color .2s; }
+  a.index-row:hover h6 { color: var(--accent); }
+  .index-row p { font-size: 13.5px; color: var(--w45); margin-top: 4px; max-width: 56ch; }
+  .index-row .i-meta { font-family: var(--mono); font-size: 11px; color: var(--w45); text-align: right; }
+  .index-row .i-meta small { display: block; color: var(--w28); }
+
+  .support-row { display: grid; grid-template-columns: 1fr 1fr; gap: 52px; margin-top: 26px; max-width: 900px; }
+  .support-row .s-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  .support-row .s-amt { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 480; font-size: 26px; margin-top: 8px; }
+  .support-row p { font-size: 13.5px; color: var(--w45); margin-top: 8px; }
+
+  .diag { position: relative; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 16px; padding: 20px 30px 26px; overflow: hidden; background: color-mix(in srgb, var(--night-deep) 40%, transparent); }
+  .diag .bar { position: absolute; inset: 0 0 auto 0; height: 2px; background: var(--accent); }
+  .diag .radar { display: block; width: 100%; height: auto; padding-bottom: 8px; }
+  .diag .radar .tri-outer { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+  .diag .radar .tri-score { fill: color-mix(in srgb, var(--accent) 20%, transparent); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .diag .radar .vertex { fill: var(--white); stroke: var(--night); stroke-width: 2; }
+  .diag .radar text { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; fill: var(--w45); }
+  .diag .d-type { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 1px solid var(--rule-soft); padding: 16px 0; }
+  .diag .d-type .k { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--w45); white-space: nowrap; }
+  .diag .d-type b { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 96; font-style: italic; font-weight: 500; font-size: 22px; letter-spacing: -.015em; text-align: right; }
+  .diag .d-acts { border-top: 1px solid var(--rule-soft); padding-top: 16px; }
+  .diag .d-acts-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--w45); }
+  .diag .d-acts-head .score .arr { color: var(--w28); margin-right: 6px; }
+  .diag .d-acts-head .score .dim { color: var(--accent); }
+  .diag .d-acts-head .score .n { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .diag .d-acts-head .score .n span { opacity: .6; }
+  .diag ul { list-style: none; margin-top: 14px; display: flex; flex-direction: column; gap: 11px; }
+  .diag li { display: flex; align-items: baseline; gap: 12px; font-size: 13px; line-height: 1.5; color: var(--w70); }
+  .diag li .no { min-width: 26px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; color: color-mix(in srgb, var(--accent) 80%, var(--white)); }
+  .diag .d-run { margin-top: 18px; display: flex; width: 100%; align-items: center; justify-content: center; border: 1px solid var(--rule); border-radius: 10px; padding: 12px 16px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--w70); text-decoration: none; transition: border-color .15s, color .15s; }
+  .diag .d-run:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--white); }
+
+  .footer-note { max-width: 1320px; margin: 80px auto 70px; padding: 22px 40px 0; border-top: 1px solid var(--rule); display: flex; gap: 34px; font-size: 13px; color: var(--w28); }
+  .footer-note .col { max-width: 48ch; }
+  .footer-note b { color: var(--w45); font-weight: 500; }
+
+  @media (max-width: 1020px) {
+    :root { --pad-x: 26px; --pad-rail: 26px; }
+    .mycelium { display: none; }
+    .trio, .support-row, .exhibit-grid, .personas, .quickstart { grid-template-columns: 1fr; }
+    .hero .standfirst { flex-direction: column; gap: 22px; }
+    .index-row { grid-template-columns: 44px 1fr; }
+    .faces .face { grid-template-columns: 1fr; gap: 6px; }
+    .footer { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mock-header">
+  <div class="kicker">rizom.ai — consolidated site · rev 5 · full visual &amp; content pass</div>
+  <h1>One organism above ground and below: a journal you read, fed by a <em>network you can see growing</em>.</h1>
+  <p class="lede">This pass adds the missing real content (the two personas, three client
+  testimonials, the team roster, the actual three-command quickstart, the mission stanza)
+  and commits harder to the brand book visually: a living mycelium that seeps while you
+  read, a growth diagram as the product's centerpiece, atmospheric washes, one orchestrated
+  hero entrance, scroll reveals, and a real footer. Toggle light mode — it's a first-class
+  theme, not an afterthought.</p>
+</header>
+
+<div class="sitemap">
+  <pre><b>rizom.ai</b>
+├── <b>/</b>              <i>the platform · “the tools”</i> — hero · growth · problem · your-data · quickstart · mission · faces
+├── <b>/work</b>          <span class="rb">the practice · “the service”</span> — diagnostic · workshop · personas · proof · people   <span class="dim">← 301 rizom.work/*</span>
+├── <b>/foundation</b>    <span class="ms">the research · “the source”</span> — manifesto · essays · gatherings · support        <span class="dim">← 301 rizom.foundation/*</span>
+├── <b>/writing</b>       one index for everything published — series: <span class="ms">essays</span> · platform notes · practice findings
+├── <b>/events</b>        all gatherings · <b>/network</b>  the agent directory · <b>/chat</b>  talk to this brain
+└── <b>/docs</b> <span class="dim">↗ docs.rizom.ai</span></pre>
+</div>
+
+<nav class="mock-nav">
+  <a href="#s1"><span>01</span>Home</a>
+  <a href="#s2"><span>02</span>/work</a>
+  <a href="#s3"><span>03</span>/foundation</a>
+  <button id="themeToggle">Light mode</button>
+</nav>
+
+<!-- ==================== 01 HOME ==================== -->
+<section class="screen" id="s1">
+  <div class="screen-label">
+    <span class="num">01</span>
+    <h2>Home — the platform</h2>
+    <span class="note">Staggered hero entrance; the growth diagram replaces the three-column
+    list; real quickstart; the live mission copy becomes the band before the faces.</span>
+  </div>
+  <div class="frame">
+    <svg class="mycelium" viewBox="0 0 210 2400" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+      <path class="root" d="M96,0 C74,180 120,320 98,500 C76,680 122,820 100,1040 C80,1230 116,1380 100,1580 C88,1760 112,1900 98,2100 C90,2250 104,2330 98,2400" />
+      <path class="twig" d="M98,500 C140,530 165,515 196,540" />
+      <path class="twig" d="M100,1040 C56,1080 44,1140 26,1160" />
+      <path class="twig" d="M100,1580 C146,1610 158,1665 190,1680" />
+      <path class="twig" d="M98,2100 C58,2140 50,2190 32,2205" />
+      <path class="twig" d="M86,250 C52,272 46,310 28,320" />
+      <circle cx="98" cy="500" r="4" stroke="#d4af37" />
+      <circle cx="100" cy="1040" r="4" stroke="#d4af37" style="animation-delay:.9s" />
+      <circle cx="100" cy="1580" r="4" stroke="#d4af37" style="animation-delay:1.7s" />
+      <circle cx="98" cy="2100" r="4" stroke="#d4af37" style="animation-delay:2.4s" />
+    </svg>
+
+    <div class="facestrip">
+      <span class="fs-org">rizom</span>
+      <a class="on" href="#s1">Platform</a>
+      <a href="#s2">Work</a>
+      <a href="#s3">Foundation</a>
+      <span class="fs-right">one practice · three faces</span>
+    </div>
+    <nav class="sitenav">
+      <a class="wordmark" href="#s1">rizom<i>.</i></a>
+      <div class="links">
+        <a href="#s1">Docs <sup>↗</sup></a>
+        <a href="#s1">Writing</a>
+        <a href="#s1">Network</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="cta-mini" href="#s1">Get Started</a>
+    </nav>
+
+    <div class="hero">
+      <div class="h-kicker hload">Open source · self-hosted · your knowledge</div>
+      <h3 class="hload h2">Build the agent that <em>represents you</em></h3>
+      <div class="standfirst hload h3">
+        <p>Your knowledge becomes an AI agent. Your agent joins a network. The network finds
+        the right expert for every problem, <b>matched by what people actually know</b>.</p>
+        <div class="actions">
+          <a class="cta" href="#s1">Get Your Brain →</a>
+          <a class="quiet" href="#s1">Talk to this brain</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">One brain, three layers <small>— each one makes the others smarter</small></span>
+      <div class="growth rv d1">
+        <svg viewBox="0 0 980 290" role="img" aria-label="One brain growing into a team, then a network">
+          <defs>
+            <radialGradient id="zw-you" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#d4af37" stop-opacity=".1" />
+              <stop offset="100%" stop-color="#d4af37" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="zw-team" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#e07a6a" stop-opacity=".08" />
+              <stop offset="100%" stop-color="#e07a6a" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="zw-net" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#9caf88" stop-opacity=".08" />
+              <stop offset="100%" stop-color="#9caf88" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+
+          <!-- zone atmospheres -->
+          <ellipse cx="110" cy="130" rx="110" ry="95" fill="url(#zw-you)" />
+          <ellipse cx="440" cy="128" rx="160" ry="110" fill="url(#zw-team)" />
+          <ellipse cx="790" cy="125" rx="190" ry="120" fill="url(#zw-net)" />
+
+          <!-- rootlet arriving from off-canvas left: you came from somewhere too -->
+          <path class="fil hair draw" pathLength="1" style="--d:0s" d="M-20,150 C20,146 60,140 96,134" />
+
+          <!-- YOU: the origin -->
+          <circle class="gn you" cx="110" cy="130" r="10" style="--d:.1s" />
+
+          <!-- three branches leave You and BECOME the team -->
+          <path class="fil draw" pathLength="1" style="--d:.25s" d="M121,125 C190,102 260,92 336,96 C360,97 380,99 398,103" />
+          <path class="fil draw" pathLength="1" style="--d:.35s" d="M122,133 C200,140 280,146 356,152 C372,153 384,156 396,160" />
+          <path class="fil fine draw" pathLength="1" style="--d:.45s" d="M118,140 C170,175 240,196 320,196 C350,196 380,190 404,180" />
+
+          <!-- TEAM: a cluster with an internal web -->
+          <circle class="gn seed" cx="408" cy="104" r="7" style="--d:.55s" />
+          <circle class="gn peer" cx="472" cy="80" r="6" style="--d:.65s" />
+          <circle class="gn peer" cx="506" cy="132" r="6.5" style="--d:.72s" />
+          <circle class="gn peer" cx="462" cy="182" r="6" style="--d:.8s" />
+          <circle class="gn peer" cx="402" cy="163" r="5.5" style="--d:.87s" />
+          <path class="fil fine w-team draw" pathLength="1" style="--d:.7s" d="M414,100 C436,90 452,84 466,81" />
+          <path class="fil fine w-team draw" pathLength="1" style="--d:.76s" d="M477,85 C490,99 498,114 503,126" />
+          <path class="fil fine w-team draw" pathLength="1" style="--d:.82s" d="M503,138 C492,155 478,170 468,177" />
+          <path class="fil fine w-team draw" pathLength="1" style="--d:.88s" d="M456,181 C438,177 420,171 408,166" />
+          <path class="fil fine w-team draw" pathLength="1" style="--d:.94s" d="M404,158 C405,141 406,122 407,111" />
+          <path class="fil hair w-team draw" pathLength="1" style="--d:1s" d="M413,109 C443,132 470,152 460,177 M470,86 C450,118 430,146 407,160" />
+
+          <!-- the team's outer threads BECOME the network -->
+          <path class="fil draw" pathLength="1" style="--d:1.05s" d="M512,128 C570,116 630,104 688,96 C700,94 710,93 720,92" />
+          <path class="fil fine draw" pathLength="1" style="--d:1.15s" d="M478,76 C540,58 610,50 672,56 C690,58 706,62 718,66" />
+          <path class="fil fine draw" pathLength="1" style="--d:1.25s" d="M468,186 C530,196 600,198 660,188 C680,184 700,178 716,172" />
+
+          <!-- NETWORK: constellation, still growing -->
+          <circle class="gn seed" cx="726" cy="90" r="6" style="--d:1.35s" />
+          <circle class="gn peer" cx="782" cy="56" r="5.5" style="--d:1.42s" />
+          <circle class="gn peer" cx="838" cy="92" r="6" style="--d:1.5s" />
+          <circle class="gn peer" cx="864" cy="150" r="5.5" style="--d:1.58s" />
+          <circle class="gn peer" cx="796" cy="180" r="5" style="--d:1.65s" />
+          <circle class="gn peer" cx="726" cy="166" r="5" style="--d:1.72s" />
+          <path class="fil fine w-net draw" pathLength="1" style="--d:1.45s" d="M731,86 C749,74 764,64 776,59" />
+          <path class="fil fine w-net draw" pathLength="1" style="--d:1.52s" d="M788,59 C806,68 822,79 832,87" />
+          <path class="fil fine w-net draw" pathLength="1" style="--d:1.6s" d="M841,98 C851,114 858,132 862,144" />
+          <path class="fil fine w-net draw" pathLength="1" style="--d:1.67s" d="M858,155 C840,166 820,175 803,178" />
+          <path class="fil fine w-net draw" pathLength="1" style="--d:1.74s" d="M790,180 C768,177 746,172 732,169" />
+          <path class="fil hair w-net draw" pathLength="1" style="--d:1.8s" d="M727,161 C727,141 727,116 727,97 M733,93 C766,120 800,146 858,152 M780,62 C788,100 794,140 795,173" />
+
+          <!-- future nodes: dotted, not yet joined -->
+          <circle class="gn faint" cx="912" cy="66" r="5" style="--d:1.9s" />
+          <circle class="gn faint" cx="936" cy="140" r="4.5" style="--d:2s" />
+          <circle class="gn faint" cx="886" cy="205" r="4" style="--d:2.1s" />
+          <path class="fil hair draw" pathLength="1" style="--d:1.95s" d="M843,88 C868,79 888,72 906,68" />
+          <path class="fil hair draw" pathLength="1" style="--d:2.05s" d="M869,146 C892,144 912,142 930,140" />
+          <path class="fil hair draw" pathLength="1" style="--d:2.15s" d="M801,184 C830,193 856,200 880,204" />
+
+          <!-- growth continues past the frame -->
+          <path class="fil hair draw" pathLength="1" style="--d:2.2s" d="M917,64 C940,60 960,58 990,56" />
+          <path class="fil hair draw" pathLength="1" style="--d:2.3s" d="M941,141 C958,141 972,140 995,139" />
+
+          <!-- labels along a common baseline -->
+          <line class="tick" x1="110" y1="238" x2="110" y2="248" />
+          <text class="gt-you" x="110" y="264" text-anchor="middle" style="--d:.4s">You</text>
+          <text class="gt-sub" x="110" y="281" text-anchor="middle" style="--d:.5s">personal brain · available now</text>
+          <line class="tick" x1="452" y1="238" x2="452" y2="248" />
+          <text class="gt-team" x="452" y="264" text-anchor="middle" style="--d:1s">Team</text>
+          <text class="gt-sub" x="452" y="281" text-anchor="middle" style="--d:1.1s">shared intelligence · the team bundle</text>
+          <line class="tick" x1="795" y1="238" x2="795" y2="248" />
+          <text class="gt-net" x="795" y="264" text-anchor="middle" style="--d:1.7s">Network</text>
+          <text class="gt-sub" x="795" y="281" text-anchor="middle" style="--d:1.8s">distributed expertise · emerging</text>
+        </svg>
+      </div>
+      <div class="l-note rv d2"><b>It starts with you. It scales to everyone.</b> Capture what
+      you know and your brain publishes in your voice; brains connect into team memory that
+      outlasts any individual; the network matches work to minds by substance, not titles.</div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">Why it has to exist</span>
+      <div class="trio">
+        <div class="trio-item rv">
+          <span class="t-no">01</span>
+          <b>Your best thinking never ships</b>
+          <p>Notes, drafts, and ideas scattered everywhere. Turning them into something the
+          world can see takes so long that most of it dies in your head.</p>
+        </div>
+        <div class="trio-item rv d1">
+          <span class="t-no">02</span>
+          <b>Your team forgets what it knows</b>
+          <p>People leave, context disappears, and hard-won expertise gets buried in chat
+          threads no one will ever search.</p>
+        </div>
+        <div class="trio-item rv d2">
+          <span class="t-no">03</span>
+          <b>The right people never find each other</b>
+          <p>Collaborators matched by job titles and résumés, not by what they actually
+          know. The perfect expert might be one connection away.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">Your data, your rules</span>
+      <div class="trio">
+        <div class="trio-item rv">
+          <span class="t-no m">M</span>
+          <b>Markdown, not databases</b>
+          <p>Every entity lives as a markdown file with frontmatter. Version-controlled with
+          git. Readable without the brain running.</p>
+        </div>
+        <div class="trio-item rv d1">
+          <span class="t-no m">S</span>
+          <b>Self-hosted, open source</b>
+          <p>Deploy to your own server with one command, or run locally. Apache-2.0. No
+          vendor lock-in, no fine print.</p>
+        </div>
+        <div class="trio-item rv d2">
+          <span class="t-no m">A</span>
+          <b>AI model agnostic</b>
+          <p>Not tied to any single provider. Swap models, combine them, or bring your own.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">Quick start <small>— one package, three commands</small></span>
+      <div class="quickstart">
+        <div class="term rv d1">
+          <span class="cm"># install</span><br />
+          <span class="ps">$</span> bun add -g @rizom/brain<br />
+          <span class="cm"># create</span><br />
+          <span class="ps">$</span> brain init mybrain<br />
+          <span class="cm"># run</span><br />
+          <span class="ps">$</span> cd mybrain &amp;&amp; brain start<br />
+          <span class="ok">✓ running in under a minute</span>
+        </div>
+        <ul class="checks rv d2">
+          <li>Website and CMS on the shared web host</li>
+          <li>MCP server for assistants and tools</li>
+          <li>A2A discovery endpoint for agent-to-agent use</li>
+          <li>Plain-text content you can inspect and version with git</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="band">
+      <blockquote class="rv">AI is not taking your job. It's exposing how much of your talent
+      you've been wasting. When machines handle the busywork, what remains is the deeply
+      human. <em>The future of work is play.</em></blockquote>
+      <p class="b-sub rv d1">Brains are the foundation. But the vision is bigger:
+      infrastructure for a world where talent flows to opportunity, professionals own what
+      they create, and distributed teams outperform traditional organizations.</p>
+      <div class="actions rv d2">
+        <a class="cta" href="#s1">Start Building →</a>
+        <a class="quiet" href="#s1">View on GitHub</a>
+      </div>
+    </div>
+
+    <div class="sect faces">
+      <span class="cap rv">One practice, three faces</span>
+      <a class="face f-plat rv" href="#s1" style="margin-top: 10px">
+        <span class="f-k">The tools</span>
+        <h5>Open-source AI agents built from your own knowledge — <em>you are here</em></h5>
+        <span class="go">rizom.ai</span>
+      </a>
+      <a class="face f-work rv d1" href="#s2">
+        <span class="f-k">The service</span>
+        <h5>Workshops and consulting that apply the methodology in live engagements — <em>one session, one map</em></h5>
+        <span class="go">/work →</span>
+      </a>
+      <a class="face f-fnd rv d2" href="#s3">
+        <span class="f-k">The source</span>
+        <h5>The non-profit that holds the IP and stewards the methodology independently — <em>essays &amp; gatherings</em></h5>
+        <span class="go">/foundation →</span>
+      </a>
+    </div>
+
+    <div class="sect alive-line">
+      <span class="a-claim rv"><b>This site is a brain</b> — running the platform it describes.</span>
+      <a class="rv d1" href="#s1">talk to it</a>
+      <a class="rv d1" href="#s1">/.well-known/agent-card</a>
+      <a class="rv d2" href="#s1">ai.rizom.brain.* lexicons</a>
+    </div>
+
+    <footer class="footer">
+      <div class="f-brand">
+        <a class="wordmark" href="#s1">rizom<i>.</i></a>
+        <p>The living ecosystem where independent experts thrive together.</p>
+      </div>
+      <div class="f-col">
+        <div class="f-h">The platform</div>
+        <a href="#s1">Get started</a>
+        <a href="#s1">Documentation ↗</a>
+        <a href="#s1">GitHub ↗</a>
+        <a href="#s1">Network</a>
+      </div>
+      <div class="f-col">
+        <div class="f-h">The practice</div>
+        <a href="#s2">The workshop</a>
+        <a href="#s2">Team Type quiz</a>
+        <a href="#s2">Contact</a>
+      </div>
+      <div class="f-col">
+        <div class="f-h">The foundation</div>
+        <a href="#s3">Manifesto</a>
+        <a href="#s1">Writing</a>
+        <a href="#s1">Events</a>
+        <a href="#s3">Support</a>
+      </div>
+      <div class="f-legal">
+        <span>© 2026 Stichting Rizom · Amsterdam</span>
+        <span>Apache-2.0</span>
+        <span class="spacer"></span>
+        <span>rizom.work &amp; rizom.foundation now live here — old links redirect</span>
+      </div>
+    </footer>
+  </div>
+</section>
+
+<!-- ==================== 02 WORK ==================== -->
+<section class="screen" id="s2">
+  <div class="screen-label">
+    <span class="num">02</span>
+    <h2>/work — the practice, now complete</h2>
+    <span class="note">Adds the real personas, the three client testimonials, the team
+    roster, and the closing quiz CTA — all verbatim from the live site.</span>
+  </div>
+  <div class="frame" style="--accent: var(--ruby-soft)">
+    <div class="facestrip">
+      <span class="fs-org">rizom</span>
+      <a href="#s1">Platform</a>
+      <a class="on" href="#s2">Work</a>
+      <a href="#s3">Foundation</a>
+      <span class="fs-right">one practice · three faces</span>
+    </div>
+    <nav class="sitenav">
+      <a class="wordmark" href="#s2">rizom<i>.</i><small>work</small></a>
+      <div class="links">
+        <a href="#s2">Workshop</a>
+        <a href="#s2">Contact</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="cta-mini" href="#s2">Take the quiz</a>
+    </nav>
+
+    <div class="room-head">
+      <span class="cap"><b>Coordination for the AI era</b><small>previously rizom.work</small></span>
+      <div class="exhibit-grid" style="margin-top: 4px">
+        <div>
+          <h3>Your team has a knowledge problem. <em>AI is making it visible.</em></h3>
+          <p class="standfirst">TMS-based consulting that helps teams coordinate better, so
+          your people and your AI tools can actually do their best work.</p>
+          <div class="actions" style="margin: 26px 0 40px">
+            <a class="cta" href="#s2">Take the Team Type quiz →</a>
+            <a class="quiet" href="#s2">Book a discovery call</a>
+          </div>
+        </div>
+        <div class="diag rv d1">
+          <div class="bar"></div>
+          <svg class="radar" viewBox="0 4 360 248" role="img" aria-label="Three-axis TMS radar — Specialization, Credibility, Coordination">
+            <polygon class="tri-outer" points="180,50 266.60,200 93.40,200"></polygon>
+            <polygon class="tri-score" points="180,95 233.69,181 150.56,167"></polygon>
+            <circle class="vertex" cx="180" cy="95" r="4"></circle>
+            <circle class="vertex" cx="233.69" cy="181" r="4"></circle>
+            <circle class="vertex" cx="150.56" cy="167" r="4"></circle>
+            <text x="180" y="34" text-anchor="middle">Specialization</text>
+            <text x="252" y="222" text-anchor="start">Credibility</text>
+            <text x="108" y="222" text-anchor="end">Coordination</text>
+          </svg>
+          <div class="d-type">
+            <span class="k">Your team type</span>
+            <b>Distributed specialists</b>
+          </div>
+          <div class="d-acts">
+            <div class="d-acts-head">
+              <span>Priority actions</span>
+              <span class="score"><span class="arr">→</span><span class="dim">Coordination</span> <span class="n">34<span>/100</span></span></span>
+            </div>
+            <ul>
+              <li><span class="no">[01]</span><span>Clarify decision authority in the 4 highest-friction roles</span></li>
+              <li><span class="no">[02]</span><span>Surface tacit expertise via a weekly ritual</span></li>
+              <li><span class="no">[03]</span><span>Install coordination layer before further AI pilots</span></li>
+            </ul>
+          </div>
+          <a class="d-run" href="#s2">Run the diagnostic →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">The problem</span>
+      <h4 class="rv d1">Talent isn't the bottleneck. <em>Coordination</em> is.</h4>
+      <p class="intro rv d2">Teams don't fail because people are untalented. They fail
+      because nobody has mapped who knows what, who decides what, and how information moves.
+      When you add AI into that, it doesn't help — it just automates the confusion.</p>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">The workshop <small>— thirty years of research, one consistent finding</small></span>
+      <h4 class="rv d1">One session. A map your whole team <em>can act on</em>.</h4>
+      <p class="intro rv d2">We map your team's transactive memory system. Peer-reviewed
+      studies put high-performing teams above 70% on TMS measures; most teams start well
+      below. The gap is structural, not personal.</p>
+      <div class="steps">
+        <div class="step rv">
+          <span class="s-no">01</span>
+          <b>Survey</b>
+          <div><p>A short async survey.</p>
+          <p>A questionnaire maps your team's coordination patterns — the workshop starts
+          where the data leaves off.</p></div>
+        </div>
+        <div class="step rv d1">
+          <span class="s-no">02</span>
+          <b>Workshop</b>
+          <div><p>A facilitated half-day in the room.</p>
+          <p>Your team builds a shared map of expertise, decision authority, and information
+          flow. Everybody sees the same picture — often for the first time ever.</p></div>
+        </div>
+        <div class="step rv d2">
+          <span class="s-no">03</span>
+          <b>Playbook</b>
+          <div><p>A diagnostic report and a thirty-day playbook.</p>
+          <p>Concrete changes to roles, rituals, and tooling — including how AI fits in
+          without making the confusion worse.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">If this sounds like you</span>
+      <div class="personas">
+        <div class="persona rv d1">
+          <span class="p-role">The scaling founder</span>
+          <blockquote>“Your team grew faster than your operating model.”</blockquote>
+          <p>You hired smart people, gave them ownership, and now nobody's quite sure who
+          decides what. Stand-ups have gotten longer. Projects keep getting blocked on
+          context. You need a map, not another tool.</p>
+        </div>
+        <div class="persona rv d2">
+          <span class="p-role">The digital transformation lead</span>
+          <blockquote>“You've been told to roll out AI across the org.”</blockquote>
+          <p>The pilots look fine, the dashboards are green, and yet the teams using the
+          tool are quietly more frustrated than before. You suspect the problem isn't AI.
+          It's the coordination underneath it. You'd like proof.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">What teams tell us <small>— recent engagements</small></span>
+      <div class="quotes">
+        <div class="quote rv">
+          <span class="qm">“</span>
+          <div>
+            <p>We thought we had a hiring problem. The workshop showed us we had a
+            coordination problem — three people were quietly doing the same work, and nobody
+            knew it. That's a week of design time back, every week.</p>
+            <div class="by">— fast-growing SaaS company · Taipei</div>
+          </div>
+        </div>
+        <div class="quote rv d1">
+          <span class="qm">“</span>
+          <div>
+            <p>We'd spent six months rolling out AI tools and couldn't figure out why
+            adoption was stalling. One session made it obvious — people didn't know whose
+            judgment to trust when the AI was wrong. We hadn't given them a map. Now we have
+            one.</p>
+            <div class="by">— enterprise cyber security services · Amsterdam</div>
+          </div>
+        </div>
+        <div class="quote rv d2">
+          <span class="qm">“</span>
+          <div>
+            <p>I'd watched the same thing happen at three companies in our portfolio — same
+            growth stage, same slowdown, different teams. I couldn't explain it until I had
+            the language for it. Now I send every founder in our portfolio to do the
+            diagnostic before they hit 60 people.</p>
+            <div class="by">— future-of-work venture fund · San Francisco</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">Who we are <small>— a commercial practice with a non-profit research arm → /foundation</small></span>
+      <div class="roster rv d1">
+        <span class="person"><span class="init">JH</span><b>Jan Hein Hoogstad</b><span>Founder &amp; CEO</span></span>
+        <span class="person"><span class="init">NW</span><b>Natalie Wong</b><span>Operations</span></span>
+        <span class="person"><span class="init">SS</span><b>Samantha Shao</b><span>Communications</span></span>
+        <span class="person"><span class="init">JL</span><b>Joanna Lisiak</b><span>TMS Specialist</span></span>
+        <span class="person"><span class="init">MS</span><b>Max Singer</b><span>AI Engineering</span></span>
+        <span class="person"><span class="init">＋</span><b>A network of practitioners</b><span>facilitation · domain · implementation</span></span>
+      </div>
+    </div>
+
+    <div class="band">
+      <blockquote class="rv">Ready to find out what <em>type of team</em> you are?</blockquote>
+      <div class="actions rv d1" style="margin-top: 28px">
+        <a class="cta" href="#s2">Take the Team Type quiz →</a>
+        <a class="quiet" href="#s2">Book a 30-minute call</a>
+      </div>
+    </div>
+
+    <div class="siteband"><span>previously <b>rizom.work</b> — you were redirected here</span><span class="spacer"></span><span>© 2026 · Rizom Collective</span></div>
+  </div>
+</section>
+
+<!-- ==================== 03 FOUNDATION ==================== -->
+<section class="screen" id="s3">
+  <div class="screen-label">
+    <span class="num">03</span>
+    <h2>/foundation — the research room</h2>
+    <span class="note">The journal identity: Vol. 01 masthead, essays as the featured
+    series, the pull-quote band, the city chapters, funding, and a closing follow line.</span>
+  </div>
+  <div class="frame" style="--accent: var(--moss)">
+    <div class="facestrip">
+      <span class="fs-org">rizom</span>
+      <a href="#s1">Platform</a>
+      <a href="#s2">Work</a>
+      <a class="on" href="#s3">Foundation</a>
+      <span class="fs-right">one practice · three faces</span>
+    </div>
+    <nav class="sitenav">
+      <a class="wordmark" href="#s3">rizom<i>.</i><small>foundation</small></a>
+      <div class="links">
+        <a href="#s3">Research</a>
+        <a href="#s3">Events</a>
+        <a href="#s3">Ecosystem</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="cta-mini" href="#s3">Read Manifesto</a>
+    </nav>
+
+    <div class="room-head">
+      <span class="cap"><b>Vol. 01 · 2026</b><small>Essays · Events · Public infrastructure · previously rizom.foundation</small></span>
+      <h3>Work is broken<em> — and the institutions organizing it were built for a
+      different century.</em></h3>
+      <p class="standfirst">A research arm for the social contracts that quietly hold both
+      work and technology together: essays, city-by-city gatherings, and stewardship of the
+      open AI infrastructure this community runs on.</p>
+      <div class="actions" style="margin: 26px 0 44px">
+        <a class="cta" href="#s3">Join our Discord →</a>
+        <a class="quiet" href="#s3">Find an event near you</a>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">The research <small>— a working bibliography; new entries land roughly monthly · all of it at /writing</small></span>
+      <div style="margin-top: 8px">
+        <a class="index-row rv" href="#s3">
+          <span class="i-no">01</span>
+          <span class="i-k">Future of Work is Play</span>
+          <div><h6>The future of work is play</h6>
+          <p>When machines handle the busywork, what remains is the deeply human.</p></div>
+          <span class="go">→</span>
+        </a>
+        <a class="index-row rv d1" href="#s3">
+          <span class="i-no">02</span>
+          <span class="i-k">Urging New Institutions</span>
+          <div><h6>Social contracts, not constitutions</h6>
+          <p>The documents we venerate aren't what's actually holding institutions together.</p></div>
+          <span class="go">→</span>
+        </a>
+        <a class="index-row rv d2" href="#s3">
+          <span class="i-no">03</span>
+          <span class="i-k">Urging New Institutions</span>
+          <div><h6>Coordination is the unit of intelligence</h6>
+          <p>The smartest thing in any room is rarely a person — it's the pattern by which
+          the people in the room are connected.</p></div>
+          <span class="go">→</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="band">
+      <blockquote class="rv">The smartest thing in any room is rarely a person. It's the
+      <em>pattern</em> by which the people in the room are connected.</blockquote>
+      <p class="b-sub rv d1" style="font-family: var(--mono); font-size: 11px; color: var(--w28)">— from “Coordination is the unit of intelligence”</p>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">The series <small>— twenty to forty people; Jan Hein as intellectual anchor · all dates at /events</small></span>
+      <div style="margin-top: 8px">
+        <div class="index-row rv">
+          <span class="i-no">01</span>
+          <span class="i-k">Spring 2026</span>
+          <div><h6>Amsterdam</h6>
+          <p>The original chapter. Quarterly gatherings on social contracts, AI, and the
+          institutions that organize knowledge work.</p></div>
+          <span class="i-meta">apply →<small>anchor: Jan Hein</small></span>
+        </div>
+        <div class="index-row rv d1">
+          <span class="i-no">02</span>
+          <span class="i-k">Summer 2026</span>
+          <div><h6>Rotterdam</h6>
+          <p>A working chapter focused on industry, ports, and the practical frictions of
+          building new institutions inside old ones.</p></div>
+          <span class="i-meta">apply →<small>local: TBA</small></span>
+        </div>
+        <div class="index-row rv d2">
+          <span class="i-no">03</span>
+          <span class="i-k">Autumn 2026</span>
+          <div><h6>Berlin</h6>
+          <p>The newest chapter. Civic tech, digital rights, and the public-infrastructure
+          question.</p></div>
+          <span class="i-meta">apply →<small>local: TBA</small></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">How to support <small>— two ways the work gets funded · a small group, anchored by writing and stewarded by community</small></span>
+      <div class="support-row">
+        <div class="rv d1">
+          <span class="s-k">For individuals</span>
+          <div class="s-amt">€1,000 – €10,000</div>
+          <p>Funds a meaningful slice of the research and event series. Contributors are
+          acknowledged in the essays, invited to closer-circle gatherings, and get early
+          access to new writing.</p>
+        </div>
+        <div class="rv d2">
+          <span class="s-k">Through the practice</span>
+          <div class="s-amt">Commercial work → research</div>
+          <p>The practice's consulting revenue funds the foundation — a commercial practice
+          with a non-profit research arm. → /work</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect alive-line">
+      <span class="a-claim rv">Follow the research —</span>
+      <a class="rv d1" href="#s3">newsletter · every essay, nothing else</a>
+      <a class="rv d1" href="#s3">@rizom.ai on atproto · essays as records</a>
+      <a class="rv d2" href="#s3">rss</a>
+    </div>
+
+    <div class="siteband"><span>previously <b>rizom.foundation</b> — you were redirected here</span><span class="spacer"></span><span>Stichting Rizom · Amsterdam · Rotterdam · Berlin</span></div>
+  </div>
+</section>
+
+<footer class="footer-note">
+  <div class="col"><b>Content now complete:</b> the two real personas, three real
+  testimonials with attributions, the real team roster, the actual three-command
+  quickstart with its four checkmarks, the live mission stanza ("AI is not taking your
+  job…the future of work is play"), and the live ecosystem role names — the tools / the
+  service / the source — as the faces vocabulary.</div>
+  <div class="col"><b>Visual pass:</b> orchestrated hero entrance; scroll reveals
+  (reduced-motion safe); the mycelium seeps while you read; the You→Team→Network growth
+  diagram replaces the three-column list as the product centerpiece; atmospheric washes on
+  hero and bands; folio numerals; underline-grow link hovers; a real four-column footer
+  with the Stichting legal line.</div>
+  <div class="col"><b>Still deliberate:</b> rooms keep their own nameplates (rizom.work,
+  rizom.foundation) and their live navs; home stays brass-only; the diagnostic panel is
+  untouched from the live site apart from palette.</div>
+</footer>
+
+<script>
+(function(){
+  var r=document.documentElement,b=document.getElementById("themeToggle");
+  function sync(){b.textContent=r.getAttribute("data-theme")==="light"?"Dark mode":"Light mode";}
+  b.addEventListener("click",function(){r.setAttribute("data-theme",r.getAttribute("data-theme")==="light"?"dark":"light");sync();});
+  sync();
+
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+  },{ rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
+  document.querySelectorAll(".rv").forEach(function(el){ io.observe(el); });
+})();
+</script>
+</body>
+</html>

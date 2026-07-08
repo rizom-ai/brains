@@ -1,5 +1,4 @@
 import { describe, it, expect, mock } from "bun:test";
-import { z } from "@brains/utils/zod";
 import {
   baseProfileExtension,
   professionalProfileExtension,
@@ -30,7 +29,7 @@ describe("baseProfileExtension", () => {
 
   it("should be extendable with additional fields", () => {
     const extended = baseProfileExtension.extend({
-      expertise: z.array(z.string()).optional(),
+      expertise: professionalProfileExtension.shape.expertise,
     });
     const result = extended.parse({
       tagline: "hello",

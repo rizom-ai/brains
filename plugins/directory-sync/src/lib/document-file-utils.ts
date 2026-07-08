@@ -1,7 +1,7 @@
 import { extname } from "path";
 
-export const DOCUMENT_EXTENSIONS = [".pdf"];
-export const DOCUMENT_SIDECAR_SUFFIX = ".meta.json";
+export const DOCUMENT_EXTENSIONS: readonly string[] = [".pdf"];
+export const DOCUMENT_SIDECAR_SUFFIX: string = ".meta.json";
 
 export function isDocumentFile(filePath: string): boolean {
   const ext = extname(filePath).toLowerCase();

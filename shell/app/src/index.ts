@@ -10,6 +10,7 @@ export {
 } from "./standard-paths";
 export type {
   AppConfig,
+  AppConfigInput,
   DeploymentConfig,
   DeploymentConfigInput,
 } from "./types";

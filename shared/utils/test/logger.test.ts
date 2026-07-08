@@ -1,5 +1,12 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { Logger, LogLevel } from "../src/logger";
+import { z } from "../src/zod";
+
+const logRecordSchema = z.record(z.string(), z.unknown());
+
+function parseLogRecord(line: unknown): z.output<typeof logRecordSchema> {
+  return logRecordSchema.parse(JSON.parse(String(line)));
+}
 
 describe("Logger", () => {
   beforeEach(() => {
@@ -16,7 +23,7 @@ describe("Logger", () => {
       const logger = Logger.createFresh({ context: "TestCtx" });
       logger.info("hello");
       expect(spy).toHaveBeenCalledTimes(1);
-      const msg = spy.mock.calls[0]?.[0] as string;
+      const msg = String(spy.mock.calls[0]?.[0]);
       expect(msg).toMatch(/^\[.*\] \[TestCtx\] hello$/);
       spy.mockRestore();
     });
@@ -25,7 +32,7 @@ describe("Logger", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
       const logger = Logger.createFresh({});
       logger.info("hello");
-      const msg = spy.mock.calls[0]?.[0] as string;
+      const msg = String(spy.mock.calls[0]?.[0]);
       expect(msg).toMatch(/^\[.*\] hello$/);
       expect(msg).not.toContain("[undefined]");
       spy.mockRestore();
@@ -41,8 +48,7 @@ describe("Logger", () => {
       });
       logger.info("hello world");
       expect(spy).toHaveBeenCalledTimes(1);
-      const raw = spy.mock.calls[0]?.[0] as string;
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const parsed = parseLogRecord(spy.mock.calls[0]?.[0]);
       expect(parsed["level"]).toBe("info");
       expect(parsed["ctx"]).toBe("TestCtx");
       expect(parsed["msg"]).toBe("hello world");
@@ -56,10 +62,7 @@ describe("Logger", () => {
         format: "json",
       });
       logger.info("event", { key: "value" });
-      const parsed = JSON.parse(spy.mock.calls[0]?.[0] as string) as Record<
-        string,
-        unknown
-      >;
+      const parsed = parseLogRecord(spy.mock.calls[0]?.[0]);
       expect(parsed["msg"]).toBe("event");
       expect(parsed["data"]).toEqual([{ key: "value" }]);
       spy.mockRestore();
@@ -69,10 +72,7 @@ describe("Logger", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
       const logger = Logger.createFresh({ format: "json" });
       logger.info("clean");
-      const parsed = JSON.parse(spy.mock.calls[0]?.[0] as string) as Record<
-        string,
-        unknown
-      >;
+      const parsed = parseLogRecord(spy.mock.calls[0]?.[0]);
       expect(parsed["data"]).toBeUndefined();
       spy.mockRestore();
     });
@@ -91,15 +91,9 @@ describe("Logger", () => {
       logger.warn("w");
       logger.error("e");
 
-      const dParsed = JSON.parse(
-        debugSpy.mock.calls[0]?.[0] as string,
-      ) as Record<string, unknown>;
-      const wParsed = JSON.parse(
-        warnSpy.mock.calls[0]?.[0] as string,
-      ) as Record<string, unknown>;
-      const eParsed = JSON.parse(
-        errorSpy.mock.calls[0]?.[0] as string,
-      ) as Record<string, unknown>;
+      const dParsed = parseLogRecord(debugSpy.mock.calls[0]?.[0]);
+      const wParsed = parseLogRecord(warnSpy.mock.calls[0]?.[0]);
+      const eParsed = parseLogRecord(errorSpy.mock.calls[0]?.[0]);
 
       expect(dParsed["level"]).toBe("debug");
       expect(wParsed["level"]).toBe("warn");
@@ -117,10 +111,7 @@ describe("Logger", () => {
       const parent = Logger.createFresh({ format: "json" });
       const child = parent.child("ChildCtx");
       child.info("from child");
-      const parsed = JSON.parse(spy.mock.calls[0]?.[0] as string) as Record<
-        string,
-        unknown
-      >;
+      const parsed = parseLogRecord(spy.mock.calls[0]?.[0]);
       expect(parsed["ctx"]).toBe("ChildCtx");
       expect(parsed["level"]).toBe("info");
       spy.mockRestore();
@@ -131,7 +122,7 @@ describe("Logger", () => {
       const parent = Logger.createFresh({});
       const child = parent.child("ChildCtx");
       child.info("from child");
-      const msg = spy.mock.calls[0]?.[0] as string;
+      const msg = String(spy.mock.calls[0]?.[0]);
       expect(msg).toContain("[ChildCtx]");
       expect(msg).not.toStartWith("{");
       spy.mockRestore();

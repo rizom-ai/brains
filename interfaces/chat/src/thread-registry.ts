@@ -14,8 +14,11 @@ interface ThreadEntry {
 export class ThreadRegistry {
   private readonly threads = new Map<string, ThreadEntry>();
   private readonly sentMessages = new Map<string, SentMessage>();
+  private readonly ttlMs: number;
 
-  constructor(private readonly ttlMs = DEFAULT_TTL_MS) {}
+  constructor(ttlMs: number = DEFAULT_TTL_MS) {
+    this.ttlMs = ttlMs;
+  }
 
   set(thread: ChatThread): void {
     this.cleanup();

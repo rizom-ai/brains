@@ -42,10 +42,16 @@ discord:
     expect(
       await readFile(join(root, "users", "bob.secrets.yaml"), "utf8"),
     ).toBe(
-      `# local per-user secret staging file
-# fill values, run \`bunx brains-ops secrets:encrypt . bob\`, then the plaintext file will be removed
-discordBotToken: 
-`,
+      [
+        "# local per-user secret staging file",
+        "# fill values, run `bunx brains-ops secrets:encrypt . bob`, then the plaintext file will be removed",
+        "discordBotToken: ",
+        "atprotoAppPassword: ",
+        "# For custom-domain sites, paste PEMs with literal \\n escapes.",
+        "certificatePem: ",
+        "privateKeyPem: ",
+        "",
+      ].join("\n"),
     );
     expect(await readFile(join(root, "cohorts", "cohort-1.yaml"), "utf8"))
       .toBe(`members:

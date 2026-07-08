@@ -46,6 +46,12 @@ const TOOL_STATES: readonly ToolPart["state"][] = [
   "output-error",
 ];
 
+const attachmentJobStatusResponseSchema = z.looseObject({
+  status: z.string().optional(),
+});
+
+const dataRecordSchema = z.record(z.string(), z.unknown());
+
 function narrowToolState(value: string | undefined): ToolPart["state"] {
   if (value && (TOOL_STATES as readonly string[]).includes(value)) {
     return value as ToolPart["state"];
@@ -53,13 +59,9 @@ function narrowToolState(value: string | undefined): ToolPart["state"] {
   return "input-available";
 }
 
-function isRecord(data: unknown): data is Record<string, unknown> {
-  return typeof data === "object" && data !== null && !Array.isArray(data);
-}
-
 function getRecordValue(data: unknown, key: string): unknown {
-  if (!isRecord(data)) return undefined;
-  return data[key];
+  const parsed = dataRecordSchema.safeParse(data);
+  return parsed.success ? parsed.data[key] : undefined;
 }
 
 function getStringValue(data: unknown, key: string): string | undefined {
@@ -191,8 +193,12 @@ function useAttachmentJobStatus(
           return;
         }
         transientFailures = 0;
-        const body = (await response.json()) as { status?: string };
-        const nextStatus = narrowAttachmentJobStatus(body.status);
+        const parsed = attachmentJobStatusResponseSchema.safeParse(
+          await response.json(),
+        );
+        const nextStatus = narrowAttachmentJobStatus(
+          parsed.success ? parsed.data.status : undefined,
+        );
         if (!cancelled) setStatus(nextStatus);
         if (nextStatus !== "completed" && nextStatus !== "failed") {
           scheduleNextPoll(2000);
@@ -422,7 +428,7 @@ const sourceCitationSchema = z.object({
   entityType: z.string().min(1).optional(),
   entityId: z.string().min(1).optional(),
   excerpt: z.string().min(1).optional(),
-  provenance: z.record(z.unknown()).optional(),
+  provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
 const sourcesCardSchema = z.object({
@@ -446,8 +452,7 @@ function getSourceScore(
   source: z.infer<typeof sourceCitationSchema>,
 ): number | undefined {
   const parsed = z
-    .object({ score: z.number().finite() })
-    .passthrough()
+    .looseObject({ score: z.number().finite() })
     .safeParse(source.provenance);
   return parsed.success ? parsed.data.score : undefined;
 }

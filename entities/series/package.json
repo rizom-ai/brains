@@ -1,18 +1,7 @@
 {
   "name": "@brains/series",
-  "private": true,
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.142",
   "description": "Cross-content series — auto-derived from entities with seriesName metadata",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
@@ -26,9 +15,20 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "bun-types": "latest",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
-  }
+    "@types/bun": "^1.3.14",
+    "bun-types": "^1.3.14",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
 }

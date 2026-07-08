@@ -184,6 +184,7 @@ export async function runCommand(
           ? { fetchImpl: dependencies.fetchImpl }
           : {}),
         ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+        ...(parsed.flags.handle ? { handle: parsed.flags.handle } : {}),
         ...(parsed.flags.pushTo ? { pushTo: parsed.flags.pushTo } : {}),
         ...(dependencies.bootstrapRunCommand
           ? { runCommand: dependencies.bootstrapRunCommand }

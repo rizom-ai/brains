@@ -3,6 +3,7 @@ import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
 import { chunkMessage } from "@brains/utils/chunk-message";
+import { z } from "@brains/utils/zod";
 import { createDiscordChatUploadStoreScope } from "../src/upload-store";
 import { PromptActionStore } from "../src/prompt-action-store";
 import type { DiscordChatAdapterConfig } from "../src/config";
@@ -13,7 +14,6 @@ import type {
 } from "../src/types";
 import type { Mock } from "bun:test";
 import type { ActionEvent, CardElement, StateAdapter } from "chat";
-import { z } from "zod";
 
 type HarnessAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
 type HarnessAgentResponse = Awaited<ReturnType<HarnessAgentService["chat"]>>;

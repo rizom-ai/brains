@@ -6,6 +6,7 @@ import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 
 export interface VerifiedBearerToken {
   subject: string;
@@ -41,6 +42,10 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
 } as const;
+
+const errorCodeSchema = z.looseObject({
+  code: z.string().optional(),
+});
 
 function requestOrigin(request: Request): string {
   const url = new URL(request.url);
@@ -490,8 +495,8 @@ export class StreamableHTTPServer {
         `StreamableHTTP server listening on http://${host}:${this.boundPort}/mcp`,
       );
     } catch (error) {
-      const err = error as Error & { code?: string };
-      if (err.code === "EADDRINUSE") {
+      const parsedError = errorCodeSchema.safeParse(error);
+      if (parsedError.success && parsedError.data.code === "EADDRINUSE") {
         this.logger.error(`Port ${port} is already in use`);
       }
       throw error;

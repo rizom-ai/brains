@@ -182,7 +182,7 @@ describe("convertToSDKTools", () => {
     ).toBe(true);
 
     const serialized = z
-      .object({ properties: z.record(z.unknown()).optional() })
+      .object({ properties: z.record(z.string(), z.unknown()).optional() })
       .passthrough()
       .parse(await asSchema(z.object(modelVisibleInputSchema)).jsonSchema);
     const operationSchema = z
@@ -206,27 +206,25 @@ describe("convertToSDKTools", () => {
       description: "Generate document",
       inputSchema: { source: z.object({ sourceEntityId: z.string() }) },
       visibility: "public",
-      handler: mock(
-        async (): Promise<{ success: true; data: unknown }> => ({
-          success: true,
-          data: {
-            jobId: "job-1",
-            documentId: "deck-carousel",
-            attachment: {
-              mediaType: "application/pdf",
-              url: "/api/chat/attachments/document?id=deck-carousel",
-              downloadUrl:
-                "/api/chat/attachments/document?id=deck-carousel&download=1",
-              filename: "deck-carousel.pdf",
-              source: {
-                entityType: "document",
-                entityId: "deck-carousel",
-                attachmentType: "carousel",
-              },
+      handler: mock(async (): Promise<{ success: true; data: unknown }> => ({
+        success: true,
+        data: {
+          jobId: "job-1",
+          documentId: "deck-carousel",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-carousel",
+            downloadUrl:
+              "/api/chat/attachments/document?id=deck-carousel&download=1",
+            filename: "deck-carousel.pdf",
+            source: {
+              entityType: "document",
+              entityId: "deck-carousel",
+              attachmentType: "carousel",
             },
           },
-        }),
-      ),
+        },
+      })),
     };
 
     const sdkTool = convertToSDKTools(

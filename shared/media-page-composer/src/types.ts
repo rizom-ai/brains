@@ -1,14 +1,16 @@
 import type { VNode } from "preact";
-import type { z } from "@brains/utils/zod";
 import type { SiteImageRendererService } from "@brains/site-engine";
+import type { ZodType } from "@brains/utils/zod";
 
 export type MediaTemplateFormat = "image" | "pdf";
 
 export type MediaPageRenderer = (props: Record<string, unknown>) => VNode;
 
+export type MediaPageContentSchema = ZodType<unknown, unknown>;
+
 export interface MediaPageTemplate {
   name: string;
-  schema: z.ZodType<unknown>;
+  schema: MediaPageContentSchema;
   pluginId: string;
   renderers: {
     image?: MediaPageRenderer | string;

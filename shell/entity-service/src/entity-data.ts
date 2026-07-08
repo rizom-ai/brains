@@ -1,5 +1,8 @@
 import type { Entity } from "./schema/entities";
+import { z } from "@brains/utils/zod";
 import { normalizeContentVisibility, type ContentVisibility } from "./types";
+
+const metadataSchema = z.record(z.string(), z.unknown());
 
 /**
  * Normalized entity row shape used by query and serialization layers.
@@ -28,6 +31,6 @@ export function normalizeEntityRow(row: Entity): EntityData {
     visibility: normalizeContentVisibility(row.visibility),
     created: row.created,
     updated: row.updated,
-    metadata: (row.metadata as Record<string, unknown> | null) ?? {},
+    metadata: metadataSchema.parse(row.metadata),
   };
 }

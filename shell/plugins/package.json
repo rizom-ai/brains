@@ -1,10 +1,28 @@
 {
   "name": "@brains/plugins",
-  "version": "0.2.0-alpha.141",
-  "private": true,
+  "version": "0.2.0-alpha.142",
   "description": "Core plugin system implementation for Brains",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "dependencies": {
+    "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
+    "@brains/conversation-service": "workspace:*",
+    "@brains/identity-service": "workspace:*",
+    "@brains/job-queue": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
+    "@brains/site-composition": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/ai-service": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "eslint": "^10.5.0",
+    "ts-pattern": "^5.0.0",
+    "typescript": "^6.0.3"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./contracts/agent": "./src/contracts/agent.ts",
@@ -26,32 +44,14 @@
     "./public/plugin-api": "./src/public/plugin-api.ts",
     "./test": "./test.ts"
   },
+  "main": "./src/index.ts",
+  "private": true,
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
+    "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@brains/content-formatters": "workspace:*",
-    "@brains/contracts": "workspace:*",
-    "@brains/conversation-service": "workspace:*",
-    "@brains/identity-service": "workspace:*",
-    "@brains/job-queue": "workspace:*",
-    "@brains/messaging-service": "workspace:*",
-    "@brains/runtime-state": "workspace:*",
-    "@brains/site-composition": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/utils": "workspace:*"
-  },
-  "devDependencies": {
-    "@brains/ai-service": "workspace:*",
-    "@brains/eslint-config": "workspace:*",
-    "@brains/typescript-config": "workspace:*",
-    "@types/bun": "^1.1.14",
-    "eslint": "^8.56.0",
-    "ts-pattern": "^5.0.0",
-    "typescript": "^5.3.3"
-  }
+  "types": "./src/index.ts"
 }

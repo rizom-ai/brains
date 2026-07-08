@@ -1,15 +1,13 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import type { z } from "@brains/utils/zod";
 import {
   topicEntitySchema,
   topicFrontmatterSchema,
   type TopicEntity,
   type TopicBody,
+  type TopicFrontmatter,
   type TopicMetadata,
 } from "../schemas/topic";
 import { TOPIC_ENTITY_TYPE } from "./constants";
-
-type TopicFrontmatter = z.infer<typeof topicFrontmatterSchema>;
 
 export class TopicAdapter extends BaseEntityAdapter<
   TopicEntity,

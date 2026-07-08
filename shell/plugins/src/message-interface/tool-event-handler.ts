@@ -17,12 +17,17 @@ const toolActivityPayloadSchema = z.object({
   error: z.string().optional(),
 });
 
-export type ToolActivityEventType = z.infer<typeof toolActivityEventTypeSchema>;
+export type ToolActivityEventType =
+  "tool:invoking" | "tool:completed" | "tool:failed";
 
-export interface ToolActivityEvent extends z.infer<
-  typeof toolActivityPayloadSchema
-> {
+export interface ToolActivityEvent {
   type: ToolActivityEventType;
+  toolName: string;
+  conversationId: string;
+  interfaceType: string;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  error?: string | undefined;
 }
 
 export interface ToolActivityHandlers {

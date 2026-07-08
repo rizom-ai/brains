@@ -5,7 +5,13 @@ import { BaseEntityAdapter } from "../../src/adapters/base-entity-adapter";
 
 // -- Note entity (used in: immediate-persistence, deduplicate-id, embeddable-config) --
 
-export const noteSchema = baseEntitySchema.extend({
+export const noteSchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"note">;
+    title: z.ZodString;
+    tags: z.ZodArray<z.ZodString>;
+  }>
+> = baseEntitySchema.extend({
   entityType: z.literal("note"),
   title: z.string(),
   tags: z.array(z.string()),
@@ -65,11 +71,20 @@ class NoteTestAdapter extends BaseEntityAdapter<Note> {
   }
 }
 
-export const noteAdapter = new NoteTestAdapter();
+export const noteAdapter: NoteTestAdapter = new NoteTestAdapter();
 
 // -- Post entity (used in: count-entities, sort-fields) --
 
-export const postSchema = baseEntitySchema.extend({
+export const postSchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"post">;
+    metadata: z.ZodObject<{
+      publishedAt: z.ZodOptional<z.ZodString>;
+      status: z.ZodOptional<z.ZodString>;
+      category: z.ZodOptional<z.ZodString>;
+    }>;
+  }>
+> = baseEntitySchema.extend({
   entityType: z.literal("post"),
   metadata: z.object({
     publishedAt: z.string().optional(),
@@ -105,11 +120,15 @@ class PostTestAdapter extends BaseEntityAdapter<Post, PostMetadata> {
   }
 }
 
-export const postAdapter = new PostTestAdapter();
+export const postAdapter: PostTestAdapter = new PostTestAdapter();
 
 // -- Minimal test entity (used in: storeEmbedding) --
 
-export const minimalTestSchema = baseEntitySchema.extend({
+export const minimalTestSchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"test">;
+  }>
+> = baseEntitySchema.extend({
   entityType: z.literal("test"),
 });
 
@@ -134,11 +153,15 @@ class MinimalTestAdapter extends BaseEntityAdapter<BaseEntity> {
   }
 }
 
-export const minimalTestAdapter = new MinimalTestAdapter();
+export const minimalTestAdapter: MinimalTestAdapter = new MinimalTestAdapter();
 
 // -- Image entity (used in: embeddable-config) --
 
-export const imageSchema = baseEntitySchema.extend({
+export const imageSchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"image">;
+  }>
+> = baseEntitySchema.extend({
   entityType: z.literal("image"),
 });
 
@@ -169,4 +192,4 @@ class ImageTestAdapter extends BaseEntityAdapter<ImageEntity> {
   }
 }
 
-export const imageAdapter = new ImageTestAdapter();
+export const imageAdapter: ImageTestAdapter = new ImageTestAdapter();

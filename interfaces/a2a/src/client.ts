@@ -39,7 +39,7 @@ const textPartSchema = z.object({
   text: z.string(),
 });
 
-const partsSchema = z.array(z.object({ kind: z.string() }).passthrough());
+const partsSchema = z.array(z.looseObject({ kind: z.string() }));
 
 const rpcErrorSchema = z.object({
   error: z.object({ message: z.string() }),
@@ -61,10 +61,33 @@ const taskResultSchema = z.object({
 
 const resultEnvelopeSchema = z.object({ result: z.unknown() });
 
+const sseTextPartSchema = z.looseObject({
+  kind: z.string(),
+  text: z.string().optional(),
+});
+
+const sseEventSchema = z.looseObject({
+  result: z
+    .looseObject({
+      final: z.boolean().optional(),
+      status: z
+        .looseObject({
+          state: z.string().optional(),
+          message: z
+            .looseObject({
+              parts: z.array(sseTextPartSchema).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
+
 /**
  * Extract text from a parts array
  */
-function extractText(parts: z.infer<typeof partsSchema>): string {
+function extractText(parts: z.output<typeof partsSchema>): string {
   const texts: string[] = [];
   for (const part of parts) {
     const parsed = textPartSchema.safeParse(part);
@@ -151,6 +174,11 @@ const a2aCallInputSchema = {
     ),
   message: z.string().describe("Message to send to the remote agent"),
 };
+
+const a2aCallInputParserSchema = z.object({
+  agent: z.string(),
+  message: z.string(),
+});
 
 type NormalizedAgentTarget =
   | { ok: true; agentId: string; sourceUrl?: string | undefined }
@@ -354,9 +382,13 @@ async function readStreamToCompletion(
       const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
       if (!dataLine) continue;
 
-      let event: Record<string, unknown>;
+      let event: z.output<typeof sseEventSchema>;
       try {
-        event = JSON.parse(dataLine.slice(6)) as Record<string, unknown>;
+        const parsedEvent = sseEventSchema.safeParse(
+          JSON.parse(dataLine.slice(6)),
+        );
+        if (!parsedEvent.success) continue;
+        event = parsedEvent.data;
       } catch {
         reader.cancel().catch(() => {});
         return {
@@ -366,20 +398,12 @@ async function readStreamToCompletion(
       }
 
       // Check if this is a JSON-RPC envelope with a result
-      const result = event["result"] as Record<string, unknown> | undefined;
-      if (!result) continue;
-
-      const isFinal = result["final"] === true;
-      if (!isFinal) continue;
+      const result = event.result;
+      if (!result?.final) continue;
 
       // Terminal event — extract response
       reader.cancel().catch(() => {});
-      const status = result["status"] as
-        | {
-            state: string;
-            message?: { parts: Array<{ kind: string; text?: string }> };
-          }
-        | undefined;
+      const status = result.status;
 
       const state = status?.state ?? "unknown";
       const responseParts = status?.message?.parts ?? [];
@@ -405,15 +429,19 @@ async function readStreamToCompletion(
 }
 
 class A2ARequestTimeoutError extends Error {
-  constructor(readonly timeoutMs: number) {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`request timed out after ${timeoutMs}ms`);
+    this.timeoutMs = timeoutMs;
     this.name = "A2ARequestTimeoutError";
   }
 }
 
 class A2AStreamIdleTimeoutError extends Error {
-  constructor(readonly timeoutMs: number) {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`A2A stream stalled waiting for final event after ${timeoutMs}ms`);
+    this.timeoutMs = timeoutMs;
     this.name = "A2AStreamIdleTimeoutError";
   }
 }
@@ -548,7 +576,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
     visibility: "trusted",
     sideEffects: "external",
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(a2aCallInputSchema).safeParse(input);
+      const parsed = a2aCallInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,

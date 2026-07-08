@@ -9,7 +9,7 @@ import {
   Section,
   createRizomSite,
   type RizomLayoutProps,
-} from "@brains/site-rizom";
+} from "@rizom/site-rizom";
 import {
   formatRelayDiagramContent,
   parseRelayDiagramContent,
@@ -19,62 +19,108 @@ import {
 } from "./home-diagram-content";
 import { RelayHomeCountsDataSource } from "./home-counts-datasource";
 
-const ctaLinkSchema = z.object({
+interface CtaLink {
+  label: string;
+  href: string;
+}
+
+interface RelaySignalContent {
+  label: string;
+  value: string;
+  note: string;
+}
+
+interface RelayHeroContent {
+  eyebrow: string;
+  headline: string;
+  intro: string;
+  primaryCta: CtaLink;
+  secondaryCta: CtaLink;
+  signals: RelaySignalContent[];
+}
+
+interface RelayLoopStepContent {
+  phase: string;
+  title: string;
+  text: string;
+}
+
+interface RelayLoopContent {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  steps: RelayLoopStepContent[];
+}
+
+interface RelaySurfaceCardContent {
+  label: string;
+  title: string;
+  text: string;
+}
+
+interface RelaySurfaceContent {
+  title: string;
+  intro: string;
+  cards: RelaySurfaceCardContent[];
+}
+
+interface RelayAboutContent {
+  title: string;
+  intro: string;
+  points: string[];
+}
+
+const ctaLinkSchema: z.ZodType<CtaLink> = z.object({
   label: z.string(),
   href: z.string(),
 });
 
-const relayHeroContentSchema = z.object({
+const relaySignalContentSchema: z.ZodType<RelaySignalContent> = z.object({
+  label: z.string(),
+  value: z.string(),
+  note: z.string(),
+});
+
+const relayHeroContentSchema: z.ZodType<RelayHeroContent> = z.object({
   eyebrow: z.string(),
   headline: z.string(),
   intro: z.string(),
   primaryCta: ctaLinkSchema,
   secondaryCta: ctaLinkSchema,
-  signals: z.array(
-    z.object({
-      label: z.string(),
-      value: z.string(),
-      note: z.string(),
-    }),
-  ),
+  signals: z.array(relaySignalContentSchema),
 });
 
-const relayLoopContentSchema = z.object({
+const relayLoopStepContentSchema: z.ZodType<RelayLoopStepContent> = z.object({
+  phase: z.string(),
+  title: z.string(),
+  text: z.string(),
+});
+
+const relayLoopContentSchema: z.ZodType<RelayLoopContent> = z.object({
   eyebrow: z.string(),
   title: z.string(),
   intro: z.string(),
-  steps: z.array(
-    z.object({
-      phase: z.string(),
-      title: z.string(),
-      text: z.string(),
-    }),
-  ),
+  steps: z.array(relayLoopStepContentSchema),
 });
 
-const relaySurfaceContentSchema = z.object({
+const relaySurfaceCardContentSchema: z.ZodType<RelaySurfaceCardContent> =
+  z.object({
+    label: z.string(),
+    title: z.string(),
+    text: z.string(),
+  });
+
+const relaySurfaceContentSchema: z.ZodType<RelaySurfaceContent> = z.object({
   title: z.string(),
   intro: z.string(),
-  cards: z.array(
-    z.object({
-      label: z.string(),
-      title: z.string(),
-      text: z.string(),
-    }),
-  ),
+  cards: z.array(relaySurfaceCardContentSchema),
 });
 
-const relayAboutContentSchema = z.object({
+const relayAboutContentSchema: z.ZodType<RelayAboutContent> = z.object({
   title: z.string(),
   intro: z.string(),
   points: z.array(z.string()),
 });
-
-type CtaLink = z.infer<typeof ctaLinkSchema>;
-type RelayHeroContent = z.infer<typeof relayHeroContentSchema>;
-type RelayLoopContent = z.infer<typeof relayLoopContentSchema>;
-type RelaySurfaceContent = z.infer<typeof relaySurfaceContentSchema>;
-type RelayAboutContent = z.infer<typeof relayAboutContentSchema>;
 
 const ABOUT_FALLBACK: RelayAboutContent = {
   title: "Relay is a collaborative team-memory brain.",
@@ -689,12 +735,14 @@ export const relayRoutes: RouteDefinitionInput[] = [
   },
 ];
 
-export const relaySite = createRizomSite({
+export const relaySite: ReturnType<typeof createRizomSite> = createRizomSite({
   packageName: "@brains/relay/site",
-  contentNamespace: "relay-site",
   themeProfile: "studio",
   layout: RelayLayout,
   routes: relayRoutes,
-  templates: { "home-diagram": relayDiagramTemplate },
-  dataSources: [new RelayHomeCountsDataSource()],
+  runtime: {
+    contentNamespace: "relay-site",
+    templates: { "home-diagram": relayDiagramTemplate },
+    dataSources: [new RelayHomeCountsDataSource()],
+  },
 });

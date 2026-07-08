@@ -20,7 +20,7 @@ const listDataSchema = z.object({
   items: z.array(listItemSchema).optional(),
 });
 
-type ListItem = z.infer<typeof listItemSchema>;
+type ListItem = z.output<typeof listItemSchema>;
 
 export type ListWidgetProps = BaseWidgetProps;
 

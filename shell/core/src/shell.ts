@@ -46,6 +46,7 @@ import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type {
   IAIService,
   IAgentService,
+  AIGenerationSchema,
   ImageGenerationOptions,
   ImageGenerationResult,
   JudgeInput,
@@ -64,7 +65,6 @@ import type {
 } from "@brains/templates";
 import type { IMCPService, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
-import { type z } from "@brains/utils/zod";
 import { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 
@@ -98,6 +98,7 @@ import type { ShellDependencies, ShellServices } from "./types/shell-types";
 export type { ShellDependencies };
 
 export class Shell implements IShell {
+  private config: ShellConfig;
   private static instance: Shell | null = null;
   private readonly services: ShellServices;
   private readonly bootloader: ShellBootloader;
@@ -109,7 +110,7 @@ export class Shell implements IShell {
 
   public readonly jobs: IJobsNamespace;
 
-  public static getInstance(config?: Partial<ShellConfig>): Shell {
+  public static getInstance(config?: ShellConfigInput): Shell {
     Shell.instance ??= new Shell(createShellConfig(config ?? {}));
     return Shell.instance;
   }
@@ -133,10 +134,8 @@ export class Shell implements IShell {
     return new Shell(fullConfig, dependencies);
   }
 
-  private constructor(
-    private config: ShellConfig,
-    dependencies?: ShellDependencies,
-  ) {
+  private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
+    this.config = config;
     const shellInitializer = ShellInitializer.getInstance(
       dependencies?.logger ?? Logger.getInstance(),
       this.config,
@@ -277,7 +276,7 @@ export class Shell implements IShell {
 
   public async generateObject<T>(
     prompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ): Promise<{ object: T }> {
     this.requireInitialized("Shell generateObject");
     const { object } = await this.services.aiService.generateObject(

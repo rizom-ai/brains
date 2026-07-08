@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import { z, type ZodRawShape, type ZodType } from "@brains/utils/zod";
 import { type ProgressNotification } from "@brains/utils/progress";
+import { z, type ZodRawShape } from "@brains/utils/zod";
 import type { UserPermissionLevel } from "@brains/templates";
 
 /**
@@ -32,84 +32,124 @@ export interface ToolContext {
   userPermissionLevel?: UserPermissionLevel;
 }
 
+export interface ToolContextRouting {
+  interfaceType: string;
+  userId: string;
+  conversationId?: string | undefined;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  runId?: string | undefined;
+  toolCallId?: string | undefined;
+  userPermissionLevel?: UserPermissionLevel | undefined;
+}
+
+interface ToolContextRoutingSchemaShape extends ZodRawShape {
+  interfaceType: z.ZodString;
+  userId: z.ZodString;
+  conversationId: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodOptional<z.ZodString>;
+  runId: z.ZodOptional<z.ZodString>;
+  toolCallId: z.ZodOptional<z.ZodString>;
+  userPermissionLevel: z.ZodOptional<
+    z.ZodEnum<{
+      anchor: "anchor";
+      trusted: "trusted";
+      public: "public";
+    }>
+  >;
+}
+
 /**
  * Schema for ToolContext routing metadata
  * Used to validate routing information in tool execution requests
  */
-export const ToolContextRoutingSchema = z.object({
-  interfaceType: z.string(),
-  userId: z.string(),
-  conversationId: z.string().optional(),
-  channelId: z.string().optional(),
-  channelName: z.string().optional(),
-  runId: z.string().optional(),
-  toolCallId: z.string().optional(),
-  userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
-});
+export const ToolContextRoutingSchema: z.ZodObject<ToolContextRoutingSchemaShape> =
+  z.object({
+    interfaceType: z.string(),
+    userId: z.string(),
+    conversationId: z.string().optional(),
+    channelId: z.string().optional(),
+    channelName: z.string().optional(),
+    runId: z.string().optional(),
+    toolCallId: z.string().optional(),
+    userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
+  });
+
+export interface ToolSuccessResponse {
+  success: true;
+  data?: unknown;
+  message?: string | undefined;
+  cached?: true | undefined;
+}
 
 /**
  * Success response schema
  */
-export const toolSuccessSchema = z
-  .object({
+export const toolSuccessSchema: z.ZodType<ToolSuccessResponse> = z.strictObject(
+  {
     success: z.literal(true),
-    data: z.unknown(),
+    data: z.unknown().optional(),
     message: z.string().optional(),
     cached: z.literal(true).optional(),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    if (!Object.prototype.hasOwnProperty.call(value, "data")) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["data"],
-        message: "Required",
-      });
-    }
-  });
+  },
+);
+
+export interface ToolErrorResponse {
+  success: false;
+  error: string;
+  code?: string | undefined;
+}
 
 /**
  * Error response schema
  */
-export const toolErrorSchema = z
-  .object({
-    success: z.literal(false),
-    error: z.string(),
-    code: z.string().optional(),
-  })
-  .strict();
+export const toolErrorSchema: z.ZodType<ToolErrorResponse> = z.strictObject({
+  success: z.literal(false),
+  error: z.string(),
+  code: z.string().optional(),
+});
 
 /**
  * Confirmation response schema
  * Tools return this when an operation needs user approval.
  * The agent service detects this shape and enters the confirmation flow.
  */
-export const toolConfirmationSchema = z
-  .object({
+export interface ToolConfirmation {
+  needsConfirmation: true;
+  toolName: string;
+  summary: string;
+  completionSummary?: string | undefined;
+  preview?: string | undefined;
+  args: unknown;
+}
+
+export const toolConfirmationSchema: z.ZodType<ToolConfirmation> =
+  z.strictObject({
     needsConfirmation: z.literal(true),
     toolName: z.string(),
     summary: z.string(),
     completionSummary: z.string().optional(),
     preview: z.string().optional(),
     args: z.unknown(),
-  })
-  .strict();
-
-export type ToolConfirmation = z.infer<typeof toolConfirmationSchema>;
+  });
 
 /**
  * Standardized tool response schema
  * All tools return one of: success, error, or confirmation request.
  */
-export const toolResponseSchema = z.union([
+export type ToolResponse =
+  ToolSuccessResponse | ToolErrorResponse | ToolConfirmation;
+
+export const toolResponseSchema: z.ZodType<ToolResponse> = z.union([
   toolSuccessSchema,
   toolErrorSchema,
   toolConfirmationSchema,
 ]);
 
-export type ToolResponse = z.infer<typeof toolResponseSchema>;
-
 export type ToolSideEffects = "none" | "writes" | "external";
+export type ToolInputSchema = ZodRawShape;
+export type ToolOutputSchema = z.ZodType;
 export type MCPProtocolMode = "basic" | "debug";
 
 /**
@@ -119,8 +159,8 @@ export type MCPProtocolMode = "basic" | "debug";
 export interface Tool<TOutput = ToolResponse> {
   name: string;
   description: string;
-  inputSchema: ZodRawShape; // Same type as MCP expects
-  outputSchema?: ZodType<TOutput>; // Optional: Zod schema for type-safe outputs
+  inputSchema: ToolInputSchema;
+  outputSchema?: ToolOutputSchema; // Optional: Zod schema for type-safe outputs
   handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
   /** Declares whether this tool is safe to repeat/cache within one model turn. Undefined defaults to not cacheable. */

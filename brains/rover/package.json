@@ -1,31 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.141",
-  "type": "module",
-  "private": true,
-  "main": "./src/index.ts",
-  "files": [
-    "src",
-    "brain.eval.yaml",
-    "env.schema.template"
-  ],
-  "scripts": {
-    "build:web-chat": "turbo run build --filter=@brains/web-chat",
-    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "eval": "brain-eval",
-    "eval:core": "brain-eval --suite core",
-    "eval:core:coverage": "brain-eval --suite core --tool-coverage",
-    "eval:default": "brain-eval --suite default",
-    "eval:default:coverage": "brain-eval --suite default --tool-coverage",
-    "eval:full": "brain-eval --suite full",
-    "eval:full:coverage": "brain-eval --suite full --tool-coverage",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
+  "version": "0.2.0-alpha.142",
   "dependencies": {
     "@brains/a2a": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
@@ -33,6 +8,7 @@
     "@brains/app": "workspace:*",
     "@brains/assessment": "workspace:*",
     "@brains/atproto": "workspace:*",
+    "@brains/atproto-registry": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/blog": "workspace:*",
     "@brains/chat": "workspace:*",
@@ -42,6 +18,7 @@
     "@brains/decks": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
+    "@brains/doc": "workspace:*",
     "@brains/document-plugin": "workspace:*",
     "@brains/email-resend": "workspace:*",
     "@brains/image-plugin": "workspace:*",
@@ -71,6 +48,31 @@
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "typescript": "^5.3.3"
-  }
+    "typescript": "^6.0.3"
+  },
+  "files": [
+    "src",
+    "brain.eval.yaml",
+    "env.schema.template"
+  ],
+  "main": "./src/index.ts",
+  "private": true,
+  "scripts": {
+    "build:web-chat": "turbo run build --filter=@brains/web-chat",
+    "eval": "brain-eval",
+    "eval:core": "brain-eval --suite core",
+    "eval:core:coverage": "brain-eval --suite core --tool-coverage",
+    "eval:default": "brain-eval --suite default",
+    "eval:default:coverage": "brain-eval --suite default --tool-coverage",
+    "eval:full": "brain-eval --suite full",
+    "eval:full:coverage": "brain-eval --suite full --tool-coverage",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
 }

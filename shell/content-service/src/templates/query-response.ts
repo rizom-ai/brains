@@ -1,11 +1,24 @@
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 
+export interface QueryResponseSource {
+  type: string;
+  title: string;
+  relevance: number;
+}
+
+export interface QueryResponse {
+  answer: string;
+  sources?: QueryResponseSource[] | undefined;
+  confidence?: "high" | "medium" | "low" | undefined;
+  suggestions?: string[] | undefined;
+}
+
 /**
  * Schema for public query responses
  * Provides a safe, structured format for public tool responses
  */
-export const queryResponseSchema = z.object({
+export const queryResponseSchema: z.ZodType<QueryResponse> = z.object({
   answer: z.string().describe("The answer to the user's query"),
   sources: z
     .array(
@@ -26,8 +39,6 @@ export const queryResponseSchema = z.object({
     .optional()
     .describe("Related topics or follow-up questions"),
 });
-
-export type QueryResponse = z.infer<typeof queryResponseSchema>;
 
 /**
  * Template for public query responses

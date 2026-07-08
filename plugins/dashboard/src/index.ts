@@ -1,5 +1,6 @@
 // Main plugin export
 export { DashboardPlugin, dashboardPlugin } from "./plugin";
+export type { DashboardConfig, DashboardConfigInput } from "./plugin";
 
 // Widget registry exports
 export {

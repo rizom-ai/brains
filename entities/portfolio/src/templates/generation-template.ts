@@ -1,10 +1,22 @@
 import { z } from "@brains/utils/zod";
-import { createTemplate } from "@brains/plugins";
+import { createTemplate, type Template } from "@brains/plugins";
 
 /**
  * Schema for AI-generated project content
  */
-export const projectGenerationSchema = z.object({
+export interface ProjectGeneration {
+  title: string;
+  description: string;
+  context: string;
+  problem: string;
+  solution: string;
+  outcome: string;
+}
+
+export const projectGenerationSchema: z.ZodType<
+  ProjectGeneration,
+  ProjectGeneration
+> = z.object({
   title: z
     .string()
     .max(80)
@@ -38,19 +50,18 @@ export const projectGenerationSchema = z.object({
     ),
 });
 
-export type ProjectGeneration = z.infer<typeof projectGenerationSchema>;
-
 /**
  * Template for AI-powered project case study generation
  */
-export const projectGenerationTemplate = createTemplate<ProjectGeneration>({
-  name: "portfolio:generation",
-  description: "Template for AI to generate portfolio project case studies",
-  schema: projectGenerationSchema,
-  dataSourceId: "shell:ai-content",
-  requiredPermission: "public",
-  useKnowledgeContext: true,
-  basePrompt: `You are helping to create a professional portfolio case study based on REAL project information.
+export const projectGenerationTemplate: Template =
+  createTemplate<ProjectGeneration>({
+    name: "portfolio:generation",
+    description: "Template for AI to generate portfolio project case studies",
+    schema: projectGenerationSchema,
+    dataSourceId: "shell:ai-content",
+    requiredPermission: "public",
+    useKnowledgeContext: true,
+    basePrompt: `You are helping to create a professional portfolio case study based on REAL project information.
 
 IMPORTANT: The project request is the primary source of truth. Retrieved knowledge-base context is useful only when it clearly describes the same project and does not conflict with the request. Ignore unrelated projects, prior drafts, or context for a different title/domain. Extract facts, technologies, challenges, and outcomes only from the request and directly matching context. Do NOT invent or fabricate details.
 
@@ -68,4 +79,4 @@ CRITICAL: Only include information that can be derived from the project request 
 
 Tone: Professional but accessible. Write for someone evaluating real work.
 Structure: Use markdown formatting. Break long sections into paragraphs for readability.`,
-});
+  });

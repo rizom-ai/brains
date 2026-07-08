@@ -13,12 +13,14 @@ interface PrioritizedItem {
  * during HMR/test reruns.
  */
 export class PrioritizedRegistry<TInput, T extends PrioritizedItem> {
+  private readonly parse: (input: TInput) => T;
+  private readonly idOf: (item: T) => string;
   private readonly items = new Map<string, T>();
 
-  constructor(
-    private readonly parse: (input: TInput) => T,
-    private readonly idOf: (item: T) => string,
-  ) {}
+  constructor(parse: (input: TInput) => T, idOf: (item: T) => string) {
+    this.parse = parse;
+    this.idOf = idOf;
+  }
 
   public register(input: TInput): void {
     const parsed = this.parse(input);

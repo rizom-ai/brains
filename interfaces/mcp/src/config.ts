@@ -1,6 +1,24 @@
 import { z } from "@brains/utils/zod";
 
-export const mcpConfigSchema = z.object({
+export type MCPMode = "basic" | "debug";
+
+export interface MCPConfig {
+  transport: "stdio" | "http";
+  mode: MCPMode;
+  httpPort: number;
+  authToken?: string | undefined;
+  sessionIdleTtlMs: number;
+}
+
+export interface MCPConfigInput {
+  transport?: "stdio" | "http" | undefined;
+  mode?: MCPMode | undefined;
+  httpPort?: number | undefined;
+  authToken?: string | undefined;
+  sessionIdleTtlMs?: number | undefined;
+}
+
+export const mcpConfigSchema: z.ZodType<MCPConfig, MCPConfigInput> = z.object({
   transport: z.enum(["stdio", "http"]).default("http"),
   mode: z.enum(["basic", "debug"]).default("basic"),
   httpPort: z
@@ -18,5 +36,3 @@ export const mcpConfigSchema = z.object({
     )
     .default(30 * 60 * 1000),
 });
-
-export type MCPConfig = z.infer<typeof mcpConfigSchema>;

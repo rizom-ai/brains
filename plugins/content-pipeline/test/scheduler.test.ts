@@ -7,6 +7,8 @@ import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "../src/scheduler-backend";
 import { createMockLogger } from "@brains/test-utils";
 
+type SchedulerConfigOverrides = Partial<SchedulerConfig>;
+
 function executorResult(
   entityType: string,
   entityId: string,
@@ -53,7 +55,7 @@ describe("ContentScheduler", () => {
   let mockOnFailed: ReturnType<typeof mock>;
   let mockExecutorPublish: ReturnType<typeof mock>;
 
-  function baseConfig(overrides?: Partial<SchedulerConfig>): SchedulerConfig {
+  function baseConfig(overrides?: SchedulerConfigOverrides): SchedulerConfig {
     return {
       queueManager,
       providerRegistry,

@@ -92,15 +92,21 @@ interface PlaywrightModule {
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 export class MediaRenderError extends Error {
+  public readonly code:
+    | "browser-launch-failed"
+    | "render-timeout"
+    | "output-too-large"
+    | "invalid-output";
   constructor(
     message: string,
-    public readonly code:
+    code:
       | "browser-launch-failed"
       | "render-timeout"
       | "output-too-large"
       | "invalid-output",
   ) {
     super(message);
+    this.code = code;
     this.name = "MediaRenderError";
   }
 }
@@ -214,13 +220,13 @@ async function withBrowser<T>(
   operation: (browser: MediaBrowser) => Promise<T>,
 ): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
-  let aborted: boolean = false;
-  // Read via a call so TS doesn't narrow `aborted` to `false` across awaits —
-  // the timeout handler flips it while we're suspended.
-  const isAborted = (): boolean => aborted;
-  // Ref object so the timeout handler can see late-arriving browsers without
-  // TS narrowing the closed-over `let` to `null`.
-  const slot: { browser: MediaBrowser | null } = { browser: null };
+  // Ref object so the timeout handler can see late-arriving browsers and
+  // the operation cleanup can see timeout state without TS narrowing the
+  // closed-over values incorrectly.
+  const slot: { browser: MediaBrowser | null; aborted: boolean } = {
+    browser: null,
+    aborted: false,
+  };
 
   const killBrowser = (b: MediaBrowser): void => {
     void b.close().catch(() => {
@@ -234,7 +240,7 @@ async function withBrowser<T>(
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeout = setTimeout(() => {
-      aborted = true;
+      slot.aborted = true;
       if (slot.browser) killBrowser(slot.browser);
       reject(
         new MediaRenderError(
@@ -250,7 +256,7 @@ async function withBrowser<T>(
   // the browser so we can kill the latecomer instead of leaking it.
   const launchPromise = browserFactory.launch().then((b) => {
     slot.browser = b;
-    if (aborted) killBrowser(b);
+    if (slot.aborted) killBrowser(b);
     return b;
   });
 
@@ -259,7 +265,7 @@ async function withBrowser<T>(
     try {
       return await Promise.race([operation(browser), timeoutPromise]);
     } finally {
-      if (!isAborted()) {
+      if (!slot.aborted) {
         try {
           await browser.close();
         } catch {

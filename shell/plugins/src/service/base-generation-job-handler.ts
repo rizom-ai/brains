@@ -1,8 +1,8 @@
 import { BaseJobHandler } from "@brains/job-queue";
+import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { type z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   generateMarkdown,
@@ -21,7 +21,7 @@ import type { EntityPluginContext } from "../entity/context";
  */
 export interface GenerationJobHandlerConfig<TInput> {
   /** Zod schema for validating job input */
-  schema: z.ZodSchema<TInput>;
+  schema: JobDataSchema<TInput>;
   /** Job type name for logging */
   jobTypeName: string;
   /** Entity type being generated (e.g., "post", "note", "deck") */

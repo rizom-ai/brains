@@ -1,9 +1,30 @@
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export const ecosystemSuffixSchema = z.enum(["ai", "foundation", "work"]);
+export type EcosystemSuffix = "ai" | "foundation" | "work";
 
-export const ecosystemCardSchema = z.object({
+export const ecosystemSuffixSchema: z.ZodType<
+  EcosystemSuffix,
+  EcosystemSuffix
+> = z.enum(["ai", "foundation", "work"]);
+
+export interface EcosystemCard {
+  suffix: EcosystemSuffix;
+  title: string;
+  body: string;
+  linkLabel: string;
+  linkHref: string;
+}
+
+type EcosystemCardSchema = z.ZodObject<{
+  suffix: z.ZodType<EcosystemSuffix, EcosystemSuffix>;
+  title: z.ZodString;
+  body: z.ZodString;
+  linkLabel: z.ZodString;
+  linkHref: z.ZodString;
+}>;
+
+export const ecosystemCardSchema: EcosystemCardSchema = z.object({
   suffix: ecosystemSuffixSchema,
   title: z.string(),
   body: z.string(),
@@ -11,27 +32,55 @@ export const ecosystemCardSchema = z.object({
   linkHref: z.string(),
 });
 
-export const ecosystemContentSchema = z.object({
+export interface EcosystemContent {
+  eyebrow: string;
+  headline: string;
+  cards: EcosystemCard[];
+}
+
+export const ecosystemContentSchema: z.ZodType<EcosystemContent> = z.object({
   eyebrow: z.string(),
   headline: z.string(),
   cards: z.array(ecosystemCardSchema).min(1),
 });
 
-export type EcosystemContent = z.infer<typeof ecosystemContentSchema>;
+export type EcosystemSectionStatus = "draft" | "published";
 
-export const ecosystemSectionMetadataSchema = z.object({
-  title: z.string(),
-  slug: z.string(),
-  status: z.enum(["draft", "published"]),
-});
+export interface EcosystemSectionMetadata {
+  [key: string]: unknown;
+  title: string;
+  slug: string;
+  status: EcosystemSectionStatus;
+}
 
-export type EcosystemSectionMetadata = z.infer<
-  typeof ecosystemSectionMetadataSchema
->;
+type EcosystemSectionMetadataSchema = z.ZodObject<{
+  title: z.ZodString;
+  slug: z.ZodString;
+  status: z.ZodEnum<{ draft: "draft"; published: "published" }>;
+}>;
 
-export const ecosystemSectionSchema = baseEntitySchema.extend({
+export const ecosystemSectionMetadataSchema: EcosystemSectionMetadataSchema =
+  z.object({
+    title: z.string(),
+    slug: z.string(),
+    status: z.enum(["draft", "published"]),
+  });
+
+const ecosystemSectionEntityMetadataSchema: EcosystemSectionMetadataSchema =
+  z.object({
+    title: z.string(),
+    slug: z.string(),
+    status: z.enum(["draft", "published"]),
+  });
+
+export const ecosystemSectionSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"ecosystem-section">;
+    metadata: EcosystemSectionMetadataSchema;
+  }>
+> = baseEntityParserSchema.extend({
   entityType: z.literal("ecosystem-section"),
-  metadata: ecosystemSectionMetadataSchema,
+  metadata: ecosystemSectionEntityMetadataSchema,
 });
 
-export type EcosystemSection = z.infer<typeof ecosystemSectionSchema>;
+export type EcosystemSection = z.output<typeof ecosystemSectionSchema>;

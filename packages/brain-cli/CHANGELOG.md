@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.142
+
+### Minor Changes
+
+- [`42c4bbf`](https://github.com/rizom-ai/brains/commit/42c4bbf5bed121c3c7b5d8c118c1b324b010e447) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Expose the AT Protocol registry as an opt-in Rover capability so rizom.ai can migrate from Ranger while preserving canonical protocol registry routes.
+
+- [`442a843`](https://github.com/rizom-ai/brains/commit/442a843b07b0ee90a7332df86fc56bc8fb15db37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow docs.rizom.ai to run on Rover by making the docs capability opt-in on Rover, letting hosted user config render additional `add:` capabilities, and installing selected `siteOverride.package@version` refs into hash-tagged rover-pilot fleet images.
+
+### Patch Changes
+
+- [`08fca47`](https://github.com/rizom-ai/brains/commit/08fca474be4f558b6de89b4ee53dcf690db914b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use the shell returned by the in-process booted app when invoking built-in CLI tools so installed-package site builds run against the initialized brain instead of a fresh singleton shell.
+
 ## 0.2.0-alpha.141
 
 ## 0.2.0-alpha.140

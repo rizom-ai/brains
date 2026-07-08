@@ -9,6 +9,22 @@ const agentAdapter = new AgentAdapter();
 const skillAdapter = new SkillAdapter();
 const swotAdapter = new SwotAdapter();
 
+function hasParser<T>(schema: unknown): schema is { parse(value: unknown): T } {
+  return (
+    typeof schema === "object" &&
+    schema !== null &&
+    "parse" in schema &&
+    typeof schema.parse === "function"
+  );
+}
+
+function parseGenerated<T>(schema: unknown, value: unknown): T {
+  if (!hasParser<T>(schema)) {
+    throw new Error("Test generation schema does not provide parsing");
+  }
+  return schema.parse(value);
+}
+
 describe("SwotDerivationHandler", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
@@ -25,11 +41,12 @@ describe("SwotDerivationHandler", () => {
     let callCount = 0;
     shell.generateObject = async <T>(
       _prompt: string,
-      schema: { parse: (value: unknown) => T },
+      schema: unknown,
     ): Promise<{ object: T }> => {
       callCount += 1;
       return {
-        object: schema.parse(
+        object: parseGenerated(
+          schema,
           callCount === 1
             ? {
                 strengths: [
@@ -133,9 +150,10 @@ describe("SwotDerivationHandler", () => {
     const shell = harness.getMockShell();
     shell.generateObject = async <T>(
       prompt: string,
-      schema: { parse: (value: unknown) => T },
+      schema: unknown,
     ): Promise<{ object: T }> => ({
-      object: schema.parse(
+      object: parseGenerated(
+        schema,
         prompt.includes("Draft SWOT:")
           ? {
               strengths: [
@@ -252,11 +270,12 @@ describe("SwotDerivationHandler", () => {
     const shell = harness.getMockShell();
     shell.generateObject = async <T>(
       prompt: string,
-      schema: { parse: (value: unknown) => T },
+      schema: unknown,
     ): Promise<{ object: T }> => {
       receivedPrompts.push(prompt);
       return {
-        object: schema.parse(
+        object: parseGenerated(
+          schema,
           receivedPrompts.length === 1
             ? {
                 strengths: [
@@ -367,11 +386,12 @@ describe("SwotDerivationHandler", () => {
     const shell = harness.getMockShell();
     shell.generateObject = async <T>(
       prompt: string,
-      schema: { parse: (value: unknown) => T },
+      schema: unknown,
     ): Promise<{ object: T }> => {
       receivedPrompts.push(prompt);
       return {
-        object: schema.parse(
+        object: parseGenerated(
+          schema,
           receivedPrompts.length === 1
             ? {
                 strengths: [
@@ -455,11 +475,12 @@ describe("SwotDerivationHandler", () => {
     const shell = harness.getMockShell();
     shell.generateObject = async <T>(
       prompt: string,
-      schema: { parse: (value: unknown) => T },
+      schema: unknown,
     ): Promise<{ object: T }> => {
       receivedPrompts.push(prompt);
       return {
-        object: schema.parse(
+        object: parseGenerated(
+          schema,
           receivedPrompts.length === 1
             ? {
                 strengths: [
@@ -522,12 +543,13 @@ describe("SwotDerivationHandler", () => {
     let callCount = 0;
     shell.generateObject = async <T>(
       _prompt: string,
-      schema: { parse: (value: unknown) => T },
+      schema: unknown,
     ): Promise<{ object: T }> => {
       callCount += 1;
       const cycle = Math.ceil(callCount / 2);
       return {
-        object: schema.parse(
+        object: parseGenerated(
+          schema,
           callCount % 2 === 1
             ? {
                 strengths: [

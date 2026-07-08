@@ -9,20 +9,34 @@ import type { LinkExtractionResult } from "../templates/extraction-template";
 /**
  * Schema for link capture options
  */
-export const linkCaptureOptionsSchema = z.object({
-  id: z.string().optional(),
-  metadata: z
-    .object({
-      conversationId: z.string().optional(),
-      interfaceId: z.string().optional(), // e.g. "cli", "matrix", "mcp"
-      userId: z.string().optional(),
-      messageId: z.string().optional(),
-      timestamp: z.string().optional(),
-    })
-    .optional(),
-});
+export interface LinkCaptureOptionsMetadata {
+  conversationId?: string | undefined;
+  interfaceId?: string | undefined; // e.g. "cli", "matrix", "mcp"
+  userId?: string | undefined;
+  messageId?: string | undefined;
+  timestamp?: string | undefined;
+}
 
-export type LinkCaptureOptions = z.infer<typeof linkCaptureOptionsSchema>;
+export interface LinkCaptureOptions {
+  id?: string | undefined;
+  metadata?: LinkCaptureOptionsMetadata | undefined;
+}
+
+const linkCaptureOptionsMetadataSchema: z.ZodType<LinkCaptureOptionsMetadata> =
+  z.object({
+    conversationId: z.string().optional(),
+    interfaceId: z.string().optional(), // e.g. "cli", "matrix", "mcp"
+    userId: z.string().optional(),
+    messageId: z.string().optional(),
+    timestamp: z.string().optional(),
+  });
+
+export const linkCaptureOptionsSchema: z.ZodType<LinkCaptureOptions> = z.object(
+  {
+    id: z.string().optional(),
+    metadata: linkCaptureOptionsMetadataSchema.optional(),
+  },
+);
 
 export interface LinkServiceOptions {
   /** Jina Reader API key for higher rate limits */
@@ -33,13 +47,12 @@ export interface LinkServiceOptions {
  * Core service for link operations
  */
 export class LinkService {
+  private context: EntityPluginContext;
   private linkAdapter: LinkAdapter;
   private urlFetcher: UrlFetcher;
 
-  constructor(
-    private context: EntityPluginContext,
-    options?: LinkServiceOptions,
-  ) {
+  constructor(context: EntityPluginContext, options?: LinkServiceOptions) {
+    this.context = context;
     this.linkAdapter = new LinkAdapter();
     this.urlFetcher = new UrlFetcher(
       options?.jinaApiKey ? { jinaApiKey: options.jinaApiKey } : undefined,

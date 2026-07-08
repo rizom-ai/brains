@@ -1,8 +1,21 @@
 import type { JSX, ComponentChildren } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const linkButtonVariants = cva(
+export interface LinkButtonVariantProps {
+  variant?: VariantValue<
+    | "primary"
+    | "accent"
+    | "secondary"
+    | "outline"
+    | "outline-light"
+    | "unstyled"
+  >;
+  size?: VariantValue<"icon" | "sm" | "md" | "lg" | "xl" | "2xl">;
+}
+
+const linkButtonVariants: VariantFunction<LinkButtonVariantProps> = cva(
   "inline-flex items-center justify-center font-semibold transition-all text-center",
   {
     variants: {
@@ -34,8 +47,7 @@ const linkButtonVariants = cva(
   },
 );
 
-export interface LinkButtonProps
-  extends VariantProps<typeof linkButtonVariants> {
+export interface LinkButtonProps extends LinkButtonVariantProps {
   href: string;
   children: ComponentChildren;
   external?: boolean;

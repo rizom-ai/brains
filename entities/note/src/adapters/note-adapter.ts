@@ -8,6 +8,9 @@ import {
   type NoteMetadata,
 } from "../schemas/note";
 
+const frontmatterRecordSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
+  z.record(z.string(), z.unknown());
+
 /**
  * Entity adapter for note entities
  * Handles notes with or without frontmatter
@@ -92,10 +95,7 @@ export class NoteAdapter extends BaseEntityAdapter<
    *  If no frontmatter, returns content as-is. */
   public createNoteContent(title: string, content: string): string {
     try {
-      const existing = this.parseFrontMatter(
-        content,
-        z.record(z.unknown()),
-      ) as Record<string, unknown>;
+      const existing = this.parseFrontMatter(content, frontmatterRecordSchema);
       // Empty record means no real frontmatter was present
       if (Object.keys(existing).length === 0) {
         return content;
@@ -116,4 +116,4 @@ export class NoteAdapter extends BaseEntityAdapter<
   }
 }
 
-export const noteAdapter = new NoteAdapter();
+export const noteAdapter: NoteAdapter = new NoteAdapter();

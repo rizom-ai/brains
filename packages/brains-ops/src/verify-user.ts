@@ -22,15 +22,15 @@ export interface VerifyPilotUserResult {
   failedChecks: FailedCheck[];
 }
 
-const healthResponseSchema = z.object({
+const healthResponseSchema = z.looseObject({
   status: z.string().optional(),
   daemons: z
     .array(
-      z.object({
+      z.looseObject({
         name: z.string().optional(),
         status: z.string().optional(),
         health: z
-          .object({
+          .looseObject({
             status: z.string().optional(),
             message: z.string().optional(),
           })

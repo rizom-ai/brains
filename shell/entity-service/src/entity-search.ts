@@ -8,8 +8,8 @@ import {
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
-import { z } from "@brains/utils/zod";
 import { type Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import { sql, and, desc, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
 
@@ -19,7 +19,7 @@ const MAX_VECTOR_DISTANCE = 0.82;
 export function prepareSearchQuery(
   query: string,
   logger?: Logger,
-  maxChars = MAX_SEARCH_QUERY_CHARS,
+  maxChars: number = MAX_SEARCH_QUERY_CHARS,
 ): string {
   const normalizedQuery = query.trim().replace(/\s+/g, " ");
 
@@ -48,6 +48,14 @@ const searchOptionsSchema = z.object({
   includeUngenerated: z.boolean().optional().default(false),
   minScore: z.number().min(0).optional(),
 });
+
+const entityMetadataSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    return JSON.parse(value);
+  },
+  z.record(z.string(), z.unknown()),
+);
 
 /**
  * EntitySearch handles all search operations for entities
@@ -327,10 +335,7 @@ export class EntitySearch {
 
     for (const row of results) {
       try {
-        const metadata: Record<string, unknown> =
-          typeof row.metadata === "string"
-            ? JSON.parse(row.metadata)
-            : (row.metadata as Record<string, unknown>);
+        const metadata = entityMetadataSchema.parse(row.metadata);
 
         const entity = this.serializer.reconstructEntity<T>({
           id: row.id,

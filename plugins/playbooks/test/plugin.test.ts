@@ -171,7 +171,7 @@ const playbookToolDataSchema = z
 
 function parsePlaybookToolData(
   input: unknown,
-): z.infer<typeof playbookToolDataSchema> {
+): z.output<typeof playbookToolDataSchema> {
   return playbookToolDataSchema.parse(input);
 }
 
@@ -1554,8 +1554,7 @@ describe("PlaybooksPlugin", () => {
 
   it("serializes evidence auto-advance against operator events so neither update is lost", async () => {
     let resolveGoalCheck:
-      | ((result: { met: boolean; reason: string }) => void)
-      | undefined;
+      ((result: { met: boolean; reason: string }) => void) | undefined;
     let signalGoalCheckStarted: (() => void) | undefined;
     const goalCheckStarted = new Promise<void>((resolve) => {
       signalGoalCheckStarted = resolve;

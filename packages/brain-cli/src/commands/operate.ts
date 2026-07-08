@@ -68,15 +68,15 @@ async function operateBuiltin(
     const { bootBrain } = await import("../lib/boot");
 
     // Boot in register-only mode — no daemons, no events
-    await bootBrain(cwd, config.brain, definition, {
+    const bootedBrain = await bootBrain(cwd, config.brain, definition, {
       chat: false,
       mode: "register-only",
     });
 
     // After boot, the shell is initialized with tools registered.
-    // Get the MCP service to find and invoke the tool.
+    // Prefer the booted App's shell; fall back to the singleton for older boot functions.
     const { Shell } = await import("@brains/core");
-    const shell = Shell.getInstance();
+    const shell = bootedBrain?.getShell() ?? Shell.getInstance();
     const mcpService = shell.getMCPService();
     const cliTools = mcpService.getCliTools();
     const match = cliTools.find((t) => t.tool.cli?.name === commandName);

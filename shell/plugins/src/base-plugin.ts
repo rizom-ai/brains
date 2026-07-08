@@ -8,7 +8,6 @@ import type {
 } from "./interfaces";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
-import { ToolContextRoutingSchema } from "./interfaces";
 import { getErrorMessage } from "@brains/utils/error";
 import { Logger } from "@brains/utils/logger";
 import {
@@ -17,6 +16,7 @@ import {
 } from "@brains/utils/progress";
 import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils/zod";
+import { type PluginConfigSchema, PluginConfigValidationError } from "./config";
 
 // Message schemas for validation
 const toolExecuteRequestSchema = z.object({
@@ -24,8 +24,14 @@ const toolExecuteRequestSchema = z.object({
   args: z.unknown(),
   progressToken: z.union([z.string(), z.number()]).optional(),
   hasProgress: z.boolean().optional(),
-  // Reuse the shared routing metadata schema
-  ...ToolContextRoutingSchema.shape,
+  interfaceType: z.string(),
+  userId: z.string(),
+  conversationId: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  runId: z.string().optional(),
+  toolCallId: z.string().optional(),
+  userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
 });
 
 const resourceGetRequestSchema = z.object({
@@ -49,7 +55,8 @@ export interface CoreContext {
  * Base abstract class for plugins that provides common functionality
  */
 export abstract class BasePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TContext extends CoreContext = CoreContext,
 > implements Plugin {
   public readonly id: string;
@@ -70,8 +77,8 @@ export abstract class BasePlugin<
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    partialConfig: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
+    partialConfig: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     this.id = id;
     this.packageName = packageJson.name;
@@ -79,7 +86,18 @@ export abstract class BasePlugin<
     this.description = packageJson.description ?? `${packageJson.name} plugin`;
 
     // Let Zod schema handle defaults during parsing
-    this.config = configSchema.parse(partialConfig);
+    const parsedConfig = configSchema.safeParse(partialConfig);
+    if (!parsedConfig.success) {
+      throw new PluginConfigValidationError(
+        id,
+        parsedConfig.error.issues.map((issue) => ({
+          path: issue.path.map(String).join("."),
+          code: issue.code,
+          message: issue.message,
+        })),
+      );
+    }
+    this.config = parsedConfig.data;
   }
 
   /**
@@ -98,6 +116,16 @@ export abstract class BasePlugin<
       async (message) => {
         try {
           // Validate and parse the message payload
+          const parsedRequest = toolExecuteRequestSchema.safeParse(
+            message.payload,
+          );
+          if (!parsedRequest.success) {
+            return {
+              success: false,
+              error: "Invalid tool execution request format",
+            };
+          }
+
           const {
             toolName,
             args,
@@ -107,8 +135,11 @@ export abstract class BasePlugin<
             userId,
             conversationId,
             channelId,
+            channelName,
+            runId,
+            toolCallId,
             userPermissionLevel,
-          } = toolExecuteRequestSchema.parse(message.payload);
+          } = parsedRequest.data;
 
           const tools = await this.getTools();
           const tool = tools.find((t) => t.name === toolName);
@@ -126,6 +157,9 @@ export abstract class BasePlugin<
             userId,
             ...(conversationId && { conversationId }),
             ...(channelId && { channelId }),
+            ...(channelName && { channelName }),
+            ...(runId && { runId }),
+            ...(toolCallId && { toolCallId }),
             ...(userPermissionLevel && { userPermissionLevel }),
             ...(hasProgress &&
               progressToken !== undefined && {
@@ -153,12 +187,6 @@ export abstract class BasePlugin<
             data: result,
           };
         } catch (error) {
-          if (error instanceof z.ZodError) {
-            return {
-              success: false,
-              error: "Invalid tool execution request format",
-            };
-          }
           this.logger.error("Tool execution error", error);
           return {
             success: false,
@@ -174,9 +202,16 @@ export abstract class BasePlugin<
       async (message) => {
         try {
           // Validate and parse the message payload
-          const { resourceUri } = resourceGetRequestSchema.parse(
+          const parsedRequest = resourceGetRequestSchema.safeParse(
             message.payload,
           );
+          if (!parsedRequest.success) {
+            return {
+              success: false,
+              error: "Invalid resource get request format",
+            };
+          }
+          const { resourceUri } = parsedRequest.data;
 
           const resources = await this.getResources();
           const resource = resources.find((r) => r.uri === resourceUri);
@@ -195,12 +230,6 @@ export abstract class BasePlugin<
             data: result,
           };
         } catch (error) {
-          if (error instanceof z.ZodError) {
-            return {
-              success: false,
-              error: "Invalid resource get request format",
-            };
-          }
           this.logger.error("Resource fetch error", error);
           return {
             success: false,

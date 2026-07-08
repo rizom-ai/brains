@@ -1,35 +1,77 @@
 {
-  "name": "@brains/site-rizom",
-  "private": true,
-  "version": "0.2.0-alpha.141",
+  "name": "@rizom/site-rizom",
+  "version": "0.2.0-alpha.142",
   "description": "Shared Rizom site core — structural base for rizom.ai, rizom.foundation, and rizom.work",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "publishExports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
+    "dist",
     "src"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "build": "bun scripts/build.ts",
+    "lint": "eslint src scripts/build.ts --max-warnings 0",
+    "lint:fix": "eslint src scripts/build.ts --max-warnings 0 --fix",
+    "postpack": "publish-manifest restore",
+    "prepack": "publish-manifest prepare",
+    "prepublishOnly": "bun scripts/build.ts",
     "test": "bun test",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rizom/site": "workspace:*",
+    "clsx": "^2.1.0",
+    "preact": "^10.27.2",
+    "tailwind-merge": "^3.6.0"
+  },
+  "publishPeerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.141 <0.3.0"
+  },
+  "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",
+    "@brains/build-tools": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "preact": "^10.27.2"
-  },
-  "devDependencies": {
-    "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
+    "@brains/utils": "workspace:*",
+    "@rizom/ui": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "eslint": "^10.5.0",
+    "rollup": "^4.62.0",
+    "rollup-plugin-dts": "^6.4.1",
+    "typescript": "^6.0.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rizom-ai/brains.git",
+    "directory": "sites/rizom"
+  },
+  "license": "Apache-2.0",
+  "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
+  "homepage": "https://github.com/rizom-ai/brains/tree/main/sites/rizom#readme",
+  "bugs": {
+    "url": "https://github.com/rizom-ai/brains/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.3"
   }
 }

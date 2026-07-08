@@ -1,27 +1,23 @@
 import {
   BaseEntityDataSource,
-  baseInputSchema,
-  baseQuerySchema,
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type {
   BaseDataSourceContext,
+  DataSourceSchema,
   BaseQuery,
+  EntityDataSourceConfig,
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
-import type { z } from "@brains/utils/zod";
+import { agentFrontmatterSchema, agentWithDataSchema } from "../schemas/agent";
 import type { Logger } from "@brains/utils/logger";
-import {
-  agentFrontmatterSchema,
-  agentStatusSchema,
-  agentWithDataSchema,
-} from "../schemas/agent";
+import { z } from "@brains/utils/zod";
 import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 
-const agentAdapter = new AgentAdapter();
+const agentAdapter: AgentAdapter = new AgentAdapter();
 
 interface AgentDetailData {
   agent: AgentWithData;
@@ -29,15 +25,45 @@ interface AgentDetailData {
   nextAgent: AgentWithData | null;
 }
 
-const agentQuerySchema = baseQuerySchema.extend({
-  status: agentStatusSchema.optional(),
+type AgentStatusQuerySchema = z.ZodEnum<{
+  discovered: "discovered";
+  approved: "approved";
+}>;
+
+const agentStatusQuerySchema: AgentStatusQuerySchema = z.enum([
+  "discovered",
+  "approved",
+]);
+
+type AgentQuerySchema = z.ZodObject<{
+  id: z.ZodOptional<z.ZodString>;
+  limit: z.ZodOptional<z.ZodNumber>;
+  page: z.ZodOptional<z.ZodNumber>;
+  pageSize: z.ZodOptional<z.ZodNumber>;
+  baseUrl: z.ZodOptional<z.ZodString>;
+  status: z.ZodOptional<AgentStatusQuerySchema>;
+}>;
+
+const agentQuerySchema: AgentQuerySchema = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
+  status: agentStatusQuerySchema.optional(),
 });
 
-const agentInputSchema = baseInputSchema.extend({
+type AgentInputSchema = z.ZodObject<{
+  entityType: z.ZodOptional<z.ZodString>;
+  query: z.ZodOptional<AgentQuerySchema>;
+}>;
+
+const agentInputSchema: AgentInputSchema = z.looseObject({
+  entityType: z.string().optional(),
   query: agentQuerySchema.optional(),
 });
 
-type AgentQuery = z.infer<typeof agentQuerySchema>;
+type AgentQuery = z.output<typeof agentQuerySchema>;
 
 interface AgentListData {
   agents: AgentWithData[];
@@ -76,11 +102,12 @@ export class AgentDataSource extends BaseEntityDataSource<
   AgentEntity,
   AgentWithData
 > {
-  readonly id = AGENT_DATASOURCE_ID;
-  readonly name = "Agent Directory DataSource";
-  readonly description = "Fetches and transforms agent entities for rendering";
+  readonly id: typeof AGENT_DATASOURCE_ID = AGENT_DATASOURCE_ID;
+  readonly name: string = "Agent Directory DataSource";
+  readonly description: string =
+    "Fetches and transforms agent entities for rendering";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: AGENT_ENTITY_TYPE,
     defaultSort: [
       { field: "discoveredAt" as const, direction: "desc" as const },
@@ -125,7 +152,7 @@ export class AgentDataSource extends BaseEntityDataSource<
     pagination: PaginationInfo | null,
     query: BaseQuery,
   ): AgentListData {
-    const status = agentStatusSchema.safeParse(query["status"]);
+    const status = agentStatusQuerySchema.safeParse(query["status"]);
 
     return {
       agents: items,
@@ -137,7 +164,7 @@ export class AgentDataSource extends BaseEntityDataSource<
 
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);

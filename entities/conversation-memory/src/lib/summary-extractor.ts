@@ -3,11 +3,8 @@ import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { SUMMARY_AI_TEMPLATE_NAME } from "./constants";
 import { buildSummaryExtractionPrompt } from "./summary-prompt";
-import type {
-  SummaryConfig,
-  SummaryEntry,
-  SummaryTimeRange,
-} from "../schemas/summary";
+import type { SummaryEntry, SummaryTimeRange } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 import {
   summaryExtractionResultSchema,
   type ExtractedSummaryEntry,
@@ -26,11 +23,18 @@ export interface SummaryExtraction {
 }
 
 export class SummaryExtractor {
+  private readonly context: EntityPluginContext;
+  private readonly logger: Logger;
+  private readonly config: SummaryConfig;
   constructor(
-    private readonly context: EntityPluginContext,
-    private readonly logger: Logger,
-    private readonly config: SummaryConfig,
-  ) {}
+    context: EntityPluginContext,
+    logger: Logger,
+    config: SummaryConfig,
+  ) {
+    this.context = context;
+    this.logger = logger;
+    this.config = config;
+  }
 
   public async extract(messages: Message[]): Promise<SummaryExtraction> {
     if (messages.length === 0) {

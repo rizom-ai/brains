@@ -1,4 +1,8 @@
-import { defineBrain, type PluginConfig } from "@brains/app";
+import {
+  defineBrain,
+  type BrainDefinition,
+  type PluginConfig,
+} from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
@@ -8,6 +12,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
 import { authServicePlugin } from "@brains/auth-service";
+import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { directorySync } from "@brains/directory-sync";
 import { emailResendPlugin } from "@brains/email-resend";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
@@ -15,6 +20,7 @@ import { siteInfoPlugin } from "@brains/site-info";
 import { blogPlugin } from "@brains/blog";
 import { seriesPlugin } from "@brains/series";
 import { decksPlugin } from "@brains/decks";
+import { docsPlugin } from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
@@ -114,7 +120,7 @@ const agentInstructions = [
   `Draft blog posts are only post entities with status draft. If the user asks whether draft blog posts exist, call only system_list for entityType post with status draft; do not also list social-post, newsletter, deck, or other draft entity types. After telling the user there are no draft blog posts, treat follow-ups like "make one draft" or "make one a draft" as requests to change an existing published post back to draft: ask which existing published post they want changed; do not offer to create a brand-new post and do not call system_generate to create a fresh draft from that ambiguous follow-up.`,
 ];
 
-export default defineBrain({
+const roverBrain: BrainDefinition = defineBrain({
   name: "rover",
   version: packageJson.version,
   model: "gpt-5.4-mini",
@@ -169,6 +175,7 @@ export default defineBrain({
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],
+    ["docs", docsPlugin, undefined],
     ["document", documentPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
@@ -229,6 +236,7 @@ export default defineBrain({
           : {}),
       }),
     ],
+    ["atproto-registry", atprotoRegistryPlugin, {}],
     [
       "directory-sync",
       directorySync,
@@ -288,3 +296,5 @@ export default defineBrain({
     },
   },
 });
+
+export default roverBrain;

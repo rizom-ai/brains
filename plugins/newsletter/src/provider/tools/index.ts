@@ -1,8 +1,8 @@
 import type { Tool } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { getErrorMessage } from "@brains/utils/error";
 import { ButtondownClient } from "../lib/buttondown-client";
 
 const subscribeParamsSchema = z.object({

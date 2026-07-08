@@ -34,6 +34,23 @@ describe("rover presets", () => {
     }
   });
 
+  it("keeps the ATProto registry opt-in for canonical protocol hosts", () => {
+    const defaultConfig = resolve(rover, {}, { preset: "default" });
+    const defaultPluginIds =
+      defaultConfig.plugins?.map((plugin) => plugin.id) ?? [];
+
+    expect(defaultPluginIds).not.toContain("atproto-registry");
+
+    const config = resolve(
+      rover,
+      {},
+      { preset: "default", add: ["atproto-registry"] },
+    );
+    const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
+
+    expect(pluginIds).toContain("atproto-registry");
+  });
+
   it("merges ATProto identifier from brain config with app password from env", async () => {
     const overrides = parseInstanceOverrides(`brain: rover
 domain: smoke.rizom.ai

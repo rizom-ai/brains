@@ -1,8 +1,14 @@
 import { join } from "path";
 import chatPageStyles from "./chat-page.css" with { type: "text" };
 
-export const uiAssetPath = "/chat/assets/app.js";
-export const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
+export const uiAssetPath: string = "/chat/assets/app.js";
+export const uiAssetFile: string = join(
+  import.meta.dir,
+  "..",
+  "dist",
+  "ui",
+  "app.js",
+);
 
 export function renderChatPage(): string {
   // Inline theme-init script runs before first paint to set

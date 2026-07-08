@@ -7,7 +7,7 @@ import { createSystemTools } from "../../src/system/tools";
 import { listInputSchema, searchInputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 
-const baseEntityResponseSchema = z.object({
+const baseEntityResponseSchema = z.looseObject({
   id: z.string(),
   entityType: z.string(),
 });
@@ -24,17 +24,18 @@ const searchDataSchema = z
   .strict();
 
 const listDataSchema = z.object({
-  entities: z.array(baseEntityResponseSchema.passthrough()),
+  entities: z.array(baseEntityResponseSchema),
 });
 
 const getDataSchema = z.object({
-  entity: baseEntityResponseSchema.passthrough(),
+  entity: baseEntityResponseSchema,
 });
 
-function expectSuccess<TSchema extends z.ZodTypeAny>(
-  raw: unknown,
-  schema: TSchema,
-): z.infer<TSchema> {
+interface Parser<T> {
+  parse(input: unknown): T;
+}
+
+function expectSuccess<T>(raw: unknown, schema: Parser<T>): T {
   const response = toolResponseSchema.parse(raw);
   if (!("success" in response) || !response.success) {
     throw new Error(

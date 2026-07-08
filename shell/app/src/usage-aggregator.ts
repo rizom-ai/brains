@@ -1,3 +1,5 @@
+import { z } from "@brains/utils/zod";
+
 /**
  * Parse ai:usage events from a structured log file and aggregate them.
  *
@@ -15,6 +17,14 @@ export interface UsageEntry {
   inputTokens: number;
   outputTokens: number;
 }
+
+const usageEntrySchema: z.ZodType<UsageEntry> = z.looseObject({
+  operation: z.string(),
+  provider: z.string(),
+  model: z.string(),
+  inputTokens: z.number(),
+  outputTokens: z.number(),
+});
 
 export interface UsageEvent {
   ts: string;
@@ -36,33 +46,25 @@ export interface UsageReport {
   byModel: Map<string, ModelAggregate>;
 }
 
+const usageLogLineSchema = z.looseObject({
+  msg: z.literal("ai:usage"),
+  ts: z.unknown().optional(),
+  data: z.array(usageEntrySchema).min(1),
+});
+
 /**
  * Parse a single log line. Returns null if it's not a valid ai:usage event.
  */
 export function parseUsageLine(line: string): UsageEvent | null {
   try {
-    const parsed = JSON.parse(line) as Record<string, unknown>;
-    if (parsed["msg"] !== "ai:usage") return null;
-    const data = parsed["data"];
-    if (!Array.isArray(data) || data.length === 0) return null;
-    const first = data[0];
-    if (!isUsageEntry(first)) return null;
-    return { ts: String(parsed["ts"] ?? ""), data: first };
+    const parsed = usageLogLineSchema.safeParse(JSON.parse(line));
+    if (!parsed.success) return null;
+    const first = parsed.data.data[0];
+    if (first === undefined) return null;
+    return { ts: String(parsed.data.ts ?? ""), data: first };
   } catch {
     return null;
   }
-}
-
-function isUsageEntry(value: unknown): value is UsageEntry {
-  if (typeof value !== "object" || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v["operation"] === "string" &&
-    typeof v["provider"] === "string" &&
-    typeof v["model"] === "string" &&
-    typeof v["inputTokens"] === "number" &&
-    typeof v["outputTokens"] === "number"
-  );
 }
 
 /**

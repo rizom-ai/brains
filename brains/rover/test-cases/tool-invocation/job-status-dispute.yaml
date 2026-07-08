@@ -8,6 +8,7 @@ tags:
   - jobs
   - tool-invocation
   - status
+  - preset-core
 
 turns:
   - userMessage: "You said the background operation was still running, but my local logs show it succeeded. Check the runtime job status before answering."

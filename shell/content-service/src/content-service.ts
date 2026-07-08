@@ -36,10 +36,13 @@ export interface ContentServiceDependencies {
  * Implements Component Interface Standardization pattern.
  */
 export class ContentService implements IContentService {
+  private readonly dependencies: ContentServiceDependencies;
   /**
    * Create a new instance of ContentService
    */
-  constructor(private readonly dependencies: ContentServiceDependencies) {}
+  constructor(dependencies: ContentServiceDependencies) {
+    this.dependencies = dependencies;
+  }
 
   /**
    * Apply template scoping logic

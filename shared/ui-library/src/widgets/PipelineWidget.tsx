@@ -22,7 +22,7 @@ const pipelineDataSchema = z.object({
   items: z.array(pipelineItemSchema),
 });
 
-type PipelineItem = z.infer<typeof pipelineItemSchema>;
+type PipelineItem = z.output<typeof pipelineItemSchema>;
 
 export type PipelineWidgetProps = BaseWidgetProps;
 

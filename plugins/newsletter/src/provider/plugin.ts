@@ -4,8 +4,8 @@ import type {
   ApiRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import { ButtondownClient } from "./lib/buttondown-client";
 import { createButtondownTools } from "./tools";
 import {
@@ -14,7 +14,22 @@ import {
 } from "./publish-handler";
 import packageJson from "../../package.json";
 
-const buttondownConfigSchema = z.object({
+interface ButtondownConfig {
+  apiKey?: string | undefined;
+  doubleOptIn: boolean;
+  autoSendOnPublish: boolean;
+}
+
+interface ButtondownConfigInput {
+  apiKey?: string | undefined;
+  doubleOptIn?: boolean | undefined;
+  autoSendOnPublish?: boolean | undefined;
+}
+
+const buttondownConfigSchema: z.ZodType<
+  ButtondownConfig,
+  ButtondownConfigInput
+> = z.object({
   apiKey: z.string().optional().describe("Buttondown API key"),
   doubleOptIn: z
     .boolean()
@@ -26,14 +41,15 @@ const buttondownConfigSchema = z.object({
     .describe("Automatically send newsletter when a blog post is published"),
 });
 
-type ButtondownConfig = z.infer<typeof buttondownConfigSchema>;
-
 /**
  * Buttondown integration plugin — subscriber management and API routes.
  * Newsletter entity management is in this package's entity module.
  */
-export class ButtondownPlugin extends ServicePlugin<ButtondownConfig> {
-  constructor(config: Partial<ButtondownConfig> = {}) {
+export class ButtondownPlugin extends ServicePlugin<
+  ButtondownConfig,
+  ButtondownConfigInput
+> {
+  constructor(config: ButtondownConfigInput = {}) {
     super("buttondown", packageJson, config, buttondownConfigSchema);
   }
 
@@ -124,7 +140,7 @@ export class ButtondownPlugin extends ServicePlugin<ButtondownConfig> {
 }
 
 export function buttondownPlugin(
-  config: Partial<ButtondownConfig> = {},
+  config: ButtondownConfigInput = {},
 ): ButtondownPlugin {
   return new ButtondownPlugin(config);
 }

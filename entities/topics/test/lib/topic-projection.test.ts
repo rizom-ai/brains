@@ -358,13 +358,11 @@ describe("topic projection helpers", () => {
     const deleteEntity = mock(async (): Promise<boolean> => true);
     const context = {
       entityService: {
-        listEntities: mock(
-          async (): Promise<BaseEntity[]> => [
-            createTopic("topic-a", "public"),
-            createTopic("topic-b", "shared"),
-            createTopic("topic-c", "restricted"),
-          ],
-        ),
+        listEntities: mock(async (): Promise<BaseEntity[]> => [
+          createTopic("topic-a", "public"),
+          createTopic("topic-b", "shared"),
+          createTopic("topic-c", "restricted"),
+        ]),
         deleteEntity,
       },
     } as unknown as EntityPluginContext;

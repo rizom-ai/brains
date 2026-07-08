@@ -112,4 +112,4 @@ export class ProjectAdapter extends BaseEntityAdapter<
   }
 }
 
-export const projectAdapter = new ProjectAdapter();
+export const projectAdapter: ProjectAdapter = new ProjectAdapter();

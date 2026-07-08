@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/templates";
+import { createTemplate, type Template } from "@brains/templates";
 import {
   enrichedDeckListSchema,
   type DeckListData,
@@ -7,7 +7,7 @@ import {
 import { DeckListLayout } from "./layout";
 import { DeckListFormatter } from "./formatter";
 
-export const deckListTemplate = createTemplate<
+export const deckListTemplate: Template = createTemplate<
   DeckListData,
   EnrichedDeckListData
 >({

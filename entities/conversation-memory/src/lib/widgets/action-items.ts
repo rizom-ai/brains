@@ -105,4 +105,4 @@ export function registerActionItemsWidget(params: {
   );
 }
 
-export const ACTION_ITEMS_WIDGET_ID = WIDGET_ID;
+export const ACTION_ITEMS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

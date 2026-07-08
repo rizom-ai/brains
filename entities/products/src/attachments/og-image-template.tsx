@@ -6,16 +6,20 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const PRODUCT_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const PRODUCT_OG_IMAGE_TEMPLATE_NAME = "products:og-image";
 
-export const productOgImageTemplateSchema = z.object({
-  name: z.string().min(1),
-  tagline: z.string().optional(),
-  availability: z.string().optional(),
-  brandLabel: z.string().optional(),
-});
+export interface ProductOgImageTemplateData {
+  name: string;
+  tagline?: string | undefined;
+  availability?: string | undefined;
+  brandLabel?: string | undefined;
+}
 
-export type ProductOgImageTemplateData = z.infer<
-  typeof productOgImageTemplateSchema
->;
+export const productOgImageTemplateSchema: z.ZodType<ProductOgImageTemplateData> =
+  z.object({
+    name: z.string().min(1),
+    tagline: z.string().optional(),
+    availability: z.string().optional(),
+    brandLabel: z.string().optional(),
+  });
 
 export const productOgImageTemplate: MediaPageTemplate = {
   name: PRODUCT_OG_IMAGE_TEMPLATE_NAME,

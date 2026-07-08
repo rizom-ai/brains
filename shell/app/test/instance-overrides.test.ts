@@ -691,7 +691,7 @@ describe("resolve with instance overrides", () => {
     });
 
     const config = resolve(def, {}, { domain: "staging.example.com" });
-    expect(config.deployment?.domain).toBe("staging.example.com");
+    expect(config.deployment.domain).toBe("staging.example.com");
   });
 
   test("should set domain in deployment when definition has no deployment", () => {
@@ -703,7 +703,7 @@ describe("resolve with instance overrides", () => {
     });
 
     const config = resolve(def, {}, { domain: "my.example.com" });
-    expect(config.deployment?.domain).toBe("my.example.com");
+    expect(config.deployment.domain).toBe("my.example.com");
   });
 
   test("should override port in deployment", () => {
@@ -715,7 +715,7 @@ describe("resolve with instance overrides", () => {
     });
 
     const config = resolve(def, {}, { port: 9090 });
-    expect(config.deployment?.ports?.production).toBe(9090);
+    expect(config.deployment.ports.production).toBe(9090);
   });
 
   test("should apply plugin config overrides to capabilities", () => {
@@ -1917,6 +1917,35 @@ describe("resolve with site package", () => {
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(
       composeTheme("body { color: lime; }"),
+    );
+  });
+
+  test("should layer site package themeOverride before brain.yaml site.themeOverride", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site", {
+      themeOverride: ".site { color: amber; }",
+    });
+
+    const config = resolve(
+      defineBrain({
+        name: "test",
+        version: "1.0.0",
+        site,
+        theme: "body { color: pink; }",
+        capabilities: [["site-builder", siteBuilderFactory, {}]],
+        interfaces: [],
+      }),
+      {},
+      {
+        site: { themeOverride: ".instance { color: lime; }" },
+      },
+    );
+
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+      composeTheme(
+        "body { color: pink; }\n\n.site { color: amber; }\n\n.instance { color: lime; }",
+      ),
     );
   });
 

@@ -8,12 +8,14 @@ const deriveInputSchema = z.object({
   topicTitles: z.array(z.string()),
 });
 
+type DeriveInput = z.output<typeof deriveInputSchema>;
+
 export function registerSkillEvalHandlers(
   context: EntityPluginContext,
   logger: Logger,
 ): void {
   context.eval.registerHandler("deriveSkills", async (input: unknown) => {
-    const parsed = deriveInputSchema.parse(input);
+    const parsed: DeriveInput = deriveInputSchema.parse(input);
 
     await clearEvalEntities(context, "topic");
     await clearEvalEntities(context, SKILL_ENTITY_TYPE);

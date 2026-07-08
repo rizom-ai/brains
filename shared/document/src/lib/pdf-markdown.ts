@@ -23,12 +23,13 @@ export async function extractPdfMarkdown(
   }
 
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const document = await pdfjs.getDocument({
+  const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(content),
     disableFontFace: false,
     useSystemFonts: true,
     useWorkerFetch: false,
-  }).promise;
+  });
+  const document = await loadingTask.promise;
 
   try {
     const maxPages = options.maxPages ?? defaultPdfMarkdownMaxPages;
@@ -56,6 +57,6 @@ export async function extractPdfMarkdown(
     }
     return markdown;
   } finally {
-    await document.destroy();
+    await loadingTask.destroy();
   }
 }

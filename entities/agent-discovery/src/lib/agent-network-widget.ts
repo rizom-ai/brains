@@ -3,11 +3,16 @@ import { AgentAdapter } from "../adapters/agent-adapter";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
-import type { AgentNetworkWidgetData } from "./agent-network-schema";
+import type {
+  AgentNetworkAgentRow,
+  AgentNetworkSkillRow,
+  AgentNetworkWidgetData,
+} from "./agent-network-schema";
 import {
   buildAgentRows,
   buildSkillFilters,
   buildSkillRows,
+  type ParsedAgentForNetwork,
 } from "./agent-network-rows";
 
 export {
@@ -25,8 +30,7 @@ export type {
   AgentNetworkWidgetData,
 } from "./agent-network-schema";
 
-const agentAdapter = new AgentAdapter();
-
+const agentAdapter: AgentAdapter = new AgentAdapter();
 export async function buildAgentNetworkWidgetData(
   context: EntityPluginContext,
 ): Promise<AgentNetworkWidgetData> {
@@ -39,12 +43,15 @@ export async function buildAgentNetworkWidgetData(
     }),
   ]);
 
-  const parsedAgents = agents.map((entity) => ({
+  const parsedAgents: ParsedAgentForNetwork[] = agents.map((entity) => ({
     entity,
     ...agentAdapter.parseEntity(entity),
   }));
-  const agentRows = buildAgentRows(parsedAgents);
-  const skillRows = buildSkillRows(skills, parsedAgents);
+  const agentRows: AgentNetworkAgentRow[] = buildAgentRows(parsedAgents);
+  const skillRows: AgentNetworkSkillRow[] = buildSkillRows(
+    skills,
+    parsedAgents,
+  );
 
   return {
     counts: {

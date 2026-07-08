@@ -1,9 +1,10 @@
 import { generateText, generateObject } from "ai";
 import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils/logger";
-import type { z } from "@brains/utils/zod";
 import type {
+  AIGenerationSchema,
   AIModelConfig,
+  AIModelConfigUpdate,
   IAIService,
   ImageGenerationOptions,
   ImageGenerationResult,
@@ -113,7 +114,7 @@ export class AIService implements IAIService {
       return { text: result.text, usage };
     } catch (error) {
       this.logger.error("Failed to generate text", error);
-      throw new Error("AI text generation failed");
+      throw new Error("AI text generation failed", { cause: error });
     }
   }
 
@@ -123,7 +124,7 @@ export class AIService implements IAIService {
   public async generateObject<T>(
     systemPrompt: string,
     userPrompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ): Promise<{
     object: T;
     usage: TokenUsage;
@@ -133,7 +134,6 @@ export class AIService implements IAIService {
     });
 
     try {
-      // @ts-ignore - Type instantiation issue with Zod v3 and AI SDK
       const result = await generateObject({
         model: this.getModel(),
         system: systemPrompt,
@@ -152,10 +152,10 @@ export class AIService implements IAIService {
 
       this.logUsage("object_generation", usage);
 
-      return { object: result.object as T, usage };
+      return { object: result.object, usage };
     } catch (error) {
       this.logger.error("Failed to generate object", error);
-      throw new Error("AI object generation failed");
+      throw new Error("AI object generation failed", { cause: error });
     }
   }
 
@@ -184,7 +184,7 @@ export class AIService implements IAIService {
   /**
    * Update configuration
    */
-  public updateConfig(config: Partial<AIModelConfig>): void {
+  public updateConfig(config: AIModelConfigUpdate): void {
     const previousModel = this.config.model;
     this.config = withAIModelDefaults({ ...this.config, ...config });
     const modelChanged = this.config.model !== previousModel;

@@ -21,11 +21,7 @@ import { buildInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 
-export {
-  brainCallOptionsSchema,
-  type BrainAgentConfig,
-  type BrainCallOptions,
-} from "./agent-types";
+export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
 export function filterToolsForCallOptions(
   tools: Tool[],

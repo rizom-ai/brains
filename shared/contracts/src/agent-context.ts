@@ -1,14 +1,43 @@
-import { z } from "zod";
+import { z } from "@brains/utils/zod";
 
 export const AGENT_CONTEXT_REQUEST_CHANNEL = "agent:context:request";
 
-export const agentContextPermissionLevelSchema = z.enum([
-  "anchor",
-  "trusted",
-  "public",
-]);
+export type AgentContextPermissionLevel = "anchor" | "trusted" | "public";
 
-export const agentContextRequestSchema = z.object({
+export interface AgentContextRequest {
+  conversationId: string;
+  message: string;
+  interfaceType: string;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  userPermissionLevel: AgentContextPermissionLevel;
+}
+
+export interface AgentContextItem {
+  id: string;
+  source: string;
+  title?: string | undefined;
+  content: string;
+  provenance?: Record<string, unknown> | undefined;
+}
+
+export interface AgentContextResponse {
+  items: AgentContextItem[];
+}
+
+export interface AgentContextResponseInput {
+  items?: AgentContextItem[] | undefined;
+}
+
+export const agentContextPermissionLevelSchema: z.ZodType<
+  AgentContextPermissionLevel,
+  AgentContextPermissionLevel
+> = z.enum(["anchor", "trusted", "public"]);
+
+export const agentContextRequestSchema: z.ZodType<
+  AgentContextRequest,
+  AgentContextRequest
+> = z.object({
   conversationId: z.string().min(1),
   message: z.string(),
   interfaceType: z.string().min(1),
@@ -17,9 +46,10 @@ export const agentContextRequestSchema = z.object({
   userPermissionLevel: agentContextPermissionLevelSchema,
 });
 
-export type AgentContextRequest = z.infer<typeof agentContextRequestSchema>;
-
-export const agentContextItemSchema = z.object({
+export const agentContextItemSchema: z.ZodType<
+  AgentContextItem,
+  AgentContextItem
+> = z.object({
   id: z.string().min(1),
   source: z.string().min(1),
   title: z.string().optional(),
@@ -27,13 +57,12 @@ export const agentContextItemSchema = z.object({
   provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type AgentContextItem = z.infer<typeof agentContextItemSchema>;
-
-export const agentContextResponseSchema = z.object({
+export const agentContextResponseSchema: z.ZodType<
+  AgentContextResponse,
+  AgentContextResponseInput
+> = z.object({
   items: z.array(agentContextItemSchema).default([]),
 });
-
-export type AgentContextResponse = z.infer<typeof agentContextResponseSchema>;
 
 /**
  * Parse a context-provider response leniently: drop individual items that fail

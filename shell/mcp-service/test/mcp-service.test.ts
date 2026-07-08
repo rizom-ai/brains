@@ -938,8 +938,7 @@ describe("MCPService", () => {
     it("should pass completion context to resource template completers", async () => {
       let observedValue: string | undefined;
       let observedContext:
-        | { arguments?: Partial<{ type: string; id: string }> }
-        | undefined;
+        { arguments?: Partial<{ type: string; id: string }> } | undefined;
 
       const template: ResourceTemplate<"type" | "id"> = {
         name: "entity-detail-complete",
