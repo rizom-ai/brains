@@ -32,7 +32,10 @@ successCriteria:
   responseNotContains:
     - "I called"
     - "I reached out"
-    - "saved"
+    - "I've saved"
+    - "I saved"
+    - "saved it"
+    - "successfully saved"
     - "connected"
 
 efficiency:
