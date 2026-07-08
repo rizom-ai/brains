@@ -1,11 +1,10 @@
-import { type z } from "@brains/utils/zod";
 import { formatLabel, pluralize } from "@brains/utils/string-utils";
 // Base-note entity type id (mirrors NOTE_ENTITY_TYPE in @brains/entity-service,
 // which plugins may not import directly and @brains/plugins does not re-export).
 const NOTE_ENTITY_TYPE = "note";
 
 /**
- * Per-entity-type display metadata accepted by the generator.
+ * Per-entity-type display metadata accepted by the editor API.
  * Structurally compatible with `EntityDisplayEntry` from `@brains/plugins` —
  * shell callers can pass their full registry map without conversion.
  */
@@ -17,7 +16,8 @@ export interface EntityDisplayLabel {
 export type CmsEntityDisplayMap = Partial<Record<string, EntityDisplayLabel>>;
 
 /**
- * CMS field widget descriptor for Sveltia/Decap CMS config
+ * Field widget descriptor the editor form renderer consumes.
+ * (Inherited from the Sveltia widget vocabulary; now first-party.)
  */
 export interface CmsFieldWidget {
   name: string;
@@ -28,71 +28,6 @@ export interface CmsFieldWidget {
   options?: string[];
   field?: CmsFieldWidget;
   fields?: CmsFieldWidget[];
-}
-
-/**
- * CMS file entry for singleton entities within a files collection
- */
-export interface CmsFileEntry {
-  name: string;
-  label: string;
-  file: string;
-  fields: CmsFieldWidget[];
-}
-
-/**
- * CMS collection descriptor
- * Folder collections have: folder, create, extension, format, fields
- * Files collections have: files (array of CmsFileEntry)
- */
-export interface CmsCollection {
-  name: string;
-  label: string;
-  folder?: string;
-  create?: boolean;
-  extension?: string;
-  format?: string;
-  fields?: CmsFieldWidget[];
-  files?: CmsFileEntry[];
-}
-
-/**
- * CMS config structure
- */
-export interface CmsConfig {
-  backend: {
-    name: string;
-    repo: string;
-    branch: string;
-    base_url?: string;
-    auth_endpoint?: string;
-  };
-  media_folder: string;
-  public_folder: string;
-  collections: CmsCollection[];
-}
-
-/**
- * Options for generating CMS config
- */
-export interface CmsConfigOptions {
-  repo: string;
-  branch: string;
-  baseUrl?: string;
-  authEndpoint?: string;
-  entityTypes: string[];
-  /** Get effective frontmatter schema for an entity type (base + any extensions) */
-  getFrontmatterSchema: (
-    type: string,
-  ) => z.ZodObject<z.ZodRawShape> | undefined;
-  /** Get adapter flags for an entity type */
-  getAdapter: (type: string) =>
-    | {
-        isSingleton?: boolean;
-        hasBody?: boolean;
-      }
-    | undefined;
-  entityDisplay?: CmsEntityDisplayMap;
 }
 
 const LONG_TEXT_FIELDS = new Set([
@@ -106,6 +41,28 @@ const LONG_TEXT_FIELDS = new Set([
 function pluralizeLabel(label: string): string {
   if (label.endsWith("s")) return label;
   return pluralize(label);
+}
+
+/**
+ * Base notes are raw Markdown: no frontmatter form, and a leading `---`
+ * is a horizontal rule, not a YAML delimiter.
+ */
+export function isRawEntityType(entityType: string): boolean {
+  return entityType === NOTE_ENTITY_TYPE;
+}
+
+/**
+ * Resolve the display labels for an entity type, honouring any
+ * entityDisplay override.
+ */
+export function entityTypeLabels(
+  entityType: string,
+  display?: EntityDisplayLabel,
+): { label: string; pluralLabel: string } {
+  const defaultLabel =
+    entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
+  const label = display?.label ?? defaultLabel;
+  return { label, pluralLabel: display?.pluralName ?? pluralizeLabel(label) };
 }
 
 interface UnwrappedSchema {
@@ -181,6 +138,14 @@ function hasDateTimeCheck(schema: unknown): boolean {
   });
 }
 
+/**
+ * String fields holding image-entity ids follow the <role>ImageId naming
+ * convention (coverImageId, ogImageId, plain imageId).
+ */
+function isImageReferenceField(name: string): boolean {
+  return name === "imageId" || name.endsWith("ImageId");
+}
+
 function readShape(schema: unknown): Record<string, unknown> | undefined {
   if (!isRecord(schema)) return undefined;
   const shape = schema["shape"];
@@ -188,7 +153,7 @@ function readShape(schema: unknown): Record<string, unknown> | undefined {
 }
 
 /**
- * Map a single Zod field to a Sveltia CMS widget descriptor
+ * Map a single Zod field to a form widget descriptor
  */
 export function zodFieldToCmsWidget(
   name: string,
@@ -208,6 +173,9 @@ export function zodFieldToCmsWidget(
 
   switch (kind) {
     case "string": {
+      if (isImageReferenceField(name)) {
+        return { ...base, widget: "image" };
+      }
       if (hasDateTimeCheck(inner)) {
         return { ...base, widget: "datetime" };
       }
@@ -247,105 +215,4 @@ export function zodFieldToCmsWidget(
     default:
       return { ...base, widget: "string" };
   }
-}
-
-function buildFields(
-  schema: z.ZodObject<z.ZodRawShape>,
-  hasBody: boolean,
-): CmsFieldWidget[] {
-  const fields: CmsFieldWidget[] = Object.entries(schema.shape).map(
-    ([key, value]) => zodFieldToCmsWidget(key, value),
-  );
-
-  if (hasBody) {
-    fields.push({
-      name: "body",
-      label: "Body",
-      widget: "markdown",
-    });
-  }
-
-  return fields;
-}
-
-/**
- * Generate Sveltia CMS config from entity adapter schemas
- *
- * Multi-file entities get individual folder collections.
- * Singleton entities are grouped into a single "Settings" files collection.
- */
-export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
-  const collections: CmsCollection[] = [];
-  const singletonFiles: CmsFileEntry[] = [];
-
-  for (const entityType of options.entityTypes) {
-    const frontmatterSchema = options.getFrontmatterSchema(entityType);
-    if (!frontmatterSchema) continue;
-
-    const adapter = options.getAdapter(entityType);
-    const hasBody = adapter?.hasBody !== false;
-    const routeConfig = options.entityDisplay?.[entityType];
-    const defaultLabel =
-      entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
-    const label = routeConfig?.label ?? defaultLabel;
-    const pluralLabel = routeConfig?.pluralName ?? pluralizeLabel(label);
-
-    if (adapter?.isSingleton) {
-      singletonFiles.push({
-        name: entityType,
-        label,
-        file: `${entityType}/${entityType}.md`,
-        fields: buildFields(frontmatterSchema, hasBody),
-      });
-      continue;
-    }
-
-    // Base notes live at the repo root and may be plain Markdown without
-    // frontmatter. Treat them as raw Markdown so horizontal rules (`---`) in
-    // note bodies are not mistaken for YAML frontmatter delimiters by the CMS.
-    // Title extraction still happens on the brain side.
-    if (entityType === NOTE_ENTITY_TYPE) {
-      collections.push({
-        name: entityType,
-        label: pluralLabel,
-        folder: ".",
-        create: true,
-        extension: "md",
-        format: "raw",
-        fields: [{ name: "body", label: "Body", widget: "markdown" }],
-      });
-      continue;
-    }
-
-    collections.push({
-      name: entityType,
-      label: pluralLabel,
-      folder: entityType,
-      create: true,
-      extension: "md",
-      format: "frontmatter",
-      fields: buildFields(frontmatterSchema, hasBody),
-    });
-  }
-
-  if (singletonFiles.length > 0) {
-    collections.push({
-      name: "settings",
-      label: "Settings",
-      files: singletonFiles,
-    });
-  }
-
-  return {
-    backend: {
-      name: "github",
-      repo: options.repo,
-      branch: options.branch,
-      ...(options.baseUrl && { base_url: options.baseUrl }),
-      ...(options.authEndpoint && { auth_endpoint: options.authEndpoint }),
-    },
-    media_folder: "image",
-    public_folder: "/images",
-    collections,
-  };
 }

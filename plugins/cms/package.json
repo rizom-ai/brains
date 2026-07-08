@@ -5,11 +5,12 @@
   "description": "CMS plugin for config and browser authoring routes",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./env-schema": "./src/env-schema.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "build": "bun scripts/build-ui.ts",
+    "build:ui": "bun scripts/build-ui.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json",
     "test": "bun test",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
@@ -17,13 +18,18 @@
   "dependencies": {
     "@brains/auth-service": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "streamdown": "^2.5.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
     "bun-types": "^1.3.14",
     "eslint": "^10.5.0",
     "typescript": "^6.0.3"

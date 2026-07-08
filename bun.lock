@@ -802,12 +802,17 @@
         "@brains/auth-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
+        "streamdown": "^2.5.0",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "typescript": "^6.0.3",
@@ -1028,6 +1033,24 @@
       "version": "0.2.0-alpha.141",
       "dependencies": {
         "@brains/image": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.5.0",
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/sveltia-cms": {
+      "name": "@brains/sveltia-cms",
+      "version": "0.2.0-alpha.141",
+      "dependencies": {
+        "@brains/auth-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -1907,6 +1930,8 @@
     "@brains/social-media": ["@brains/social-media@workspace:entities/social-media"],
 
     "@brains/stock-photo": ["@brains/stock-photo@workspace:plugins/stock-photo"],
+
+    "@brains/sveltia-cms": ["@brains/sveltia-cms@workspace:plugins/sveltia-cms"],
 
     "@brains/templates": ["@brains/templates@workspace:shell/templates"],
 

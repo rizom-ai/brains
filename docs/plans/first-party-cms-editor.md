@@ -2,9 +2,14 @@
 
 ## Status
 
-Proposed. Replaces the Sveltia-based browser CMS in `plugins/cms` with a first-party
-React editor that writes content through the entity service instead of committing to
-GitHub from the browser.
+Built in worktree `cms-editor` — Phases 0–5 complete (walking skeleton, full CRUD,
+floor body editor, image upload, raw-note handling, validation + stale-write conflicts,
+mockup visual pass, Sveltia + legacy auth decommissioned; original archived as
+`plugins/sveltia-cms`). Remaining: D1 editor upgrade (CodeMirror) pending authoring
+feedback, and the save-pipeline instrument strip (needs directory-sync/git-sync status
+plumbing). Delete this plan when the worktree merges. Replaces the
+Sveltia-based browser CMS in `plugins/cms` with a first-party React editor that writes
+content through the entity service instead of committing to GitHub from the browser.
 
 ## Context
 
@@ -238,6 +243,9 @@ frontmatter-only entity type. No create, no delete, no body, no media.
 
 ### Phase 5 — Decommission Sveltia and legacy auth
 
+- The original Sveltia plugin is archived verbatim as `plugins/sveltia-cms`
+  (`@brains/sveltia-cms`, plugin id `sveltia-cms`, registered by no brain), so removal
+  from `plugins/cms` is a plain delete with no history archaeology.
 - Remove the Sveltia shell, CDN pin, and `config.yml` generation.
 - Remove the GitHub OAuth and passkey-PAT flows from `plugins/cms` (the token-in-browser path
   is gone). Keep only the operator-session guard.
