@@ -1,6 +1,5 @@
 import { shellEnvVars } from "@brains/core/env-schema";
 import { directorySyncEnvSchema } from "@brains/directory-sync/env-schema";
-import { cmsEnvSchema } from "@brains/cms/env-schema";
 import { discordEnvSchema } from "@brains/discord/env-schema";
 import { atprotoEnvSchema } from "@brains/atproto/env-schema";
 import { socialMediaEnvSchema } from "@brains/social-media/env-schema";
@@ -17,7 +16,6 @@ import type { EnvVarDecl } from "@brains/utils/env-schema";
 export const roverEnvSchema: EnvVarDecl[] = [
   ...shellEnvVars(),
   ...directorySyncEnvSchema,
-  ...cmsEnvSchema,
   ...discordEnvSchema,
   ...atprotoEnvSchema,
   ...socialMediaEnvSchema,

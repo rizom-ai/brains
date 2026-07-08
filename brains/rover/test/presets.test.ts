@@ -137,23 +137,13 @@ plugins:
     expect(onboarding?.config).toMatchObject({ enabled: true });
   });
 
-  it("wires CMS passkey login from CMS_CONTENT_REPO_PAT when present", () => {
-    const config = resolve(
-      rover,
-      { CMS_CONTENT_REPO_PAT: "cms-pat" },
-      { preset: "full" },
-    );
-    const cms = config.plugins?.find((plugin) => plugin.id === "cms");
-
-    expect(cms?.config).toMatchObject({
-      passkeyLogin: { contentRepoToken: "cms-pat" },
-    });
-  });
-
-  it("keeps CMS login disabled when CMS_CONTENT_REPO_PAT is absent", () => {
+  it("registers the CMS editor with no login configuration", () => {
     const config = resolve(rover, {}, { preset: "full" });
     const cms = config.plugins?.find((plugin) => plugin.id === "cms");
 
+    // The first-party editor authenticates via the operator session; the
+    // browser never receives a repository credential.
+    expect(cms).toBeDefined();
     expect(cms?.config).not.toHaveProperty("passkeyLogin");
   });
 });

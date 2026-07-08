@@ -149,19 +149,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["prompt", promptPlugin, undefined],
     ["rover-profile", roverProfilePlugin, {}],
     ["image", imagePlugin, undefined],
-    [
-      "cms",
-      cmsPlugin,
-      (env): PluginConfig => ({
-        ...(env["CMS_CONTENT_REPO_PAT"]
-          ? {
-              passkeyLogin: {
-                contentRepoToken: env["CMS_CONTENT_REPO_PAT"],
-              },
-            }
-          : {}),
-      }),
-    ],
+    ["cms", cmsPlugin, {}],
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, {}],
