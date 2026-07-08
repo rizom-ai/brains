@@ -104,19 +104,12 @@ function Wordmark({ face }: { face: FaceKey }): JSX.Element {
   );
 }
 
-function FaceNav({
-  face,
-  siteInfo,
-}: {
-  face: FaceKey;
-  siteInfo: RizomLayoutProps["siteInfo"];
-}): JSX.Element {
+function FaceNav({ face }: { face: FaceKey }): JSX.Element {
   const chrome = FACE_CHROME[face];
-  const links: FaceLink[] = [
-    ...chrome.links,
-    ...siteInfo.navigation.primary,
-    ...siteInfo.navigation.secondary,
-  ];
+  // Deliberately NOT merged with siteInfo.navigation: entity plugins
+  // register slot-based nav entries for every list route (topics,
+  // posts, …), which floods the bar. Each room owns its own links.
+  const links: FaceLink[] = chrome.links;
 
   return (
     <nav className="relative z-[2] flex items-baseline gap-8 px-6 py-5 md:px-10 xl:px-20">
@@ -328,7 +321,7 @@ function RizomAiChrome({
         <MyceliumRail />
         <header className="sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
           <FacesStrip face={face} />
-          <FaceNav face={face} siteInfo={siteInfo} />
+          <FaceNav face={face} />
         </header>
         <main>{children}</main>
         {face === "platform" ? (

@@ -14,7 +14,12 @@ const siteInfo: SiteLayoutInfo = {
   title: "Rizom",
   description: "Build the agent that represents you",
   copyright: "© 2026 Stichting Rizom · Amsterdam",
-  navigation: { primary: [], secondary: [] },
+  // Entity plugins register slot-based nav entries like these; the
+  // two-tier chrome must NOT surface them.
+  navigation: {
+    primary: [{ label: "Topics", href: "/topics", priority: 10 }],
+    secondary: [{ label: "Posts", href: "/posts", priority: 10 }],
+  },
 };
 
 function renderLayout(path: string): string {
@@ -94,6 +99,26 @@ describe("RizomAiLayout", () => {
   it("shows the old domain as the room nameplate", () => {
     expect(renderLayout("/work")).toContain("work");
     expect(renderLayout("/foundation")).toContain("foundation");
+  });
+
+  it("shows only the face's own contextual links, never entity nav", () => {
+    const home = renderLayout("/");
+    expect(home).toContain("Docs ↗");
+    expect(home).not.toContain("Workshop");
+    expect(home).not.toContain(">Topics<");
+    expect(home).not.toContain(">Posts<");
+
+    const work = renderLayout("/work");
+    expect(work).toContain("Workshop");
+    expect(work).toContain("Contact");
+    expect(work).not.toContain("Docs ↗");
+    expect(work).not.toContain(">Topics<");
+
+    const foundation = renderLayout("/foundation");
+    expect(foundation).toContain("Research");
+    expect(foundation).toContain("Events");
+    expect(foundation).not.toContain("Workshop");
+    expect(foundation).not.toContain(">Topics<");
   });
 
   it("gives the platform the full footer and rooms their siteband", () => {
