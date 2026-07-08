@@ -1,11 +1,11 @@
 {
   "name": "@brains/eslint-config",
   "version": "0.2.0-alpha.141",
-  "private": true,
-  "main": "index.js",
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",
     "eslint-config-prettier": "^10.1.8"
-  }
+  },
+  "main": "index.js",
+  "private": true
 }

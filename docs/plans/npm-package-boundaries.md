@@ -134,10 +134,8 @@ majors in author code produces incompatible schema classes. So:
 2. The repo-wide Zod 4 migration was a **release blocker for the first
    stable (non-alpha) `@rizom/brain`**; do not reintroduce Zod 3 into
    repo-owned schema boundaries or external plugin examples.
-3. Sequencing and mechanics live in
-   `external-dependency-review.md`. External plugin packages import `z`
-   from `@rizom/brain`, not from `zod`, so the SDK owns the schema-version
-   boundary.
+3. External plugin packages import `z` from `@rizom/brain`, not from `zod`,
+   so the SDK owns the schema-version boundary.
 
 The internal grab-bag has already been broken up: ops/env/cert moved to `@brains/deploy-support`, shared contracts to `@brains/contracts`, presentation/UI helpers to `@brains/ui-library`, entity URL/preview helpers to `@brains/site-composition`, formatters to `@brains/content-formatters`, and image markdown to `@brains/image`. Remaining boundary work is the curation question below: deciding which of the surviving `@brains/utils` primitives belong on the public `@rizom/brain/*` surface.
 

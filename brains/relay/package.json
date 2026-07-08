@@ -1,30 +1,7 @@
 {
   "name": "@brains/relay",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "Relay brain model — collaborative knowledge management",
-  "type": "module",
-  "files": [
-    "src",
-    "brain.eval.yaml",
-    "env.schema.template"
-  ],
-  "exports": {
-    ".": "./src/index.ts",
-    "./env-schema": "./src/env-schema.ts"
-  },
-  "scripts": {
-    "build:web-chat": "turbo run build --filter=@brains/web-chat",
-    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:docs": "bun run build:web-chat && cd test-apps/docs && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "eval": "brain-eval",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
   "dependencies": {
     "@brains/a2a": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
@@ -65,5 +42,28 @@
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "typescript": "^6.0.3"
-  }
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./env-schema": "./src/env-schema.ts"
+  },
+  "files": [
+    "src",
+    "brain.eval.yaml",
+    "env.schema.template"
+  ],
+  "private": true,
+  "scripts": {
+    "build:web-chat": "turbo run build --filter=@brains/web-chat",
+    "eval": "brain-eval",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:docs": "bun run build:web-chat && cd test-apps/docs && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
 }

@@ -1,6 +1,10 @@
 id: playbook-goal-check-met
 name: Playbook GoalCheck recognizes explicit anchor profile evidence
 type: plugin
+tags:
+  - plugin
+  - playbooks
+  - preset-core
 plugin: playbooks
 handler: goalCheck
 input:

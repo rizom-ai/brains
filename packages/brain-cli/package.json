@@ -2,9 +2,58 @@
   "name": "@rizom/brain",
   "version": "0.2.0-alpha.141",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
-  "type": "module",
+  "keywords": [
+    "brain",
+    "ai",
+    "cli",
+    "mcp",
+    "agent",
+    "personal-ai",
+    "knowledge-management"
+  ],
+  "license": "Apache-2.0",
+  "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
   "bin": {
     "brain": "./dist/brain.js"
+  },
+  "bugs": "https://github.com/rizom-ai/brains/issues",
+  "dependencies": {
+    "@clack/prompts": "^1.5.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@tailwindcss/postcss": "^4.3.1",
+    "@tailwindcss/typography": "^0.5.20",
+    "postcss": "^8.5.15",
+    "preact": "^10.27.2",
+    "preact-render-to-string": "^6.7.0",
+    "tailwindcss": "^4.3.1",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/build-tools": "workspace:*",
+    "@brains/content-formatters": "workspace:*",
+    "@brains/deploy-support": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/mcp-service": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/ranger": "workspace:*",
+    "@brains/relay": "workspace:*",
+    "@brains/rover": "workspace:*",
+    "@brains/site-composition": "workspace:*",
+    "@brains/site-default": "workspace:*",
+    "@brains/site-personal": "workspace:*",
+    "@brains/site-professional": "workspace:*",
+    "@brains/theme-default": "workspace:*",
+    "@brains/theme-rizom": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "rollup": "^4.62.0",
+    "rollup-plugin-dts": "^6.4.1",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "bun": ">=1.3.3"
   },
   "exports": {
     ".": {
@@ -51,26 +100,7 @@
     "templates",
     "tsconfig.instance.json"
   ],
-  "scripts": {
-    "build": "bun scripts/build.ts",
-    "prepublishOnly": "bun scripts/build.ts",
-    "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
-  "dependencies": {
-    "@clack/prompts": "^1.5.1",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "@tailwindcss/postcss": "^4.3.1",
-    "@tailwindcss/typography": "^0.5.20",
-    "postcss": "^8.5.15",
-    "preact": "^10.27.2",
-    "preact-render-to-string": "^6.7.0",
-    "tailwindcss": "^4.3.1",
-    "zod": "^4.1.8"
-  },
+  "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/brain-cli#readme",
   "optionalDependencies": {
     "@bitwarden/sdk-napi": "^1.0.0",
     "@libsql/client": "^0.17.4",
@@ -80,30 +110,6 @@
     "react-devtools-core": "^7.0.1",
     "sharp": "^0.35.1"
   },
-  "devDependencies": {
-    "@brains/app": "workspace:*",
-    "@brains/build-tools": "workspace:*",
-    "@brains/content-formatters": "workspace:*",
-    "@brains/deploy-support": "workspace:*",
-    "@brains/eslint-config": "workspace:*",
-    "@brains/mcp-service": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/ranger": "workspace:*",
-    "@brains/relay": "workspace:*",
-    "@brains/rover": "workspace:*",
-    "@brains/site-composition": "workspace:*",
-    "@brains/site-default": "workspace:*",
-    "@brains/site-personal": "workspace:*",
-    "@brains/site-professional": "workspace:*",
-    "@brains/theme-default": "workspace:*",
-    "@brains/theme-rizom": "workspace:*",
-    "@brains/typescript-config": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "@types/bun": "^1.3.14",
-    "rollup": "^4.62.0",
-    "rollup-plugin-dts": "^6.4.1",
-    "typescript": "^6.0.3"
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -112,20 +118,14 @@
     "url": "https://github.com/rizom-ai/brains.git",
     "directory": "packages/brain-cli"
   },
-  "license": "Apache-2.0",
-  "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
-  "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/brain-cli#readme",
-  "bugs": "https://github.com/rizom-ai/brains/issues",
-  "engines": {
-    "bun": ">=1.3.3"
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "prepublishOnly": "bun scripts/build.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "brain",
-    "ai",
-    "cli",
-    "mcp",
-    "agent",
-    "personal-ai",
-    "knowledge-management"
-  ]
+  "type": "module"
 }

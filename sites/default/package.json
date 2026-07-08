@@ -1,20 +1,7 @@
 {
   "name": "@brains/site-default",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "Default structural site package — clean professional layout for rover",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "files": [
-    "src"
-  ],
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix"
-  },
   "dependencies": {
     "@brains/site-professional": "workspace:*"
   },
@@ -23,5 +10,18 @@
     "@brains/typescript-config": "workspace:*",
     "eslint": "^10.5.0",
     "typescript": "^6.0.3"
-  }
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
 }

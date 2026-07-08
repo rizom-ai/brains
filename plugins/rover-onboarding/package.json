@@ -1,18 +1,7 @@
 {
   "name": "@brains/rover-onboarding",
-  "private": true,
   "version": "0.2.0-alpha.141",
   "description": "Rover onboarding playbook bundle and activation plugin",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --max-warnings 0 --fix"
-  },
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
@@ -27,5 +16,16 @@
     "bun-types": "latest",
     "eslint": "^10.5.0",
     "typescript": "^6.0.3"
-  }
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
 }
