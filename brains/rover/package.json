@@ -11,9 +11,9 @@
   ],
   "scripts": {
     "build:web-chat": "turbo run build --filter=@brains/web-chat",
-    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
+    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
+    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "eval": "brain-eval",
