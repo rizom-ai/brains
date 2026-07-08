@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>rizom.ai — Consolidated Site Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --night: #0d0a1a;
+    --night-2: #14102a;
+    --card: #1a1233;
+    --line: rgba(255,255,255,0.1);
+    --line-soft: rgba(255,255,255,0.055);
+    --white: #f5f1ea;
+    --w60: rgba(245,241,234,0.62);
+    --w40: rgba(245,241,234,0.4);
+    --amber: #e87722;
+    --amber-glow: #ffa366;
+    --amber-dim: rgba(232,119,34,0.15);
+    --coral: #e85a5a;
+    --coral-dim: rgba(232,90,90,0.14);
+    --violet: #8c82c8;
+    --violet-dim: rgba(140,130,200,0.15);
+    --display: "Fraunces", serif;
+    --ui: "IBM Plex Sans", sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--ui); background: #08060f; color: var(--white); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 999; pointer-events: none; opacity: .5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.04'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection { background: rgba(232,119,34,.4); }
+
+  /* ---- mockup chrome ---- */
+  .mock-header { max-width: 1260px; margin: 0 auto; padding: 54px 32px 18px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--amber); }
+  .mock-header h1 { font-family: var(--display); font-variation-settings: "SOFT" 70, "opsz" 90; font-weight: 520; font-size: clamp(32px,4.5vw,48px); line-height: 1.08; margin-top: 10px; max-width: 20em; letter-spacing: -.01em; }
+  .mock-header h1 em { font-style: italic; color: var(--amber-glow); font-weight: 460; }
+  .lede { margin-top: 12px; max-width: 64ch; color: var(--w60); }
+  .mock-nav { max-width: 1260px; margin: 22px auto 0; padding: 0 32px; display: flex; border-bottom: 1px solid var(--line); }
+  .mock-nav a { font-family: var(--mono); font-size: 12px; text-decoration: none; color: var(--w60); padding: 10px 16px 12px; border-bottom: 2px solid transparent; transform: translateY(1px); }
+  .mock-nav a span { color: var(--amber); margin-right: 6px; }
+  .mock-nav a:hover { color: var(--white); }
+  .screen { max-width: 1260px; margin: 66px auto 0; padding: 0 32px; }
+  .screen-label { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; }
+  .screen-label .num { font-family: var(--mono); font-size: 12px; color: var(--amber); }
+  .screen-label h2 { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 520; font-size: 22px; }
+  .screen-label .note { font-size: 12.5px; color: var(--w40); margin-left: auto; text-align: right; max-width: 46ch; }
+  .frame { background: var(--night); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 34px 80px -30px rgba(0,0,0,.9); }
+
+  /* ---- site nav ---- */
+  .sitenav { display: flex; align-items: center; gap: 26px; padding: 0 30px; height: 62px; border-bottom: 1px solid var(--line-soft); }
+  .wordmark { font-family: var(--display); font-variation-settings: "SOFT" 100; font-weight: 600; font-size: 21px; letter-spacing: -.01em; }
+  .wordmark i { font-style: normal; color: var(--amber); }
+  .sitenav .links { display: flex; gap: 4px; margin-left: 8px; }
+  .sitenav .links a { font-size: 14px; text-decoration: none; color: var(--w60); padding: 6px 12px; border-radius: 7px; }
+  .sitenav .links a:hover { color: var(--white); background: rgba(255,255,255,.05); }
+  .sitenav .links a.here { color: var(--white); }
+  .sitenav .links a.f-work.here { box-shadow: inset 0 -2px 0 var(--coral); border-radius: 0; }
+  .sitenav .links a.f-fnd.here { box-shadow: inset 0 -2px 0 var(--violet); border-radius: 0; }
+  .sitenav .spacer { flex: 1; }
+  .talk {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 13.5px; font-weight: 500; text-decoration: none; color: var(--night);
+    background: var(--amber); border-radius: 99px; padding: 9px 18px;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .talk:hover { transform: translateY(-1px); background: var(--amber-glow); }
+  .talk .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--night); animation: pulse 2.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(13,10,26,.4);} 55% { box-shadow: 0 0 0 5px rgba(13,10,26,0);} }
+
+  /* ---- rhizome thread ---- */
+  .home { position: relative; }
+  .thread { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); pointer-events: none; }
+  .thread svg { height: 100%; width: 120px; transform: translateX(-59px); }
+
+  /* ---- hero ---- */
+  .hero { position: relative; padding: 92px 30px 70px; text-align: center; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: -40% -20%;
+    background:
+      radial-gradient(560px 300px at 50% 10%, rgba(107,47,160,.35), transparent 70%),
+      radial-gradient(420px 260px at 70% 60%, rgba(232,119,34,.14), transparent 70%);
+    pointer-events: none;
+  }
+  .hero .eyebrow { position: relative; font-family: var(--mono); font-size: 11.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--w40); }
+  .hero h3 {
+    position: relative;
+    font-family: var(--display); font-variation-settings: "SOFT" 80, "opsz" 110;
+    font-weight: 480; font-size: clamp(38px, 5.4vw, 62px); line-height: 1.05;
+    letter-spacing: -.015em; max-width: 17em; margin: 22px auto 0;
+  }
+  .hero h3 .broken { font-style: italic; color: var(--w60); }
+  .hero h3 .answer { color: var(--amber-glow); }
+  .hero p { position: relative; max-width: 54ch; margin: 22px auto 0; color: var(--w60); font-size: 16.5px; }
+  .hero .ctas { position: relative; display: flex; gap: 12px; justify-content: center; margin-top: 30px; }
+  .btn { font-size: 14px; font-weight: 500; text-decoration: none; border-radius: 9px; padding: 11px 22px; }
+  .btn.solid { background: var(--white); color: var(--night); }
+  .btn.solid:hover { background: var(--amber-glow); }
+  .btn.line { border: 1px solid var(--line); color: var(--w60); }
+  .btn.line:hover { color: var(--white); border-color: var(--w40); }
+  .hero .proofline { position: relative; margin-top: 46px; font-family: var(--mono); font-size: 11.5px; color: var(--w40); display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; }
+  .hero .proofline b { color: var(--w60); font-weight: 500; }
+
+  /* ---- chapters ---- */
+  .chapters { padding: 26px 30px 70px; display: grid; gap: 20px; max-width: 980px; margin: 0 auto; }
+  .chapter {
+    position: relative;
+    display: grid; grid-template-columns: 120px 1fr 300px; gap: 26px;
+    background: linear-gradient(120deg, var(--card), var(--night-2));
+    border: 1px solid var(--line); border-radius: 14px; padding: 30px 32px;
+    text-decoration: none; color: var(--white);
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .chapter:hover { transform: translateY(-3px); }
+  .chapter .ch-num { font-family: var(--mono); font-size: 12px; color: var(--w40); }
+  .chapter .ch-num b { display: block; font-family: var(--display); font-variation-settings: "SOFT" 40; font-size: 44px; font-weight: 300; color: var(--w40); line-height: 1; margin-top: 6px; }
+  .chapter h4 { font-family: var(--display); font-variation-settings: "SOFT" 60; font-weight: 540; font-size: 26px; letter-spacing: -.01em; }
+  .chapter .ch-line { font-size: 14.5px; color: var(--w60); margin-top: 8px; max-width: 46ch; }
+  .chapter .ch-facts { border-left: 1px solid var(--line); padding-left: 22px; display: flex; flex-direction: column; gap: 7px; justify-content: center; }
+  .chapter .ch-facts span { font-family: var(--mono); font-size: 11.5px; color: var(--w40); }
+  .chapter .ch-facts span b { color: var(--w60); font-weight: 500; }
+  .chapter .go { position: absolute; right: 26px; top: 24px; font-family: var(--mono); font-size: 12px; color: var(--w40); }
+  .chapter:hover .go { color: var(--amber); }
+  .chapter.c-platform:hover { border-color: rgba(232,119,34,.55); }
+  .chapter.c-platform h4 { color: var(--amber-glow); }
+  .chapter.c-work:hover { border-color: rgba(232,90,90,.55); }
+  .chapter.c-work h4 { color: var(--coral); }
+  .chapter.c-fnd:hover { border-color: rgba(140,130,200,.6); }
+  .chapter.c-fnd h4 { color: var(--violet); }
+
+  /* ---- living-brain strip ---- */
+  .alive {
+    margin: 0 30px 70px; max-width: 980px;
+    border: 1px solid rgba(232,119,34,.35); border-radius: 14px;
+    background: linear-gradient(100deg, rgba(232,119,34,.09), transparent 55%);
+    padding: 26px 32px;
+  }
+  @media (min-width: 1041px) { .alive { margin-left: auto; margin-right: auto; } }
+  .alive .a-head { display: flex; align-items: baseline; gap: 14px; }
+  .alive .a-head h4 { font-family: var(--display); font-variation-settings: "SOFT" 70; font-style: italic; font-weight: 480; font-size: 21px; }
+  .alive .a-head .mono { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--amber); }
+  .alive .a-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 18px; }
+  .alive .a-item { border-top: 1px solid var(--line); padding-top: 12px; }
+  .alive .a-item .k { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--w40); }
+  .alive .a-item .v { font-size: 13.5px; color: var(--white); margin-top: 5px; }
+  .alive .a-item .v small { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--w40); margin-top: 3px; }
+
+  /* ---- footer band ---- */
+  .siteband { border-top: 1px solid var(--line-soft); padding: 24px 30px; display: flex; gap: 26px; align-items: baseline; font-family: var(--mono); font-size: 11px; color: var(--w40); }
+  .siteband b { color: var(--w60); font-weight: 500; }
+  .siteband .spacer { flex: 1; }
+
+  /* ---- room pages (work / foundation) ---- */
+  .room-hero { padding: 66px 30px 40px; max-width: 980px; margin: 0 auto; }
+  .room-hero .crumbs { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+  .room-hero h3 { font-family: var(--display); font-variation-settings: "SOFT" 80, "opsz" 90; font-weight: 500; font-size: clamp(30px,4.4vw,46px); line-height: 1.1; letter-spacing: -.012em; margin-top: 16px; max-width: 22em; }
+  .room-hero p { color: var(--w60); font-size: 16px; margin-top: 14px; max-width: 58ch; }
+  .room-body { max-width: 980px; margin: 0 auto; padding: 10px 30px 64px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+  .panel { background: var(--night-2); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; }
+  .panel h5 { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--w40); font-weight: 500; }
+  .panel .rows { margin-top: 12px; }
+  .panel .rowline { display: flex; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line-soft); font-size: 14px; color: var(--w60); }
+  .panel .rowline:first-child { border-top: none; }
+  .panel .rowline b { color: var(--white); font-weight: 500; }
+  .panel .rowline .m { font-family: var(--mono); font-size: 11px; color: var(--w40); white-space: nowrap; }
+
+  .persona { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line-soft); }
+  .persona:first-of-type { border-top: none; }
+  .persona .p-mark { font-family: var(--display); font-style: italic; font-size: 20px; color: var(--coral); width: 26px; flex-shrink: 0; }
+  .persona .p-body b { display: block; font-weight: 500; }
+  .persona .p-body span { font-size: 13px; color: var(--w60); }
+
+  .quote { font-family: var(--display); font-variation-settings: "SOFT" 90; font-style: italic; font-weight: 440; font-size: 19px; line-height: 1.45; color: var(--white); }
+  .quote-by { font-family: var(--mono); font-size: 11px; color: var(--w40); margin-top: 12px; }
+
+  .essay { padding: 14px 0; border-top: 1px solid var(--line-soft); text-decoration: none; display: block; color: var(--white); }
+  .essay:first-of-type { border-top: none; }
+  .essay .e-kicker { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--violet); }
+  .essay h6 { font-family: var(--display); font-variation-settings: "SOFT" 60; font-weight: 520; font-size: 18px; margin-top: 4px; letter-spacing: -.005em; }
+  .essay:hover h6 { color: var(--violet); }
+  .essay p { font-size: 13px; color: var(--w60); margin-top: 4px; }
+
+  .gathering { display: grid; grid-template-columns: 64px 1fr; gap: 14px; padding: 11px 0; border-top: 1px solid var(--line-soft); align-items: baseline; }
+  .gathering:first-of-type { border-top: none; }
+  .gathering .g-date { font-family: var(--mono); font-size: 11px; color: var(--violet); }
+  .gathering .g-what b { font-weight: 500; }
+  .gathering .g-what span { display: block; font-size: 12.5px; color: var(--w60); }
+
+  .footer-note { max-width: 1260px; margin: 84px auto 70px; padding: 22px 32px 0; border-top: 1px solid var(--line); display: flex; gap: 34px; font-size: 13px; color: var(--w40); }
+  .footer-note .col { max-width: 46ch; }
+  .footer-note b { color: var(--w60); font-weight: 500; }
+
+  @media (max-width: 960px) {
+    .chapter { grid-template-columns: 1fr; }
+    .chapter .ch-facts { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 14px; }
+    .alive .a-grid { grid-template-columns: 1fr 1fr; }
+    .room-body { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mock-header">
+  <div class="kicker">rizom.ai — Consolidated Site Mockups</div>
+  <h1>Three sites were telling one story. Let the story be <em>one site</em>.</h1>
+  <p class="lede">The live headlines already form a single argument: the foundation's diagnosis
+  ("work is broken"), the practice's location of the problem ("coordination is the
+  bottleneck"), the platform's answer ("build the agent that represents you"). The homepage
+  becomes that argument in three chapters; /work and /foundation become rooms of one house.
+  And the site's proof is itself — it is served by a brain running the platform it describes.</p>
+</header>
+
+<nav class="mock-nav">
+  <a href="#s1"><span>01</span>Home — the argument</a>
+  <a href="#s2"><span>02</span>/work — the practice</a>
+  <a href="#s3"><span>03</span>/foundation — the research</a>
+</nav>
+
+<!-- ============ 01 HOME ============ -->
+<section class="screen" id="s1">
+  <div class="screen-label">
+    <span class="num">01</span>
+    <h2>Home — one argument, three chapters</h2>
+    <span class="note">The rhizome thread stitches the chapters; each chapter carries its own
+    accent (amber / coral / violet) — the per-route accents that replace the three themes.</span>
+  </div>
+  <div class="frame home">
+    <nav class="sitenav">
+      <div class="wordmark">rizom<i>.</i></div>
+      <div class="links">
+        <a class="here" href="#s1">Platform</a>
+        <a class="f-work" href="#s2">Practice</a>
+        <a class="f-fnd" href="#s3">Foundation</a>
+        <a href="#s1">Essays</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="talk" href="#s1"><span class="dot"></span>Talk to this brain</a>
+    </nav>
+
+    <div class="hero">
+      <div class="eyebrow">One practice · three faces · one site</div>
+      <h3><span class="broken">Work is broken.</span> Knowledge is the bottleneck.
+      <span class="answer">Build the agent that represents you.</span></h3>
+      <p>Rizom is a platform, a practice, and a research foundation working on the same
+      problem from three directions — agents built from real knowledge, teams mapped out of
+      coordination debt, and institutions rethought in public.</p>
+      <div class="ctas">
+        <a class="btn solid" href="#s1">Run a brain in a minute</a>
+        <a class="btn line" href="#s2">Work with us</a>
+      </div>
+      <div class="proofline">
+        <span><b>plain text</b> you can read with any editor</span>
+        <span><b>open source</b> · @rizom/brain</span>
+        <span><b>this site</b> is served by one</span>
+      </div>
+    </div>
+
+    <div class="chapters">
+      <a class="chapter c-platform" href="#s1">
+        <div class="ch-num">chapter <b>01</b></div>
+        <div>
+          <h4>The Platform</h4>
+          <div class="ch-line">Build the agent that represents you — from your own notes,
+          links, and writing. A network of agents, each grown from real knowledge, each
+          living at its own domain.</div>
+        </div>
+        <div class="ch-facts">
+          <span><b>quickstart</b> · running in under a minute</span>
+          <span><b>everything</b> is a file you own</span>
+          <span><b>agents</b> discover &amp; call each other</span>
+        </div>
+        <span class="go">/platform →</span>
+      </a>
+      <a class="chapter c-work" href="#s2">
+        <div class="ch-num">chapter <b>02</b></div>
+        <div>
+          <h4>The Practice</h4>
+          <div class="ch-line">Your team has a knowledge problem — AI is making it visible.
+          One session produces a map your whole team can act on. Thirty years of research,
+          one consistent finding.</div>
+        </div>
+        <div class="ch-facts">
+          <span><b>team mapping</b> · one session</span>
+          <span><b>backed by</b> the foundation's research</span>
+          <span><b>built on</b> the platform</span>
+        </div>
+        <span class="go">/work →</span>
+      </a>
+      <a class="chapter c-fnd" href="#s3">
+        <div class="ch-num">chapter <b>03</b></div>
+        <div>
+          <h4>The Foundation</h4>
+          <div class="ch-line">The institutions organizing work were built for a different
+          century. Essays in an ongoing series, small curated gatherings city by city, and a
+          community stewarded by writing.</div>
+        </div>
+        <div class="ch-facts">
+          <span><b>essays</b> · the ongoing series</span>
+          <span><b>gatherings</b> · city by city</span>
+          <span><b>non-profit</b> research arm</span>
+        </div>
+        <span class="go">/foundation →</span>
+      </a>
+    </div>
+
+    <div class="alive">
+      <div class="a-head">
+        <span class="mono">Living proof</span>
+        <h4>This site is a brain, running the platform it describes.</h4>
+      </div>
+      <div class="a-grid">
+        <div class="a-item">
+          <div class="k">Latest from the brain</div>
+          <div class="v">“Domain as identity”<small>essay · published 2h ago through the pipeline</small></div>
+        </div>
+        <div class="a-item">
+          <div class="k">Ask it anything</div>
+          <div class="v">Talk to this brain<small>same agent that wrote the essays</small></div>
+        </div>
+        <div class="a-item">
+          <div class="k">For other agents</div>
+          <div class="v">/.well-known/agent-card<small>a2a · discover &amp; call</small></div>
+        </div>
+        <div class="a-item">
+          <div class="k">Protocol registry</div>
+          <div class="v">ai.rizom.brain.* lexicons<small>canonical · served live</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="siteband">
+      <span><b>rizom.work</b> and <b>rizom.foundation</b> now live here — old links redirect to /work and /foundation.</span>
+      <span class="spacer"></span>
+      <span>steward-owned · open source · newsletter ↗</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 WORK ============ -->
+<section class="screen" id="s2">
+  <div class="screen-label">
+    <span class="num">02</span>
+    <h2>/work — the practice room</h2>
+    <span class="note">Coral accent. The studio site's sections (personas, workshop, proof)
+    become this room; the closer CTA books a session with — naturally — the brain.</span>
+  </div>
+  <div class="frame">
+    <nav class="sitenav">
+      <div class="wordmark">rizom<i>.</i></div>
+      <div class="links">
+        <a href="#s1">Platform</a>
+        <a class="f-work here" href="#s2">Practice</a>
+        <a class="f-fnd" href="#s3">Foundation</a>
+        <a href="#s1">Essays</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="talk" href="#s1"><span class="dot"></span>Talk to this brain</a>
+    </nav>
+    <div class="room-hero">
+      <div class="crumbs" style="color: var(--coral)">Practice · rizom/work</div>
+      <h3>Your team has a knowledge problem. AI is making it visible.</h3>
+      <p>Talent isn't the bottleneck — coordination is. One mapping session produces a map
+      your whole team can act on, grounded in thirty years of research with one consistent
+      finding.</p>
+    </div>
+    <div class="room-body">
+      <div class="panel">
+        <h5>If this sounds like you</h5>
+        <div class="persona">
+          <span class="p-mark">a.</span>
+          <div class="p-body"><b>The team that ships but can't explain how</b>
+          <span>Knowledge lives in three heads and a thousand threads. Every departure is a small fire.</span></div>
+        </div>
+        <div class="persona">
+          <span class="p-mark">b.</span>
+          <div class="p-body"><b>The team drowning in its own output</b>
+          <span>Docs everywhere, answers nowhere. AI made writing cheap and finding expensive.</span></div>
+        </div>
+        <div class="persona">
+          <span class="p-mark">c.</span>
+          <div class="p-body"><b>The team about to scale</b>
+          <span>What worked at six people is breaking at twenty. The map has to come before the hires.</span></div>
+        </div>
+        <div style="margin-top:18px; display:flex; gap:10px">
+          <a class="btn solid" href="#s2" style="background: var(--coral); color: var(--night)">Book a mapping session</a>
+          <a class="btn line" href="#s2">What a session covers</a>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:20px">
+        <div class="panel">
+          <h5>What teams tell us</h5>
+          <div style="margin-top:12px">
+            <div class="quote">“We argued for a year about process. The map ended the
+            argument in an afternoon.”</div>
+            <div class="quote-by">— engineering lead, 40-person product org</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h5>One practice, three faces</h5>
+          <div class="rows">
+            <div class="rowline"><span>Sessions run on</span> <b>the platform ↗</b></div>
+            <div class="rowline"><span>Method grounded in</span> <b>the foundation ↗</b></div>
+            <div class="rowline"><span>Findings feed</span> <b>the essays ↗</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="siteband"><span>previously <b>rizom.work</b> — you were redirected here</span><span class="spacer"></span><span>practice@rizom.ai</span></div>
+  </div>
+</section>
+
+<!-- ============ 03 FOUNDATION ============ -->
+<section class="screen" id="s3">
+  <div class="screen-label">
+    <span class="num">03</span>
+    <h2>/foundation — the research room</h2>
+    <span class="note">Violet accent, editorial rhythm. Essays are entities published through
+    the pipeline — the same series feeds the homepage's "latest from the brain".</span>
+  </div>
+  <div class="frame">
+    <nav class="sitenav">
+      <div class="wordmark">rizom<i>.</i></div>
+      <div class="links">
+        <a href="#s1">Platform</a>
+        <a class="f-work" href="#s2">Practice</a>
+        <a class="f-fnd here" href="#s3">Foundation</a>
+        <a href="#s1">Essays</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="talk" href="#s1"><span class="dot"></span>Talk to this brain</a>
+    </nav>
+    <div class="room-hero">
+      <div class="crumbs" style="color: var(--violet)">Foundation · non-profit research arm</div>
+      <h3>Work is broken — and the institutions organizing it were built for a
+      different century.</h3>
+      <p>A small group anchored by writing and stewarded by community: an ongoing essay
+      series, small curated gatherings city by city, and two ways the work gets funded.</p>
+    </div>
+    <div class="room-body">
+      <div class="panel">
+        <h5>Featured essays · the ongoing series</h5>
+        <div style="margin-top:6px">
+          <a class="essay" href="#s3">
+            <span class="e-kicker">Essay 09</span>
+            <h6>The firm was a filing cabinet</h6>
+            <p>Why the org chart is an artifact of paper — and what replaces it when memory becomes ambient.</p>
+          </a>
+          <a class="essay" href="#s3">
+            <span class="e-kicker">Essay 08</span>
+            <h6>Coordination debt</h6>
+            <p>Teams don't slow down because people stop working. They slow down because knowing became a job nobody holds.</p>
+          </a>
+          <a class="essay" href="#s3">
+            <span class="e-kicker">Essay 07</span>
+            <h6>Stewardship over ownership</h6>
+            <p>What steward-ownership does to an organization's memory, incentives, and exits.</p>
+          </a>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:20px">
+        <div class="panel">
+          <h5>Gatherings · city by city</h5>
+          <div class="rows">
+            <div class="gathering"><span class="g-date">SEP 12</span><div class="g-what"><b>Amsterdam</b><span>Salon: memory-first organizations · 18 seats</span></div></div>
+            <div class="gathering"><span class="g-date">OCT 03</span><div class="g-what"><b>Berlin</b><span>Working session: the post-firm team · 12 seats</span></div></div>
+            <div class="gathering"><span class="g-date">NOV 07</span><div class="g-what"><b>Rotterdam</b><span>Reading group: Essay 09 · open</span></div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h5>Two ways the work gets funded</h5>
+          <div class="rows">
+            <div class="rowline"><span>The practice's commercial work</span> <b>/work ↗</b></div>
+            <div class="rowline"><span>Direct support</span> <b>become a steward ↗</b></div>
+          </div>
+        </div>
+        <div class="panel" style="border-color: rgba(140,130,200,.4)">
+          <h5>Follow the research</h5>
+          <div class="rows">
+            <div class="rowline"><span>Newsletter</span> <span class="m">every essay, nothing else</span></div>
+            <div class="rowline"><span>ATProto</span> <span class="m">@rizom.ai · essays as records</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="siteband"><span>previously <b>rizom.foundation</b> — you were redirected here</span><span class="spacer"></span><span>stewarded by the collective's brain</span></div>
+  </div>
+</section>
+
+<footer class="footer-note">
+  <div class="col"><b>How it functions:</b> one brain serves everything. Essays, events,
+  products, and testimonials are entities; the pipeline publishes them; the same brain
+  answers "Talk to this brain", exposes the agent card for peer agents, and serves the
+  canonical <span style="font-family:var(--mono)">ai.rizom.brain.*</span> lexicon registry.
+  The site is the platform's best demo because it *is* the platform.</div>
+  <div class="col"><b>One theme, three accents:</b> the product/editorial/studio theme
+  variants collapse into the violet-night base with per-room accents — amber (platform),
+  coral (practice), violet (foundation) — carried by nav underline, crumbs, marks, and CTAs.</div>
+  <div class="col"><b>Old domains:</b> rizom.work and rizom.foundation 301 per-path into
+  /work and /foundation; each room's footer band acknowledges the move so redirected
+  visitors aren't disoriented.</div>
+</footer>
+
+</body>
+</html>

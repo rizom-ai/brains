@@ -23,6 +23,24 @@ custom-domain sites down to one.
   the composition that plan already anticipates — `core + site + team` plus opt-ins — so
   consolidation reduces the number of live compositions the unification must migrate.
 
+## Design mockups
+
+Interactive mockups live at [`docs/rizom-site-mockups.html`](../rizom-site-mockups.html)
+(open in a browser). Three screens — Home, `/work`, `/foundation` — extending the existing
+rizom theme (violet night, amber, Fraunces). What they propose for Phase 0/1:
+
+- **The homepage is the argument, not a portal**: the three live sites' actual headlines
+  already chain into one thesis (work is broken → knowledge is the bottleneck → build the
+  agent that represents you); the home renders it as three chapter cards (Platform /
+  Practice / Foundation) with cross-links replacing the old ecosystem sections.
+- **One theme, per-room accents**: product/editorial/studio variants collapse into the
+  violet-night base with amber (platform), coral (practice), violet (foundation) accents.
+- **The site advertises that it is served by a brain**: a "living proof" strip (latest
+  essay from the pipeline, talk-to-this-brain, agent card, lexicon registry) makes the
+  dogfooding the product demo.
+- **Redirect acknowledgment**: each room's footer notes the old domain so 301'd visitors
+  aren't disoriented.
+
 ## Decisions
 
 1. **One site, at `rizom.ai`.** `sites/rizom` (the shared core) stops being a
