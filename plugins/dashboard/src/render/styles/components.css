@@ -162,7 +162,6 @@ body::after {
   gap: 2px;
   padding: 18px 26px 0;
   border-bottom: 1px solid var(--rule-strong);
-  overflow-x: auto;
 }
 .dashboard-tab {
   display: inline-flex;
@@ -225,6 +224,7 @@ body::after {
     gap: 10px 22px;
   }
   .command-chip-hint { display: none; }
+  .dashboard-tabs { flex-wrap: wrap; }
 }
 
 .masthead {
