@@ -2,10 +2,12 @@
 
 ## Status
 
-In progress — direction decided 2026-07-07; Phases 0–2 done
+In progress — direction decided 2026-07-07; Phases 0–2 done, Phase 3's local
+content merge landed with import verification in flight
 (2026-07-09, `work/rizom-consolidated-site`; the published-index routes moved to
-Phase 4, after the content merge; Phase 2's deployment-time config rolls into
-Phase 5). Next: Phase 3 (content and state cutover). **Follow-up to
+Phase 4, after the content merge; Phase 2's deployment-time config and Phase 3's
+push/runtime-DB copy roll into Phase 5). Next: Phase 4 (published-index routes),
+starting with template formatters. **Follow-up to
 [`rizom-sites-on-hosted-rover.md`](./rizom-sites-on-hosted-rover.md)**: once the site
 packaging and hosted-rover custom-domain machinery from that plan land, the three Rizom
 web properties (`rizom.ai`, `rizom.work`, `rizom.foundation`) consolidate into **one site
@@ -159,17 +161,23 @@ avoided; that call belongs to that plan's lane.
   deviation: `site-content/*` is NOT deleted yet — the content repo feeds the
   live rizom.ai brain on push, so the merge stays additive and retirement moves
   to the Phase 5 cutover step.
-- Verified by booting the test brain seeded from the real merged corpus
-  (fresh DB, directory-sync import settles, site builds).
+- Verification in progress: the test brain boots seeded from the real merged
+  corpus (site builds; prompts + identity confirmed imported). Still to
+  confirm: the full corpus settles — skills, topics, swot, decks, root docs.
 - Remaining at cutover: push the merged content repo, copy foundation runtime
   DBs to the new deployment, verify conversation memory reads.
 
 ### Phase 4 — Published-index routes on the merged content
 
+- First: give the site's templates formatters. The Phase 3 verification boot
+  surfaced that all 21 `rizom-ai-site` templates lack formatters, so
+  entity-stored content cannot override the static fallbacks — the "copy edits
+  happen through content entities" contract doesn't hold yet.
 - Build the remaining merged-sitemap routes against the merged corpus: `/writing`
   (posts + foundation-essay series + decks through the rizom-ai layout), `/events`,
   `/network` (agent directory), plus the platform nav links that point at them
   (`Writing`, `Network`) deferred from Phase 1.
+- Editorial pass (user-driven): essays for `/writing`, events, refreshed room copy.
 - Tests first: each route renders real entries from a merged-corpus fixture under the
   two-tier chrome; nav shows the new links on the platform face only.
 
