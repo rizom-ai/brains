@@ -167,6 +167,20 @@ export async function uploadFile(
   });
 }
 
+export async function requestAssist(input: {
+  entityType: string;
+  instruction: string;
+  selection: string;
+  body: string;
+  frontmatter: Record<string, unknown>;
+}): Promise<{ suggestion: string }> {
+  return requestJson<{ suggestion: string }>("/cms/api/assist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
 export async function fetchSyncStatus(): Promise<SyncStatus> {
   return requestJson<SyncStatus>("/cms/api/sync-status");
 }

@@ -11,15 +11,24 @@ import type {
 } from "@brains/entity-service";
 import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
 import type { IPromptsNamespace } from "./namespaces";
-import type {
-  AIGenerationSchema,
-  ImageGenerationOptions,
-  ImageGenerationResult,
-} from "@brains/ai-service";
 import type { DefaultQueryResponse } from "@brains/contracts";
+import type { ZodType } from "@brains/utils/zod";
 
 export type { IEntitiesNamespace };
 export type { IPromptsNamespace };
+
+export type AIGenerationSchema<T> = ZodType<T>;
+
+export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+
+export interface ImageGenerationOptions {
+  aspectRatio?: AspectRatio;
+}
+
+export interface ImageGenerationResult {
+  base64: string;
+  dataUrl: string;
+}
 
 export interface FrontmatterSchemaParser {
   parse(data: unknown): unknown;

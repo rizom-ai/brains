@@ -36,6 +36,18 @@ const createEntityPayloadSchema = z.object({
   body: z.string().optional(),
 });
 
+const assistPayloadSchema = z.object({
+  entityType: z.string(),
+  instruction: z.string().trim().min(1),
+  selection: z.string().min(1).max(8_000),
+  body: z.string(),
+  frontmatter: z.record(z.string(), z.unknown()),
+});
+
+const assistResponseSchema = z.object({
+  suggestion: z.string(),
+});
+
 const UPLOAD_FORM_FIELD = "file";
 const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -192,6 +204,16 @@ export function createEditorRoutes(
         const denied = await requireSession(request);
         if (denied) return denied;
         return handleUpload(getContext(), request, apiPath("upload"));
+      },
+    },
+    {
+      path: apiPath("assist"),
+      method: "POST",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const denied = await requireSession(request);
+        if (denied) return denied;
+        return handleAssist(getContext(), request);
       },
     },
     {
@@ -528,6 +550,51 @@ async function handleDeleteEntity(
 
   const deleted = await context.entityService.deleteEntity({ entityType, id });
   return jsonResponse({ deleted });
+}
+
+async function handleAssist(
+  context: ServicePluginContext,
+  request: Request,
+): Promise<Response> {
+  let payload: z.infer<typeof assistPayloadSchema>;
+  try {
+    payload = assistPayloadSchema.parse(await request.json());
+  } catch {
+    return jsonResponse(
+      { error: "Invalid assist payload or selection length" },
+      400,
+    );
+  }
+
+  if (!context.entities.getEffectiveFrontmatterSchema(payload.entityType)) {
+    return jsonResponse(
+      { error: `Unknown entity type: ${payload.entityType}` },
+      404,
+    );
+  }
+
+  const prompt = [
+    "You are editing markdown for the CMS.",
+    "Rewrite only the selected text according to the instruction.",
+    "Return only replacement markdown in the suggestion field.",
+    "Do not include commentary, code fences, or unchanged surrounding body text.",
+    "",
+    `Entity type: ${payload.entityType}`,
+    `Frontmatter JSON: ${JSON.stringify(payload.frontmatter)}`,
+    `Instruction: ${payload.instruction}`,
+    "",
+    "Selected markdown:",
+    payload.selection,
+    "",
+    "Full body for context:",
+    payload.body,
+  ].join("\n");
+
+  const { object } = await context.ai.generateObject(
+    prompt,
+    assistResponseSchema,
+  );
+  return jsonResponse({ suggestion: object.suggestion });
 }
 
 /**
