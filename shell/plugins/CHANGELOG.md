@@ -1,5 +1,28 @@
 # @brains/plugins
 
+## 0.2.0-alpha.148
+
+### Patch Changes
+
+- [`d82b56c`](https://github.com/rizom-ai/brains/commit/d82b56cd9729a7a1d06a1232fea0674d9853da87) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Extract the operator-console token sheet into @brains/console-theme: one
+  --console-\* vocabulary with two climates (instrument/paper) plus the shared
+  console-strip chrome, replacing the dashboard's --dashboard-\* tokens. The
+  strip's surface links now derive from registered web routes (service plugin
+  contexts gain read access to the web-route registry), and the light/dark
+  toggle becomes the console-wide climate preference persisted as
+  console.climate.
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.148
+  - @brains/contracts@0.2.0-alpha.148
+  - @brains/site-composition@0.2.0-alpha.148
+  - @brains/utils@0.2.0-alpha.148
+  - @brains/conversation-service@0.2.0-alpha.148
+  - @brains/identity-service@0.2.0-alpha.148
+  - @brains/job-queue@0.2.0-alpha.148
+  - @brains/messaging-service@0.2.0-alpha.148
+  - @brains/runtime-state@0.2.0-alpha.148
+  - @brains/templates@0.2.0-alpha.148
+
 ## 0.2.0-alpha.147
 
 ### Patch Changes

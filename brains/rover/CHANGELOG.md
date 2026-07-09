@@ -1,5 +1,54 @@
 # @brains/rover
 
+## 0.2.0-alpha.148
+
+### Patch Changes
+
+- Updated dependencies [[`f7054af`](https://github.com/rizom-ai/brains/commit/f7054af14705adb7690def03c70009bf95b91b8b), [`d4e0245`](https://github.com/rizom-ai/brains/commit/d4e0245a37741bed6cfd7d588b77f951e36e38f2), [`d82b56c`](https://github.com/rizom-ai/brains/commit/d82b56cd9729a7a1d06a1232fea0674d9853da87), [`acc1f5a`](https://github.com/rizom-ai/brains/commit/acc1f5a3c0216dc4f33990e775334a4d5e8837a0)]:
+  - @brains/cms@0.2.0-alpha.148
+  - @brains/web-chat@0.2.0-alpha.148
+  - @brains/dashboard@0.2.0-alpha.148
+  - @brains/agent-discovery@0.2.0-alpha.148
+  - @brains/assessment@0.2.0-alpha.148
+  - @brains/blog@0.2.0-alpha.148
+  - @brains/decks@0.2.0-alpha.148
+  - @brains/doc@0.2.0-alpha.148
+  - @brains/document-plugin@0.2.0-alpha.148
+  - @brains/image-plugin@0.2.0-alpha.148
+  - @brains/link@0.2.0-alpha.148
+  - @brains/note@0.2.0-alpha.148
+  - @brains/portfolio@0.2.0-alpha.148
+  - @brains/prompt@0.2.0-alpha.148
+  - @brains/rizom-ecosystem@0.2.0-alpha.148
+  - @brains/series@0.2.0-alpha.148
+  - @brains/site-info@0.2.0-alpha.148
+  - @brains/social-media@0.2.0-alpha.148
+  - @brains/topics@0.2.0-alpha.148
+  - @brains/wishlist@0.2.0-alpha.148
+  - @brains/a2a@0.2.0-alpha.148
+  - @brains/chat@0.2.0-alpha.148
+  - @brains/discord@0.2.0-alpha.148
+  - @brains/mcp@0.2.0-alpha.148
+  - @brains/webserver@0.2.0-alpha.148
+  - @brains/analytics@0.2.0-alpha.148
+  - @brains/atproto@0.2.0-alpha.148
+  - @brains/atproto-registry@0.2.0-alpha.148
+  - @brains/content-pipeline@0.2.0-alpha.148
+  - @brains/directory-sync@0.2.0-alpha.148
+  - @brains/email-resend@0.2.0-alpha.148
+  - @brains/newsletter@0.2.0-alpha.148
+  - @brains/notifications@0.2.0-alpha.148
+  - @brains/obsidian-vault@0.2.0-alpha.148
+  - @brains/playbooks@0.2.0-alpha.148
+  - @brains/rover-onboarding@0.2.0-alpha.148
+  - @brains/site-builder-plugin@0.2.0-alpha.148
+  - @brains/site-content@0.2.0-alpha.148
+  - @brains/stock-photo@0.2.0-alpha.148
+  - @brains/app@0.2.0-alpha.148
+  - @brains/auth-service@0.2.0-alpha.148
+  - @brains/site-default@0.2.0-alpha.148
+  - @brains/theme-default@0.2.0-alpha.148
+
 ## 0.2.0-alpha.147
 
 ### Patch Changes

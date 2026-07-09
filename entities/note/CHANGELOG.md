@@ -1,5 +1,16 @@
 # @brains/note
 
+## 0.2.0-alpha.148
+
+### Patch Changes
+
+- Updated dependencies [[`d82b56c`](https://github.com/rizom-ai/brains/commit/d82b56cd9729a7a1d06a1232fea0674d9853da87)]:
+  - @brains/plugins@0.2.0-alpha.148
+  - @brains/atproto-contracts@0.2.0-alpha.148
+  - @brains/contracts@0.2.0-alpha.148
+  - @brains/document@0.2.0-alpha.148
+  - @brains/utils@0.2.0-alpha.148
+
 ## 0.2.0-alpha.147
 
 ### Patch Changes
