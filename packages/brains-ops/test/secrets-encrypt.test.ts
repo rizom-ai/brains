@@ -89,6 +89,55 @@ members:
     expect(decrypted).not.toContain("mcpAuthToken:");
   });
 
+  it("encrypts optional certificate secrets when provided", async () => {
+    const identity = await generateIdentity();
+    const agePublicKey = await identityToRecipient(identity);
+
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.1
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: ${agePublicKey}
+`,
+      "users/rizom-ai.yaml": `handle: rizom-ai
+domainOverride: rizom.ai
+discord:
+  enabled: false
+`,
+      "cohorts/rizom-ai.yaml": `members:
+  - rizom-ai
+`,
+      "users/rizom-ai.secrets.yaml": [
+        'certificatePem: "-----BEGIN CERTIFICATE-----\\nCERT\\n-----END CERTIFICATE-----\\n"',
+        'privateKeyPem: "-----BEGIN PRIVATE KEY-----\\nKEY\\n-----END PRIVATE KEY-----\\n"',
+        "",
+      ].join("\n"),
+    });
+
+    const result = await encryptPilotSecrets(root, "rizom-ai");
+
+    expect([...result.encryptedKeys].sort()).toEqual([
+      "certificatePem",
+      "privateKeyPem",
+    ]);
+
+    const decrypted = await decryptYamlFile(
+      join(root, "users/rizom-ai.secrets.yaml.age"),
+      identity,
+    );
+    expect(decrypted).toContain("certificatePem:");
+    expect(decrypted).toContain("CERT");
+    expect(decrypted).toContain("privateKeyPem:");
+    expect(decrypted).toContain("KEY");
+  });
+
   it("encrypts optional ATProto app password when provided", async () => {
     const identity = await generateIdentity();
     const agePublicKey = await identityToRecipient(identity);
