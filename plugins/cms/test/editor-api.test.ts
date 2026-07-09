@@ -347,6 +347,19 @@ describe("cms editor api", () => {
           method: "DELETE",
         }),
       ],
+      [
+        findRoute(plugin, "/cms/api/assist", "POST"),
+        apiRequest("/cms/api/assist", {
+          method: "POST",
+          body: {
+            entityType: "post",
+            instruction: "tighten",
+            selection: "The original body.",
+            body: "The original body.",
+            frontmatter: { title: "Hello World" },
+          },
+        }),
+      ],
     ];
 
     for (const [route, request] of attempts) {
@@ -355,6 +368,72 @@ describe("cms editor api", () => {
       expect(await response.json()).toEqual({
         error: "Operator session required",
       });
+    }
+  });
+
+  it("rewrites a selected markdown range through AI without writing entities", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    await seedPost(shell, { id: "hello-world", body: "The original body." });
+    const prompts: string[] = [];
+    shell.generateObject = async <T>(
+      prompt: string,
+    ): Promise<{ object: T }> => {
+      prompts.push(prompt);
+      return { object: { suggestion: "A tighter body." } as T };
+    };
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/cms/api/assist", "POST").handler(
+      apiRequest("/cms/api/assist", {
+        cookie,
+        method: "POST",
+        body: {
+          entityType: "post",
+          instruction: "tighten this",
+          selection: "The original body.",
+          body: "The original body.",
+          frontmatter: { title: "Hello World" },
+        },
+      }),
+    );
+    const payload = (await response.json()) as { suggestion: string };
+
+    expect(response.status).toBe(200);
+    expect(payload.suggestion).toBe("A tighter body.");
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain("tighten this");
+    expect(prompts[0]).toContain("Selected markdown");
+
+    const stored = await shell.getEntityService().getEntity({
+      entityType: "post",
+      id: "hello-world",
+    });
+    expect(stored?.content).toContain("The original body.");
+    expect(stored?.content).not.toContain("A tighter body.");
+  });
+
+  it("rejects empty and oversized assist selections", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/cms/api/assist", "POST");
+
+    for (const selection of ["", "x".repeat(8_001)]) {
+      const response = await route.handler(
+        apiRequest("/cms/api/assist", {
+          cookie,
+          method: "POST",
+          body: {
+            entityType: "post",
+            instruction: "tighten",
+            selection,
+            body: selection,
+            frontmatter: { title: "Hello World" },
+          },
+        }),
+      );
+      expect(response.status).toBe(400);
     }
   });
 

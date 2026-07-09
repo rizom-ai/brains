@@ -25,6 +25,7 @@ import type {
   MessageSender,
   MessageWithPayload,
 } from "../contracts/messaging";
+import type { IEntityAINamespace } from "../entity/context";
 
 export type PluginConfig = Record<string, unknown>;
 export type PluginConfigInput<T extends { _input: unknown }> = T["_input"];
@@ -436,6 +437,7 @@ export interface ServicePluginContext extends BasePluginContext {
   readonly templates: IServiceTemplatesNamespace;
   readonly views: IViewsNamespace;
   readonly prompts: IPromptsNamespace;
+  readonly ai: IEntityAINamespace;
   registerInstructions(instructions: string): void;
 }
 

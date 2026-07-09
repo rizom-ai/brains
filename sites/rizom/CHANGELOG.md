@@ -1,5 +1,14 @@
 # @brains/site-rizom
 
+## 0.2.0-alpha.146
+
+### Patch Changes
+
+- [`04b5b53`](https://github.com/rizom-ai/brains/commit/04b5b53f68b983ef10545b793521ca279aac67b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Republish the public site packages with concrete pinned dependencies. npm builds the registry dependency metadata from the on-disk manifest before prepack rewrites it, so the `workspace:*` ranges in 0.2.0-alpha.144/145 shipped uninstallable packuments even though the tarball manifests were clean.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.146
+
 ## 0.2.0-alpha.145
 
 ### Patch Changes

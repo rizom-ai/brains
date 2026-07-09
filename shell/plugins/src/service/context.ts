@@ -1,8 +1,19 @@
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
-import type { IShell, PluginRegistrationContext } from "../interfaces";
+import type {
+  ContentGenerationConfig,
+  IShell,
+  PluginRegistrationContext,
+} from "../interfaces";
 import type { IWebRoutesNamespace } from "../interface/context";
-import type { IEntitiesNamespace, IPromptsNamespace } from "../entity/context";
+import type {
+  AIGenerationSchema,
+  IEntitiesNamespace,
+  IEntityAINamespace,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+  IPromptsNamespace,
+} from "../entity/context";
 import {
   createEntitiesNamespace,
   createPromptsNamespace,
@@ -72,8 +83,8 @@ export interface IViewsNamespace {
 /**
  * Context for service plugins.
  *
- * Includes: entity management, templates, views, prompt resolution, messaging, jobs.
- * Excludes: AI generation, MCP protocol registration, transport.
+ * Includes: entity management, templates, views, prompt resolution, AI, messaging, jobs.
+ * Excludes: MCP protocol registration, transport.
  */
 export interface ServicePluginContext extends BasePluginContext {
   /** Full entity service with write operations */
@@ -97,6 +108,9 @@ export interface ServicePluginContext extends BasePluginContext {
    * (e.g. the dashboard deriving console surface links from what is mounted).
    */
   readonly webRoutes: IWebRoutesNamespace;
+
+  /** AI generation namespace */
+  readonly ai: IEntityAINamespace;
 
   /** Register or update plugin instructions for the agent system prompt */
   registerInstructions: (instructions: string) => void;
@@ -202,6 +216,30 @@ export function createServicePluginContext(
     },
 
     prompts: createPromptsNamespace(entityService),
+
+    ai: {
+      query: (prompt, context) => shell.query(prompt, context),
+      generate: async <T = unknown>(
+        config: ContentGenerationConfig,
+      ): Promise<T> => {
+        return shell.generateContent<T>(config);
+      },
+      generateObject: async <T>(
+        prompt: string,
+        schema: AIGenerationSchema<T>,
+      ): Promise<{ object: T }> => {
+        return shell.generateObject(prompt, schema);
+      },
+      generateImage: async (
+        prompt: string,
+        options?: ImageGenerationOptions,
+      ): Promise<ImageGenerationResult> => {
+        return shell.generateImage(prompt, options);
+      },
+      canGenerateImages: (): boolean => {
+        return shell.canGenerateImages();
+      },
+    },
 
     registerInstructions: (instructions: string): void => {
       shell.registerInstructions(pluginId, instructions);

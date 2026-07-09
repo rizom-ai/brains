@@ -3,7 +3,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   applyFieldChange,
+  applySuggestionToSelection,
   BodyEditor,
+  createBodyEditorState,
   derivePipeline,
   emptyDraft,
   entityTitle,
@@ -246,10 +248,11 @@ describe("BodyEditor", () => {
     expect(html.match(/class="[^"]*mode-active/g)).toHaveLength(1);
   });
 
-  it("renders an editable textarea in source mode", () => {
+  it("renders a CodeMirror 6 mount in source mode", () => {
     const html = renderBody("source");
-    expect(html).toContain("<textarea");
-    expect(html).toContain("# Heading");
+    expect(html).toContain('data-editor="codemirror6"');
+    expect(html).toContain('aria-label="Markdown source"');
+    expect(html).not.toContain("<textarea");
     expect(html).not.toContain("body-preview");
   });
 
@@ -263,8 +266,59 @@ describe("BodyEditor", () => {
 
   it("renders both panes in split mode", () => {
     const html = renderBody("split");
-    expect(html).toContain("<textarea");
+    expect(html).toContain('data-editor="codemirror6"');
     expect(html).toContain("body-preview");
+  });
+
+  it("keeps body content byte-identical in the CM6 state", () => {
+    const value = "# Héading\n\nBody *prose*.  \nλ\n";
+    const state = createBodyEditorState(value);
+    expect(state.doc.toString()).toBe(value);
+  });
+
+  it("preserves typing, paste, unicode, and trailing whitespace edits", () => {
+    let state = createBodyEditorState("one\n");
+    state = state.update({ changes: { from: 4, insert: "two  \n" } }).state;
+    state = state.update({ changes: { from: 0, insert: "λ paste\n\n" } }).state;
+    expect(state.doc.toString()).toBe("λ paste\n\none\ntwo  \n");
+  });
+
+  it("renders the assist controls when assist context is provided", () => {
+    const html = renderToStaticMarkup(
+      createElement(BodyEditor, {
+        value: "Original body",
+        mode: "source",
+        onChange: () => {},
+        onModeChange: () => {},
+        assist: { entityType: "post", frontmatter: { title: "Hello" } },
+      }),
+    );
+    expect(html).toContain("Rewrite selection");
+    expect(html).toContain("AI selection rewrite");
+  });
+});
+
+describe("applySuggestionToSelection", () => {
+  it("replaces only the selected range", () => {
+    expect(
+      applySuggestionToSelection(
+        "Alpha beta gamma",
+        { from: 6, to: 10 },
+        "BETA",
+      ),
+    ).toBe("Alpha BETA gamma");
+  });
+
+  it("supports multiline markdown suggestions", () => {
+    expect(
+      applySuggestionToSelection("A\nold\nZ", { from: 2, to: 5 }, "new\ntext"),
+    ).toBe("A\nnew\ntext\nZ");
+  });
+
+  it("rejects stale or invalid ranges", () => {
+    expect(() =>
+      applySuggestionToSelection("short", { from: 2, to: 99 }, "x"),
+    ).toThrow(RangeError);
   });
 });
 

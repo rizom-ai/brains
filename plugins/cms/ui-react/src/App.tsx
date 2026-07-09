@@ -1,3 +1,6 @@
+import { markdown } from "@codemirror/lang-markdown";
+import { Annotation, EditorState, type Extension } from "@codemirror/state";
+import { EditorView, type ViewUpdate } from "@codemirror/view";
 import {
   useCallback,
   useEffect,
@@ -15,6 +18,7 @@ import {
   fetchSchema,
   fetchSyncStatus,
   fetchTypes,
+  requestAssist,
   updateEntity,
   uploadFile,
   type EntityDetail,
@@ -106,21 +110,199 @@ const BODY_MODE_LABELS: Record<BodyMode, string> = {
   preview: "Preview",
 };
 
+const externalDocumentSync = Annotation.define<boolean>();
+
+const bodyEditorBaseExtensions: Extension[] = [
+  markdown(),
+  EditorView.lineWrapping,
+];
+
+export interface SelectionRange {
+  from: number;
+  to: number;
+}
+
+export function applySuggestionToSelection(
+  value: string,
+  range: SelectionRange,
+  suggestion: string,
+): string {
+  if (range.from < 0 || range.to < range.from || range.to > value.length) {
+    throw new RangeError("Selection range is outside the body");
+  }
+  return `${value.slice(0, range.from)}${suggestion}${value.slice(range.to)}`;
+}
+
+export function createBodyEditorState(
+  value: string,
+  extensions: Extension[] = [],
+): EditorState {
+  return EditorState.create({
+    doc: value,
+    extensions: [...bodyEditorBaseExtensions, ...extensions],
+  });
+}
+
+function replaceBodyEditorDocument(view: EditorView, value: string): void {
+  const current = view.state.doc.toString();
+  if (current === value) return;
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: value },
+    annotations: externalDocumentSync.of(true),
+  });
+}
+
+function CodeMirrorBodySource(props: {
+  value: string;
+  onChange: (value: string) => void;
+  onSelectionChange?: (selection: SelectionRange | null) => void;
+}): ReactElement {
+  const { value, onChange, onSelectionChange } = props;
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const viewRef = useRef<EditorView | null>(null);
+  const initialValueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
+  const onSelectionChangeRef = useRef(onSelectionChange);
+
+  const publishSelection = useCallback((view: EditorView): void => {
+    const range = view.state.selection.main;
+    onSelectionChangeRef.current?.(
+      range.empty ? null : { from: range.from, to: range.to },
+    );
+  }, []);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    onSelectionChangeRef.current = onSelectionChange;
+  }, [onChange, onSelectionChange]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    const view = new EditorView({
+      parent: host,
+      state: createBodyEditorState(initialValueRef.current, [
+        EditorView.updateListener.of((update: ViewUpdate) => {
+          if (!update.docChanged) return;
+          if (
+            update.transactions.some(
+              (transaction): boolean =>
+                transaction.annotation(externalDocumentSync) === true,
+            )
+          ) {
+            return;
+          }
+          onChangeRef.current(update.state.doc.toString());
+        }),
+        EditorView.updateListener.of((update: ViewUpdate) => {
+          if (!update.selectionSet && !update.docChanged) return;
+          publishSelection(update.view);
+        }),
+        EditorView.domEventHandlers({
+          keyup: (_event, view): false => {
+            publishSelection(view);
+            return false;
+          },
+          mouseup: (_event, view): false => {
+            window.setTimeout(() => publishSelection(view), 0);
+            return false;
+          },
+          touchend: (_event, view): false => {
+            window.setTimeout(() => publishSelection(view), 0);
+            return false;
+          },
+        }),
+      ]),
+    });
+    viewRef.current = view;
+
+    return (): void => {
+      view.destroy();
+      if (viewRef.current === view) viewRef.current = null;
+    };
+  }, [publishSelection]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    replaceBodyEditorDocument(view, value);
+  }, [value]);
+
+  return (
+    <div
+      ref={hostRef}
+      className="body-source body-source-cm"
+      aria-label="Markdown source"
+      data-editor="codemirror6"
+    />
+  );
+}
+
 /**
- * Floor-tier Markdown body editor: a plain textarea (perfect round-trip —
- * you edit the literal bytes) beside a streamdown preview, behind a
- * Source | Split | Preview segment control. The CodeMirror upgrade (plan
- * D1) slots into the source pane without layout change.
+ * Markdown body editor: CodeMirror 6 edits the literal bytes beside a
+ * streamdown preview, behind a Source | Split | Preview segment control.
  */
+type AssistState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "suggested"; range: SelectionRange; suggestion: string }
+  | { kind: "error"; message: string };
+
 export function BodyEditor(props: {
   value: string;
   mode: BodyMode;
   onChange: (value: string) => void;
   onModeChange: (mode: BodyMode) => void;
+  assist?: {
+    entityType: string;
+    frontmatter: Record<string, unknown>;
+  };
 }): ReactElement {
-  const { value, mode, onChange, onModeChange } = props;
+  const { value, mode, onChange, onModeChange, assist } = props;
+  const [selection, setSelection] = useState<SelectionRange | null>(null);
+  const [instruction, setInstruction] = useState("");
+  const [assistState, setAssistState] = useState<AssistState>({ kind: "idle" });
   const showSource = mode !== "preview";
   const showPreview = mode !== "source";
+  const selectedText = selection
+    ? value.slice(selection.from, selection.to)
+    : "";
+
+  const runAssist = useCallback((): void => {
+    if (!assist || !selection || instruction.trim().length === 0) return;
+    const range = selection;
+    setAssistState({ kind: "loading" });
+    requestAssist({
+      entityType: assist.entityType,
+      instruction,
+      selection: selectedText,
+      body: value,
+      frontmatter: assist.frontmatter,
+    })
+      .then(({ suggestion }) => {
+        setAssistState({ kind: "suggested", range, suggestion });
+      })
+      .catch((error: unknown) => {
+        setAssistState({ kind: "error", message: errorMessage(error) });
+      });
+  }, [assist, instruction, selectedText, selection, value]);
+
+  const acceptSuggestion = useCallback((): void => {
+    if (assistState.kind !== "suggested") return;
+    try {
+      onChange(
+        applySuggestionToSelection(
+          value,
+          assistState.range,
+          assistState.suggestion,
+        ),
+      );
+      setAssistState({ kind: "idle" });
+    } catch (error: unknown) {
+      setAssistState({ kind: "error", message: errorMessage(error) });
+    }
+  }, [assistState, onChange, value]);
 
   return (
     <div className="body-editor">
@@ -139,17 +321,70 @@ export function BodyEditor(props: {
         </span>
         <span className="doc-meta">markdown · edits the literal bytes</span>
       </header>
+      {assist && showSource && (
+        <section className="assist-bar" aria-label="AI selection rewrite">
+          <input
+            type="text"
+            value={instruction}
+            placeholder={
+              selection
+                ? "Instruction for selected text…"
+                : "Select text to rewrite…"
+            }
+            onChange={(event) => setInstruction(event.currentTarget.value)}
+          />
+          <button
+            type="button"
+            className="btn assist-run"
+            disabled={
+              !selection ||
+              instruction.trim().length === 0 ||
+              assistState.kind === "loading"
+            }
+            onClick={runAssist}
+          >
+            {assistState.kind === "loading" ? "Thinking…" : "Rewrite selection"}
+          </button>
+          {selection && (
+            <span className="assist-meta">
+              {selectedText.length} selected chars
+            </span>
+          )}
+        </section>
+      )}
+      {assistState.kind === "suggested" && (
+        <section className="assist-suggestion">
+          <div className="assist-preview">
+            <Streamdown>{assistState.suggestion}</Streamdown>
+          </div>
+          <span className="spacer" />
+          <button type="button" className="btn" onClick={acceptSuggestion}>
+            Accept
+          </button>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => setAssistState({ kind: "idle" })}
+          >
+            Discard
+          </button>
+        </section>
+      )}
+      {assistState.kind === "error" && (
+        <p className="status status-error assist-status">
+          {assistState.message}
+        </p>
+      )}
       <div
         className={
           showSource && showPreview ? "body-panes split" : "body-panes"
         }
       >
         {showSource && (
-          <textarea
-            className="body-source"
+          <CodeMirrorBodySource
             value={value}
-            spellCheck={false}
-            onChange={(event) => onChange(event.currentTarget.value)}
+            onChange={onChange}
+            onSelectionChange={setSelection}
           />
         )}
         {showPreview && (
@@ -834,6 +1069,7 @@ export function App(): ReactElement {
                   mode={bodyMode}
                   onChange={setBody}
                   onModeChange={setBodyMode}
+                  assist={{ entityType, frontmatter: draft }}
                 />
               ) : (
                 <p className="status manuscript-empty">
@@ -942,6 +1178,8 @@ const styles = `
   .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--console-text) 50%, transparent); }
   .btn.danger { background: transparent; color: var(--console-accent-dim); border-color: color-mix(in srgb, var(--console-accent) 40%, transparent); }
   .btn.danger:hover { background: rgba(196,74,29,0.07); box-shadow: none; transform: none; }
+  .btn.ghost { background: transparent; color: var(--console-text-dim); border-color: var(--console-rule-strong); }
+  .btn.ghost:hover { background: rgba(255,255,255,0.55); box-shadow: none; transform: none; }
 
   /* ── editor ── */
   .editor { display: grid; grid-template-columns: 330px 1fr; grid-template-rows: 1fr auto; min-height: 0; }
@@ -958,7 +1196,7 @@ const styles = `
   .field-label .kind, .field-label em.kind { font-family: var(--console-mono); font-style: normal; font-size: 10px; color: var(--console-text-muted); font-weight: 400; }
   .field input[type="text"], .field input[type="number"], .field select, .field textarea { width: 100%; font-family: var(--console-ui); font-size: 14px; color: var(--console-text); background: rgba(255,255,255,0.72); border: 1px solid var(--console-rule-strong); border-radius: 6px; padding: 8px 11px; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
   .field textarea { resize: vertical; line-height: 1.5; }
-  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px rgba(196,74,29,0.13); }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-accent) 13%, transparent); }
   .field textarea[disabled] { font-family: var(--console-mono); font-size: 11.5px; color: var(--console-text-muted); }
   .field-inline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .field-inline .field-label { margin-bottom: 0; }
@@ -975,13 +1213,29 @@ const styles = `
   .body-editor { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .body-toolbar { display: flex; align-items: center; gap: 4px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); }
   .doc-meta { margin-left: auto; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
+  .assist-bar { display: flex; align-items: center; gap: 10px; padding: 10px 26px; border-bottom: 1px solid var(--console-rule-strong); background: rgba(255,255,255,0.34); }
+  .assist-bar input { flex: 1; min-width: 180px; font-family: var(--console-ui); font-size: 13px; color: var(--console-text); background: rgba(255,255,255,0.76); border: 1px solid var(--console-rule-strong); border-radius: 7px; padding: 8px 11px; outline: none; }
+  .assist-bar input:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-accent) 13%, transparent); }
+  .assist-run { padding: 8px 14px; white-space: nowrap; }
+  .assist-run[disabled] { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .assist-meta { font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); white-space: nowrap; }
+  .assist-suggestion { display: flex; align-items: center; gap: 12px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); background: var(--console-ok-soft); }
+  .assist-preview { max-height: 150px; overflow: auto; font-size: 13px; color: var(--console-text); }
+  .assist-preview p { margin-bottom: 6px; }
+  .assist-status { padding: 8px 26px; border-bottom: 1px solid var(--console-rule-strong); }
   .seg { display: inline-flex; border: 1px solid var(--console-rule-strong); border-radius: 7px; overflow: hidden; background: rgba(255,255,255,0.5); }
   .seg .mode { font-family: var(--console-mono); font-size: 11.5px; letter-spacing: 0.04em; border: none; background: transparent; color: var(--console-text-muted); padding: 6px 14px; cursor: pointer; }
   .seg .mode-active { background: var(--console-text); color: var(--console-frame); }
   .body-panes { display: grid; flex: 1; min-height: 420px; }
   .body-panes.split { grid-template-columns: 1fr 1fr; }
-  .body-source { font-family: var(--console-mono); font-size: 13px; line-height: 1.75; color: var(--console-text); background: none; border: 0; border-right: 1px solid var(--console-rule-strong); outline: none; padding: 30px 34px; resize: none; min-height: 420px; }
+  .body-source { color: var(--console-text); background: none; border-right: 1px solid var(--console-rule-strong); min-height: 420px; min-width: 0; }
   .body-panes:not(.split) .body-source { border-right: 0; }
+  .body-source .cm-editor { height: 100%; min-height: 420px; background: transparent; color: var(--console-text); }
+  .body-source .cm-editor.cm-focused { outline: none; }
+  .body-source .cm-scroller { font-family: var(--console-mono); font-size: 13px; line-height: 1.75; }
+  .body-source .cm-content { padding: 30px 34px; caret-color: var(--console-accent); }
+  .body-source .cm-line { padding: 0; }
+  .body-source .cm-selectionBackground, .body-source .cm-focused .cm-selectionBackground { background: rgba(196, 74, 29, 0.22); }
   .body-preview { padding: 30px 34px; overflow-wrap: anywhere; }
   .body-preview h1, .body-preview h2, .body-preview h3 { font-family: var(--console-display); font-variation-settings: "SOFT" 70, "opsz" 90; font-weight: 580; letter-spacing: -0.01em; line-height: 1.12; margin: 0 0 18px; }
   .body-preview h1 { font-size: 30px; }

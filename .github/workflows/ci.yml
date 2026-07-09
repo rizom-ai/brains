@@ -1,18 +1,25 @@
 name: CI
 
 on:
+  # Ordered include/exclude (last match wins): skip docs-only changes,
+  # but changeset files must trigger CI — Release chains off CI via
+  # workflow_run, so a changeset-only push would otherwise never publish.
   push:
     branches: ["main"]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
-      - ".claude/**"
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!**/*.md"
+      - "!.claude/**"
+      - ".changeset/**"
   pull_request:
     types: [opened, synchronize]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
-      - ".claude/**"
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!**/*.md"
+      - "!.claude/**"
+      - ".changeset/**"
 
 # Turbo Remote Cache: populated by Vercel-hosted cache server. TURBO_TOKEN
 # is a Vercel CLI token; TURBO_TEAM is the Vercel team slug. With both set,
