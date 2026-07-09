@@ -129,7 +129,6 @@ describe("registerDecisionsWidget", () => {
       section: "secondary",
       priority: 30,
       rendererName: "ListWidget",
-      digest: expect.any(Array),
     });
   });
 });

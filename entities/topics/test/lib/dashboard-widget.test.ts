@@ -84,7 +84,7 @@ describe("registerTopicsDashboardWidget", () => {
         pluginId: "topics",
         group: "knowledge",
         rendererName: "ListWidget",
-        digest: expect.any(Array),
+        digestProvider: expect.any(Function),
       }),
     });
 

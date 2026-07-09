@@ -6,7 +6,12 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { wishSchema, type WishEntity } from "./schemas/wish";
+
+const wishDigestSourceSchema = z.object({
+  items: z.array(z.object({ name: z.string(), count: z.number() })),
+});
 import {
   wishlistConfigSchema,
   type WishlistConfig,
@@ -84,10 +89,20 @@ export class WishlistPlugin extends EntityPlugin<
           section: "secondary",
           priority: 30,
           rendererName: "ListWidget",
-          digest: [
-            { label: "Demand", value: "Top wishes" },
-            { label: "Signal", value: "Requested capabilities" },
-          ],
+          digestProvider: (data: unknown) => {
+            const { items } = wishDigestSourceSchema.parse(data);
+            const top = items[0];
+            return {
+              digest: top
+                ? [
+                    {
+                      label: "Top wish",
+                      value: `${top.name} · ×${top.count}`,
+                    },
+                  ]
+                : [{ label: "Wishes", value: "none yet" }],
+            };
+          },
           dataProvider: async () => {
             const wishes = await context.entityService.listEntities<WishEntity>(
               {

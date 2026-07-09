@@ -26,10 +26,6 @@ export function registerRecentConversationMemoryWidget(params: {
           section: "secondary",
           priority: 35,
           rendererName: "CustomWidget",
-          digest: [
-            { label: "Memory", value: "Recent" },
-            { label: "Source", value: "Conversations" },
-          ],
           component: RecentConversationMemoryWidget,
           clientScript: recentConversationMemoryScript,
           dataProvider: () => buildRecentConversationMemoryData(context),

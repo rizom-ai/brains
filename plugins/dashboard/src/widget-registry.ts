@@ -11,6 +11,11 @@ export interface WidgetComponentProps {
 
 export type WidgetComponent = ComponentType<WidgetComponentProps>;
 export type WidgetDataProvider = () => Promise<unknown>;
+/** Derives live digest lines / operator counts from the widget's fetched data. */
+export type WidgetDigestProvider = (data: unknown) => {
+  digest?: DashboardDigestLine[];
+  needsOperator?: number;
+};
 export type WidgetVisibility = UserPermissionLevel;
 
 export const BUILT_IN_WIDGET_RENDERERS = [
@@ -100,12 +105,14 @@ export const dashboardWidgetSchema: z.ZodType<
 
 export interface RegisteredWidget extends DashboardWidgetInput {
   dataProvider: WidgetDataProvider;
+  digestProvider?: WidgetDigestProvider;
   component?: WidgetComponent;
   clientScript?: string;
 }
 
 export interface StoredRegisteredWidget extends DashboardWidgetMeta {
   dataProvider: WidgetDataProvider;
+  digestProvider?: WidgetDigestProvider;
   component?: WidgetComponent;
   clientScript?: string;
 }
@@ -123,6 +130,9 @@ export class DashboardWidgetRegistry {
     const normalizedWidget: StoredRegisteredWidget = {
       ...parsedWidget,
       dataProvider: widget.dataProvider,
+      ...(widget.digestProvider
+        ? { digestProvider: widget.digestProvider }
+        : {}),
       ...(widget.component ? { component: widget.component } : {}),
       ...(widget.clientScript ? { clientScript: widget.clientScript } : {}),
     };

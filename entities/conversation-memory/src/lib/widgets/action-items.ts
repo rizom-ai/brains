@@ -1,5 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import type { ActionItemEntity } from "../../schemas/conversation-memory";
 import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatAge } from "./format";
@@ -17,7 +18,13 @@ export interface ActionItemWidgetItem {
 
 export interface ActionItemsWidgetData {
   items: ActionItemWidgetItem[];
+  /** Total open items, uncapped (the items list is truncated for display). */
+  openCount: number;
 }
+
+const actionItemsDigestSourceSchema = z.object({
+  openCount: z.number(),
+});
 
 function statusOrder(status: ActionItemEntity["metadata"]["status"]): number {
   switch (status) {
@@ -72,6 +79,8 @@ export async function buildActionItemsWidgetData(
         status: entity.metadata.status,
       };
     }),
+    openCount: items.filter((entity) => entity.metadata.status === "open")
+      .length,
   };
 }
 
@@ -93,11 +102,20 @@ export function registerActionItemsWidget(params: {
           section: "secondary",
           priority: 25,
           rendererName: "ListWidget",
-          digest: [
-            { label: "Operator work", value: "Action items", tone: "warn" },
-            { label: "Source", value: "Conversation memory" },
-          ],
           dataProvider: () => buildActionItemsWidgetData(context),
+          digestProvider: (data: unknown) => {
+            const { openCount } = actionItemsDigestSourceSchema.parse(data);
+            return {
+              digest: [
+                {
+                  label: "Open actions",
+                  value: String(openCount),
+                  ...(openCount > 0 ? { tone: "warn" } : {}),
+                },
+              ],
+              needsOperator: openCount,
+            };
+          },
         },
       });
       return { success: true };

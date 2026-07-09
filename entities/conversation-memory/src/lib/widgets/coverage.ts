@@ -177,10 +177,6 @@ export function registerSummaryCoverageWidget(params: {
           priority: 80,
           rendererName: "ListWidget",
           visibility: "anchor",
-          digest: [
-            { label: "Memory", value: "Coverage" },
-            { label: "Health", value: "Summaries" },
-          ],
           dataProvider: () => buildSummaryCoverageData({ context, config }),
         },
       });

@@ -85,10 +85,6 @@ export function registerDecisionsWidget(params: {
           section: "secondary",
           priority: 30,
           rendererName: "ListWidget",
-          digest: [
-            { label: "Memory", value: "Decisions" },
-            { label: "View", value: "Recent" },
-          ],
           dataProvider: () => buildDecisionsWidgetData(context),
         },
       });

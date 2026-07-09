@@ -22,10 +22,6 @@ export function registerSkillsDashboardWidget(
           section: "sidebar",
           priority: 20,
           rendererName: "ListWidget",
-          digest: [
-            { label: "Capabilities", value: "Skills" },
-            { label: "Advertised via", value: "A2A" },
-          ],
           dataProvider: async () => {
             const skills =
               await context.entityService.listEntities<SkillEntity>({

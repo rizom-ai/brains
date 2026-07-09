@@ -215,6 +215,69 @@ describe("DashboardDataSource", () => {
     });
   });
 
+  describe("digestProvider", () => {
+    it("should derive live digest and needsOperator from the widget's data", async () => {
+      registry.register({
+        id: "pipeline",
+        pluginId: "content-pipeline",
+        group: "publishing",
+        title: "Pipeline",
+        section: "primary",
+        priority: 10,
+        rendererName: "PipelineWidget",
+        // Static fallbacks that the provider should override.
+        digest: [{ label: "Workflow", value: "static" }],
+        needsOperator: 0,
+        dataProvider: async () => ({ summary: { draft: 2, queued: 3 } }),
+        digestProvider: (data) => {
+          const summary = (
+            data as { summary: { draft: number; queued: number } }
+          ).summary;
+          return {
+            digest: [
+              { label: "Queued", value: String(summary.queued), tone: "warn" },
+            ],
+            needsOperator: summary.draft,
+          };
+        },
+      });
+
+      const result = await datasource.getDashboardData();
+      const widget = result.widgets["content-pipeline:pipeline"];
+
+      expect(widget?.widget.digest).toEqual([
+        { label: "Queued", value: "3", tone: "warn" },
+      ]);
+      expect(widget?.widget.needsOperator).toBe(2);
+    });
+
+    it("should fall back to the static digest when the provider throws", async () => {
+      registry.register({
+        id: "flaky",
+        pluginId: "test",
+        group: "network",
+        title: "Flaky",
+        section: "primary",
+        priority: 10,
+        rendererName: "StatsWidget",
+        digest: [{ label: "Static", value: "kept" }],
+        needsOperator: 1,
+        dataProvider: async () => ({ ok: true }),
+        digestProvider: () => {
+          throw new Error("derive failed");
+        },
+      });
+
+      const result = await datasource.getDashboardData();
+      const widget = result.widgets["test:flaky"];
+
+      expect(widget?.widget.digest).toEqual([
+        { label: "Static", value: "kept" },
+      ]);
+      expect(widget?.widget.needsOperator).toBe(1);
+    });
+  });
+
   describe("metadata", () => {
     it("should have correct id, name, and description", () => {
       expect(datasource.id).toBe("dashboard:dashboard");

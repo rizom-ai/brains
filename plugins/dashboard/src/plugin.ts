@@ -14,6 +14,7 @@ import {
 import type {
   RegisteredWidget,
   WidgetComponent,
+  WidgetDigestProvider,
   WidgetVisibility,
 } from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
@@ -76,6 +77,11 @@ const registerWidgetPayloadSchema = z
       (value) => typeof value === "function",
       { message: "Expected dashboard widget data provider function" },
     ),
+    digestProvider: z
+      .custom<WidgetDigestProvider>((value) => typeof value === "function", {
+        message: "Expected dashboard widget digest provider function",
+      })
+      .optional(),
   })
   .superRefine((payload, refinementContext) => {
     if (!isBuiltInWidgetRenderer(payload.rendererName) && !payload.component) {
@@ -153,6 +159,9 @@ function createRegisteredWidget(
     ...(payload.component ? { component: payload.component } : {}),
     ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
     dataProvider: payload.dataProvider as () => Promise<unknown>,
+    ...(payload.digestProvider
+      ? { digestProvider: payload.digestProvider as WidgetDigestProvider }
+      : {}),
   };
 }
 

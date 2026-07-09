@@ -235,7 +235,6 @@ describe("registerSummaryCoverageWidget", () => {
       priority: 80,
       rendererName: "ListWidget",
       visibility: "anchor",
-      digest: expect.any(Array),
     });
   });
 });
