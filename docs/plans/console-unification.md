@@ -2,14 +2,16 @@
 
 ## Status
 
-Proposed. Mockups at [`docs/console-unification-mockups.html`](../console-unification-mockups.html)
-(2026-07-09). **Baseline is the two in-flight worktrees, not main:**
-`work/dashboard-tabbed-console` already implements the console strip inside the dashboard
-(`ConsoleStrip` in `plugins/dashboard/src/dashboard-page.tsx` — brandmark, hardcoded
-Dashboard/Chat/CMS links, inert ⌘K button, Operator/Visitor session chip), and
-`work/cms-editor` shipped the first-party editor with its own appbar (brandmark, crumb,
-session chip — no surface nav, no ⌘K). This plan starts once those worktrees land in main;
-everything below takes their implemented state as given.
+Proposed, ready to start. Mockups at
+[`docs/console-unification-mockups.html`](../console-unification-mockups.html) (2026-07-09).
+The tabbed console landed on main 2026-07-09 (`ConsoleStrip` in
+`plugins/dashboard/src/dashboard-page.tsx` — brandmark, hardcoded Dashboard/Chat/CMS links,
+inert ⌘K button, Operator/Visitor session chip), unblocking Phases 1, 2, and the
+dashboard/chat side of Phase 4. **Phase 3 alone waits on the `cms-editor` worktree
+landing** — main's `plugins/cms` is still the Sveltia wrapper, while the worktree has the
+first-party editor with its own appbar (brandmark, crumb, session chip — no surface nav,
+no ⌘K). The paper climate values are extracted from that worktree's implemented editor
+regardless, so the sheet ships with both climates from Phase 1.
 
 ## Context
 
@@ -189,8 +191,8 @@ styled by it end to end.
 
 - [`docs/console-unification-mockups.html`](../console-unification-mockups.html) — approved
   direction: trio, strip anatomy + climates, chat surface, ⌘K palette.
-- `work/dashboard-tabbed-console` (worktree) — implemented tabbed console + `ConsoleStrip`;
-  source of the instrument token values and the strip's reference markup.
+- `work/dashboard-tabbed-console` (landed on main 2026-07-09) — implemented tabbed console +
+  `ConsoleStrip`; source of the instrument token values and the strip's reference markup.
 - `work/cms-editor` (worktree) — implemented first-party editor + appbar; source of the
   paper token values; Phase 3 retrofits it.
 - [`dashboard-tabbed-console.md`](./dashboard-tabbed-console.md) /
