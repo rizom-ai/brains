@@ -54,9 +54,10 @@ import {
 } from "../../src/upload-policy";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
-const themeStorageKey = "brain:theme";
+// Console-wide climate preference — shared with the dashboard and CMS.
+const themeStorageKey = "console.climate";
 
-type ThemeMode = "light" | "dark";
+type ThemeMode = "paper" | "instrument";
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type SessionDialog =
   | { kind: "rename"; session: WebChatSession }
@@ -66,13 +67,13 @@ type SessionDialog =
 type UploadNotice = { tone: "success" | "error"; message: string } | null;
 
 function getInitialTheme(): ThemeMode {
-  if (typeof document === "undefined") return "dark";
-  const attr = document.documentElement.getAttribute("data-theme");
-  return attr === "light" ? "light" : "dark";
+  if (typeof document === "undefined") return "instrument";
+  const attr = document.documentElement.getAttribute("data-climate");
+  return attr === "paper" ? "paper" : "instrument";
 }
 
 function applyTheme(theme: ThemeMode): void {
-  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.setAttribute("data-climate", theme);
   try {
     localStorage.setItem(themeStorageKey, theme);
   } catch {
@@ -416,7 +417,7 @@ export function App(): React.ReactElement {
   }
 
   function toggleTheme(): void {
-    const next: ThemeMode = theme === "light" ? "dark" : "light";
+    const next: ThemeMode = theme === "paper" ? "instrument" : "paper";
     setTheme(next);
     applyTheme(next);
   }
@@ -1319,17 +1320,17 @@ export function App(): React.ReactElement {
               type="button"
               onClick={toggleTheme}
               aria-label={
-                theme === "light"
-                  ? "Switch to dark mode"
-                  : "Switch to light mode"
+                theme === "paper"
+                  ? "Switch to instrument mode"
+                  : "Switch to paper mode"
               }
               title={
-                theme === "light"
-                  ? "Switch to dark mode"
-                  : "Switch to light mode"
+                theme === "paper"
+                  ? "Switch to instrument mode"
+                  : "Switch to paper mode"
               }
             >
-              {theme === "light" ? (
+              {theme === "paper" ? (
                 <svg
                   viewBox="0 0 16 16"
                   fill="none"

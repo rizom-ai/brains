@@ -22,7 +22,7 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "./dashboard-page";
-import { deriveConsoleSurfaces } from "./render/console-surfaces";
+import { deriveConsoleSurfaces } from "@brains/console-theme";
 import { resolveWidgetsForRender } from "./render/resolve-widgets";
 import type {
   DashboardActivityEvent,
@@ -455,10 +455,10 @@ export class DashboardPlugin extends ServicePlugin<
             widgets: resolvedWidgets.widgets,
             widgetScripts: resolvedWidgets.widgetScripts,
             dashboardPath: this.config.routePath,
-            surfaces: deriveConsoleSurfaces(
-              ctx.webRoutes.getRoutes(),
-              this.config.routePath,
-            ),
+            surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
+              activeId: "dashboard",
+              self: { id: "dashboard", href: this.config.routePath },
+            }),
             character,
             profile,
             appInfo: visibleAppInfo,

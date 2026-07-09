@@ -1,5 +1,5 @@
 import type { AppInfo, EntityCount } from "@brains/plugins";
-import type { ConsoleSurface } from "./console-surfaces";
+import type { ConsoleSurface } from "@brains/console-theme";
 import type { WidgetComponent } from "../widget-registry";
 import type { WidgetData } from "../widget-schema";
 

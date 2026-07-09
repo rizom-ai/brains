@@ -10,7 +10,8 @@ import { WidgetCard } from "./render/widget-card";
 import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
-import type { ConsoleSurface } from "./render/console-surfaces";
+import { CONSOLE_CLIMATE_SCRIPT } from "@brains/console-theme";
+import type { ConsoleSurface } from "@brains/console-theme";
 import type {
   DashboardActivityEvent,
   DashboardJobProgressItem,
@@ -191,32 +192,6 @@ function groupExternalWidgets(
     };
   });
 }
-
-// The climate preference is console-wide: every operator surface reads the
-// same "console.climate" key, so a toggle here follows the operator to chat
-// and the CMS editor.
-const CLIMATE_TOGGLE_SCRIPT = `(function () {
-  var root = document.documentElement;
-  var btn = document.getElementById("climateToggle");
-  var stored = null;
-  try { stored = localStorage.getItem("console.climate"); } catch (e) { /* storage unavailable */ }
-  if (stored === "paper" || stored === "instrument") {
-    root.setAttribute("data-climate", stored);
-  }
-  function sync() {
-    if (!btn) return;
-    btn.textContent = root.getAttribute("data-climate") === "instrument" ? "Paper mode" : "Instrument mode";
-  }
-  if (btn) {
-    btn.addEventListener("click", function () {
-      var next = root.getAttribute("data-climate") === "instrument" ? "paper" : "instrument";
-      root.setAttribute("data-climate", next);
-      try { localStorage.setItem("console.climate", next); } catch (e) { /* storage unavailable */ }
-      sync();
-    });
-  }
-  sync();
-})();`;
 
 const DASHBOARD_TABS_SCRIPT = `(function () {
   var root = document.documentElement;
@@ -1044,7 +1019,7 @@ function DashboardDocument({
           />
         </main>
 
-        <script dangerouslySetInnerHTML={{ __html: CLIMATE_TOGGLE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: DASHBOARD_TABS_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: PIPELINE_TABS_SCRIPT }} />
         {input.widgetScripts.map((script, index) => (

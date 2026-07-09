@@ -2,9 +2,15 @@
 
 ## Status
 
-In progress on `work/console-unification` — Phase 1 complete (sheet extracted to
-`shared/console-theme`, dashboard consumes it, strip links route-derived, climate toggle
-persisted as `console.climate`). Next: Phase 2 (web-chat). Mockups at
+In progress on `work/console-unification` — Phases 1–2 complete. Phase 1: sheet extracted
+to `shared/console-theme` (tokens + strip CSS + surface derivation + climate script),
+dashboard consumes it, strip links route-derived, climate persisted as `console.climate`.
+Phase 2: web-chat serves the sheet and strip (operator chip, chat active), `--chat-*`
+palette copies deleted (a thin chat-only block derives from console primaries), the React
+app's theme toggle became the climate toggle. Note: chat deliberately makes no
+third-party requests, so the console type ramp falls back to system stacks there until
+fonts are self-hosted. Next: Phase 3 (CMS retrofit — waits on the cms-editor worktree)
+and Phase 4 (⌘K jump). Mockups at
 [`docs/console-unification-mockups.html`](../console-unification-mockups.html) (2026-07-09).
 The tabbed console landed on main 2026-07-09 (`ConsoleStrip` in
 `plugins/dashboard/src/dashboard-page.tsx` — brandmark, hardcoded Dashboard/Chat/CMS links,

@@ -603,9 +603,28 @@ describe("WebChatInterface", () => {
     expect(html).toContain("Brain Chat");
     expect(html).toContain("/chat/assets/app.js");
     expect(html).toContain("data-web-chat-styles");
-    expect(html).toContain("--chat-bg:");
-    expect(html).toContain("--chat-accent:");
-    expect(html).toContain('[data-theme="light"]');
+    // The shared console sheet is the palette source; chat defines no
+    // console-equivalent tokens and no fallback chains of its own.
+    expect(html).toContain('[data-climate="instrument"]');
+    expect(html).toContain('[data-climate="paper"]');
+    expect(html).toContain('data-climate="instrument"');
+    expect(html).not.toContain("data-theme");
+    expect(html).not.toContain("var(--dashboard-");
+    expect(html).not.toContain("--chat-bg:");
+    expect(html).not.toContain("--chat-accent:");
+    // The console strip: chat is the active surface; only registered
+    // surfaces get doors (no dashboard or cms plugin in this harness).
+    expect(html).toContain('class="console-strip"');
+    expect(html).toContain("surface-nav-link is-active");
+    expect(html).toContain(">Chat</a>");
+    expect(html).not.toContain(">CMS<");
+    expect(html).not.toContain(">Dashboard<");
+    // Operator-only surface: the session chip always shows the operator.
+    expect(html).toContain('class="session-chip"');
+    expect(html).toContain("Sign out");
+    expect(html).toContain('href="/logout?return_to=%2Fchat"');
+    // Climate preference is console-wide.
+    expect(html).toContain('localStorage.getItem("console.climate")');
     expect(html).toContain(".web-chat-session-dialog-backdrop");
     expect(html).toContain(
       ".web-chat-session-dialog-actions { flex-direction: column-reverse; }",
@@ -623,9 +642,12 @@ describe("WebChatInterface", () => {
     const response = await route?.handler(new Request("http://brain/chat"));
     const html = await response?.text();
 
+    // The shared sheet may *name* the console font families (they resolve
+    // locally or fall through to system stacks), but the page must never
+    // load them from a third party.
     expect(html).not.toContain("fonts.googleapis.com");
     expect(html).not.toContain("fonts.gstatic.com");
-    expect(html).not.toContain("Fraunces");
+    expect(html).not.toContain("<link");
   });
 
   it("returns playbook lifecycle starters for operators", async () => {

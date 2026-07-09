@@ -49,6 +49,7 @@ import {
   type WebChatConfigInput,
 } from "./config";
 import { toProgressData, toToolStatusData } from "./event-data";
+import { deriveConsoleSurfaces } from "@brains/console-theme";
 import { renderChatPage, uiAssetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
@@ -300,9 +301,25 @@ export class WebChatInterface extends MessageInterfacePlugin<
       return this.createOperatorLoginRequiredResponse(request);
     }
 
-    return new Response(renderChatPage(), {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    const requestUrl = new URL(request.url);
+    const returnTo = encodeURIComponent(
+      `${requestUrl.pathname}${requestUrl.search}`,
+    );
+    return new Response(
+      renderChatPage({
+        surfaces: deriveConsoleSurfaces(
+          this.getContext().webRoutes.getRoutes(),
+          {
+            activeId: "web-chat",
+            self: { id: "web-chat", href: this.config.routePath },
+          },
+        ),
+        sessionHref: `/logout?return_to=${returnTo}`,
+      }),
+      {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      },
+    );
   }
 
   private async handleBootstrapRequest(request: Request): Promise<Response> {

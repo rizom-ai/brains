@@ -1,18 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { RegisteredWebRoute } from "@brains/plugins";
-import { deriveConsoleSurfaces } from "../src/render/console-surfaces";
+import { deriveConsoleSurfaces } from "../src";
 
-function route(pluginId: string, fullPath: string): RegisteredWebRoute {
-  return {
-    pluginId,
-    fullPath,
-    definition: {
-      path: fullPath,
-      method: "GET",
-      handler: () => Promise.resolve(new Response("ok")),
-    },
-  };
-}
+const route = (
+  pluginId: string,
+  fullPath: string,
+): { pluginId: string; fullPath: string } => ({ pluginId, fullPath });
 
 describe("deriveConsoleSurfaces", () => {
   it("derives one link per registered operator surface", () => {
@@ -24,7 +16,7 @@ describe("deriveConsoleSurfaces", () => {
         route("cms", "/cms"),
         route("cms", "/cms/api/types"),
       ],
-      "/dashboard",
+      { activeId: "dashboard" },
     );
 
     expect(surfaces).toEqual([
@@ -39,10 +31,20 @@ describe("deriveConsoleSurfaces", () => {
     ]);
   });
 
+  it("marks the rendering surface active from any surface", () => {
+    const surfaces = deriveConsoleSurfaces(
+      [route("dashboard", "/dashboard"), route("web-chat", "/chat")],
+      { activeId: "web-chat" },
+    );
+
+    expect(surfaces.find((s) => s.id === "web-chat")?.isActive).toBe(true);
+    expect(surfaces.find((s) => s.id === "dashboard")?.isActive).toBe(false);
+  });
+
   it("omits surfaces whose plugin registered no routes", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("web-chat", "/chat")],
-      "/dashboard",
+      { activeId: "dashboard" },
     );
 
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat"]);
@@ -55,16 +57,17 @@ describe("deriveConsoleSurfaces", () => {
         route("cms", "/cms"),
         route("cms", "/cms/assets/app.js"),
       ],
-      "/dashboard",
+      { activeId: "cms" },
     );
 
     expect(surfaces.find((s) => s.id === "cms")?.href).toBe("/cms");
   });
 
-  it("keeps the dashboard door even without a registered route", () => {
-    // The dashboard renders its own page; its entry never depends on
-    // reading its own registration back.
-    const surfaces = deriveConsoleSurfaces([], "/dashboard");
+  it("keeps the rendering surface even without a readable registration", () => {
+    const surfaces = deriveConsoleSurfaces([], {
+      activeId: "dashboard",
+      self: { id: "dashboard", href: "/dashboard" },
+    });
 
     expect(surfaces).toEqual([
       {
@@ -76,10 +79,19 @@ describe("deriveConsoleSurfaces", () => {
     ]);
   });
 
+  it("prefers the self-declared door over the registry's", () => {
+    const surfaces = deriveConsoleSurfaces(
+      [route("dashboard", "/dashboard/deep/route")],
+      { activeId: "dashboard", self: { id: "dashboard", href: "/operator" } },
+    );
+
+    expect(surfaces.find((s) => s.id === "dashboard")?.href).toBe("/operator");
+  });
+
   it("ignores routes from non-surface plugins", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("site-builder", "/")],
-      "/dashboard",
+      { activeId: "dashboard" },
     );
 
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard"]);
