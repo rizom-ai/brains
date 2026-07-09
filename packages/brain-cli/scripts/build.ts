@@ -59,6 +59,8 @@ const monorepoRoot = findMonorepoRoot();
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
 const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
 const bundledWebChatUiDir = join(outdir, "ui");
+const cmsPackageDir = join(monorepoRoot, "plugins", "cms");
+const cmsUiAssetPath = join(cmsPackageDir, "dist", "ui", "cms-app.js");
 const sharedInstanceTsConfigPath = join(
   monorepoRoot,
   "shared",
@@ -80,6 +82,21 @@ if (webChatBuildResult.exitCode !== 0) {
 }
 if (!existsSync(webChatUiAssetPath)) {
   console.error(`Web chat UI asset not found at ${webChatUiAssetPath}`);
+  process.exit(1);
+}
+
+console.log("Building bundled CMS editor UI...");
+const cmsBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+  cwd: cmsPackageDir,
+  stdout: "inherit",
+  stderr: "inherit",
+});
+if (cmsBuildResult.exitCode !== 0) {
+  console.error("CMS editor UI build failed");
+  process.exit(1);
+}
+if (!existsSync(cmsUiAssetPath)) {
+  console.error(`CMS editor UI asset not found at ${cmsUiAssetPath}`);
   process.exit(1);
 }
 
@@ -296,6 +313,11 @@ cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
 const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));
+}
+cpSync(cmsUiAssetPath, join(bundledWebChatUiDir, "cms-app.js"));
+const cmsSourceMapPath = `${cmsUiAssetPath}.map`;
+if (existsSync(cmsSourceMapPath)) {
+  cpSync(cmsSourceMapPath, join(bundledWebChatUiDir, "cms-app.js.map"));
 }
 
 // ─── Copy migrations ──────────────────────────────────────────────────────

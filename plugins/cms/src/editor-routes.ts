@@ -17,7 +17,9 @@ import {
 } from "./config";
 import { renderEditorShellHtml } from "./editor-shell";
 
-const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
+// Named cms-app.js (not app.js): in the bundled @rizom/brain this resolves
+// to the shared dist/ui directory, where app.js is web-chat's bundle.
+const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "cms-app.js");
 
 const updateEntityPayloadSchema = z.object({
   entityType: z.string(),

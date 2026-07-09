@@ -161,6 +161,15 @@ describe("@rizom/site-docs package boundary", () => {
         "@rizom/site-rizom",
       );
       expect(installedDocsManifest.devDependencies).toBeUndefined();
+
+      // npm builds the registry dependency metadata from the on-disk
+      // manifest before prepack rewrites it, so a workspace: range here
+      // ships a broken packument even when the tarball manifest is
+      // clean (@rizom/site-rizom-ai@0.2.0-alpha.145). The repo manifest
+      // must pin the concrete version of published @rizom deps.
+      expect(sourceDocsManifest.dependencies["@rizom/site"]).toBe(
+        sourceSdkManifest.version,
+      );
       expect(sourceDocsManifest.peerDependencies).toBeUndefined();
       expect(installedDocsManifest.peerDependencies).toEqual(
         sourceDocsManifest.publishPeerDependencies,

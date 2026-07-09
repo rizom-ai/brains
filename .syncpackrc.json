@@ -2,6 +2,19 @@
   "$schema": "https://unpkg.com/syncpack@latest/dist/schema.json",
   "versionGroups": [
     {
+      "label": "Public site packages pin concrete versions of published internal deps: npm publish builds the registry metadata from the on-disk manifest before prepack rewrites it, so workspace:* here ships broken packuments",
+      "packages": [
+        "@rizom/site",
+        "@rizom/site-docs",
+        "@rizom/site-rizom",
+        "@rizom/site-rizom-ai",
+        "@rizom/site-rizom-foundation",
+        "@rizom/site-rizom-work"
+      ],
+      "dependencies": ["@rizom/site", "@rizom/site-rizom"],
+      "dependencyTypes": ["local", "prod"]
+    },
+    {
       "label": "Use workspace protocol for internal packages",
       "dependencies": ["@brains/**", "@rizom/**"],
       "dependencyTypes": ["dev", "prod"],
@@ -33,6 +46,19 @@
     }
   ],
   "semverGroups": [
+    {
+      "label": "Public site packages pin exact versions of published internal deps",
+      "packages": [
+        "@rizom/site-docs",
+        "@rizom/site-rizom",
+        "@rizom/site-rizom-ai",
+        "@rizom/site-rizom-foundation",
+        "@rizom/site-rizom-work"
+      ],
+      "dependencies": ["@rizom/site", "@rizom/site-rizom"],
+      "dependencyTypes": ["prod"],
+      "range": ""
+    },
     {
       "label": "Use caret ranges for all dependencies",
       "dependencies": ["**"],
