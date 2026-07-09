@@ -13,7 +13,9 @@ import rizomAiSite, {
 const siteInfo: SiteLayoutInfo = {
   title: "Rizom",
   description: "Build the agent that represents you",
-  copyright: "© 2026 Stichting Rizom · Amsterdam",
+  // Distinctive value: tests assert the chrome renders THIS, proving the
+  // signature line is entity-driven rather than hardcoded in the layout.
+  copyright: "SIGNATURE-FROM-SITE-INFO",
   // Entity plugins register slot-based nav entries like these; the
   // two-tier chrome must NOT surface them.
   navigation: {
@@ -123,7 +125,6 @@ describe("RizomAiLayout", () => {
 
   it("gives the platform the full footer and rooms their siteband", () => {
     const home = renderLayout("/");
-    expect(home).toContain("Stichting Rizom");
     expect(home).toContain("The platform");
     expect(home).toContain("old links redirect");
 
@@ -134,7 +135,22 @@ describe("RizomAiLayout", () => {
 
     const foundation = renderLayout("/foundation");
     expect(foundation).toContain("rizom.foundation");
-    expect(foundation).toContain("Stichting Rizom");
+  });
+
+  it("renders the site-info signature line everywhere, and no other legal copy", () => {
+    for (const path of ["/", "/work", "/foundation"]) {
+      const html = renderLayout(path);
+      expect(html).toContain("SIGNATURE-FROM-SITE-INFO");
+      expect(html).not.toContain("Apache");
+      expect(html).not.toContain("Stichting");
+      expect(html).not.toContain("Rizom Collective");
+    }
+  });
+
+  it("sends the work CTA to the real Team Type quiz", () => {
+    expect(renderLayout("/work")).toContain(
+      'href="https://form.typeform.com/to/NGqo9Fnf"',
+    );
   });
 
   it("renders the mycelium rail hooks", () => {

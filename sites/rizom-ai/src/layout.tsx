@@ -34,7 +34,11 @@ const FACE_CHROME: Record<FaceKey, FaceChrome> = {
       { label: "Workshop", href: "/work#workshop" },
       { label: "Contact", href: "/work#contact" },
     ],
-    cta: { label: "Take the quiz", href: "/work#quiz" },
+    // The live Team Type quiz, salvaged from rizom.work's site-info.
+    cta: {
+      label: "Take the quiz",
+      href: "https://form.typeform.com/to/NGqo9Fnf",
+    },
   },
   foundation: {
     nameplate: "foundation",
@@ -153,8 +157,8 @@ interface FooterColumn {
   links: FaceLink[];
 }
 
-/* Home's four-column footer — mockup `.footer` with the Stichting
-   legal row. Rooms get the slim `.siteband` provenance line instead. */
+/* Home's four-column footer — mockup `.footer` with the legal row.
+   Rooms get the slim `.siteband` provenance line instead. */
 const FOOTER_COLUMNS: FooterColumn[] = [
   {
     heading: "The platform",
@@ -221,7 +225,6 @@ function PlatformFooter({
       ))}
       <div className="col-span-full mt-2 flex flex-wrap items-center gap-x-[22px] gap-y-2 border-t border-theme-light pt-4 font-label text-[11.5px] text-theme-light">
         <span>{siteInfo.copyright}</span>
-        <span>Apache-2.0</span>
         <span className="flex-1" />
         <span>
           rizom.work &amp; rizom.foundation now live here — old links redirect
@@ -232,26 +235,24 @@ function PlatformFooter({
   );
 }
 
-/* Room siteband — provenance line + legal, per mockup. */
-const SITEBAND: Record<"work" | "foundation", { from: string; legal: string }> =
-  {
-    work: { from: "rizom.work", legal: "© 2026 · Rizom Collective" },
-    foundation: {
-      from: "rizom.foundation",
-      legal: "Stichting Rizom · Amsterdam · Rotterdam · Berlin",
-    },
-  };
-
-function RoomSiteband({ face }: { face: "work" | "foundation" }): JSX.Element {
-  const band = SITEBAND[face];
+/* Room siteband — provenance line per mockup; the signature comes from
+   the site-info entity, same single source as the platform footer. */
+function RoomSiteband({
+  face,
+  siteInfo,
+}: {
+  face: "work" | "foundation";
+  siteInfo: RizomLayoutProps["siteInfo"];
+}): JSX.Element {
+  const from = `rizom.${FACE_CHROME[face].nameplate}`;
   return (
     <footer className="relative z-[1] flex flex-wrap items-baseline gap-[26px] border-t border-theme-light px-6 py-4 font-label text-[12px] text-theme-light md:px-10 xl:px-20">
       <span>
-        previously <b className="font-medium text-theme-muted">{band.from}</b> —
-        you were redirected here
+        previously <b className="font-medium text-theme-muted">{from}</b> — you
+        were redirected here
       </span>
       <span className="flex-1" />
-      <span>{band.legal}</span>
+      <span>{siteInfo.copyright}</span>
       <ThemeToggle />
     </footer>
   );
@@ -327,7 +328,7 @@ function RizomAiChrome({
         {face === "platform" ? (
           <PlatformFooter siteInfo={siteInfo} />
         ) : (
-          <RoomSiteband face={face} />
+          <RoomSiteband face={face} siteInfo={siteInfo} />
         )}
       </div>
     </RizomFrame>
