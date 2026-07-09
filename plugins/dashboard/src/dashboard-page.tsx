@@ -10,7 +10,10 @@ import { WidgetCard } from "./render/widget-card";
 import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
-import { CONSOLE_CLIMATE_SCRIPT } from "@brains/console-theme";
+import {
+  CONSOLE_CLIMATE_SCRIPT,
+  CONSOLE_FONTS_URL,
+} from "@brains/console-theme";
 import type { ConsoleSurface } from "@brains/console-theme";
 import type {
   DashboardActivityEvent,
@@ -20,9 +23,6 @@ import type {
 } from "./render/types";
 
 export type { DashboardRenderInput } from "./render/types";
-
-const FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap";
 
 interface WidgetGroups {
   primary: RenderableWidgetData[];
@@ -929,7 +929,7 @@ function DashboardDocument({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
-        <link href={FONTS_URL} rel="stylesheet" />
+        <link href={CONSOLE_FONTS_URL} rel="stylesheet" />
         {input.themeCSS !== undefined && (
           <style
             data-dashboard-theme

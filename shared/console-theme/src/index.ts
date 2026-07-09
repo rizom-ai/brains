@@ -12,7 +12,10 @@ import consoleThemeCSS from "./console.css" with { type: "text" };
 export const CONSOLE_THEME_CSS: string = consoleThemeCSS;
 
 export { CONSOLE_CLIMATE_SCRIPT } from "./climate-script";
+export { CONSOLE_FONTS_URL } from "./fonts";
 export { deriveConsoleSurfaces } from "./surfaces";
 export type { ConsoleRouteLike, ConsoleSurface } from "./surfaces";
+export { renderConsoleStripHtml } from "./strip-html";
+export type { ConsoleStripHtmlOptions } from "./strip-html";
 
 export default consoleThemeCSS;

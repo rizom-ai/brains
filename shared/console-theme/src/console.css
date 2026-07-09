@@ -73,6 +73,7 @@
     var(--console-accent) 12%,
     transparent
   );
+  --console-ok-soft: color-mix(in srgb, var(--console-ok) 13%, transparent);
   --console-display: var(--font-display, "Fraunces", "Times New Roman", serif);
   --console-ui: var(
     --font-body,
@@ -165,7 +166,7 @@
   font-family: var(--console-mono);
   font-size: 11px;
   color: var(--console-ok);
-  background: color-mix(in srgb, var(--console-ok) 13%, transparent);
+  background: var(--console-ok-soft);
   border-radius: 999px;
   padding: 5px 12px;
   text-decoration: none;

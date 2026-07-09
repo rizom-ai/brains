@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { CONSOLE_THEME_CSS } from "../src";
+import { CONSOLE_FONTS_URL, CONSOLE_THEME_CSS } from "../src";
 
 function climateBlock(climate: string): string {
   const match = CONSOLE_THEME_CSS.match(
@@ -63,6 +63,13 @@ describe("CONSOLE_THEME_CSS", () => {
     ]) {
       expect(CONSOLE_THEME_CSS).toContain(selector);
     }
+  });
+
+  it("loads exactly the console type ramp from the fonts URL", () => {
+    expect(CONSOLE_FONTS_URL).toContain("Fraunces");
+    expect(CONSOLE_FONTS_URL).toContain("IBM+Plex+Sans");
+    expect(CONSOLE_FONTS_URL).toContain("JetBrains+Mono");
+    expect(CONSOLE_FONTS_URL).not.toContain("IBM+Plex+Mono");
   });
 
   it("styles chrome only from console tokens", () => {
