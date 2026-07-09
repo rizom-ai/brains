@@ -149,6 +149,10 @@ a small datasource addition, listed per phase.
 ## Related
 
 - [`docs/dashboard-tabs-mockups.html`](../dashboard-tabs-mockups.html) — approved mockups.
+- [`console-unification.md`](./console-unification.md) — follow-on: extracts the token
+  sheet (`@brains/console-theme`) from the console implemented here, spreads the strip to
+  chat/CMS, and wires the strip's ⌘K to a cross-surface jump. Mockups:
+  [`docs/console-unification-mockups.html`](../console-unification-mockups.html).
 - [`brain-model-unification.md`](./brain-model-unification.md) — bundle vocabulary the
   group ids converge toward.
 - [`first-party-cms-editor.md`](./first-party-cms-editor.md) — sibling console surface;

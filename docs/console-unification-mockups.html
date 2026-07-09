@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brain Console — Unification Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --void: #131109;
+    --coal: #191612;
+    --line: rgba(236, 227, 205, 0.11);
+    --bone: #ece3cd;
+    --bone-60: rgba(236, 227, 205, 0.6);
+    --bone-40: rgba(236, 227, 205, 0.38);
+    --vermilion: #e06a35;
+    --display: "Fraunces", serif;
+    --ui: "IBM Plex Sans", sans-serif;
+    --mono: "JetBrains Mono", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--ui);
+    background: var(--void);
+    color: var(--bone);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: 999; pointer-events: none; opacity: .55;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.04'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection { background: rgba(224,106,53,.35); }
+
+  /* ---------- mockup chrome ---------- */
+  .mock-header { max-width: 1280px; margin: 0 auto; padding: 56px 32px 20px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--vermilion); }
+  .mock-header h1 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 60, "opsz" 90;
+    font-weight: 540; font-size: clamp(32px, 4.6vw, 50px);
+    line-height: 1.06; letter-spacing: -.015em; margin-top: 10px; max-width: 18em;
+  }
+  .mock-header h1 em { font-style: italic; color: var(--vermilion); font-weight: 470; }
+  .lede { margin-top: 14px; max-width: 64ch; color: var(--bone-60); font-size: 15px; }
+  .mock-nav { max-width: 1280px; margin: 24px auto 0; padding: 0 32px; display: flex; border-bottom: 1px solid var(--line); }
+  .mock-nav a {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
+    text-decoration: none; color: var(--bone-60);
+    padding: 10px 18px 12px; border-bottom: 2px solid transparent; transform: translateY(1px);
+  }
+  .mock-nav a:hover { color: var(--bone); }
+  .mock-nav a span { color: var(--vermilion); margin-right: 6px; }
+
+  .screen { max-width: 1280px; margin: 70px auto 0; padding: 0 32px; }
+  .screen:last-of-type { margin-bottom: 60px; }
+  .screen-label { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; }
+  .screen-label .num { font-family: var(--mono); font-size: 12px; color: var(--vermilion); }
+  .screen-label h2 { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 520; font-size: 22px; }
+  .screen-label .note { font-size: 12.5px; color: var(--bone-40); margin-left: auto; text-align: right; max-width: 46ch; }
+  .screen-label .mode-btn {
+    font-family: var(--mono); font-size: 11px; color: var(--bone-60);
+    border: 1px solid var(--line); background: none; border-radius: 6px;
+    padding: 5px 12px; cursor: pointer; white-space: nowrap;
+  }
+  .screen-label .mode-btn:hover { color: var(--bone); border-color: var(--bone-40); }
+
+  /* =====================================================================
+     THE TOKEN SHEET — every frame below styles itself only from --c-*.
+     .instrument and .paper are the two climates of the same semantic sheet;
+     this file's CSS is itself the proof that one stylesheet serves both.
+     ===================================================================== */
+  .frame {
+    border: 1px solid rgba(236,227,205,.14);
+    border-radius: 12px;
+    box-shadow: 0 30px 70px -30px rgba(0,0,0,.8);
+    overflow: hidden;
+    background: var(--c-bg);
+    color: var(--c-text);
+  }
+  .instrument {
+    --c-bg: #191612;
+    --c-panel: #201c16;
+    --c-panel-2: #262119;
+    --c-line: rgba(236, 227, 205, 0.11);
+    --c-line-soft: rgba(236, 227, 205, 0.06);
+    --c-text: #ece3cd;
+    --c-text-60: rgba(236, 227, 205, 0.6);
+    --c-text-40: rgba(236, 227, 205, 0.38);
+    --c-accent: #e06a35;
+    --c-accent-dim: rgba(224, 106, 53, 0.14);
+    --c-ok: #6fae97;
+    --c-ok-dim: rgba(111, 174, 151, 0.13);
+    --c-warn: #d8a53f;
+    --c-warn-dim: rgba(216, 165, 63, 0.14);
+    --c-glow: rgba(224, 106, 53, 0.5);
+    --c-strip-tint: rgba(236, 227, 205, 0.035);
+    --c-kbd-bg: transparent;
+  }
+  .paper {
+    --c-bg: #faf7f0;
+    --c-panel: #f4efe6;
+    --c-panel-2: #ece5d6;
+    --c-line: rgba(33, 29, 24, 0.15);
+    --c-line-soft: rgba(33, 29, 24, 0.08);
+    --c-text: #211d18;
+    --c-text-60: rgba(33, 29, 24, 0.62);
+    --c-text-40: rgba(33, 29, 24, 0.42);
+    --c-accent: #c44a1d;
+    --c-accent-dim: rgba(196, 74, 29, 0.1);
+    --c-ok: #3d6b5c;
+    --c-ok-dim: rgba(61, 107, 92, 0.14);
+    --c-warn: #b3801a;
+    --c-warn-dim: rgba(179, 128, 26, 0.13);
+    --c-glow: rgba(196, 74, 29, 0.45);
+    --c-strip-tint: rgba(255, 255, 255, 0.5);
+    --c-kbd-bg: #fff;
+  }
+
+  /* ---------- the console strip, written ONCE against --c-* ---------- */
+  .console-strip {
+    display: flex; align-items: center; gap: 22px;
+    height: 50px; padding: 0 20px;
+    border-bottom: 1px solid var(--c-line);
+    background: linear-gradient(to bottom, var(--c-strip-tint), transparent);
+  }
+  .brandmark { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--c-text-60); white-space: nowrap; }
+  .brandmark b { color: var(--c-text); font-weight: 500; }
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--c-accent); animation: pulse 2.4s ease-in-out infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 var(--c-glow); } 55% { box-shadow: 0 0 0 6px transparent; } }
+  .surfaces { display: flex; gap: 2px; }
+  .surfaces a {
+    font-size: 13px; text-decoration: none; color: var(--c-text-40);
+    padding: 5px 12px; border-radius: 6px;
+  }
+  .surfaces a:hover { color: var(--c-text); background: var(--c-line-soft); }
+  .surfaces a.here { color: var(--c-text); background: var(--c-line); font-weight: 500; }
+  .strip-spacer { flex: 1; }
+  .cmdk { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--c-text-40); border: 1px solid var(--c-line); border-radius: 6px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+  .cmdk kbd { font-family: var(--mono); font-size: 10px; border: 1px solid var(--c-line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; background: var(--c-kbd-bg); }
+  .session-chip { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; color: var(--c-ok); background: var(--c-ok-dim); border-radius: 99px; padding: 5px 12px; white-space: nowrap; }
+  .session-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c-ok); flex-shrink: 0; }
+
+  /* compact strip for the side-by-side trio */
+  .console-strip.compact { gap: 10px; padding: 0 14px; height: 44px; }
+  .compact .surfaces a { font-size: 11.5px; padding: 4px 9px; }
+  .compact .cmdk { padding: 3px 7px; }
+  .compact .long { display: none; }
+
+  /* annotation marks (mockup-only) */
+  .mark {
+    font-style: normal; font-family: var(--mono); font-size: 9px; font-weight: 600;
+    width: 15px; height: 15px; border-radius: 50%;
+    background: var(--c-accent); color: var(--c-bg);
+    display: inline-grid; place-items: center;
+    transform: translateY(-9px); margin-left: 3px; flex-shrink: 0;
+  }
+
+  /* ---------- screen 01 : trio ---------- */
+  .trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .trio-cell .frame { min-height: 320px; display: flex; flex-direction: column; }
+  .trio-cap { font-family: var(--mono); font-size: 10.5px; color: var(--bone-40); margin-top: 10px; padding-left: 2px; letter-spacing: .04em; }
+  .trio-cap b { color: var(--bone-60); font-weight: 500; }
+
+  .mini-mast { padding: 16px 16px 0; display: flex; align-items: baseline; gap: 10px; }
+  .mini-mast h3 { font-family: var(--display); font-variation-settings: "SOFT" 80, "opsz" 72; font-weight: 560; font-size: 24px; line-height: 1; }
+  .mini-mast .tagline { font-size: 10.5px; color: var(--c-text-40); }
+  .mini-tabs { display: flex; gap: 2px; padding: 12px 16px 0; border-bottom: 1px solid var(--c-line); }
+  .mini-tabs span {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .05em; color: var(--c-text-40);
+    padding: 6px 10px 8px; border-bottom: 2px solid transparent; transform: translateY(1px);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .mini-tabs span.on { color: var(--c-text); border-bottom-color: var(--c-accent); }
+  .mini-tabs .badge { font-size: 8.5px; color: var(--c-bg); background: var(--c-accent); border-radius: 99px; padding: 0 5px; font-weight: 600; }
+  .mini-vitals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px 16px; }
+  .mini-vital { background: var(--c-panel); border: 1px solid var(--c-line); border-radius: 8px; padding: 9px 11px; }
+  .mini-vital .l { font-family: var(--mono); font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--c-text-40); }
+  .mini-vital .n { font-family: var(--display); font-variation-settings: "SOFT" 40; font-weight: 540; font-size: 19px; margin-top: 2px; }
+  .mini-vital .n.ok { color: var(--c-ok); font-size: 14px; padding-top: 4px; }
+  .mini-vital .n.mono-n { font-family: var(--mono); font-size: 13px; padding-top: 5px; color: var(--c-warn); }
+
+  .mini-chat { display: flex; flex-direction: column; gap: 9px; padding: 16px; flex: 1; }
+  .mini-msg { font-size: 11.5px; line-height: 1.45; border-radius: 9px; padding: 7px 11px; max-width: 85%; }
+  .mini-msg.user { align-self: flex-end; background: var(--c-accent-dim); border: 1px solid var(--c-line); }
+  .mini-msg.bot { align-self: flex-start; background: var(--c-panel); border: 1px solid var(--c-line); }
+  .mini-msg .who { display: block; font-family: var(--mono); font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--c-text-40); margin-bottom: 3px; }
+  .mini-composer { margin-top: auto; display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--c-line); padding: 12px 16px 16px; }
+  .mini-composer .box { flex: 1; border: 1px solid var(--c-line); background: var(--c-panel); border-radius: 8px; padding: 7px 11px; font-size: 11.5px; color: var(--c-text-40); }
+  .mini-composer .send { width: 28px; height: 28px; border-radius: 7px; background: var(--c-accent); display: grid; place-items: center; color: var(--c-bg); font-size: 13px; }
+
+  .mini-crumb { display: flex; align-items: baseline; gap: 8px; padding: 12px 16px 10px; border-bottom: 1px solid var(--c-line); font-size: 11.5px; color: var(--c-text-60); }
+  .mini-crumb strong { color: var(--c-text); font-weight: 500; }
+  .mini-crumb .meta { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--c-text-40); }
+  .mini-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: baseline; padding: 11px 16px 10px; border-bottom: 1px solid var(--c-line-soft); }
+  .mini-row .t { font-family: var(--display); font-variation-settings: "SOFT" 50; font-weight: 520; font-size: 13px; line-height: 1.3; }
+  .mini-row .t small { display: block; font-family: var(--mono); font-size: 9px; font-weight: 400; color: var(--c-text-40); margin-top: 2px; }
+  .mini-chip { font-family: var(--mono); font-size: 8.5px; letter-spacing: .08em; text-transform: uppercase; border-radius: 99px; padding: 2px 8px; }
+  .mini-chip.pub { color: var(--c-ok); background: var(--c-ok-dim); }
+  .mini-chip.draft { color: var(--c-warn); background: var(--c-warn-dim); }
+  .mini-sync { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 9px; color: var(--c-text-40); }
+  .mini-sync i { width: 5px; height: 5px; border-radius: 50%; background: var(--c-ok); font-style: normal; }
+  .mini-sync i.pend { background: var(--c-warn); animation: pulse 1.6s ease-in-out infinite; }
+
+  /* ---------- screen 02 : strip dissected + token board ---------- */
+  .dissect-canvas { padding: 24px; }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 26px; }
+  .legend .item { display: flex; gap: 12px; align-items: baseline; font-size: 13px; color: var(--c-text-60); padding: 8px 0; border-top: 1px solid var(--c-line-soft); }
+  .legend .item b { color: var(--c-text); font-weight: 500; }
+  .legend .item code { font-family: var(--mono); font-size: 11px; color: var(--c-text-40); }
+  .legend .item .mk { font-family: var(--mono); font-size: 9px; font-weight: 600; width: 15px; height: 15px; border-radius: 50%; background: var(--c-accent); color: var(--c-bg); display: inline-grid; place-items: center; flex-shrink: 0; transform: translateY(2px); }
+
+  .board-title { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--c-text-40); margin: 26px 0 12px; display: flex; align-items: baseline; gap: 12px; }
+  .board-title .rule { flex: 1; height: 1px; background: var(--c-line-soft); transform: translateY(-3px); }
+  .token-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .token { border: 1px solid var(--c-line); border-radius: 9px; overflow: hidden; background: var(--c-panel); }
+  .token .swatch { height: 42px; border-bottom: 1px solid var(--c-line-soft); }
+  .token .tk-meta { padding: 8px 11px 9px; }
+  .token .tk-name { font-family: var(--mono); font-size: 10px; color: var(--c-text-60); }
+  .token .tk-val { font-family: var(--mono); font-size: 9.5px; color: var(--c-text-40); margin-top: 2px; }
+
+  .font-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .font-cell { border: 1px solid var(--c-line); border-radius: 9px; background: var(--c-panel); padding: 14px 16px 12px; }
+  .font-cell .aa { font-size: 26px; line-height: 1.1; }
+  .font-cell .aa.display { font-family: var(--display); font-variation-settings: "SOFT" 70; font-weight: 560; }
+  .font-cell .aa.mono { font-family: var(--mono); font-size: 20px; padding-top: 4px; }
+  .font-cell .f-name { font-family: var(--mono); font-size: 10px; color: var(--c-text-40); margin-top: 8px; }
+  .font-cell .f-name b { color: var(--c-text-60); font-weight: 500; }
+
+  /* ---------- screen 03 : chat ---------- */
+  .chat-body { display: grid; grid-template-columns: 240px 1fr; min-height: 580px; }
+  .sessions { border-right: 1px solid var(--c-line); background: var(--c-panel); display: flex; flex-direction: column; padding: 18px 0 16px; }
+  .sess-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 16px 12px; }
+  .sess-head .st { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--c-text-40); }
+  .sess-head .new { font-family: var(--mono); font-size: 10.5px; color: var(--c-accent); cursor: pointer; }
+  .sess { padding: 9px 16px 10px; border-left: 2px solid transparent; cursor: pointer; }
+  .sess:hover { background: var(--c-line-soft); }
+  .sess.active { border-left-color: var(--c-accent); background: var(--c-panel-2); }
+  .sess .s-title { font-size: 12.5px; color: var(--c-text-60); line-height: 1.35; }
+  .sess.active .s-title { color: var(--c-text); font-weight: 500; }
+  .sess .s-time { font-family: var(--mono); font-size: 9.5px; color: var(--c-text-40); margin-top: 3px; }
+  .sess-foot { margin-top: auto; padding: 14px 16px 0; border-top: 1px solid var(--c-line-soft); display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10.5px; color: var(--c-ok); }
+  .sess-foot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c-ok); }
+
+  .thread-wrap { display: flex; flex-direction: column; }
+  .thread { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 28px 32px; }
+  .msg { max-width: 64ch; }
+  .msg .who { font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--c-text-40); margin-bottom: 6px; }
+  .msg.user { align-self: flex-end; text-align: left; }
+  .msg.user .bubble { background: var(--c-accent-dim); border: 1px solid var(--c-line); border-radius: 11px; padding: 11px 15px; font-size: 13.5px; }
+  .msg.assistant .bubble { background: var(--c-panel); border: 1px solid var(--c-line); border-radius: 11px; padding: 13px 16px; font-size: 13.5px; line-height: 1.6; }
+  .msg.assistant .bubble p + p { margin-top: 8px; }
+  .tool-line { font-family: var(--mono); font-size: 10.5px; color: var(--c-text-40); padding: 2px 2px 0; }
+  .tool-line b { color: var(--c-text-60); font-weight: 500; }
+
+  .entity-card {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    border: 1px solid var(--c-line); background: var(--c-bg);
+    border-radius: 8px; padding: 10px 14px; margin-top: 12px;
+  }
+  .entity-card .e-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-warn); animation: pulse 1.6s ease-in-out infinite; flex-shrink: 0; }
+  .entity-card .e-name { font-family: var(--mono); font-size: 11.5px; color: var(--c-text); }
+  .entity-card .e-state { font-family: var(--mono); font-size: 10px; color: var(--c-text-40); }
+  .entity-card .e-doors { margin-left: auto; display: flex; gap: 14px; }
+  .entity-card .e-doors a { font-family: var(--mono); font-size: 10.5px; color: var(--c-accent); text-decoration: none; }
+  .entity-card .e-doors a:hover { text-decoration: underline; }
+
+  .composer { border-top: 1px solid var(--c-line); padding: 14px 32px 16px; }
+  .composer .c-row { display: flex; gap: 10px; align-items: center; }
+  .composer .c-input { flex: 1; border: 1px solid var(--c-line); background: var(--c-panel); border-radius: 9px; padding: 11px 14px; font-size: 13.5px; color: var(--c-text-40); }
+  .composer .c-send { font-family: var(--ui); font-size: 13px; font-weight: 500; background: var(--c-accent); color: var(--c-bg); border: none; border-radius: 8px; padding: 10px 18px; cursor: pointer; }
+  .composer .c-hint { font-family: var(--mono); font-size: 9.5px; color: var(--c-text-40); margin-top: 8px; }
+
+  /* ---------- screen 04 : cmd-k ---------- */
+  .palette-stage { position: relative; min-height: 560px; }
+  .ghost-canvas { padding: 26px; opacity: .3; filter: blur(1.5px); }
+  .ghost-canvas .g-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  .ghost-canvas .g-block { background: var(--c-panel); border: 1px solid var(--c-line); border-radius: 9px; height: 72px; }
+  .ghost-canvas .g-block.tall { height: 220px; }
+  .ghost-canvas .g-wide { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; }
+  .palette-overlay { position: absolute; inset: 0; background: rgba(9, 8, 5, .55); display: grid; place-items: start center; padding-top: 70px; }
+  .paper .palette-overlay { background: rgba(33, 29, 24, .3); }
+  .palette { width: 580px; max-width: 92%; background: var(--c-panel); border: 1px solid var(--c-line); border-radius: 12px; box-shadow: 0 40px 90px -20px rgba(0,0,0,.7); overflow: hidden; }
+  .p-input { display: flex; align-items: center; gap: 10px; padding: 15px 18px; border-bottom: 1px solid var(--c-line); font-size: 15px; }
+  .p-input .q { color: var(--c-text); }
+  .p-input .caret { display: inline-block; width: 2px; height: 1.1em; background: var(--c-accent); vertical-align: text-bottom; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .p-input kbd { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--c-text-40); border: 1px solid var(--c-line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; }
+  .p-group { padding: 8px 0 4px; }
+  .p-group + .p-group { border-top: 1px solid var(--c-line-soft); }
+  .p-group-title { font-family: var(--mono); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--c-text-40); padding: 6px 18px 4px; }
+  .p-row { display: flex; align-items: baseline; gap: 11px; padding: 8px 18px; cursor: pointer; border-left: 2px solid transparent; }
+  .p-row:hover { background: var(--c-line-soft); }
+  .p-row.sel { background: var(--c-accent-dim); border-left-color: var(--c-accent); }
+  .p-row .glyph { font-family: var(--mono); font-size: 11px; color: var(--c-accent); width: 14px; text-align: center; flex-shrink: 0; }
+  .p-row .p-title { font-size: 13.5px; color: var(--c-text); }
+  .p-row .p-title mark { background: none; color: var(--c-accent); font-weight: 500; }
+  .p-row .p-sub { font-family: var(--mono); font-size: 10px; color: var(--c-text-40); }
+  .p-row .p-tag { margin-left: auto; font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; color: var(--c-text-60); border: 1px solid var(--c-line); border-radius: 99px; padding: 1px 9px; flex-shrink: 0; }
+  .p-foot { display: flex; gap: 18px; font-family: var(--mono); font-size: 9.5px; color: var(--c-text-40); border-top: 1px solid var(--c-line); padding: 9px 18px; }
+  .p-foot .grow { flex: 1; text-align: right; }
+
+  .footer-note {
+    max-width: 1280px; margin: 90px auto 70px; padding: 22px 32px 0;
+    border-top: 1px solid var(--line);
+    display: flex; gap: 34px; font-size: 13px; color: var(--bone-40);
+  }
+  .footer-note .col { max-width: 46ch; }
+  .footer-note b { color: var(--bone-60); font-weight: 500; }
+  .footer-note code { font-family: var(--mono); font-size: 11px; }
+
+  @media (max-width: 1000px) {
+    .trio, .token-board, .font-board, .legend { grid-template-columns: 1fr 1fr; }
+    .chat-body { grid-template-columns: 1fr; }
+    .sessions { display: none; }
+  }
+  @media (max-width: 640px) {
+    .trio, .token-board, .font-board, .legend { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mock-header">
+  <div class="kicker">Brain · Operator Console — Unification Mockups</div>
+  <h1>Three surfaces that read as <em>one console</em>.</h1>
+  <p class="lede">Companion to the dashboard-tabs and CMS-editor mockups: the connective
+  tissue between them. One semantic token sheet with two climates (instrument and paper),
+  one console strip worn by every operator surface, web-chat brought into the family, and
+  ⌘K as the cross-surface jump. Every frame on this page is styled from the same
+  <span style="font-family:var(--mono); font-size:12px">--console-*</span> variables —
+  the stylesheet of this mockup is itself the proof.</p>
+</header>
+
+<nav class="mock-nav">
+  <a href="#s1"><span>01</span>One console</a>
+  <a href="#s2"><span>02</span>The strip &amp; the sheet</a>
+  <a href="#s3"><span>03</span>Chat joins</a>
+  <a href="#s4"><span>04</span>⌘K jump</a>
+</nav>
+
+<!-- ============ SCREEN 1 : TRIO ============ -->
+<section class="screen" id="s1">
+  <div class="screen-label">
+    <span class="num">01</span>
+    <h2>One console — the strip is the constant</h2>
+    <span class="note">Same chrome on every operator surface; only the canvas beneath it
+    changes. Dashboard and chat wear the instrument climate, the CMS keeps its paper
+    reading light — same tokens, different resolution.</span>
+  </div>
+  <div class="trio">
+
+    <div class="trio-cell">
+      <div class="frame instrument">
+        <div class="console-strip compact">
+          <div class="brandmark"><span class="pulse"></span>Brain<span class="long">&nbsp;· <b>Console</b></span></div>
+          <nav class="surfaces">
+            <a class="here" href="#s1">Dashboard</a>
+            <a href="#s1">Chat</a>
+            <a href="#s1">CMS</a>
+          </nav>
+          <div class="strip-spacer"></div>
+          <div class="cmdk"><kbd>⌘K</kbd></div>
+          <div class="session-chip"><span class="long">passkey ·&nbsp;</span>anchor</div>
+        </div>
+        <div class="mini-mast">
+          <h3>Rover</h3>
+          <span class="tagline">captures, connects, publishes</span>
+        </div>
+        <div class="mini-tabs">
+          <span class="on">Overview</span>
+          <span>Publishing <span class="badge">2</span></span>
+          <span>Network</span>
+          <span>System</span>
+        </div>
+        <div class="mini-vitals">
+          <div class="mini-vital"><div class="l">Entities</div><div class="n">269</div></div>
+          <div class="mini-vital"><div class="l">Interactions</div><div class="n">31</div></div>
+          <div class="mini-vital"><div class="l">Semantic index</div><div class="n ok">ready</div></div>
+          <div class="mini-vital"><div class="l">Last write</div><div class="n mono-n">e4f21c9</div></div>
+        </div>
+      </div>
+      <div class="trio-cap"><b>Dashboard</b> — Preact SSR · tabs from widget groups</div>
+    </div>
+
+    <div class="trio-cell">
+      <div class="frame instrument">
+        <div class="console-strip compact">
+          <div class="brandmark"><span class="pulse"></span>Brain<span class="long">&nbsp;· <b>Console</b></span></div>
+          <nav class="surfaces">
+            <a href="#s1">Dashboard</a>
+            <a class="here" href="#s1">Chat</a>
+            <a href="#s1">CMS</a>
+          </nav>
+          <div class="strip-spacer"></div>
+          <div class="cmdk"><kbd>⌘K</kbd></div>
+          <div class="session-chip"><span class="long">passkey ·&nbsp;</span>anchor</div>
+        </div>
+        <div class="mini-chat">
+          <div class="mini-msg user"><span class="who">you</span>Save that verdigris note and queue it for the trust series.</div>
+          <div class="mini-msg bot"><span class="who">rover</span>Saved as <span style="font-family:var(--mono); font-size:10px">note/verdigris-pigments</span> and queued a draft for the series.</div>
+        </div>
+        <div class="mini-composer">
+          <div class="box">Message Rover…</div>
+          <div class="send">↵</div>
+        </div>
+      </div>
+      <div class="trio-cap"><b>Chat</b> — React SPA · adopts strip + tokens (screen 03)</div>
+    </div>
+
+    <div class="trio-cell">
+      <div class="frame paper">
+        <div class="console-strip compact">
+          <div class="brandmark"><span class="pulse"></span>Brain<span class="long">&nbsp;· <b>Console</b></span></div>
+          <nav class="surfaces">
+            <a href="#s1">Dashboard</a>
+            <a href="#s1">Chat</a>
+            <a class="here" href="#s1">CMS</a>
+          </nav>
+          <div class="strip-spacer"></div>
+          <div class="cmdk"><kbd>⌘K</kbd></div>
+          <div class="session-chip"><span class="long">passkey ·&nbsp;</span>anchor</div>
+        </div>
+        <div class="mini-crumb">Library / <strong>Posts</strong> <span class="meta">24 entities</span></div>
+        <div class="mini-row">
+          <div class="t">Domain as identity<small>post/domain-as-identity</small></div>
+          <span class="mini-chip draft">draft</span>
+          <span class="mini-sync"><i class="pend"></i>exporting</span>
+        </div>
+        <div class="mini-row">
+          <div class="t">One writer, many readers<small>post/single-writer-model</small></div>
+          <span class="mini-chip pub">published</span>
+          <span class="mini-sync"><i></i>committed</span>
+        </div>
+        <div class="mini-row">
+          <div class="t">Notes on a quiet protocol<small>post/quiet-protocol</small></div>
+          <span class="mini-chip draft">draft</span>
+          <span class="mini-sync"><i></i>committed</span>
+        </div>
+      </div>
+      <div class="trio-cap"><b>CMS</b> — React SPA · paper climate, same strip; its old appbar
+      (crumb) moves below the strip</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ SCREEN 2 : STRIP DISSECTED + TOKEN SHEET ============ -->
+<section class="screen" id="s2">
+  <div class="screen-label">
+    <span class="num">02</span>
+    <h2>The strip, dissected — and the sheet underneath</h2>
+    <button class="mode-btn" id="modeBtn">view in paper ◐</button>
+    <span class="note">The strip is ~30 lines of markup rendered natively per framework
+    (Preact in the dashboard, React in chat/CMS); its identity lives in shared CSS written
+    once against the token sheet. Toggle the climate — nothing but variable values change.</span>
+  </div>
+  <div class="frame instrument" id="stripDemo">
+    <div class="console-strip">
+      <div class="brandmark"><span class="pulse"></span>Brain · <b>Console</b><i class="mark">1</i></div>
+      <nav class="surfaces">
+        <a class="here" href="#s2">Dashboard</a>
+        <a href="#s2">Chat</a>
+        <a href="#s2">CMS</a>
+      </nav><i class="mark" style="align-self:center">2</i>
+      <div class="strip-spacer"></div>
+      <div class="cmdk">Search or jump… <kbd>⌘K</kbd></div><i class="mark" style="align-self:center">3</i>
+      <div class="session-chip">passkey · anchor</div><i class="mark" style="align-self:center">4</i>
+    </div>
+    <div class="dissect-canvas">
+      <div class="legend">
+        <div class="item"><span class="mk">1</span><span><b>Brandmark.</b> Constant across all
+          three surfaces — the frame that says “same place.” The pulse is the brain's
+          heartbeat; it animates while the runtime is live.</span></div>
+        <div class="item"><span class="mk">2</span><span><b>Surface nav.</b> One link per
+          registered surface; <code>.here</code> marks where you stand. Presence is derived
+          from the webserver's route registry — a brain without the CMS plugin has no CMS
+          link, exactly like dashboard tabs deriving from widget groups.</span></div>
+        <div class="item"><span class="mk">3</span><span><b>Jump.</b> ⌘K opens the
+          cross-surface palette (screen 04) from any surface: entities, tabs,
+          conversations, actions — one index, three doors.</span></div>
+        <div class="item"><span class="mk">4</span><span><b>Session chip.</b> The one auth
+          story, told once: passkey operator session, same chip and state everywhere.
+          Replaces each surface's private sign-in affordance.</span></div>
+      </div>
+
+      <div class="board-title">The token sheet — semantic names, climate-resolved values <span class="rule"></span></div>
+      <div class="token-board">
+        <div class="token"><div class="swatch" style="background:var(--c-bg)"></div><div class="tk-meta"><div class="tk-name">--console-bg</div><div class="tk-val" data-sw="--c-bg"></div></div></div>
+        <div class="token"><div class="swatch" style="background:var(--c-panel)"></div><div class="tk-meta"><div class="tk-name">--console-panel</div><div class="tk-val" data-sw="--c-panel"></div></div></div>
+        <div class="token"><div class="swatch" style="background:var(--c-line)"></div><div class="tk-meta"><div class="tk-name">--console-line</div><div class="tk-val" data-sw="--c-line"></div></div></div>
+        <div class="token"><div class="swatch" style="background:var(--c-text)"></div><div class="tk-meta"><div class="tk-name">--console-text</div><div class="tk-val" data-sw="--c-text"></div></div></div>
+        <div class="token"><div class="swatch" style="background:var(--c-text-40)"></div><div class="tk-meta"><div class="tk-name">--console-text-dim</div><div class="tk-val" data-sw="--c-text-40"></div></div></div>
+        <div class="token"><div class="swatch" style="background:var(--c-accent)"></div><div class="tk-meta"><div class="tk-name">--console-accent</div><div class="tk-val" data-sw="--c-accent"></div></div></div>
+        <div class="token"><div class="swatch" style="background:var(--c-ok)"></div><div class="tk-meta"><div class="tk-name">--console-ok</div><div class="tk-val" data-sw="--c-ok"></div></div></div>
+        <div class="token"><div class="swatch" style="background:var(--c-warn)"></div><div class="tk-meta"><div class="tk-name">--console-warn</div><div class="tk-val" data-sw="--c-warn"></div></div></div>
+      </div>
+
+      <div class="board-title">Type — shared across every surface <span class="rule"></span></div>
+      <div class="font-board">
+        <div class="font-cell"><div class="aa display">Aa — the glance</div><div class="f-name"><b>Fraunces</b> · --console-display · headings, numbers, titles</div></div>
+        <div class="font-cell"><div class="aa">Aa — the reading</div><div class="f-name"><b>IBM Plex Sans</b> · --console-ui · body, forms, messages</div></div>
+        <div class="font-cell"><div class="aa mono">Aa — the instrument</div><div class="f-name"><b>JetBrains Mono</b> · --console-mono · labels, ids, chips (CMS's IBM Plex Mono folds in)</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREEN 3 : CHAT ============ -->
+<section class="screen" id="s3">
+  <div class="screen-label">
+    <span class="num">03</span>
+    <h2>Chat joins the console</h2>
+    <span class="note">Web-chat today has no cross-surface chrome. It adopts the strip and
+    tokens unchanged; the new piece is the entity card — when a conversation touches the
+    brain, the reply carries doors to the other surfaces.</span>
+  </div>
+  <div class="frame instrument">
+    <div class="console-strip">
+      <div class="brandmark"><span class="pulse"></span>Brain · <b>Console</b></div>
+      <nav class="surfaces">
+        <a href="#s3">Dashboard</a>
+        <a class="here" href="#s3">Chat</a>
+        <a href="#s3">CMS</a>
+      </nav>
+      <div class="strip-spacer"></div>
+      <div class="cmdk">Search or jump… <kbd>⌘K</kbd></div>
+      <div class="session-chip">passkey · anchor</div>
+    </div>
+    <div class="chat-body">
+      <aside class="sessions">
+        <div class="sess-head"><span class="st">Conversations</span><span class="new">+ new</span></div>
+        <div class="sess active">
+          <div class="s-title">Verdigris pigments</div>
+          <div class="s-time">14:31 · today</div>
+        </div>
+        <div class="sess">
+          <div class="s-title">Trust series planning</div>
+          <div class="s-time">yesterday</div>
+        </div>
+        <div class="sess">
+          <div class="s-title">RFC 9421 request signing</div>
+          <div class="s-time">2 days ago</div>
+        </div>
+        <div class="sess">
+          <div class="s-title">Newsletter issue 13</div>
+          <div class="s-time">last week</div>
+        </div>
+        <div class="sess-foot">anchor · operator</div>
+      </aside>
+      <div class="thread-wrap">
+        <div class="thread">
+          <div class="msg user">
+            <div class="who">you · 14:31</div>
+            <div class="bubble">Save a note on verdigris pigments in early print — the
+            copper-acetate greens that eat through the page — and queue it as a draft for
+            the trust series.</div>
+          </div>
+          <div class="msg assistant">
+            <div class="who">rover · 14:31</div>
+            <div class="bubble">
+              <p>Saved. The note captures the copper-acetate chemistry and the
+              self-destroying-ink angle — it pairs well with “a leaked token is a stolen
+              name” from the domain-as-identity draft.</p>
+              <div class="entity-card">
+                <span class="e-dot"></span>
+                <span class="e-name">note/verdigris-pigments</span>
+                <span class="e-state">created · exporting → git</span>
+                <span class="e-doors">
+                  <a href="#s1">Edit in CMS →</a>
+                  <a href="#s1">Publishing tab →</a>
+                </span>
+              </div>
+              <div class="tool-line" style="margin-top:9px">▸ <b>content-pipeline</b> · queued draft for trust series — job 8413</div>
+            </div>
+          </div>
+        </div>
+        <div class="composer">
+          <div class="c-row">
+            <div class="c-input">Message Rover…</div>
+            <button class="c-send">Send</button>
+          </div>
+          <div class="c-hint">⏎ send · ⇧⏎ newline · ⌘K jump anywhere</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREEN 4 : CMD-K ============ -->
+<section class="screen" id="s4">
+  <div class="screen-label">
+    <span class="num">04</span>
+    <h2>⌘K — one index, three doors</h2>
+    <span class="note">The same palette from any surface: entities open in the CMS, groups
+    open dashboard tabs, conversations resume in chat. The follow-on once all three wear
+    the strip — shown here so the strip's ⌘K affordance has a destination.</span>
+  </div>
+  <div class="frame instrument">
+    <div class="palette-stage">
+      <div class="ghost-canvas">
+        <div class="g-row">
+          <div class="g-block"></div><div class="g-block"></div><div class="g-block"></div><div class="g-block"></div>
+        </div>
+        <div class="g-wide">
+          <div class="g-block tall"></div><div class="g-block tall"></div>
+        </div>
+      </div>
+      <div class="palette-overlay">
+        <div class="palette">
+          <div class="p-input"><span class="q">verd</span><span class="caret"></span><kbd>esc</kbd></div>
+          <div class="p-group">
+            <div class="p-group-title">Entities</div>
+            <div class="p-row sel">
+              <span class="glyph">◆</span>
+              <span class="p-title"><mark>Verd</mark>igris pigments in early print</span>
+              <span class="p-sub">note · 18 min ago</span>
+              <span class="p-tag">edit in cms</span>
+            </div>
+            <div class="p-row">
+              <span class="glyph">◆</span>
+              <span class="p-title">Domain as identity <span style="color:var(--c-text-40)">(mentions <mark>verd</mark>igris)</span></span>
+              <span class="p-sub">post · draft</span>
+              <span class="p-tag">edit in cms</span>
+            </div>
+          </div>
+          <div class="p-group">
+            <div class="p-group-title">Dashboard</div>
+            <div class="p-row">
+              <span class="glyph">▤</span>
+              <span class="p-title">Publishing</span>
+              <span class="p-sub">1 generating · 2 awaiting review</span>
+              <span class="p-tag">dashboard tab</span>
+            </div>
+          </div>
+          <div class="p-group">
+            <div class="p-group-title">Conversations</div>
+            <div class="p-row">
+              <span class="glyph">◈</span>
+              <span class="p-title"><mark>Verd</mark>igris pigments</span>
+              <span class="p-sub">today · 2 messages</span>
+              <span class="p-tag">resume in chat</span>
+            </div>
+          </div>
+          <div class="p-group">
+            <div class="p-group-title">Actions</div>
+            <div class="p-row">
+              <span class="glyph">＋</span>
+              <span class="p-title">New post…</span>
+              <span class="p-tag">cms</span>
+            </div>
+            <div class="p-row">
+              <span class="glyph">◇</span>
+              <span class="p-title">Ask Rover about “verd”…</span>
+              <span class="p-tag">chat</span>
+            </div>
+          </div>
+          <div class="p-foot">↑↓ navigate<span>↵ open</span><span>tab · filter surface</span><span class="grow">one index across entities · tabs · sessions</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer-note">
+  <div class="col"><b>Tokens before chrome:</b> one semantic sheet
+  (<code>--console-*</code>) with two climates — instrument and paper — replaces the
+  per-surface <code>--dashboard-*</code> / <code>--chat-*</code> re-declarations and their
+  fallback chains. Vermilion, verdigris and amber stay one <i>name</i> with
+  climate-resolved values; mono consolidates on JetBrains Mono.</div>
+  <div class="col"><b>The strip is CSS, not a shared component:</b> ~30 lines of markup,
+  re-rendered natively by each framework (Preact in the SSR dashboard, React in the chat and
+  CMS shells) against the shared stylesheet. No cross-framework component, no runtime
+  coupling; surface links derive from the webserver's route registry.</div>
+  <div class="col"><b>Sequence:</b> token extraction lands as the first step of dashboard
+  Phase 1 (which ships the strip); the CMS wears the strip from its Phase 0 walking
+  skeleton; chat adopts it as a small standalone change. ⌘K's cross-surface index is the
+  follow-on once all three share the chrome.</div>
+</footer>
+
+<script>
+  // Mockup-only: climate toggle + resolved-value readouts for the token board.
+  var demo = document.getElementById("stripDemo");
+  var btn = document.getElementById("modeBtn");
+
+  function toHex(rgb) {
+    var m = rgb.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
+    if (!m) return rgb;
+    if (m[4] !== undefined && parseFloat(m[4]) < 1) {
+      return "rgba(" + m[1] + "," + m[2] + "," + m[3] + "," + m[4] + ")";
+    }
+    return "#" + [m[1], m[2], m[3]].map(function (v) {
+      return parseInt(v, 10).toString(16).padStart(2, "0");
+    }).join("");
+  }
+
+  function paintValues() {
+    var style = getComputedStyle(demo);
+    demo.querySelectorAll(".tk-val").forEach(function (el) {
+      el.textContent = toHex(style.getPropertyValue(el.dataset.sw).trim()) || "—";
+    });
+  }
+
+  btn.addEventListener("click", function () {
+    var toPaper = demo.classList.contains("instrument");
+    demo.classList.toggle("instrument", !toPaper);
+    demo.classList.toggle("paper", toPaper);
+    btn.textContent = toPaper ? "view in instrument ◑" : "view in paper ◐";
+    paintValues();
+  });
+
+  paintValues();
+</script>
+</body>
+</html>

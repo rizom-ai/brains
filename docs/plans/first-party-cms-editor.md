@@ -278,6 +278,9 @@ frontmatter-only entity type. No create, no delete, no body, no media.
 
 ## Related
 
+- [`console-unification.md`](./console-unification.md) — follow-on: shared token sheet
+  (`@brains/console-theme`), console strip retrofit onto the shipped editor's appbar, ⌘K
+  jump. Mockups: [`docs/console-unification-mockups.html`](../console-unification-mockups.html).
 - `plugins/cms/src/plugin.ts` — current Sveltia wrapper and auth flows being replaced.
 - `shared/cms-config` — schema → descriptor conversion (`getEffectiveFrontmatterSchema`,
   `getAdapter`, `zodFieldToCmsWidget`); descriptor consumer changes from Sveltia to React.
