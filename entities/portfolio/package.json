@@ -1,6 +1,6 @@
 {
   "name": "@brains/portfolio",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Portfolio showcase for projects and case studies",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

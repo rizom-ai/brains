@@ -1,6 +1,6 @@
 {
   "name": "@brains/auth-service",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Embedded OAuth/OIDC auth service for brain operator authentication",
   "dependencies": {
     "@brains/notifications": "workspace:*",

@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-foundation",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Rizom Foundation site package for hosted Rover deployments",
   "type": "module",
   "exports": {
@@ -18,8 +18,8 @@
     "prepack": "publish-manifest prepare"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.142",
-    "@rizom/site-rizom": "0.2.0-alpha.142",
+    "@rizom/site": "0.2.0-alpha.143",
+    "@rizom/site-rizom": "0.2.0-alpha.143",
     "preact": "^10.27.2"
   },
   "devDependencies": {

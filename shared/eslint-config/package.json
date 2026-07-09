@@ -1,6 +1,6 @@
 {
   "name": "@brains/eslint-config",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",

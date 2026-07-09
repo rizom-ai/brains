@@ -1,6 +1,6 @@
 {
   "name": "@brains/dashboard",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Dashboard plugin with extensible widget system",
   "dependencies": {
     "@brains/auth-service": "workspace:*",

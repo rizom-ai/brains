@@ -1,6 +1,6 @@
 {
   "name": "@brains/identity-service",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Identity service for managing brain character and anchor profile",
   "dependencies": {
     "@brains/entity-service": "workspace:*",

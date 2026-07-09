@@ -1,6 +1,6 @@
 {
   "name": "@brains/cms",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "CMS plugin for config and browser authoring routes",
   "dependencies": {
     "@brains/auth-service": "workspace:*",

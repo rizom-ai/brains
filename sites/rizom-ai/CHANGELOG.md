@@ -1,5 +1,15 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.143
+
+### Patch Changes
+
+- [`4a2f297`](https://github.com/rizom-ai/brains/commit/4a2f2977d4792403cf48570d2ca36d92ccb57838) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use published @rizom site package ranges instead of workspace-only dependency specifiers.
+
+- Updated dependencies [[`4a2f297`](https://github.com/rizom-ai/brains/commit/4a2f2977d4792403cf48570d2ca36d92ccb57838)]:
+  - @rizom/site-rizom@0.2.0-alpha.143
+  - @rizom/site@0.2.0-alpha.143
+
 ## 0.2.0-alpha.142
 
 ### Minor Changes

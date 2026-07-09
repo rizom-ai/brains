@@ -1,6 +1,6 @@
 {
   "name": "@brains/social-media",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Multi-provider social media posting with queue-based publishing",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

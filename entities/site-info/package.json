@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-info",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Site info entity — site metadata, title, description, CTA",
   "dependencies": {
     "@brains/entity-service": "workspace:*",

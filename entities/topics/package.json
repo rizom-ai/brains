@@ -1,6 +1,6 @@
 {
   "name": "@brains/topics",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Extract and manage topics from conversations",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

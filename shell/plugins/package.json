@@ -1,6 +1,6 @@
 {
   "name": "@brains/plugins",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.143",
   "description": "Core plugin system implementation for Brains",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
