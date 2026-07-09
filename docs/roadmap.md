@@ -201,6 +201,7 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
+- [cms-ai-assisted-authoring.md](./plans/cms-ai-assisted-authoring.md) — AI-assisted authoring inside the shipped first-party CMS editor (draft/rewrite/summarise/tag-suggest via `@ai-sdk/react`); to be scoped after authoring against the editor.
 - [dashboard-tabbed-console.md](./plans/dashboard-tabbed-console.md) — restructure the operator dashboard into a tabbed console: tabs derived from widget groups (converging to bundle ids when bundles land), an Overview that answers "anything need me?", operator-work badges, and a console strip shared with Chat and the CMS.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
