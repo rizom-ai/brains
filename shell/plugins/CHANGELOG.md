@@ -1,5 +1,25 @@
 # @brains/plugins
 
+## 0.2.0-alpha.147
+
+### Patch Changes
+
+- [`6d95483`](https://github.com/rizom-ai/brains/commit/6d95483c589c3e77b23c42bf9516c03be8253e1f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the CMS body textarea with a CodeMirror 6 markdown source pane and add the first selection-rewrite AI assist route/UI while preserving literal-byte editing and the existing Source/Split/Preview modes.
+
+  Expose the plugin AI namespace on service plugin contexts so service-backed routes can perform read-only AI assists.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.147
+  - @brains/contracts@0.2.0-alpha.147
+  - @brains/site-composition@0.2.0-alpha.147
+  - @brains/utils@0.2.0-alpha.147
+  - @brains/conversation-service@0.2.0-alpha.147
+  - @brains/identity-service@0.2.0-alpha.147
+  - @brains/job-queue@0.2.0-alpha.147
+  - @brains/messaging-service@0.2.0-alpha.147
+  - @brains/runtime-state@0.2.0-alpha.147
+  - @brains/templates@0.2.0-alpha.147
+
 ## 0.2.0-alpha.146
 
 ### Patch Changes
