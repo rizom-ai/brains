@@ -59,7 +59,7 @@
   "main": "./src/index.ts",
   "private": true,
   "scripts": {
-    "build:web-chat": "turbo run build --filter=@brains/web-chat",
+    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms",
     "eval": "brain-eval",
     "eval:core": "brain-eval --suite core",
     "eval:core:coverage": "brain-eval --suite core --tool-coverage",
@@ -69,9 +69,9 @@
     "eval:full:coverage": "brain-eval --suite full --tool-coverage",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
-    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
-    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
+    "start:core": "bun run build:ui && cd test-apps/core && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
+    "start:default": "bun run build:ui && cd test-apps/default && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
+    "start:full": "bun run build:ui && cd test-apps/full && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

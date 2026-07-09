@@ -25,7 +25,7 @@ const result = await Bun.build({
   format: "esm",
   minify: true,
   sourcemap: "external",
-  naming: "app.js",
+  naming: "cms-app.js",
   plugins: [
     {
       // Pin every react specifier to one physical copy so hoisting can
@@ -51,4 +51,4 @@ if (!result.success) {
   process.exit(1);
 }
 
-console.log(`Built ${join(outdir, "app.js")}`);
+console.log(`Built ${join(outdir, "cms-app.js")}`);
