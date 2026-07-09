@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-ai",
-  "version": "0.2.0-alpha.142",
+  "version": "0.2.0-alpha.144",
   "description": "Rizom AI site package for hosted Rover deployments",
   "type": "module",
   "exports": {
