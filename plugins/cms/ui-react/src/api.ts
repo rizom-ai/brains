@@ -133,12 +133,15 @@ export async function updateEntity(input: {
   frontmatter: Record<string, unknown>;
   body?: string;
   baseContentHash?: string;
-}): Promise<{ entityId: string; jobId: string }> {
-  return requestJson<{ entityId: string; jobId: string }>("/cms/api/entities", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
+}): Promise<{ entityId: string; jobId: string; skipped: boolean }> {
+  return requestJson<{ entityId: string; jobId: string; skipped: boolean }>(
+    "/cms/api/entities",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export async function createEntity(input: {

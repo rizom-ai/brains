@@ -177,7 +177,8 @@ export function TypeSwitcher(props: {
 export type SaveState =
   | { kind: "idle" }
   | { kind: "saving" }
-  | { kind: "saved" }
+  /** noop: the entity service skipped a byte-identical write. */
+  | { kind: "saved"; noop?: boolean }
   | { kind: "conflict"; message: string }
   | { kind: "error"; message: string };
 
@@ -187,7 +188,9 @@ export function SaveStateNotice(props: {
 }): ReactElement | null {
   const { state, onReload } = props;
   if (state.kind === "saved") {
-    return (
+    return state.noop ? (
+      <p className="status status-ok">No changes — already saved.</p>
+    ) : (
       <p className="status status-ok">Saved through the entity service.</p>
     );
   }
@@ -248,6 +251,11 @@ export function derivePipeline(args: {
       committed: "pending",
       commitRef,
     };
+  }
+  if (save.noop) {
+    // Nothing was written and no event fired, so no export or commit is
+    // coming — but everything already reflects this exact content.
+    return { db: "done", exported: "done", committed: "done", commitRef };
   }
   if (!git) {
     // Export is a synchronous subscriber of the entity:updated event; with
@@ -610,9 +618,10 @@ export function App(): ReactElement {
     write
       .then(async (result) => {
         setEntities(await fetchEntities(entityType));
+        const noop = "skipped" in result && result.skipped === true;
         // Re-fetch after every save so the next edit carries a fresh
         // contentHash precondition.
-        openEntity(result.entityId, { kind: "saved" });
+        openEntity(result.entityId, { kind: "saved", noop });
       })
       .catch((error: unknown) =>
         setSaveState(
@@ -809,9 +818,12 @@ export function App(): ReactElement {
               )}
               <SaveStateNotice
                 // The strip already narrates a successful save; the text
-                // notice stays for conflicts and errors.
+                // notice stays for conflicts, errors, and no-op saves
+                // (which the strip cannot distinguish from a real write).
                 state={
-                  syncStatus?.directorySync && saveState.kind === "saved"
+                  syncStatus?.directorySync &&
+                  saveState.kind === "saved" &&
+                  !saveState.noop
                     ? { kind: "idle" }
                     : saveState
                 }

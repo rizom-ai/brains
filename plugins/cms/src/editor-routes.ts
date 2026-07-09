@@ -434,7 +434,13 @@ async function handleUpdateEntity(
   };
 
   const result = await context.entityService.updateEntity({ entity });
-  return jsonResponse({ entityId: result.entityId, jobId: result.jobId });
+  // skipped: the content was already stored byte-identically — no event is
+  // emitted, so nothing flows down the export/commit pipeline.
+  return jsonResponse({
+    entityId: result.entityId,
+    jobId: result.jobId,
+    skipped: result.skipped,
+  });
 }
 
 async function handleCreateEntity(

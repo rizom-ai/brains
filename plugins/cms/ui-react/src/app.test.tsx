@@ -257,6 +257,16 @@ describe("SaveStateNotice", () => {
     expect(html).toContain("entity service");
   });
 
+  it("says so when the save changed nothing", () => {
+    const html = renderToStaticMarkup(
+      createElement(SaveStateNotice, {
+        state: { kind: "saved", noop: true },
+        onReload: () => {},
+      }),
+    );
+    expect(html).toContain("No changes");
+  });
+
   it("offers a reload action on write conflicts", () => {
     const html = renderToStaticMarkup(
       createElement(SaveStateNotice, {
@@ -366,6 +376,22 @@ describe("derivePipeline", () => {
     expect(view.exported).toBe("done");
     expect(view.committed).toBe("pending");
     expect(view.commitRef).toBeNull();
+  });
+
+  it("settles immediately when the save changed nothing", () => {
+    // A no-op save writes nothing and emits no event: there is no export
+    // or commit to wait for — everything already reflects the content.
+    const view = derivePipeline({
+      save: { kind: "saved", noop: true },
+      git: git(),
+      baselineCommit: "abc1234def5678",
+    });
+    expect(view).toEqual({
+      db: "done",
+      exported: "done",
+      committed: "done",
+      commitRef: "abc1234",
+    });
   });
 
   it("resets to pending after a conflict or error", () => {

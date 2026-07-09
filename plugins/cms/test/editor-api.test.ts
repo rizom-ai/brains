@@ -674,6 +674,42 @@ describe("cms editor api", () => {
     expect(stored?.content).toContain("title: Fresh Edit");
   });
 
+  it("tells the client when a save changed nothing", async () => {
+    // The entity service skips no-op writes (no event, no export, no
+    // commit), so the save-pipeline strip must know not to wait for one.
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    await seedPost(shell, { id: "hello-world" });
+    const plugin = await registerPlugin(shell);
+    const put = findRoute(plugin, "/cms/api/entities", "PUT");
+    const writeBody = {
+      entityType: "post",
+      id: "hello-world",
+      frontmatter: { title: "Edited Once" },
+      body: "The edited body.",
+    };
+
+    const first = await put.handler(
+      apiRequest("/cms/api/entities", {
+        cookie,
+        method: "PUT",
+        body: writeBody,
+      }),
+    );
+    expect(first.status).toBe(200);
+    expect(((await first.json()) as { skipped: boolean }).skipped).toBe(false);
+
+    const second = await put.handler(
+      apiRequest("/cms/api/entities", {
+        cookie,
+        method: "PUT",
+        body: writeBody,
+      }),
+    );
+    expect(second.status).toBe(200);
+    expect(((await second.json()) as { skipped: boolean }).skipped).toBe(true);
+  });
+
   it("returns a single entity with frontmatter and body split", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
