@@ -25,3 +25,4 @@ plugins:
     git:
       repo: rizom-ai/rover-test-content
       gitUrl: file:///tmp/rover-rizom-ai-test-content.git
+      bootstrapFromSeed: true

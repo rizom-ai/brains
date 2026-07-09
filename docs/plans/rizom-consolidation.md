@@ -161,9 +161,15 @@ avoided; that call belongs to that plan's lane.
   docs; identity entities rewritten for the consolidated brain), and
   `site-content/*` retired in the same stroke. The live brain's
   `rizom-ai-content` is untouched.
-- Verification in progress: the test brain boots seeded from the real merged
-  corpus (site builds; prompts + identity confirmed imported). Still to
-  confirm: the full corpus settles — skills, topics, swot, decks, root docs.
+- **Verified (2026-07-09)**: the test brain seeded from the real merged corpus
+  imports everything with zero errors — 4 decks, 6 skills, 11 topics, swot,
+  consolidated identity, products, root docs — and serves the site alongside.
+  Verification surfaced and fixed three real issues: `seedContentPath` is dead
+  config when git sync is on unless `git.bootstrapFromSeed: true` (now set on
+  all rover test-apps), the seed bootstrap leaked the seed dir's own `.git`
+  into the remote (fixed in directory-sync), and the foundation decks lacked
+  the `status` frontmatter rover's deck schema requires (fixed in
+  `rizom-content` with real publish dates).
 - Remaining at cutover: copy foundation runtime DBs to the new deployment,
   verify conversation memory reads.
 
