@@ -2,10 +2,14 @@
 
 ## Status
 
-Scoped, not started — successor to the shipped `first-party-cms-editor.md` plan (its
-optional Phase 6, plus the D1 body-editor upgrade that plan deferred). The operator
-authoring pass (Phase 0) is the remaining input; it feeds the Phase 3 polish backlog
-but does not gate Phases 1–2.
+Phases 1–2 shipped (2026-07-09): the CodeMirror 6 source pane (byte-identical
+round-trip covered by tests) and the selection rewrite — operator-gated read-only
+`POST /cms/api/assist`, assist bar UI, pure accept/discard logic — landed together in
+`feat(cms): add AI-assisted body editing`. Remaining: Phase 0 (the operator authoring
+pass, human input that feeds the polish backlog) and Phase 3 (summarise/tag-suggest
+prompt variants, friction backlog, optional streaming). Successor to the shipped
+`first-party-cms-editor.md` plan (its optional Phase 6, plus the D1 body-editor
+upgrade that plan deferred).
 
 ## Context
 
