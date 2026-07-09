@@ -2,15 +2,14 @@
 
 ## Status
 
-In progress on `work/dashboard-tabbed-console`. All four phases are in place and gates are
-green (branch merged up to main 2026-07-08). The console chrome, Overview, and System tab
-now match the approved mockups: single frame, mockup strip (brandmark/⌘K/session chip),
-fixed Overview composition (vitals with sub-lines and status dots, identity capsule,
-digest cards with "open →" doors, time|glyph|what ledger), System split into Semantic
-index / Content sync (with write-pipeline mini) / Job queue table with status pills.
-Remaining visual gap: the Publishing tab's pipeline widget still renders as filter tabs,
-not the mockup's three-lane board (renderer lives in `widget-card.tsx`). Design settled
-2026-07-07 (mockups approved direction; see below). The current
+Implemented on `work/dashboard-tabbed-console`; the console-restructure work through the
+first merge to main landed 2026-07-08. Post-merge follow-up on the branch completes the
+last mockup gap: the Publishing pipeline renders as the three-lane board (Queued /
+Generating / Review) — Generating is derived from active content-pipeline jobs via
+`jobs.getActiveJobs`, Review holds drafts + failures (the needs-operator set), published
+items stay off the board. Digest lines and tab badges are live (per-render
+`digestProvider`), and the index vital reports the embeddable-only fraction. Design
+settled 2026-07-07 (mockups approved direction; see below). The current
 dashboard (`plugins/dashboard`) renders everything on one page — identity column, entity
 summary, primary/secondary widget stack, sidebar with interactions/endpoints/runtime — and
 has grown unwieldy as more plugins register widgets. This plan restructures it into a
