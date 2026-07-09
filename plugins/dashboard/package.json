@@ -4,6 +4,7 @@
   "description": "Dashboard plugin with extensible widget system",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
+    "@brains/console-theme": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2",

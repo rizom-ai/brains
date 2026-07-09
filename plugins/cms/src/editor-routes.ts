@@ -15,6 +15,7 @@ import {
   zodFieldToCmsWidget,
   type CmsEntityDisplayMap,
 } from "./config";
+import { deriveConsoleSurfaces } from "@brains/console-theme";
 import { renderEditorShellHtml } from "./editor-shell";
 
 // Named cms-app.js (not app.js): in the bundled @rizom/brain this resolves
@@ -109,12 +110,22 @@ export function createEditorRoutes(
             },
           });
         }
-        return new Response(renderEditorShellHtml({ assetPath }), {
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "no-store",
+        return new Response(
+          renderEditorShellHtml({
+            assetPath,
+            surfaces: deriveConsoleSurfaces(
+              getContext().webRoutes.getRoutes(),
+              { activeId: "cms", self: { id: "cms", href: routePath } },
+            ),
+            sessionHref: `/logout?return_to=${encodeURIComponent(routePath)}`,
+          }),
+          {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "no-store",
+            },
           },
-        });
+        );
       },
     },
     {

@@ -1,49 +1,55 @@
+import {
+  CONSOLE_CLIMATE_SCRIPT,
+  CONSOLE_FONTS_URL,
+  CONSOLE_PALETTE_SCRIPT,
+  CONSOLE_THEME_CSS,
+  renderConsoleStripHtml,
+  type ConsoleSurface,
+} from "@brains/console-theme";
+
+export interface EditorShellOptions {
+  /** Module path of the Bun-bundled React app. */
+  assetPath: string;
+  /** Console-strip doors, derived from the registered web routes. */
+  surfaces: ConsoleSurface[];
+  /** Sign-out link for the session chip (the editor is operator-only). */
+  sessionHref: string;
+}
+
 /**
  * HTML shell for the first-party CMS editor.
  *
- * Mirrors web-chat's chat-page: a root element plus a module script tag
- * pointing at the Bun-bundled React app. Carries the operator-console
- * identity base (Fraunces + IBM Plex, warm paper, grain overlay) from
- * docs/cms-editor-mockups.html; component styles live in the app bundle.
+ * Mirrors web-chat's chat-page: the console strip above a root element plus
+ * a module script tag pointing at the Bun-bundled React app. Palette and
+ * type ramp come from the shared @brains/console-theme sheet — the CMS
+ * defaults to the paper climate; the console-wide stored preference wins.
+ * Component styles live in the app bundle.
  */
-export function renderEditorShellHtml(options: { assetPath: string }): string {
+export function renderEditorShellHtml(options: EditorShellOptions): string {
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-climate="paper">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Content Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+    <link href="${CONSOLE_FONTS_URL}" rel="stylesheet" />
+    <script>${CONSOLE_CLIMATE_SCRIPT}</script>
+    <script>${CONSOLE_PALETTE_SCRIPT}</script>
     <style>
-      :root {
-        --paper: #f4efe6;
-        --paper-deep: #ece5d6;
-        --panel: #faf7f0;
-        --ink: #211d18;
-        --ink-60: rgba(33, 29, 24, 0.62);
-        --ink-40: rgba(33, 29, 24, 0.42);
-        --ink-15: rgba(33, 29, 24, 0.15);
-        --ink-08: rgba(33, 29, 24, 0.08);
-        --vermilion: #c44a1d;
-        --vermilion-deep: #a03a13;
-        --verdigris: #3d6b5c;
-        --verdigris-soft: rgba(61, 107, 92, 0.14);
-        --amber: #b3801a;
-        --hairline: 1px solid var(--ink-15);
-        --display: "Fraunces", serif;
-        --ui: "IBM Plex Sans", sans-serif;
-        --mono: "IBM Plex Mono", monospace;
-      }
+${CONSOLE_THEME_CSS}
       * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; }
       body {
-        font-family: var(--ui);
-        background: var(--paper);
-        color: var(--ink);
+        font-family: var(--console-ui);
+        background: var(--console-frame);
+        color: var(--console-text);
         font-size: 14px;
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
       }
       body::before {
         content: "";
@@ -53,18 +59,25 @@ export function renderEditorShellHtml(options: { assetPath: string }): string {
         opacity: 0.5;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
       }
-      ::selection { background: rgba(196, 74, 29, 0.22); }
+      ::selection { background: color-mix(in srgb, var(--console-accent) 22%, transparent); }
+      [data-cms-root] {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
       [data-cms-root] > .boot {
-        font-family: var(--mono);
+        font-family: var(--console-mono);
         font-size: 12px;
         letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: var(--ink-40);
+        color: var(--console-text-muted);
         padding: 48px;
       }
     </style>
   </head>
   <body>
+    ${renderConsoleStripHtml(options)}
     <main id="root" data-cms-root><p class="boot">Opening the content studio…</p></main>
     <script type="module" src="${options.assetPath}"></script>
   </body>

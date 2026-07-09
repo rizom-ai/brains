@@ -5,6 +5,7 @@ import type {
   IShell,
   PluginRegistrationContext,
 } from "../interfaces";
+import type { IWebRoutesNamespace } from "../interface/context";
 import type {
   AIGenerationSchema,
   IEntitiesNamespace,
@@ -101,6 +102,13 @@ export interface ServicePluginContext extends BasePluginContext {
   /** Prompt resolution namespace */
   readonly prompts: IPromptsNamespace;
 
+  /**
+   * Read-only view of plugin-contributed web routes. Service plugins already
+   * contribute routes via getWebRoutes(); this is the symmetric read side
+   * (e.g. the dashboard deriving console surface links from what is mounted).
+   */
+  readonly webRoutes: IWebRoutesNamespace;
+
   /** AI generation namespace */
   readonly ai: IEntityAINamespace;
 
@@ -131,6 +139,10 @@ export function createServicePluginContext(
     entityService,
 
     entities: createEntitiesNamespace(shell),
+
+    webRoutes: {
+      getRoutes: () => shell.getPluginWebRoutes(),
+    },
 
     templates: {
       register: (

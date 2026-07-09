@@ -10,6 +10,12 @@ import { WidgetCard } from "./render/widget-card";
 import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
+import {
+  CONSOLE_CLIMATE_SCRIPT,
+  CONSOLE_FONTS_URL,
+  CONSOLE_PALETTE_SCRIPT,
+} from "@brains/console-theme";
+import type { ConsoleSurface } from "@brains/console-theme";
 import type {
   DashboardActivityEvent,
   DashboardJobProgressItem,
@@ -18,9 +24,6 @@ import type {
 } from "./render/types";
 
 export type { DashboardRenderInput } from "./render/types";
-
-const FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap";
 
 interface WidgetGroups {
   primary: RenderableWidgetData[];
@@ -191,29 +194,6 @@ function groupExternalWidgets(
   });
 }
 
-const THEME_TOGGLE_SCRIPT = `(function () {
-  var root = document.documentElement;
-  var btn = document.getElementById("themeToggle");
-  var stored = null;
-  try { stored = localStorage.getItem("brain:dashboard:theme"); } catch (e) { /* storage unavailable */ }
-  if (stored === "light" || stored === "dark") {
-    root.setAttribute("data-theme", stored);
-  }
-  function sync() {
-    if (!btn) return;
-    btn.textContent = root.getAttribute("data-theme") === "dark" ? "Light mode" : "Dark mode";
-  }
-  if (btn) {
-    btn.addEventListener("click", function () {
-      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      try { localStorage.setItem("brain:dashboard:theme", next); } catch (e) { /* storage unavailable */ }
-      sync();
-    });
-  }
-  sync();
-})();`;
-
 const DASHBOARD_TABS_SCRIPT = `(function () {
   var root = document.documentElement;
   var links = Array.prototype.slice.call(document.querySelectorAll("[data-dashboard-tab-link]"));
@@ -292,9 +272,11 @@ function OperatorGate({
 
 function ConsoleStrip({
   dashboardPath,
+  surfaces,
   operatorAccess,
 }: {
   dashboardPath: string;
+  surfaces: ConsoleSurface[];
   operatorAccess: DashboardRenderInput["operatorAccess"];
 }): JSX.Element {
   const sessionHref = operatorAccess?.isOperator
@@ -312,15 +294,19 @@ function ConsoleStrip({
         </span>
       </a>
       <nav class="surface-nav" aria-label="Console surfaces">
-        <a class="surface-nav-link is-active" href={dashboardPath}>
-          Dashboard
-        </a>
-        <a class="surface-nav-link" href="/chat">
-          Chat
-        </a>
-        <a class="surface-nav-link" href="/cms">
-          CMS
-        </a>
+        {surfaces.map((surface) => (
+          <a
+            key={surface.id}
+            class={
+              surface.isActive
+                ? "surface-nav-link is-active"
+                : "surface-nav-link"
+            }
+            href={surface.href}
+          >
+            {surface.label}
+          </a>
+        ))}
       </nav>
       <button class="command-chip" type="button" aria-label="Command menu">
         <span class="command-chip-hint">Search or jump…</span>
@@ -933,7 +919,7 @@ function DashboardDocument({
   const now = new Date();
 
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-climate="instrument">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -944,7 +930,7 @@ function DashboardDocument({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
-        <link href={FONTS_URL} rel="stylesheet" />
+        <link href={CONSOLE_FONTS_URL} rel="stylesheet" />
         {input.themeCSS !== undefined && (
           <style
             data-dashboard-theme
@@ -957,12 +943,22 @@ function DashboardDocument({
         />
       </head>
       <body>
+        <ConsoleStrip
+          dashboardPath={dashboardPath}
+          surfaces={
+            input.surfaces ?? [
+              {
+                id: "dashboard",
+                label: "Dashboard",
+                href: dashboardPath,
+                isActive: true,
+              },
+            ]
+          }
+          operatorAccess={input.operatorAccess}
+        />
         <main class="console" data-component="dashboard:dashboard">
           <div class="frame">
-            <ConsoleStrip
-              dashboardPath={dashboardPath}
-              operatorAccess={input.operatorAccess}
-            />
             <Masthead title={input.title} tagline={input.profile.description} />
             <TabBar tabs={tabs} />
 
@@ -992,7 +988,8 @@ function DashboardDocument({
           />
         </main>
 
-        <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CONSOLE_PALETTE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: DASHBOARD_TABS_SCRIPT }} />
         {input.widgetScripts.map((script, index) => (
           <script

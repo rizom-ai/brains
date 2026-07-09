@@ -4,6 +4,7 @@
   "description": "CMS plugin for config and browser authoring routes",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
+    "@brains/console-theme": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@codemirror/lang-markdown": "^6.5.0",
