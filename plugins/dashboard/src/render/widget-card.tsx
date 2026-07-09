@@ -39,14 +39,21 @@ const pipelineItemSchema = z.object({
   scheduledFor: z.string().optional(),
   retryInfo: z.string().optional(),
 });
+const pipelineGeneratingItemSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  target: z.string(),
+  status: z.enum(["pending", "processing"]),
+});
 const pipelineWidgetDataSchema = z.object({
   summary: pipelineSummarySchema,
   items: z.array(pipelineItemSchema),
+  generating: z.array(pipelineGeneratingItemSchema).default([]),
 });
 
 type ListItem = z.output<typeof listItemSchema>;
-type PipelineStatus = z.output<typeof pipelineStatusSchema>;
 type PipelineItem = z.output<typeof pipelineItemSchema>;
+type PipelineGeneratingItem = z.output<typeof pipelineGeneratingItemSchema>;
 
 interface RendererProps {
   widget: RenderableWidgetData;
@@ -60,13 +67,6 @@ const PRIO_CLASS: Record<string, string> = {
   medium: "",
   low: "pill--mute",
 };
-
-const PIPELINE_DEFAULT_STATUS_ORDER: PipelineStatus[] = [
-  "failed",
-  "queued",
-  "draft",
-  "published",
-];
 
 function isEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null || value === "") return true;
@@ -82,46 +82,7 @@ function toDisplayValue(value: unknown): string {
   return String(value);
 }
 
-function pipelineStatusLabel(status: PipelineStatus): string {
-  switch (status) {
-    case "draft":
-      return "drafts";
-    case "queued":
-      return "queued";
-    case "published":
-      return "published";
-    case "failed":
-      return "failed";
-  }
-}
-
-function pipelineStatusPriority(status: PipelineStatus): number {
-  switch (status) {
-    case "failed":
-      return 0;
-    case "queued":
-      return 1;
-    case "draft":
-      return 2;
-    case "published":
-      return 3;
-  }
-}
-
-function pipelineDefaultStatus(
-  summary: Record<PipelineStatus, number>,
-): PipelineStatus {
-  return (
-    PIPELINE_DEFAULT_STATUS_ORDER.find((status) => summary[status] > 0) ??
-    "draft"
-  );
-}
-
 function comparePipelineItems(a: PipelineItem, b: PipelineItem): number {
-  const priorityDiff =
-    pipelineStatusPriority(a.status) - pipelineStatusPriority(b.status);
-  if (priorityDiff !== 0) return priorityDiff;
-
   const aMeta = a.retryInfo ?? a.scheduledFor ?? "";
   const bMeta = b.retryInfo ?? b.scheduledFor ?? "";
   const metaDiff = aMeta.localeCompare(bMeta);
@@ -240,85 +201,80 @@ function ListBody({ widget }: RendererProps): JSX.Element {
   );
 }
 
+function BoardWorkCard({ item }: { item: PipelineItem }): JSX.Element {
+  return (
+    <div class={`work${item.status === "failed" ? " work--failed" : ""}`}>
+      <div class="work-title">{item.title}</div>
+      <div class="work-meta">
+        <span>{item.type}</span>
+        <span class={item.status === "failed" ? "work-status--err" : ""}>
+          {item.retryInfo ?? item.scheduledFor ?? item.status}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function BoardLane({
+  label,
+  count,
+  children,
+}: {
+  label: string;
+  count: number;
+  children: JSX.Element[] | JSX.Element;
+}): JSX.Element {
+  return (
+    <div class="lane">
+      <div class="lane-head">
+        {label} <span class="lane-count">{count}</span>
+      </div>
+      {count === 0 ? <p class="lane-empty">—</p> : children}
+    </div>
+  );
+}
+
 function PipelineBody({ widget }: RendererProps): JSX.Element {
   const parsed = pipelineWidgetDataSchema.safeParse(widget.data);
   if (!parsed.success) {
     return <p class="muted">Nothing to show yet.</p>;
   }
 
-  const summary: Record<PipelineStatus, number> = {
-    draft: parsed.data.summary.draft ?? 0,
-    queued: parsed.data.summary.queued ?? 0,
-    published: parsed.data.summary.published ?? 0,
-    failed: parsed.data.summary.failed ?? 0,
-  };
   const items = [...parsed.data.items].sort(comparePipelineItems);
-  const activeStatus = pipelineDefaultStatus(summary);
+  const queued = items.filter((item) => item.status === "queued");
+  // Review holds everything waiting on an operator: drafts and failures.
+  const review = [
+    ...items.filter((item) => item.status === "draft"),
+    ...items.filter((item) => item.status === "failed"),
+  ];
+  const generating: PipelineGeneratingItem[] = parsed.data.generating;
 
   return (
-    <div
-      class="pipeline-widget"
-      data-pipeline-widget
-      data-pipeline-default={activeStatus}
-    >
-      <div class="pipeline-tabs">
-        {PIPELINE_STATUSES.map((status) => {
-          const isActive = status === activeStatus;
-          return (
-            <button
-              key={status}
-              class={`pipeline-tab${isActive ? " is-active" : ""}`}
-              type="button"
-              data-pipeline-tab={status}
-              aria-pressed={isActive ? "true" : "false"}
-            >
-              <span class={`pipeline-dot pipeline-dot--${status}`}></span>
-              <span class="pipeline-summary-count">{summary[status]}</span>
-              <span class="pipeline-summary-label">
-                {pipelineStatusLabel(status)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {PIPELINE_STATUSES.map((status) => {
-        const statusItems = items.filter((item) => item.status === status);
-        const panelClass =
-          status === activeStatus
-            ? "pipeline-panel is-active"
-            : "pipeline-panel";
-
-        return (
-          <div key={status} class={panelClass} data-pipeline-panel={status}>
-            {statusItems.length === 0 ? (
-              <p class="pipeline-empty">
-                No {pipelineStatusLabel(status)} items
-              </p>
-            ) : (
-              <div class="pipeline-list">
-                {statusItems.map((item) => {
-                  const meta =
-                    item.retryInfo ?? item.scheduledFor ?? item.status;
-                  return (
-                    <div key={item.id} class="pipeline-item">
-                      <span
-                        class={`pipeline-dot pipeline-dot--${item.status}`}
-                      ></span>
-                      <span class="pipeline-name">{item.title}</span>
-                      <span class="pipeline-type">{item.type}</span>
-                      <span
-                        class={`pipeline-when${item.status === "failed" ? " pipeline-when--err" : ""}`}
-                      >
-                        {meta}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+    <div class="board">
+      <BoardLane label="Queued" count={queued.length}>
+        {queued.map((item) => (
+          <BoardWorkCard key={item.id} item={item} />
+        ))}
+      </BoardLane>
+      <BoardLane label="Generating" count={generating.length}>
+        {generating.map((job) => (
+          <div key={job.id} class="work work--generating">
+            <div class="work-title">{job.label}</div>
+            <div class="work-meta">
+              <span>{job.target}</span>
+              <span class="work-status--warm">{job.status}</span>
+            </div>
+            <div class="minibar" aria-hidden="true">
+              <i></i>
+            </div>
           </div>
-        );
-      })}
+        ))}
+      </BoardLane>
+      <BoardLane label="Review" count={review.length}>
+        {review.map((item) => (
+          <BoardWorkCard key={item.id} item={item} />
+        ))}
+      </BoardLane>
     </div>
   );
 }

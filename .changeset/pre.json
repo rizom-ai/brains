@@ -153,6 +153,7 @@
     "core-preset-eval-release",
     "current-main-alpha-release",
     "dashboard-light-surface-tokens",
+    "dashboard-tabbed-console",
     "dashboard-topics-skills-widgets",
     "debt-sweep",
     "deck-carousel-accent-emphasis",

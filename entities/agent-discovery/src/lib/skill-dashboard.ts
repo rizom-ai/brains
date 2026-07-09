@@ -18,6 +18,7 @@ export function registerSkillsDashboardWidget(
           id: SKILLS_WIDGET_ID,
           pluginId,
           title: "Skills",
+          group: "network",
           section: "sidebar",
           priority: 20,
           rendererName: "ListWidget",

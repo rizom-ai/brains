@@ -85,6 +85,8 @@ describe("buildActionItemsWidgetData", () => {
     expect(first?.description).toBe("Body sentence one.");
     expect(first?.status).toBe("open");
     expect(first?.meta).toEqual(["#design", "2d"]);
+    // openCount is uncapped and counts only open items.
+    expect(data.openCount).toBe(2);
   });
 
   it("falls back to channelId when channelName is missing", async () => {
@@ -132,13 +134,29 @@ describe("registerActionItemsWidget", () => {
     registerActionItemsWidget({ context, pluginId: "conversation-memory" });
     await readyHandler?.();
 
+    const digestProvider = payload?.["digestProvider"] as (data: unknown) => {
+      digest: Array<{ label: string; value: string; tone?: string }>;
+      needsOperator: number;
+    };
+
     expect(payload).toMatchObject({
       id: "conversation-memory:action-items",
       pluginId: "conversation-memory",
       title: "Open action items",
+      group: "knowledge",
       section: "secondary",
       priority: 25,
       rendererName: "ListWidget",
+      digestProvider: expect.any(Function),
     });
+    const derived = digestProvider({ items: [], openCount: 3 });
+    expect(derived.digest).toEqual([
+      { label: "Open actions", value: "3", tone: "warn" },
+    ]);
+    expect(derived.needsOperator).toBe(3);
+
+    const idle = digestProvider({ items: [], openCount: 0 });
+    expect(idle.digest).toEqual([{ label: "Open actions", value: "0" }]);
+    expect(idle.needsOperator).toBe(0);
   });
 });

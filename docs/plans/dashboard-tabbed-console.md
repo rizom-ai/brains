@@ -2,7 +2,14 @@
 
 ## Status
 
-Proposed. Design settled 2026-07-07 (mockups approved direction; see below). The current
+Implemented on `work/dashboard-tabbed-console`; the console-restructure work through the
+first merge to main landed 2026-07-08. Post-merge follow-up on the branch completes the
+last mockup gap: the Publishing pipeline renders as the three-lane board (Queued /
+Generating / Review) — Generating is derived from active content-pipeline jobs via
+`jobs.getActiveJobs`, Review holds drafts + failures (the needs-operator set), published
+items stay off the board. Digest lines and tab badges are live (per-render
+`digestProvider`), and the index vital reports the embeddable-only fraction. Design
+settled 2026-07-07 (mockups approved direction; see below). The current
 dashboard (`plugins/dashboard`) renders everything on one page — identity column, entity
 summary, primary/secondary widget stack, sidebar with interactions/endpoints/runtime — and
 has grown unwieldy as more plugins register widgets. This plan restructures it into a
@@ -149,6 +156,10 @@ a small datasource addition, listed per phase.
 ## Related
 
 - [`docs/dashboard-tabs-mockups.html`](../dashboard-tabs-mockups.html) — approved mockups.
+- [`console-unification.md`](./console-unification.md) — follow-on: extracts the token
+  sheet (`@brains/console-theme`) from the console implemented here, spreads the strip to
+  chat/CMS, and wires the strip's ⌘K to a cross-surface jump. Mockups:
+  [`docs/console-unification-mockups.html`](../console-unification-mockups.html).
 - [`brain-model-unification.md`](./brain-model-unification.md) — bundle vocabulary the
   group ids converge toward.
 - [`first-party-cms-editor.md`](./first-party-cms-editor.md) — sibling console surface;

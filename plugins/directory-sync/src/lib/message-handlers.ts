@@ -75,6 +75,9 @@ export function registerMessageHandlers(
           syncPath: status.syncPath,
           isInitialized: status.exists,
           watchEnabled: status.watching,
+          lastSync: status.lastSync?.toISOString(),
+          totalFiles: status.stats.totalFiles,
+          byEntityType: status.stats.byEntityType,
         },
       };
     } catch (error) {

@@ -17,6 +17,7 @@ describe("DashboardWidgetRegistry", () => {
       const widget: RegisteredWidget = {
         id: "test-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Test Widget",
         section: "primary",
         priority: 10,
@@ -29,11 +30,12 @@ describe("DashboardWidgetRegistry", () => {
       expect(registry.size).toBe(1);
     });
 
-    it("should store the widget rendererName", () => {
+    it("should store the widget rendererName and group", () => {
       const widget: RegisteredWidget = {
         id: "test-widget",
         pluginId: "test-plugin",
         title: "Test Widget",
+        group: "publishing",
         section: "primary",
         priority: 10,
         rendererName: "ListWidget",
@@ -45,12 +47,29 @@ describe("DashboardWidgetRegistry", () => {
       expect(registry.size).toBe(1);
       const widgets = registry.list();
       expect(widgets[0]?.rendererName).toBe("ListWidget");
+      expect(widgets[0]?.group).toBe("publishing");
+    });
+
+    it("should reject a widget without a group", () => {
+      expect(() =>
+        registry.register({
+          id: "legacy-widget",
+          pluginId: "legacy-plugin",
+          title: "Legacy Widget",
+          section: "sidebar",
+          priority: 10,
+          rendererName: "StatsWidget",
+          dataProvider: async () => ({}),
+        } as unknown as RegisteredWidget),
+      ).toThrow();
+      expect(registry.size).toBe(0);
     });
 
     it("should overwrite widget with same key", () => {
       const widget1: RegisteredWidget = {
         id: "test-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Test Widget 1",
         section: "primary",
         priority: 10,
@@ -61,6 +80,7 @@ describe("DashboardWidgetRegistry", () => {
       const widget2: RegisteredWidget = {
         id: "test-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Test Widget 2",
         section: "primary",
         priority: 20,
@@ -85,6 +105,7 @@ describe("DashboardWidgetRegistry", () => {
       const widget: RegisteredWidget = {
         id: "test-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Test Widget",
         section: "primary",
         priority: 10,
@@ -103,6 +124,7 @@ describe("DashboardWidgetRegistry", () => {
       const widget1: RegisteredWidget = {
         id: "widget-1",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Widget 1",
         section: "primary",
         priority: 10,
@@ -113,6 +135,7 @@ describe("DashboardWidgetRegistry", () => {
       const widget2: RegisteredWidget = {
         id: "widget-2",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Widget 2",
         section: "secondary",
         priority: 20,
@@ -123,6 +146,7 @@ describe("DashboardWidgetRegistry", () => {
       const widget3: RegisteredWidget = {
         id: "widget-3",
         pluginId: "other-plugin",
+        group: "knowledge",
         title: "Widget 3",
         section: "sidebar",
         priority: 30,
@@ -152,6 +176,7 @@ describe("DashboardWidgetRegistry", () => {
         {
           id: "widget-high",
           pluginId: "plugin-a",
+          group: "knowledge",
           title: "High Priority",
           section: "primary",
           priority: 50,
@@ -161,6 +186,7 @@ describe("DashboardWidgetRegistry", () => {
         {
           id: "widget-low",
           pluginId: "plugin-b",
+          group: "knowledge",
           title: "Low Priority",
           section: "primary",
           priority: 10,
@@ -170,6 +196,7 @@ describe("DashboardWidgetRegistry", () => {
         {
           id: "widget-mid",
           pluginId: "plugin-c",
+          group: "knowledge",
           title: "Mid Priority",
           section: "primary",
           priority: 30,
@@ -194,6 +221,7 @@ describe("DashboardWidgetRegistry", () => {
         {
           id: "primary-widget",
           pluginId: "plugin",
+          group: "knowledge",
           title: "Primary",
           section: "primary",
           priority: 10,
@@ -203,6 +231,7 @@ describe("DashboardWidgetRegistry", () => {
         {
           id: "sidebar-widget",
           pluginId: "plugin",
+          group: "knowledge",
           title: "Sidebar",
           section: "sidebar",
           priority: 10,
@@ -212,6 +241,7 @@ describe("DashboardWidgetRegistry", () => {
         {
           id: "secondary-widget",
           pluginId: "plugin",
+          group: "knowledge",
           title: "Secondary",
           section: "secondary",
           priority: 10,

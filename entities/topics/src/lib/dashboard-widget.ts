@@ -1,8 +1,13 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
 import { toTopicContentProjection } from "./topic-presenter";
 import type { TopicEntity } from "../schemas/topic";
+
+const topicsDigestSourceSchema = z.object({
+  items: z.array(z.object({ name: z.string() })),
+});
 
 export function registerTopicsDashboardWidget(params: {
   context: EntityPluginContext;
@@ -19,9 +24,19 @@ export function registerTopicsDashboardWidget(params: {
           id: TOPICS_PLUGIN_ID,
           pluginId,
           title: "Topics",
+          group: "knowledge",
           section: "secondary",
           priority: 20,
           rendererName: "ListWidget",
+          digestProvider: (data: unknown) => {
+            const { items } = topicsDigestSourceSchema.parse(data);
+            const latest = items[0]?.name;
+            return {
+              digest: latest
+                ? [{ label: "Latest topic", value: latest }]
+                : [{ label: "Topics", value: "none yet" }],
+            };
+          },
           dataProvider: async () => {
             const topics =
               await context.entityService.listEntities<TopicEntity>({
