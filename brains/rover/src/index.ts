@@ -23,6 +23,7 @@ import { documentPlugin } from "@brains/document-plugin";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
 import { portfolioPlugin } from "@brains/portfolio";
+import { productsPlugin } from "@brains/products";
 import { topicsPlugin } from "@brains/topics";
 import { socialMediaPlugin } from "@brains/social-media";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
@@ -41,6 +42,7 @@ import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
+import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { roverProfilePlugin } from "./profile-extension";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
@@ -177,6 +179,9 @@ const roverBrain: BrainDefinition = defineBrain({
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
     ["portfolio", portfolioPlugin, {}],
+    // Not in any preset — the consolidated rizom.ai brain opts in via
+    // brain.yaml `add:` (docs/plans/rizom-consolidation.md, decision 3).
+    ["products", productsPlugin, undefined],
     [
       "topics",
       topicsPlugin,
@@ -233,6 +238,10 @@ const roverBrain: BrainDefinition = defineBrain({
           : {}),
       }),
     ],
+    // Not in any preset — the consolidated rizom.ai brain opts in via
+    // brain.yaml `add:` to keep serving the canonical ai.rizom.brain.*
+    // lexicons (docs/plans/rizom-consolidation.md, decision 3).
+    ["atproto-registry", atprotoRegistryPlugin, {}],
     [
       "directory-sync",
       directorySync,

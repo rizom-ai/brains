@@ -1,12 +1,18 @@
 brain: rover
 preset: default
 
+# The consolidated rizom.ai composition (docs/plans/rizom-consolidation.md
+# Phase 2, decision 3): rover's default preset — which already carries
+# blog/series/decks/site-builder — plus the registry (canonical
+# ai.rizom.brain.* lexicons), ranger-ai's product entities, and the
+# newsletter behind the /foundation follow band.
 add:
   - web-chat
+  - atproto-registry
+  - products
+  - rizom-ecosystem
+  - newsletter
 
-# Test brain for the consolidated rizom.ai site (docs/plans/rizom-consolidation.md
-# Phase 1): rover's default composition serving @brains/site-rizom-ai — the same
-# site.package override rover-pilot will use after the port.
 site:
   package: "@brains/site-rizom-ai"
   theme: "@brains/theme-rizom-ai"

@@ -2,7 +2,10 @@
 
 ## Status
 
-Proposed; direction decided 2026-07-07. **Follow-up to
+In progress — direction decided 2026-07-07; Phases 0–2 done
+(2026-07-09, `work/rizom-consolidated-site`; the published-index routes moved to
+Phase 4, after the content merge; Phase 2's deployment-time config rolls into
+Phase 5). Next: Phase 3 (content and state cutover). **Follow-up to
 [`rizom-sites-on-hosted-rover.md`](./rizom-sites-on-hosted-rover.md)**: once the site
 packaging and hosted-rover custom-domain machinery from that plan land, the three Rizom
 web properties (`rizom.ai`, `rizom.work`, `rizom.foundation`) consolidate into **one site
@@ -38,10 +41,10 @@ Phase 0/1:
 - **Two-tier navigation**: a quiet org-level faces strip (`rizom · Platform / Work /
 Foundation`) above a per-face contextual nav; each room keeps its live nav and its old
   domain as the nameplate (`rizom.work`, `rizom.foundation`).
-- **IA / sitemap (Phase 0 proposal)**: one `/writing` index for everything published
+- **IA / sitemap (settled in Phase 0)**: one `/writing` index for everything published
   (foundation essays are a series — matches the entity model); `/events` for gatherings;
   `/network` from the agent directory; `/docs` ↗ docs.rizom.ai; `/chat` public. Old
-  domains 301 per-path into their rooms, each room's footer acknowledging the move.
+  domains 301 domain-level into their rooms, each room's footer acknowledging the move.
 - **The growth diagram is the product story**: You → Team → Network drawn as one organism
   (Rover/Relay/Ranger as separate products is retired — the one sanctioned content rework).
 - **Living proof**: a colophon line (latest essay, talk-to-this-brain, agent card, lexicon
@@ -56,15 +59,21 @@ Foundation`) above a per-face contextual nav; each room keeps its live nav and i
    and research/events/support respectively). The three `themeProfile` variants
    (product/editorial/studio) collapse to one profile; per-route accents replace
    per-site themes.
-2. **`rizom.work` and `rizom.foundation` become edge redirects.** A Cloudflare redirect
-   rule per zone (301 to the corresponding `rizom.ai` route). No origin, no certs, no
-   hosted-rover involvement. The zones stay under our account for the domains' lifetime.
-3. **One brain, relay-shaped.** The consolidated brain's composition is relay's base
-   (team memory: `conversation-memory` shared + docs + Discord for the collective) **plus**
-   what rizom.ai's ranger carries today: `atproto-registry` (the live instance serves the
-   canonical `ai.rizom.brain.*` lexicons — this must not lapse) and `products`. In bundle
-   vocabulary: `core + site + team` with `add: [atproto-registry, products]`. Whether it
-   also takes `publishing` is a content question decided during the IA merge, not up front.
+2. **`rizom.work` and `rizom.foundation` become edge redirects — one rule per zone.**
+   A single domain-level Cloudflare 301 per zone (`rizom.work/*` → `rizom.ai/work`,
+   `rizom.foundation/*` → `rizom.ai/foundation`). No per-path map: the old sites were
+   barely used and every list page on them is empty (verified 2026-07-09), so there are
+   no deep links worth preserving individually. No origin, no certs, no hosted-rover
+   involvement. The zones stay under our account for the domains' lifetime.
+3. **One brain, rover-based.** With relay and ranger retiring under
+   `brain-model-unification`, the consolidated brain composes rover's `default` preset
+   (which already carries blog, series, decks, site-builder, analytics — the
+   `core + site + team` shape) with
+   `add: [atproto-registry, products, rizom-ecosystem, newsletter]`: the registry serves
+   the canonical `ai.rizom.brain.*` lexicons (must not lapse), products/ecosystem carry
+   ranger-ai's product entities, newsletter backs the `/foundation` follow band.
+   `content-pipeline` and `social-media` stay out — no live cadence exists to carry
+   (settled in Phase 0; publishing itself comes with the rover base).
 4. **Content repos merge into `rizom-ai-content`.** The work and foundation content repos
    are imported (with history, via subtree or plain file import — subtree preferred so
    provenance survives) and then archived. Entity collisions (same id/slug across repos)
@@ -96,10 +105,13 @@ avoided; that call belongs to that plan's lane.
 
 ### Phase 0 — Information architecture merge (content decision, no infra)
 
-- Decide the merged sitemap: what `/work` and `/foundation` contain, which of the three
-  section sets survive, what redirect targets each old URL maps to (per-path map for the
-  redirect rules, so deep links don't all land on the homepage).
-- Output: a short IA note in `rizom-ai-content` + the redirect map. No code.
+- **Done (2026-07-09).** Output: `docs/site-consolidation-ia.md` in the `rizom-ai`
+  content repo — merged sitemap (`/`, `/work`, `/foundation`, `/writing`, `/events`,
+  `/network`, `/docs` ↗, `/chat`), section survival (rev-5 package sections supersede
+  all three repos' `site-content/*`, which retire unimported), the publishing decision,
+  the domain-level redirect rules (per-path map dropped — see decision 2), and the
+  content-merge collision policy (rizom-ai ids win; foundation-unique content imports
+  as-is) that Phase 3 executes.
 
 ### Phase 1 — One site in the monorepo
 
@@ -113,38 +125,60 @@ avoided; that call belongs to that plan's lane.
   A new package (rather than absorbing into `sites/rizom`) because relay still consumes
   the shared core as a variant substrate; the variant machinery gets deleted when that
   consumer folds in, not before.
-- Remaining: port the full section sets behind the merged sitemap (home bands, /work
-  diagnostic + personas + proof, /foundation essays + chapters), the rev-5 visual theme,
-  and per-route accents on the one theme profile.
-- Tests first: route table renders the merged sitemap; work/foundation sections render
-  under their new routes; theme override contract holds.
+- **Also landed**: the full rev-5 section sets for all three rooms (21 colocated
+  `defineSection` definitions with verbatim copy), the rev-5 design system as
+  `@brains/theme-rizom-ai`, and per-room accents via `[data-room]` scoping — with
+  route/section/layout/theme tests.
+- The `/writing`, `/events`, and `/network` routes from the merged sitemap are
+  deliberately **not** built here: they are list pages, and every entity that would
+  populate them arrives in the Phase 3 content merge (the foundation essay becomes a
+  series entry there; events and posts are empty today). They get their own phase
+  after the merge (Phase 4) so they are built against real entities, not placeholders.
 
 ### Phase 2 — One brain
 
-- Compose the consolidated brain (relay base + `atproto-registry` + `products` + the one
-  site); port rizom.ai's config specifics; wire the collective's Discord.
-- Tests first: composition test asserting the plugin set equals relay's ∪ ranger-ai's
-  additions; boot + eval smoke on the composed brain.
+- **Composition landed (2026-07-09).** `test-apps/rizom-ai/brain.yaml` now carries
+  `add: [web-chat, atproto-registry, products, rizom-ecosystem, newsletter]` on the
+  `default` preset; rover registers `products` and `atproto-registry` as
+  preset-less capabilities for the `add:` (and gained the previously undeclared
+  `@brains/atproto-registry` dependency). `test/rizom-ai-composition.test.ts`
+  asserts the resolved plugin set equals rover-default ∪ the adds (plus the
+  newsletter composite's buttondown expansion — `add:` silently drops unregistered
+  ids, so the equality test is the guard). Boot smoke green.
+- Remaining: the production instance's config specifics (domain, real content repo,
+  the collective's Discord wiring) — deployment-time, lands with Phase 5.
 
 ### Phase 3 — Content and state cutover
 
-- Merge content repos (subtree import → collision pass → directory-sync import settles);
-  copy foundation runtime DBs to the new deployment; verify conversation memory reads.
+- Merge content repos (subtree import → collision pass → directory-sync import settles;
+  policy per the Phase 0 IA note: rizom-ai ids win, foundation-unique content imports
+  as-is, `site-content/*` retires unimported); copy foundation runtime DBs to the new
+  deployment; verify conversation memory reads.
 - Tests first: import round-trip on a merged fixture; collision policy covered.
 
-### Phase 4 — DNS cutover and retirement
+### Phase 4 — Published-index routes on the merged content
 
-- Deploy the consolidated brain to `rizom.ai`; apply the per-path redirect rules on the
-  `rizom.work` / `rizom.foundation` zones; watch for a soak period; retire the two old
-  deployments and archive their app + content repos.
-- Verification is live: old deep links 301 to their mapped targets; lexicon registry URLs
+- Build the remaining merged-sitemap routes against the merged corpus: `/writing`
+  (posts + foundation-essay series + decks through the rizom-ai layout), `/events`,
+  `/network` (agent directory), plus the platform nav links that point at them
+  (`Writing`, `Network`) deferred from Phase 1.
+- Tests first: each route renders real entries from a merged-corpus fixture under the
+  two-tier chrome; nav shows the new links on the platform face only.
+
+### Phase 5 — DNS cutover and retirement
+
+- Deploy the consolidated brain to `rizom.ai`; apply the domain-level redirect rule on
+  each of the `rizom.work` / `rizom.foundation` zones; watch for a soak period; retire
+  the two old deployments and archive their app + content repos.
+- Verification is live: the old domains 301 to their rooms; lexicon registry URLs
   on `rizom.ai` unchanged; foundation Discord flows land in the consolidated brain.
 
 ## Verification
 
 1. `rizom.ai` serves the merged site; `/work` and `/foundation` render the folded content.
-2. Every previously-published `rizom.work`/`rizom.foundation` URL 301s to its mapped
-   target (spot-check list from the Phase 0 redirect map).
+2. `rizom.work` and `rizom.foundation` 301 domain-level to their rooms (per-path
+   fidelity deliberately not required — Phase 0 established there are no deep links
+   worth preserving).
 3. The consolidated brain answers on Discord with the foundation's conversation memory
    intact (pre-cutover conversation retrievable post-cutover).
 4. `rizom.ai/.well-known/*` and the atproto registry endpoints serve identically to
@@ -153,11 +187,13 @@ avoided; that call belongs to that plan's lane.
    archived read-only.
 6. `sites/rizom` has no variant machinery without a consumer; per-package gates pass.
 
-## Open decisions (to settle in Phase 0, not before starting it)
+## Open decisions — all settled in Phase 0 (2026-07-09)
 
-- Does the consolidated brain take `publishing` (blog/newsletter on rizom.ai), or stay
-  presence + registry + team memory?
-- Redirect map granularity: per-path 301s vs section-level.
+- Publishing: **yes** — it comes with the rover base (blog/series/decks in the
+  `default` preset); newsletter added, content-pipeline/social-media excluded
+  (decision 3).
+- Redirect granularity: **domain-level, one rule per zone** — the per-path map was
+  dropped entirely (decision 2).
 
 ## Related
 
