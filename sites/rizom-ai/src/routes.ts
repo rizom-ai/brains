@@ -19,6 +19,26 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
     sections: toRouteSections("home", homeSections),
   },
   {
+    id: "writing",
+    path: "/writing",
+    title: "Writing — Rizom",
+    description: "Everything published, in one index",
+    layout: "default",
+    navigation: {
+      show: false,
+      label: "Writing",
+      slot: "primary",
+      priority: 15,
+    },
+    sections: [
+      {
+        id: "index",
+        template: "rizom-ai-site:writing",
+        dataQuery: { entityType: "post", query: { limit: 100 } },
+      },
+    ],
+  },
+  {
     id: "work",
     path: "/work",
     title: "Rizom Work",

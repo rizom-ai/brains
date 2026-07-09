@@ -25,7 +25,10 @@ interface FaceChrome {
 const FACE_CHROME: Record<FaceKey, FaceChrome> = {
   platform: {
     nameplate: null,
-    links: [{ label: "Docs ↗", href: "https://docs.rizom.ai", external: true }],
+    links: [
+      { label: "Writing", href: "/writing" },
+      { label: "Docs ↗", href: "https://docs.rizom.ai", external: true },
+    ],
     cta: { label: "Get Started", href: "#hero" },
   },
   work: {
@@ -181,7 +184,7 @@ const FOOTER_COLUMNS: FooterColumn[] = [
     heading: "The foundation",
     links: [
       { label: "Manifesto", href: "/foundation" },
-      { label: "Writing", href: "/foundation#research" },
+      { label: "Writing", href: "/writing" },
       { label: "Events", href: "/foundation#events" },
       { label: "Support", href: "/foundation#support" },
     ],

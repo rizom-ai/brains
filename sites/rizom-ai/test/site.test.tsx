@@ -60,13 +60,25 @@ describe("rizomAiSite package", () => {
     }
   });
 
-  it("renders every route without content entities (static fallbacks)", () => {
+  it("renders every route without content entities (fallbacks or dataQuery)", () => {
     for (const route of rizomAiRoutes) {
       expect(route.sections?.length).toBeGreaterThan(0);
       for (const section of route.sections ?? []) {
-        expect(section.content).toBeDefined();
+        expect(section.content ?? section.dataQuery).toBeDefined();
       }
     }
+  });
+
+  it("serves /writing as the published index backed by the blog datasource", () => {
+    const route = rizomAiRoutes.find((r) => r.id === "writing");
+    expect(route?.path).toBe("/writing");
+
+    const section = route?.sections?.[0];
+    expect(section?.template).toBe("rizom-ai-site:writing");
+    expect(section?.dataQuery).toMatchObject({ entityType: "post" });
+
+    // The site contributes only the look — the query logic stays in blog.
+    expect(rizomAiTemplates["writing"]?.dataSourceId).toBe("blog:entities");
   });
 
   it("keeps site-content entity ids unambiguous across all routes", () => {
@@ -113,6 +125,7 @@ describe("RizomAiLayout", () => {
   it("shows only the face's own contextual links, never entity nav", () => {
     const home = renderLayout("/");
     expect(home).toContain("Docs ↗");
+    expect(home).toContain(">Writing<");
     expect(home).not.toContain("Workshop");
     expect(home).not.toContain(">Topics<");
     expect(home).not.toContain(">Posts<");
