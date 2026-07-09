@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+} from "react";
 import { Streamdown } from "streamdown";
 import {
   ApiError,
@@ -7,6 +13,7 @@ import {
   fetchEntities,
   fetchEntity,
   fetchSchema,
+  fetchSyncStatus,
   fetchTypes,
   updateEntity,
   uploadFile,
@@ -14,6 +21,8 @@ import {
   type EntitySummary,
   type EntityTypeInfo,
   type FieldDescriptor,
+  type GitSyncState,
+  type SyncStatus,
   type TypeSchema,
 } from "./api";
 
@@ -198,6 +207,113 @@ export function SaveStateNotice(props: {
   return null;
 }
 
+export type StationState = "pending" | "active" | "done";
+
+export interface PipelineView {
+  db: StationState;
+  exported: StationState;
+  committed: StationState;
+  /** Short ref of the latest commit, for the "last write" readout. */
+  commitRef: string | null;
+}
+
+/**
+ * Where the last save stands in the entity db → file export → git commit
+ * chain. The entity db station follows the save request itself; the export
+ * and commit stations are read off polled git state: a dirty tree means the
+ * file landed and the debounced auto-commit is still due, a clean tree with
+ * a new commit means the write is fully persisted, and a clean tree with the
+ * baseline commit means the export has not become visible yet.
+ */
+export function derivePipeline(args: {
+  save: SaveState;
+  git: GitSyncState | null;
+  baselineCommit: string | null;
+}): PipelineView {
+  const { save, git, baselineCommit } = args;
+  const commitRef = git?.lastCommit ? git.lastCommit.slice(0, 7) : null;
+
+  if (save.kind === "saving") {
+    return {
+      db: "active",
+      exported: "pending",
+      committed: "pending",
+      commitRef,
+    };
+  }
+  if (save.kind !== "saved") {
+    return {
+      db: "pending",
+      exported: "pending",
+      committed: "pending",
+      commitRef,
+    };
+  }
+  if (!git) {
+    // Export is a synchronous subscriber of the entity:updated event; with
+    // no git there is nothing further to observe.
+    return { db: "done", exported: "done", committed: "pending", commitRef };
+  }
+  if (git.hasChanges) {
+    return { db: "done", exported: "done", committed: "active", commitRef };
+  }
+  if (git.lastCommit !== baselineCommit) {
+    return { db: "done", exported: "done", committed: "done", commitRef };
+  }
+  return { db: "done", exported: "active", committed: "pending", commitRef };
+}
+
+function Station(props: { state: StationState; label: string }): ReactElement {
+  const className =
+    props.state === "pending" ? "station" : `station ${props.state}`;
+  return (
+    <span className={className}>
+      <span className="dot" />
+      {props.label}
+    </span>
+  );
+}
+
+function Track(props: { flowing: boolean }): ReactElement {
+  return (
+    <span className={props.flowing ? "track flowing" : "track"}>
+      <span className="flow" />
+    </span>
+  );
+}
+
+/** The save-pipeline instrument strip: single-writer thesis as UI. */
+export function PipelineStations(props: {
+  view: PipelineView;
+  gitConfigured: boolean;
+}): ReactElement {
+  const { view, gitConfigured } = props;
+  return (
+    <span className="stations-wrap">
+      <span className="stations">
+        <Station state={view.db} label="entity db" />
+        <Track flowing={view.db === "done" && view.exported === "active"} />
+        <Station state={view.exported} label="exported to file" />
+        {gitConfigured ? (
+          <>
+            <Track
+              flowing={view.exported === "done" && view.committed === "active"}
+            />
+            <Station state={view.committed} label="committed" />
+          </>
+        ) : (
+          <span className="station no-git">no git remote</span>
+        )}
+      </span>
+      {view.commitRef && (
+        <span className="commit-ref">
+          last write <b>{view.commitRef}</b>
+        </span>
+      )}
+    </span>
+  );
+}
+
 /**
  * Image-reference widget: uploads go to /cms/api/upload, which promotes the
  * bytes into an `image` entity through the owning plugin's pipeline; the
@@ -378,6 +494,9 @@ export function App(): ReactElement {
   const [bodyMode, setBodyMode] = useState<BodyMode>("split");
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
+  const saveStartedAt = useRef(0);
 
   const activeType = types?.find((info) => info.entityType === entityType);
 
@@ -389,7 +508,31 @@ export function App(): ReactElement {
         setEntityType(first ? first.entityType : null);
       })
       .catch((error: unknown) => setLoadError(errorMessage(error)));
+    // No directory-sync installed → null, and the pipeline strip stays off.
+    fetchSyncStatus()
+      .then(setSyncStatus)
+      .catch(() => setSyncStatus(null));
   }, []);
+
+  // After a save, poll the pipeline until the auto-commit lands. Every poll
+  // updates syncStatus, which re-runs this effect until the view settles or
+  // the save is 20s old (a byte-identical save never produces a new commit).
+  useEffect(() => {
+    if (saveState.kind !== "saved" || !syncStatus?.git) return undefined;
+    const view = derivePipeline({
+      save: saveState,
+      git: syncStatus.git,
+      baselineCommit,
+    });
+    if (view.committed === "done") return undefined;
+    if (Date.now() - saveStartedAt.current > 20_000) return undefined;
+    const timer = window.setTimeout(() => {
+      fetchSyncStatus()
+        .then(setSyncStatus)
+        .catch(() => {});
+    }, 900);
+    return (): void => window.clearTimeout(timer);
+  }, [saveState, syncStatus, baselineCommit]);
 
   useEffect(() => {
     if (!entityType) return;
@@ -450,6 +593,8 @@ export function App(): ReactElement {
 
   const save = useCallback((): void => {
     if (!entityType || mode.kind === "browse" || !schema) return;
+    saveStartedAt.current = Date.now();
+    setBaselineCommit(syncStatus?.git?.lastCommit ?? null);
     setSaveState({ kind: "saving" });
     const bodyPayload = schema.hasBody ? { body } : {};
     const write =
@@ -476,7 +621,7 @@ export function App(): ReactElement {
             : { kind: "error", message: errorMessage(error) },
         ),
       );
-  }, [entityType, mode, draft, body, schema, openEntity]);
+  }, [entityType, mode, draft, body, schema, openEntity, syncStatus]);
 
   const remove = useCallback((): void => {
     if (!entityType || mode.kind !== "edit") return;
@@ -652,8 +797,24 @@ export function App(): ReactElement {
               >
                 {saveState.kind === "saving" ? "Saving…" : "Save"}
               </button>
+              {syncStatus?.directorySync && (
+                <PipelineStations
+                  view={derivePipeline({
+                    save: saveState,
+                    git: syncStatus.git,
+                    baselineCommit,
+                  })}
+                  gitConfigured={syncStatus.git !== null}
+                />
+              )}
               <SaveStateNotice
-                state={saveState}
+                // The strip already narrates a successful save; the text
+                // notice stays for conflicts and errors.
+                state={
+                  syncStatus?.directorySync && saveState.kind === "saved"
+                    ? { kind: "idle" }
+                    : saveState
+                }
                 onReload={() => {
                   if (mode.kind === "edit") openEntity(mode.entity.id);
                 }}
@@ -796,6 +957,23 @@ const styles = `
   .pipeline .status-error { color: #f0b39e; }
   .pipeline .reload { font-family: var(--ui); font-size: 12px; border: 1px solid rgba(244,239,230,0.4); background: none; color: var(--paper); border-radius: 5px; padding: 3px 10px; cursor: pointer; margin-left: 6px; }
   .pipeline .reload:hover { border-color: var(--paper); }
+
+  /* ── instrument strip: entity db → exported to file → committed ── */
+  .stations-wrap { display: flex; align-items: center; min-width: 0; }
+  .stations { display: flex; align-items: center; margin-left: 14px; }
+  .station { display: inline-flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: rgba(244,239,230,0.45); white-space: nowrap; }
+  .station .dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid rgba(244,239,230,0.35); transition: all .2s ease; }
+  .station.done { color: rgba(244,239,230,0.95); }
+  .station.done .dot { background: var(--verdigris); border-color: var(--verdigris); box-shadow: 0 0 10px rgba(61,107,92,0.7); }
+  .station.active { color: #fff; }
+  .station.active .dot { border-color: var(--amber); background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
+  .station.no-git { font-style: italic; margin-left: 28px; }
+  .track { height: 1px; width: 64px; background: rgba(244,239,230,0.22); margin: 0 14px; position: relative; overflow: hidden; display: inline-block; }
+  .track .flow { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--verdigris) 50%, transparent); transform: translateX(-100%); }
+  .track.flowing .flow { animation: flow 0.9s ease-in-out infinite; }
+  @keyframes flow { to { transform: translateX(100%); } }
+  .commit-ref { font-family: var(--mono); font-size: 11px; color: rgba(244,239,230,0.55); margin-left: 22px; white-space: nowrap; }
+  .commit-ref b { color: var(--paper); font-weight: 500; }
 
   /* ── status ── */
   .status { color: var(--ink-60); font-size: 13px; }

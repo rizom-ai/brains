@@ -4,13 +4,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   applyFieldChange,
   BodyEditor,
+  derivePipeline,
   emptyDraft,
   entityTitle,
   Field,
+  PipelineStations,
   SaveStateNotice,
   TypeSwitcher,
 } from "./App";
-import type { EntityTypeInfo, FieldDescriptor } from "./api";
+import type { EntityTypeInfo, FieldDescriptor, GitSyncState } from "./api";
 
 const stringField: FieldDescriptor = {
   name: "title",
@@ -278,6 +280,178 @@ describe("SaveStateNotice", () => {
     );
     expect(html).toContain("title: Required");
     expect(html).not.toContain("Reload entry");
+  });
+});
+
+describe("derivePipeline", () => {
+  const git = (overrides: Partial<GitSyncState> = {}): GitSyncState => ({
+    branch: "main",
+    hasChanges: false,
+    ahead: 0,
+    behind: 0,
+    lastCommit: "abc1234def5678",
+    remote: "origin/main",
+    ...overrides,
+  });
+
+  it("shows the last write ref while idle", () => {
+    const view = derivePipeline({
+      save: { kind: "idle" },
+      git: git(),
+      baselineCommit: "abc1234def5678",
+    });
+    expect(view).toEqual({
+      db: "pending",
+      exported: "pending",
+      committed: "pending",
+      commitRef: "abc1234",
+    });
+  });
+
+  it("activates the entity-db station while the save is in flight", () => {
+    const view = derivePipeline({
+      save: { kind: "saving" },
+      git: git(),
+      baselineCommit: "abc1234def5678",
+    });
+    expect(view.db).toBe("active");
+    expect(view.exported).toBe("pending");
+    expect(view.committed).toBe("pending");
+  });
+
+  it("marks export done and commit active while the tree is dirty", () => {
+    const view = derivePipeline({
+      save: { kind: "saved" },
+      git: git({ hasChanges: true }),
+      baselineCommit: "abc1234def5678",
+    });
+    expect(view.db).toBe("done");
+    expect(view.exported).toBe("done");
+    expect(view.committed).toBe("active");
+  });
+
+  it("settles once a new commit lands on a clean tree", () => {
+    const view = derivePipeline({
+      save: { kind: "saved" },
+      git: git({ lastCommit: "f00baa1234567" }),
+      baselineCommit: "abc1234def5678",
+    });
+    expect(view).toEqual({
+      db: "done",
+      exported: "done",
+      committed: "done",
+      commitRef: "f00baa1",
+    });
+  });
+
+  it("keeps the export station active until the change reaches git", () => {
+    // Clean tree, commit unchanged: the export has not become visible yet.
+    const view = derivePipeline({
+      save: { kind: "saved" },
+      git: git(),
+      baselineCommit: "abc1234def5678",
+    });
+    expect(view.db).toBe("done");
+    expect(view.exported).toBe("active");
+    expect(view.committed).toBe("pending");
+  });
+
+  it("stops at the export station when git is not configured", () => {
+    const view = derivePipeline({
+      save: { kind: "saved" },
+      git: null,
+      baselineCommit: null,
+    });
+    expect(view.db).toBe("done");
+    expect(view.exported).toBe("done");
+    expect(view.committed).toBe("pending");
+    expect(view.commitRef).toBeNull();
+  });
+
+  it("resets to pending after a conflict or error", () => {
+    for (const save of [
+      { kind: "conflict" as const, message: "changed" },
+      { kind: "error" as const, message: "nope" },
+    ]) {
+      const view = derivePipeline({
+        save,
+        git: git(),
+        baselineCommit: "abc1234def5678",
+      });
+      expect(view.db).toBe("pending");
+      expect(view.exported).toBe("pending");
+      expect(view.committed).toBe("pending");
+    }
+  });
+});
+
+describe("PipelineStations", () => {
+  it("renders the three stations with their derived states", () => {
+    const html = renderToStaticMarkup(
+      createElement(PipelineStations, {
+        view: {
+          db: "done",
+          exported: "done",
+          committed: "active",
+          commitRef: "abc1234",
+        },
+        gitConfigured: true,
+      }),
+    );
+    expect(html).toContain("entity db");
+    expect(html).toContain("exported to file");
+    expect(html).toContain("committed");
+    expect(html.match(/station done/g)).toHaveLength(2);
+    expect(html.match(/station active/g)).toHaveLength(1);
+  });
+
+  it("animates the track between a done and an active station", () => {
+    const html = renderToStaticMarkup(
+      createElement(PipelineStations, {
+        view: {
+          db: "done",
+          exported: "done",
+          committed: "active",
+          commitRef: null,
+        },
+        gitConfigured: true,
+      }),
+    );
+    expect(html.match(/track flowing/g)).toHaveLength(1);
+  });
+
+  it("shows the last write ref", () => {
+    const html = renderToStaticMarkup(
+      createElement(PipelineStations, {
+        view: {
+          db: "pending",
+          exported: "pending",
+          committed: "pending",
+          commitRef: "abc1234",
+        },
+        gitConfigured: true,
+      }),
+    );
+    expect(html).toContain("last write");
+    expect(html).toContain("abc1234");
+  });
+
+  it("drops the commit station when git is not configured", () => {
+    const html = renderToStaticMarkup(
+      createElement(PipelineStations, {
+        view: {
+          db: "done",
+          exported: "done",
+          committed: "pending",
+          commitRef: null,
+        },
+        gitConfigured: false,
+      }),
+    );
+    expect(html).toContain("entity db");
+    expect(html).toContain("exported to file");
+    expect(html).not.toContain(">committed<");
+    expect(html).toContain("no git remote");
   });
 });
 

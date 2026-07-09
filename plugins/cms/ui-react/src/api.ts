@@ -43,6 +43,25 @@ export interface EntityDetail extends EntitySummary {
   created: string;
 }
 
+export interface GitSyncState {
+  branch: string;
+  hasChanges: boolean;
+  ahead: number;
+  behind: number;
+  lastCommit: string | null;
+  remote: string | null;
+}
+
+/**
+ * Where the save pipeline stands beyond the entity db: whether directory-sync
+ * is running (file export) and what git looks like (commit). Either half is
+ * null when the corresponding plugin is absent.
+ */
+export interface SyncStatus {
+  directorySync: { lastSync: string | null; watching: boolean } | null;
+  git: GitSyncState | null;
+}
+
 export interface ValidationIssue {
   path: Array<string | number>;
   message: string;
@@ -143,6 +162,10 @@ export async function uploadFile(
     method: "POST",
     body: form,
   });
+}
+
+export async function fetchSyncStatus(): Promise<SyncStatus> {
+  return requestJson<SyncStatus>("/cms/api/sync-status");
 }
 
 export async function deleteEntity(

@@ -37,6 +37,22 @@ const createEntityPayloadSchema = z.object({
 const UPLOAD_FORM_FIELD = "file";
 const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
+/** What directory-sync answers sync:status:request with (extra keys ignored). */
+const syncStatusMessageSchema = z.object({
+  watchEnabled: z.boolean(),
+  lastSync: z.string().nullable(),
+  git: z
+    .object({
+      branch: z.string(),
+      hasChanges: z.boolean(),
+      ahead: z.number(),
+      behind: z.number(),
+      lastCommit: z.string().nullable(),
+      remote: z.string().nullable(),
+    })
+    .nullable(),
+});
+
 export interface EditorRouteOptions {
   /** Base route the editor is served from, e.g. "/cms". */
   routePath: string;
@@ -176,7 +192,49 @@ export function createEditorRoutes(
         return handleUpload(getContext(), request, apiPath("upload"));
       },
     },
+    {
+      path: apiPath("sync-status"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const denied = await requireSession(request);
+        if (denied) return denied;
+        return handleSyncStatus(getContext());
+      },
+    },
   ];
+}
+
+/**
+ * Save-pipeline status for the instrument strip: where the last write is
+ * in the entity db → file export → git commit chain. Directory-sync answers
+ * over the message bus; when it (or git) is absent the payload degrades to
+ * nulls and the strip simply doesn't render those stations.
+ */
+async function handleSyncStatus(
+  context: ServicePluginContext,
+): Promise<Response> {
+  const unavailable = { directorySync: null, git: null };
+  const response = await context.messaging.send({
+    type: "sync:status:request",
+    payload: {},
+  });
+  if (!("success" in response) || !response.success) {
+    return jsonResponse(unavailable);
+  }
+
+  const parsed = syncStatusMessageSchema.safeParse(response.data);
+  if (!parsed.success) {
+    return jsonResponse(unavailable);
+  }
+
+  return jsonResponse({
+    directorySync: {
+      lastSync: parsed.data.lastSync,
+      watching: parsed.data.watchEnabled,
+    },
+    git: parsed.data.git,
+  });
 }
 
 async function handleListTypes(

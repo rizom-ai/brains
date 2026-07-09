@@ -1,6 +1,12 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { DirectorySync } from "./directory-sync";
+import type {
+  CleanupResult,
+  DirectorySyncStatus,
+  ExportResult,
+  GitSyncStatus,
+  ImportResult,
+} from "../types";
 
 interface ConfigureOptions {
   syncPath: string;
@@ -18,12 +24,26 @@ interface GitConfig {
   branch?: string | undefined;
 }
 
+/** The slice of DirectorySync the message handlers consume. */
+export interface SyncHandlerSource {
+  getStatus(): Promise<DirectorySyncStatus>;
+  exportEntities(entityTypes?: string[]): Promise<ExportResult>;
+  importEntities(paths?: string[]): Promise<ImportResult>;
+  removeOrphanedEntities(): Promise<CleanupResult>;
+}
+
+/** The slice of GitSync the status handler consumes. */
+export interface GitStatusSource {
+  getStatus(): Promise<GitSyncStatus>;
+}
+
 export function registerMessageHandlers(
   context: ServicePluginContext,
-  getDirectorySync: () => DirectorySync,
+  getDirectorySync: () => SyncHandlerSource,
   configure: (options: ConfigureOptions) => Promise<void>,
   logger: Logger,
   gitConfig?: GitConfig,
+  getGitSync?: () => GitStatusSource | undefined,
 ): void {
   const { subscribe } = context.messaging;
 
@@ -75,6 +95,8 @@ export function registerMessageHandlers(
           syncPath: status.syncPath,
           isInitialized: status.exists,
           watchEnabled: status.watching,
+          lastSync: status.lastSync?.toISOString() ?? null,
+          git: await queryGitStatus(getGitSync?.(), logger),
         },
       };
     } catch (error) {
@@ -114,4 +136,37 @@ export function registerMessageHandlers(
   });
 
   logger.debug("Registered message handlers");
+}
+
+/**
+ * Git state for the status payload. A git failure degrades to null —
+ * consumers (e.g. the CMS save-pipeline strip) still get the directory
+ * status rather than an error for the whole request.
+ */
+async function queryGitStatus(
+  gitSync: GitStatusSource | undefined,
+  logger: Logger,
+): Promise<{
+  branch: string;
+  hasChanges: boolean;
+  ahead: number;
+  behind: number;
+  lastCommit: string | null;
+  remote: string | null;
+} | null> {
+  if (!gitSync) return null;
+  try {
+    const status = await gitSync.getStatus();
+    return {
+      branch: status.branch,
+      hasChanges: status.hasChanges,
+      ahead: status.ahead,
+      behind: status.behind,
+      lastCommit: status.lastCommit ?? null,
+      remote: status.remote ?? null,
+    };
+  } catch (error) {
+    logger.debug("Git status unavailable for sync:status:request", { error });
+    return null;
+  }
 }

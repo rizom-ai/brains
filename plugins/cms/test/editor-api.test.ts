@@ -1059,3 +1059,104 @@ describe("cms editor api", () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe("cms editor sync status", () => {
+  /** The payload directory-sync answers sync:status:request with. */
+  const syncStatusData = {
+    syncPath: "/tmp/sync",
+    isInitialized: true,
+    watchEnabled: true,
+    lastSync: "2026-07-09T10:00:00.000Z",
+    git: {
+      branch: "main",
+      hasChanges: false,
+      ahead: 0,
+      behind: 0,
+      lastCommit: "abc1234def5678",
+      remote: "origin/main",
+    },
+  };
+
+  it("requires an operator session", async () => {
+    const shell = createEditorTestShell();
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/cms/api/sync-status").handler(
+      apiRequest("/cms/api/sync-status"),
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("maps the directory-sync status onto the save-pipeline payload", async () => {
+    const shell = createEditorTestShell();
+    shell.getMessageBus().subscribe("sync:status:request", async () => ({
+      success: true,
+      data: syncStatusData,
+    }));
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/cms/api/sync-status").handler(
+      apiRequest("/cms/api/sync-status", { cookie }),
+    );
+    const payload = (await response.json()) as {
+      directorySync: { lastSync: string | null; watching: boolean } | null;
+      git: Record<string, unknown> | null;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.directorySync).toEqual({
+      lastSync: "2026-07-09T10:00:00.000Z",
+      watching: true,
+    });
+    expect(payload.git).toEqual({
+      branch: "main",
+      hasChanges: false,
+      ahead: 0,
+      behind: 0,
+      lastCommit: "abc1234def5678",
+      remote: "origin/main",
+    });
+  });
+
+  it("degrades to nulls when directory-sync is not installed", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/cms/api/sync-status").handler(
+      apiRequest("/cms/api/sync-status", { cookie }),
+    );
+    const payload = (await response.json()) as {
+      directorySync: unknown;
+      git: unknown;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.directorySync).toBeNull();
+    expect(payload.git).toBeNull();
+  });
+
+  it("degrades to nulls when the status payload is malformed", async () => {
+    const shell = createEditorTestShell();
+    shell.getMessageBus().subscribe("sync:status:request", async () => ({
+      success: true,
+      data: { unexpected: true },
+    }));
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/cms/api/sync-status").handler(
+      apiRequest("/cms/api/sync-status", { cookie }),
+    );
+    const payload = (await response.json()) as {
+      directorySync: unknown;
+      git: unknown;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.directorySync).toBeNull();
+    expect(payload.git).toBeNull();
+  });
+});

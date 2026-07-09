@@ -5,9 +5,14 @@
 Built in worktree `cms-editor` — Phases 0–5 complete (walking skeleton, full CRUD,
 floor body editor, image upload, raw-note handling, validation + stale-write conflicts,
 mockup visual pass, Sveltia + legacy auth decommissioned; original archived as
-`plugins/sveltia-cms`). Remaining: D1 editor upgrade (CodeMirror) pending authoring
-feedback, and the save-pipeline instrument strip (needs directory-sync/git-sync status
-plumbing). Delete this plan when the worktree merges. Replaces the
+`plugins/sveltia-cms`). The save-pipeline instrument strip is in: directory-sync's
+`sync:status:request` now reports lastSync + git state (dirty/ahead/lastCommit),
+`GET /cms/api/sync-status` relays it, and the editor polls it after each save to
+animate the entity db → exported to file → committed stations with the latest
+commit ref. The mockups' per-list-row sync chips are dropped, not deferred: they
+would need an entity→file→git-status mapping surfaced from directory-sync, and the
+strip already expresses the same pipeline globally. Remaining: D1 editor upgrade
+(CodeMirror) pending authoring feedback. Delete this plan when the worktree merges. Replaces the
 Sveltia-based browser CMS in `plugins/cms` with a first-party React editor that writes
 content through the entity service instead of committing to GitHub from the browser.
 

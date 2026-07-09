@@ -189,6 +189,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       (options) => this.configure(options),
       this.logger,
       this.config.git,
+      () => this.gitSync,
     );
   }
 
