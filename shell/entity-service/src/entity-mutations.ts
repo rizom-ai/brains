@@ -508,6 +508,8 @@ export class EntityMutations {
       missingEmbeddings: candidates.missingEmbeddings,
       staleEmbeddings: candidates.staleEmbeddings,
       failedEmbeddings: candidates.failedEmbeddings,
+      embeddableEntities: candidates.embeddableEntities,
+      embeddedEntities: candidates.embeddedEntities,
     };
   }
 
@@ -520,6 +522,8 @@ export class EntityMutations {
         missingEmbeddings: 0,
         staleEmbeddings: 0,
         failedEmbeddings: 0,
+        embeddableEntities: 0,
+        embeddedEntities: 0,
       };
     }
 
@@ -551,6 +555,8 @@ export class EntityMutations {
     let missingEmbeddings = 0;
     let staleEmbeddings = 0;
     let failedEmbeddings = 0;
+    let embeddableEntities = 0;
+    let embeddedEntities = 0;
 
     for (const row of entityRows) {
       const entityConfig = this.entityRegistry.getEntityTypeConfig(
@@ -560,6 +566,7 @@ export class EntityMutations {
         skipped++;
         continue;
       }
+      embeddableEntities++;
 
       const failureKey = embeddingReferenceKey({
         entityId: row.id,
@@ -590,6 +597,7 @@ export class EntityMutations {
         continue;
       }
 
+      embeddedEntities++;
       skipped++;
     }
 
@@ -600,6 +608,8 @@ export class EntityMutations {
       missingEmbeddings,
       staleEmbeddings,
       failedEmbeddings,
+      embeddableEntities,
+      embeddedEntities,
     };
   }
 

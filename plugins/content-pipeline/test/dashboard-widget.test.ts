@@ -17,11 +17,16 @@ interface DashboardWidgetPayload {
   id: string;
   pluginId: string;
   title: string;
+  group: string;
   section: string;
   priority: number;
   rendererName: string;
   visibility: UserPermissionLevel;
   dataProvider: () => Promise<PipelineWidgetData>;
+  digestProvider: (data: unknown) => {
+    digest: Array<{ label: string; value: string; tone?: string }>;
+    needsOperator: number;
+  };
 }
 
 describe("dashboard widget registration", () => {
@@ -56,12 +61,14 @@ describe("dashboard widget registration", () => {
       id: "publication-pipeline",
       pluginId: "content-pipeline",
       title: "Publication Pipeline",
+      group: "publishing",
       section: "secondary",
       priority: 100,
       rendererName: "PipelineWidget",
       visibility: "anchor",
     });
     expect(widgetPayload?.dataProvider).toBeFunction();
+    expect(widgetPayload?.digestProvider).toBeFunction();
   });
 
   it("should provide status summary and items", async () => {
@@ -113,5 +120,39 @@ describe("dashboard widget registration", () => {
         status: "queued",
       },
     ]);
+  });
+
+  it("should derive live digest figures from pipeline data", async () => {
+    await registerDashboardWidget(context, "content-pipeline");
+
+    const derived = widgetPayload?.digestProvider({
+      summary: { draft: 2, queued: 3, published: 9, failed: 1 },
+      items: [],
+    });
+
+    expect(derived?.digest).toEqual([
+      { label: "Queued", value: "3", tone: "warn" },
+      { label: "Drafts", value: "2" },
+      { label: "Published", value: "9", tone: "good" },
+      { label: "Failed", value: "1", tone: "warn" },
+    ]);
+    // Drafts and failures both wait on an operator decision.
+    expect(derived?.needsOperator).toBe(3);
+  });
+
+  it("should omit the failed digest line when nothing failed", async () => {
+    await registerDashboardWidget(context, "content-pipeline");
+
+    const derived = widgetPayload?.digestProvider({
+      summary: { draft: 0, queued: 0, published: 4, failed: 0 },
+      items: [],
+    });
+
+    expect(derived?.digest).toEqual([
+      { label: "Queued", value: "0" },
+      { label: "Drafts", value: "0" },
+      { label: "Published", value: "4", tone: "good" },
+    ]);
+    expect(derived?.needsOperator).toBe(0);
   });
 });

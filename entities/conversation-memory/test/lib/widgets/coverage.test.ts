@@ -230,6 +230,7 @@ describe("registerSummaryCoverageWidget", () => {
       id: "conversation-memory:coverage",
       pluginId: "conversation-memory",
       title: "Conversation memory coverage",
+      group: "system",
       section: "secondary",
       priority: 80,
       rendererName: "ListWidget",

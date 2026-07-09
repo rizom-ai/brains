@@ -82,7 +82,9 @@ describe("registerTopicsDashboardWidget", () => {
       payload: expect.objectContaining({
         id: "topics",
         pluginId: "topics",
+        group: "knowledge",
         rendererName: "ListWidget",
+        digestProvider: expect.any(Function),
       }),
     });
 

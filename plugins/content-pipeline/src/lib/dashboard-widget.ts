@@ -1,4 +1,5 @@
 import type { ServicePluginContext } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 
 export interface PipelineWidgetItem {
   id: string;
@@ -26,13 +27,54 @@ export async function registerDashboardWidget(
       id: "publication-pipeline",
       pluginId,
       title: "Publication Pipeline",
+      group: "publishing",
       section: "secondary",
       priority: 100,
       rendererName: "PipelineWidget",
       visibility: "anchor",
       dataProvider: () => getPipelineWidgetData(context),
+      digestProvider: derivePipelineDigest,
     },
   });
+}
+
+const pipelineDigestSourceSchema = z.object({
+  summary: z.object({
+    draft: z.number(),
+    queued: z.number(),
+    published: z.number(),
+    failed: z.number(),
+  }),
+});
+
+function derivePipelineDigest(data: unknown): {
+  digest: Array<{ label: string; value: string; tone?: "good" | "warn" }>;
+  needsOperator: number;
+} {
+  const { summary } = pipelineDigestSourceSchema.parse(data);
+
+  return {
+    digest: [
+      {
+        label: "Queued",
+        value: String(summary.queued),
+        ...(summary.queued > 0 ? { tone: "warn" as const } : {}),
+      },
+      { label: "Drafts", value: String(summary.draft) },
+      { label: "Published", value: String(summary.published), tone: "good" },
+      ...(summary.failed > 0
+        ? [
+            {
+              label: "Failed",
+              value: String(summary.failed),
+              tone: "warn" as const,
+            },
+          ]
+        : []),
+    ],
+    // Drafts and failures both wait on an operator decision.
+    needsOperator: summary.draft + summary.failed,
+  };
 }
 
 async function getPipelineWidgetData(

@@ -34,6 +34,7 @@ describe("DashboardDataSource", () => {
       const widget1: RegisteredWidget = {
         id: "stats-widget",
         pluginId: "system",
+        group: "knowledge",
         title: "Entity Stats",
         section: "primary",
         priority: 10,
@@ -44,6 +45,7 @@ describe("DashboardDataSource", () => {
       const widget2: RegisteredWidget = {
         id: "jobs-widget",
         pluginId: "system",
+        group: "knowledge",
         title: "Active Jobs",
         section: "secondary",
         priority: 20,
@@ -69,6 +71,7 @@ describe("DashboardDataSource", () => {
 
       if (statsWidget && jobsWidget) {
         expect(statsWidget.widget.title).toBe("Entity Stats");
+        expect(statsWidget.widget.group).toBe("knowledge");
         expect(statsWidget.data).toEqual({ notes: 42, links: 15 });
         expect(jobsWidget.data).toEqual({ items: ["job1", "job2"] });
       }
@@ -78,6 +81,7 @@ describe("DashboardDataSource", () => {
       const goodWidget: RegisteredWidget = {
         id: "good-widget",
         pluginId: "plugin",
+        group: "knowledge",
         title: "Good Widget",
         section: "primary",
         priority: 10,
@@ -88,6 +92,7 @@ describe("DashboardDataSource", () => {
       const badWidget: RegisteredWidget = {
         id: "bad-widget",
         pluginId: "plugin",
+        group: "knowledge",
         title: "Bad Widget",
         section: "primary",
         priority: 20,
@@ -121,6 +126,7 @@ describe("DashboardDataSource", () => {
       registry.register({
         id: "public-widget",
         pluginId: "test",
+        group: "knowledge",
         title: "Public",
         section: "primary",
         priority: 10,
@@ -130,6 +136,7 @@ describe("DashboardDataSource", () => {
       registry.register({
         id: "trusted-widget",
         pluginId: "test",
+        group: "knowledge",
         title: "Trusted",
         section: "primary",
         priority: 20,
@@ -140,6 +147,7 @@ describe("DashboardDataSource", () => {
       registry.register({
         id: "anchor-widget",
         pluginId: "test",
+        group: "knowledge",
         title: "Anchor",
         section: "primary",
         priority: 30,
@@ -173,6 +181,7 @@ describe("DashboardDataSource", () => {
       const widget: RegisteredWidget = {
         id: "test-widget",
         pluginId: "test",
+        group: "knowledge",
         title: "Test",
         description: "A test widget",
         section: "primary",
@@ -197,11 +206,75 @@ describe("DashboardDataSource", () => {
         expect(widgetData.widget.title).toBe("Test");
         expect(widgetData.widget.description).toBe("A test widget");
         expect(widgetData.widget.section).toBe("primary");
+        expect(widgetData.widget.group).toBe("knowledge");
         expect(widgetData.widget.priority).toBe(10);
         expect(widgetData.widget.rendererName).toBe("CustomWidget");
         // dataProvider should not be in the returned metadata
         expect(widgetData.widget).not.toHaveProperty("dataProvider");
       }
+    });
+  });
+
+  describe("digestProvider", () => {
+    it("should derive live digest and needsOperator from the widget's data", async () => {
+      registry.register({
+        id: "pipeline",
+        pluginId: "content-pipeline",
+        group: "publishing",
+        title: "Pipeline",
+        section: "primary",
+        priority: 10,
+        rendererName: "PipelineWidget",
+        // Static fallbacks that the provider should override.
+        digest: [{ label: "Workflow", value: "static" }],
+        needsOperator: 0,
+        dataProvider: async () => ({ summary: { draft: 2, queued: 3 } }),
+        digestProvider: (data) => {
+          const summary = (
+            data as { summary: { draft: number; queued: number } }
+          ).summary;
+          return {
+            digest: [
+              { label: "Queued", value: String(summary.queued), tone: "warn" },
+            ],
+            needsOperator: summary.draft,
+          };
+        },
+      });
+
+      const result = await datasource.getDashboardData();
+      const widget = result.widgets["content-pipeline:pipeline"];
+
+      expect(widget?.widget.digest).toEqual([
+        { label: "Queued", value: "3", tone: "warn" },
+      ]);
+      expect(widget?.widget.needsOperator).toBe(2);
+    });
+
+    it("should fall back to the static digest when the provider throws", async () => {
+      registry.register({
+        id: "flaky",
+        pluginId: "test",
+        group: "network",
+        title: "Flaky",
+        section: "primary",
+        priority: 10,
+        rendererName: "StatsWidget",
+        digest: [{ label: "Static", value: "kept" }],
+        needsOperator: 1,
+        dataProvider: async () => ({ ok: true }),
+        digestProvider: () => {
+          throw new Error("derive failed");
+        },
+      });
+
+      const result = await datasource.getDashboardData();
+      const widget = result.widgets["test:flaky"];
+
+      expect(widget?.widget.digest).toEqual([
+        { label: "Static", value: "kept" },
+      ]);
+      expect(widget?.widget.needsOperator).toBe(1);
     });
   });
 

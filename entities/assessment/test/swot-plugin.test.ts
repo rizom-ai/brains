@@ -38,12 +38,21 @@ describe("SwotAssessmentPlugin", () => {
 
   it("registers the standalone SWOT dashboard widget", async () => {
     const plugin = new SwotAssessmentPlugin();
-    const registrations: Array<{ id: string; rendererName: string }> = [];
+    const registrations: Array<{
+      id: string;
+      group: string;
+      rendererName: string;
+    }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = message.payload as { id: string; rendererName: string };
+      const payload = message.payload as {
+        id: string;
+        group: string;
+        rendererName: string;
+      };
       registrations.push({
         id: payload.id,
+        group: payload.group,
         rendererName: payload.rendererName,
       });
       return { success: true };
@@ -52,7 +61,9 @@ describe("SwotAssessmentPlugin", () => {
     await harness.installPlugin(plugin);
     await harness.sendMessage("system:plugins:ready", {}, "shell");
 
-    expect(registrations).toEqual([{ id: "swot", rendererName: "SwotWidget" }]);
+    expect(registrations).toEqual([
+      { id: "swot", group: "network", rendererName: "SwotWidget" },
+    ]);
   });
 
   it("does not enqueue derivation before initial sync completes", async () => {

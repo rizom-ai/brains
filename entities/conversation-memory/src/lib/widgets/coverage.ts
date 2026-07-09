@@ -172,6 +172,7 @@ export function registerSummaryCoverageWidget(params: {
           id: COVERAGE_WIDGET_ID,
           pluginId,
           title: "Conversation memory coverage",
+          group: "system",
           section: "secondary",
           priority: 80,
           rendererName: "ListWidget",

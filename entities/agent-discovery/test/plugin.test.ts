@@ -615,6 +615,7 @@ describe("AgentDiscoveryPlugin", () => {
     const plugin = new AgentDiscoveryPlugin();
     const registrations: Array<{
       id: string;
+      group: string;
       rendererName: string;
       hasComponent: boolean;
       hasClientScript: boolean;
@@ -623,12 +624,14 @@ describe("AgentDiscoveryPlugin", () => {
     harness.subscribe("dashboard:register-widget", async (message) => {
       const payload = message.payload as {
         id: string;
+        group: string;
         rendererName: string;
         component?: unknown;
         clientScript?: unknown;
       };
       registrations.push({
         id: payload.id,
+        group: payload.group,
         rendererName: payload.rendererName,
         hasComponent: typeof payload.component === "function",
         hasClientScript: typeof payload.clientScript === "string",
@@ -642,6 +645,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(registrations).toEqual([
       {
         id: "agent-network",
+        group: "network",
         rendererName: "AgentNetworkWidget",
         hasComponent: true,
         hasClientScript: true,

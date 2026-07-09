@@ -760,6 +760,10 @@ export interface EmbeddingIndexStats {
   missingEmbeddings: number;
   staleEmbeddings: number;
   failedEmbeddings: number;
+  /** Entities whose type generates embeddings (non-embeddable types excluded). */
+  embeddableEntities: number;
+  /** Embeddable entities whose embedding is present and current. */
+  embeddedEntities: number;
 }
 
 export interface IndexReadinessOptions {
