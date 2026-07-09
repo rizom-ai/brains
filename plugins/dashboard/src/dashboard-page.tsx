@@ -942,22 +942,22 @@ function DashboardDocument({
         />
       </head>
       <body>
+        <ConsoleStrip
+          dashboardPath={dashboardPath}
+          surfaces={
+            input.surfaces ?? [
+              {
+                id: "dashboard",
+                label: "Dashboard",
+                href: dashboardPath,
+                isActive: true,
+              },
+            ]
+          }
+          operatorAccess={input.operatorAccess}
+        />
         <main class="console" data-component="dashboard:dashboard">
           <div class="frame">
-            <ConsoleStrip
-              dashboardPath={dashboardPath}
-              surfaces={
-                input.surfaces ?? [
-                  {
-                    id: "dashboard",
-                    label: "Dashboard",
-                    href: dashboardPath,
-                    isActive: true,
-                  },
-                ]
-              }
-              operatorAccess={input.operatorAccess}
-            />
             <Masthead title={input.title} tagline={input.profile.description} />
             <TabBar tabs={tabs} />
 

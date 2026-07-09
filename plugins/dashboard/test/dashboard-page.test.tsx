@@ -128,10 +128,12 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).toContain('class="frame"');
     expect(html).toContain('class="canvas"');
-    // Strip, masthead, tab bar, and panels all live inside the frame.
+    // The strip pins to the top of the viewport on every surface — it
+    // lives OUTSIDE the frame so it never shifts between dashboard, chat,
+    // and the CMS. Masthead, tab bar, and panels stay inside the frame.
     const frameIndex = html.indexOf('class="frame"');
     expect(frameIndex).toBeGreaterThan(-1);
-    expect(frameIndex).toBeLessThan(html.indexOf('class="console-strip"'));
+    expect(html.indexOf('class="console-strip"')).toBeLessThan(frameIndex);
     expect(frameIndex).toBeLessThan(html.indexOf('class="masthead"'));
     expect(frameIndex).toBeLessThan(html.indexOf('class="dashboard-tabs"'));
     expect(frameIndex).toBeLessThan(
