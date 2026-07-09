@@ -557,6 +557,86 @@ describe("renderDashboardPageHtml", () => {
     );
   });
 
+  it("should render the pipeline widget as a three-lane board", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {
+        "content-pipeline:pipeline": {
+          widget: {
+            id: "pipeline",
+            pluginId: "content-pipeline",
+            title: "Publication Pipeline",
+            group: "publishing",
+            section: "primary",
+            priority: 10,
+            rendererName: "PipelineWidget",
+            visibility: "public",
+          },
+          data: {
+            summary: { draft: 1, queued: 1, published: 3, failed: 1 },
+            items: [
+              {
+                id: "q1",
+                title: "Domain as identity",
+                type: "post",
+                status: "queued",
+              },
+              {
+                id: "d1",
+                title: "Verdigris pigments",
+                type: "note",
+                status: "draft",
+              },
+              {
+                id: "f1",
+                title: "Broken send",
+                type: "newsletter",
+                status: "failed",
+                retryInfo: "retried 2/3",
+              },
+              {
+                id: "p1",
+                title: "Shipped post",
+                type: "post",
+                status: "published",
+              },
+            ],
+            generating: [
+              {
+                id: "job-8412",
+                label: "og-image",
+                target: "post/domain-as-identity",
+                status: "processing",
+              },
+            ],
+          },
+        },
+      },
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    // Three lanes with counts; published items stay off the board.
+    expect(html).toContain('class="board"');
+    expect(html).toContain("Queued");
+    expect(html).toContain("Generating");
+    expect(html).toContain("Review");
+    expect(html).toContain("Domain as identity");
+    expect(html).toContain("og-image");
+    expect(html).toContain("post/domain-as-identity");
+    expect(html).toContain("Verdigris pigments");
+    expect(html).toContain("retried 2/3");
+    const board = html.slice(html.indexOf('class="board"'));
+    expect(board).not.toContain("Shipped post");
+    // The old filter-tab pipeline UI is gone.
+    expect(html).not.toContain("data-pipeline-tab");
+  });
+
   it("should render plugin-owned custom widgets and inject their scripts", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
