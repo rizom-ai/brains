@@ -320,7 +320,7 @@ describe("buildSkillPrompt", () => {
     const prompt = buildSkillPrompt(input);
 
     expect(prompt).toContain("action-oriented");
-    expect(prompt).toContain("Return 4-8 consolidated skills");
+    expect(prompt).toContain("Return a compact set of consolidated skills");
     expect(prompt).toContain(
       "Never return as many skills as there are knowledge domains",
     );

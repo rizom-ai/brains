@@ -44,10 +44,12 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Yeehaa"
+  - userMessage: "My name is Yeehaa, but I have not provided my role, audience, expertise, or tone yet. Do not save or advance until I give those details."
     successCriteria:
       expectedTools:
         - toolName: system_create
+          shouldBeCalled: false
+        - toolName: system_update
           shouldBeCalled: false
       responseNotContains:
         - "Confirmation required"

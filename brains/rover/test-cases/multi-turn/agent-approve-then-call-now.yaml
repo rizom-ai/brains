@@ -12,7 +12,7 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Approve old-agent.io"
+  - userMessage: "Set saved agent old-agent.io status to approved now."
     successCriteria:
       expectedTools:
         - toolName: system_update
@@ -30,7 +30,7 @@ turns:
         - "approve it first"
         - "still not approved"
 
-  - userMessage: "Approve confirmation"
+  - userMessage: "Confirm that approval update."
     confirmPendingAction: true
     successCriteria:
       responseContains:

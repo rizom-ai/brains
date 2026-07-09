@@ -65,11 +65,16 @@ For each skill, write an action-oriented description of what the brain
 can DO (not just what it knows). Use verbs: "Create...", "Analyze...",
 "Design...", "Write about...".
 
-Return 4-8 consolidated skills. Never return as many skills as there are knowledge domains. Each skill needs:
+Return a compact set of consolidated skills. For small inputs, prefer 2-4 skills; for larger inputs, return at most 8. Never return as many skills as there are knowledge domains. Each skill needs:
 - name: broad capability (max 50 chars, NOT a topic title copy)
 - description: one action-oriented sentence
 - tags: 3-5 keywords spanning multiple topics
 - examples: 2-3 concrete user prompts`;
+}
+
+function maxConsolidatedSkillCount(topicCount: number): number {
+  if (topicCount < 6) return 8;
+  return Math.min(8, Math.max(2, Math.floor(topicCount * 0.75)));
 }
 
 export async function deriveSkills(
@@ -123,7 +128,8 @@ export async function deriveSkills(
       prompt,
       templateName: SKILL_DERIVATION_TEMPLATE_REF,
     });
-    skills = result.skills.slice(0, 8);
+    const maxSkills = maxConsolidatedSkillCount(topicTitles.length);
+    skills = result.skills.slice(0, maxSkills);
     if (result.skills.length > skills.length) {
       logger.warn("Dropped excess derived skills to preserve consolidation", {
         received: result.skills.length,

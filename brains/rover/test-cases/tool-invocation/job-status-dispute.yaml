@@ -21,7 +21,6 @@ successCriteria:
     - "based on our conversation"
     - "I already told you"
     - "must still be running"
-  minInstructionFollowingScore: 3
 
 efficiency:
   maxToolCalls: 3

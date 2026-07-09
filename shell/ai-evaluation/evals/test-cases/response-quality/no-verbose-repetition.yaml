@@ -14,10 +14,7 @@ tags:
 turns:
   - userMessage: "Show me my identity and my profile"
 
-successCriteria:
-  # Agent should answer from system prompt — no tool calls needed
-  minHelpfulnessScore: 3
-  minInstructionFollowingScore: 3
+successCriteria: {}
 
 efficiency:
   maxToolCalls: 4

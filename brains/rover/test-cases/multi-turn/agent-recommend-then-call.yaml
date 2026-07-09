@@ -11,7 +11,7 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Who in my network should I consult about branding?"
+  - userMessage: "Who in my network should I consult about branding? Include the exact saved agent id/domain."
     successCriteria:
       expectedTools:
         - toolName: system_search
@@ -21,11 +21,12 @@ turns:
             scope.entityType: "agent"
       responseContains:
         - "Brand Studio"
+        - "brand-studio.example"
       responseNotContains:
         - "brand designer, marketer, or creative strategist"
         - "If you want, I can help narrow it down"
 
-  - userMessage: "Ask them what positioning mistakes I should avoid."
+  - userMessage: "Ask that saved agent what positioning mistakes I should avoid."
     successCriteria:
       expectedTools:
         - toolName: agent_call

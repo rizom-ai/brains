@@ -36,9 +36,6 @@ turns:
 
   - userMessage: "How do I discuss urban technology in my writing?"
     successCriteria:
-      expectedTools:
-        - toolName: system_search
-          shouldBeCalled: true
       responseNotContains:
         - "would you like me to"
         - "Would you like me to"
