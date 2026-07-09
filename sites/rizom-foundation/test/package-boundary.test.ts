@@ -205,6 +205,21 @@ describe("@rizom/site-rizom-foundation package boundary", () => {
       );
       expect(installedFoundationManifest.devDependencies).toBeUndefined();
 
+      // npm builds the registry dependency metadata from the on-disk
+      // manifest before prepack rewrites it, so a workspace: range here
+      // ships a broken packument even when the tarball manifest is
+      // clean (@rizom/site-rizom-ai@0.2.0-alpha.145). The repo manifest
+      // must pin the concrete version of published @rizom deps.
+      expect(sourceFoundationManifest.dependencies["@rizom/site"]).toBe(
+        sourceSdkManifest.version,
+      );
+      expect(sourceFoundationManifest.dependencies["@rizom/site-rizom"]).toBe(
+        sourceBaseManifest.version,
+      );
+      expect(sourceBaseManifest.dependencies["@rizom/site"]).toBe(
+        sourceSdkManifest.version,
+      );
+
       // The runtime peer range must reach the published manifest even
       // though the repo manifest omits it (it would close a workspace
       // dependency cycle through @rizom/brain).
