@@ -76,11 +76,13 @@ Foundation`) above a per-face contextual nav; each room keeps its live nav and i
    ranger-ai's product entities, newsletter backs the `/foundation` follow band.
    `content-pipeline` and `social-media` stay out — no live cadence exists to carry
    (settled in Phase 0; publishing itself comes with the rover base).
-4. **Content repos merge into `rizom-ai-content`.** The work and foundation content repos
-   are imported (with history, via subtree or plain file import — subtree preferred so
-   provenance survives) and then archived. Entity collisions (same id/slug across repos)
-   are resolved during the merge; the import runs through directory-sync so the entity DB
-   is the writer of record for the merged corpus.
+4. **Content repos merge into a NEW repo, `rizom-ai/rizom-content`** (decided
+   2026-07-09; supersedes "merge into `rizom-ai-content`"). All three old content repos
+   are merged in with full history (`-s ours` merges + selective checkout), collisions
+   resolved per the IA note, and `site-content/*` retired immediately — the new repo has
+   no live consumer, so nothing is deferred to cutover. The live brain keeps syncing the
+   untouched `rizom-ai-content` until cutover; the consolidated brain starts on
+   `rizom-content` from day one, and the three old repos are archived at cutover.
 5. **Runtime state migrates with the foundation brain.** The foundation relay's
    conversation/team memory is the collective POC's working state; its runtime DBs
    (conversations, entities, jobs) are copied to the consolidated deployment at cutover
@@ -152,20 +154,18 @@ avoided; that call belongs to that plan's lane.
 
 ### Phase 3 — Content and state cutover
 
-- **Content merge landed (2026-07-09), unpushed.** `rizom-work-content` and
-  `rizom-foundation-content` merged into `rizom-ai-content` with full history
-  (`-s ours` merge + selective checkout per the collision policy — resolutions
-  recorded in the IA note, which the merge updated: work's skills/topics/swot/
+- **Content merge landed and published (2026-07-09)** as the new
+  `rizom-ai/rizom-content` repo (decision 4): all three old repos' histories
+  merged, collisions resolved per the IA note (work's skills/topics/swot/
   prompts won their collisions; foundation contributed decks + essays + brand
-  docs; identity entities rewritten for the consolidated brain). One deliberate
-  deviation: `site-content/*` is NOT deleted yet — the content repo feeds the
-  live rizom.ai brain on push, so the merge stays additive and retirement moves
-  to the Phase 5 cutover step.
+  docs; identity entities rewritten for the consolidated brain), and
+  `site-content/*` retired in the same stroke. The live brain's
+  `rizom-ai-content` is untouched.
 - Verification in progress: the test brain boots seeded from the real merged
   corpus (site builds; prompts + identity confirmed imported). Still to
   confirm: the full corpus settles — skills, topics, swot, decks, root docs.
-- Remaining at cutover: push the merged content repo, copy foundation runtime
-  DBs to the new deployment, verify conversation memory reads.
+- Remaining at cutover: copy foundation runtime DBs to the new deployment,
+  verify conversation memory reads.
 
 ### Phase 4 — Published-index routes on the merged content
 
