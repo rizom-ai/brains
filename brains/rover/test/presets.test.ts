@@ -34,6 +34,23 @@ describe("rover presets", () => {
     }
   });
 
+  it("keeps site-content opt-in for hosted custom site packages", () => {
+    const defaultConfig = resolve(rover, {}, { preset: "default" });
+    const defaultPluginIds =
+      defaultConfig.plugins?.map((plugin) => plugin.id) ?? [];
+
+    expect(defaultPluginIds).not.toContain("site-content");
+
+    const config = resolve(
+      rover,
+      {},
+      { preset: "default", add: ["site-content"] },
+    );
+    const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
+
+    expect(pluginIds).toContain("site-content");
+  });
+
   it("keeps the ATProto registry opt-in for canonical protocol hosts", () => {
     const defaultConfig = resolve(rover, {}, { preset: "default" });
     const defaultPluginIds =

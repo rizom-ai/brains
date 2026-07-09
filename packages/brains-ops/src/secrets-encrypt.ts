@@ -19,11 +19,15 @@ const encryptedUserSecretsSchema: z.ZodObject<{
   discordBotToken: z.ZodOptional<z.ZodString>;
   aiApiKey: z.ZodOptional<z.ZodString>;
   atprotoAppPassword: z.ZodOptional<z.ZodString>;
+  certificatePem: z.ZodOptional<z.ZodString>;
+  privateKeyPem: z.ZodOptional<z.ZodString>;
 }> = z.strictObject({
   gitSyncToken: z.string().min(1).optional(),
   discordBotToken: z.string().min(1).optional(),
   aiApiKey: z.string().min(1).optional(),
   atprotoAppPassword: z.string().min(1).optional(),
+  certificatePem: z.string().min(1).optional(),
+  privateKeyPem: z.string().min(1).optional(),
 });
 
 export type EncryptedUserSecrets = z.output<typeof encryptedUserSecretsSchema>;
@@ -202,12 +206,32 @@ function buildEncryptedUserSecrets(
     "atprotoAppPassword",
     "ATPROTO_APP_PASSWORD",
   );
+  const certificatePem = resolveOptionalSecretValue(
+    rootDir,
+    env,
+    localEnvValues,
+    plaintextSecrets,
+    existingSecrets,
+    "certificatePem",
+    "CERTIFICATE_PEM",
+  );
+  const privateKeyPem = resolveOptionalSecretValue(
+    rootDir,
+    env,
+    localEnvValues,
+    plaintextSecrets,
+    existingSecrets,
+    "privateKeyPem",
+    "PRIVATE_KEY_PEM",
+  );
 
   return encryptedUserSecretsSchema.parse({
     ...(aiApiKey ? { aiApiKey } : {}),
     ...(gitSyncToken ? { gitSyncToken } : {}),
     ...(discordBotToken ? { discordBotToken } : {}),
     ...(atprotoAppPassword ? { atprotoAppPassword } : {}),
+    ...(certificatePem ? { certificatePem } : {}),
+    ...(privateKeyPem ? { privateKeyPem } : {}),
   });
 }
 

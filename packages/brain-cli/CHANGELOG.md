@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.145
+
+### Patch Changes
+
+- [`34bf814`](https://github.com/rizom-ai/brains/commit/34bf814558ae017cc5d9f70aba9f3bbcbc6093e6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow Rover instances to opt into site-content for hosted Rizom site packages.
+
+## 0.2.0-alpha.144
+
+### Patch Changes
+
+- [`4b939fc`](https://github.com/rizom-ai/brains/commit/4b939fcf6fe66e2a2daf2721ab765ae4dae878ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restructure the dashboard into a tabbed operator console. Widgets now declare required dashboard groups that derive visible tabs, the Overview renders vitals and group digest cards, the System tab owns runtime/endpoints/status cards, and first-party widgets provide group/digest metadata for the new layout.
+
 ## 0.2.0-alpha.143
 
 ## 0.2.0-alpha.142

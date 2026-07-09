@@ -1,5 +1,13 @@
 # @brains/ops
 
+## 0.2.0-alpha.145
+
+### Patch Changes
+
+- [`47d53f6`](https://github.com/rizom-ai/brains/commit/47d53f635551eaa486449173bcea5703df57cf6f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve custom-domain certificate secrets when encrypting rover-pilot user secrets.
+
+## 0.2.0-alpha.144
+
 ## 0.2.0-alpha.143
 
 ## 0.2.0-alpha.142

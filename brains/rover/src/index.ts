@@ -16,6 +16,7 @@ import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { directorySync } from "@brains/directory-sync";
 import { emailResendPlugin } from "@brains/email-resend";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
 import { blogPlugin } from "@brains/blog";
 import { seriesPlugin } from "@brains/series";
@@ -249,6 +250,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["analytics", analyticsPlugin, {}],
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["site-info", siteInfoPlugin, undefined],
+    ["site-content", siteContentPlugin, undefined],
     [
       "site-builder",
       siteBuilderPlugin,

@@ -128,31 +128,88 @@ describe("dashboard widget registration", () => {
     const derived = widgetPayload?.digestProvider({
       summary: { draft: 2, queued: 3, published: 9, failed: 1 },
       items: [],
+      generating: [{ id: "job-1" }],
     });
 
     expect(derived?.digest).toEqual([
-      { label: "Queued", value: "3", tone: "warn" },
-      { label: "Drafts", value: "2" },
+      { label: "Pipeline", value: "3 queued · 1 generating", tone: "warn" },
+      { label: "Awaiting review", value: "2 drafts · 1 failed", tone: "warn" },
       { label: "Published", value: "9", tone: "good" },
-      { label: "Failed", value: "1", tone: "warn" },
     ]);
     // Drafts and failures both wait on an operator decision.
     expect(derived?.needsOperator).toBe(3);
   });
 
-  it("should omit the failed digest line when nothing failed", async () => {
+  it("should render a quiet digest when the pipeline is idle", async () => {
     await registerDashboardWidget(context, "content-pipeline");
 
     const derived = widgetPayload?.digestProvider({
       summary: { draft: 0, queued: 0, published: 4, failed: 0 },
       items: [],
+      generating: [],
     });
 
     expect(derived?.digest).toEqual([
-      { label: "Queued", value: "0" },
-      { label: "Drafts", value: "0" },
+      { label: "Pipeline", value: "idle" },
+      { label: "Awaiting review", value: "0 drafts" },
       { label: "Published", value: "4", tone: "good" },
     ]);
     expect(derived?.needsOperator).toBe(0);
+  });
+
+  it("should surface active content-pipeline jobs as generating items", async () => {
+    type ActiveJobs = Awaited<
+      ReturnType<ServicePluginContext["jobs"]["getActiveJobs"]>
+    >;
+    context.jobs.getActiveJobs = async (): Promise<ActiveJobs> => [
+      {
+        id: "job-8412",
+        type: "image:image-render-source",
+        data: JSON.stringify({
+          sourceEntityType: "post",
+          sourceEntityId: "domain-as-identity",
+          attachmentType: "og-image",
+        }),
+        status: "processing" as const,
+        source: "content-pipeline",
+        priority: 0,
+        retryCount: 0,
+        maxRetries: 3,
+        lastError: null,
+        createdAt: 0,
+        scheduledFor: 0,
+        startedAt: null,
+        completedAt: null,
+        metadata: {} as never,
+      },
+      {
+        id: "job-other",
+        type: "site:build",
+        data: "{}",
+        status: "processing" as const,
+        source: "site-builder",
+        priority: 0,
+        retryCount: 0,
+        maxRetries: 3,
+        lastError: null,
+        createdAt: 0,
+        scheduledFor: 0,
+        startedAt: null,
+        completedAt: null,
+        metadata: {} as never,
+      },
+    ];
+
+    await registerDashboardWidget(context, "content-pipeline");
+    const data = await widgetPayload?.dataProvider();
+
+    expect(data?.generating).toEqual([
+      {
+        id: "job-8412",
+        label: "og-image",
+        target: "post/domain-as-identity",
+        status: "processing",
+      },
+    ]);
   });
 });
