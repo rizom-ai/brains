@@ -113,9 +113,10 @@ describe("DirectorySyncPlugin", () => {
           syncPath: string;
           isInitialized: boolean;
           watchEnabled: boolean;
-          lastSync?: string;
+          lastSync: string | null;
           totalFiles: number;
           byEntityType: Record<string, number>;
+          git: unknown;
         }
       >("sync:status:request", {}, "test");
 
@@ -125,6 +126,9 @@ describe("DirectorySyncPlugin", () => {
       expect(response?.watchEnabled).toBe(false);
       expect(response?.totalFiles).toBeGreaterThanOrEqual(0);
       expect(response?.byEntityType).toBeDefined();
+      // No git configured in this harness — status degrades, not errors.
+      expect(response?.git).toBeNull();
+      expect(response?.lastSync).toBeNull();
     });
 
     it("should respond to export requests", async () => {

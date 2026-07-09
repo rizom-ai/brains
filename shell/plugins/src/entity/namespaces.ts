@@ -72,6 +72,11 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     ): void => {
       entityRegistry.registerUploadSaveHandler(registration);
     },
+    getUploadSaveHandler: (
+      mediaType: string,
+    ): UploadSaveHandlerRegistration | undefined => {
+      return entityRegistry.getUploadSaveHandler(mediaType);
+    },
     update: async <T extends BaseEntity>(
       entity: T,
     ): Promise<{ entityId: string; jobId: string }> => {
