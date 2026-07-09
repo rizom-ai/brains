@@ -150,11 +150,19 @@ avoided; that call belongs to that plan's lane.
 
 ### Phase 3 — Content and state cutover
 
-- Merge content repos (subtree import → collision pass → directory-sync import settles;
-  policy per the Phase 0 IA note: rizom-ai ids win, foundation-unique content imports
-  as-is, `site-content/*` retires unimported); copy foundation runtime DBs to the new
-  deployment; verify conversation memory reads.
-- Tests first: import round-trip on a merged fixture; collision policy covered.
+- **Content merge landed (2026-07-09), unpushed.** `rizom-work-content` and
+  `rizom-foundation-content` merged into `rizom-ai-content` with full history
+  (`-s ours` merge + selective checkout per the collision policy — resolutions
+  recorded in the IA note, which the merge updated: work's skills/topics/swot/
+  prompts won their collisions; foundation contributed decks + essays + brand
+  docs; identity entities rewritten for the consolidated brain). One deliberate
+  deviation: `site-content/*` is NOT deleted yet — the content repo feeds the
+  live rizom.ai brain on push, so the merge stays additive and retirement moves
+  to the Phase 5 cutover step.
+- Verified by booting the test brain seeded from the real merged corpus
+  (fresh DB, directory-sync import settles, site builds).
+- Remaining at cutover: push the merged content repo, copy foundation runtime
+  DBs to the new deployment, verify conversation memory reads.
 
 ### Phase 4 — Published-index routes on the merged content
 
