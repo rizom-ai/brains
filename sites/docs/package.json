@@ -18,7 +18,7 @@
     "prepack": "publish-manifest prepare"
   },
   "dependencies": {
-    "@rizom/site": "workspace:*",
+    "@rizom/site": "0.2.0-alpha.142",
     "preact": "^10.27.2"
   },
   "publishPeerDependencies": {
