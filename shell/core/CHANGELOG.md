@@ -1,5 +1,57 @@
 # @brains/core
 
+## 0.2.0-alpha.145
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.145
+  - @brains/image@0.2.0-alpha.145
+  - @brains/site-composition@0.2.0-alpha.145
+  - @brains/utils@0.2.0-alpha.145
+  - @brains/plugins@0.2.0-alpha.145
+  - @brains/runtime-state@0.2.0-alpha.145
+  - @brains/templates@0.2.0-alpha.145
+
+## 0.2.0-alpha.144
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.144
+  - @brains/image@0.2.0-alpha.144
+  - @brains/site-composition@0.2.0-alpha.144
+  - @brains/utils@0.2.0-alpha.144
+  - @brains/plugins@0.2.0-alpha.144
+  - @brains/runtime-state@0.2.0-alpha.144
+  - @brains/templates@0.2.0-alpha.144
+
+## 0.2.0-alpha.143
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.143
+  - @brains/image@0.2.0-alpha.143
+  - @brains/site-composition@0.2.0-alpha.143
+  - @brains/utils@0.2.0-alpha.143
+  - @brains/plugins@0.2.0-alpha.143
+  - @brains/runtime-state@0.2.0-alpha.143
+  - @brains/templates@0.2.0-alpha.143
+
+## 0.2.0-alpha.142
+
+### Patch Changes
+
+- Updated dependencies [[`e789ec6`](https://github.com/rizom-ai/brains/commit/e789ec67cd3edc20ff1cf4ac9a7de08de0f415a5), [`6aa5d6c`](https://github.com/rizom-ai/brains/commit/6aa5d6c8f1eeec935e98e116e97f9ad64148d5ed)]:
+  - @brains/site-composition@0.2.0-alpha.142
+  - @brains/plugins@0.2.0-alpha.142
+  - @brains/contracts@0.2.0-alpha.142
+  - @brains/image@0.2.0-alpha.142
+  - @brains/utils@0.2.0-alpha.142
+  - @brains/runtime-state@0.2.0-alpha.142
+  - @brains/templates@0.2.0-alpha.142
+
 ## 0.2.0-alpha.141
 
 ### Patch Changes

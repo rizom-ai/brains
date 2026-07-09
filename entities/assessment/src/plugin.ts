@@ -1,6 +1,11 @@
 import type { Plugin, EntityPluginContext } from "@brains/plugins";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
+
+const swotDigestSourceSchema = z.object({
+  status: z.enum(["ready", "generating"]),
+});
 import type { SwotDerivationJobData } from "./schemas/swot-generation";
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
@@ -105,9 +110,22 @@ export class SwotAssessmentPlugin extends EntityPlugin<
             id: "swot",
             pluginId: this.id,
             title: "SWOT",
+            group: "network",
             section: "secondary",
             priority: 14,
             rendererName: "SwotWidget",
+            digestProvider: (data: unknown) => {
+              const { status } = swotDigestSourceSchema.parse(data);
+              return {
+                digest: [
+                  {
+                    label: "SWOT",
+                    value: status === "ready" ? "Ready" : "Generating",
+                    tone: status === "ready" ? "good" : "warn",
+                  },
+                ],
+              };
+            },
             component: SwotWidget,
             dataProvider: async () => {
               const swot = await context.entityService.getEntity<SwotEntity>({

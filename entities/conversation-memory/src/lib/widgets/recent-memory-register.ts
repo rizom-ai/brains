@@ -22,6 +22,7 @@ export function registerRecentConversationMemoryWidget(params: {
           id: RECENT_MEMORY_WIDGET_ID,
           pluginId,
           title: "Recent conversation memory",
+          group: "knowledge",
           section: "secondary",
           priority: 35,
           rendererName: "CustomWidget",

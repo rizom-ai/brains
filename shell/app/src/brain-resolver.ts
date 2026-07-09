@@ -1,4 +1,9 @@
-import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
+import {
+  PluginConfigValidationError,
+  type IShell,
+  type Plugin,
+  type PluginCapabilities,
+} from "@brains/plugins";
 import {
   entityActionPolicyConfigSchema,
   type EntityActionPolicyConfig,
@@ -24,10 +29,12 @@ import {
   type InstanceOverrides,
 } from "./instance-overrides";
 import {
+  createSiteContentTemplates,
   extendSite,
   sitePackageSchema,
   themeCssSchema,
   type ConventionalSiteOverrides,
+  type SiteContentDefinition,
   type SitePackage,
 } from "./site-package";
 import { resolveAIConfig } from "./ai-config";
@@ -250,19 +257,83 @@ function applyPluginDefaults(
   }
 }
 
-function instantiateSitePlugin(
+function normalizeSiteContent(
+  content: SitePackage["content"],
+): SiteContentDefinition[] {
+  if (!content) return [];
+  return Array.isArray(content) ? content : [content];
+}
+
+class DeclarativeSitePlugin implements Plugin {
+  readonly id = "site-package";
+  readonly version = "0.1.0";
+  readonly type = "service" as const;
+  readonly description = "Declarative site package adapter";
+
+  readonly packageName: string;
+  private readonly site: SitePackage;
+
+  constructor(packageName: string, site: SitePackage) {
+    this.packageName = packageName;
+    this.site = site;
+  }
+
+  async register(shell: IShell): Promise<PluginCapabilities> {
+    for (const definition of normalizeSiteContent(this.site.content)) {
+      shell.registerTemplates(
+        createSiteContentTemplates(definition),
+        definition.namespace,
+      );
+    }
+
+    if (this.site.headScripts?.length) {
+      const messaging = shell.getMessageBus();
+      messaging.subscribe("system:plugins:ready", async () => {
+        for (const [index, script] of this.site.headScripts?.entries() ?? []) {
+          await messaging.send({
+            type: "plugin:site-builder:head-script:register",
+            sender: this.id,
+            payload: {
+              pluginId: `${this.id}:${index}`,
+              script,
+            },
+          });
+        }
+        return { success: true };
+      });
+    }
+
+    return { tools: [], resources: [] };
+  }
+}
+
+function instantiateSitePlugins(
   site: SitePackage | undefined,
   overrides: Omit<InstanceOverrides, "brain"> | undefined,
   activeIds: ActiveIds,
 ): Plugin[] {
-  if (!site) return [];
+  if (!site || !isActive(activeIds, "site-builder")) return [];
 
-  const sitePlugin = site.plugin({
-    entityDisplay: site.entityDisplay,
-    ...stripSiteConfig(overrides?.site),
-  });
+  const plugins: Plugin[] = [];
+  if (site.plugin) {
+    plugins.push(
+      site.plugin({
+        entityDisplay: site.entityDisplay,
+        ...stripSiteConfig(overrides?.site),
+      }),
+    );
+  }
 
-  return isActive(activeIds, "site-builder") ? [sitePlugin] : [];
+  if (site.content || site.headScripts?.length) {
+    plugins.push(
+      new DeclarativeSitePlugin(
+        overrides?.site?.package ?? "@rizom/site-package",
+        site,
+      ),
+    );
+  }
+
+  return plugins;
 }
 
 function instantiateCapabilities(
@@ -477,7 +548,7 @@ export function resolve(
     definition,
     overrides,
   );
-  const theme = resolveTheme(definition, overrides);
+  const theme = resolveTheme(definition, overrides, site);
 
   applyPluginDefaults(pluginOverrides, {
     webserverEnabled,
@@ -489,7 +560,7 @@ export function resolve(
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
   const capabilities: Plugin[] = [
-    ...instantiateSitePlugin(site, overrides, activeIds),
+    ...instantiateSitePlugins(site, overrides, activeIds),
     ...instantiateCapabilities(
       definition,
       env,
@@ -763,6 +834,9 @@ const sitePackageOverridesShapeSchema = z.looseObject({
   entityDisplay: z
     .record(z.string(), entityDisplayEntryOverrideSchema)
     .optional(),
+  content: z.unknown().optional(),
+  themeOverride: z.string().optional(),
+  headScripts: z.array(z.string()).optional(),
   staticAssets: z.record(z.string(), z.string()).optional(),
 });
 
@@ -777,12 +851,13 @@ function applySitePluginConfig(
   site: SitePackage,
   pluginConfig: Record<string, unknown> | undefined,
 ): SitePackage {
-  if (!pluginConfig) return site;
+  if (!pluginConfig || !site.plugin) return site;
 
+  const plugin = site.plugin;
   return {
     ...site,
     plugin: (config?: Record<string, unknown>) =>
-      site.plugin({
+      plugin({
         ...pluginConfig,
         ...(config ?? {}),
       }),
@@ -826,8 +901,14 @@ function resolveSitePackage(
   overrides?: Omit<InstanceOverrides, "brain">,
 ): SitePackage | undefined {
   const pkgRef = overrides?.site?.package;
-  if (!pkgRef || !hasPackage(pkgRef)) {
+  if (!pkgRef) {
     return definition.site;
+  }
+
+  if (!hasPackage(pkgRef)) {
+    throw new Error(
+      `brain.yaml site.package "${pkgRef}" could not be resolved — the package is not installed or failed to import. Refusing to fall back to the default site.`,
+    );
   }
 
   const sitePackage = resolveRegisteredSitePackage(
@@ -858,17 +939,22 @@ function resolveThemeCssRef(refOrCss: string): string {
 function resolveTheme(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
+  site?: SitePackage,
 ): string | undefined {
   const baseTheme = overrides?.site?.theme
     ? resolveThemeCssRef(overrides.site.theme)
     : definition.theme;
-  const themeOverride = overrides?.site?.themeOverride
+  const siteThemeOverride = site?.themeOverride;
+  const instanceThemeOverride = overrides?.site?.themeOverride
     ? resolveThemeCssRef(overrides.site.themeOverride)
     : undefined;
+  const theme = [baseTheme, siteThemeOverride, instanceThemeOverride]
+    .filter(Boolean)
+    .join("\n\n");
 
-  if (!baseTheme && !themeOverride) {
+  if (!theme) {
     return undefined;
   }
 
-  return composeTheme([baseTheme, themeOverride].filter(Boolean).join("\n\n"));
+  return composeTheme(theme);
 }

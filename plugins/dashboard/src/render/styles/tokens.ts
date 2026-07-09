@@ -5,24 +5,26 @@ export const DASHBOARD_TOKENS = `
    * standalone fallbacks so the plugin can render outside the site pipeline.
    * Existing component styles use the shorter legacy aliases below.
    */
-  --dashboard-bg:          var(--color-bg, #0a0819);
-  --dashboard-card:        var(--color-bg-card, var(--color-bg-subtle, #14112b));
-  --dashboard-card-soft:   var(--color-bg-subtle, #1b1638);
-  --dashboard-bg-deep:     var(--color-bg-deep, var(--color-bg-dark, #05040f));
-  --dashboard-text:        var(--color-text, #f1eadd);
-  --dashboard-text-dim:    var(--color-text-muted, #bfb7a6);
-  --dashboard-text-muted:  var(--color-text-light, #7a7263);
-  --dashboard-text-faint:  var(--color-border, #4a4459);
-  --dashboard-accent:      var(--color-accent, #ff8b3d);
-  --dashboard-success:     var(--color-success, #68cc8b);
-  --dashboard-warning:     var(--color-warning-text-emphasis, #f5c158);
-  --dashboard-error:       var(--color-error, #e26d6d);
+  --dashboard-bg:          #131109;
+  --dashboard-frame:       #191612;
+  --dashboard-card:        #201c16;
+  --dashboard-card-soft:   #262119;
+  --dashboard-bg-deep:     #0f0d08;
+  --dashboard-text:        #ece3cd;
+  --dashboard-text-dim:    rgba(236, 227, 205, 0.62);
+  --dashboard-text-muted:  rgba(236, 227, 205, 0.4);
+  --dashboard-text-faint:  rgba(236, 227, 205, 0.24);
+  --dashboard-accent:      #e06a35;
+  --dashboard-success:     #6fae97;
+  --dashboard-warning:     #d8a53f;
+  --dashboard-error:       #e0785e;
   --dashboard-neutral:     var(--dashboard-text-muted);
   --dashboard-font-display: var(--font-display, "Fraunces", "Times New Roman", serif);
   --dashboard-font-body:    var(--font-body, "IBM Plex Sans", -apple-system, system-ui, sans-serif);
   --dashboard-font-mono:    var(--font-label, "JetBrains Mono", ui-monospace, monospace);
 
   --ink:          var(--dashboard-bg);
+  --ink-frame:    var(--dashboard-frame);
   --ink-raised:   var(--dashboard-card);
   --ink-soft:     var(--dashboard-card-soft);
   --ink-deep:     var(--dashboard-bg-deep);
@@ -30,8 +32,8 @@ export const DASHBOARD_TOKENS = `
   --paper-dim:    var(--dashboard-text-dim);
   --paper-mute:   var(--dashboard-text-muted);
   --paper-faint:  var(--dashboard-text-faint);
-  --rule:         color-mix(in srgb, var(--dashboard-text) 7%, transparent);
-  --rule-strong:  color-mix(in srgb, var(--dashboard-text) 14%, transparent);
+  --rule:         color-mix(in srgb, var(--dashboard-text) 6%, transparent);
+  --rule-strong:  color-mix(in srgb, var(--dashboard-text) 11%, transparent);
   --rule-accent:  color-mix(in srgb, var(--dashboard-accent) 45%, transparent);
   --accent:       var(--dashboard-accent);
   --accent-dim:   color-mix(in srgb, var(--dashboard-accent) 72%, black);
@@ -47,6 +49,7 @@ export const DASHBOARD_TOKENS = `
 
 [data-theme="light"] {
   --dashboard-bg:          var(--color-bg, #ece3cd);
+  --dashboard-frame:       var(--color-bg-subtle, #e8dfc6);
   --dashboard-card:        var(--color-bg-card, var(--color-bg-subtle, #f6efdc));
   --dashboard-card-soft:   var(--color-bg-subtle, #e4dac1);
   --dashboard-bg-deep:     var(--color-bg-deep, var(--color-bg-subtle, #d4c8a8));

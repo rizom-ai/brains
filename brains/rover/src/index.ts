@@ -12,13 +12,16 @@ import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
 import { authServicePlugin } from "@brains/auth-service";
+import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { directorySync } from "@brains/directory-sync";
 import { emailResendPlugin } from "@brains/email-resend";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
 import { blogPlugin } from "@brains/blog";
 import { seriesPlugin } from "@brains/series";
 import { decksPlugin } from "@brains/decks";
+import { docsPlugin } from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
@@ -161,6 +164,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],
+    ["docs", docsPlugin, undefined],
     ["document", documentPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
@@ -221,6 +225,7 @@ const roverBrain: BrainDefinition = defineBrain({
           : {}),
       }),
     ],
+    ["atproto-registry", atprotoRegistryPlugin, {}],
     [
       "directory-sync",
       directorySync,
@@ -233,6 +238,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["analytics", analyticsPlugin, {}],
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["site-info", siteInfoPlugin, undefined],
+    ["site-content", siteContentPlugin, undefined],
     [
       "site-builder",
       siteBuilderPlugin,

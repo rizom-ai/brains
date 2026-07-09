@@ -1,23 +1,27 @@
 import { z } from "@brains/utils/zod";
+import type {
+  SiteLayoutInfo,
+  SiteMetadata,
+  SiteMetadataCTA,
+  SiteMetadataSection,
+} from "@rizom/site";
+import { NavigationItemSchema } from "./routes";
+
+export type {
+  SiteLayoutInfo,
+  SiteMetadata,
+  SiteMetadataCTA,
+  SiteMetadataSection,
+} from "@rizom/site";
 
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
-
-export interface SiteMetadataCTA {
-  heading: string;
-  buttonText: string;
-  buttonLink: string;
-}
 
 export const siteMetadataCTASchema: z.ZodType<SiteMetadataCTA> = z.object({
   heading: z.string().describe("Main CTA heading text"),
   buttonText: z.string().describe("Call-to-action button text"),
   buttonLink: z.string().describe("URL or anchor for the CTA button"),
 });
-
-export interface SiteMetadataSection {
-  blurb?: string | undefined;
-}
 
 /** Per-section homepage descriptors — short editorial blurbs displayed
  * beneath each section title (e.g. under "Essays"). Keys match section ids
@@ -30,18 +34,6 @@ export const siteMetadataSectionSchema: z.ZodType<SiteMetadataSection> =
       .optional()
       .describe("Short italic subtitle under the section title"),
   });
-
-export interface SiteMetadata {
-  title: string;
-  description: string;
-  url?: string | undefined;
-  copyright?: string | undefined;
-  logo?: boolean | undefined;
-  themeMode?: "light" | "dark" | undefined;
-  analyticsScript?: string | undefined;
-  cta?: SiteMetadataCTA | undefined;
-  sections?: Record<string, SiteMetadataSection> | undefined;
-}
 
 type SiteMetadataSchema = z.ZodObject<{
   title: z.ZodString;
@@ -83,41 +75,29 @@ export const siteMetadataSchema: SiteMetadataSchema = z.object({
     ),
 });
 
-export interface SiteLayoutNavigationItem {
-  label: string;
-  href: string;
-  priority: number;
+type SiteMetadataSchemaOutput = z.infer<typeof siteMetadataSchema>;
+type SiteMetadataCTASchemaOutput = z.infer<typeof siteMetadataCTASchema>;
+
+function expectSiteMetadata(value: SiteMetadataSchemaOutput): SiteMetadata {
+  return value;
 }
 
-const siteLayoutNavigationItemSchema: z.ZodType<SiteLayoutNavigationItem> =
-  z.object({
-    label: z.string(),
-    href: z.string(),
-    priority: z.number(),
-  });
-
-export interface SocialLink {
-  platform: "github" | "instagram" | "linkedin" | "email" | "website";
-  url: string;
-  label?: string | undefined;
+function expectSiteMetadataCTA(
+  value: SiteMetadataCTASchemaOutput,
+): SiteMetadataCTA {
+  return value;
 }
 
-const socialLinkSchema: z.ZodType<SocialLink> = z.object({
+void expectSiteMetadata;
+void expectSiteMetadataCTA;
+
+const socialLinkSchema = z.object({
   platform: z
     .enum(["github", "instagram", "linkedin", "email", "website"])
     .describe("Social media platform"),
   url: z.string().describe("Profile or contact URL"),
   label: z.string().optional().describe("Optional display label"),
 });
-
-export interface SiteLayoutInfo extends Omit<SiteMetadata, "copyright"> {
-  navigation: {
-    primary: SiteLayoutNavigationItem[];
-    secondary: SiteLayoutNavigationItem[];
-  };
-  copyright: string;
-  socialLinks?: SocialLink[] | undefined;
-}
 
 /** Complete site information passed to layout components. */
 export const siteLayoutInfoSchema: z.ZodType<SiteLayoutInfo> = z.object({
@@ -144,11 +124,19 @@ export const siteLayoutInfoSchema: z.ZodType<SiteLayoutInfo> = z.object({
       "Optional per-section blurbs, keyed by section id (e.g. 'essays', 'presentations', 'about'). Used by homepage templates that render editorial section headers.",
     ),
   navigation: z.object({
-    primary: z.array(siteLayoutNavigationItemSchema),
-    secondary: z.array(siteLayoutNavigationItemSchema),
+    primary: z.array(NavigationItemSchema),
+    secondary: z.array(NavigationItemSchema),
   }),
   socialLinks: z
     .array(socialLinkSchema)
     .optional()
     .describe("Social media links from profile metadata"),
 });
+
+type SiteLayoutInfoSchemaOutput = z.infer<typeof siteLayoutInfoSchema>;
+function expectSiteLayoutInfo(
+  value: SiteLayoutInfoSchemaOutput,
+): SiteLayoutInfo {
+  return value;
+}
+void expectSiteLayoutInfo;

@@ -96,6 +96,8 @@ export function registerMessageHandlers(
           isInitialized: status.exists,
           watchEnabled: status.watching,
           lastSync: status.lastSync?.toISOString() ?? null,
+          totalFiles: status.stats.totalFiles,
+          byEntityType: status.stats.byEntityType,
           git: await queryGitStatus(getGitSync?.(), logger),
         },
       };

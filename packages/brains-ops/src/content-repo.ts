@@ -7,6 +7,7 @@ import {
   resolveLocalEnvValue,
 } from "@brains/deploy-support";
 
+import { resolveContentRepoRef, type ContentRepoRef } from "./content-repo-ref";
 import type { ResolvedUser } from "./load-registry";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 import type { ContentRepoFile } from "./user-runner";
@@ -60,9 +61,10 @@ export async function syncUserContentRepo(
         options.contentRepoAdminTokenSelector,
       )
     : undefined;
+  const repoRef = resolveContentRepoRef(user.contentRepo, githubOrg);
   const remoteUrl =
     options.contentRepoRemoteResolver?.(user, githubOrg, gitSyncToken) ??
-    buildGitHubRemoteUrl(githubOrg, user.contentRepo, gitSyncToken);
+    buildGitHubRemoteUrl(repoRef, gitSyncToken);
 
   if (!remoteUrl) {
     return;
@@ -82,12 +84,7 @@ export async function syncUserContentRepo(
         );
       }
 
-      await ensureGitHubRepoExists(
-        githubOrg,
-        user.contentRepo,
-        contentRepoAdminToken,
-        fetchImpl,
-      );
+      await ensureGitHubRepoExists(repoRef, contentRepoAdminToken, fetchImpl);
     }
 
     await runCommand("git", ["clone", remoteUrl, worktree]);
@@ -165,24 +162,23 @@ function resolveSecretToken(
 }
 
 function buildGitHubRemoteUrl(
-  githubOrg: string,
-  contentRepo: string,
+  repoRef: ContentRepoRef,
   gitSyncToken: string | undefined,
 ): string | undefined {
   if (!gitSyncToken) {
     return undefined;
   }
 
-  return `https://x-access-token:${encodeURIComponent(gitSyncToken)}@github.com/${githubOrg}/${contentRepo}.git`;
+  return `https://x-access-token:${encodeURIComponent(gitSyncToken)}@github.com/${repoRef.org}/${repoRef.name}.git`;
 }
 
 async function ensureGitHubRepoExists(
-  githubOrg: string,
-  contentRepo: string,
+  repoRef: ContentRepoRef,
   gitSyncToken: string,
   fetchImpl: FetchImpl,
 ): Promise<void> {
-  const repoPath = `${encodeURIComponent(githubOrg)}/${encodeURIComponent(contentRepo)}`;
+  const { org, name } = repoRef;
+  const repoPath = `${encodeURIComponent(org)}/${encodeURIComponent(name)}`;
   const repoUrl = `https://api.github.com/repos/${repoPath}`;
   const headers = {
     Accept: "application/vnd.github+json",
@@ -198,17 +194,17 @@ async function ensureGitHubRepoExists(
 
   if (repoResponse.status !== 404) {
     throw new Error(
-      `Failed to check GitHub repo ${githubOrg}/${contentRepo}: ${repoResponse.status} ${await readResponseText(repoResponse)}`,
+      `Failed to check GitHub repo ${org}/${name}: ${repoResponse.status} ${await readResponseText(repoResponse)}`,
     );
   }
 
   const createResponse = await fetchImpl(
-    `https://api.github.com/orgs/${encodeURIComponent(githubOrg)}/repos`,
+    `https://api.github.com/orgs/${encodeURIComponent(org)}/repos`,
     {
       method: "POST",
       headers,
       body: JSON.stringify({
-        name: contentRepo,
+        name,
         private: true,
         auto_init: false,
       }),
@@ -216,7 +212,7 @@ async function ensureGitHubRepoExists(
   );
 
   if (createResponse.ok) {
-    console.log(`Created missing content repo ${githubOrg}/${contentRepo}`);
+    console.log(`Created missing content repo ${org}/${name}`);
     return;
   }
 
@@ -228,7 +224,7 @@ async function ensureGitHubRepoExists(
   }
 
   throw new Error(
-    `Failed to create GitHub repo ${githubOrg}/${contentRepo}: ${createResponse.status} ${await readResponseText(createResponse)}`,
+    `Failed to create GitHub repo ${org}/${name}: ${createResponse.status} ${await readResponseText(createResponse)}`,
   );
 }
 

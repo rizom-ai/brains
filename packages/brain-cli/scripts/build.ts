@@ -24,9 +24,9 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-support";
 import {
-  findInternalBrainImports,
+  findInternalDeclarationImports,
   formatDeclarationLeakError,
-} from "./declaration-leaks";
+} from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
@@ -244,10 +244,20 @@ async function emitLibraryDeclarations(): Promise<void> {
     for (const entry of libraryEntries) {
       const declarationPath = join(outdir, `${entry.name}.d.ts`);
       const declaration = readFileSync(declarationPath, "utf8");
-      const leakedImports = findInternalBrainImports(declaration);
+      const leakedImports = findInternalDeclarationImports(declaration, {
+        internalPrefixes: ["@brains/"],
+      });
       if (leakedImports.length > 0) {
         console.error(
-          formatDeclarationLeakError(declarationPath, leakedImports),
+          formatDeclarationLeakError(
+            declarationPath,
+            leakedImports,
+            [
+              "If this package is part of the public declaration surface, add it to",
+              "packages/brain-cli/scripts/bundle-declarations.mjs declarationInlinePackages.",
+              "Otherwise, remove the public export path that exposes it.",
+            ].join("\n"),
+          ),
         );
         process.exit(1);
       }

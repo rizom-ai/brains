@@ -1,5 +1,49 @@
 # @brains/playbooks
 
+## 0.2.0-alpha.145
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.145
+  - @brains/contracts@0.2.0-alpha.145
+  - @brains/utils@0.2.0-alpha.145
+  - @brains/plugins@0.2.0-alpha.145
+  - @brains/runtime-state@0.2.0-alpha.145
+
+## 0.2.0-alpha.144
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.144
+  - @brains/contracts@0.2.0-alpha.144
+  - @brains/utils@0.2.0-alpha.144
+  - @brains/plugins@0.2.0-alpha.144
+  - @brains/runtime-state@0.2.0-alpha.144
+
+## 0.2.0-alpha.143
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.143
+  - @brains/contracts@0.2.0-alpha.143
+  - @brains/utils@0.2.0-alpha.143
+  - @brains/plugins@0.2.0-alpha.143
+  - @brains/runtime-state@0.2.0-alpha.143
+
+## 0.2.0-alpha.142
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.142
+  - @brains/content-formatters@0.2.0-alpha.142
+  - @brains/contracts@0.2.0-alpha.142
+  - @brains/utils@0.2.0-alpha.142
+  - @brains/runtime-state@0.2.0-alpha.142
+
 ## 0.2.0-alpha.141
 
 ### Patch Changes

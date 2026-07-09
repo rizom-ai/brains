@@ -23,23 +23,29 @@ custom-domain sites down to one.
   the composition that plan already anticipates — `core + site + team` plus opt-ins — so
   consolidation reduces the number of live compositions the unification must migrate.
 
-## Design mockups
+## Design mockups (approved direction, rev 5 — 2026-07-07)
 
 Interactive mockups live at [`docs/rizom-site-mockups.html`](../rizom-site-mockups.html)
-(open in a browser). Three screens — Home, `/work`, `/foundation` — extending the existing
-rizom theme (violet night, amber, Fraunces). What they propose for Phase 0/1:
+(open in a browser; light and dark are both first-class). Three screens — Home, `/work`,
+`/foundation` — built from the live sites' verbatim copy and the Rizom Brand Book
+(deep indigo, brass/ruby/moss, Fraunces, mycelial motifs). Decisions they settle for
+Phase 0/1:
 
-- **The homepage is the argument, not a portal**: the three live sites' actual headlines
-  already chain into one thesis (work is broken → knowledge is the bottleneck → build the
-  agent that represents you); the home renders it as three chapter cards (Platform /
-  Practice / Foundation) with cross-links replacing the old ecosystem sections.
-- **One theme, per-room accents**: product/editorial/studio variants collapse into the
-  violet-night base with amber (platform), coral (practice), violet (foundation) accents.
-- **The site advertises that it is served by a brain**: a "living proof" strip (latest
-  essay from the pipeline, talk-to-this-brain, agent card, lexicon registry) makes the
-  dogfooding the product demo.
-- **Redirect acknowledgment**: each room's footer notes the old domain so 301'd visitors
-  aren't disoriented.
+- **Platform-first home, no synthesizing lobby**: the home is today's rizom.ai tightened
+  (hero → growth diagram → problem → your-data → quickstart → mission band); the
+  "one practice, three faces" synthesis is a slim band before the footer, using the live
+  sites' own role names (the tools / the service / the source). /work is not the homepage.
+- **Two-tier navigation**: a quiet org-level faces strip (`rizom · Platform / Work /
+Foundation`) above a per-face contextual nav; each room keeps its live nav and its old
+  domain as the nameplate (`rizom.work`, `rizom.foundation`).
+- **IA / sitemap (Phase 0 proposal)**: one `/writing` index for everything published
+  (foundation essays are a series — matches the entity model); `/events` for gatherings;
+  `/network` from the agent directory; `/docs` ↗ docs.rizom.ai; `/chat` public. Old
+  domains 301 per-path into their rooms, each room's footer acknowledging the move.
+- **The growth diagram is the product story**: You → Team → Network drawn as one organism
+  (Rover/Relay/Ranger as separate products is retired — the one sanctioned content rework).
+- **Living proof**: a colophon line (latest essay, talk-to-this-brain, agent card, lexicon
+  registry) makes the dogfooding part of the pitch.
 
 ## Decisions
 

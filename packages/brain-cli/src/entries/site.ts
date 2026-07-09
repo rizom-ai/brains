@@ -28,9 +28,41 @@ export interface Plugin {
  * Opaque route definition. Consumers receive route exports from
  * `@rizom/brain/site` and place them on `SitePackage.routes` verbatim.
  */
+export interface SectionDefinitionInput {
+  readonly id: string;
+  readonly template: string;
+  readonly content?: unknown;
+  readonly dataQuery?:
+    | {
+        readonly entityType?: string | undefined;
+        readonly template?: string | undefined;
+        readonly query?: Record<string, unknown> | undefined;
+        readonly [key: string]: unknown;
+      }
+    | undefined;
+  readonly order?: number | undefined;
+}
+
 export interface RouteDefinitionInput {
+  readonly id: string;
   readonly path: string;
-  readonly [key: string]: unknown;
+  readonly title?: string | undefined;
+  readonly pageLabel?: string | undefined;
+  readonly description?: string | undefined;
+  readonly sections?: SectionDefinitionInput[] | undefined;
+  readonly layout?: string | undefined;
+  readonly fullscreen?: boolean | undefined;
+  readonly pluginId?: string | undefined;
+  readonly sourceEntityType?: string | undefined;
+  readonly external?: boolean | undefined;
+  readonly navigation?:
+    | {
+        readonly show?: boolean | undefined;
+        readonly label?: string | undefined;
+        readonly slot?: "primary" | "secondary" | undefined;
+        readonly priority?: number | undefined;
+      }
+    | undefined;
 }
 
 /**

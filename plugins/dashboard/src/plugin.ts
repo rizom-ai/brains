@@ -14,6 +14,7 @@ import {
 import type {
   RegisteredWidget,
   WidgetComponent,
+  WidgetDigestProvider,
   WidgetVisibility,
 } from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
@@ -22,6 +23,10 @@ import {
   type DashboardRenderInput,
 } from "./dashboard-page";
 import { resolveWidgetsForRender } from "./render/resolve-widgets";
+import type {
+  DashboardActivityEvent,
+  DashboardJobProgressItem,
+} from "./render/types";
 import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
@@ -50,16 +55,33 @@ const registerWidgetPayloadSchema = z
     pluginId: z.string(),
     title: z.string(),
     description: z.string().optional(),
+    group: z.string().min(1),
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
     visibility: z.enum(["public", "trusted", "anchor"]).default("public"),
+    needsOperator: z.number().int().nonnegative().optional(),
+    digest: z
+      .array(
+        z.object({
+          label: z.string(),
+          value: z.string(),
+          tone: z.enum(["plain", "good", "warn"]).optional(),
+        }),
+      )
+      .max(4)
+      .optional(),
     component: z.custom<WidgetComponent>().optional(),
     clientScript: z.string().optional(),
     dataProvider: z.custom<() => Promise<unknown>>(
       (value) => typeof value === "function",
       { message: "Expected dashboard widget data provider function" },
     ),
+    digestProvider: z
+      .custom<WidgetDigestProvider>((value) => typeof value === "function", {
+        message: "Expected dashboard widget digest provider function",
+      })
+      .optional(),
   })
   .superRefine((payload, refinementContext) => {
     if (!isBuiltInWidgetRenderer(payload.rendererName) && !payload.component) {
@@ -76,6 +98,47 @@ const unregisterWidgetPayloadSchema = z.object({
   widgetId: z.string().optional(),
 });
 
+const entityActivityPayloadSchema = z.object({
+  entityType: z.string(),
+  entityId: z.string(),
+  conversationId: z.string().optional(),
+});
+
+const jobProgressPayloadSchema = z.object({
+  id: z.string(),
+  type: z.enum(["job", "batch"]),
+  status: z.enum(["pending", "processing", "completed", "failed"]),
+  message: z.string().optional(),
+  progress: z
+    .object({
+      current: z.number(),
+      total: z.number(),
+      percentage: z.number(),
+    })
+    .optional(),
+  jobDetails: z
+    .object({
+      jobType: z.string(),
+      priority: z.number(),
+      retryCount: z.number(),
+    })
+    .optional(),
+});
+
+const directorySyncStatusResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    syncPath: z.string(),
+    isInitialized: z.boolean(),
+    watchEnabled: z.boolean(),
+    lastSync: z.string().datetime().optional(),
+    totalFiles: z.number().int().nonnegative().optional(),
+    byEntityType: z
+      .record(z.string(), z.number().int().nonnegative())
+      .optional(),
+  }),
+});
+
 function createRegisteredWidget(
   payload: z.output<typeof registerWidgetPayloadSchema>,
 ): RegisteredWidget {
@@ -84,13 +147,21 @@ function createRegisteredWidget(
     pluginId: payload.pluginId,
     title: payload.title,
     ...(payload.description ? { description: payload.description } : {}),
+    group: payload.group,
     priority: payload.priority,
     section: payload.section,
     rendererName: payload.rendererName,
     visibility: payload.visibility,
+    ...(payload.needsOperator !== undefined && {
+      needsOperator: payload.needsOperator,
+    }),
+    ...(payload.digest ? { digest: payload.digest } : {}),
     ...(payload.component ? { component: payload.component } : {}),
     ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
     dataProvider: payload.dataProvider as () => Promise<unknown>,
+    ...(payload.digestProvider
+      ? { digestProvider: payload.digestProvider as WidgetDigestProvider }
+      : {}),
   };
 }
 
@@ -102,9 +173,111 @@ export class DashboardPlugin extends ServicePlugin<
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
   private ctx: ServicePluginContext | undefined;
+  private activityLog: DashboardActivityEvent[] = [];
+  private jobProgress: DashboardJobProgressItem[] = [];
 
   constructor(config: DashboardConfigInput = {}) {
     super("dashboard", packageJson, config, dashboardConfigSchema);
+  }
+
+  private recordActivity(
+    action: DashboardActivityEvent["action"],
+    payload: unknown,
+  ): void {
+    const parsed = entityActivityPayloadSchema.safeParse(payload);
+    if (!parsed.success) return;
+
+    this.activityLog = [
+      {
+        action,
+        entityType: parsed.data.entityType,
+        entityId: parsed.data.entityId,
+        timestamp: new Date().toISOString(),
+        ...(parsed.data.conversationId
+          ? { conversationId: parsed.data.conversationId }
+          : {}),
+      },
+      ...this.activityLog,
+    ].slice(0, 12);
+  }
+
+  private recordJobProgress(payload: unknown): void {
+    const parsed = jobProgressPayloadSchema.safeParse(payload);
+    if (!parsed.success) return;
+
+    const progressLabel = parsed.data.progress
+      ? `${parsed.data.progress.current}/${parsed.data.progress.total}`
+      : undefined;
+    const nextItem: DashboardJobProgressItem = {
+      id: parsed.data.id,
+      kind: parsed.data.type,
+      status: parsed.data.status,
+      updatedAt: new Date().toISOString(),
+      ...(parsed.data.message ? { message: parsed.data.message } : {}),
+      ...(parsed.data.jobDetails?.jobType
+        ? { jobType: parsed.data.jobDetails.jobType }
+        : {}),
+      ...(progressLabel ? { progressLabel } : {}),
+    };
+
+    this.jobProgress = [
+      nextItem,
+      ...this.jobProgress.filter(
+        (item) => item.id !== nextItem.id || item.kind !== nextItem.kind,
+      ),
+    ].slice(0, 8);
+  }
+
+  private async getIndexStatus(): Promise<DashboardRenderInput["indexStatus"]> {
+    if (!this.ctx) return undefined;
+
+    const entityService = this.ctx
+      .entityService as typeof this.ctx.entityService & {
+      isIndexReady?: () => boolean;
+      awaitIndexReady?: (options: {
+        timeoutMs: number;
+        intervalMs?: number;
+      }) => Promise<NonNullable<DashboardRenderInput["indexStatus"]>>;
+    };
+
+    try {
+      if (typeof entityService.awaitIndexReady === "function") {
+        return await entityService.awaitIndexReady({
+          timeoutMs: 0,
+          intervalMs: 0,
+        });
+      }
+
+      if (typeof entityService.isIndexReady === "function") {
+        return { ready: entityService.isIndexReady() };
+      }
+    } catch (error) {
+      this.logger.debug("Semantic index status unavailable", {
+        error: getErrorMessage(error),
+      });
+    }
+
+    return undefined;
+  }
+
+  private async getDirectorySyncStatus(): Promise<
+    DashboardRenderInput["directorySyncStatus"]
+  > {
+    if (!this.ctx) return undefined;
+
+    try {
+      const response = await this.ctx.messaging.send({
+        type: "sync:status:request",
+        payload: {},
+      });
+      const parsed = directorySyncStatusResponseSchema.safeParse(response);
+      return parsed.success ? parsed.data.data : undefined;
+    } catch (error) {
+      this.logger.debug("Directory sync status unavailable", {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
   }
 
   protected override async onRegister(
@@ -130,6 +303,23 @@ export class DashboardPlugin extends ServicePlugin<
       kind: "admin",
       priority: 30,
       visibility: "public",
+    });
+
+    context.messaging.subscribe("entity:created", async (message) => {
+      this.recordActivity("created", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("entity:updated", async (message) => {
+      this.recordActivity("updated", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("entity:deleted", async (message) => {
+      this.recordActivity("deleted", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("job-progress", async (message) => {
+      this.recordJobProgress(message.payload);
+      return { success: true };
     });
 
     context.messaging.subscribe(
@@ -210,13 +400,16 @@ export class DashboardPlugin extends ServicePlugin<
           );
           const hiddenWidgetCount =
             anchorWidgets.length - visibleWidgets.length;
-          const [dashboardData, appInfo] = await Promise.all([
-            this.datasource.getDashboardData({
-              permissionLevel,
-              widgets: visibleWidgets,
-            }),
-            ctx.appInfo(),
-          ]);
+          const [dashboardData, appInfo, directorySyncStatus, indexStatus] =
+            await Promise.all([
+              this.datasource.getDashboardData({
+                permissionLevel,
+                widgets: visibleWidgets,
+              }),
+              ctx.appInfo(),
+              this.getDirectorySyncStatus(),
+              this.getIndexStatus(),
+            ]);
           const character = ctx.identity.get();
           const profile = ctx.identity.getProfile();
 
@@ -260,9 +453,14 @@ export class DashboardPlugin extends ServicePlugin<
             baseUrl,
             widgets: resolvedWidgets.widgets,
             widgetScripts: resolvedWidgets.widgetScripts,
+            dashboardPath: this.config.routePath,
             character,
             profile,
             appInfo: visibleAppInfo,
+            activityLog: this.activityLog,
+            jobProgress: this.jobProgress,
+            ...(indexStatus !== undefined && { indexStatus }),
+            ...(directorySyncStatus !== undefined && { directorySyncStatus }),
             ...(this.config.themeCSS !== undefined && {
               themeCSS: this.config.themeCSS,
             }),

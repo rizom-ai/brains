@@ -118,6 +118,7 @@ describe("extendSite", () => {
       staticAssets: {
         "/child.txt": "child",
       },
+      themeOverride: ".child { color: purple; }",
     });
 
     expect(childSite.layouts).toEqual({
@@ -152,5 +153,21 @@ describe("extendSite", () => {
       "/base.txt": "base",
       "/child.txt": "child",
     });
+    expect(childSite.themeOverride).toBe(".child { color: purple; }");
+  });
+
+  test("layers base and child theme overrides", () => {
+    const baseSite = {
+      ...makeBaseSite(),
+      themeOverride: ".base { color: pink; }",
+    };
+
+    const childSite = extendSite(baseSite, {
+      themeOverride: ".child { color: purple; }",
+    });
+
+    expect(childSite.themeOverride).toBe(
+      ".base { color: pink; }\n\n.child { color: purple; }",
+    );
   });
 });

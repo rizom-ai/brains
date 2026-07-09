@@ -25,8 +25,7 @@ export interface PublishEntityError {
 export type PublishEntityResult = PublishEntitySuccess | PublishEntityError;
 
 export type PublishCandidateResolution =
-  | { entity: PublishableEntity }
-  | { error: string };
+  { entity: PublishableEntity } | { error: string };
 
 export interface PublishEntityExecutor {
   publish(input: PublishEntityInput): Promise<PublishEntityResult>;

@@ -3,6 +3,8 @@ import {
   noteSchema,
   noteAdapter,
   createNoteInput,
+  imageSchema,
+  imageAdapter,
 } from "./helpers/test-schemas";
 import {
   setupEntityService,
@@ -41,6 +43,12 @@ describe("EntityService index readiness", () => {
   beforeEach(async () => {
     ctx = await setupEntityService([
       { name: "note", schema: noteSchema, adapter: noteAdapter },
+      {
+        name: "image",
+        schema: imageSchema,
+        adapter: imageAdapter,
+        config: { embeddable: false },
+      },
     ]);
   });
 
@@ -117,6 +125,50 @@ describe("EntityService index readiness", () => {
     expect(status.staleEmbeddings).toBe(0);
     expect(status.failedEmbeddings).toBe(1);
     expect(ctx.entityService.isIndexReady()).toBe(true);
+  });
+
+  test("awaitIndexReady counts embedded/embeddable entities, excluding non-embeddable types", async () => {
+    await createCurrentEmbeddedNote(ctx, "counted-note");
+    await ctx.entityService.createEntity({
+      entity: {
+        entityType: "image" as const,
+        content:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        metadata: {},
+      },
+    });
+
+    const status = await ctx.entityService.awaitIndexReady({
+      timeoutMs: 50,
+      intervalMs: 5,
+    });
+
+    expect(status.ready).toBe(true);
+    // The image entity is excluded from both counts: it can never embed.
+    expect(status.embeddableEntities).toBe(1);
+    expect(status.embeddedEntities).toBe(1);
+  });
+
+  test("awaitIndexReady counts an entity awaiting embedding as embeddable but not embedded", async () => {
+    await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        {
+          title: "Pending Embedding",
+          content: "Awaiting its embedding",
+          tags: [],
+        },
+        "pending-count-note",
+      ),
+    });
+
+    const status = await ctx.entityService.awaitIndexReady({
+      timeoutMs: 10,
+      intervalMs: 1,
+    });
+
+    expect(status.ready).toBe(false);
+    expect(status.embeddableEntities).toBe(1);
+    expect(status.embeddedEntities).toBe(0);
   });
 
   test("awaitIndexReady reports stale embeddings separately from missing ones", async () => {

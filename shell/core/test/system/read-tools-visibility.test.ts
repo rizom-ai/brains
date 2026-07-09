@@ -289,7 +289,7 @@ describe("read tools enforce caller visibility scope", () => {
       ]);
     });
 
-    it("sorts published posts by publishedAt descending", async () => {
+    it("sorts posts by publishedAt descending", async () => {
       services.addEntities([
         {
           id: "older-post",
@@ -313,7 +313,7 @@ describe("read tools enforce caller visibility scope", () => {
           visibility: "public",
           metadata: {
             title: "Newer",
-            status: "published",
+            status: "draft",
             publishedAt: "2025-02-01T00:00:00.000Z",
           },
           created: "2026-05-01T00:00:00.000Z",
@@ -322,7 +322,7 @@ describe("read tools enforce caller visibility scope", () => {
       ]);
 
       const raw = await getTool("system_list").handler(
-        { entityType: "post", status: "published" },
+        { entityType: "post" },
         baseContext("anchor"),
       );
       const data = expectSuccess(raw, listDataSchema);

@@ -127,7 +127,100 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Public Site");
       expect(html).toContain("A2A");
       expect(html).not.toContain("MCP");
-      expect(html).not.toContain("CMS");
+      expect(html).not.toContain(
+        'interaction-link--admin" href="http://brain/cms"',
+      );
+    });
+
+    it("should remove a tab when all widgets in that group are hidden", async () => {
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "pipeline",
+        pluginId: "content-pipeline",
+        title: "Publication Pipeline",
+        group: "publishing",
+        section: "primary",
+        priority: 10,
+        rendererName: "PipelineWidget",
+        visibility: "anchor",
+        dataProvider: async () => ({ summary: {}, items: [] }),
+      });
+
+      const routes = plugin.getWebRoutes();
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain('href="#overview"');
+      expect(html).not.toContain('href="#publishing"');
+      expect(html).not.toContain("Publication Pipeline");
+    });
+
+    it("should render recent entity and job progress events", async () => {
+      harness.subscribe("sync:status:request", async () => ({
+        success: true,
+        data: {
+          syncPath: "/brain/content",
+          isInitialized: true,
+          watchEnabled: true,
+          lastSync: "2026-07-08T09:30:00.000Z",
+          totalFiles: 2,
+          byEntityType: { note: 2 },
+        },
+      }));
+      (
+        harness.getEntityService() as unknown as {
+          awaitIndexReady: () => Promise<{
+            ready: boolean;
+            degraded: boolean;
+            activeEmbeddingJobs: number;
+            missingEmbeddings: number;
+            staleEmbeddings: number;
+            failedEmbeddings: number;
+          }>;
+        }
+      ).awaitIndexReady = async (): Promise<{
+        ready: boolean;
+        degraded: boolean;
+        activeEmbeddingJobs: number;
+        missingEmbeddings: number;
+        staleEmbeddings: number;
+        failedEmbeddings: number;
+      }> => ({
+        ready: true,
+        degraded: false,
+        activeEmbeddingJobs: 0,
+        missingEmbeddings: 0,
+        staleEmbeddings: 0,
+        failedEmbeddings: 0,
+      });
+
+      await harness.sendMessage("entity:updated", {
+        entityType: "note",
+        entityId: "project-plan",
+      });
+      await harness.sendMessage("job-progress", {
+        id: "job-1",
+        type: "job",
+        status: "processing",
+        progress: { current: 1, total: 3, percentage: 33 },
+        jobDetails: { jobType: "site:build", priority: 0, retryCount: 0 },
+      });
+
+      const routes = plugin.getWebRoutes();
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain("note/project-plan");
+      expect(html).toContain("site:build");
+      expect(html).toContain("1/3");
+      expect(html).toContain("/brain/content");
+      expect(html).toContain("2 files");
+      expect(html).toContain("note 2");
+      expect(html).toContain("Content sync");
+      expect(html).toContain("Semantic index · ready · 0 active");
     });
 
     it("should show anchor endpoints and interactions to signed-in operators", async () => {
@@ -181,6 +274,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "test-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Test Widget",
         section: "primary",
         priority: 10,
@@ -203,6 +297,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "test-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Test Widget",
         section: "primary",
         priority: 10,
@@ -225,6 +320,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "widget-1",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Widget 1",
         section: "primary",
         priority: 10,
@@ -235,6 +331,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "widget-2",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Widget 2",
         section: "secondary",
         priority: 20,
@@ -272,10 +369,28 @@ describe("DashboardPlugin", () => {
       });
     });
 
+    it("should reject a widget registration without a group", async () => {
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "legacy-widget",
+        pluginId: "test-plugin",
+        title: "Legacy Widget",
+        section: "primary",
+        priority: 10,
+        rendererName: "StatsWidget",
+        dataProvider: async () => ({ ok: true }),
+      });
+
+      const registry = plugin.getWidgetRegistry();
+      const testPluginWidgets =
+        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      expect(testPluginWidgets).toHaveLength(0);
+    });
+
     it("should reject a custom renderer without a component", async () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "broken-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Broken Widget",
         section: "secondary",
         priority: 14,
@@ -293,6 +408,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "swot",
         pluginId: "swot",
+        group: "knowledge",
         title: "SWOT",
         section: "secondary",
         priority: 14,

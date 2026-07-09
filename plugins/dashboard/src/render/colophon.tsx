@@ -35,7 +35,6 @@ export function Colophon(props: {
             Docs ↗
           </a>
         )}
-        <button id="themeToggle">Light mode</button>
       </span>
     </footer>
   );

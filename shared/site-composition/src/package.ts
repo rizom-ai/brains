@@ -1,6 +1,10 @@
 import { z } from "@brains/utils/zod";
+import type {
+  EntityDisplayEntry,
+  RouteDefinitionInput,
+  SiteContentDefinition,
+} from "@rizom/site";
 import type { SiteCompositionPlugin } from "./plugin";
-import type { EntityDisplayEntry, RouteDefinitionInput } from "./routes";
 
 /**
  * A site package bundles everything the site-builder needs for
@@ -40,8 +44,23 @@ export interface SitePackage<
   /** Hand-written route definitions (home, about, etc.) */
   routes: RouteDefinitionInput[];
 
-  /** Site plugin factory (registers templates, datasources, schema extensions) */
-  plugin: (config?: TPluginConfig) => TPlugin;
+  /** Optional runtime plugin factory for legacy/internal site integrations. */
+  plugin?: ((config?: TPluginConfig) => TPlugin) | undefined;
+
+  /** Optional content definitions owned by this package. */
+  content?: SiteContentDefinition | SiteContentDefinition[];
+
+  /**
+   * Optional additive CSS owned by the site package.
+   *
+   * This is layered after the selected base theme and before any
+   * instance-level `site.themeOverride`, so package-specific visual
+   * fixes travel with the site code without leaking into deploy config.
+   */
+  themeOverride?: string;
+
+  /** Global head scripts to inject into every rendered page. */
+  headScripts?: string[];
 
   /**
    * Display metadata per entity type — label, plural name, layout,
@@ -71,6 +90,24 @@ export type SitePackageOverrides<
   TPluginConfig = Record<string, unknown>,
   TPlugin extends SiteCompositionPlugin = SiteCompositionPlugin,
 > = Partial<SitePackage<TPluginConfig, TPlugin>>;
+
+function normalizeContent(
+  content: SiteContentDefinition | SiteContentDefinition[] | undefined,
+): SiteContentDefinition[] {
+  if (!content) return [];
+  return Array.isArray(content) ? content : [content];
+}
+
+function mergeContent(
+  baseContent: SiteContentDefinition | SiteContentDefinition[] | undefined,
+  overrideContent: SiteContentDefinition | SiteContentDefinition[] | undefined,
+): SiteContentDefinition[] | undefined {
+  const merged = [
+    ...normalizeContent(baseContent),
+    ...normalizeContent(overrideContent),
+  ];
+  return merged.length > 0 ? merged : undefined;
+}
 
 function mergeRoutes(
   baseRoutes: RouteDefinitionInput[],
@@ -117,8 +154,12 @@ export function extendSite<
     layouts: overrideLayouts,
     entityDisplay: overrideEntityDisplay,
     staticAssets: overrideStaticAssets,
-    plugin = baseSite.plugin,
+    themeOverride: overrideThemeOverride,
+    headScripts: overrideHeadScripts,
   } = overrides;
+  const plugin = Object.hasOwn(overrides, "plugin")
+    ? overrides.plugin
+    : baseSite.plugin;
 
   const layouts = overrideLayouts
     ? { ...baseSite.layouts, ...overrideLayouts }
@@ -131,12 +172,23 @@ export function extendSite<
   const staticAssets = overrideStaticAssets
     ? { ...(baseSite.staticAssets ?? {}), ...overrideStaticAssets }
     : baseSite.staticAssets;
+  const themeOverride = [baseSite.themeOverride, overrideThemeOverride]
+    .filter(Boolean)
+    .join("\n\n");
+  const headScripts = [
+    ...(baseSite.headScripts ?? []),
+    ...(overrideHeadScripts ?? []),
+  ];
+  const content = mergeContent(baseSite.content, overrides.content);
 
   return {
     layouts,
     routes: mergeRoutes(baseSite.routes, overrides.routes),
-    plugin,
+    ...(plugin ? { plugin } : {}),
     entityDisplay,
+    ...(content ? { content } : {}),
+    ...(themeOverride ? { themeOverride } : {}),
+    ...(headScripts.length > 0 ? { headScripts } : {}),
     ...(staticAssets && Object.keys(staticAssets).length > 0
       ? { staticAssets }
       : {}),
@@ -158,11 +210,14 @@ const entityDisplayEntrySchema: z.ZodType<{ label: string }> = z.looseObject({
 
 const sitePackageShapeSchema: z.ZodType<unknown> = z.looseObject({
   layouts: z.record(z.string(), z.unknown()),
-  plugin: z.custom<SitePackage["plugin"]>(
-    (value) => typeof value === "function",
-  ),
+  plugin: z
+    .custom<SitePackage["plugin"]>((value) => typeof value === "function")
+    .optional(),
   routes: z.array(sitePackageRouteShapeSchema),
   entityDisplay: z.record(z.string(), entityDisplayEntrySchema),
+  content: z.unknown().optional(),
+  themeOverride: z.string().optional(),
+  headScripts: z.array(z.string()).optional(),
   staticAssets: z.record(z.string(), z.string()).optional(),
 });
 

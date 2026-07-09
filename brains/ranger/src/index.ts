@@ -23,7 +23,7 @@ import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { dashboardPlugin } from "@brains/dashboard";
 import { join } from "path";
-import rizomSite from "@brains/site-rizom";
+import rizomSite from "@rizom/site-rizom";
 import rizomTheme from "@brains/theme-rizom";
 
 /**
