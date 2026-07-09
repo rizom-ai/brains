@@ -1,5 +1,14 @@
 # @brains/email-resend
 
+## 0.2.0-alpha.145
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/email-contracts@0.2.0-alpha.145
+  - @brains/utils@0.2.0-alpha.145
+  - @brains/plugins@0.2.0-alpha.145
+
 ## 0.2.0-alpha.144
 
 ### Patch Changes

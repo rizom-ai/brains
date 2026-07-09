@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.145
+
+### Patch Changes
+
+- [`34bf814`](https://github.com/rizom-ai/brains/commit/34bf814558ae017cc5d9f70aba9f3bbcbc6093e6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow Rover instances to opt into site-content for hosted Rizom site packages.
+
 ## 0.2.0-alpha.144
 
 ### Patch Changes
