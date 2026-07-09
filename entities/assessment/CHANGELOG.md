@@ -1,5 +1,15 @@
 # @brains/assessment
 
+## 0.2.0-alpha.148
+
+### Patch Changes
+
+- Updated dependencies [[`f7054af`](https://github.com/rizom-ai/brains/commit/f7054af14705adb7690def03c70009bf95b91b8b), [`d4e0245`](https://github.com/rizom-ai/brains/commit/d4e0245a37741bed6cfd7d588b77f951e36e38f2), [`d82b56c`](https://github.com/rizom-ai/brains/commit/d82b56cd9729a7a1d06a1232fea0674d9853da87), [`acc1f5a`](https://github.com/rizom-ai/brains/commit/acc1f5a3c0216dc4f33990e775334a4d5e8837a0)]:
+  - @brains/dashboard@0.2.0-alpha.148
+  - @brains/plugins@0.2.0-alpha.148
+  - @brains/content-formatters@0.2.0-alpha.148
+  - @brains/utils@0.2.0-alpha.148
+
 ## 0.2.0-alpha.147
 
 ### Patch Changes

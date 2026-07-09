@@ -112,7 +112,8 @@
     "@rizom/site-rizom-ai": "0.2.0-alpha.136",
     "@rizom/site-rizom-foundation": "0.2.0-alpha.136",
     "@rizom/site-rizom-work": "0.2.0-alpha.134",
-    "@brains/sveltia-cms": "0.2.0-alpha.141"
+    "@brains/sveltia-cms": "0.2.0-alpha.141",
+    "@brains/console-theme": "0.2.0-alpha.143"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -144,11 +145,14 @@
     "cert-secrets-encrypt",
     "clean-walls-promise",
     "cms-codemirror-body-editor",
+    "cms-console-retrofit",
     "cms-notes-and-rover-pilot-onboarding",
     "cms-operator-login",
     "cms-rover-env",
     "cms-shell-preauth",
     "codebase-review-fixes",
+    "console-jump-palette",
+    "console-theme-extraction",
     "content-archive-current-release",
     "content-archive-first-year-break",
     "content-archive-upright-years",
@@ -286,6 +290,7 @@
     "upload-save-tool",
     "utils-subpath-split",
     "web-chat-bundled-ui",
+    "web-chat-console-climate",
     "web-chat-follow-up-upload-reuse",
     "web-chat-generated-image-attachments",
     "web-chat-hide-entity-memory-notes",

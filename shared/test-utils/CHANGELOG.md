@@ -1,5 +1,12 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.148
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.148
+
 ## 0.2.0-alpha.147
 
 ### Patch Changes
