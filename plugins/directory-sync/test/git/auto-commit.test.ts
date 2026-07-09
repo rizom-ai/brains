@@ -85,9 +85,12 @@ describe("setupGitAutoCommit", () => {
     expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
-  it("should commit immediately on first event (leading edge)", async () => {
+  it("should never commit before the debounce window", async () => {
+    // The entity event fires before the auto-export subscriber has written
+    // the file — an immediate (leading-edge) commit captures nothing and
+    // strands the export as a dirty tree until the next periodic sync.
     const { messaging } = createTestMessaging();
-    setupGitAutoCommit(messaging, git, 200, createSilentLogger());
+    setupGitAutoCommit(messaging, git, 50, createSilentLogger());
 
     await messaging.send({
       type: "entity:created",
@@ -98,10 +101,13 @@ describe("setupGitAutoCommit", () => {
       },
     });
 
+    expect(commitMock).toHaveBeenCalledTimes(0);
+    await new Promise((r) => setTimeout(r, 100));
     expect(commitMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
-  it("should cancel trailing commit on cleanup", async () => {
+  it("should cancel a pending commit on cleanup", async () => {
     const { messaging } = createTestMessaging();
     const cleanup = setupGitAutoCommit(
       messaging,
@@ -130,7 +136,7 @@ describe("setupGitAutoCommit", () => {
     cleanup();
     await new Promise((r) => setTimeout(r, 100));
 
-    expect(commitMock).toHaveBeenCalledTimes(1);
+    expect(commitMock).toHaveBeenCalledTimes(0);
   });
 
   it("should batch rapid events into one commit", async () => {
@@ -150,7 +156,6 @@ describe("setupGitAutoCommit", () => {
 
     await new Promise((r) => setTimeout(r, 100));
 
-    expect(commitMock.mock.calls.length).toBeLessThanOrEqual(2);
-    expect(commitMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(commitMock).toHaveBeenCalledTimes(1);
   });
 });

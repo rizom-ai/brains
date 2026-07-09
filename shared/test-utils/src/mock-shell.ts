@@ -341,11 +341,22 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
       const { content, metadata } = serializeViaAdapter(entity);
+      const contentHash = computeContentHash(content);
+      // Mirror the real entity service: a byte-identical write is skipped —
+      // no store, no event, no job.
+      const existing = entities.get(entity.id);
+      if (
+        existing?.contentHash === contentHash &&
+        existing.visibility === entity.visibility &&
+        JSON.stringify(existing.metadata) === JSON.stringify(metadata)
+      ) {
+        return { entityId: entity.id, jobId: "", skipped: true };
+      }
       entities.set(entity.id, {
         ...entity,
         content,
         metadata,
-        contentHash: computeContentHash(content),
+        contentHash,
       });
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },

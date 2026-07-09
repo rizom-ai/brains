@@ -1,10 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
-import {
-  zodFieldToCmsWidget,
-  generateCmsConfig,
-  type CmsConfigOptions,
-} from "../src/config";
+import { zodFieldToCmsWidget } from "../src/config";
 
 describe("zodFieldToCmsWidget", () => {
   it("should map z.string() to string widget", () => {
@@ -44,126 +40,18 @@ describe("zodFieldToCmsWidget", () => {
     expect(result.widget).toBe("string");
     expect(result.required).toBe(false);
   });
-});
 
-describe("generateCmsConfig", () => {
-  const postFrontmatterSchema = z.object({
-    title: z.string(),
-    status: z.enum(["draft", "published"]),
-    publishedAt: z.string().datetime().optional(),
-  });
-
-  const noteFrontmatterSchema = z.object({
-    title: z.string().optional(),
-  });
-
-  interface SchemaMap {
-    [key: string]: z.ZodObject<z.ZodRawShape>;
-  }
-
-  interface AdapterFlags {
-    isSingleton?: boolean;
-    hasBody?: boolean;
-  }
-
-  interface AdapterMap {
-    [key: string]: AdapterFlags;
-  }
-
-  function cmsOpts(
-    schemas: SchemaMap,
-    adapters: AdapterMap = {},
-  ): CmsConfigOptions {
-    return {
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: Object.keys(schemas),
-      getFrontmatterSchema: (
-        type: string,
-      ): z.ZodObject<z.ZodRawShape> | undefined => schemas[type],
-      getAdapter: (type: string): AdapterFlags | undefined => adapters[type],
-    };
-  }
-
-  it("should generate correct backend config", () => {
-    const config = generateCmsConfig(cmsOpts({}));
-
-    expect(config.backend.name).toBe("github");
-    expect(config.backend.repo).toBe("owner/repo");
-    expect(config.backend.branch).toBe("main");
-  });
-
-  it("should emit auth_endpoint only when explicitly configured", () => {
+  it("should map image-entity reference fields to the image widget", () => {
+    // Image references are string ids into the image entity type, named by
+    // the <role>ImageId convention (coverImageId, ogImageId, ...).
     expect(
-      generateCmsConfig(cmsOpts({})).backend.auth_endpoint,
-    ).toBeUndefined();
-
-    const config = generateCmsConfig({
-      ...cmsOpts({}),
-      baseUrl: "https://brain.example",
-      authEndpoint: "auth",
-    });
-
-    expect(config.backend.base_url).toBe("https://brain.example");
-    expect(config.backend.auth_endpoint).toBe("auth");
-  });
-
-  it("should emit note collection as raw Markdown notes at repo root", () => {
-    const config = generateCmsConfig(cmsOpts({ note: noteFrontmatterSchema }));
-
-    const baseCollection = config.collections.find((c) => c.name === "note");
-    expect(baseCollection?.label).toBe("Notes");
-    expect(baseCollection?.folder).toBe(".");
-    expect(baseCollection?.format).toBe("raw");
-    expect(baseCollection?.fields).toEqual([
-      { name: "body", label: "Body", widget: "markdown" },
-    ]);
-  });
-
-  it("should configure notes to avoid parsing body horizontal rules as frontmatter", () => {
-    const config = generateCmsConfig(cmsOpts({ note: noteFrontmatterSchema }));
-
-    const baseCollection = config.collections.find((c) => c.name === "note");
-    expect(baseCollection).toMatchObject({
-      name: "note",
-      extension: "md",
-      format: "raw",
-      fields: [{ name: "body", widget: "markdown" }],
-    });
-  });
-
-  it("should keep typed collections on the frontmatter format", () => {
-    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
-
-    const postCollection = config.collections.find((c) => c.name === "post");
-    expect(postCollection?.format).toBe("frontmatter");
-    expect(postCollection?.folder).toBe("post");
-  });
-
-  it("should add body field as markdown widget at end for typed entities", () => {
-    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
-
-    const fields = config.collections[0]?.fields ?? [];
-    const lastField = fields[fields.length - 1];
-    expect(lastField?.name).toBe("body");
-    expect(lastField?.widget).toBe("markdown");
-  });
-
-  it("should group singletons into a Settings files collection", () => {
-    const characterSchema = z.object({
-      name: z.string(),
-      role: z.string(),
-    });
-
-    const config = generateCmsConfig(
-      cmsOpts(
-        { post: postFrontmatterSchema, "brain-character": characterSchema },
-        { "brain-character": { isSingleton: true, hasBody: false } },
-      ),
+      zodFieldToCmsWidget("coverImageId", z.string().optional()).widget,
+    ).toBe("image");
+    expect(zodFieldToCmsWidget("ogImageId", z.string().optional()).widget).toBe(
+      "image",
     );
-
-    expect(config.collections).toHaveLength(2);
-    expect(config.collections[1]?.name).toBe("settings");
-    expect(config.collections[1]?.files?.[0]?.name).toBe("brain-character");
+    expect(zodFieldToCmsWidget("imageId", z.string()).widget).toBe("image");
+    // Not references: no ImageId suffix.
+    expect(zodFieldToCmsWidget("imageIdea", z.string()).widget).toBe("string");
   });
 });

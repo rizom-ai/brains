@@ -17,8 +17,17 @@ export async function commitGitChanges(
   await assertNoConflictMarkers(git);
 
   try {
-    await git.commit(finalMessage);
-    logger.info("Committed changes", { message: finalMessage });
+    const result = await git.commit(finalMessage);
+    // A clean tree yields a result with no commit hash — don't claim a
+    // commit happened when it didn't.
+    if (result.commit) {
+      logger.info("Committed changes", {
+        message: finalMessage,
+        commit: result.commit,
+      });
+    } else {
+      logger.debug("Nothing to commit", { message: finalMessage });
+    }
   } catch (error) {
     // "nothing to commit" is not an error
     if (!getErrorMessage(error).includes("nothing to commit")) {

@@ -30,7 +30,7 @@ describe("env schema resolution", () => {
       unavailableWorkspaceLookup,
     );
     expect(roverSchema).toContain("AI_API_KEY=");
-    expect(roverSchema).toContain("CMS_CONTENT_REPO_PAT=");
+    expect(roverSchema).not.toContain("CMS_CONTENT_REPO_PAT=");
     expect(roverSchema).toContain("ATPROTO_APP_PASSWORD=");
     expect(roverSchema).not.toContain("ATPROTO_IDENTIFIER=");
     expect(
