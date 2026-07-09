@@ -867,6 +867,7 @@
       "version": "0.2.0-alpha.143",
       "dependencies": {
         "@brains/auth-service": "workspace:*",
+        "@brains/console-theme": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
@@ -1084,6 +1085,17 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.5.0",
+        "typescript": "^6.0.3",
+      },
+    },
+    "shared/console-theme": {
+      "name": "@brains/console-theme",
+      "version": "0.2.0-alpha.143",
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "typescript": "^6.0.3",
@@ -1922,6 +1934,8 @@
     "@brains/chat-repl": ["@brains/chat-repl@workspace:interfaces/chat-repl"],
 
     "@brains/cms": ["@brains/cms@workspace:plugins/cms"],
+
+    "@brains/console-theme": ["@brains/console-theme@workspace:shared/console-theme"],
 
     "@brains/content-formatters": ["@brains/content-formatters@workspace:shared/content-formatters"],
 

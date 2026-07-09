@@ -28,8 +28,8 @@ export function Masthead(props: {
         <BrandTitle title={title} />
       </h1>
       {tagline && <p class="tagline">{tagline}</p>}
-      <button id="themeToggle" class="theme-btn" type="button">
-        Light mode
+      <button id="climateToggle" class="theme-btn" type="button">
+        Paper mode
       </button>
     </header>
   );

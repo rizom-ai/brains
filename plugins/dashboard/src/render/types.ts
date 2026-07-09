@@ -1,4 +1,5 @@
 import type { AppInfo, EntityCount } from "@brains/plugins";
+import type { ConsoleSurface } from "./console-surfaces";
 import type { WidgetComponent } from "../widget-registry";
 import type { WidgetData } from "../widget-schema";
 
@@ -70,6 +71,7 @@ export interface DashboardRenderInput {
   widgets: Record<string, RenderableWidgetData>;
   widgetScripts: string[];
   dashboardPath?: string;
+  surfaces?: ConsoleSurface[];
   character: CharacterInput;
   profile: ProfileInput;
   appInfo: AppInfo;

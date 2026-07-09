@@ -369,11 +369,21 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("committed");
   });
 
-  it("should render the shared console strip", () => {
+  it("should render the shared console strip from derived surfaces", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
       dashboardPath: "/operator",
+      surfaces: [
+        {
+          id: "dashboard",
+          label: "Dashboard",
+          href: "/operator",
+          isActive: true,
+        },
+        { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
+        { id: "cms", label: "CMS", href: "/cms", isActive: false },
+      ],
       character: { role: "", purpose: "", values: [] },
       profile: { name: "Test Owner" },
       appInfo: createMockAppInfo({ uptime: 100 }),
@@ -400,7 +410,54 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('class="session-chip"');
   });
 
-  it("should render the mockup masthead with the theme toggle", () => {
+  it("should omit surface links that are not registered", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      surfaces: [
+        {
+          id: "dashboard",
+          label: "Dashboard",
+          href: "/dashboard",
+          isActive: true,
+        },
+        { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
+      ],
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('href="/chat"');
+    expect(html).not.toContain('href="/cms"');
+    expect(html).not.toContain(">CMS<");
+  });
+
+  it("should default the climate to instrument and persist the toggle", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('data-climate="instrument"');
+    expect(html).not.toContain("data-theme");
+    // The toggle persists a console-wide preference all surfaces read.
+    expect(html).toContain('localStorage.getItem("console.climate")');
+    expect(html).toContain('localStorage.setItem("console.climate"');
+  });
+
+  it("should render the mockup masthead with the climate toggle", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -421,12 +478,12 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).not.toContain('class="scoreboard"');
     expect(html).not.toContain('class="masthead-action"');
-    // Theme toggle lives in the masthead (mockup), session exit in the strip.
+    // Climate toggle lives in the masthead (mockup), session exit in the strip.
     const masthead = html.slice(
       html.indexOf('class="masthead"'),
       html.indexOf('class="dashboard-tabs"'),
     );
-    expect(masthead).toContain('id="themeToggle"');
+    expect(masthead).toContain('id="climateToggle"');
     expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
   });
 

@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed, ready to start. Mockups at
+In progress on `work/console-unification` — Phase 1 complete (sheet extracted to
+`shared/console-theme`, dashboard consumes it, strip links route-derived, climate toggle
+persisted as `console.climate`). Next: Phase 2 (web-chat). Mockups at
 [`docs/console-unification-mockups.html`](../console-unification-mockups.html) (2026-07-09).
 The tabbed console landed on main 2026-07-09 (`ConsoleStrip` in
 `plugins/dashboard/src/dashboard-page.tsx` — brandmark, hardcoded Dashboard/Chat/CMS links,

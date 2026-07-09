@@ -10,6 +10,7 @@ import { WidgetCard } from "./render/widget-card";
 import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
+import type { ConsoleSurface } from "./render/console-surfaces";
 import type {
   DashboardActivityEvent,
   DashboardJobProgressItem,
@@ -191,23 +192,26 @@ function groupExternalWidgets(
   });
 }
 
-const THEME_TOGGLE_SCRIPT = `(function () {
+// The climate preference is console-wide: every operator surface reads the
+// same "console.climate" key, so a toggle here follows the operator to chat
+// and the CMS editor.
+const CLIMATE_TOGGLE_SCRIPT = `(function () {
   var root = document.documentElement;
-  var btn = document.getElementById("themeToggle");
+  var btn = document.getElementById("climateToggle");
   var stored = null;
-  try { stored = localStorage.getItem("brain:dashboard:theme"); } catch (e) { /* storage unavailable */ }
-  if (stored === "light" || stored === "dark") {
-    root.setAttribute("data-theme", stored);
+  try { stored = localStorage.getItem("console.climate"); } catch (e) { /* storage unavailable */ }
+  if (stored === "paper" || stored === "instrument") {
+    root.setAttribute("data-climate", stored);
   }
   function sync() {
     if (!btn) return;
-    btn.textContent = root.getAttribute("data-theme") === "dark" ? "Light mode" : "Dark mode";
+    btn.textContent = root.getAttribute("data-climate") === "instrument" ? "Paper mode" : "Instrument mode";
   }
   if (btn) {
     btn.addEventListener("click", function () {
-      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      try { localStorage.setItem("brain:dashboard:theme", next); } catch (e) { /* storage unavailable */ }
+      var next = root.getAttribute("data-climate") === "instrument" ? "paper" : "instrument";
+      root.setAttribute("data-climate", next);
+      try { localStorage.setItem("console.climate", next); } catch (e) { /* storage unavailable */ }
       sync();
     });
   }
@@ -324,9 +328,11 @@ const PIPELINE_TABS_SCRIPT = `(function () {
 
 function ConsoleStrip({
   dashboardPath,
+  surfaces,
   operatorAccess,
 }: {
   dashboardPath: string;
+  surfaces: ConsoleSurface[];
   operatorAccess: DashboardRenderInput["operatorAccess"];
 }): JSX.Element {
   const sessionHref = operatorAccess?.isOperator
@@ -344,15 +350,19 @@ function ConsoleStrip({
         </span>
       </a>
       <nav class="surface-nav" aria-label="Console surfaces">
-        <a class="surface-nav-link is-active" href={dashboardPath}>
-          Dashboard
-        </a>
-        <a class="surface-nav-link" href="/chat">
-          Chat
-        </a>
-        <a class="surface-nav-link" href="/cms">
-          CMS
-        </a>
+        {surfaces.map((surface) => (
+          <a
+            key={surface.id}
+            class={
+              surface.isActive
+                ? "surface-nav-link is-active"
+                : "surface-nav-link"
+            }
+            href={surface.href}
+          >
+            {surface.label}
+          </a>
+        ))}
       </nav>
       <button class="command-chip" type="button" aria-label="Command menu">
         <span class="command-chip-hint">Search or jump…</span>
@@ -965,7 +975,7 @@ function DashboardDocument({
   const now = new Date();
 
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-climate="instrument">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -993,6 +1003,16 @@ function DashboardDocument({
           <div class="frame">
             <ConsoleStrip
               dashboardPath={dashboardPath}
+              surfaces={
+                input.surfaces ?? [
+                  {
+                    id: "dashboard",
+                    label: "Dashboard",
+                    href: dashboardPath,
+                    isActive: true,
+                  },
+                ]
+              }
               operatorAccess={input.operatorAccess}
             />
             <Masthead title={input.title} tagline={input.profile.description} />
@@ -1024,7 +1044,7 @@ function DashboardDocument({
           />
         </main>
 
-        <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CLIMATE_TOGGLE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: DASHBOARD_TABS_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: PIPELINE_TABS_SCRIPT }} />
         {input.widgetScripts.map((script, index) => (
