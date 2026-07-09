@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.141",
   "description": "The consolidated Rizom site — rizom.ai serving the platform, work, and foundation rooms",
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-rizom": "workspace:*",

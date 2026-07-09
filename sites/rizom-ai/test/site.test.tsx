@@ -69,6 +69,13 @@ describe("rizomAiSite package", () => {
     }
   });
 
+  it("keeps site-content entity ids unambiguous across all routes", () => {
+    const entityIds = rizomAiRoutes.flatMap((route) =>
+      (route.sections ?? []).map((section) => `${route.id}:${section.id}`),
+    );
+    expect(new Set(entityIds).size).toBe(entityIds.length);
+  });
+
   it("keeps the shared Rizom runtime plugin id", () => {
     expect(rizomAiSite.plugin().id).toBe("rizom-site");
   });

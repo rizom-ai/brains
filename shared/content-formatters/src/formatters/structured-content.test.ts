@@ -590,4 +590,64 @@ not-a-number
       });
     });
   });
+
+  describe("markdown-significant string values", () => {
+    const schema = z.object({
+      lines: z.array(z.object({ kind: z.string(), text: z.string() })),
+    });
+    const formatter = new StructuredContentFormatter(schema, {
+      title: "Terminal",
+      mappings: [
+        {
+          key: "lines",
+          label: "Lines",
+          type: "array",
+          itemType: "object",
+          itemMappings: [
+            { key: "kind", label: "Kind", type: "string" },
+            { key: "text", label: "Text", type: "string" },
+          ],
+        },
+      ],
+    });
+
+    it("round-trips string values that start with '#' (shell comments)", () => {
+      const data = {
+        lines: [
+          { kind: "comment", text: "# install" },
+          { kind: "cmd", text: "bun add @rizom/brain" },
+        ],
+      };
+
+      const parsed = formatter.parse(formatter.format(data));
+      expect(parsed).toEqual(data);
+    });
+  });
+
+  describe("optional fields", () => {
+    const schema = z.object({
+      title: z.string(),
+      note: z.string().optional(),
+    });
+    const formatter = new StructuredContentFormatter(schema, {
+      title: "Doc",
+      mappings: [
+        { key: "title", label: "Title", type: "string" },
+        { key: "note", label: "Note", type: "string" },
+      ],
+    });
+
+    it("omits absent optional fields instead of round-tripping them to ''", () => {
+      const data = { title: "Hello" };
+
+      const formatted = formatter.format(data);
+      expect(formatted).not.toContain("## Note");
+      expect(formatter.parse(formatted)).toEqual(data);
+    });
+
+    it("keeps present optional fields", () => {
+      const data = { title: "Hello", note: "world" };
+      expect(formatter.parse(formatter.format(data))).toEqual(data);
+    });
+  });
 });

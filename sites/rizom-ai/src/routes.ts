@@ -16,7 +16,7 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
     description: "Build the agent that represents you",
     layout: "default",
     navigation: { show: false, label: "Home", slot: "primary", priority: 10 },
-    sections: toRouteSections(homeSections),
+    sections: toRouteSections("home", homeSections),
   },
   {
     id: "work",
@@ -25,7 +25,7 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
     description: "Coordination for the AI era",
     layout: "default",
     navigation: { show: false, label: "Work", slot: "primary", priority: 20 },
-    sections: toRouteSections(workSections),
+    sections: toRouteSections("work", workSections),
   },
   {
     id: "foundation",
@@ -40,6 +40,6 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
       slot: "primary",
       priority: 30,
     },
-    sections: toRouteSections(foundationSections),
+    sections: toRouteSections("foundation", foundationSections),
   },
 ];

@@ -42,10 +42,30 @@ describe("defineSection", () => {
     });
 
     expect(toTemplates([def])["good"]).toBe(def.template);
-    expect(toRouteSections([def])).toEqual([
+    expect(toRouteSections("page", [def])).toEqual([
       {
         id: "good",
         template: `${CONTENT_NAMESPACE}:good`,
+        content: { title: "hi" },
+      },
+    ]);
+  });
+
+  it("strips the page prefix from section ids so content files nest per page", () => {
+    const def = defineSection({
+      name: "home-hero",
+      description: "hero",
+      schema,
+      component: Component,
+      fallback: { title: "hi" },
+    });
+
+    // Entity id becomes "home:hero" → site-content/home/hero.md — the
+    // template reference keeps the full, globally-unique name.
+    expect(toRouteSections("home", [def])).toEqual([
+      {
+        id: "hero",
+        template: `${CONTENT_NAMESPACE}:home-hero`,
         content: { title: "hi" },
       },
     ]);
@@ -64,6 +84,44 @@ describe("page sections", () => {
       const html = render(<Component {...(def.fallback as object)} />);
       expect(html.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("section content formatters", () => {
+  it("every template has a formatter so entity content can override fallbacks", () => {
+    for (const def of allSections) {
+      expect(def.template.formatter).toBeDefined();
+    }
+  });
+
+  it("stores content as heading-structured markdown, not config", () => {
+    const problem = allSections.find((def) => def.name === "home-problem");
+    if (!problem?.template.formatter) throw new Error("no formatter");
+    const markdown = problem.template.formatter.format(problem.fallback);
+
+    expect(markdown).toContain("## Cap");
+    expect(markdown).toContain("### Item 1");
+    expect(markdown).toContain("#### Title");
+    expect(markdown).toContain("Your best thinking never ships");
+    expect(markdown).not.toContain("```yaml");
+  });
+
+  it("round-trips every section's fallback through its formatter unchanged", () => {
+    for (const def of allSections) {
+      const formatter = def.template.formatter;
+      if (!formatter) throw new Error(`${def.name} has no formatter`);
+      const markdown = formatter.format(def.fallback);
+      expect(formatter.parse(markdown)).toEqual(def.fallback);
+    }
+  });
+
+  it("rejects edits that break the section schema", () => {
+    const problem = allSections.find((def) => def.name === "home-problem");
+    if (!problem?.template.formatter) throw new Error("no formatter");
+
+    expect(() =>
+      problem.template.formatter?.parse("# Whatever\n\n## Bogus\nnope\n"),
+    ).toThrow();
   });
 });
 
