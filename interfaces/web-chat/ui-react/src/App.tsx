@@ -46,6 +46,11 @@ import {
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
 import { groupMessagePartSections, type RenderedPart } from "./message-parts";
+import {
+  buildConversationJumpGroup,
+  parseChatSessionHash,
+  type JumpLocalGroup,
+} from "./jump-local";
 import { toUiMessage, webChatMessagesResponseSchema } from "./history-messages";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
@@ -804,6 +809,34 @@ export function App(): React.ReactElement {
     closeDrawer();
     focusPromptTextarea(promptInputRef.current);
   }
+
+  // Chat's contribution to the cross-surface ⌘K palette: the endpoint
+  // doesn't know this operator's conversations, so they append locally.
+  useEffect(() => {
+    window.__consoleJumpLocal = (query): JumpLocalGroup[] => {
+      const group = buildConversationJumpGroup(sessions, query);
+      return group ? [group] : [];
+    };
+    return (): void => {
+      delete window.__consoleJumpLocal;
+    };
+  }, [sessions]);
+
+  // A conversation door (#s/{id}) — from the palette on any surface —
+  // resumes that session and clears the hash.
+  useEffect(() => {
+    const activateFromHash = (): void => {
+      const sessionId = parseChatSessionHash(window.location.hash);
+      if (sessionId === null) return;
+      window.history.replaceState(null, "", window.location.pathname);
+      void switchConversation(sessionId);
+    };
+    activateFromHash();
+    window.addEventListener("hashchange", activateFromHash);
+    return (): void =>
+      window.removeEventListener("hashchange", activateFromHash);
+    // Mount-only by design: doors normally arrive via full navigation.
+  }, []);
 
   function openRenameDialog(session: WebChatSession): void {
     closeDrawer();

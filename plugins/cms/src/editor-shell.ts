@@ -1,6 +1,7 @@
 import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
+  CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
   renderConsoleStripHtml,
   type ConsoleSurface,
@@ -35,6 +36,7 @@ export function renderEditorShellHtml(options: EditorShellOptions): string {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="${CONSOLE_FONTS_URL}" rel="stylesheet" />
     <script>${CONSOLE_CLIMATE_SCRIPT}</script>
+    <script>${CONSOLE_PALETTE_SCRIPT}</script>
     <style>
 ${CONSOLE_THEME_CSS}
       * { margin: 0; padding: 0; box-sizing: border-box; }

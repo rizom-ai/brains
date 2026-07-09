@@ -1,6 +1,7 @@
 import { join } from "path";
 import {
   CONSOLE_CLIMATE_SCRIPT,
+  CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
   renderConsoleStripHtml,
   type ConsoleSurface,
@@ -29,7 +30,7 @@ export function renderChatPage(options: ChatPageOptions): string {
   // resolve from. No webfont link here: the chat page deliberately makes no
   // third-party requests, so the console type ramp falls back to system
   // stacks until fonts are self-hosted.
-  return `<!doctype html><html lang="en" data-climate="instrument"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Brain Chat</title><script>${CONSOLE_CLIMATE_SCRIPT}</script><style data-web-chat-styles>${CONSOLE_THEME_CSS}
+  return `<!doctype html><html lang="en" data-climate="instrument"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Brain Chat</title><script>${CONSOLE_CLIMATE_SCRIPT}</script><script>${CONSOLE_PALETTE_SCRIPT}</script><style data-web-chat-styles>${CONSOLE_THEME_CSS}
 
 ${chatPageStyles}</style></head><body>${renderConsoleStripHtml(options)}<main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
 }

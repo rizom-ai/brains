@@ -13,6 +13,7 @@ export const CONSOLE_THEME_CSS: string = consoleThemeCSS;
 
 export { CONSOLE_CLIMATE_SCRIPT } from "./climate-script";
 export { CONSOLE_FONTS_URL } from "./fonts";
+export { CONSOLE_PALETTE_SCRIPT } from "./palette-script";
 export { deriveConsoleSurfaces } from "./surfaces";
 export type { ConsoleRouteLike, ConsoleSurface } from "./surfaces";
 export { renderConsoleStripHtml } from "./strip-html";

@@ -32,6 +32,26 @@ export function entityTitle(entity: EntitySummary): string {
   return typeof title === "string" && title.length > 0 ? title : entity.id;
 }
 
+export interface CmsHashTarget {
+  entityType: string;
+  id?: string;
+}
+
+/**
+ * Parse a console-jump door (#/{entityType}[/{id}]) into an editor target.
+ * Ids may contain slashes; both segments are URI-decoded.
+ */
+export function parseCmsHash(hash: string): CmsHashTarget | null {
+  const match = /^#\/([^/]+)(?:\/(.+))?$/.exec(hash);
+  const rawType = match?.[1];
+  if (rawType === undefined) return null;
+  const entityType = decodeURIComponent(rawType);
+  const rawId = match?.[2];
+  return rawId === undefined
+    ? { entityType }
+    : { entityType, id: decodeURIComponent(rawId) };
+}
+
 /** Initial frontmatter draft for a new entity: descriptor defaults only. */
 export function emptyDraft(fields: FieldDescriptor[]): Record<string, unknown> {
   const draft: Record<string, unknown> = {};
@@ -505,6 +525,8 @@ export function App(): ReactElement {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
   const saveStartedAt = useRef(0);
+  // Entity id from a console-jump door, opened once its collection loads.
+  const pendingDeepLinkId = useRef<string | null>(null);
 
   const activeType = types?.find((info) => info.entityType === entityType);
 
@@ -512,8 +534,20 @@ export function App(): ReactElement {
     fetchTypes()
       .then((loaded) => {
         setTypes(loaded);
+        // A console-jump door (#/{type}[/{id}]) overrides the default
+        // starting collection; the id half is honored once entities load.
+        const target = parseCmsHash(window.location.hash);
+        const targeted =
+          target && loaded.some((info) => info.entityType === target.entityType)
+            ? target
+            : null;
+        if (targeted?.id !== undefined) {
+          pendingDeepLinkId.current = targeted.id;
+        }
         const first = loaded.find((info) => !info.isSingleton) ?? loaded[0];
-        setEntityType(first ? first.entityType : null);
+        setEntityType(
+          targeted ? targeted.entityType : first ? first.entityType : null,
+        );
       })
       .catch((error: unknown) => setLoadError(errorMessage(error)));
     // No directory-sync installed → null, and the pipeline strip stays off.
@@ -552,6 +586,17 @@ export function App(): ReactElement {
       .then(([loadedSchema, loadedEntities]) => {
         setSchema(loadedSchema);
         setEntities(loadedEntities);
+        const deepLinkId = pendingDeepLinkId.current;
+        if (deepLinkId !== null) {
+          pendingDeepLinkId.current = null;
+          if (loadedEntities.some((entry) => entry.id === deepLinkId)) {
+            return fetchEntity(entityType, deepLinkId).then((entity) => {
+              setMode({ kind: "edit", entity });
+              setDraft(entity.frontmatter);
+              setBody(entity.body);
+            });
+          }
+        }
         // Singletons skip the list: open the record, or start creating it.
         if (loadedSchema.isSingleton) {
           const record = loadedEntities[0];

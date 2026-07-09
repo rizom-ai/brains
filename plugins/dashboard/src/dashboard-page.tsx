@@ -13,6 +13,7 @@ import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
 import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
+  CONSOLE_PALETTE_SCRIPT,
 } from "@brains/console-theme";
 import type { ConsoleSurface } from "@brains/console-theme";
 import type {
@@ -988,6 +989,7 @@ function DashboardDocument({
         </main>
 
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CONSOLE_PALETTE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: DASHBOARD_TABS_SCRIPT }} />
         {input.widgetScripts.map((script, index) => (
           <script

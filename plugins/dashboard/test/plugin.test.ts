@@ -63,16 +63,20 @@ describe("DashboardPlugin", () => {
   });
 
   describe("Web routes", () => {
-    it("should expose the existing dashboard web route", async () => {
+    it("should expose the dashboard page and console jump routes", async () => {
       const routes = plugin.getWebRoutes();
-      expect(routes).toHaveLength(1);
-      expect(routes[0]).toMatchObject({
+      expect(routes).toHaveLength(2);
+      const pageRoute = routes.find((route) => route.path === "/dashboard");
+      expect(pageRoute).toMatchObject({
         path: "/dashboard",
         method: "GET",
         public: true,
       } satisfies Partial<WebRouteDefinition>);
+      expect(
+        routes.find((route) => route.path === "/api/console/jump"),
+      ).toBeDefined();
 
-      const response = await routes[0]?.handler(
+      const response = await pageRoute?.handler(
         new Request("http://brain/dashboard"),
       );
       expect(response?.status).toBe(200);
@@ -83,6 +87,171 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Identity");
       expect(html).toContain("dashboard:dashboard");
       expect(html).not.toContain("data-cms-frame");
+      // The jump palette ships with the page, wired to the strip's ⌘K.
+      expect(html).toContain("/api/console/jump");
+    });
+
+    it("should require an operator session for the console jump", async () => {
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=verd"),
+      );
+
+      expect(response?.status).toBe(401);
+    });
+
+    it("should return grouped jump doors for an operator", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-jump-auth-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createOperatorSession();
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=", {
+          headers: { Cookie: cookie },
+        }),
+      );
+
+      expect(response?.status).toBe(200);
+      const data = (await response?.json()) as {
+        groups: Array<{ id: string; items: Array<{ href: string }> }>;
+      };
+      const tabs = data.groups.find((group) => group.id === "tabs");
+      expect(tabs?.items.map((item) => item.href)).toContain(
+        "/dashboard#system",
+      );
+      // No CMS plugin in this harness → entity doors have no destination.
+      expect(data.groups.find((group) => group.id === "entities")).toBe(
+        undefined,
+      );
+    });
+
+    it("should map search hits to CMS doors, falling back to ids", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-jump-entities-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createOperatorSession();
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+
+      const shell = harness.getMockShell();
+      shell.registerPlugin({
+        id: "cms",
+        getWebRoutes: () => [
+          {
+            path: "/cms",
+            method: "GET",
+            public: true,
+            handler: async (): Promise<Response> => new Response("ok"),
+          },
+        ],
+      } as unknown as Parameters<typeof shell.registerPlugin>[0]);
+
+      const entityService = shell.getEntityService();
+      entityService.search = (async () => [
+        {
+          entity: {
+            id: "verdigris-pigments",
+            entityType: "note",
+            title: "Verdigris pigments",
+            content: "",
+            created: "",
+            updated: "",
+            contentHash: "",
+          },
+          score: 1,
+          excerpt: "",
+        },
+        {
+          entity: {
+            id: "untitled-note",
+            entityType: "note",
+            content: "",
+            created: "",
+            updated: "",
+            contentHash: "",
+          },
+          score: 0.5,
+          excerpt: "",
+        },
+      ]) as typeof entityService.search;
+
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=verd", {
+          headers: { Cookie: cookie },
+        }),
+      );
+
+      expect(response?.status).toBe(200);
+      const data = (await response?.json()) as {
+        groups: Array<{
+          id: string;
+          items: Array<Record<string, string>>;
+        }>;
+      };
+      const entities = data.groups.find((group) => group.id === "entities");
+      expect(entities?.items).toEqual([
+        {
+          id: "note/verdigris-pigments",
+          title: "Verdigris pigments",
+          sub: "note",
+          href: "/cms#/note/verdigris-pigments",
+          tag: "edit in cms",
+        },
+        {
+          id: "note/untitled-note",
+          title: "untitled-note",
+          sub: "note",
+          href: "/cms#/note/untitled-note",
+          tag: "edit in cms",
+        },
+      ]);
+    });
+
+    it("should degrade to tab doors alone when search fails", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-jump-degrade-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createOperatorSession();
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+
+      const shell = harness.getMockShell();
+      const entityService = shell.getEntityService();
+      entityService.search = (async () => {
+        throw new Error("index warming");
+      }) as typeof entityService.search;
+
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+      // "sys" matches the System tab and is long enough to trigger the
+      // (failing) entity search — the response degrades, never errors.
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=sys", {
+          headers: { Cookie: cookie },
+        }),
+      );
+
+      expect(response?.status).toBe(200);
+      const data = (await response?.json()) as {
+        groups: Array<{ id: string }>;
+      };
+      expect(data.groups.find((group) => group.id === "entities")).toBe(
+        undefined,
+      );
+      expect(data.groups.find((group) => group.id === "tabs")).toBeDefined();
     });
 
     it("should hide restricted endpoints and interactions from public visitors", async () => {

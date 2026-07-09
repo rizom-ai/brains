@@ -23,6 +23,10 @@ import {
   type DashboardRenderInput,
 } from "./dashboard-page";
 import { deriveConsoleSurfaces } from "@brains/console-theme";
+import {
+  buildConsoleJumpGroups,
+  type ConsoleJumpEntityHit,
+} from "./console-jump";
 import { resolveWidgetsForRender } from "./render/resolve-widgets";
 import type {
   DashboardActivityEvent,
@@ -479,6 +483,64 @@ export class DashboardPlugin extends ServicePlugin<
 
           return new Response(renderDashboardPageHtml(input), {
             headers: { "Content-Type": "text/html; charset=utf-8" },
+          });
+        },
+      },
+      {
+        path: "/api/console/jump",
+        method: "GET",
+        public: true,
+        handler: async (request: Request): Promise<Response> => {
+          const operatorSession =
+            await getActiveAuthService()?.getOperatorSession(request);
+          if (!operatorSession) {
+            return Response.json(
+              { error: "Operator session required" },
+              { status: 401 },
+            );
+          }
+          const ctx = this.ctx;
+          if (!ctx) {
+            return Response.json({ groups: [] });
+          }
+
+          const query =
+            new URL(request.url).searchParams.get("q")?.trim() ?? "";
+
+          let entities: ConsoleJumpEntityHit[] = [];
+          if (query.length >= 2) {
+            try {
+              const results = await ctx.entityService.search({
+                query,
+                options: { limit: 6 },
+              });
+              entities = results.map((result) => ({
+                entityType: result.entity.entityType,
+                id: result.entity.id,
+                title:
+                  (result.entity as { title?: string }).title ??
+                  result.entity.id,
+              }));
+            } catch {
+              // Search degrades to no entity doors (e.g. index warming).
+            }
+          }
+
+          const widgetGroups = (
+            this.widgetRegistry?.list({ permissionLevel: "anchor" }) ?? []
+          ).map((widget) => widget.group);
+          const cmsPath = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
+            activeId: "dashboard",
+          }).find((surface) => surface.id === "cms")?.href;
+
+          return Response.json({
+            groups: buildConsoleJumpGroups({
+              query,
+              groups: [...widgetGroups, "knowledge", "system"],
+              dashboardPath: this.config.routePath,
+              cmsPath,
+              entities,
+            }),
           });
         },
       },

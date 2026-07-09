@@ -625,6 +625,8 @@ describe("WebChatInterface", () => {
     expect(html).toContain('href="/logout?return_to=%2Fchat"');
     // Climate preference is console-wide.
     expect(html).toContain('localStorage.getItem("console.climate")');
+    // The ⌘K jump palette ships with the shell.
+    expect(html).toContain("/api/console/jump");
     expect(html).toContain(".web-chat-session-dialog-backdrop");
     expect(html).toContain(
       ".web-chat-session-dialog-actions { flex-direction: column-reverse; }",
