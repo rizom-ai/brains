@@ -81,6 +81,22 @@ describe("rizomAiSite package", () => {
     expect(rizomAiTemplates["writing"]?.dataSourceId).toBe("blog:entities");
   });
 
+  it("serves /network as the agent directory backed by agent-discovery", () => {
+    const route = rizomAiRoutes.find((r) => r.id === "network");
+    expect(route?.path).toBe("/network");
+
+    const section = route?.sections?.[0];
+    expect(section?.template).toBe("rizom-ai-site:network");
+    // Only approved agents surface in the public directory.
+    expect(section?.dataQuery).toMatchObject({
+      entityType: "agent",
+      query: { status: "approved" },
+    });
+    expect(rizomAiTemplates["network"]?.dataSourceId).toBe(
+      "agent-discovery:entities",
+    );
+  });
+
   it("keeps site-content entity ids unambiguous across all routes", () => {
     const entityIds = rizomAiRoutes.flatMap((route) =>
       (route.sections ?? []).map((section) => `${route.id}:${section.id}`),
@@ -104,13 +120,14 @@ describe("RizomAiLayout", () => {
     expect(html).not.toContain("one practice");
   });
 
-  it("puts Writing in the org strip on every face, and marks it active on /writing", () => {
+  it("puts the org indexes (Writing, Network) top-right on every face", () => {
     for (const path of ["/", "/work", "/foundation"]) {
       const html = renderLayout(path);
       expect(html).toContain('href="/writing"');
       expect(html).toContain(">Writing<");
+      expect(html).toContain('href="/network"');
+      expect(html).toContain(">Network<");
     }
-    expect(renderLayout("/writing")).toContain('aria-current="page">Writing');
   });
 
   it("sets data-room per route so the theme can switch accents", () => {
@@ -128,11 +145,15 @@ describe("RizomAiLayout", () => {
     );
   });
 
-  it("marks Writing — not a room — as active on /writing", () => {
-    const html = renderLayout("/writing");
-    expect(html).toContain('aria-current="page">Writing');
-    // /writing is cross-room, so no room face claims the current page.
-    expect(html).not.toContain('aria-current="page">Platform');
+  it("marks an org index — not a room — active on its own path", () => {
+    const writing = renderLayout("/writing");
+    expect(writing).toContain('aria-current="page">Writing');
+    // Cross-room, so no room face claims the current page.
+    expect(writing).not.toContain('aria-current="page">Platform');
+
+    const network = renderLayout("/network");
+    expect(network).toContain('aria-current="page">Network');
+    expect(network).not.toContain('aria-current="page">Platform');
   });
 
   it("shows the old domain as the room nameplate", () => {

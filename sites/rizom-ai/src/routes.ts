@@ -44,6 +44,29 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
     ],
   },
   {
+    id: "network",
+    path: "/network",
+    title: "Network — Rizom",
+    description: "The Rizom agent directory",
+    layout: "default",
+    navigation: {
+      show: false,
+      label: "Network",
+      slot: "primary",
+      priority: 25,
+    },
+    sections: [
+      {
+        id: "directory",
+        template: "rizom-ai-site:network",
+        dataQuery: {
+          entityType: "agent",
+          query: { status: "approved", limit: 100 },
+        },
+      },
+    ],
+  },
+  {
     id: "work",
     path: "/work",
     title: "Rizom Work",

@@ -58,19 +58,30 @@ function activeFace(path: string): FaceKey {
   return "platform";
 }
 
-function isWriting(path: string): boolean {
-  return path === "/writing" || path.startsWith("/writing/");
+// The org-level indexes: cross-room aggregations (everything published,
+// everyone in the network) that belong to no single face. They live
+// top-right on every face, and claim the current page on their own path.
+const ORG_INDEXES: { label: string; href: string }[] = [
+  { label: "Writing", href: "/writing" },
+  { label: "Network", href: "/network" },
+];
+
+function orgIndexActive(path: string): string | null {
+  const match = ORG_INDEXES.find(
+    (index) => path === index.href || path.startsWith(`${index.href}/`),
+  );
+  return match ? match.href : null;
 }
 
 function FacesStrip({ path }: { path: string }): JSX.Element {
   const face = activeFace(path);
-  const writingActive = isWriting(path);
+  const activeIndex = orgIndexActive(path);
   return (
     <div className="relative z-[2] flex items-baseline gap-6 border-b border-theme-light px-6 py-3 font-label text-label-xs uppercase tracking-[0.14em] md:px-10 xl:px-20">
       <span className="text-theme-muted">rizom</span>
       {FACES.map((item) =>
-        // /writing is cross-room, so no room face is current there.
-        item.key === face && !writingActive ? (
+        // An org index is cross-room, so no room face is current there.
+        item.key === face && !activeIndex ? (
           <a
             key={item.key}
             href={item.href}
@@ -89,16 +100,23 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
           </a>
         ),
       )}
-      {/* The one cross-room destination lives top-right on every face. */}
-      <a
-        href="/writing"
-        className={`ml-auto transition-colors ${
-          writingActive ? "text-accent" : "text-theme-light hover:text-theme"
-        }`}
-        {...(writingActive ? { "aria-current": "page" } : {})}
-      >
-        Writing
-      </a>
+      <div className="ml-auto flex items-baseline gap-6">
+        {ORG_INDEXES.map((index) => {
+          const active = activeIndex === index.href;
+          return (
+            <a
+              key={index.href}
+              href={index.href}
+              className={`transition-colors ${
+                active ? "text-accent" : "text-theme-light hover:text-theme"
+              }`}
+              {...(active ? { "aria-current": "page" } : {})}
+            >
+              {index.label}
+            </a>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -1742,6 +1742,7 @@
       "name": "@brains/site-rizom-ai",
       "version": "0.2.0-alpha.141",
       "dependencies": {
+        "@brains/agent-discovery": "workspace:*",
         "@brains/blog": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/decks": "workspace:*",
