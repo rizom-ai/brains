@@ -34,7 +34,7 @@ const declarationProcess = Bun.spawn(
   [
     "bun",
     "x",
-    "rollup",
+    "rolldown",
     "-c",
     join(import.meta.dir, "bundle-declarations.mjs"),
   ],
@@ -43,7 +43,7 @@ const declarationProcess = Bun.spawn(
     env: {
       ...process.env,
       INPUT: join(packageDir, "src/index.ts"),
-      OUTPUT: declarationPath,
+      OUTPUT_DIR: distDir,
     },
     stdout: "inherit",
     stderr: "inherit",

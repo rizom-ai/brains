@@ -187,7 +187,6 @@ Configure import aliases:
 {
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],
