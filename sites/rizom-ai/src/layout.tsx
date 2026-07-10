@@ -187,8 +187,8 @@ interface FooterColumn {
   links: FaceLink[];
 }
 
-/* Home's four-column footer — mockup `.footer` with the legal row.
-   Rooms get the slim `.siteband` provenance line instead. */
+/* The site footer — mockup `.footer`: four columns plus the legal row.
+   Shown on every face; the signature comes from the site-info entity. */
 const FOOTER_COLUMNS: FooterColumn[] = [
   {
     heading: "The platform",
@@ -218,7 +218,7 @@ const FOOTER_COLUMNS: FooterColumn[] = [
   },
 ];
 
-function PlatformFooter({
+function SiteFooter({
   siteInfo,
 }: {
   siteInfo: RizomLayoutProps["siteInfo"];
@@ -255,33 +255,7 @@ function PlatformFooter({
       ))}
       <div className="col-span-full mt-2 flex flex-wrap items-center gap-x-[22px] gap-y-2 border-t border-theme-light pt-4 font-label text-[11.5px] text-theme-light">
         {signature(siteInfo) && <span>{signature(siteInfo)}</span>}
-        <span className="flex-1" />
-        <span>
-          rizom.work &amp; rizom.foundation now live here — old links redirect
-        </span>
       </div>
-    </footer>
-  );
-}
-
-/* Room siteband — provenance line per mockup; the signature comes from
-   the site-info entity, same single source as the platform footer. */
-function RoomSiteband({
-  face,
-  siteInfo,
-}: {
-  face: "work" | "foundation";
-  siteInfo: RizomLayoutProps["siteInfo"];
-}): JSX.Element {
-  const from = `rizom.${FACE_CHROME[face].nameplate}`;
-  return (
-    <footer className="relative z-[1] flex flex-wrap items-baseline gap-[26px] border-t border-theme-light px-6 py-4 font-label text-[12px] text-theme-light md:px-10 xl:px-20">
-      <span>
-        previously <b className="font-medium text-theme-muted">{from}</b> — you
-        were redirected here
-      </span>
-      <span className="flex-1" />
-      {signature(siteInfo) && <span>{signature(siteInfo)}</span>}
     </footer>
   );
 }
@@ -353,11 +327,7 @@ function RizomAiChrome({
           <FaceNav face={face} />
         </header>
         <main>{children}</main>
-        {face === "platform" ? (
-          <PlatformFooter siteInfo={siteInfo} />
-        ) : (
-          <RoomSiteband face={face} siteInfo={siteInfo} />
-        )}
+        <SiteFooter siteInfo={siteInfo} />
       </div>
     </RizomFrame>
   );

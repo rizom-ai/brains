@@ -181,18 +181,17 @@ describe("RizomAiLayout", () => {
     expect(foundation).not.toContain(">Topics<");
   });
 
-  it("gives the platform the full footer and rooms their siteband", () => {
-    const home = renderLayout("/");
-    expect(home).toContain("The platform");
-    expect(home).toContain("old links redirect");
-
-    const work = renderLayout("/work");
-    expect(work).toContain("previously");
-    expect(work).toContain("rizom.work");
-    expect(work).not.toContain("old links redirect");
-
-    const foundation = renderLayout("/foundation");
-    expect(foundation).toContain("rizom.foundation");
+  it("gives every face the full four-column footer, no redirect copy", () => {
+    for (const path of ["/", "/work", "/foundation"]) {
+      const html = renderLayout(path);
+      expect(html).toContain("The platform");
+      expect(html).toContain("The practice");
+      expect(html).toContain("The foundation");
+      // No redirect messaging anywhere — the thin siteband and the
+      // footer's "old links redirect" line are both gone.
+      expect(html).not.toContain("you were redirected here");
+      expect(html).not.toContain("old links redirect");
+    }
   });
 
   it("renders the site-info signature line everywhere, and no other legal copy", () => {
