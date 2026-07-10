@@ -175,8 +175,7 @@ const foundationChapters = defineSection({
   component: FoundationChaptersSection,
   fallback: {
     cap: "The series",
-    capNote:
-      "— twenty to forty people; Jan Hein as intellectual anchor · all dates at /events",
+    capNote: "— twenty to forty people; Jan Hein as intellectual anchor",
     items: [
       {
         no: "01",

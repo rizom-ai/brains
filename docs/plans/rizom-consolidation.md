@@ -44,9 +44,10 @@ Phase 0/1:
 Foundation`) above a per-face contextual nav; each room keeps its live nav and its old
   domain as the nameplate (`rizom.work`, `rizom.foundation`).
 - **IA / sitemap (settled in Phase 0)**: one `/writing` index for everything published
-  (foundation essays are a series — matches the entity model); `/events` for gatherings;
-  `/network` from the agent directory; `/docs` ↗ docs.rizom.ai; `/chat` public. Old
-  domains 301 domain-level into their rooms, each room's footer acknowledging the move.
+  (foundation essays are a series — matches the entity model); `/events` for gatherings
+  (deferred — needs an `event` entity, its own plan after migration); `/network` from
+  the agent directory; `/docs` ↗ docs.rizom.ai; `/chat` public. Old domains 301
+  domain-level into their rooms.
 - **The growth diagram is the product story**: You → Team → Network drawn as one organism
   (Rover/Relay/Ranger as separate products is retired — the one sanctioned content rework).
 - **Living proof**: a colophon line (latest essay, talk-to-this-brain, agent card, lexicon
@@ -175,15 +176,17 @@ avoided; that call belongs to that plan's lane.
 
 ### Phase 4 — Published-index routes on the merged content
 
-- First: give the site's templates formatters. The Phase 3 verification boot
-  surfaced that all 21 `rizom-ai-site` templates lack formatters, so
-  entity-stored content cannot override the static fallbacks — the "copy edits
-  happen through content entities" contract doesn't hold yet.
-- Build the remaining merged-sitemap routes against the merged corpus: `/writing`
-  (posts + foundation-essay series + decks through the rizom-ai layout), `/events`,
-  `/network` (agent directory), plus the platform nav links that point at them
-  (`Writing`, `Network`) deferred from Phase 1.
-- Editorial pass (user-driven): essays for `/writing`, events, refreshed room copy.
+- **Landed**: schema-derived markdown formatters for every section (entity content
+  now overrides the static fallbacks); `/writing` (Essays band via `blog:entities`
+  - Talks band via `decks:entities`) and `/network` (agent directory via
+    `agent-discovery:entities`), each with its org-index nav link top-right in the
+    strip; the footer unified to a full four-column footer on every face.
+- **`/events` deferred (decided 2026-07-10)**: gatherings deserve a real `event`
+  entity (dates, locations, RSVP/status) rather than static section copy — that is
+  its own plan, sequenced _after_ this site migration ships. Until it exists, the
+  `Events` nav/footer links point at the `/foundation#events` teaser and no route
+  promises a `/events` URL. See the follow-up note below.
+- Editorial pass (user-driven): essays for `/writing`, refreshed room copy.
 - Tests first: each route renders real entries from a merged-corpus fixture under the
   two-tier chrome; nav shows the new links on the platform face only.
 
@@ -208,6 +211,15 @@ avoided; that call belongs to that plan's lane.
 5. Exactly one Rizom deployment remains; the other two app repos and content repos are
    archived read-only.
 6. `sites/rizom` has no variant machinery without a consumer; per-package gates pass.
+
+## Follow-up: the `event` entity (post-migration)
+
+`/events` is intentionally not built as part of this migration. Gatherings need a
+real `event` entity — dates, locations, status/RSVP, city-chapter grouping — the
+same entity-backed shape `/writing` and `/network` use, not hardcoded section copy
+that would be thrown away. That is its own plan, to be written and executed **after**
+the consolidated site ships. Until then the `/foundation` page carries the gatherings
+teaser and the `Events` links point there.
 
 ## Open decisions — all settled in Phase 0 (2026-07-09)
 
