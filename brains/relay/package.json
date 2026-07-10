@@ -1,6 +1,6 @@
 {
   "name": "@brains/relay",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.150",
   "description": "Relay brain model — collaborative knowledge management",
   "dependencies": {
     "@brains/a2a": "workspace:*",

@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- [`a6c7004`](https://github.com/rizom-ai/brains/commit/a6c70040f23414a301c3f2c2fb3ddef11e7b825f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use GPT-5.6 Luna with low reasoning as the default brain model, add typed reasoning-effort configuration from brain definitions and instance overrides through the AI runtime, and simplify tool-routing prompts for more reliable status, trust, and agent recommendation workflows.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/conversation-service@0.2.0-alpha.150
+  - @brains/entity-service@0.2.0-alpha.150
+  - @brains/identity-service@0.2.0-alpha.150
+  - @brains/mcp-service@0.2.0-alpha.150
+  - @brains/messaging-service@0.2.0-alpha.150
+  - @brains/templates@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

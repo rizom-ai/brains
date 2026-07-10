@@ -1,5 +1,33 @@
 # @brains/ranger
 
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- [`a6c7004`](https://github.com/rizom-ai/brains/commit/a6c70040f23414a301c3f2c2fb3ddef11e7b825f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use GPT-5.6 Luna with low reasoning as the default brain model, add typed reasoning-effort configuration from brain definitions and instance overrides through the AI runtime, and simplify tool-routing prompts for more reliable status, trust, and agent recommendation workflows.
+
+- Updated dependencies [[`a6c7004`](https://github.com/rizom-ai/brains/commit/a6c70040f23414a301c3f2c2fb3ddef11e7b825f)]:
+  - @brains/app@0.2.0-alpha.150
+  - @brains/directory-sync@0.2.0-alpha.150
+  - @brains/discord@0.2.0-alpha.150
+  - @brains/link@0.2.0-alpha.150
+  - @brains/note@0.2.0-alpha.150
+  - @brains/products@0.2.0-alpha.150
+  - @brains/prompt@0.2.0-alpha.150
+  - @brains/site-info@0.2.0-alpha.150
+  - @brains/social-media@0.2.0-alpha.150
+  - @brains/wishlist@0.2.0-alpha.150
+  - @brains/mcp@0.2.0-alpha.150
+  - @brains/webserver@0.2.0-alpha.150
+  - @brains/analytics@0.2.0-alpha.150
+  - @brains/atproto-registry@0.2.0-alpha.150
+  - @brains/cms@0.2.0-alpha.150
+  - @brains/dashboard@0.2.0-alpha.150
+  - @brains/site-builder-plugin@0.2.0-alpha.150
+  - @brains/site-content@0.2.0-alpha.150
+  - @brains/theme-rizom@0.2.0-alpha.150
+  - @rizom/site-rizom@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes
