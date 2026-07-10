@@ -290,7 +290,10 @@ function ConsoleStrip({
       <a class="console-mark" href={dashboardPath} aria-label="Dashboard home">
         <span class="pulse"></span>
         <span>
-          Brain · <b>Console</b>
+          Brain{" "}
+          <span class="console-mark-long">
+            · <b>Console</b>
+          </span>
         </span>
       </a>
       <nav class="surface-nav" aria-label="Console surfaces">
@@ -308,13 +311,23 @@ function ConsoleStrip({
           </a>
         ))}
       </nav>
-      <button class="command-chip" type="button" aria-label="Command menu">
+      <button class="command-chip" type="button" aria-label="Search or jump">
         <span class="command-chip-hint">Search or jump…</span>
         <kbd>⌘K</kbd>
+        <span class="command-chip-icon" aria-hidden="true">
+          ⌕
+        </span>
       </button>
-      <a class="session-chip" href={sessionHref}>
+      <a
+        class="session-chip"
+        href={sessionHref}
+        aria-label={`${sessionLabel} · ${sessionAction}`}
+      >
         <span>{sessionLabel}</span>
         <strong>{sessionAction}</strong>
+        <span class="session-chip-avatar" aria-hidden="true">
+          {operatorAccess?.isOperator ? "OP" : "VI"}
+        </span>
       </a>
     </header>
   );
@@ -922,7 +935,10 @@ function DashboardDocument({
     <html lang="en" data-climate="instrument">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+        />
         <title>{input.title}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

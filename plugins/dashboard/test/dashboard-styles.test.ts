@@ -31,4 +31,12 @@ describe("DASHBOARD_STYLES", () => {
     expect(localStyles).not.toContain(".console-strip");
     expect(localStyles).not.toContain(".session-chip");
   });
+
+  it("ships a phone composition for tabs, vitals, and job rows", () => {
+    expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
+    expect(DASHBOARD_STYLES).toContain("overscroll-behavior-inline: contain");
+    expect(DASHBOARD_STYLES).toContain(
+      '.jobs td:nth-child(1)::before { content: "Job"; }',
+    );
+  });
 });

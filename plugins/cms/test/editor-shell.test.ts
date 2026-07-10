@@ -50,7 +50,9 @@ describe("renderEditorShellHtml", () => {
     const html = renderEditorShellHtml(SHELL_OPTIONS);
 
     expect(html).toContain('class="console-strip"');
-    expect(html).toContain("Brain · <b>Console</b>");
+    expect(html).toContain(
+      'Brain <span class="console-mark-long">· <b>Console</b></span>',
+    );
     expect(html).toContain('href="/dashboard"');
     expect(html).toContain('href="/chat"');
     expect(html).toContain('surface-nav-link is-active" href="/cms">CMS');
