@@ -2,12 +2,13 @@
 
 ## Status
 
-In progress — direction decided 2026-07-07; Phases 0–2 done, Phase 3's local
-content merge landed with import verification in flight
-(2026-07-09, `work/rizom-consolidated-site`; the published-index routes moved to
-Phase 4, after the content merge; Phase 2's deployment-time config and Phase 3's
-push/runtime-DB copy roll into Phase 5). Next: Phase 4 (published-index routes),
-starting with template formatters. **Follow-up to
+In progress — direction decided 2026-07-07; Phases 0–3 done and Phase 4's route
+work complete (2026-07-10, `work/rizom-consolidated-site`): section formatters,
+`/writing` (Essays + Talks) and `/network` shipped, `/events` deferred to a
+post-migration `event`-entity plan, footer unified across faces. Phase 2's
+deployment-time config and Phase 3's push/runtime-DB copy roll into Phase 5.
+Next: Phase 5 (deploy + DNS cutover), gated on the `sites-controlled-deploy`
+custom-domain machinery. **Follow-up to
 [`rizom-sites-on-hosted-rover.md`](./rizom-sites-on-hosted-rover.md)**: once the site
 packaging and hosted-rover custom-domain machinery from that plan land, the three Rizom
 web properties (`rizom.ai`, `rizom.work`, `rizom.foundation`) consolidate into **one site
