@@ -8,9 +8,9 @@ import {
   useState,
   type ReactElement,
 } from "react";
+import { createPortal } from "react-dom";
 import { Streamdown } from "streamdown";
 import responsiveStyles from "./responsive.css" with { type: "text" };
-import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   ApiError,
   createEntity,
@@ -97,11 +97,31 @@ export function applyFieldChange(
 function formatUpdated(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
+  const elapsed = Date.now() - date.getTime();
+  const minutes = Math.max(0, Math.floor(elapsed / 60_000));
+  if (minutes < 60) return `${Math.max(1, minutes)} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
   return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+}
+
+export function entityPublicationState(
+  entity: EntitySummary,
+): "draft" | "published" {
+  const status = entity.frontmatter["status"];
+  if (status === "published") return "published";
+  return entity.frontmatter["published"] === true ? "published" : "draft";
+}
+
+function singularLabel(label: string): string {
+  return label.endsWith("s") ? label.slice(0, -1) : label;
 }
 
 const BODY_MODES = ["source", "split", "preview"] as const;
@@ -321,10 +341,17 @@ export function BodyEditor(props: {
             </button>
           ))}
         </span>
-        <span className="doc-meta">markdown · edits the literal bytes</span>
+        <span className="doc-meta">
+          {value.trim() ? value.trim().split(/\s+/).length.toLocaleString() : 0}{" "}
+          words · markdown · perfect round-trip
+        </span>
       </header>
       {assist && showSource && (
-        <section className="assist-bar" aria-label="AI selection rewrite">
+        <section
+          className="assist-bar"
+          data-has-selection={selection ? "true" : "false"}
+          aria-label="AI selection rewrite"
+        >
           <input
             type="text"
             value={instruction}
@@ -406,7 +433,7 @@ export function TypeSwitcher(props: {
 }): ReactElement {
   return (
     <nav className="types rail-group">
-      <div className="rail-title">Collections</div>
+      <div className="rail-title">Content</div>
       <ul>
         {props.types.map((info) => (
           <li key={info.entityType}>
@@ -939,7 +966,7 @@ export function App(): ReactElement {
   if (loadError) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${responsiveStyles}`}</style>
         <p className="status status-error boot-status">{loadError}</p>
       </div>
     );
@@ -947,7 +974,7 @@ export function App(): ReactElement {
   if (!types || (entityType && (!schema || !entities))) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${responsiveStyles}`}</style>
         <p className="status boot-status">Loading…</p>
       </div>
     );
@@ -955,7 +982,7 @@ export function App(): ReactElement {
   if (!entityType || !schema) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${responsiveStyles}`}</style>
         <p className="status boot-status">
           No editable entity types are registered.
         </p>
@@ -970,208 +997,257 @@ export function App(): ReactElement {
       : mode.kind === "create"
         ? `New ${activeType?.label ?? entityType}`
         : (activeType?.label ?? entityType);
+  const collectionLabel = activeType?.label ?? entityType;
+  const entryLabel = singularLabel(collectionLabel);
+  const syncPending = syncStatus?.git?.hasChanges === true;
+  const consoleStrip =
+    typeof document === "undefined"
+      ? null
+      : document.querySelector<HTMLElement>(".console-strip");
 
   return (
-    <div className="studio" data-view={editing ? "editor" : "listing"}>
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
-      <header className="crumbbar">
-        <span className="crumb-mark">
-          content <b>studio</b>
-        </span>
-        <span className="crumb">
-          {activeType?.label ?? entityType}
-          {editing && (
-            <>
-              {" / "}
-              <strong>{heading}</strong>
-            </>
-          )}
-        </span>
-        <span className="spacer" />
-      </header>
-      <div className="studio-body">
-        <aside className="rail">
-          <TypeSwitcher
-            types={types}
-            active={entityType}
-            onSelect={setEntityType}
-          />
-        </aside>
-        {!editing ? (
-          <main className="listing">
-            <div className="listing-head">
-              <h3>{activeType?.label ?? entityType}</h3>
-              <span className="meta">
-                {entities?.length ?? 0}{" "}
-                {entities?.length === 1 ? "entry" : "entries"}
-              </span>
-              <button type="button" className="btn" onClick={startCreate}>
-                New entry
-              </button>
-            </div>
-            {(entities ?? []).map((entity, index) => (
-              <button
-                type="button"
-                key={entity.id}
-                className="row"
-                onClick={() => openEntity(entity.id)}
-              >
-                <span className="idx">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="title">
-                  {entityTitle(entity)}
-                  <small>{entity.id}</small>
-                </span>
-                <span className="updated">{formatUpdated(entity.updated)}</span>
-              </button>
-            ))}
-            {entities?.length === 0 && (
-              <p className="status listing-empty">
-                Nothing here yet — start the first entry.
-              </p>
-            )}
-          </main>
-        ) : (
-          <form
-            className="editor"
-            data-mobile-pane={mobilePane}
-            onSubmit={(event) => {
-              event.preventDefault();
-              save();
-            }}
-          >
-            <nav className="cms-mobile-modes" aria-label="Editor view">
-              {(["details", "write", "preview"] as const).map((pane) => (
-                <button
-                  key={pane}
-                  type="button"
-                  className={
-                    pane === mobilePane
-                      ? "cms-mobile-mode is-active"
-                      : "cms-mobile-mode"
-                  }
-                  disabled={pane !== "details" && !schema.hasBody}
-                  onClick={() => {
-                    setMobilePane(pane);
-                    if (pane === "write") setBodyMode("source");
-                    if (pane === "preview") setBodyMode("preview");
-                  }}
-                >
-                  {pane}
+    <>
+      {consoleStrip
+        ? createPortal(
+            <nav className="cms-console-context" aria-label="CMS location">
+              {editing && !schema.isSingleton ? (
+                <button type="button" onClick={backToList}>
+                  {collectionLabel}
                 </button>
-              ))}
-            </nav>
-            <aside className="colophon">
-              <div className="form-title">
-                <h2>Colophon</h2>
-                <span>
-                  {entityType} ·{" "}
-                  {mode.kind === "create" ? "new" : schema.format}
-                </span>
-              </div>
-              {!schema.isSingleton && (
-                <button type="button" className="backlink" onClick={backToList}>
-                  ← All {activeType?.label ?? entityType}
-                </button>
-              )}
-              {schema.fields.map((descriptor) => (
-                <Field
-                  key={descriptor.name}
-                  descriptor={descriptor}
-                  value={draft[descriptor.name]}
-                  onChange={(raw) =>
-                    setDraft((current) =>
-                      applyFieldChange(current, descriptor, raw),
-                    )
-                  }
-                />
-              ))}
-              {schema.fields.length === 0 && (
-                <p className="status">
-                  This type is raw markdown — the whole document is the body.
-                </p>
-              )}
-            </aside>
-            <section className="manuscript">
-              {schema.hasBody ? (
-                <BodyEditor
-                  value={body}
-                  mode={bodyMode}
-                  onChange={setBody}
-                  onModeChange={setBodyMode}
-                  assist={{ entityType, frontmatter: draft }}
-                />
               ) : (
-                <p className="status manuscript-empty">
-                  This type has no body — its fields are the whole record.
+                <span>{editing ? collectionLabel : "Library"}</span>
+              )}
+              <span aria-hidden="true">/</span>
+              <strong>{editing ? heading : collectionLabel}</strong>
+            </nav>,
+            consoleStrip,
+          )
+        : null}
+      <div className="studio" data-view={editing ? "editor" : "listing"}>
+        <style>{`${styles}\n${responsiveStyles}`}</style>
+        <header className="crumbbar">
+          <span className="crumb-mark">
+            content <b>studio</b>
+          </span>
+          <span className="crumb">
+            {editing && !schema.isSingleton ? (
+              <button type="button" onClick={backToList}>
+                {collectionLabel}
+              </button>
+            ) : (
+              collectionLabel
+            )}
+            {editing && (
+              <>
+                {" / "}
+                <strong>{heading}</strong>
+              </>
+            )}
+          </span>
+          <span className="spacer" />
+        </header>
+        <div className="studio-body">
+          <aside className="rail">
+            <TypeSwitcher
+              types={types}
+              active={entityType}
+              onSelect={setEntityType}
+            />
+          </aside>
+          {!editing ? (
+            <main className="listing">
+              <div className="listing-head">
+                <h3>{activeType?.label ?? entityType}</h3>
+                <span className="meta">
+                  {entities?.length ?? 0}{" "}
+                  {entities?.length === 1 ? "entity" : "entities"} · sorted by
+                  updated
+                </span>
+                <button type="button" className="btn" onClick={startCreate}>
+                  New {entryLabel.toLowerCase()}
+                </button>
+              </div>
+              {(entities ?? []).map((entity, index) => (
+                <button
+                  type="button"
+                  key={entity.id}
+                  className="row"
+                  onClick={() => openEntity(entity.id)}
+                >
+                  <span className="idx">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="title">
+                    {entityTitle(entity)}
+                    <small>
+                      {singularLabel(entity.entityType)}/{entity.id}
+                    </small>
+                  </span>
+                  <span className={`chip ${entityPublicationState(entity)}`}>
+                    {entityPublicationState(entity)}
+                  </span>
+                  <span className="updated">
+                    {formatUpdated(entity.updated)}
+                  </span>
+                  <span className="sync">
+                    <span
+                      className={syncPending ? "sync-dot pending" : "sync-dot"}
+                    />
+                    {syncPending ? "exporting" : "committed"}
+                  </span>
+                </button>
+              ))}
+              {entities?.length === 0 && (
+                <p className="status listing-empty">
+                  Nothing here yet — start the first entry.
                 </p>
               )}
-            </section>
-            <footer className="pipeline">
-              <button
-                type="submit"
-                className="save-btn"
-                disabled={saveState.kind === "saving"}
-              >
-                {saveState.kind === "saving" ? "Saving…" : "Save"}
-              </button>
-              {syncStatus?.directorySync && (
-                <PipelineStations
-                  view={derivePipeline({
-                    save: saveState,
-                    git: syncStatus.git,
-                    baselineCommit,
-                  })}
-                  gitConfigured={syncStatus.git !== null}
-                />
-              )}
-              <SaveStateNotice
-                // The strip already narrates a successful save; the text
-                // notice stays for conflicts, errors, and no-op saves
-                // (which the strip cannot distinguish from a real write).
-                state={
-                  syncStatus?.directorySync &&
-                  saveState.kind === "saved" &&
-                  !saveState.noop
-                    ? { kind: "idle" }
-                    : saveState
-                }
-                onReload={() => {
-                  if (mode.kind === "edit") openEntity(mode.entity.id);
-                }}
-              />
-              <span className="cms-mobile-save-status">
-                <b>
-                  {saveState.kind === "saving"
-                    ? "Saving changes"
-                    : saveState.kind === "saved"
-                      ? "All changes saved"
-                      : "Entity pipeline"}
-                </b>
-                {syncStatus?.git?.lastCommit
-                  ? `db → file → ${syncStatus.git.lastCommit.slice(0, 7)}`
-                  : "entity db"}
-              </span>
-              <span className="spacer" />
-              {mode.kind === "edit" && !schema.isSingleton && (
-                <>
-                  <button type="button" className="btn danger" onClick={remove}>
-                    Delete
+            </main>
+          ) : (
+            <form
+              className="editor"
+              data-mobile-pane={mobilePane}
+              onSubmit={(event) => {
+                event.preventDefault();
+                save();
+              }}
+            >
+              <nav className="cms-mobile-modes" aria-label="Editor view">
+                {(["details", "write", "preview"] as const).map((pane) => (
+                  <button
+                    key={pane}
+                    type="button"
+                    className={
+                      pane === mobilePane
+                        ? "cms-mobile-mode is-active"
+                        : "cms-mobile-mode"
+                    }
+                    disabled={pane !== "details" && !schema.hasBody}
+                    onClick={() => {
+                      setMobilePane(pane);
+                      if (pane === "write") setBodyMode("source");
+                      if (pane === "preview") setBodyMode("preview");
+                    }}
+                  >
+                    {pane}
                   </button>
+                ))}
+              </nav>
+              <aside className="colophon">
+                <div className="form-title">
+                  <h2>
+                    <span className="cms-form-desktop-label">Frontmatter</span>
+                    <span className="cms-form-mobile-label">Colophon</span>
+                  </h2>
+                  <span>
+                    {entryLabel.toLowerCase()} ·{" "}
+                    {mode.kind === "create"
+                      ? "new"
+                      : entityPublicationState(mode.entity)}
+                  </span>
+                </div>
+                {schema.fields.map((descriptor) => (
+                  <Field
+                    key={descriptor.name}
+                    descriptor={descriptor}
+                    value={draft[descriptor.name]}
+                    onChange={(raw) =>
+                      setDraft((current) =>
+                        applyFieldChange(current, descriptor, raw),
+                      )
+                    }
+                  />
+                ))}
+                {schema.fields.length === 0 && (
+                  <p className="status">
+                    This type is raw markdown — the whole document is the body.
+                  </p>
+                )}
+                {mode.kind === "edit" && !schema.isSingleton && (
+                  <button
+                    type="button"
+                    className="btn danger colophon-delete"
+                    onClick={remove}
+                  >
+                    Delete entry
+                  </button>
+                )}
+              </aside>
+              <section className="manuscript">
+                {schema.hasBody ? (
+                  <BodyEditor
+                    value={body}
+                    mode={bodyMode}
+                    onChange={setBody}
+                    onModeChange={setBodyMode}
+                    assist={{ entityType, frontmatter: draft }}
+                  />
+                ) : (
+                  <p className="status manuscript-empty">
+                    This type has no body — its fields are the whole record.
+                  </p>
+                )}
+              </section>
+              <footer className="pipeline">
+                <button
+                  type="submit"
+                  className="save-btn"
+                  disabled={saveState.kind === "saving"}
+                >
+                  {saveState.kind === "saving" ? "Saving…" : "Save"}
+                </button>
+                {syncStatus?.directorySync && (
+                  <PipelineStations
+                    view={derivePipeline({
+                      save: saveState,
+                      git: syncStatus.git,
+                      baselineCommit,
+                    })}
+                    gitConfigured={syncStatus.git !== null}
+                  />
+                )}
+                <SaveStateNotice
+                  // The strip already narrates a successful save; the text
+                  // notice stays for conflicts, errors, and no-op saves
+                  // (which the strip cannot distinguish from a real write).
+                  state={
+                    syncStatus?.directorySync &&
+                    saveState.kind === "saved" &&
+                    !saveState.noop
+                      ? { kind: "idle" }
+                      : saveState
+                  }
+                  onReload={() => {
+                    if (mode.kind === "edit") openEntity(mode.entity.id);
+                  }}
+                />
+                <span className="cms-mobile-save-status">
+                  <b>
+                    {saveState.kind === "saving"
+                      ? "Saving changes"
+                      : saveState.kind === "saved"
+                        ? "All changes saved"
+                        : "Entity pipeline"}
+                  </b>
+                  {syncStatus?.git?.lastCommit
+                    ? `db → file → ${syncStatus.git.lastCommit.slice(0, 7)}`
+                    : "entity db"}
+                </span>
+                <span className="spacer" />
+                {mode.kind === "edit" && !schema.isSingleton && (
                   <details className="cms-mobile-more">
                     <summary aria-label="More document actions">•••</summary>
                     <button type="button" onClick={remove}>
                       Delete entry
                     </button>
                   </details>
-                </>
-              )}
-            </footer>
-          </form>
-        )}
+                )}
+              </footer>
+            </form>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

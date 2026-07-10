@@ -1,10 +1,194 @@
-/* CMS responsive composition. Desktop form/editor rules stay in App.tsx;
-   this module owns tablet collection switching and phone editing modes. */
+/* CMS viewport contract.
+   Desktop follows docs/cms-editor-mockups.html; tablet and phone follow
+   docs/console-responsive-mockups.html. Base component styling lives in App. */
 
-.cms-mobile-modes { display: none; }
+.cms-mobile-modes,
+.cms-mobile-save-status,
+.cms-mobile-more,
+.cms-form-mobile-label {
+  display: none;
+}
+.form-title h2 {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
 
+.crumb button,
+.cms-console-context button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.crumb button:hover,
+.cms-console-context button:hover {
+  color: var(--console-accent-dim);
+}
+
+.assist-bar[data-has-selection="false"] {
+  display: none;
+}
+
+/* Library metadata columns from the detailed desktop specimen. */
+.row {
+  grid-template-columns: 44px minmax(0, 1fr) 130px 150px 120px;
+}
+.chip {
+  justify-self: start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.chip.published {
+  color: var(--console-ok);
+  background: var(--console-ok-soft);
+}
+.chip.draft {
+  color: var(--console-warn);
+  background: color-mix(in srgb, var(--console-warn) 13%, transparent);
+}
+.sync {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+.sync-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--console-ok);
+}
+.sync-dot.pending {
+  background: var(--console-warn);
+  animation: console-pulse 1.6s ease-in-out infinite;
+}
+.colophon-delete { display: none; }
+
+[data-climate="instrument"] .pipeline {
+  border-top-color: var(--console-accent);
+  background: var(--console-card-soft);
+  color: var(--console-text);
+}
+[data-climate="instrument"] .pipeline .station {
+  color: var(--console-text-muted);
+}
+[data-climate="instrument"] .pipeline .station.done,
+[data-climate="instrument"] .pipeline .station.active {
+  color: var(--console-text);
+}
+[data-climate="instrument"] .pipeline .station .dot {
+  border-color: var(--console-text-muted);
+}
+[data-climate="instrument"] .pipeline .track {
+  background: var(--console-rule-strong);
+}
+[data-climate="instrument"] .pipeline .commit-ref {
+  color: var(--console-text-muted);
+}
+[data-climate="instrument"] .pipeline .commit-ref b {
+  color: var(--console-text);
+}
+
+/* Desktop: the shared strip replaces the old CMS app bar. The live CMS
+   location is portaled into it so there is no duplicate chrome row. */
+@media (min-width: 901px) {
+  body:has([data-cms-root]) .console-mark {
+    order: 0;
+  }
+  body:has([data-cms-root]) .surface-nav {
+    order: 1;
+  }
+  body:has([data-cms-root]) .command-chip {
+    order: 3;
+  }
+  body:has([data-cms-root]) .session-chip {
+    order: 4;
+  }
+  .cms-console-context {
+    order: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--console-text-dim);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .cms-console-context strong {
+    overflow: hidden;
+    color: var(--console-text);
+    font-weight: 500;
+    text-overflow: ellipsis;
+  }
+  .crumbbar {
+    display: none;
+  }
+
+  .studio[data-view="editor"] .studio-body {
+    grid-template-columns: 1fr;
+  }
+  .studio[data-view="editor"] .rail {
+    display: none;
+  }
+  .editor {
+    grid-template-columns: 330px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .colophon {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .manuscript {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .pipeline {
+    grid-column: 2;
+    grid-row: 2;
+    gap: 0;
+  }
+  .colophon-delete {
+    display: inline-flex;
+    margin-top: 20px;
+  }
+}
+
+/* Tablet: one-line shared strip, collection pills, colophon + manuscript. */
 @media (max-width: 900px) {
-  .crumb-mark { display: none; }
+  .cms-console-context {
+    display: none;
+  }
+  .crumbbar {
+    min-height: 44px;
+    height: auto;
+    padding-inline: 14px;
+  }
+  .crumb-mark {
+    display: none;
+  }
+  .crumb {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .studio-body {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
@@ -12,15 +196,19 @@
   }
   .rail {
     overflow-x: auto;
-    padding: 9px 12px;
+    padding: 9px 14px;
     border-right: 0;
     border-bottom: 1px solid var(--console-rule-strong);
     background: var(--console-card-soft);
     overscroll-behavior-inline: contain;
     scrollbar-width: none;
   }
-  .rail::-webkit-scrollbar { display: none; }
-  .rail-title { display: none; }
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+  .rail-title {
+    display: none;
+  }
   .rail ul {
     display: flex;
     gap: 6px;
@@ -39,57 +227,92 @@
     background: var(--console-accent-soft);
   }
   .rail .count,
-  .rail .singleton-mark { margin-left: 7px; }
-  .editor { grid-template-columns: 260px minmax(0, 1fr); }
-  .colophon { padding-inline: 20px; }
-  .body-source .cm-content,
-  .body-preview { padding-inline: 24px; }
-  .track {
-    width: 34px;
-    margin-inline: 8px;
+  .rail .singleton-mark {
+    margin-left: 7px;
   }
-  .commit-ref { display: none; }
-}
 
-@media (min-width: 641px) and (max-width: 900px) {
-  /* The tablet specimen is a colophon beside a reading manuscript, not a
-     squeezed desktop split editor. Source remains available on desktop and
-     in the dedicated phone Write pane. */
-  .body-editor:has(.body-panes.split) .body-toolbar,
-  .body-editor:has(.body-panes.split) .assist-bar {
+  .editor {
+    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 58px;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .colophon {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px;
+  }
+  .manuscript {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .pipeline {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    min-height: 58px;
+    padding: 7px 12px;
+  }
+  .cms-form-desktop-label {
     display: none;
   }
-  .body-panes.split { grid-template-columns: minmax(0, 1fr); }
-  .body-panes.split .body-source { display: none; }
+  .cms-form-mobile-label {
+    display: inline;
+  }
   .form-title {
     align-items: baseline;
     margin-bottom: 12px;
     padding-bottom: 0;
   }
   .form-title h2 {
+    margin: 0;
     color: var(--console-text);
     font-family: var(--console-display);
     font-size: 22px;
-    font-variation-settings: "SOFT" 62, "opsz" 48;
+    font-variation-settings:
+      "SOFT" 62,
+      "opsz" 48;
     font-weight: 540;
     letter-spacing: -0.015em;
     text-transform: none;
   }
-  .form-title span {
+  .form-title h2 .cms-form-mobile-label { color: var(--console-text); }
+  .form-title > span {
     color: var(--console-accent);
     font-size: 8px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
-  .pipeline {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 10px;
-    min-height: 58px;
-    padding: 7px 12px;
+  .colophon-delete {
+    display: none;
   }
+
+  /* Default split mode becomes the tablet reading composition. */
+  .body-editor:has(.body-panes.split) .body-toolbar,
+  .body-editor:has(.body-panes.split) .assist-bar {
+    display: none;
+  }
+  .body-panes.split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .body-panes.split .body-source {
+    display: none;
+  }
+  .body-source .cm-content,
+  .body-preview {
+    padding-inline: 24px;
+  }
+
   .pipeline .stations-wrap,
-  .pipeline > .btn.danger,
-  .pipeline > .spacer { display: none; }
+  .pipeline > .spacer {
+    display: none;
+  }
   .cms-mobile-save-status {
     display: block;
     min-width: 0;
@@ -125,7 +348,9 @@
     font-family: var(--console-mono);
     list-style: none;
   }
-  .cms-mobile-more summary::-webkit-details-marker { display: none; }
+  .cms-mobile-more summary::-webkit-details-marker {
+    display: none;
+  }
   .cms-mobile-more button {
     position: absolute;
     right: 0;
@@ -137,28 +362,33 @@
     background: var(--console-card);
     color: var(--console-err);
   }
+  .commit-ref {
+    display: none;
+  }
+  [data-climate="instrument"] .cms-mobile-save-status,
+  [data-climate="instrument"] .cms-mobile-more summary {
+    color: var(--console-text);
+  }
+  [data-climate="instrument"] .cms-mobile-more summary {
+    border-color: var(--console-rule-strong);
+  }
 }
 
+/* Phone: local Details / Write / Preview modes and safe-area save bar. */
 @media (max-width: 640px) {
   .crumbbar {
-    min-height: 44px;
-    height: auto;
     padding: 7px 12px;
   }
-  .crumb-mark { display: none; }
-  .crumb {
-    min-width: 0;
+  .studio-body {
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
-  .studio-body { overflow: hidden; }
-  .rail { padding-inline: 10px; }
-  .rail .type { min-height: var(--console-touch); }
   .studio[data-view="editor"] .studio-body {
     grid-template-rows: minmax(0, 1fr);
   }
-  .studio[data-view="editor"] .rail { display: none; }
+  .studio[data-view="editor"] .rail {
+    display: none;
+  }
+
   .listing {
     min-width: 0;
     overflow-y: auto;
@@ -169,8 +399,12 @@
     gap: 9px;
     padding-bottom: 13px;
   }
-  .listing-head h3 { font-size: 27px; }
-  .listing-head .meta { display: none; }
+  .listing-head h3 {
+    font-size: 27px;
+  }
+  .listing-head .meta {
+    display: none;
+  }
   .listing-head .btn {
     min-height: var(--console-touch);
     margin: 0 0 0 auto;
@@ -190,8 +424,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .row .chip,
+  .row .sync {
+    display: none;
+  }
   .row .updated {
     grid-column: 2;
+    justify-self: end;
     font-family: var(--console-mono);
     font-size: 9px;
   }
@@ -199,9 +438,10 @@
   .editor {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 48px minmax(0, 1fr) auto;
-    overflow: hidden;
   }
   .cms-mobile-modes {
+    grid-column: 1;
+    grid-row: 1;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
@@ -236,39 +476,28 @@
     padding: 16px 16px 80px;
     border-right: 0;
   }
-  .form-title {
-    align-items: baseline;
-    margin-bottom: 12px;
-    padding-bottom: 0;
-  }
   .form-title h2 {
-    color: var(--console-text);
-    font-family: var(--console-display);
     font-size: 25px;
-    font-variation-settings: "SOFT" 62, "opsz" 48;
-    font-weight: 540;
-    letter-spacing: -0.015em;
-    text-transform: none;
   }
-  .form-title span {
-    color: var(--console-accent);
-    font-size: 8px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+  .field {
+    padding-block: 12px;
   }
-  .backlink { margin-bottom: 0; }
-  .field { padding-block: 12px; }
-  .editor[data-mobile-pane="details"] .manuscript { display: none; }
+  .field input[type="text"],
+  .field input[type="number"],
+  .field select,
+  .field textarea {
+    font-size: 16px;
+  }
+
+  .editor[data-mobile-pane="details"] .manuscript {
+    display: none;
+  }
   .editor[data-mobile-pane="write"] .colophon,
-  .editor[data-mobile-pane="preview"] .colophon { display: none; }
-  .body-toolbar {
-    min-height: 44px;
-    padding: 7px 14px;
+  .editor[data-mobile-pane="preview"] .colophon {
+    display: none;
   }
-  .body-modes { display: none; }
-  .doc-meta {
-    margin-left: 0;
-    font-size: 9px;
+  .body-toolbar {
+    display: none;
   }
   .assist-bar {
     display: grid;
@@ -276,19 +505,15 @@
     gap: 8px;
     padding: 9px 12px;
   }
+  .assist-bar[data-has-selection="false"] {
+    display: none;
+  }
   .assist-bar input {
     min-width: 0;
     font-size: 16px;
   }
-  .assist-meta { display: none; }
-  .assist-suggestion {
-    align-items: stretch;
-    flex-wrap: wrap;
-    padding: 10px 12px;
-  }
-  .assist-preview {
-    width: 100%;
-    max-height: 110px;
+  .assist-meta {
+    display: none;
   }
   .body-panes,
   .body-source,
@@ -296,108 +521,40 @@
     min-height: 0;
     height: 100%;
   }
-  .body-panes.split { grid-template-columns: 1fr; }
-  .body-panes.split .body-preview { display: none; }
-  .body-source .cm-scroller { font-size: 13px; }
+  .body-panes.split {
+    grid-template-columns: 1fr;
+  }
+  .body-panes.split .body-preview {
+    display: none;
+  }
+  .body-source .cm-scroller {
+    font-size: 13px;
+  }
   .body-source .cm-content,
-  .body-preview { padding: 22px 16px 80px; }
-  .body-preview { overflow-y: auto; }
-  .body-preview h1 { font-size: 27px; }
-  .field input[type="text"],
-  .field input[type="number"],
-  .field select,
-  .field textarea { font-size: 16px; }
+  .body-preview {
+    padding: 22px 16px 80px;
+  }
+  .body-preview {
+    display: block;
+    overflow-y: auto;
+  }
+  .body-preview h1 {
+    font-size: 27px;
+  }
 
   .pipeline {
     grid-column: 1;
     grid-row: 3;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 10px;
     min-height: 64px;
-    padding:
-      8px
-      12px
-      calc(8px + env(safe-area-inset-bottom));
-  }
-  .save-btn,
-  .pipeline .btn.danger {
-    min-height: var(--console-touch);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
   }
   .save-btn {
-    padding-inline: 18px;
-    border-radius: 8px;
-  }
-  .stations-wrap { display: none; }
-  .cms-mobile-save-status {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    color: var(--console-bg);
-    font-family: var(--console-mono);
-    font-size: 8px;
-    letter-spacing: 0.05em;
-    line-height: 1.35;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .cms-mobile-save-status b {
-    display: block;
-    overflow: hidden;
-    color: var(--console-ok);
-    font-size: 9px;
-    text-overflow: ellipsis;
-  }
-  .cms-mobile-more {
-    position: relative;
-    display: block;
-  }
-  .cms-mobile-more summary {
-    display: grid;
-    place-items: center;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
-    border-radius: 50%;
-    color: var(--console-bg);
-    cursor: pointer;
-    font-family: var(--console-mono);
-    list-style: none;
-  }
-  .cms-mobile-more summary::-webkit-details-marker { display: none; }
-  .cms-mobile-more button {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    min-width: 132px;
     min-height: var(--console-touch);
-    border: 1px solid var(--console-err);
-    border-radius: 8px;
-    background: var(--console-card);
-    color: var(--console-err);
-  }
-  .pipeline > .btn.danger { display: none; }
-  .stations {
-    min-width: 0;
-    margin-left: 0;
-  }
-  .station {
-    gap: 5px;
-    font-size: 0;
-  }
-  .station .dot { width: 10px; height: 10px; }
-  .track {
-    width: clamp(18px, 7vw, 32px);
-    margin-inline: 5px;
+    padding-inline: 18px;
   }
   .pipeline .status {
     overflow: hidden;
     font-size: 9px;
     text-overflow: ellipsis;
-  }
-  .pipeline > .spacer { display: none; }
-  .pipeline .btn.danger {
-    padding-inline: 10px;
-    font-size: 11px;
   }
 }
