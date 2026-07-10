@@ -5,11 +5,10 @@
 Phases 1–2 shipped (2026-07-09): the CodeMirror 6 source pane (byte-identical
 round-trip covered by tests) and the selection rewrite — operator-gated read-only
 `POST /cms/api/assist`, assist bar UI, pure accept/discard logic — landed together in
-`feat(cms): add AI-assisted body editing`. Remaining: Phase 0 (the operator authoring
-pass, human input that feeds the polish backlog) and Phase 3 (summarise/tag-suggest
-prompt variants, friction backlog, optional streaming). Successor to the shipped
-`first-party-cms-editor.md` plan (its optional Phase 6, plus the D1 body-editor
-upgrade that plan deferred).
+`feat(cms): add AI-assisted body editing`. Remaining: Phase 3 (summarise/tag-suggest
+prompt variants, authoring-friction backlog, optional streaming). Successor to the
+shipped `first-party-cms-editor.md` plan (its optional Phase 6, plus the D1
+body-editor upgrade that plan deferred).
 
 ## Context
 
@@ -63,12 +62,6 @@ model and save pipeline are untouched.
 
 Thin vertical slices, tests first in every phase.
 
-### Phase 0 — Authoring pass (input, not code)
-
-The operator authors real content at `/cms` on the floor editor. Output: a friction
-list (field widgets, list view, save flow, body editing) that becomes the Phase 3
-backlog. Cheap, can run parallel to Phase 1.
-
 ### Phase 1 — CodeMirror 6 source pane
 
 - Tests first: body round-trips byte-identically through the CM6 pane (typing,
@@ -101,7 +94,9 @@ backlog. Cheap, can run parallel to Phase 1.
 - Prompt variants on the same route: summarise (body → suggestion targeted at a
   frontmatter field) and tag-suggest (proposes values; accepting patches the colophon
   draft, schema validation on save as usual).
-- Work through the Phase 0 friction backlog.
+- Authoring polish: the backlog comes from the operator actually writing at `/cms`,
+  not speculation — collect the friction (field widgets, list view, save flow, body
+  editing) from real sessions and work through it.
 - Optional, only if v1 latency annoys in practice: streaming upgrade per the decision
   above.
 
