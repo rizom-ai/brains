@@ -124,6 +124,14 @@ describe("parseInstanceOverrides", () => {
     expect(result.logLevel).toBe("debug");
   });
 
+  test("should parse model reasoning effort", () => {
+    const result = parseInstanceOverrides(
+      'brain: "@brains/rover"\nmodel: gpt-5.6-luna\nreasoningEffort: low',
+    );
+    expect(result.model).toBe("gpt-5.6-luna");
+    expect(result.reasoningEffort).toBe("low");
+  });
+
   test("should parse port as number", () => {
     const result = parseInstanceOverrides('brain: "@brains/rover"\nport: 9090');
     expect(result.port).toBe(9090);
@@ -1917,6 +1925,35 @@ describe("resolve with site package", () => {
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(
       composeTheme("body { color: lime; }"),
+    );
+  });
+
+  test("should layer site package themeOverride before brain.yaml site.themeOverride", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site", {
+      themeOverride: ".site { color: amber; }",
+    });
+
+    const config = resolve(
+      defineBrain({
+        name: "test",
+        version: "1.0.0",
+        site,
+        theme: "body { color: pink; }",
+        capabilities: [["site-builder", siteBuilderFactory, {}]],
+        interfaces: [],
+      }),
+      {},
+      {
+        site: { themeOverride: ".instance { color: lime; }" },
+      },
+    );
+
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+      composeTheme(
+        "body { color: pink; }\n\n.site { color: amber; }\n\n.instance { color: lime; }",
+      ),
     );
   });
 

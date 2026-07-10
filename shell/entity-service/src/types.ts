@@ -743,6 +743,11 @@ export interface IEntitiesNamespace {
 
   /** Register a raw-upload durable save handler for this plugin's entity type */
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
+
+  /** Look up the registered upload-save handler claiming a media type */
+  getUploadSaveHandler(
+    mediaType: string,
+  ): UploadSaveHandlerRegistration | undefined;
 }
 
 export interface EmbeddingBackfillResult {
@@ -760,6 +765,10 @@ export interface EmbeddingIndexStats {
   missingEmbeddings: number;
   staleEmbeddings: number;
   failedEmbeddings: number;
+  /** Entities whose type generates embeddings (non-embeddable types excluded). */
+  embeddableEntities: number;
+  /** Embeddable entities whose embedding is present and current. */
+  embeddedEntities: number;
 }
 
 export interface IndexReadinessOptions {

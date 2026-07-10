@@ -93,6 +93,16 @@ const atprotoSchema: z.ZodObject<{
   identifier: z.string().min(1),
 });
 
+const siteOverrideSchema: z.ZodObject<{
+  package: z.ZodString;
+  version: typeof exactVersionSchema;
+  theme: z.ZodOptional<z.ZodString>;
+}> = z.strictObject({
+  package: z.string().min(1),
+  version: exactVersionSchema,
+  theme: z.string().min(1).optional(),
+});
+
 const playbooksSchema: z.ZodObject<{
   onboarding: z.ZodOptional<z.ZodBoolean>;
 }> = z.strictObject({
@@ -107,6 +117,11 @@ export const userSchema: z.ZodObject<{
   }>;
   aiApiKeyOverride: z.ZodOptional<z.ZodString>;
   gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
+  domainOverride: z.ZodOptional<z.ZodString>;
+  cloudflareZoneId: z.ZodOptional<z.ZodString>;
+  contentRepoOverride: z.ZodOptional<z.ZodString>;
+  addOverride: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  siteOverride: z.ZodOptional<typeof siteOverrideSchema>;
   setup: z.ZodOptional<typeof setupDeliverySchema>;
   atproto: z.ZodOptional<typeof atprotoSchema>;
   playbooks: z.ZodOptional<typeof playbooksSchema>;
@@ -119,6 +134,11 @@ export const userSchema: z.ZodObject<{
   }),
   aiApiKeyOverride: secretNameSchema.optional(),
   gitSyncTokenOverride: secretNameSchema.optional(),
+  domainOverride: z.string().min(1).optional(),
+  cloudflareZoneId: z.string().min(1).optional(),
+  contentRepoOverride: z.string().min(1).optional(),
+  addOverride: z.array(z.string().min(1)).optional(),
+  siteOverride: siteOverrideSchema.optional(),
   setup: setupDeliverySchema.optional(),
   atproto: atprotoSchema.optional(),
   playbooks: playbooksSchema.optional(),

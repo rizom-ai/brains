@@ -27,6 +27,7 @@ COPY . .
 # --- fleet: install published brain at pinned version (ops deploy) ---
 FROM runtime AS fleet
 ARG BRAIN_VERSION
+ARG SITE_PACKAGES
 # playwright-core is also installed explicitly so the chromium install
 # below resolves against an installed package rather than relying on
 # transitive resolution from @rizom/brain. The brain bundle externalizes
@@ -34,6 +35,10 @@ ARG BRAIN_VERSION
 # runtime rather than build time.
 RUN test -n "$BRAIN_VERSION" \
  && printf '{"name":"rover-pilot-runtime","private":true}\n' > package.json \
- && bun add @rizom/brain@$BRAIN_VERSION playwright-core
+ && if [ -n "$SITE_PACKAGES" ]; then \
+      bun add @rizom/brain@$BRAIN_VERSION playwright-core $SITE_PACKAGES; \
+    else \
+      bun add @rizom/brain@$BRAIN_VERSION playwright-core; \
+    fi
 RUN bunx playwright-core install --with-deps chromium-headless-shell \
  && rm -rf /var/lib/apt/lists/* /tmp/*

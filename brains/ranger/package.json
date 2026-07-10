@@ -1,6 +1,6 @@
 {
   "name": "@brains/ranger",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.150",
   "dependencies": {
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
@@ -17,15 +17,15 @@
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-content": "workspace:*",
     "@brains/site-info": "workspace:*",
-    "@brains/site-rizom": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/theme-rizom": "workspace:*",
     "@brains/webserver": "workspace:*",
-    "@brains/wishlist": "workspace:*"
+    "@brains/wishlist": "workspace:*",
+    "@rizom/site-rizom": "workspace:*"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "files": [
     "src",
@@ -34,8 +34,8 @@
   "main": "./src/index.ts",
   "private": true,
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"

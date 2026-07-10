@@ -43,6 +43,16 @@ export const logLevelSchema: z.ZodEnum<{
   warn: "warn";
   error: "error";
 }> = z.enum(["debug", "info", "warn", "error"]);
+
+export const reasoningEffortSchema: z.ZodEnum<{
+  none: "none";
+  low: "low";
+  medium: "medium";
+  high: "high";
+  xhigh: "xhigh";
+  max: "max";
+}> = z.enum(["none", "low", "medium", "high", "xhigh", "max"]);
+export type ReasoningEffort = z.output<typeof reasoningEffortSchema>;
 export type LogLevel = z.output<typeof logLevelSchema>;
 
 export interface DeploymentConfig {
@@ -174,6 +184,7 @@ interface AppConfigSchemaRaw {
   aiApiKey?: string | undefined;
   aiImageKey?: string | undefined;
   aiModel?: string | undefined;
+  aiReasoningEffort?: ReasoningEffort | undefined;
   logLevel?: LogLevel | undefined;
   logFile?: string | undefined;
   plugins: PluginMetadata[];
@@ -192,6 +203,7 @@ export const appConfigSchema: z.ZodType<AppConfigSchemaRaw> = z.object({
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
   aiImageKey: z.string().optional(), // Optional override for image generation
   aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")
+  aiReasoningEffort: reasoningEffortSchema.optional(),
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file
   // Plugins - validate metadata structure, trust the register function exists

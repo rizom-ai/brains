@@ -6,7 +6,9 @@ import type { VNode } from "preact";
  * Component type for layouts - using Preact
  * Returns a Preact VNode
  */
-export type ComponentType<P = unknown> = (props: P) => VNode;
+export type ComponentType<P = unknown> = {
+  bivarianceHack(props: P): VNode;
+}["bivarianceHack"];
 
 export type TemplateDataSchema<T> = ZodType<T, unknown>;
 /** @deprecated Use TemplateDataSchema<T>. */

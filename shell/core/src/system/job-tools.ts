@@ -9,7 +9,7 @@ export function createJobTools(services: SystemServices): Tool[] {
   return [
     createSystemTool(
       "job_status",
-      "Get status for background operations. Use this for ready checks, follow-up questions about queued/background work, and status disputes where the operator says logs or runtime state disagree with the conversation. Inspect runtime job status before answering. Do not argue from the transcript alone when job status is available.",
+      "Inspect runtime job status before answering ready checks or status disputes. With a known batch ID, pass batchId. Without an ID, call this tool with no arguments to list active jobs and batches; do not ask the user for an ID first. Do not argue from the transcript alone.",
       jobStatusInputSchema,
       async (input) => {
         if (input.batchId) {

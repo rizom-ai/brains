@@ -63,5 +63,5 @@ turns:
 successCriteria: {}
 
 efficiency:
-  maxToolCalls: 4
+  maxToolCalls: 5
   maxTokens: 50000

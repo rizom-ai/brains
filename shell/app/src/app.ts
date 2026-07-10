@@ -122,6 +122,7 @@ export class App {
       !this.config.aiApiKey &&
       !this.config.aiImageKey &&
       !this.config.aiModel &&
+      !this.config.aiReasoningEffort &&
       !isStartupCheck
     ) {
       return;
@@ -136,6 +137,9 @@ export class App {
         imageApiKey: this.config.aiImageKey,
       }),
       ...(this.config.aiModel && { model: this.config.aiModel }),
+      ...(this.config.aiReasoningEffort && {
+        reasoningEffort: this.config.aiReasoningEffort,
+      }),
     };
   }
 

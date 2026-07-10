@@ -1,93 +1,27 @@
-import type { RouteDefinitionInput } from "@brains/site-composition";
-import { foundationSections } from "./foundation";
-import { homeSections } from "./home";
-import { toRouteSections } from "./section-def";
-import { workSections } from "./work";
+import type { RouteDefinitionInput } from "@rizom/site";
 
-// The three rooms of the consolidated rizom.ai site (rev-5 IA). Section
-// lists live with their page modules; navigation is owned by the
-// layout's two-tier chrome, so routes stay out of the slot-based
-// navigation model.
-export const rizomAiRoutes: RouteDefinitionInput[] = [
+export const aiRoutes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",
-    title: "Rizom",
-    description: "Build the agent that represents you",
-    layout: "default",
-    navigation: { show: false, label: "Home", slot: "primary", priority: 10 },
-    sections: toRouteSections("home", homeSections),
-  },
-  {
-    id: "writing",
-    path: "/writing",
-    title: "Writing — Rizom",
-    description: "Everything published, in one index",
     layout: "default",
     navigation: {
       show: false,
-      label: "Writing",
-      slot: "primary",
-      priority: 15,
+      slot: "secondary",
+      priority: 10,
     },
     sections: [
+      { id: "hero", template: "landing-page:hero", content: {} },
+      { id: "problem", template: "landing-page:problem", content: {} },
+      { id: "answer", template: "landing-page:answer", content: {} },
+      { id: "products", template: "landing-page:products", content: {} },
+      { id: "ownership", template: "landing-page:ownership", content: {} },
+      { id: "quickstart", template: "landing-page:quickstart", content: {} },
+      { id: "mission", template: "landing-page:mission", content: {} },
       {
-        id: "index",
-        template: "rizom-ai-site:writing",
-        dataQuery: { entityType: "post", query: { limit: 100 } },
-      },
-      {
-        id: "talks",
-        template: "rizom-ai-site:writing-talks",
-        dataQuery: { entityType: "deck", query: { limit: 100 } },
-      },
-    ],
-  },
-  {
-    id: "network",
-    path: "/network",
-    title: "Network — Rizom",
-    description: "The Rizom agent directory",
-    layout: "default",
-    navigation: {
-      show: false,
-      label: "Network",
-      slot: "primary",
-      priority: 25,
-    },
-    sections: [
-      {
-        id: "directory",
-        template: "rizom-ai-site:network",
-        dataQuery: {
-          entityType: "agent",
-          query: { status: "approved", limit: 100 },
-        },
+        id: "ecosystem",
+        template: "landing-page:ecosystem",
       },
     ],
-  },
-  {
-    id: "work",
-    path: "/work",
-    title: "Rizom Work",
-    description: "Coordination for the AI era",
-    layout: "default",
-    navigation: { show: false, label: "Work", slot: "primary", priority: 20 },
-    sections: toRouteSections("work", workSections),
-  },
-  {
-    id: "foundation",
-    path: "/foundation",
-    title: "Rizom Foundation",
-    description:
-      "Essays, gatherings, and stewardship of open AI infrastructure",
-    layout: "default",
-    navigation: {
-      show: false,
-      label: "Foundation",
-      slot: "primary",
-      priority: 30,
-    },
-    sections: toRouteSections("foundation", foundationSections),
   },
 ];

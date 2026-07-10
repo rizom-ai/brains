@@ -104,7 +104,7 @@ export function createAgentSetTrustLevelTool(
   return {
     name: toolName,
     description:
-      "Set inbound A2A trust for a saved agent contact. Use level trusted to grant inbound trusted access after fetching and pinning the peer JWKS key fingerprint; use level public to revoke inbound trusted access. This affects inbound A2A trust only and does not add or remove the directory contact or affect outbound calling. Requires confirmation.",
+      "Grant or revoke inbound A2A trust for a saved contact; this is the only tool for inbound trust changes. To revoke, call directly with level public—no key fingerprint or preliminary lookup is needed. To grant, use level trusted; the tool resolves and pins the peer key. This does not add or remove directory contacts or change outbound calling. Requires confirmation.",
     inputSchema: agentSetTrustLevelInputSchema.shape,
     visibility: "anchor",
     sideEffects: "external",

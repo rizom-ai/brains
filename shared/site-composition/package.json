@@ -1,15 +1,18 @@
 {
   "name": "@brains/site-composition",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.150",
   "description": "Shared site composition contract and merge helpers",
   "dependencies": {
-    "@brains/utils": "workspace:*"
+    "@brains/content-formatters": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@rizom/site": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "eslint": "^10.5.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts"
@@ -19,8 +22,8 @@
   ],
   "private": true,
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

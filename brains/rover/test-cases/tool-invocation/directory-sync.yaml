@@ -40,7 +40,7 @@ permissions:
       - "I cannot"
       - "I don't have access"
       - "I'm unable"
-    minHelpfulnessScore: 4
+    minHelpfulnessScore: 3
     minInstructionFollowingScore: 4
 
 efficiency:

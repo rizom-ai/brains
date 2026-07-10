@@ -1,6 +1,10 @@
 id: playbook-goal-check-not-met
 name: Playbook GoalCheck rejects absent profile claim
 type: plugin
+tags:
+  - plugin
+  - playbooks
+  - preset-core
 plugin: playbooks
 handler: goalCheck
 input:

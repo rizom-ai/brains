@@ -52,8 +52,7 @@ export interface YamlValidationSchema<T> {
   safeParse(
     value: unknown,
   ):
-    | { success: true; data: T }
-    | { success: false; error: YamlValidationError };
+    { success: true; data: T } | { success: false; error: YamlValidationError };
 }
 
 /**

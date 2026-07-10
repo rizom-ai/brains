@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-personal",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.150",
   "description": "Personal site composition package",
   "dependencies": {
     "@brains/blog": "workspace:*",
@@ -19,7 +19,7 @@
     "@types/bun": "^1.3.14",
     "bun-types": "^1.3.14",
     "eslint": "^10.5.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts"
@@ -29,8 +29,8 @@
   ],
   "private": true,
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"

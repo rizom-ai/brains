@@ -50,10 +50,14 @@ export interface BrainIdentity {
   values: string[];
 }
 
+export type ReasoningEffort =
+  "none" | "low" | "medium" | "high" | "xhigh" | "max";
+
 export interface BrainDefinition {
   name: string;
   version: string;
   model?: string;
+  reasoningEffort?: ReasoningEffort;
   identity?: BrainIdentity;
   agentInstructions?: string[];
   site?: unknown;

@@ -8,16 +8,19 @@
  * The model field determines the provider (resolved by AI service at runtime).
  */
 
+import type { ReasoningEffort } from "./types";
+
 /** Fields that resolveAIConfig adds to AppConfig */
 export interface AIConfigFields {
   aiApiKey?: string;
   aiImageKey?: string;
   aiModel?: string;
+  aiReasoningEffort?: ReasoningEffort;
 }
 
 export function resolveAIConfig(
   env: Record<string, string | undefined>,
-  overrides?: { model?: string },
+  overrides?: { model?: string; reasoningEffort?: ReasoningEffort },
 ): AIConfigFields {
   const apiKey = env["AI_API_KEY"];
   const imageKey = env["AI_IMAGE_KEY"];
@@ -37,6 +40,9 @@ export function resolveAIConfig(
     const colonIdx = overrides.model.indexOf(":");
     result.aiModel =
       colonIdx > 0 ? overrides.model.slice(colonIdx + 1) : overrides.model;
+  }
+  if (overrides?.reasoningEffort) {
+    result.aiReasoningEffort = overrides.reasoningEffort;
   }
 
   return result;

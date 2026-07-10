@@ -1,10 +1,11 @@
 {
   "name": "@brains/web-chat",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.150",
   "description": "Web chat interface for Brains",
   "dependencies": {
     "@ai-sdk/react": "^3.0.208",
     "@brains/auth-service": "workspace:*",
+    "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -31,7 +32,7 @@
     "@types/bun": "^1.3.14",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "vite": "^8.0.16"
   },
   "exports": {
@@ -46,8 +47,8 @@
   "scripts": {
     "build": "bun scripts/build-ui.ts",
     "build:ui": "bun scripts/build-ui.ts",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
     "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json"
   },

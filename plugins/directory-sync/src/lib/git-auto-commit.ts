@@ -1,13 +1,16 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { LeadingTrailingDebounce } from "@brains/utils/debounce";
+import { TrailingDebounce } from "@brains/utils/debounce";
 import type { IGitSync } from "../types";
 
 /**
  * Subscribe to entity CRUD events and debounce git commit + push.
  *
- * Uses LeadingTrailingDebounce: first change commits immediately,
- * rapid follow-ups batch into one trailing commit after the delay.
+ * Trailing-only: the entity event fires *before* the auto-export
+ * subscriber has written the file, so a leading-edge commit would run
+ * against a tree the change hasn't reached yet — committing nothing and
+ * stranding the export until the next periodic sync. Committing after
+ * the window settles also batches rapid changes into one commit.
  */
 export function setupGitAutoCommit(
   messaging: ServicePluginContext["messaging"],
@@ -15,7 +18,7 @@ export function setupGitAutoCommit(
   debounceMs: number,
   logger: Logger,
 ): () => void {
-  const debounce = new LeadingTrailingDebounce(() => {
+  const debounce = new TrailingDebounce(() => {
     void git.withLock(async () => {
       try {
         await git.commit();

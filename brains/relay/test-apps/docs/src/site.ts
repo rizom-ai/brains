@@ -3,7 +3,7 @@ import {
   type RouteDefinitionInput,
   type SitePackage,
 } from "@brains/site-composition";
-import rizomSite from "@brains/site-rizom";
+import rizomSite from "@rizom/site-rizom";
 
 const docsSections: RouteDefinitionInput["sections"] = [
   {

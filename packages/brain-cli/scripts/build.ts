@@ -24,9 +24,9 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-support";
 import {
-  findInternalBrainImports,
+  findInternalDeclarationImports,
   formatDeclarationLeakError,
-} from "./declaration-leaks";
+} from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
@@ -59,6 +59,8 @@ const monorepoRoot = findMonorepoRoot();
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
 const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
 const bundledWebChatUiDir = join(outdir, "ui");
+const cmsPackageDir = join(monorepoRoot, "plugins", "cms");
+const cmsUiAssetPath = join(cmsPackageDir, "dist", "ui", "cms-app.js");
 const sharedInstanceTsConfigPath = join(
   monorepoRoot,
   "shared",
@@ -80,6 +82,21 @@ if (webChatBuildResult.exitCode !== 0) {
 }
 if (!existsSync(webChatUiAssetPath)) {
   console.error(`Web chat UI asset not found at ${webChatUiAssetPath}`);
+  process.exit(1);
+}
+
+console.log("Building bundled CMS editor UI...");
+const cmsBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+  cwd: cmsPackageDir,
+  stdout: "inherit",
+  stderr: "inherit",
+});
+if (cmsBuildResult.exitCode !== 0) {
+  console.error("CMS editor UI build failed");
+  process.exit(1);
+}
+if (!existsSync(cmsUiAssetPath)) {
+  console.error(`CMS editor UI asset not found at ${cmsUiAssetPath}`);
   process.exit(1);
 }
 
@@ -212,7 +229,7 @@ async function emitLibraryDeclarations(): Promise<void> {
           [
             "bun",
             "x",
-            "rollup",
+            "rolldown",
             "-c",
             join(import.meta.dir, "bundle-declarations.mjs"),
           ],
@@ -221,7 +238,7 @@ async function emitLibraryDeclarations(): Promise<void> {
             env: {
               ...process.env,
               INPUT: entry.source,
-              OUTPUT: join(declarationOutDir, `${entry.name}.d.ts`),
+              OUTPUT_DIR: declarationOutDir,
             },
             stdout: "inherit",
             stderr: "inherit",
@@ -244,10 +261,20 @@ async function emitLibraryDeclarations(): Promise<void> {
     for (const entry of libraryEntries) {
       const declarationPath = join(outdir, `${entry.name}.d.ts`);
       const declaration = readFileSync(declarationPath, "utf8");
-      const leakedImports = findInternalBrainImports(declaration);
+      const leakedImports = findInternalDeclarationImports(declaration, {
+        internalPrefixes: ["@brains/"],
+      });
       if (leakedImports.length > 0) {
         console.error(
-          formatDeclarationLeakError(declarationPath, leakedImports),
+          formatDeclarationLeakError(
+            declarationPath,
+            leakedImports,
+            [
+              "If this package is part of the public declaration surface, add it to",
+              "packages/brain-cli/scripts/bundle-declarations.mjs declarationInlinePackages.",
+              "Otherwise, remove the public export path that exposes it.",
+            ].join("\n"),
+          ),
         );
         process.exit(1);
       }
@@ -286,6 +313,11 @@ cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
 const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));
+}
+cpSync(cmsUiAssetPath, join(bundledWebChatUiDir, "cms-app.js"));
+const cmsSourceMapPath = `${cmsUiAssetPath}.map`;
+if (existsSync(cmsSourceMapPath)) {
+  cpSync(cmsSourceMapPath, join(bundledWebChatUiDir, "cms-app.js.map"));
 }
 
 // ─── Copy migrations ──────────────────────────────────────────────────────

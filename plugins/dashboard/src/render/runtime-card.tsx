@@ -32,16 +32,29 @@ export function RuntimeCard(props: {
   now: Date;
 }): JSX.Element {
   const { appInfo, now } = props;
+  const daemonCount = appInfo.daemons.length;
+  const healthyDaemons = appInfo.daemons.filter(
+    (daemon) => daemon.health?.status === "healthy",
+  ).length;
 
   return (
     <aside class="card runtime-card">
       <div class="card-head">
         <span class="card-title">Runtime</span>
+        <span class="card-from">core</span>
       </div>
       <dl class="kv">
         <div class="kv-row">
           <dt>Version</dt>
           <dd>v{appInfo.version}</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Daemons</dt>
+          <dd>
+            {daemonCount === 0
+              ? "—"
+              : `${healthyDaemons}/${daemonCount} healthy`}
+          </dd>
         </div>
         <div class="kv-row">
           <dt>Model</dt>

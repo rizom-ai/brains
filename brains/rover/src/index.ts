@@ -12,13 +12,16 @@ import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
 import { authServicePlugin } from "@brains/auth-service";
+import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { directorySync } from "@brains/directory-sync";
 import { emailResendPlugin } from "@brains/email-resend";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
 import { blogPlugin } from "@brains/blog";
 import { seriesPlugin } from "@brains/series";
 import { decksPlugin } from "@brains/decks";
+import { docsPlugin } from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
@@ -42,7 +45,6 @@ import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
-import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { roverProfilePlugin } from "./profile-extension";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
@@ -123,7 +125,8 @@ const agentInstructions = [
 const roverBrain: BrainDefinition = defineBrain({
   name: "rover",
   version: packageJson.version,
-  model: "gpt-5.4-mini",
+  model: "gpt-5.6-luna",
+  reasoningEffort: "low",
   site: defaultSite,
   theme: defaultTheme,
   presets: {
@@ -151,19 +154,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["prompt", promptPlugin, undefined],
     ["rover-profile", roverProfilePlugin, {}],
     ["image", imagePlugin, undefined],
-    [
-      "cms",
-      cmsPlugin,
-      (env): PluginConfig => ({
-        ...(env["CMS_CONTENT_REPO_PAT"]
-          ? {
-              passkeyLogin: {
-                contentRepoToken: env["CMS_CONTENT_REPO_PAT"],
-              },
-            }
-          : {}),
-      }),
-    ],
+    ["cms", cmsPlugin, {}],
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, {}],
@@ -175,6 +166,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],
+    ["docs", docsPlugin, undefined],
     ["document", documentPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
@@ -238,9 +230,9 @@ const roverBrain: BrainDefinition = defineBrain({
           : {}),
       }),
     ],
-    // Not in any preset — the consolidated rizom.ai brain opts in via
-    // brain.yaml `add:` to keep serving the canonical ai.rizom.brain.*
-    // lexicons (docs/plans/rizom-consolidation.md, decision 3).
+    // atproto-registry serves the canonical ai.rizom.brain.* lexicons; the
+    // consolidated rizom.ai brain opts in via brain.yaml `add:` (see
+    // docs/plans/rizom-consolidation.md, decision 3).
     ["atproto-registry", atprotoRegistryPlugin, {}],
     [
       "directory-sync",
@@ -254,6 +246,7 @@ const roverBrain: BrainDefinition = defineBrain({
     ["analytics", analyticsPlugin, {}],
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["site-info", siteInfoPlugin, undefined],
+    ["site-content", siteContentPlugin, undefined],
     [
       "site-builder",
       siteBuilderPlugin,

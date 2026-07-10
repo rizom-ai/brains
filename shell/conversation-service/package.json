@@ -1,6 +1,6 @@
 {
   "name": "@brains/conversation-service",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.150",
   "description": "Conversation storage and retrieval service for Brains",
   "dependencies": {
     "@brains/contracts": "workspace:*",
@@ -13,7 +13,7 @@
     "@types/bun": "^1.3.14",
     "@types/node": "^20.19.43",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": {
@@ -32,8 +32,8 @@
     "db:migrate": "bun run src/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

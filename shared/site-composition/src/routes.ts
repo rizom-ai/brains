@@ -1,28 +1,25 @@
 import { z } from "@brains/utils/zod";
+import type {
+  NavigationItem,
+  NavigationMetadata,
+  NavigationMetadataInput,
+  RouteDefinition,
+  RouteDefinitionInput,
+  SectionDefinition,
+  SectionDefinitionInput,
+} from "@rizom/site";
 
-export interface SectionDataQueryParams {
-  [key: string]: unknown;
-  id?: string | undefined;
-  limit?: number | undefined;
-  offset?: number | undefined;
-}
-
-export interface SectionDataQuery {
-  [key: string]: unknown;
-  entityType?: string | undefined;
-  template?: string | undefined;
-  query?: SectionDataQueryParams | undefined;
-}
-
-export interface SectionDefinition {
-  id: string;
-  template: string;
-  content?: unknown;
-  dataQuery?: SectionDataQuery | undefined;
-  order?: number | undefined;
-}
-
-export type SectionDefinitionInput = SectionDefinition;
+export type {
+  EntityDisplayEntry,
+  NavigationItem,
+  NavigationMetadata,
+  NavigationMetadataInput,
+  NavigationSlot,
+  RouteDefinition,
+  RouteDefinitionInput,
+  SectionDefinition,
+  SectionDefinitionInput,
+} from "@rizom/site";
 
 /** Section definition schema for site routes. */
 export const SectionDefinitionSchema: z.ZodType<
@@ -50,40 +47,6 @@ export const SectionDefinitionSchema: z.ZodType<
 
 /** Navigation slot types. */
 export const NavigationSlots = ["primary", "secondary"] as const;
-export type NavigationSlot = (typeof NavigationSlots)[number];
-
-/** Display and behavior metadata for an entity type. */
-export interface EntityDisplayEntry {
-  label: string;
-  pluralName?: string | undefined;
-  /** Layout name for this entity type's generated routes (defaults to "default") */
-  layout?: string | undefined;
-  /** Enable pagination for list pages */
-  paginate?: boolean | undefined;
-  /** Items per page (default: 10) */
-  pageSize?: number | undefined;
-  navigation?:
-    | {
-        show?: boolean | undefined;
-        slot?: NavigationSlot | undefined;
-        priority?: number | undefined;
-      }
-    | undefined;
-}
-
-export interface NavigationMetadata {
-  show: boolean;
-  label?: string | undefined;
-  slot: NavigationSlot;
-  priority: number;
-}
-
-export interface NavigationMetadataInput {
-  show?: boolean | undefined;
-  label?: string | undefined;
-  slot?: NavigationSlot | undefined;
-  priority?: number | undefined;
-}
 
 /** Navigation metadata schema for route definitions. */
 export const NavigationMetadataSchema: z.ZodType<
@@ -97,40 +60,6 @@ export const NavigationMetadataSchema: z.ZodType<
     priority: z.number().min(0).max(100).default(50),
   })
   .optional();
-
-export interface RouteDefinition {
-  [key: string]: unknown;
-  id: string;
-  path: string;
-  title: string;
-  /** Bare display label without any page-suffix. Used for visual headings on list pages. */
-  pageLabel?: string | undefined;
-  description: string;
-  sections: SectionDefinition[];
-  layout: string;
-  fullscreen?: boolean | undefined;
-  pluginId?: string | undefined;
-  sourceEntityType?: string | undefined;
-  external?: boolean | undefined;
-  navigation?: NavigationMetadata | undefined;
-}
-
-export interface RouteDefinitionInput {
-  [key: string]: unknown;
-  id: string;
-  path: string;
-  title?: string | undefined;
-  /** Bare display label without any page-suffix. Used for visual headings on list pages. */
-  pageLabel?: string | undefined;
-  description?: string | undefined;
-  sections?: SectionDefinitionInput[] | undefined;
-  layout?: string | undefined;
-  fullscreen?: boolean | undefined;
-  pluginId?: string | undefined;
-  sourceEntityType?: string | undefined;
-  external?: boolean | undefined;
-  navigation?: NavigationMetadataInput | undefined;
-}
 
 /** Route definition schema. */
 export const RouteDefinitionSchema: z.ZodType<
@@ -203,12 +132,6 @@ export interface ListRoutesResponse {
 
 export interface GetRouteResponse {
   route?: RouteDefinition | undefined;
-}
-
-export interface NavigationItem {
-  label: string;
-  href: string;
-  priority: number;
 }
 
 /** Navigation item shape for extracted navigation data. */

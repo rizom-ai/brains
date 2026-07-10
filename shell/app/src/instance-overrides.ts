@@ -1,6 +1,7 @@
 import { interpolateEnv } from "@brains/utils/string-utils";
 import { parseYamlDocument } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
+import { reasoningEffortSchema, type ReasoningEffort } from "./types";
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
@@ -105,6 +106,7 @@ export interface InstanceOverrides {
   domain?: string | undefined;
   database?: string | undefined;
   model?: string | undefined;
+  reasoningEffort?: ReasoningEffort | undefined;
   preset?: "core" | "default" | "full" | undefined;
   mode?: "eval" | undefined;
   add?: string[] | undefined;
@@ -188,6 +190,9 @@ const instanceOverridesSchema: z.ZodType<InstanceOverrides> = z.object({
 
   /** AI model — determines provider. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
   model: z.string().optional(),
+
+  /** OpenAI reasoning effort. Ignored by providers that do not support it. */
+  reasoningEffort: reasoningEffortSchema.optional(),
 
   /** Preset name — selects a curated subset of capabilities + interfaces */
   preset: overridePresetNameSchema.optional(),

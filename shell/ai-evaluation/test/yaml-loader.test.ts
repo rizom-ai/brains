@@ -22,13 +22,13 @@ describe("YAMLLoader", () => {
     if (testCase.type === "plugin") {
       throw new Error("Expected an agent test case");
     }
-    expect(testCase.turns).toHaveLength(3);
+    expect(testCase.turns).toHaveLength(5);
     expect(testCase.turns[0]?.successCriteria?.expectedTools?.[0]).toEqual({
       toolName: "system_create",
       shouldBeCalled: true,
       argsContain: { entityType: "note", "source.kind": "text" },
     });
-    expect(testCase.turns[2]?.userMessage).toContain(
+    expect(testCase.turns[4]?.userMessage).toContain(
       'User uploaded a file "meeting-notes.md":',
     );
   });

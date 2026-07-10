@@ -1,6 +1,6 @@
 {
   "name": "@brains/ui-library",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.150",
   "description": "Shared UI components for the Brains project.",
   "license": "MIT",
   "author": "Gemini",
@@ -21,7 +21,7 @@
     "postcss": "^8.5.15",
     "preact": "^10.27.2",
     "tailwindcss": "^4.3.1",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "main": "src/index.ts",
   "peerDependencies": {
@@ -30,8 +30,8 @@
   "private": true,
   "scripts": {
     "build-storybook": "storybook build",
-    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings 0 --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
     "storybook": "storybook dev -p 6006",
     "test": "bun test",
     "typecheck": "tsc --noEmit"

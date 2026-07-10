@@ -1,12 +1,16 @@
 /**
  * CSS for the operator-console dashboard.
  *
- * Dashboard styles are split into token bridges and component/layout rules so
- * the page can consume shared brand variables without coupling to a site build.
+ * The palette, type ramp, and console-strip chrome come from the shared
+ * @brains/console-theme sheet; this module only appends the dashboard's
+ * component and layout rules, which style themselves from --console-*.
  */
+import { CONSOLE_THEME_CSS } from "@brains/console-theme";
 import componentStyles from "./styles/components.css" with { type: "text" };
-import { DASHBOARD_TOKENS } from "./styles/tokens";
+import responsiveStyles from "./styles/responsive.css" with { type: "text" };
 
-export const DASHBOARD_STYLES: string = `${DASHBOARD_TOKENS}
+export const DASHBOARD_STYLES: string = `${CONSOLE_THEME_CSS}
 
-${componentStyles}`;
+${componentStyles}
+
+${responsiveStyles}`;

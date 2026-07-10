@@ -98,15 +98,18 @@ describe("brains-ops parseArgs", () => {
     expect(result.flags.pushTo).toBe("gh");
   });
 
-  it("parses cert:bootstrap with repo path and push target", () => {
+  it("parses cert:bootstrap with repo path, handle, and push target", () => {
     const result = parseArgs([
       "cert:bootstrap",
       "/tmp/rover-pilot",
+      "--handle",
+      "rizom-ai",
       "--push-to",
       "gh",
     ]);
     expect(result.command).toBe("cert:bootstrap");
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
+    expect(result.flags.handle).toBe("rizom-ai");
     expect(result.flags.pushTo).toBe("gh");
   });
 

@@ -23,7 +23,7 @@ import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { dashboardPlugin } from "@brains/dashboard";
 import { join } from "path";
-import rizomSite from "@brains/site-rizom";
+import rizomSite from "@rizom/site-rizom";
 import rizomTheme from "@brains/theme-rizom";
 
 /**
@@ -43,7 +43,8 @@ import rizomTheme from "@brains/theme-rizom";
 const rangerBrain: BrainDefinition = defineBrain({
   name: "ranger",
   version: "0.1.0",
-  model: "gpt-5.4-mini",
+  model: "gpt-5.6-luna",
+  reasoningEffort: "low",
   site: rizomSite,
   theme: rizomTheme,
   presets: {

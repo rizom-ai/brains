@@ -112,7 +112,8 @@ const agentInstructions = [
 const relayBrain: BrainDefinition = defineBrain({
   name: "relay",
   version: packageJson.version,
-  model: "gpt-5.4-mini",
+  model: "gpt-5.6-luna",
+  reasoningEffort: "low",
   site: relaySite,
   theme: rizomTheme,
   presets: {

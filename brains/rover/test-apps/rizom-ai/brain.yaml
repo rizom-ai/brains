@@ -14,7 +14,7 @@ add:
   - newsletter
 
 site:
-  package: "@brains/site-rizom-ai"
+  package: "@rizom/site-rizom-ai"
   theme: "@brains/theme-rizom-ai"
 
 plugins:

@@ -13,8 +13,13 @@ export type {
   AppConfigInput,
   DeploymentConfig,
   DeploymentConfigInput,
+  ReasoningEffort,
 } from "./types";
-export { deploymentConfigSchema, logLevelSchema } from "./types";
+export {
+  deploymentConfigSchema,
+  logLevelSchema,
+  reasoningEffortSchema,
+} from "./types";
 export type { LogLevel } from "./types";
 
 // Brain definition / resolver API
