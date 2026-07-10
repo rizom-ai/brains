@@ -191,7 +191,32 @@ avoided; that call belongs to that plan's lane.
 - Tests first: each route renders real entries from a merged-corpus fixture under the
   two-tier chrome; nav shows the new links on the platform face only.
 
-### Phase 5 — DNS cutover and retirement
+### Phase 5 — Port onto the published `@rizom/site` model + staging deploy to `new.rizom.ai`
+
+The branch was built on the pre-`@rizom` base; main has since split out a published
+site SDK (`@rizom/site` contracts + `@rizom/site-rizom` components), renamed
+`@brains`→`@rizom`, and moved to TS7. rover-pilot deploys **published** site packages
+(minimal deps: `@rizom/site` + `@rizom/site-rizom` + preact), so our site must fit that
+model. Pattern confirmed from `@rizom/site-docs` and yeehaa-io: sites never import entity
+packages — entity plugins own their list rendering; the site configures presentation via
+`entityDisplay` and references templates by string.
+
+- Merge main into the branch; resolve the ~9 conflicts (mostly the scope rename).
+- Re-home `sites/rizom-ai` to `@rizom/site-rizom-ai` on published deps. Keep the layout
+  and the home/work/foundation sections, converting them from the branch's
+  `defineSection`/`createTemplate`/`StructuredContentFormatter` machinery to
+  `createRizomSite`'s `content: SiteContentDefinition` field DSL (the layout components
+  stay). Delete the old-design files main carried (`sections/*`, `site-content.ts`).
+- **`/writing` & `/network` drop their bespoke templates** (the entity-package imports
+  are the only thing breaking the published model): `post`→"Essay", `deck`→"Talk",
+  `agent`→"Agent" via `entityDisplay`, lists rendered by the blog/decks/agent-discovery
+  plugins (a shared `@rizom/ui` journal-list component is a later option if the themed
+  default is not good enough). `/events` stays deferred.
+- Reconcile the rover composition; green; merge to main; publish `@rizom/site-rizom-ai`.
+- Point rover-pilot `users/new.yaml` at the new version (correct theme + the real
+  `add:` set + `rizom-content`) and deploy to `new.rizom.ai`.
+
+### Phase 6 — Production DNS cutover and retirement
 
 - Deploy the consolidated brain to `rizom.ai`; apply the domain-level redirect rule on
   each of the `rizom.work` / `rizom.foundation` zones; watch for a soak period; retire
