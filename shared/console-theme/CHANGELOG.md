@@ -1,5 +1,11 @@
 # @brains/console-theme
 
+## 0.2.0-alpha.149
+
+### Patch Changes
+
+- [`70ff530`](https://github.com/rizom-ai/brains/commit/70ff53084c5bb8d021e2a4f898e108b2de220d2a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align the operator console with the canonical navy instrument and warm paper mockups, and add deliberate tablet and phone compositions across the shared strip, command palette, dashboard, chat shell, and CMS editor. Refactor responsive styles into surface-local modules, make CMS controls climate-safe, and preserve the historical and responsive console mockups as implementation references.
+
 ## 0.2.0-alpha.148
 
 ### Patch Changes

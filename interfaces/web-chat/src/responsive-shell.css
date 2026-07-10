@@ -1,0 +1,54 @@
+/* Integration between the shared console chrome and chat's existing mobile
+   drawer/composer. Component-level phone rules remain in chat-page.css. */
+
+html,
+body { min-height: 100%; }
+body { min-height: 100dvh; }
+
+@media (max-width: 900px) {
+  .web-chat-app {
+    padding-right: clamp(1rem, 3vw, 1.5rem);
+  }
+}
+
+@media (max-width: 640px) {
+  #root {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .web-chat-shell {
+    height: 100%;
+    min-height: 0;
+  }
+  .web-chat-app {
+    height: 100%;
+    min-height: 0;
+  }
+  .web-chat-header {
+    min-height: 52px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--console-rule);
+  }
+  .web-chat-header h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .web-chat-conversation {
+    overscroll-behavior: contain;
+  }
+  .web-chat-session-dialog {
+    max-height: calc(100dvh - 2rem - env(safe-area-inset-bottom, 0px));
+  }
+  .web-chat-session,
+  .web-chat-sessions-new,
+  .web-chat-session-rename,
+  .web-chat-session-archive,
+  .web-chat-session-delete {
+    min-height: var(--console-touch);
+  }
+  .web-chat-prompt-input {
+    background: color-mix(in srgb, var(--console-bg) 92%, transparent);
+    backdrop-filter: blur(14px);
+  }
+}

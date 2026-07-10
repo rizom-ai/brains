@@ -128,6 +128,10 @@ describe("console palette behavior", () => {
     expect(window.document.querySelector(".cp-row .cp-tag")?.textContent).toBe(
       "edit in cms",
     );
+    expect(
+      window.document.querySelector(".cp-row .cp-glyph")?.textContent,
+    ).toBe("◆");
+    expect(window.document.querySelectorAll(".cp-group")).toHaveLength(2);
   });
 
   it("debounces typed queries into encoded requests", async () => {
@@ -140,6 +144,13 @@ describe("console palette behavior", () => {
     await settle();
 
     expect(fetchCalls.at(-1)).toBe("/api/console/jump?q=verd%20igris");
+
+    input.value = "verd";
+    input.dispatchEvent(new window.Event("input", { bubbles: true }));
+    await settle();
+    expect(window.document.querySelector(".cp-title mark")?.textContent).toBe(
+      "Verd",
+    );
   });
 
   it("moves the selection with arrows and wraps around", async () => {

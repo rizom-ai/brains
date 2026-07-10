@@ -1,5 +1,19 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.149
+
+### Patch Changes
+
+- Updated dependencies [[`70ff530`](https://github.com/rizom-ai/brains/commit/70ff53084c5bb8d021e2a4f898e108b2de220d2a)]:
+  - @brains/dashboard@0.2.0-alpha.149
+  - @brains/content-formatters@0.2.0-alpha.149
+  - @brains/contracts@0.2.0-alpha.149
+  - @brains/ui-library@0.2.0-alpha.149
+  - @brains/utils@0.2.0-alpha.149
+  - @brains/conversation-service@0.2.0-alpha.149
+  - @brains/plugins@0.2.0-alpha.149
+  - @brains/templates@0.2.0-alpha.149
+
 ## 0.2.0-alpha.148
 
 ### Patch Changes

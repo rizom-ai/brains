@@ -9,6 +9,7 @@ import {
   type ReactElement,
 } from "react";
 import { Streamdown } from "streamdown";
+import responsiveStyles from "./responsive.css" with { type: "text" };
 import {
   ApiError,
   createEntity,
@@ -746,6 +747,8 @@ type EditorMode =
   | { kind: "edit"; entity: EntityDetail }
   | { kind: "create" };
 
+type MobileEditorPane = "details" | "write" | "preview";
+
 export function App(): ReactElement {
   const [types, setTypes] = useState<EntityTypeInfo[] | null>(null);
   const [entityType, setEntityType] = useState<string | null>(null);
@@ -755,6 +758,7 @@ export function App(): ReactElement {
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [body, setBody] = useState<string>("");
   const [bodyMode, setBodyMode] = useState<BodyMode>("split");
+  const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
   const [loadError, setLoadError] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
@@ -814,6 +818,7 @@ export function App(): ReactElement {
   useEffect(() => {
     if (!entityType) return;
     setMode({ kind: "browse" });
+    setMobilePane("details");
     setSaveState({ kind: "idle" });
     setEntities(null);
     setSchema(null);
@@ -933,7 +938,7 @@ export function App(): ReactElement {
   if (loadError) {
     return (
       <div className="studio">
-        <style>{styles}</style>
+        <style>{`${styles}\n${responsiveStyles}`}</style>
         <p className="status status-error boot-status">{loadError}</p>
       </div>
     );
@@ -941,7 +946,7 @@ export function App(): ReactElement {
   if (!types || (entityType && (!schema || !entities))) {
     return (
       <div className="studio">
-        <style>{styles}</style>
+        <style>{`${styles}\n${responsiveStyles}`}</style>
         <p className="status boot-status">Loading…</p>
       </div>
     );
@@ -949,7 +954,7 @@ export function App(): ReactElement {
   if (!entityType || !schema) {
     return (
       <div className="studio">
-        <style>{styles}</style>
+        <style>{`${styles}\n${responsiveStyles}`}</style>
         <p className="status boot-status">
           No editable entity types are registered.
         </p>
@@ -967,7 +972,7 @@ export function App(): ReactElement {
 
   return (
     <div className="studio">
-      <style>{styles}</style>
+      <style>{`${styles}\n${responsiveStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb-mark">
           content <b>studio</b>
@@ -1029,11 +1034,33 @@ export function App(): ReactElement {
         ) : (
           <form
             className="editor"
+            data-mobile-pane={mobilePane}
             onSubmit={(event) => {
               event.preventDefault();
               save();
             }}
           >
+            <nav className="cms-mobile-modes" aria-label="Editor view">
+              {(["details", "write", "preview"] as const).map((pane) => (
+                <button
+                  key={pane}
+                  type="button"
+                  className={
+                    pane === mobilePane
+                      ? "cms-mobile-mode is-active"
+                      : "cms-mobile-mode"
+                  }
+                  disabled={pane !== "details" && !schema.hasBody}
+                  onClick={() => {
+                    setMobilePane(pane);
+                    if (pane === "write") setBodyMode("source");
+                    if (pane === "preview") setBodyMode("preview");
+                  }}
+                >
+                  {pane}
+                </button>
+              ))}
+            </nav>
             <aside className="colophon">
               <div className="form-title">
                 <span>Colophon</span>
@@ -1139,7 +1166,7 @@ const styles = `
   .spacer { flex: 1; }
 
   /* ── crumb bar — surface-local wayfinding below the console strip ── */
-  .crumbbar { display: flex; align-items: center; gap: 18px; padding: 0 20px; height: 40px; border-bottom: 1px solid var(--console-rule-strong); background: linear-gradient(to bottom, rgba(255,255,255,0.5), transparent); }
+  .crumbbar { display: flex; align-items: center; gap: 18px; padding: 0 20px; height: 40px; border-bottom: 1px solid var(--console-rule-strong); background: linear-gradient(to bottom, color-mix(in srgb, var(--console-text) 4%, transparent), transparent), var(--console-frame); }
   .crumb-mark { font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--console-text-muted); white-space: nowrap; }
   .crumb-mark b { color: var(--console-text-dim); font-weight: 500; }
   .crumb { font-size: 13px; color: var(--console-text-dim); }
@@ -1153,8 +1180,8 @@ const styles = `
   .rail-title { font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--console-text-muted); padding: 0 20px 8px; }
   .rail ul { list-style: none; }
   .rail .type { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 6px 20px; border: 0; border-left: 2px solid transparent; background: none; text-align: left; color: var(--console-text-dim); font-family: var(--console-ui); font-size: 13.5px; cursor: pointer; transition: background .12s ease; }
-  .rail .type:hover { background: rgba(255,255,255,0.55); color: var(--console-text); }
-  .rail .type.active { color: var(--console-text); font-weight: 500; border-left-color: var(--console-accent); background: rgba(255,255,255,0.75); }
+  .rail .type:hover { background: var(--console-rule); color: var(--console-text); }
+  .rail .type.active { color: var(--console-text); font-weight: 500; border-left-color: var(--console-accent); background: var(--console-card); }
   .rail .count { margin-left: auto; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
   .rail .singleton-mark { margin-left: auto; font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--console-warn); }
 
@@ -1166,7 +1193,7 @@ const styles = `
   .listing-head .btn { margin-left: auto; margin-bottom: 2px; }
   .listing-empty { padding: 22px 4px; }
   .row { display: grid; grid-template-columns: 44px 1fr 150px; gap: 18px; align-items: baseline; width: 100%; padding: 15px 4px 14px; border: 0; border-bottom: 1px solid var(--console-rule-strong); background: none; text-align: left; cursor: pointer; transition: background .12s ease; font-family: var(--console-ui); }
-  .row:hover { background: rgba(255,255,255,0.65); }
+  .row:hover { background: var(--console-rule); }
   .row .idx { font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
   .row .title { font-family: var(--console-display); font-variation-settings: "SOFT" 50, "opsz" 30; font-weight: 520; font-size: 17.5px; letter-spacing: -0.005em; color: var(--console-text); }
   .row:hover .title { color: var(--console-accent-dim); }
@@ -1179,7 +1206,7 @@ const styles = `
   .btn.danger { background: transparent; color: var(--console-accent-dim); border-color: color-mix(in srgb, var(--console-accent) 40%, transparent); }
   .btn.danger:hover { background: rgba(196,74,29,0.07); box-shadow: none; transform: none; }
   .btn.ghost { background: transparent; color: var(--console-text-dim); border-color: var(--console-rule-strong); }
-  .btn.ghost:hover { background: rgba(255,255,255,0.55); box-shadow: none; transform: none; }
+  .btn.ghost:hover { background: var(--console-rule); box-shadow: none; transform: none; }
 
   /* ── editor ── */
   .editor { display: grid; grid-template-columns: 330px 1fr; grid-template-rows: 1fr auto; min-height: 0; }
@@ -1194,7 +1221,7 @@ const styles = `
   .field-label { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; font-weight: 500; letter-spacing: 0.02em; color: var(--console-text-dim); margin-bottom: 7px; }
   .field-label .req, .field-label em.req { font-family: var(--console-mono); font-style: normal; font-size: 10px; color: var(--console-accent); }
   .field-label .kind, .field-label em.kind { font-family: var(--console-mono); font-style: normal; font-size: 10px; color: var(--console-text-muted); font-weight: 400; }
-  .field input[type="text"], .field input[type="number"], .field select, .field textarea { width: 100%; font-family: var(--console-ui); font-size: 14px; color: var(--console-text); background: rgba(255,255,255,0.72); border: 1px solid var(--console-rule-strong); border-radius: 6px; padding: 8px 11px; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
+  .field input[type="text"], .field input[type="number"], .field select, .field textarea { width: 100%; font-family: var(--console-ui); font-size: 14px; color: var(--console-text); background: var(--console-card); border: 1px solid var(--console-rule-strong); border-radius: 6px; padding: 8px 11px; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
   .field textarea { resize: vertical; line-height: 1.5; }
   .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-accent) 13%, transparent); }
   .field textarea[disabled] { font-family: var(--console-mono); font-size: 11.5px; color: var(--console-text-muted); }
@@ -1202,10 +1229,10 @@ const styles = `
   .field-inline .field-label { margin-bottom: 0; }
   .field-inline input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--console-ok); }
   .field-image .image-ref { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
-  .field-image .image-ref code { font-family: var(--console-mono); font-size: 11px; background: rgba(255,255,255,0.8); border: 1px solid var(--console-rule-strong); padding: 3px 8px; border-radius: 4px; overflow-wrap: anywhere; }
+  .field-image .image-ref code { font-family: var(--console-mono); font-size: 11px; background: var(--console-card); border: 1px solid var(--console-rule-strong); padding: 3px 8px; border-radius: 4px; overflow-wrap: anywhere; }
   .field-image .image-ref button { font-family: var(--console-ui); font-size: 12px; border: 1px solid var(--console-rule-strong); background: none; color: var(--console-text-dim); border-radius: 5px; padding: 3px 9px; cursor: pointer; }
   .field-image .image-ref button:hover { color: var(--console-accent-dim); border-color: color-mix(in srgb, var(--console-accent) 40%, transparent); }
-  .field-image input[type="file"] { width: 100%; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); border: 1px dashed var(--console-rule-strong); border-radius: 8px; background: rgba(255,255,255,0.5); padding: 12px 11px; }
+  .field-image input[type="file"] { width: 100%; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); border: 1px dashed var(--console-rule-strong); border-radius: 8px; background: var(--console-card); padding: 12px 11px; }
 
   /* ── manuscript / body editor ── */
   .manuscript { display: flex; flex-direction: column; min-width: 0; }
@@ -1213,8 +1240,8 @@ const styles = `
   .body-editor { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .body-toolbar { display: flex; align-items: center; gap: 4px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); }
   .doc-meta { margin-left: auto; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
-  .assist-bar { display: flex; align-items: center; gap: 10px; padding: 10px 26px; border-bottom: 1px solid var(--console-rule-strong); background: rgba(255,255,255,0.34); }
-  .assist-bar input { flex: 1; min-width: 180px; font-family: var(--console-ui); font-size: 13px; color: var(--console-text); background: rgba(255,255,255,0.76); border: 1px solid var(--console-rule-strong); border-radius: 7px; padding: 8px 11px; outline: none; }
+  .assist-bar { display: flex; align-items: center; gap: 10px; padding: 10px 26px; border-bottom: 1px solid var(--console-rule-strong); background: var(--console-rule); }
+  .assist-bar input { flex: 1; min-width: 180px; font-family: var(--console-ui); font-size: 13px; color: var(--console-text); background: var(--console-card); border: 1px solid var(--console-rule-strong); border-radius: 7px; padding: 8px 11px; outline: none; }
   .assist-bar input:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-accent) 13%, transparent); }
   .assist-run { padding: 8px 14px; white-space: nowrap; }
   .assist-run[disabled] { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
@@ -1223,7 +1250,7 @@ const styles = `
   .assist-preview { max-height: 150px; overflow: auto; font-size: 13px; color: var(--console-text); }
   .assist-preview p { margin-bottom: 6px; }
   .assist-status { padding: 8px 26px; border-bottom: 1px solid var(--console-rule-strong); }
-  .seg { display: inline-flex; border: 1px solid var(--console-rule-strong); border-radius: 7px; overflow: hidden; background: rgba(255,255,255,0.5); }
+  .seg { display: inline-flex; border: 1px solid var(--console-rule-strong); border-radius: 7px; overflow: hidden; background: var(--console-card); }
   .seg .mode { font-family: var(--console-mono); font-size: 11.5px; letter-spacing: 0.04em; border: none; background: transparent; color: var(--console-text-muted); padding: 6px 14px; cursor: pointer; }
   .seg .mode-active { background: var(--console-text); color: var(--console-frame); }
   .body-panes { display: grid; flex: 1; min-height: 420px; }
@@ -1252,32 +1279,32 @@ const styles = `
 
   /* ── pipeline (action bar) ── */
   .pipeline { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; border-top: 2px solid var(--console-text); background: var(--console-text); color: var(--console-frame); padding: 0 20px; min-height: 58px; }
-  .save-btn { font-family: var(--console-ui); font-weight: 600; font-size: 13.5px; background: var(--console-accent); color: #fff; border: none; border-radius: 7px; padding: 9px 22px; cursor: pointer; transition: transform .12s ease, background .15s ease; }
+  .save-btn { font-family: var(--console-ui); font-weight: 600; font-size: 13.5px; background: var(--console-accent); color: var(--console-on-accent); border: none; border-radius: 7px; padding: 9px 22px; cursor: pointer; transition: transform .12s ease, background .15s ease; }
   .save-btn:hover { background: var(--console-accent-dim); transform: translateY(-1px); }
   .save-btn[disabled] { opacity: .6; transform: none; }
-  .pipeline .btn.danger { border-color: rgba(244,239,230,0.3); color: rgba(244,239,230,0.75); }
-  .pipeline .btn.danger:hover { background: rgba(196,74,29,0.25); color: #fff; }
+  .pipeline .btn.danger { border-color: color-mix(in srgb, var(--console-bg) 30%, transparent); color: color-mix(in srgb, var(--console-bg) 75%, transparent); }
+  .pipeline .btn.danger:hover { background: color-mix(in srgb, var(--console-err) 25%, transparent); color: var(--console-frame); }
   .pipeline .status { font-family: var(--console-mono); font-size: 11.5px; }
-  .pipeline .status-ok { color: #9fd0be; }
-  .pipeline .status-error { color: #f0b39e; }
-  .pipeline .reload { font-family: var(--console-ui); font-size: 12px; border: 1px solid rgba(244,239,230,0.4); background: none; color: var(--console-frame); border-radius: 5px; padding: 3px 10px; cursor: pointer; margin-left: 6px; }
+  .pipeline .status-ok { color: color-mix(in srgb, var(--console-ok) 75%, var(--console-frame)); }
+  .pipeline .status-error { color: color-mix(in srgb, var(--console-err) 70%, var(--console-frame)); }
+  .pipeline .reload { font-family: var(--console-ui); font-size: 12px; border: 1px solid color-mix(in srgb, var(--console-bg) 40%, transparent); background: none; color: var(--console-frame); border-radius: 5px; padding: 3px 10px; cursor: pointer; margin-left: 6px; }
   .pipeline .reload:hover { border-color: var(--console-frame); }
 
   /* ── instrument strip: entity db → exported to file → committed ── */
   .stations-wrap { display: flex; align-items: center; min-width: 0; }
   .stations { display: flex; align-items: center; margin-left: 14px; }
-  .station { display: inline-flex; align-items: center; gap: 9px; font-family: var(--console-mono); font-size: 11px; letter-spacing: 0.06em; color: rgba(244,239,230,0.45); white-space: nowrap; }
-  .station .dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid rgba(244,239,230,0.35); transition: all .2s ease; }
-  .station.done { color: rgba(244,239,230,0.95); }
+  .station { display: inline-flex; align-items: center; gap: 9px; font-family: var(--console-mono); font-size: 11px; letter-spacing: 0.06em; color: color-mix(in srgb, var(--console-bg) 45%, transparent); white-space: nowrap; }
+  .station .dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--console-bg) 35%, transparent); transition: all .2s ease; }
+  .station.done { color: color-mix(in srgb, var(--console-bg) 95%, transparent); }
   .station.done .dot { background: var(--console-ok); border-color: var(--console-ok); box-shadow: 0 0 10px color-mix(in srgb, var(--console-ok) 70%, transparent); }
-  .station.active { color: #fff; }
-  .station.active .dot { border-color: var(--console-warn); background: var(--console-warn); animation: pulse 1.2s ease-in-out infinite; }
+  .station.active { color: var(--console-frame); }
+  .station.active .dot { border-color: var(--console-warn); background: var(--console-warn); animation: console-pulse 1.2s ease-in-out infinite; }
   .station.no-git { font-style: italic; margin-left: 28px; }
-  .track { height: 1px; width: 64px; background: rgba(244,239,230,0.22); margin: 0 14px; position: relative; overflow: hidden; display: inline-block; }
+  .track { height: 1px; width: 64px; background: color-mix(in srgb, var(--console-bg) 22%, transparent); margin: 0 14px; position: relative; overflow: hidden; display: inline-block; }
   .track .flow { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--console-ok) 50%, transparent); transform: translateX(-100%); }
   .track.flowing .flow { animation: flow 0.9s ease-in-out infinite; }
   @keyframes flow { to { transform: translateX(100%); } }
-  .commit-ref { font-family: var(--console-mono); font-size: 11px; color: rgba(244,239,230,0.55); margin-left: 22px; white-space: nowrap; }
+  .commit-ref { font-family: var(--console-mono); font-size: 11px; color: color-mix(in srgb, var(--console-bg) 55%, transparent); margin-left: 22px; white-space: nowrap; }
   .commit-ref b { color: var(--console-frame); font-weight: 500; }
 
   /* ── status ── */

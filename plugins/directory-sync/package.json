@@ -1,6 +1,6 @@
 {
   "name": "@brains/directory-sync",
-  "version": "0.2.0-alpha.148",
+  "version": "0.2.0-alpha.149",
   "description": "Directory-based entity synchronization plugin for Brains",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

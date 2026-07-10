@@ -121,10 +121,6 @@ body::after {
   font-size: 22px;
   color: var(--console-text);
 }
-@media (max-width: 900px) {
-  .dashboard-tabs { flex-wrap: wrap; }
-}
-
 .masthead {
   display: flex;
   align-items: flex-end;
@@ -194,13 +190,6 @@ body::after {
 @media (max-width: 900px) {
   .masthead { flex-wrap: wrap; gap: 12px 24px; }
 }
-@media (max-width: 640px) {
-  .console { padding: 20px 14px 48px; }
-  .masthead { padding: 20px 18px 0; }
-  .dashboard-tabs { padding: 14px 18px 0; }
-  .canvas { padding: 18px; }
-}
-
 .card {
   background: var(--console-card);
   border: 1px solid var(--console-rule-strong);
@@ -537,10 +526,6 @@ table.jobs {
   .overview-vitals { grid-template-columns: 1fr 1fr; }
   .digests { grid-template-columns: 1fr; }
 }
-@media (max-width: 520px) {
-  .overview-vitals { grid-template-columns: 1fr; }
-}
-
 .operator-gate {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

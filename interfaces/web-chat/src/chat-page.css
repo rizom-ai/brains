@@ -6,6 +6,8 @@
    few chat-specific derivations with no console equivalent. Components
    reference --console-* and these directly. ─── */
 :root {
+  --chat-secondary: var(--console-secondary);
+  --chat-on-accent: var(--console-on-accent);
   --chat-surface-soft: color-mix(in srgb, var(--console-text) 4%, transparent);
   --chat-surface: color-mix(in srgb, var(--console-text) 8%, transparent);
   --chat-glow-cta: color-mix(in srgb, var(--console-accent) 30%, transparent);
@@ -14,15 +16,11 @@
                 radial-gradient(ellipse at 90% 110%, color-mix(in srgb, var(--chat-secondary) 7%, transparent) 0%, transparent 45%);
 }
 [data-climate="instrument"] {
-  --chat-secondary: #818cf8;
-  --chat-on-accent: #131109;
   --chat-surface-inset: rgb(0 0 0 / 0.25);
   --chat-surface-deep: rgb(0 0 0 / 0.35);
   --chat-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
 }
 [data-climate="paper"] {
-  --chat-secondary: #6b2fa0;
-  --chat-on-accent: #ffffff;
   --chat-surface-inset: rgb(33 29 24 / 0.05);
   --chat-surface-deep: rgb(33 29 24 / 0.08);
   --chat-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");

@@ -1,76 +1,78 @@
 /*
- * The operator-console token sheet.
+ * Shared operator-console tokens and chrome.
  *
- * One semantic vocabulary (--console-*) with two climates selected by
- * data-climate on the document element:
- *   instrument — the console's own dark identity; values are fixed.
- *   paper      — warm reading light; values follow an injected site theme
- *                (shell themeCSS --color-* variables) when present, falling
- *                back to the first-party CMS editor's paper palette.
- * Derived tokens and the shared chrome (console strip) are defined once
- * against the climate-resolved primaries. Every operator surface — the SSR
- * dashboard, web-chat, the CMS editor — consumes this sheet and none may
- * declare its own palette.
+ * Instrument is the console's fixed bioluminescent identity. Paper is the
+ * warm editorial climate and may resolve from an injected site theme. All
+ * surface-local CSS consumes this semantic --console-* vocabulary.
  */
 
 [data-climate="instrument"] {
-  --console-bg: #131109;
-  --console-frame: #191612;
-  --console-card: #201c16;
-  --console-card-soft: #262119;
-  --console-bg-deep: #0f0d08;
-  --console-text: #ece3cd;
-  --console-text-dim: rgba(236, 227, 205, 0.62);
-  --console-text-muted: rgba(236, 227, 205, 0.4);
-  --console-text-faint: rgba(236, 227, 205, 0.24);
-  --console-accent: #e06a35;
-  --console-ok: #6fae97;
-  --console-warn: #d8a53f;
-  --console-err: #e0785e;
+  --console-bg: #0a0819;
+  --console-frame: #0f0d22;
+  --console-card: #14112b;
+  --console-card-soft: #1b1638;
+  --console-bg-deep: #05040f;
+  --console-text: #f1eadd;
+  --console-text-dim: rgba(241, 234, 221, 0.62);
+  --console-text-muted: rgba(241, 234, 221, 0.4);
+  --console-text-faint: rgba(241, 234, 221, 0.22);
+  --console-accent: #ff8b3d;
+  --console-secondary: #818cf8;
+  --console-ok: #68cc8b;
+  --console-warn: #f5c158;
+  --console-err: #e26d6d;
+  --console-on-accent: #0a0819;
   --console-shadow-card:
-    0 1px 0 rgba(255, 255, 255, 0.02) inset,
-    0 24px 48px -24px rgba(0, 0, 0, 0.55);
+    0 1px 0 rgba(255, 255, 255, 0.025) inset,
+    0 24px 58px -30px rgba(0, 0, 0, 0.72);
   color-scheme: dark;
 }
 
 [data-climate="paper"] {
   --console-bg: var(--color-bg, #ece5d6);
   --console-frame: var(--color-bg-subtle, #f4efe6);
-  --console-card: var(--color-bg-card, var(--color-bg-subtle, #faf7f0));
-  --console-card-soft: var(--color-bg-subtle, #ece5d6);
-  --console-bg-deep: var(--color-bg-deep, var(--color-bg-subtle, #e0d5bd));
+  --console-card: var(--color-bg-card, #faf7f0);
+  --console-card-soft: var(--color-bg-muted, #ece5d6);
+  --console-bg-deep: var(--color-bg-deep, #dfd4bc);
   --console-text: var(--color-text, #211d18);
   --console-text-dim: var(--color-text-muted, rgba(33, 29, 24, 0.62));
   --console-text-muted: var(--color-text-light, rgba(33, 29, 24, 0.42));
-  --console-text-faint: var(--color-border, rgba(33, 29, 24, 0.24));
+  --console-text-faint: var(--color-border, rgba(33, 29, 24, 0.22));
   --console-accent: var(--color-accent, #c44a1d);
+  --console-secondary: var(--color-secondary, #6b2fa0);
   --console-ok: var(--color-success, #3d6b5c);
   --console-warn: var(--color-warning-text-emphasis, #b3801a);
   --console-err: var(--color-error, #932f2f);
+  --console-on-accent: var(--color-on-accent, #fff);
   --console-shadow-card:
-    0 1px 0 rgba(255, 250, 235, 0.6) inset,
+    0 1px 0 rgba(255, 250, 235, 0.65) inset,
     0 1px 0 rgba(120, 90, 40, 0.05),
-    0 22px 40px -28px rgba(90, 60, 20, 0.28);
+    0 22px 44px -30px rgba(90, 60, 20, 0.3);
   color-scheme: light;
 }
 
 [data-climate] {
   --console-neutral: var(--console-text-muted);
-  --console-rule: color-mix(in srgb, var(--console-text) 6%, transparent);
+  --console-rule: color-mix(in srgb, var(--console-text) 7%, transparent);
   --console-rule-strong: color-mix(
     in srgb,
-    var(--console-text) 11%,
+    var(--console-text) 14%,
     transparent
   );
   --console-rule-accent: color-mix(
     in srgb,
-    var(--console-accent) 45%,
+    var(--console-accent) 48%,
     transparent
   );
   --console-accent-dim: color-mix(in srgb, var(--console-accent) 72%, black);
   --console-accent-soft: color-mix(
     in srgb,
     var(--console-accent) 12%,
+    transparent
+  );
+  --console-secondary-soft: color-mix(
+    in srgb,
+    var(--console-secondary) 12%,
     transparent
   );
   --console-ok-soft: color-mix(in srgb, var(--console-ok) 13%, transparent);
@@ -83,33 +85,40 @@
     sans-serif
   );
   --console-mono: var(--font-label, "JetBrains Mono", ui-monospace, monospace);
+  --console-touch: 44px;
+  --console-strip-height: 52px;
 }
 
-/* ---- console strip: the chrome every operator surface wears ---- */
+/* ---- shared surface strip ------------------------------------------------ */
 
 .console-strip {
+  position: relative;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 22px;
-  min-height: 50px;
+  min-height: var(--console-strip-height);
   padding: 0 20px;
   border-bottom: 1px solid var(--console-rule-strong);
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--console-text) 3.5%, transparent),
-    transparent
-  );
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--console-text) 4%, transparent),
+      transparent
+    ),
+    var(--console-frame);
 }
 .console-mark {
   display: inline-flex;
   align-items: center;
   gap: 9px;
+  min-width: max-content;
+  color: var(--console-text-dim);
   font-family: var(--console-mono);
   font-size: 11px;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--console-text-dim);
   text-decoration: none;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 .console-mark b {
@@ -122,15 +131,19 @@
   min-width: 0;
 }
 .surface-nav-link {
+  display: inline-grid;
+  place-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: var(--console-text-muted);
   font-size: 13px;
   text-decoration: none;
-  color: var(--console-text-muted);
-  padding: 5px 12px;
-  border-radius: 6px;
+  white-space: nowrap;
 }
 .surface-nav-link:hover {
   color: var(--console-text);
-  background: color-mix(in srgb, var(--console-text) 5%, transparent);
+  background: var(--console-rule);
 }
 .surface-nav-link.is-active {
   color: var(--console-text);
@@ -138,37 +151,47 @@
   font-weight: 500;
 }
 .command-chip {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 32px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--console-card) 62%, transparent);
+  color: var(--console-text-muted);
+  cursor: pointer;
   font-family: var(--console-ui);
   font-size: 12.5px;
-  color: var(--console-text-muted);
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 6px;
-  padding: 4px 10px;
-  background: transparent;
-  cursor: pointer;
 }
 .command-chip kbd {
-  font-family: var(--console-mono);
-  font-size: 10px;
+  padding: 1px 5px;
   border: 1px solid var(--console-rule-strong);
   border-bottom-width: 2px;
   border-radius: 4px;
-  padding: 1px 5px;
+  background: color-mix(in srgb, var(--console-card) 84%, transparent);
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+.command-chip-icon {
+  display: none;
+  font-family: var(--console-mono);
+  font-size: 17px;
+  line-height: 1;
 }
 .session-chip {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--console-ok-soft);
+  color: var(--console-ok);
   font-family: var(--console-mono);
   font-size: 11px;
-  color: var(--console-ok);
-  background: var(--console-ok-soft);
-  border-radius: 999px;
-  padding: 5px 12px;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -176,6 +199,7 @@
   content: "";
   width: 6px;
   height: 6px;
+  flex: 0 0 auto;
   border-radius: 50%;
   background: var(--console-ok);
 }
@@ -183,162 +207,281 @@
   color: var(--console-ok);
   font-weight: 600;
 }
+.session-chip-avatar { display: none; }
 .pulse {
   width: 7px;
   height: 7px;
+  flex: 0 0 auto;
   border-radius: 50%;
   background: var(--console-accent);
-  animation: pulse 2.4s ease-in-out infinite;
+  animation: console-pulse 2.4s ease-in-out infinite;
 }
-@keyframes pulse {
-  0%,
-  100% {
+@keyframes console-pulse {
+  0%, 100% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--console-accent) 50%, transparent);
   }
-  55% {
-    box-shadow: 0 0 0 6px transparent;
-  }
+  55% { box-shadow: 0 0 0 7px transparent; }
 }
 
+/* Tablet keeps one line and compresses utilities rather than wrapping. */
 @media (max-width: 900px) {
   .console-strip {
-    flex-wrap: wrap;
-    padding: 12px 16px;
-    gap: 10px 22px;
+    gap: 12px;
+    padding-inline: 16px;
   }
-  .command-chip-hint {
-    display: none;
+  .command-chip-hint { display: none; }
+}
+
+/* Phone uses a utility row plus a stable surface rail. */
+@media (max-width: 640px) {
+  [data-climate] { --console-strip-height: 102px; }
+  .console-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(--console-touch);
+    grid-template-areas:
+      "mark command session"
+      "nav nav nav";
+    gap: 4px 8px;
+    min-height: var(--console-strip-height);
+    padding:
+      max(8px, env(safe-area-inset-top))
+      12px
+      6px;
+  }
+  .console-mark {
+    grid-area: mark;
+    overflow: hidden;
+  }
+  .console-mark-long { display: none; }
+  .surface-nav {
+    grid-area: nav;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--console-rule);
+  }
+  .surface-nav-link {
+    min-height: 40px;
+    padding-inline: 6px;
+    font-family: var(--console-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .command-chip {
+    grid-area: command;
+    width: var(--console-touch);
+    height: var(--console-touch);
+    min-height: var(--console-touch);
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .command-chip kbd { display: none; }
+  .command-chip-icon { display: inline; }
+  .session-chip {
+    grid-area: session;
+    width: var(--console-touch);
+    height: var(--console-touch);
+    min-height: var(--console-touch);
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .session-chip::before,
+  .session-chip > :not(.session-chip-avatar) { display: none; }
+  .session-chip-avatar {
+    display: inline;
+    font-size: 10px;
+    font-weight: 600;
   }
 }
 
 @media (min-width: 1440px) {
-  .console-strip {
-    min-height: 54px;
-  }
-  .surface-nav-link {
-    font-size: 13.5px;
-  }
-  .command-chip {
-    font-size: 13px;
-  }
-  .session-chip {
-    font-size: 11.5px;
-  }
+  [data-climate] { --console-strip-height: 54px; }
+  .surface-nav-link { font-size: 13.5px; }
+  .command-chip { font-size: 13px; }
+  .session-chip { font-size: 11.5px; }
 }
 
-/* ---- console palette: the cross-surface jump behind ⌘K ---- */
+/* ---- cross-surface command palette -------------------------------------- */
 
+.console-palette-open { overflow: hidden; }
 .console-palette-overlay {
   position: fixed;
   inset: 0;
   z-index: 1000;
   display: none;
   place-items: start center;
-  padding-top: 9vh;
-  background: color-mix(in srgb, var(--console-bg-deep) 55%, transparent);
+  padding: 9vh 20px 20px;
+  background: color-mix(in srgb, var(--console-bg-deep) 68%, transparent);
+  backdrop-filter: blur(4px);
 }
-.console-palette-overlay.is-open {
-  display: grid;
-}
+.console-palette-overlay.is-open { display: grid; }
 .console-palette {
-  width: 580px;
-  max-width: 92vw;
-  background: var(--console-card);
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 12px;
-  box-shadow: 0 40px 90px -20px rgba(0, 0, 0, 0.5);
+  width: min(580px, 100%);
   overflow: hidden;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 14px;
+  background: var(--console-card);
+  box-shadow: 0 40px 90px -20px rgba(0, 0, 0, 0.58);
 }
 .cp-input-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 18px;
+  min-height: 58px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--console-rule-strong);
 }
+.cp-input-row::before {
+  content: "⌕";
+  color: var(--console-accent);
+  font-family: var(--console-mono);
+  font-size: 18px;
+}
 .cp-input {
+  min-width: 0;
   flex: 1;
-  font-family: var(--console-ui);
-  font-size: 15px;
-  color: var(--console-text);
-  background: transparent;
+  padding: 12px 0;
   border: none;
   outline: none;
-  padding: 12px 0;
+  background: transparent;
+  color: var(--console-text);
+  font-family: var(--console-ui);
+  font-size: 15px;
 }
-.cp-input::placeholder {
-  color: var(--console-text-muted);
-}
+.cp-input::placeholder { color: var(--console-text-muted); }
 .cp-esc {
-  font-family: var(--console-mono);
-  font-size: 10px;
-  color: var(--console-text-muted);
+  padding: 1px 6px;
   border: 1px solid var(--console-rule-strong);
   border-bottom-width: 2px;
   border-radius: 4px;
-  padding: 1px 6px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
 }
 .cp-groups {
-  max-height: 46vh;
+  max-height: 48vh;
   overflow-y: auto;
   padding-bottom: 6px;
 }
+.cp-group { padding: 7px 0 4px; }
+.cp-group + .cp-group { border-top: 1px solid var(--console-rule); }
 .cp-group-title {
+  padding: 4px 18px 5px;
+  color: var(--console-text-muted);
   font-family: var(--console-mono);
   font-size: 9.5px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--console-text-muted);
-  padding: 10px 18px 4px;
 }
 .cp-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 3px 11px;
   align-items: baseline;
-  gap: 11px;
+  min-height: 42px;
   padding: 8px 18px;
-  cursor: pointer;
   border-left: 2px solid transparent;
+  color: inherit;
+  cursor: pointer;
   text-decoration: none;
 }
-.cp-row:hover {
-  background: var(--console-rule);
-}
+.cp-row:hover { background: var(--console-rule); }
 .cp-row.is-selected {
-  background: var(--console-accent-soft);
   border-left-color: var(--console-accent);
+  background: var(--console-accent-soft);
 }
-.cp-title {
-  font-size: 13.5px;
-  color: var(--console-text);
-}
-.cp-sub {
+.cp-glyph {
+  grid-row: span 2;
+  color: var(--console-accent);
   font-family: var(--console-mono);
   font-size: 10px;
+  text-align: center;
+}
+.cp-title {
+  min-width: 0;
+  color: var(--console-text);
+  font-size: 13.5px;
+}
+.cp-title mark {
+  background: none;
+  color: var(--console-accent);
+  font-weight: 500;
+}
+.cp-sub {
+  grid-column: 2;
   color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
 }
 .cp-tag {
-  margin-left: auto;
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+  padding: 1px 9px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 999px;
+  color: var(--console-text-dim);
   font-family: var(--console-mono);
   font-size: 9.5px;
   letter-spacing: 0.08em;
-  color: var(--console-text-dim);
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 999px;
-  padding: 1px 9px;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 .cp-empty {
-  padding: 14px 18px;
-  font-size: 13px;
+  padding: 16px 18px;
   color: var(--console-text-muted);
+  font-size: 13px;
 }
 .cp-foot {
   display: flex;
   gap: 18px;
+  padding: 9px 18px;
+  border-top: 1px solid var(--console-rule-strong);
+  color: var(--console-text-muted);
   font-family: var(--console-mono);
   font-size: 9.5px;
-  color: var(--console-text-muted);
-  border-top: 1px solid var(--console-rule-strong);
-  padding: 9px 18px;
+}
+.cp-foot span:last-child { margin-left: auto; }
+
+@media (max-width: 640px) {
+  .console-palette-overlay {
+    place-items: stretch;
+    padding: 0;
+    background: var(--console-card);
+    backdrop-filter: none;
+  }
+  .console-palette {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100dvh;
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .cp-input-row {
+    min-height: calc(68px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 16px 0;
+  }
+  .cp-input { font-size: 16px; }
+  .cp-groups { max-height: none; }
+  .cp-row {
+    min-height: 54px;
+    padding: 10px 16px;
+  }
+  .cp-tag { display: none; }
+  .cp-foot {
+    justify-content: center;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .cp-foot span:not(:last-child) { display: none; }
+  .cp-foot span:last-child { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
 }

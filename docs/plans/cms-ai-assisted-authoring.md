@@ -5,9 +5,9 @@
 Phases 1–2 shipped (2026-07-09): the CodeMirror 6 source pane (byte-identical
 round-trip covered by tests) and the selection rewrite — operator-gated read-only
 `POST /cms/api/assist`, assist bar UI, pure accept/discard logic — landed together in
-`feat(cms): add AI-assisted body editing`. Remaining: Phase 0 (the operator authoring
-pass, human input that feeds the polish backlog) and Phase 3 (summarise/tag-suggest
-prompt variants, friction backlog, optional streaming). Successor to the shipped
+`feat(cms): add AI-assisted body editing`. Remaining: Phase 3 (summarise/tag-suggest
+prompt variants, authoring-friction backlog, optional streaming) and Phase 4 (ask the
+agent directory about a selection, added 2026-07-09). Successor to the shipped
 `first-party-cms-editor.md` plan (its optional Phase 6, plus the D1 body-editor
 upgrade that plan deferred).
 
@@ -63,12 +63,6 @@ model and save pipeline are untouched.
 
 Thin vertical slices, tests first in every phase.
 
-### Phase 0 — Authoring pass (input, not code)
-
-The operator authors real content at `/cms` on the floor editor. Output: a friction
-list (field widgets, list view, save flow, body editing) that becomes the Phase 3
-backlog. Cheap, can run parallel to Phase 1.
-
 ### Phase 1 — CodeMirror 6 source pane
 
 - Tests first: body round-trips byte-identically through the CM6 pane (typing,
@@ -101,16 +95,50 @@ backlog. Cheap, can run parallel to Phase 1.
 - Prompt variants on the same route: summarise (body → suggestion targeted at a
   frontmatter field) and tag-suggest (proposes values; accepting patches the colophon
   draft, schema validation on save as usual).
-- Work through the Phase 0 friction backlog.
+- Authoring polish: the backlog comes from the operator actually writing at `/cms`,
+  not speculation — collect the friction (field widgets, list view, save flow, body
+  editing) from real sessions and work through it.
 - Optional, only if v1 latency annoys in practice: streaming upgrade per the decision
   above.
+
+### Phase 4 — Ask a directory agent about a selection
+
+Same selection → instruction → answer shape as the rewrite assist, but the answer
+comes from a peer agent instead of the model. One ask targets **one agent** — no
+fan-out; a second opinion is a second ask with a different agent picked. The
+instruction is free-form ("is this accurate?", "what do you know about this?"), with
+preset chips (review / fact-check / related) as conveniences — the mechanism does not
+fork on intent, only the prompt does.
+
+- **UI: the existing assist bar gains a target dropdown at its head** — `model` (the
+  rewrite assist, unchanged) plus one entry per approved agent, listed from the
+  existing `agent` entity type. Same input, same run button (label flips from
+  "Rewrite selection" to "Ask"). The response slot diverges by target: a model answer
+  stays a suggestion (Accept/Discard into the draft); an agent answer is a read-only
+  panel headed by the agent id, dismiss only — quoting is a manual copy. With no a2a
+  or no approved agents the dropdown contains only `model` and the bar looks like
+  today's.
+- **Wiring decision:** the CMS must not depend on the a2a interface package or
+  reimplement its trust checks. The a2a interface registers a message-bus handler
+  (`a2a:call:request`, mirroring directory-sync's `git-sync:get-repo-info` pattern)
+  that wraps the same validated path as the `agent_call` tool — approved/not-archived
+  enforcement, HTTPS Agent Card verification, request signing. The CMS route consumes
+  it via `context.messaging.send` and degrades cleanly when a2a is not installed.
+- Tests first (a2a): the message handler refuses unapproved/archived agents and
+  answers with the same result shape as the tool path.
+- Tests first (server): `POST /cms/api/ask-agent` requires an operator session
+  (401); contract `{ selection, instruction, agent }` → `{ agentId, response }`;
+  performs no entity writes; unknown/unapproved agent → 4xx with a clear error.
+- Tests first (client): target-dropdown state (model default; agents from the entity
+  list); the agent answer panel renders markdown read-only with no accept path.
 
 ## Verification
 
 1. Body content round-trips byte-identically through the CM6 editor (no
    directory-sync echo writes after a save with no textual change).
-2. `/cms/api/assist` is unreachable without an operator session and never writes
-   entities.
+2. `/cms/api/assist` and `/cms/api/ask-agent` are unreachable without an operator
+   session and never write entities; an ask contacts only the one approved,
+   non-archived directory agent it names.
 3. An accepted rewrite saves through the normal pipeline: validation, stale-write
    guard, export, commit — instrument strip settles as for any hand-typed edit.
 4. Suggestion accept/discard is covered by pure-function tests; route contract by
@@ -128,4 +156,7 @@ backlog. Cheap, can run parallel to Phase 1.
   (request/response; `generateText` exists internally, unexposed).
 - `interfaces/web-chat/src/chat-stream.ts` — existing streaming plumbing, candidate
   for the optional Phase 3 streaming upgrade.
+- `interfaces/a2a/src/client.ts` — `sendMessage` + `createAgentCallTool`: the
+  validated peer-call path (approval, Agent Card, signing) the Phase 4 message-bus
+  handler wraps; agents are `agent` entities in the directory.
 - Predecessor: `first-party-cms-editor.md` (deleted when shipped; see git history).
