@@ -124,7 +124,8 @@ const agentInstructions = [
 const roverBrain: BrainDefinition = defineBrain({
   name: "rover",
   version: packageJson.version,
-  model: "gpt-5.4-mini",
+  model: "gpt-5.6-luna",
+  reasoningEffort: "low",
   site: defaultSite,
   theme: defaultTheme,
   presets: {

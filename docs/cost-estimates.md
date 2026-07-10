@@ -1,9 +1,9 @@
 # Cost Estimates
 
-Estimated monthly API costs per brain using **gpt-5.4-mini** (the default text
-model across all brains). Dollar figures below are illustrative — assuming
-roughly $0.40/M input, $1.60/M output — and meant to convey order of magnitude,
-not exact billing.
+Estimated monthly API costs per brain using **gpt-5.6-luna** with `low`
+reasoning (the default across all brains). Dollar figures are illustrative,
+using standard uncached API rates of $1.00/M input and $6.00/M output. Prompt
+caching can reduce actual input cost.
 
 Embeddings via OpenAI `text-embedding-3-small` (1536d): $0.02/M tokens. A brain with 500 entities ≈ $0.001 to embed everything. Re-embedding on model change is negligible.
 
@@ -11,9 +11,9 @@ Embeddings via OpenAI `text-embedding-3-small` (1536d): $0.02/M tokens. A brain 
 
 | Tier   | Profile                                              | Conversations/day | Tokens/month | Cost/month |
 | ------ | ---------------------------------------------------- | ----------------- | ------------ | ---------- |
-| Casual | Personal knowledge base, occasional use              | ~10               | ~900K        | ~$0.50     |
-| Active | Daily writing, content creation, social media        | ~30               | ~5M          | ~$2.50     |
-| Heavy  | Team use, publishing pipeline, newsletter automation | ~100              | ~15M         | ~$7        |
+| Casual | Personal knowledge base, occasional use              | ~10               | ~900K        | ~$2        |
+| Active | Daily writing, content creation, social media        | ~30               | ~5M          | ~$13       |
+| Heavy  | Team use, publishing pipeline, newsletter automation | ~100              | ~15M         | ~$38       |
 
 ### Assumptions
 
@@ -25,12 +25,12 @@ Embeddings via OpenAI `text-embedding-3-small` (1536d): $0.02/M tokens. A brain 
 
 | Operation                               | Typical tokens | Cost   |
 | --------------------------------------- | -------------- | ------ |
-| Single conversation (search + response) | 3,000          | $0.002 |
-| Blog post generation                    | 8,000          | $0.005 |
-| Social post from blog                   | 5,000          | $0.003 |
-| Newsletter generation                   | 10,000         | $0.006 |
-| Topic extraction (per entity)           | 2,000          | $0.001 |
-| Deck generation                         | 12,000         | $0.008 |
+| Single conversation (search + response) | 3,000          | $0.008 |
+| Blog post generation                    | 8,000          | $0.020 |
+| Social post from blog                   | 5,000          | $0.013 |
+| Newsletter generation                   | 10,000         | $0.025 |
+| Topic extraction (per entity)           | 2,000          | $0.005 |
+| Deck generation                         | 12,000         | $0.030 |
 
 ## Image Generation
 
@@ -44,27 +44,24 @@ Most brains generate 0–5 images/day (cover images for posts, social media).
 
 ## Eval Costs
 
-Running the Rover eval suite (126 test cases). Rover's `brain.eval.yaml` runs
-both the agent under test and the LLM judge on `gpt-5.4-mini`. Figures are
-illustrative:
-
-| Component        | Model        | Cost per run |
-| ---------------- | ------------ | ------------ |
-| Agent under test | gpt-5.4-mini | ~$0.35       |
-| LLM judge        | gpt-5.4-mini | ~$0.35       |
-| **Total**        |              | **~$0.70**   |
+The Rover core suite expands to 119 evaluated cases. In July 2026 controlled
+runs, the Luna agent averaged about **$1.70 per run** before prompt-cache
+discounts. The fixed `gpt-5.4-mini` judge is billed separately; judge usage is
+not currently included in the eval reporter's agent token totals.
 
 ## Model Comparison
 
-Illustrative per-test cost from eval runs (126 test cases, avg tokens per
-test). `gpt-5.4-mini` is the configured agent and judge model; an Anthropic
-model is shown for comparison only:
+Observed Rover core agent usage from controlled July 2026 runs. Costs use
+uncached standard rates and exclude the fixed judge:
 
-| Model            | Avg tokens/test | Input price | Output price | Cost/test | Relative |
-| ---------------- | --------------- | ----------- | ------------ | --------- | -------- |
-| gpt-5.4-mini     | 3,762           | $0.40/M     | $1.60/M      | $0.003    | 1x       |
-| claude-haiku-4-5 | 6,679           | $0.80/M     | $4.00/M      | $0.012    | 4x       |
+| Model / configuration | Avg input tokens/run | Avg output tokens/run | Input price | Output price | Cost/run | Relative |
+| --------------------- | -------------------: | --------------------: | ----------: | -----------: | -------: | -------: |
+| gpt-5.4-mini, default |            1,707,247 |                 8,326 |     $0.75/M |      $4.50/M |    $1.32 |    1.00x |
+| gpt-5.6-luna, low     |            1,635,884 |                10,592 |     $1.00/M |      $6.00/M |    $1.70 |    1.29x |
 
 ## Bottom Line
 
-**$1–5/month for most users.** API costs are dominated by conversation and content generation. Embeddings are negligible (~$0.01/month even for heavy users). Image generation is the biggest variable — 5 images/day at gpt-image-1.5 ≈ $3–15/month.
+**Approximately $2–15/month for most users before prompt-cache discounts.**
+API costs are dominated by conversation and content generation. Embeddings
+remain negligible. Image generation is the biggest variable — 5 images/day at
+gpt-image-1.5 is roughly $3–15/month.

@@ -533,6 +533,8 @@ export function resolve(
     overrides?.plugins,
   );
   const effectiveModel = overrides?.model ?? definition.model;
+  const effectiveReasoningEffort =
+    overrides?.reasoningEffort ?? definition.reasoningEffort;
   const webserverEnabled = hasActiveInterface(
     definition,
     activeIds,
@@ -590,10 +592,12 @@ export function resolve(
     plugins: [...capabilities, ...interfaces],
 
     // AI config from environment + brain/instance model
-    ...resolveAIConfig(
-      env,
-      effectiveModel ? { model: effectiveModel } : undefined,
-    ),
+    ...resolveAIConfig(env, {
+      ...(effectiveModel && { model: effectiveModel }),
+      ...(effectiveReasoningEffort && {
+        reasoningEffort: effectiveReasoningEffort,
+      }),
+    }),
 
     // Optional fields
     ...(identity && { identity }),

@@ -103,6 +103,7 @@ export class AIService implements IAIService {
         prompt: userPrompt,
         ...getTextGenerationOptions(
           this.config,
+          this.capabilities.provider,
           this.capabilities.supportsTemperature,
         ),
       });
@@ -134,16 +135,19 @@ export class AIService implements IAIService {
     });
 
     try {
+      const generationOptions = getTextGenerationOptions(
+        this.config,
+        this.capabilities.provider,
+        this.capabilities.supportsTemperature,
+      );
       const result = await generateObject({
         model: this.getModel(),
         system: systemPrompt,
         prompt: userPrompt,
         schema,
-        ...getTextGenerationOptions(
-          this.config,
-          this.capabilities.supportsTemperature,
-        ),
+        ...generationOptions,
         providerOptions: {
+          ...generationOptions.providerOptions,
           anthropic: { structuredOutputMode: "jsonTool" },
         },
       });

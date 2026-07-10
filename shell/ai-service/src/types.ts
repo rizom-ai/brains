@@ -1,6 +1,9 @@
 import type { LanguageModel } from "ai";
 import type { ZodType } from "@brains/utils/zod";
 
+export type ReasoningEffort =
+  "none" | "low" | "medium" | "high" | "xhigh" | "max";
+
 /**
  * AI model configuration
  */
@@ -16,6 +19,8 @@ export interface AIModelConfig {
   temperature?: number;
   maxTokens?: number;
   webSearch?: boolean;
+  /** OpenAI reasoning effort. Ignored by providers that do not support it. */
+  reasoningEffort?: ReasoningEffort;
 }
 
 export type AIModelConfigUpdate = Partial<AIModelConfig>;
