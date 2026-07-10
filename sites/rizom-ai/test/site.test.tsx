@@ -99,7 +99,18 @@ describe("RizomAiLayout", () => {
     expect(html).toContain('href="/"');
     expect(html).toContain('href="/work"');
     expect(html).toContain('href="/foundation"');
-    expect(html).toContain("one practice · three faces");
+    // No invented tagline — the strip's right side is the cross-room
+    // Writing index, not marketing filler.
+    expect(html).not.toContain("one practice");
+  });
+
+  it("puts Writing in the org strip on every face, and marks it active on /writing", () => {
+    for (const path of ["/", "/work", "/foundation"]) {
+      const html = renderLayout(path);
+      expect(html).toContain('href="/writing"');
+      expect(html).toContain(">Writing<");
+    }
+    expect(renderLayout("/writing")).toContain('aria-current="page">Writing');
   });
 
   it("sets data-room per route so the theme can switch accents", () => {
@@ -117,6 +128,13 @@ describe("RizomAiLayout", () => {
     );
   });
 
+  it("marks Writing — not a room — as active on /writing", () => {
+    const html = renderLayout("/writing");
+    expect(html).toContain('aria-current="page">Writing');
+    // /writing is cross-room, so no room face claims the current page.
+    expect(html).not.toContain('aria-current="page">Platform');
+  });
+
   it("shows the old domain as the room nameplate", () => {
     expect(renderLayout("/work")).toContain("work");
     expect(renderLayout("/foundation")).toContain("foundation");
@@ -125,7 +143,6 @@ describe("RizomAiLayout", () => {
   it("shows only the face's own contextual links, never entity nav", () => {
     const home = renderLayout("/");
     expect(home).toContain("Docs ↗");
-    expect(home).toContain(">Writing<");
     expect(home).not.toContain("Workshop");
     expect(home).not.toContain(">Topics<");
     expect(home).not.toContain(">Posts<");

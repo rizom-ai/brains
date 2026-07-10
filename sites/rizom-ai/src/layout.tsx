@@ -25,10 +25,7 @@ interface FaceChrome {
 const FACE_CHROME: Record<FaceKey, FaceChrome> = {
   platform: {
     nameplate: null,
-    links: [
-      { label: "Writing", href: "/writing" },
-      { label: "Docs ↗", href: "https://docs.rizom.ai", external: true },
-    ],
+    links: [{ label: "Docs ↗", href: "https://docs.rizom.ai", external: true }],
     cta: { label: "Get Started", href: "#hero" },
   },
   work: {
@@ -61,12 +58,19 @@ function activeFace(path: string): FaceKey {
   return "platform";
 }
 
-function FacesStrip({ face }: { face: FaceKey }): JSX.Element {
+function isWriting(path: string): boolean {
+  return path === "/writing" || path.startsWith("/writing/");
+}
+
+function FacesStrip({ path }: { path: string }): JSX.Element {
+  const face = activeFace(path);
+  const writingActive = isWriting(path);
   return (
     <div className="relative z-[2] flex items-baseline gap-6 border-b border-theme-light px-6 py-3 font-label text-label-xs uppercase tracking-[0.14em] md:px-10 xl:px-20">
       <span className="text-theme-muted">rizom</span>
       {FACES.map((item) =>
-        item.key === face ? (
+        // /writing is cross-room, so no room face is current there.
+        item.key === face && !writingActive ? (
           <a
             key={item.key}
             href={item.href}
@@ -85,9 +89,16 @@ function FacesStrip({ face }: { face: FaceKey }): JSX.Element {
           </a>
         ),
       )}
-      <span className="ml-auto font-display text-[13px] normal-case italic tracking-normal text-theme-light">
-        one practice · three faces
-      </span>
+      {/* The one cross-room destination lives top-right on every face. */}
+      <a
+        href="/writing"
+        className={`ml-auto transition-colors ${
+          writingActive ? "text-accent" : "text-theme-light hover:text-theme"
+        }`}
+        {...(writingActive ? { "aria-current": "page" } : {})}
+      >
+        Writing
+      </a>
     </div>
   );
 }
@@ -324,7 +335,7 @@ function RizomAiChrome({
       <div data-room={face} className="relative xl:pl-[68px]">
         <MyceliumRail />
         <header className="sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
-          <FacesStrip face={face} />
+          <FacesStrip path={path} />
           <FaceNav face={face} />
         </header>
         <main>{children}</main>
