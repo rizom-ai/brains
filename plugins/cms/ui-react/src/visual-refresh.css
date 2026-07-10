@@ -1,0 +1,242 @@
+/* Editorial console treatment for the CMS. Data/form behavior remains in
+   App.tsx; this layer gives library and manuscript views one visual grammar. */
+
+.studio {
+  background:
+    radial-gradient(
+      ellipse at 82% -18%,
+      color-mix(in srgb, var(--console-accent) 5%, transparent),
+      transparent 42rem
+    ),
+    var(--console-frame);
+}
+
+.crumbbar {
+  min-height: 46px;
+  height: auto;
+  padding-inline: 22px;
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--console-text) 3%, transparent),
+      transparent
+    ),
+    var(--console-frame);
+}
+.crumb-mark { color: var(--console-accent); }
+.crumb-mark b { color: var(--console-text); }
+.crumb { color: var(--console-text-muted); }
+
+.studio-body { grid-template-columns: 250px minmax(0, 1fr); }
+.rail {
+  padding-top: 26px;
+  background:
+    linear-gradient(
+      to right,
+      transparent 70%,
+      color-mix(in srgb, var(--console-text) 2.5%, transparent)
+    ),
+    var(--console-card-soft);
+}
+.rail-title {
+  padding-inline: 22px;
+  color: var(--console-text-muted);
+  font-size: 9px;
+}
+.rail .type {
+  min-height: 38px;
+  padding-inline: 22px;
+  border-left-width: 2px;
+  color: var(--console-text-dim);
+}
+.rail .type:hover { background: var(--console-rule); }
+.rail .type.active {
+  background:
+    linear-gradient(
+      90deg,
+      var(--console-accent-soft),
+      transparent 78%
+    ),
+    var(--console-card);
+}
+.rail .count {
+  padding: 1px 7px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 999px;
+  font-size: 9px;
+}
+
+.listing {
+  width: min(100%, 1180px);
+  margin-inline: auto;
+  padding: clamp(30px, 4vw, 56px) clamp(28px, 4vw, 54px) 60px;
+}
+.listing-head {
+  position: relative;
+  align-items: baseline;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--console-rule-strong);
+}
+.listing-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 84px;
+  height: 1px;
+  background: var(--console-accent);
+}
+.listing-head h3 {
+  font-size: clamp(36px, 5vw, 52px);
+  font-variation-settings: "SOFT" 62, "opsz" 90;
+  font-weight: 520;
+  letter-spacing: -0.025em;
+}
+.listing-head .meta {
+  color: var(--console-text-muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.listing-head .btn {
+  min-height: 42px;
+  border-color: var(--console-accent);
+  border-radius: 999px;
+  background: var(--console-accent);
+  color: var(--console-on-accent);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.row {
+  grid-template-columns: 42px minmax(0, 1fr) 130px;
+  min-height: 82px;
+  padding: 17px 4px;
+  border-bottom-color: var(--console-rule);
+}
+.row:hover {
+  background:
+    linear-gradient(90deg, var(--console-accent-soft), transparent 72%);
+}
+.row .idx {
+  color: var(--console-accent);
+  font-size: 9px;
+}
+.row .title {
+  font-size: 19px;
+  font-variation-settings: "SOFT" 54, "opsz" 40;
+  font-weight: 500;
+}
+.row .title small {
+  color: var(--console-text-muted);
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+}
+.row .updated {
+  justify-self: end;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+}
+
+/* Manuscript view: a narrow colophon beside a generous reading surface. */
+.editor { grid-template-columns: 350px minmax(0, 1fr); }
+.colophon {
+  padding: 30px 28px 70px;
+  background:
+    linear-gradient(
+      to right,
+      transparent 68%,
+      color-mix(in srgb, var(--console-text) 2.5%, transparent)
+    ),
+    var(--console-card-soft);
+}
+.form-title {
+  padding-bottom: 22px;
+  color: var(--console-text-muted);
+  font-size: 9px;
+}
+.backlink {
+  min-height: 38px;
+  color: var(--console-accent);
+}
+.field { padding-block: 16px 18px; }
+.field-label { color: var(--console-text-dim); }
+.field input[type="text"],
+.field input[type="number"],
+.field select,
+.field textarea {
+  min-height: 42px;
+  border-color: var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+.manuscript {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--console-text) 1.7%, transparent),
+      transparent 18%
+    ),
+    var(--console-card);
+}
+.body-toolbar {
+  min-height: 54px;
+  padding-inline: 30px;
+  background: color-mix(in srgb, var(--console-frame) 78%, transparent);
+}
+.seg { border-radius: 999px; }
+.seg .mode {
+  min-height: 34px;
+  padding-inline: 16px;
+  font-size: 10px;
+}
+.seg .mode-active {
+  background: var(--console-accent);
+  color: var(--console-on-accent);
+}
+.doc-meta {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+.assist-bar {
+  min-height: 54px;
+  padding-inline: 30px;
+}
+.body-source .cm-content,
+.body-preview { padding: clamp(30px, 4vw, 58px); }
+.body-source .cm-scroller {
+  font-size: 13.5px;
+  line-height: 1.85;
+}
+.body-preview h1 {
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 520;
+  letter-spacing: -0.025em;
+}
+.body-preview p,
+.body-preview li {
+  font-size: 16px;
+  line-height: 1.78;
+}
+.body-preview blockquote {
+  margin-block: 26px;
+  padding-left: 22px;
+  font-size: 19px;
+}
+.pipeline {
+  min-height: 64px;
+  padding-inline: 24px;
+  border-top-width: 1px;
+}
+.save-btn {
+  min-height: 42px;
+  padding-inline: 24px;
+  border-radius: 999px;
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}

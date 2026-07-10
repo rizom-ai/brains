@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   ApiError,
   createEntity,
@@ -938,7 +939,7 @@ export function App(): ReactElement {
   if (loadError) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
         <p className="status status-error boot-status">{loadError}</p>
       </div>
     );
@@ -946,7 +947,7 @@ export function App(): ReactElement {
   if (!types || (entityType && (!schema || !entities))) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
         <p className="status boot-status">Loading…</p>
       </div>
     );
@@ -954,7 +955,7 @@ export function App(): ReactElement {
   if (!entityType || !schema) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
         <p className="status boot-status">
           No editable entity types are registered.
         </p>
@@ -972,7 +973,7 @@ export function App(): ReactElement {
 
   return (
     <div className="studio">
-      <style>{`${styles}\n${responsiveStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb-mark">
           content <b>studio</b>

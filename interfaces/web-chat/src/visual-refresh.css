@@ -1,0 +1,293 @@
+/* Unified console treatment for the chat surface. The component sheet keeps
+   message/tool behavior; this layer owns composition, hierarchy, and finish. */
+
+body {
+  background-color: var(--console-bg);
+  background-image:
+    radial-gradient(
+      ellipse at 16% -12%,
+      color-mix(in srgb, var(--console-accent) 8%, transparent),
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse at 92% 112%,
+      color-mix(in srgb, var(--console-secondary) 7%, transparent),
+      transparent 44%
+    ),
+    var(--chat-noise);
+}
+
+.web-chat-shell {
+  grid-template-columns: 264px minmax(0, 1fr);
+}
+
+/* Sessions become a quiet index rather than a second illustrated timeline. */
+.web-chat-sessions {
+  padding: 0;
+  border-right-color: var(--console-rule-strong);
+  background:
+    linear-gradient(
+      to right,
+      transparent 68%,
+      color-mix(in srgb, var(--console-text) 2.5%, transparent)
+    ),
+    var(--console-card);
+}
+.web-chat-sessions-header {
+  min-height: 76px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--console-rule);
+}
+.web-chat-sessions-header h2 {
+  font-family: var(--console-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.web-chat-sessions-new {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--console-accent-soft);
+}
+.web-chat-sessions-list {
+  padding: 10px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--console-rule-strong) transparent;
+}
+.web-chat-sessions-list::before { display: none; }
+.web-chat-session-item { border-bottom: 1px solid var(--console-rule); }
+.web-chat-session {
+  display: block;
+  min-height: 68px;
+  padding: 13px 82px 13px 18px;
+  border-left: 2px solid transparent;
+}
+.web-chat-session:hover:not(:disabled) { background: var(--console-rule); }
+.web-chat-session::before,
+.web-chat-session::after { display: none; }
+.web-chat-session-body {
+  display: block;
+  padding: 0;
+}
+.web-chat-session-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.web-chat-session-time {
+  display: block;
+  margin-top: 5px;
+  padding: 0;
+  color: var(--console-text-muted);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-align: left;
+}
+.web-chat-session[data-active="true"] {
+  border-left-color: var(--console-accent);
+  background: var(--console-card-soft);
+}
+.web-chat-session[data-active="true"] .web-chat-session-time {
+  color: var(--console-accent);
+}
+.web-chat-session-rename,
+.web-chat-session-archive,
+.web-chat-session-delete {
+  width: 26px;
+  height: 26px;
+  opacity: 0;
+}
+.web-chat-session-rename { right: 55px; }
+.web-chat-session-archive { right: 31px; }
+.web-chat-session-delete { right: 7px; }
+.web-chat-sessions-footer {
+  min-height: 54px;
+  margin: 0;
+  padding: 0 18px;
+  border-top-color: var(--console-rule-strong);
+}
+
+/* The conversation reads as a manuscript with compact local wayfinding. */
+.web-chat-app {
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 0;
+  max-width: none;
+  padding: 0;
+}
+.web-chat-app::before,
+.web-chat-app::after { display: none; }
+.web-chat-header {
+  min-height: 76px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--console-rule-strong);
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--console-text) 3%, transparent),
+      transparent
+    ),
+    color-mix(in srgb, var(--console-frame) 88%, transparent);
+}
+.web-chat-header-eyebrow {
+  margin-bottom: 3px;
+  color: var(--console-text-muted);
+  font-size: 9px;
+  letter-spacing: 0.17em;
+}
+.web-chat-header-eyebrow::before {
+  width: 5px;
+  height: 5px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--console-accent) 68%, transparent);
+}
+.web-chat-header > div:not(.web-chat-header-actions) { min-width: 0; }
+.web-chat-header h1 {
+  max-width: min(62vw, 42rem);
+  overflow: hidden;
+  color: var(--console-text);
+  font-size: 22px;
+  font-variation-settings: "SOFT" 64, "opsz" 48;
+  font-weight: 520;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.web-chat-header p {
+  margin-top: 4px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.07em;
+}
+.web-chat-header-actions { padding-top: 0; }
+.web-chat-icon-action,
+.web-chat-mobile-new {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--console-card);
+}
+.web-chat-mobile-new {
+  display: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--console-rule-strong);
+  color: var(--console-accent);
+  cursor: pointer;
+}
+.web-chat-mobile-new svg { width: 16px; height: 16px; }
+.web-chat-app > .web-chat-conversation,
+.web-chat-app > .web-chat-session-notice,
+.web-chat-app > .web-chat-status,
+.web-chat-app > .web-chat-error,
+.web-chat-app > .web-chat-file-notice,
+.web-chat-app > .web-chat-prompt-input {
+  width: min(calc(100% - 40px), 900px);
+  max-width: 900px;
+  margin-inline: auto;
+}
+.web-chat-conversation { padding: 18px 0; }
+.web-chat-conversation-content {
+  gap: 22px;
+  padding: 8px 0 28px;
+}
+.web-chat-message { max-width: min(100%, 68ch); }
+.web-chat-message[data-role="assistant"] .web-chat-message-bubble {
+  padding: 0 0 0 16px;
+  border-left: 1px solid color-mix(in srgb, var(--console-secondary) 45%, transparent);
+  background: transparent;
+  box-shadow: none;
+}
+.web-chat-message[data-role="assistant"] .web-chat-message-bubble::before,
+.web-chat-message[data-role="assistant"] .web-chat-message-bubble::after {
+  display: none;
+}
+.web-chat-message[data-role="user"] .web-chat-message-bubble {
+  padding: 11px 15px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 12px;
+  background: var(--console-accent-soft);
+  box-shadow: none;
+}
+.web-chat-message[data-role="assistant"]
+  .web-chat-message-bubble
+  > .web-chat-markdown-response:first-child
+  > p:first-of-type::first-letter,
+.web-chat-message[data-role="assistant"]
+  .web-chat-message-bubble
+  > p:first-of-type::first-letter {
+  float: none;
+  padding: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+.web-chat-session-notice,
+.web-chat-error,
+.web-chat-file-notice { margin-top: 12px; }
+.web-chat-status { margin-block: 8px; }
+.web-chat-prompt-input {
+  margin-top: 8px;
+  margin-bottom: 18px;
+  clip-path: none;
+  border-color: var(--console-rule-strong);
+  border-radius: 16px;
+  background: var(--console-card);
+  box-shadow: var(--console-shadow-card);
+}
+.web-chat-prompt-input::before { display: none; }
+.web-chat-prompt-textarea {
+  min-height: 58px;
+  padding-top: 14px;
+}
+
+@media (max-width: 760px) {
+  .web-chat-shell { grid-template-columns: 1fr; }
+  .web-chat-shell .web-chat-sessions {
+    width: min(86%, 320px);
+    padding: 0;
+  }
+  .web-chat-header {
+    min-height: 58px;
+    padding: 8px 12px;
+  }
+  .web-chat-header-eyebrow,
+  .web-chat-header p { display: none; }
+  .web-chat-header h1 {
+    max-width: none;
+    font-size: 17px;
+  }
+  .web-chat-mobile-new { display: inline-grid; }
+  .web-chat-app > .web-chat-conversation,
+  .web-chat-app > .web-chat-session-notice,
+  .web-chat-app > .web-chat-status,
+  .web-chat-app > .web-chat-error,
+  .web-chat-app > .web-chat-file-notice,
+  .web-chat-app > .web-chat-prompt-input {
+    width: calc(100% - 24px);
+  }
+  .web-chat-conversation { padding-block: 12px; }
+  .web-chat-conversation-content { padding-bottom: 16px; }
+  .web-chat-message[data-role="assistant"] .web-chat-message-bubble {
+    padding-left: 12px;
+  }
+  .web-chat-prompt-input {
+    margin-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 390px) {
+  .web-chat-header-actions { gap: 4px; }
+  .web-chat-icon-action,
+  .web-chat-mobile-new,
+  .web-chat-mobile-trigger {
+    width: 38px;
+    height: 38px;
+  }
+}

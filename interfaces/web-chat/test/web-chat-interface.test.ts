@@ -637,6 +637,9 @@ describe("WebChatInterface", () => {
     expect(html).toContain("viewport-fit=cover");
     expect(html).toContain("min-height: 100dvh");
     expect(html).toContain("--chat-secondary: var(--console-secondary)");
+    expect(html).toContain(".web-chat-session-item { border-bottom:");
+    expect(html).toContain(".web-chat-mobile-new");
+    expect(html).toContain("clip-path: none");
   });
 
   it("does not reach out to fonts.googleapis.com from the chat page", async () => {

@@ -1149,6 +1149,10 @@ export function App(): React.ReactElement {
     );
   }
 
+  const activeSessionTitle = sessions.find(
+    (session) => session.id === conversationId,
+  )?.title;
+
   return (
     <div
       className="web-chat-shell"
@@ -1332,7 +1336,7 @@ export function App(): React.ReactElement {
           </button>
           <div>
             <span className="web-chat-header-eyebrow">
-              Anchor
+              Brain · Chat
               {messages.length > 0 ? (
                 <>
                   {" · "}
@@ -1343,11 +1347,35 @@ export function App(): React.ReactElement {
               ) : null}
             </span>
             <h1>
-              Brain <em>Chat</em>
+              {activeSessionTitle ?? (
+                <>
+                  New <em>conversation</em>
+                </>
+              )}
             </h1>
-            <p>A field log for talking with the rhizome.</p>
+            <p>
+              {activeSessionTitle
+                ? "Active conversation"
+                : "A field log for talking with the brain"}
+            </p>
           </div>
           <div className="web-chat-header-actions">
+            <button
+              className="web-chat-mobile-new"
+              type="button"
+              aria-label="New conversation"
+              onClick={startNewConversation}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                aria-hidden="true"
+              >
+                <path d="M8 3v10M3 8h10" strokeLinecap="round" />
+              </svg>
+            </button>
             <button
               className="web-chat-icon-action"
               type="button"
