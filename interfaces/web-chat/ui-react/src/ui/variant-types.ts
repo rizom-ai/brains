@@ -1,4 +1,6 @@
+import type { ClassValue } from "class-variance-authority/types";
+
 export type CvaClassProp =
-  | { class?: string | undefined; className?: never }
-  | { class?: never; className?: string | undefined }
+  | { class: ClassValue; className?: never }
+  | { class?: never; className: ClassValue }
   | { class?: never; className?: never };

@@ -9,6 +9,7 @@
     "isolatedDeclarations": true,
     "isolatedModules": true,
     "moduleResolution": "bundler",
+    "customConditions": ["bun"],
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
     "ignoreDeprecations": "6.0",

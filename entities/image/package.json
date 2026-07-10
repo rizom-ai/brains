@@ -14,7 +14,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
     "@types/node": "^20.19.43",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts"

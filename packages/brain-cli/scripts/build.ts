@@ -229,7 +229,7 @@ async function emitLibraryDeclarations(): Promise<void> {
           [
             "bun",
             "x",
-            "rollup",
+            "rolldown",
             "-c",
             join(import.meta.dir, "bundle-declarations.mjs"),
           ],
@@ -238,7 +238,7 @@ async function emitLibraryDeclarations(): Promise<void> {
             env: {
               ...process.env,
               INPUT: entry.source,
-              OUTPUT: join(declarationOutDir, `${entry.name}.d.ts`),
+              OUTPUT_DIR: declarationOutDir,
             },
             stdout: "inherit",
             stderr: "inherit",

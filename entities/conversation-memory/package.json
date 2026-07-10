@@ -19,7 +19,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/node": "^20.19.43",
     "eslint": "^10.5.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts"
