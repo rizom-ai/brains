@@ -60,6 +60,8 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain("@media (max-width: 900px)");
     expect(responsiveStyles).toContain("@media (max-width: 640px)");
     expect(responsiveStyles).toContain('.editor[data-mobile-pane="details"]');
+    expect(responsiveStyles).toContain('.studio[data-view="editor"]');
+    expect(responsiveStyles).toContain(".cms-mobile-save-status");
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
   });
 });

@@ -1288,7 +1288,7 @@ export function App(): React.ReactElement {
 
       <aside className="web-chat-sessions" aria-label="Sessions">
         <header className="web-chat-sessions-header">
-          <h2>Sessions</h2>
+          <h2>Conversations</h2>
           <button
             className="web-chat-sessions-new"
             type="button"
@@ -1459,6 +1459,9 @@ export function App(): React.ReactElement {
                   from={message.role}
                   data-role={message.role}
                 >
+                  <div className="web-chat-message-header">
+                    {message.role === "user" ? "you" : "brain"}
+                  </div>
                   <MessageContent className="web-chat-message-bubble">
                     {renderMessageSections(message.parts)}
                   </MessageContent>

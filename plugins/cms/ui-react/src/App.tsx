@@ -972,7 +972,7 @@ export function App(): ReactElement {
         : (activeType?.label ?? entityType);
 
   return (
-    <div className="studio">
+    <div className="studio" data-view={editing ? "editor" : "listing"}>
       <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb-mark">
@@ -1064,8 +1064,11 @@ export function App(): ReactElement {
             </nav>
             <aside className="colophon">
               <div className="form-title">
-                <span>Colophon</span>
-                <span>{schema.format === "raw" ? "raw" : "frontmatter"}</span>
+                <h2>Colophon</h2>
+                <span>
+                  {entityType} ·{" "}
+                  {mode.kind === "create" ? "new" : schema.format}
+                </span>
               </div>
               {!schema.isSingleton && (
                 <button type="button" className="backlink" onClick={backToList}>
@@ -1138,11 +1141,31 @@ export function App(): ReactElement {
                   if (mode.kind === "edit") openEntity(mode.entity.id);
                 }}
               />
+              <span className="cms-mobile-save-status">
+                <b>
+                  {saveState.kind === "saving"
+                    ? "Saving changes"
+                    : saveState.kind === "saved"
+                      ? "All changes saved"
+                      : "Entity pipeline"}
+                </b>
+                {syncStatus?.git?.lastCommit
+                  ? `db → file → ${syncStatus.git.lastCommit.slice(0, 7)}`
+                  : "entity db"}
+              </span>
               <span className="spacer" />
               {mode.kind === "edit" && !schema.isSingleton && (
-                <button type="button" className="btn danger" onClick={remove}>
-                  Delete
-                </button>
+                <>
+                  <button type="button" className="btn danger" onClick={remove}>
+                    Delete
+                  </button>
+                  <details className="cms-mobile-more">
+                    <summary aria-label="More document actions">•••</summary>
+                    <button type="button" onClick={remove}>
+                      Delete entry
+                    </button>
+                  </details>
+                </>
               )}
             </footer>
           </form>

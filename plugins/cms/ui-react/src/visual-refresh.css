@@ -158,6 +158,16 @@
   color: var(--console-text-muted);
   font-size: 9px;
 }
+.form-title h2 {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+}
+.cms-mobile-save-status,
+.cms-mobile-more { display: none; }
 .backlink {
   min-height: 38px;
   color: var(--console-accent);

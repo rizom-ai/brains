@@ -4,6 +4,7 @@
 .cms-mobile-modes { display: none; }
 
 @media (max-width: 900px) {
+  .crumb-mark { display: none; }
   .studio-body {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
@@ -39,7 +40,7 @@
   }
   .rail .count,
   .rail .singleton-mark { margin-left: 7px; }
-  .editor { grid-template-columns: 280px minmax(0, 1fr); }
+  .editor { grid-template-columns: 260px minmax(0, 1fr); }
   .colophon { padding-inline: 20px; }
   .body-source .cm-content,
   .body-preview { padding-inline: 24px; }
@@ -48,6 +49,94 @@
     margin-inline: 8px;
   }
   .commit-ref { display: none; }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  /* The tablet specimen is a colophon beside a reading manuscript, not a
+     squeezed desktop split editor. Source remains available on desktop and
+     in the dedicated phone Write pane. */
+  .body-editor:has(.body-panes.split) .body-toolbar,
+  .body-editor:has(.body-panes.split) .assist-bar {
+    display: none;
+  }
+  .body-panes.split { grid-template-columns: minmax(0, 1fr); }
+  .body-panes.split .body-source { display: none; }
+  .form-title {
+    align-items: baseline;
+    margin-bottom: 12px;
+    padding-bottom: 0;
+  }
+  .form-title h2 {
+    color: var(--console-text);
+    font-family: var(--console-display);
+    font-size: 22px;
+    font-variation-settings: "SOFT" 62, "opsz" 48;
+    font-weight: 540;
+    letter-spacing: -0.015em;
+    text-transform: none;
+  }
+  .form-title span {
+    color: var(--console-accent);
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .pipeline {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    min-height: 58px;
+    padding: 7px 12px;
+  }
+  .pipeline .stations-wrap,
+  .pipeline > .btn.danger,
+  .pipeline > .spacer { display: none; }
+  .cms-mobile-save-status {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--console-bg);
+    font-family: var(--console-mono);
+    font-size: 8px;
+    letter-spacing: 0.05em;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cms-mobile-save-status b {
+    display: block;
+    overflow: hidden;
+    color: var(--console-ok);
+    font-size: 9px;
+    text-overflow: ellipsis;
+  }
+  .cms-mobile-more {
+    position: relative;
+    display: block;
+  }
+  .cms-mobile-more summary {
+    display: grid;
+    place-items: center;
+    width: var(--console-touch);
+    height: var(--console-touch);
+    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
+    border-radius: 50%;
+    color: var(--console-bg);
+    cursor: pointer;
+    font-family: var(--console-mono);
+    list-style: none;
+  }
+  .cms-mobile-more summary::-webkit-details-marker { display: none; }
+  .cms-mobile-more button {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    min-width: 132px;
+    min-height: var(--console-touch);
+    border: 1px solid var(--console-err);
+    border-radius: 8px;
+    background: var(--console-card);
+    color: var(--console-err);
+  }
 }
 
 @media (max-width: 640px) {
@@ -66,6 +155,10 @@
   .studio-body { overflow: hidden; }
   .rail { padding-inline: 10px; }
   .rail .type { min-height: var(--console-touch); }
+  .studio[data-view="editor"] .studio-body {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .studio[data-view="editor"] .rail { display: none; }
   .listing {
     min-width: 0;
     overflow-y: auto;
@@ -140,9 +233,31 @@
     overflow-y: auto;
   }
   .colophon {
-    padding: 18px 16px 80px;
+    padding: 16px 16px 80px;
     border-right: 0;
   }
+  .form-title {
+    align-items: baseline;
+    margin-bottom: 12px;
+    padding-bottom: 0;
+  }
+  .form-title h2 {
+    color: var(--console-text);
+    font-family: var(--console-display);
+    font-size: 25px;
+    font-variation-settings: "SOFT" 62, "opsz" 48;
+    font-weight: 540;
+    letter-spacing: -0.015em;
+    text-transform: none;
+  }
+  .form-title span {
+    color: var(--console-accent);
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .backlink { margin-bottom: 0; }
+  .field { padding-block: 12px; }
   .editor[data-mobile-pane="details"] .manuscript { display: none; }
   .editor[data-mobile-pane="write"] .colophon,
   .editor[data-mobile-pane="preview"] .colophon { display: none; }
@@ -209,8 +324,59 @@
   .pipeline .btn.danger {
     min-height: var(--console-touch);
   }
-  .save-btn { padding-inline: 18px; }
-  .stations-wrap { min-width: 0; }
+  .save-btn {
+    padding-inline: 18px;
+    border-radius: 8px;
+  }
+  .stations-wrap { display: none; }
+  .cms-mobile-save-status {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--console-bg);
+    font-family: var(--console-mono);
+    font-size: 8px;
+    letter-spacing: 0.05em;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cms-mobile-save-status b {
+    display: block;
+    overflow: hidden;
+    color: var(--console-ok);
+    font-size: 9px;
+    text-overflow: ellipsis;
+  }
+  .cms-mobile-more {
+    position: relative;
+    display: block;
+  }
+  .cms-mobile-more summary {
+    display: grid;
+    place-items: center;
+    width: var(--console-touch);
+    height: var(--console-touch);
+    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
+    border-radius: 50%;
+    color: var(--console-bg);
+    cursor: pointer;
+    font-family: var(--console-mono);
+    list-style: none;
+  }
+  .cms-mobile-more summary::-webkit-details-marker { display: none; }
+  .cms-mobile-more button {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    min-width: 132px;
+    min-height: var(--console-touch);
+    border: 1px solid var(--console-err);
+    border-radius: 8px;
+    background: var(--console-card);
+    color: var(--console-err);
+  }
+  .pipeline > .btn.danger { display: none; }
   .stations {
     min-width: 0;
     margin-left: 0;
