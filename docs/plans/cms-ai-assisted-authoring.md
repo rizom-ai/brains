@@ -5,9 +5,10 @@
 Phases 1–2 shipped (2026-07-09): the CodeMirror 6 source pane (byte-identical
 round-trip covered by tests) and the selection rewrite — operator-gated read-only
 `POST /cms/api/assist`, assist bar UI, pure accept/discard logic — landed together in
-`feat(cms): add AI-assisted body editing`. Remaining: Phase 3 (summarise/tag-suggest
-prompt variants, authoring-friction backlog, optional streaming) and Phase 4 (ask the
-agent directory about a selection, added 2026-07-09). Successor to the shipped
+`feat(cms): add AI-assisted body editing`. Phase 4 shipped (2026-07-10): the assist
+bar can ask one approved directory agent about a selection through A2A's validated,
+signed outbound path. Remaining: Phase 3 (summarise/tag-suggest prompt variants,
+authoring-friction backlog, optional streaming). Successor to the shipped
 `first-party-cms-editor.md` plan (its optional Phase 6, plus the D1 body-editor
 upgrade that plan deferred).
 
@@ -101,7 +102,7 @@ Thin vertical slices, tests first in every phase.
 - Optional, only if v1 latency annoys in practice: streaming upgrade per the decision
   above.
 
-### Phase 4 — Ask a directory agent about a selection
+### Phase 4 — Ask a directory agent about a selection (shipped 2026-07-10)
 
 Same selection → instruction → answer shape as the rewrite assist, but the answer
 comes from a peer agent instead of the model. One ask targets **one agent** — no

@@ -3,6 +3,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
 import {
+  AgentAnswerPanel,
+  AGENT_INSTRUCTION_PRESETS,
   applyFieldChange,
   applySuggestionToSelection,
   BodyEditor,
@@ -12,11 +14,17 @@ import {
   entityTitle,
   Field,
   parseCmsHash,
+  MODEL_ASSIST_TARGET,
   PipelineStations,
   SaveStateNotice,
   TypeSwitcher,
 } from "./App";
-import type { EntityTypeInfo, FieldDescriptor, GitSyncState } from "./api";
+import type {
+  AgentTarget,
+  EntityTypeInfo,
+  FieldDescriptor,
+  GitSyncState,
+} from "./api";
 
 const stringField: FieldDescriptor = {
   name: "title",
@@ -305,6 +313,57 @@ describe("BodyEditor", () => {
     );
     expect(html).toContain("Rewrite selection");
     expect(html).toContain("AI selection rewrite");
+    expect(html).not.toContain('aria-label="Assist target"');
+  });
+
+  it("defaults the target dropdown to model and lists approved agents", () => {
+    const agents: AgentTarget[] = [
+      { id: "docs.example", label: "Docs" },
+      { id: "review.example", label: "Reviewer" },
+    ];
+    const html = renderToStaticMarkup(
+      createElement(BodyEditor, {
+        value: "Original body",
+        mode: "source",
+        onChange: () => {},
+        onModeChange: () => {},
+        assist: {
+          entityType: "post",
+          frontmatter: { title: "Hello" },
+          agents,
+        },
+      }),
+    );
+
+    expect(MODEL_ASSIST_TARGET).toBe("model");
+    expect(html).toContain('aria-label="Assist target"');
+    expect(html).toContain('<option value="model" selected="">Model</option>');
+    expect(html).toContain('value="docs.example"');
+    expect(html).toContain("Docs — docs.example");
+    expect(AGENT_INSTRUCTION_PRESETS.map((preset) => preset.label)).toEqual([
+      "Review",
+      "Fact-check",
+      "Related",
+    ]);
+  });
+});
+
+describe("AgentAnswerPanel", () => {
+  it("renders markdown read-only with a dismiss action and no accept path", () => {
+    const html = renderToStaticMarkup(
+      createElement(AgentAnswerPanel, {
+        agentId: "docs.example",
+        response: "**Accurate**, with one caveat.",
+        onDismiss: () => {},
+      }),
+    );
+
+    expect(html).toContain("Answer from");
+    expect(html).toContain("docs.example");
+    expect(html).toContain('data-streamdown="strong"');
+    expect(html).toContain("Accurate");
+    expect(html).toContain("Dismiss");
+    expect(html).not.toContain("Accept");
   });
 });
 

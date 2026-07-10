@@ -14,14 +14,17 @@ import {
   ApiError,
   createEntity,
   deleteEntity,
+  fetchAgentTargets,
   fetchEntities,
   fetchEntity,
   fetchSchema,
   fetchSyncStatus,
   fetchTypes,
+  requestAgentAnswer,
   requestAssist,
   updateEntity,
   uploadFile,
+  type AgentTarget,
   type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
@@ -244,11 +247,40 @@ function CodeMirrorBodySource(props: {
  * Markdown body editor: CodeMirror 6 edits the literal bytes beside a
  * streamdown preview, behind a Source | Split | Preview segment control.
  */
+export const MODEL_ASSIST_TARGET = "model";
+const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
+
+export const AGENT_INSTRUCTION_PRESETS = [
+  { label: "Review", instruction: "Review this selection." },
+  { label: "Fact-check", instruction: "Fact-check this selection." },
+  { label: "Related", instruction: "What related context do you know?" },
+] as const;
+
 type AssistState =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "suggested"; range: SelectionRange; suggestion: string }
+  | { kind: "agent-answer"; agentId: string; response: string }
   | { kind: "error"; message: string };
+
+export function AgentAnswerPanel(props: {
+  agentId: string;
+  response: string;
+  onDismiss: () => void;
+}): ReactElement {
+  return (
+    <section className="assist-agent-answer" aria-label="Agent answer">
+      <div className="assist-answer-copy">
+        <strong>Answer from {props.agentId}</strong>
+        <Streamdown>{props.response}</Streamdown>
+      </div>
+      <span className="spacer" />
+      <button type="button" className="btn ghost" onClick={props.onDismiss}>
+        Dismiss
+      </button>
+    </section>
+  );
+}
 
 export function BodyEditor(props: {
   value: string;
@@ -258,36 +290,59 @@ export function BodyEditor(props: {
   assist?: {
     entityType: string;
     frontmatter: Record<string, unknown>;
+    agents?: AgentTarget[];
   };
 }): ReactElement {
   const { value, mode, onChange, onModeChange, assist } = props;
   const [selection, setSelection] = useState<SelectionRange | null>(null);
   const [instruction, setInstruction] = useState("");
+  const [assistTarget, setAssistTarget] = useState(MODEL_ASSIST_TARGET);
   const [assistState, setAssistState] = useState<AssistState>({ kind: "idle" });
+  const agents = assist?.agents ?? EMPTY_AGENT_TARGETS;
   const showSource = mode !== "preview";
   const showPreview = mode !== "source";
   const selectedText = selection
     ? value.slice(selection.from, selection.to)
     : "";
 
+  useEffect(() => {
+    if (
+      assistTarget !== MODEL_ASSIST_TARGET &&
+      !agents.some((agent) => agent.id === assistTarget)
+    ) {
+      setAssistTarget(MODEL_ASSIST_TARGET);
+      setAssistState({ kind: "idle" });
+    }
+  }, [agents, assistTarget]);
+
   const runAssist = useCallback((): void => {
     if (!assist || !selection || instruction.trim().length === 0) return;
     const range = selection;
     setAssistState({ kind: "loading" });
-    requestAssist({
-      entityType: assist.entityType,
-      instruction,
-      selection: selectedText,
-      body: value,
-      frontmatter: assist.frontmatter,
-    })
-      .then(({ suggestion }) => {
-        setAssistState({ kind: "suggested", range, suggestion });
-      })
-      .catch((error: unknown) => {
-        setAssistState({ kind: "error", message: errorMessage(error) });
-      });
-  }, [assist, instruction, selectedText, selection, value]);
+
+    const request =
+      assistTarget === MODEL_ASSIST_TARGET
+        ? requestAssist({
+            entityType: assist.entityType,
+            instruction,
+            selection: selectedText,
+            body: value,
+            frontmatter: assist.frontmatter,
+          }).then(({ suggestion }) => {
+            setAssistState({ kind: "suggested", range, suggestion });
+          })
+        : requestAgentAnswer({
+            agent: assistTarget,
+            instruction,
+            selection: selectedText,
+          }).then(({ agentId, response }) => {
+            setAssistState({ kind: "agent-answer", agentId, response });
+          });
+
+    request.catch((error: unknown) => {
+      setAssistState({ kind: "error", message: errorMessage(error) });
+    });
+  }, [assist, assistTarget, instruction, selectedText, selection, value]);
 
   const acceptSuggestion = useCallback((): void => {
     if (assistState.kind !== "suggested") return;
@@ -324,13 +379,32 @@ export function BodyEditor(props: {
       </header>
       {assist && showSource && (
         <section className="assist-bar" aria-label="AI selection rewrite">
+          {agents.length > 0 && (
+            <select
+              aria-label="Assist target"
+              value={assistTarget}
+              onChange={(event) => {
+                setAssistTarget(event.currentTarget.value);
+                setAssistState({ kind: "idle" });
+              }}
+            >
+              <option value={MODEL_ASSIST_TARGET}>Model</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.label} — {agent.id}
+                </option>
+              ))}
+            </select>
+          )}
           <input
             type="text"
             value={instruction}
             placeholder={
               selection
                 ? "Instruction for selected text…"
-                : "Select text to rewrite…"
+                : assistTarget === MODEL_ASSIST_TARGET
+                  ? "Select text to rewrite…"
+                  : "Select text to ask about…"
             }
             onChange={(event) => setInstruction(event.currentTarget.value)}
           />
@@ -344,8 +418,26 @@ export function BodyEditor(props: {
             }
             onClick={runAssist}
           >
-            {assistState.kind === "loading" ? "Thinking…" : "Rewrite selection"}
+            {assistState.kind === "loading"
+              ? "Thinking…"
+              : assistTarget === MODEL_ASSIST_TARGET
+                ? "Rewrite selection"
+                : "Ask"}
           </button>
+          {assistTarget !== MODEL_ASSIST_TARGET && (
+            <span className="assist-presets">
+              {AGENT_INSTRUCTION_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className="assist-preset"
+                  onClick={() => setInstruction(preset.instruction)}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </span>
+          )}
           {selection && (
             <span className="assist-meta">
               {selectedText.length} selected chars
@@ -370,6 +462,13 @@ export function BodyEditor(props: {
             Discard
           </button>
         </section>
+      )}
+      {assistState.kind === "agent-answer" && (
+        <AgentAnswerPanel
+          agentId={assistState.agentId}
+          response={assistState.response}
+          onDismiss={() => setAssistState({ kind: "idle" })}
+        />
       )}
       {assistState.kind === "error" && (
         <p className="status status-error assist-status">
@@ -751,6 +850,7 @@ type MobileEditorPane = "details" | "write" | "preview";
 
 export function App(): ReactElement {
   const [types, setTypes] = useState<EntityTypeInfo[] | null>(null);
+  const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
   const [entityType, setEntityType] = useState<string | null>(null);
   const [schema, setSchema] = useState<TypeSchema | null>(null);
   const [entities, setEntities] = useState<EntitySummary[] | null>(null);
@@ -790,6 +890,9 @@ export function App(): ReactElement {
       })
       .catch((error: unknown) => setLoadError(errorMessage(error)));
     // No directory-sync installed → null, and the pipeline strip stays off.
+    fetchAgentTargets()
+      .then(setAgentTargets)
+      .catch(() => setAgentTargets([]));
     fetchSyncStatus()
       .then(setSyncStatus)
       .catch(() => setSyncStatus(null));
@@ -1096,7 +1199,11 @@ export function App(): ReactElement {
                   mode={bodyMode}
                   onChange={setBody}
                   onModeChange={setBodyMode}
-                  assist={{ entityType, frontmatter: draft }}
+                  assist={{
+                    entityType,
+                    frontmatter: draft,
+                    agents: agentTargets,
+                  }}
                 />
               ) : (
                 <p className="status manuscript-empty">
@@ -1241,14 +1348,22 @@ const styles = `
   .body-toolbar { display: flex; align-items: center; gap: 4px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); }
   .doc-meta { margin-left: auto; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
   .assist-bar { display: flex; align-items: center; gap: 10px; padding: 10px 26px; border-bottom: 1px solid var(--console-rule-strong); background: var(--console-rule); }
-  .assist-bar input { flex: 1; min-width: 180px; font-family: var(--console-ui); font-size: 13px; color: var(--console-text); background: var(--console-card); border: 1px solid var(--console-rule-strong); border-radius: 7px; padding: 8px 11px; outline: none; }
-  .assist-bar input:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-accent) 13%, transparent); }
+  .assist-bar input, .assist-bar select { font-family: var(--console-ui); font-size: 13px; color: var(--console-text); background: var(--console-card); border: 1px solid var(--console-rule-strong); border-radius: 7px; padding: 8px 11px; outline: none; }
+  .assist-bar input { flex: 1; min-width: 180px; }
+  .assist-bar select { max-width: 220px; }
+  .assist-bar input:focus, .assist-bar select:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-accent) 13%, transparent); }
   .assist-run { padding: 8px 14px; white-space: nowrap; }
   .assist-run[disabled] { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .assist-presets { display: inline-flex; gap: 4px; }
+  .assist-preset { border: 1px solid var(--console-rule-strong); border-radius: 999px; padding: 4px 8px; background: var(--console-card); color: var(--console-text-dim); font-family: var(--console-mono); font-size: 9px; cursor: pointer; }
+  .assist-preset:hover { border-color: var(--console-accent); color: var(--console-accent-dim); }
   .assist-meta { font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); white-space: nowrap; }
-  .assist-suggestion { display: flex; align-items: center; gap: 12px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); background: var(--console-ok-soft); }
-  .assist-preview { max-height: 150px; overflow: auto; font-size: 13px; color: var(--console-text); }
-  .assist-preview p { margin-bottom: 6px; }
+  .assist-suggestion, .assist-agent-answer { display: flex; align-items: center; gap: 12px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); }
+  .assist-suggestion { background: var(--console-ok-soft); }
+  .assist-agent-answer { background: var(--console-accent-soft); }
+  .assist-preview, .assist-answer-copy { max-height: 150px; overflow: auto; font-size: 13px; color: var(--console-text); }
+  .assist-answer-copy > strong { display: block; margin-bottom: 6px; font-family: var(--console-mono); font-size: 10px; letter-spacing: .04em; color: var(--console-accent-dim); }
+  .assist-preview p, .assist-answer-copy p { margin-bottom: 6px; }
   .assist-status { padding: 8px 26px; border-bottom: 1px solid var(--console-rule-strong); }
   .seg { display: inline-flex; border: 1px solid var(--console-rule-strong); border-radius: 7px; overflow: hidden; background: var(--console-card); }
   .seg .mode { font-family: var(--console-mono); font-size: 11.5px; letter-spacing: 0.04em; border: none; background: transparent; color: var(--console-text-muted); padding: 6px 14px; cursor: pointer; }

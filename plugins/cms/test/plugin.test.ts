@@ -40,6 +40,8 @@ describe("cms plugin", () => {
       "DELETE /cms/api/entities",
       "POST /cms/api/upload",
       "POST /cms/api/assist",
+      "GET /cms/api/agents",
+      "POST /cms/api/ask-agent",
       "GET /cms/api/sync-status",
     ]);
   });

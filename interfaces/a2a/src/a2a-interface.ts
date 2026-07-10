@@ -24,7 +24,12 @@ import {
   jsonrpcRequestSchema,
   streamParamsSchema,
 } from "./jsonrpc-handler";
-import { createAgentCallTool, type A2ARequestSigner } from "./client";
+import {
+  createAgentCallTool,
+  type A2AClientDeps,
+  type A2ARequestSigner,
+} from "./client";
+import { registerA2ACallMessageHandlers } from "./message-handlers";
 import packageJson from "../package.json";
 
 const A2A_CORS_HEADERS = {
@@ -68,6 +73,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
     this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agent;
+    registerA2ACallMessageHandlers(context, this.createClientDeps(context));
 
     if (this.hasWebserver) {
       context.endpoints.register({
@@ -390,16 +396,18 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     };
   }
 
+  private createClientDeps(context: InterfacePluginContext): A2AClientDeps {
+    return {
+      requestSigner: this.createRequestSigner(),
+      requestTimeoutMs: this.config.requestTimeoutMs,
+      streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
+      maxNetworkAttempts: this.config.maxNetworkAttempts,
+      entityService: context.entityService,
+    };
+  }
+
   protected override async getTools(): Promise<Tool[]> {
-    return [
-      createAgentCallTool({
-        requestSigner: this.createRequestSigner(),
-        requestTimeoutMs: this.config.requestTimeoutMs,
-        streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
-        maxNetworkAttempts: this.config.maxNetworkAttempts,
-        entityService: this.getContext().entityService,
-      }),
-    ];
+    return [createAgentCallTool(this.createClientDeps(this.getContext()))];
   }
 
   protected override async getInstructions(): Promise<string | undefined> {

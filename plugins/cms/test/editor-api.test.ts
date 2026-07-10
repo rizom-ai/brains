@@ -360,6 +360,18 @@ describe("cms editor api", () => {
           },
         }),
       ],
+      [findRoute(plugin, "/cms/api/agents"), apiRequest("/cms/api/agents")],
+      [
+        findRoute(plugin, "/cms/api/ask-agent", "POST"),
+        apiRequest("/cms/api/ask-agent", {
+          method: "POST",
+          body: {
+            agent: "docs.example",
+            instruction: "fact-check",
+            selection: "The original body.",
+          },
+        }),
+      ],
     ];
 
     for (const [route, request] of attempts) {
@@ -411,6 +423,139 @@ describe("cms editor api", () => {
     });
     expect(stored?.content).toContain("The original body.");
     expect(stored?.content).not.toContain("A tighter body.");
+  });
+
+  it("lists approved agents only when the a2a interface answers", async () => {
+    const shell = createEditorTestShell();
+    shell.getMessageBus().subscribe("a2a:call:agents", async () => ({
+      success: true,
+      data: {
+        agents: [
+          { id: "docs.example", label: "Docs" },
+          { id: "review.example", label: "Reviewer" },
+        ],
+      },
+    }));
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/cms/api/agents").handler(
+      apiRequest("/cms/api/agents", { cookie }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      agents: [
+        { id: "docs.example", label: "Docs" },
+        { id: "review.example", label: "Reviewer" },
+      ],
+    });
+  });
+
+  it("asks one agent about a selection without writing entities", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    await seedPost(shell, { id: "hello-world", body: "The original body." });
+    const calls: unknown[] = [];
+    shell.getMessageBus().subscribe("a2a:call:request", async (message) => {
+      calls.push(message.payload);
+      return {
+        success: true,
+        data: { state: "completed", response: "The claim is accurate." },
+      };
+    });
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(
+      plugin,
+      "/cms/api/ask-agent",
+      "POST",
+    ).handler(
+      apiRequest("/cms/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          agent: "docs.example",
+          instruction: "Is this accurate?",
+          selection: "The original body.",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      agentId: "docs.example",
+      response: "The claim is accurate.",
+    });
+    expect(calls).toEqual([
+      {
+        agent: "docs.example",
+        instruction: "Is this accurate?",
+        selection: "The original body.",
+      },
+    ]);
+    const stored = await shell.getEntityService().getEntity({
+      entityType: "post",
+      id: "hello-world",
+    });
+    expect(stored?.content).toContain("The original body.");
+    expect(stored?.content).not.toContain("The claim is accurate.");
+  });
+
+  it("returns a clear 4xx when the a2a handler refuses an agent", async () => {
+    const shell = createEditorTestShell();
+    shell.getMessageBus().subscribe("a2a:call:request", async () => ({
+      success: false,
+      error: "Agent unknown.example is not saved or approved.",
+    }));
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(
+      plugin,
+      "/cms/api/ask-agent",
+      "POST",
+    ).handler(
+      apiRequest("/cms/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          agent: "unknown.example",
+          instruction: "Review",
+          selection: "Text",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Agent unknown.example is not saved or approved.",
+    });
+  });
+
+  it("degrades to model-only discovery when a2a is not installed", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const agents = await findRoute(plugin, "/cms/api/agents").handler(
+      apiRequest("/cms/api/agents", { cookie }),
+    );
+    expect(await agents.json()).toEqual({ agents: [] });
+
+    const ask = await findRoute(plugin, "/cms/api/ask-agent", "POST").handler(
+      apiRequest("/cms/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          agent: "docs.example",
+          instruction: "Review",
+          selection: "Text",
+        },
+      }),
+    );
+    expect(ask.status).toBe(503);
+    expect(await ask.json()).toEqual({ error: "Agent asking is unavailable" });
   });
 
   it("rejects empty and oversized assist selections", async () => {
