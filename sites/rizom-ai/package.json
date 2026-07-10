@@ -5,6 +5,7 @@
   "dependencies": {
     "@brains/blog": "workspace:*",
     "@brains/content-formatters": "workspace:*",
+    "@brains/decks": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-rizom": "workspace:*",

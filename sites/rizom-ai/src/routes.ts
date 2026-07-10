@@ -36,6 +36,11 @@ export const rizomAiRoutes: RouteDefinitionInput[] = [
         template: "rizom-ai-site:writing",
         dataQuery: { entityType: "post", query: { limit: 100 } },
       },
+      {
+        id: "talks",
+        template: "rizom-ai-site:writing-talks",
+        dataQuery: { entityType: "deck", query: { limit: 100 } },
+      },
     ],
   },
   {

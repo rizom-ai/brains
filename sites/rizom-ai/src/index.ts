@@ -22,15 +22,20 @@ import { RizomAiLayout } from "./layout";
 import { rizomAiRoutes } from "./routes";
 import { CONTENT_NAMESPACE, toTemplates } from "./section-def";
 import { workSections } from "./work";
-import { writingTemplate } from "./writing";
+import { talksTemplate, writingTemplate } from "./writing";
 
 export { RizomAiLayout } from "./layout";
 export { rizomAiRoutes } from "./routes";
 export { homeSections } from "./home";
 export { workSections } from "./work";
 export { foundationSections } from "./foundation";
-export { WritingSection, writingTemplate } from "./writing";
-export type { WritingContent } from "./writing";
+export {
+  WritingSection,
+  writingTemplate,
+  TalksSection,
+  talksTemplate,
+} from "./writing";
+export type { WritingContent, TalksContent } from "./writing";
 export {
   CONTENT_NAMESPACE,
   defineSection,
@@ -41,8 +46,9 @@ export type { AnySectionDef, SectionDef } from "./section-def";
 
 export const rizomAiTemplates: Record<string, Template> = {
   ...toTemplates([...homeSections, ...workSections, ...foundationSections]),
-  // Not a content section: a datasource-backed list (blog:entities).
+  // Not content sections: datasource-backed lists (blog / decks).
   writing: writingTemplate,
+  "writing-talks": talksTemplate,
 };
 
 export const rizomAiSite: SitePackage<RizomRuntimeConfigInput, Plugin> =
