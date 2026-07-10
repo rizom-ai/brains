@@ -172,16 +172,14 @@ function FaceNav({ face }: { face: FaceKey }): JSX.Element {
   );
 }
 
-function ThemeToggle(): JSX.Element {
-  return (
-    <button
-      id="themeToggle"
-      aria-label="Toggle light mode"
-      className="rounded-md border border-theme-light bg-transparent px-2.5 py-1.5 font-label text-[12px] text-theme-light transition-colors hover:border-theme hover:text-theme"
-    >
-      ☀ Light
-    </button>
-  );
+/* The site-info entity always carries a copyright, but the framework
+   fills an empty one with this placeholder. Treat it as "unset" so the
+   footer shows a real signature or nothing — never filler. */
+const COPYRIGHT_FALLBACK = "Powered by Rizom";
+
+function signature(siteInfo: RizomLayoutProps["siteInfo"]): string | null {
+  const value = siteInfo.copyright.trim();
+  return value && value !== COPYRIGHT_FALLBACK ? value : null;
 }
 
 interface FooterColumn {
@@ -256,12 +254,11 @@ function PlatformFooter({
         </div>
       ))}
       <div className="col-span-full mt-2 flex flex-wrap items-center gap-x-[22px] gap-y-2 border-t border-theme-light pt-4 font-label text-[11.5px] text-theme-light">
-        <span>{siteInfo.copyright}</span>
+        {signature(siteInfo) && <span>{signature(siteInfo)}</span>}
         <span className="flex-1" />
         <span>
           rizom.work &amp; rizom.foundation now live here — old links redirect
         </span>
-        <ThemeToggle />
       </div>
     </footer>
   );
@@ -284,8 +281,7 @@ function RoomSiteband({
         were redirected here
       </span>
       <span className="flex-1" />
-      <span>{siteInfo.copyright}</span>
-      <ThemeToggle />
+      {signature(siteInfo) && <span>{signature(siteInfo)}</span>}
     </footer>
   );
 }

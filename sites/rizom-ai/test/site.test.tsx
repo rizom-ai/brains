@@ -205,6 +205,32 @@ describe("RizomAiLayout", () => {
     }
   });
 
+  it("carries no theme toggle in the footer — that was mockup harness", () => {
+    for (const path of ["/", "/work", "/foundation"]) {
+      const html = renderLayout(path);
+      expect(html).not.toContain("themeToggle");
+      expect(html).not.toContain("Light");
+    }
+  });
+
+  it("suppresses the framework's 'Powered by Rizom' copyright fallback", () => {
+    const withFallback: SiteLayoutInfo = {
+      ...siteInfo,
+      copyright: "Powered by Rizom",
+    };
+    const html = render(
+      <RizomAiLayout
+        sections={[]}
+        title="Rizom"
+        description=""
+        path="/work"
+        siteInfo={withFallback}
+      />,
+    );
+    // The default is filler — show nothing rather than made-up legal text.
+    expect(html).not.toContain("Powered by Rizom");
+  });
+
   it("sends the work CTA to the real Team Type quiz", () => {
     expect(renderLayout("/work")).toContain(
       'href="https://form.typeform.com/to/NGqo9Fnf"',
