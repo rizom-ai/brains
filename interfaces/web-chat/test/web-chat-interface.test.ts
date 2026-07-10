@@ -634,6 +634,9 @@ describe("WebChatInterface", () => {
     expect(html).toContain(".web-chat-session-rename,");
     expect(html).toContain(".web-chat-session-delete {");
     expect(html).toContain("opacity: 1;");
+    expect(html).toContain("viewport-fit=cover");
+    expect(html).toContain("min-height: 100dvh");
+    expect(html).toContain("--chat-secondary: var(--console-secondary)");
   });
 
   it("does not reach out to fonts.googleapis.com from the chat page", async () => {

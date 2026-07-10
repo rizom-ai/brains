@@ -7,7 +7,7 @@
  */
 export const CONSOLE_PALETTE_SCRIPT = `(function () {
   var ENDPOINT = "/api/console/jump";
-  var overlay = null, input = null, groupsEl = null;
+  var overlay = null, input = null, groupsEl = null, returnFocus = null;
   var rows = [], selected = 0, debounceTimer = null, requestSeq = 0;
 
   function el(tag, className, text) {
@@ -20,6 +20,9 @@ export const CONSOLE_PALETTE_SCRIPT = `(function () {
   function ensureDom() {
     if (overlay) return;
     overlay = el("div", "console-palette-overlay");
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "Search the console");
     var palette = el("div", "console-palette");
     var inputRow = el("div", "cp-input-row");
     input = el("input", "cp-input");
@@ -59,7 +62,9 @@ export const CONSOLE_PALETTE_SCRIPT = `(function () {
 
   function open() {
     ensureDom();
+    returnFocus = document.activeElement;
     overlay.classList.add("is-open");
+    document.documentElement.classList.add("console-palette-open");
     input.value = "";
     input.focus();
     query("");
@@ -67,6 +72,9 @@ export const CONSOLE_PALETTE_SCRIPT = `(function () {
 
   function close() {
     if (overlay) overlay.classList.remove("is-open");
+    document.documentElement.classList.remove("console-palette-open");
+    if (returnFocus && typeof returnFocus.focus === "function") returnFocus.focus();
+    returnFocus = null;
   }
 
   function isOpen() {
@@ -81,22 +89,45 @@ export const CONSOLE_PALETTE_SCRIPT = `(function () {
     rows[selected].scrollIntoView({ block: "nearest" });
   }
 
+  function glyphFor(label) {
+    var normalized = String(label || "").toLowerCase();
+    if (normalized.indexOf("entit") !== -1) return "◆";
+    if (normalized.indexOf("dashboard") !== -1) return "▤";
+    if (normalized.indexOf("conversation") !== -1) return "◌";
+    return "↗";
+  }
+
+  function appendHighlighted(node, title) {
+    var value = input ? input.value.trim() : "";
+    if (!value) { node.textContent = title; return; }
+    var index = title.toLowerCase().indexOf(value.toLowerCase());
+    if (index === -1) { node.textContent = title; return; }
+    node.appendChild(document.createTextNode(title.slice(0, index)));
+    node.appendChild(el("mark", null, title.slice(index, index + value.length)));
+    node.appendChild(document.createTextNode(title.slice(index + value.length)));
+  }
+
   function render(groups) {
     groupsEl.textContent = "";
     rows = [];
     selected = 0;
     groups.forEach(function (group) {
       if (!group || !group.items || !group.items.length) return;
-      groupsEl.appendChild(el("div", "cp-group-title", group.label));
+      var groupEl = el("section", "cp-group");
+      groupEl.appendChild(el("div", "cp-group-title", group.label));
       group.items.forEach(function (item) {
         var row = el("a", "cp-row");
+        var title = el("span", "cp-title");
         row.setAttribute("href", item.href);
-        row.appendChild(el("span", "cp-title", item.title));
+        row.appendChild(el("span", "cp-glyph", glyphFor(group.label)));
+        appendHighlighted(title, item.title);
+        row.appendChild(title);
         if (item.sub) row.appendChild(el("span", "cp-sub", item.sub));
         if (item.tag) row.appendChild(el("span", "cp-tag", item.tag));
-        groupsEl.appendChild(row);
+        groupEl.appendChild(row);
         rows.push(row);
       });
+      groupsEl.appendChild(groupEl);
     });
     if (!rows.length) {
       groupsEl.appendChild(el("div", "cp-empty", "Nothing matches yet."));

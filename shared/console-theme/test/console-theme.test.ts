@@ -37,7 +37,10 @@ describe("CONSOLE_THEME_CSS", () => {
     // Instrument is the console's own identity; paper follows an injected
     // site theme (shell themeCSS) when present, falling back to the CMS
     // editor's paper values.
-    expect(climateBlock("instrument")).not.toContain("--color-");
+    const instrument = climateBlock("instrument");
+    expect(instrument).not.toContain("--color-");
+    expect(instrument).toContain("--console-bg: #0a0819");
+    expect(instrument).toContain("--console-accent: #ff8b3d");
     expect(climateBlock("paper")).toContain("var(--color-bg");
     expect(climateBlock("paper")).toContain("var(--color-accent");
   });
@@ -59,10 +62,27 @@ describe("CONSOLE_THEME_CSS", () => {
       ".command-chip",
       ".session-chip",
       ".pulse",
-      "@keyframes pulse",
+      "@keyframes console-pulse",
     ]) {
       expect(CONSOLE_THEME_CSS).toContain(selector);
     }
+  });
+
+  it("defines deliberate tablet and phone chrome instead of flex wrapping", () => {
+    expect(CONSOLE_THEME_CSS).toContain("@media (max-width: 900px)");
+    expect(CONSOLE_THEME_CSS).toContain("@media (max-width: 640px)");
+    expect(CONSOLE_THEME_CSS).toContain(
+      'grid-template-areas:\n      "mark command session"',
+    );
+    expect(CONSOLE_THEME_CSS).toContain("--console-touch: 44px");
+    expect(CONSOLE_THEME_CSS).not.toContain("flex-wrap: wrap");
+  });
+
+  it("turns the command palette into a dynamic-viewport phone sheet", () => {
+    expect(CONSOLE_THEME_CSS).toContain("height: 100dvh");
+    expect(CONSOLE_THEME_CSS).toContain("env(safe-area-inset-bottom)");
+    expect(CONSOLE_THEME_CSS).toContain(".cp-glyph");
+    expect(CONSOLE_THEME_CSS).toContain(".cp-group + .cp-group");
   });
 
   it("loads exactly the console type ramp from the fonts URL", () => {

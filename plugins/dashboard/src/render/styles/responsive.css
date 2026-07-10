@@ -1,0 +1,209 @@
+/* Responsive composition lives separately from the desktop instrument sheet.
+   Breakpoints mirror the shared console strip: tablet <= 900, phone <= 640. */
+
+@media (max-width: 900px) {
+  .dashboard-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .dashboard-tabs::-webkit-scrollbar { display: none; }
+  .dashboard-tab { flex: 0 0 auto; }
+  .view-tabs,
+  .agent-network-view-tabs {
+    gap: 20px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .view-tabs::-webkit-scrollbar,
+  .agent-network-view-tabs::-webkit-scrollbar { display: none; }
+  .view-tab,
+  .agent-network-view-tab { flex: 0 0 auto; }
+}
+
+@media (max-width: 640px) {
+  body { font-size: 14px; }
+  .console {
+    padding: 12px 0 40px;
+  }
+  .frame {
+    border-inline: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .masthead {
+    align-items: center;
+    gap: 8px 12px;
+    padding: 18px 14px 0;
+  }
+  .brand {
+    font-size: clamp(27px, 8.5vw, 36px);
+    line-height: 1.03;
+  }
+  .tagline {
+    order: 3;
+    width: 100%;
+    max-width: 50ch;
+    padding: 0;
+    font-size: 12.5px;
+  }
+  .theme-btn {
+    min-width: var(--console-touch);
+    min-height: var(--console-touch);
+    margin: 0 0 0 auto;
+    padding-inline: 10px;
+  }
+  .dashboard-tabs {
+    padding: 12px 14px 0;
+  }
+  .dashboard-tab {
+    min-height: var(--console-touch);
+    padding: 8px 2px 10px;
+    margin-right: 18px;
+    font-size: 10.5px;
+  }
+  .canvas { padding: 14px; }
+  .dashboard-tab-panels { gap: 24px; }
+  .overview-vitals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .vital-card {
+    min-height: 88px;
+    padding: 12px;
+    border-radius: 9px;
+  }
+  .vital-label { font-size: 8.5px; }
+  .vital-num { font-size: 27px; }
+  .vital-num--text {
+    padding-top: 4px;
+    font-size: 18px;
+  }
+  .vital-sub {
+    overflow: hidden;
+    font-size: 9.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .identity-capsule { margin-bottom: 8px; }
+  .identity-capsule-body {
+    display: grid;
+    gap: 8px;
+  }
+  .identity-purpose { grid-row: 2; }
+  .overview-grid,
+  .digests { gap: 8px; }
+  .card,
+  .digest-card,
+  .vital-card {
+    border-radius: 9px;
+  }
+  .card { padding: 14px; }
+  .card--entity-summary { padding: 18px 16px 20px; }
+  .card-head {
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .card-subtitle,
+  .card-from { font-size: 8.5px; }
+  .digest-card { padding: 14px; }
+  .digest-head h4 { font-size: 17px; }
+  .ledger-entry {
+    grid-template-columns: 42px 12px minmax(0, 1fr);
+    gap: 8px;
+  }
+  .ledger-time { font-size: 9px; }
+  .ledger-what { font-size: 12px; }
+  .ledger-what code {
+    display: block;
+    margin-top: 2px;
+    font-size: 9.5px;
+  }
+  .entity-summary-number {
+    font-size: clamp(4.5rem, 24vw, 6.5rem);
+  }
+  .pipeline-mini {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pipeline-track { flex-basis: 16px; }
+  .list-item {
+    gap: 10px;
+    padding-block: 10px;
+  }
+  .list-name { white-space: normal; }
+  .list-meta { align-self: start; }
+  .kv-row { gap: 10px; }
+  .kv-row dt { font-size: 10.5px; }
+  .kv-row dd { max-width: 60%; font-size: 12px; }
+
+  table.jobs,
+  .jobs tbody,
+  .jobs tr,
+  .jobs td { display: block; width: 100%; }
+  .jobs thead { display: none; }
+  .jobs tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--console-rule);
+  }
+  .jobs td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0;
+    border: 0;
+  }
+  .jobs td::before {
+    color: var(--console-text-muted);
+    font-family: var(--console-mono);
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .jobs td:nth-child(1)::before { content: "Job"; }
+  .jobs td:nth-child(2)::before { content: "Type"; }
+  .jobs td:nth-child(3)::before { content: "Updated"; }
+  .jobs td:nth-child(4)::before { content: "Status"; }
+  .jobs td:nth-child(1),
+  .jobs td:nth-child(2) { grid-column: 1; }
+  .jobs td:nth-child(3),
+  .jobs td:nth-child(4) { grid-column: 2; }
+  .jobs td:nth-child(1),
+  .jobs td:nth-child(3) { grid-row: 1; }
+  .jobs td:nth-child(2),
+  .jobs td:nth-child(4) { grid-row: 2; }
+  .jobs td:nth-child(3),
+  .jobs td:nth-child(4) { justify-content: flex-end; }
+  .jobs td:nth-child(3)::before,
+  .jobs td:nth-child(4)::before { display: none; }
+
+  .view-tab,
+  .agent-network-view-tab,
+  .agent-network-kind-tab,
+  .agent-network-filter {
+    min-height: 40px;
+  }
+  .colophon {
+    margin: 32px 14px 0;
+    padding-top: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .overview-vitals { grid-template-columns: 1fr; }
+  .jobs tr { grid-template-columns: 1fr; }
+  .jobs td:nth-child(n) {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: space-between;
+  }
+  .jobs td:nth-child(3)::before,
+  .jobs td:nth-child(4)::before { display: inline; }
+}

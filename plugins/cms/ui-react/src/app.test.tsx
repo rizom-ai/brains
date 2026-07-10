@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import responsiveStyles from "./responsive.css" with { type: "text" };
 import {
   applyFieldChange,
   applySuggestionToSelection,
@@ -46,6 +47,15 @@ const selectField: FieldDescriptor = {
   widget: "select",
   options: ["draft", "published"],
 };
+
+describe("responsive editor styles", () => {
+  it("defines tablet collection switching and phone editing panes", () => {
+    expect(responsiveStyles).toContain("@media (max-width: 900px)");
+    expect(responsiveStyles).toContain("@media (max-width: 640px)");
+    expect(responsiveStyles).toContain('.editor[data-mobile-pane="details"]');
+    expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
+  });
+});
 
 function renderField(descriptor: FieldDescriptor, value: unknown): string {
   return renderToStaticMarkup(
