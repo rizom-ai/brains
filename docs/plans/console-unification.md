@@ -7,12 +7,14 @@
 strip, route-derived doors, command palette, responsive shell behavior, and the first
 Dashboard implementation. Those capabilities shipped in `0.2.0-alpha.149`.
 
-The product-facing design work is not complete. Dashboard has the strongest visual
-alignment; Chat and especially CMS still contain legacy or invented styling that does not
-faithfully reproduce the approved references. The remaining work is now explicit in
-Phases 5–8: responsive foundation reconciliation, CMS visual fidelity, Chat/Dashboard
-fidelity, and committed visual-regression gates. A surface is not complete merely because
-it uses the shared tokens, fits at the target width, or passes unit tests.
+**In progress — Phase 8 remaining.** Phases 5–7 are implemented on
+`work/console-responsive`. Dashboard, Chat, and CMS now
+share the approved responsive chrome and climate contract; CMS includes its detailed
+editorial library, manuscript, secondary states, and widgets; Chat no longer carries a
+parallel surface palette. Fixture reviews cover all three target viewports in both
+climates. Phase 8 remains: committed deterministic baselines, authenticated Rover smoke,
+merge, and release. A surface is not complete merely because it uses the shared tokens,
+fits at the target width, or passes unit tests.
 
 Current approved references:
 

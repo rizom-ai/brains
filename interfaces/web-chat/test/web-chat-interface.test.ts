@@ -610,8 +610,6 @@ describe("WebChatInterface", () => {
     expect(html).toContain('data-climate="instrument"');
     expect(html).not.toContain("data-theme");
     expect(html).not.toContain("var(--dashboard-");
-    expect(html).not.toContain("--chat-bg:");
-    expect(html).not.toContain("--chat-accent:");
     // The console strip: chat is the active surface; only registered
     // surfaces get doors (no dashboard or cms plugin in this harness).
     expect(html).toContain('class="console-strip"');
@@ -636,7 +634,7 @@ describe("WebChatInterface", () => {
     expect(html).toContain("opacity: 1;");
     expect(html).toContain("viewport-fit=cover");
     expect(html).toContain("min-height: 100dvh");
-    expect(html).toContain("--chat-secondary: var(--console-secondary)");
+    expect(html).not.toMatch(/--chat-[a-z-]+\s*:/);
     expect(html).toContain(".web-chat-session-item { border-bottom:");
     expect(html).toContain(".web-chat-mobile-new");
     expect(html).toContain("clip-path: none");

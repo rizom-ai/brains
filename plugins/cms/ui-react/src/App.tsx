@@ -1495,7 +1495,7 @@ const styles = `
   .btn { font-family: var(--console-ui); font-size: 13px; font-weight: 500; border: 1px solid var(--console-text); background: var(--console-text); color: var(--console-frame); border-radius: 7px; padding: 8px 16px; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
   .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--console-text) 50%, transparent); }
   .btn.danger { background: transparent; color: var(--console-accent-dim); border-color: color-mix(in srgb, var(--console-accent) 40%, transparent); }
-  .btn.danger:hover { background: rgba(196,74,29,0.07); box-shadow: none; transform: none; }
+  .btn.danger:hover { background: color-mix(in srgb, var(--console-accent) 7%, transparent); box-shadow: none; transform: none; }
   .btn.ghost { background: transparent; color: var(--console-text-dim); border-color: var(--console-rule-strong); }
   .btn.ghost:hover { background: var(--console-rule); box-shadow: none; transform: none; }
 
@@ -1553,7 +1553,7 @@ const styles = `
   .body-source .cm-scroller { font-family: var(--console-mono); font-size: 13px; line-height: 1.75; }
   .body-source .cm-content { padding: 30px 34px; caret-color: var(--console-accent); }
   .body-source .cm-line { padding: 0; }
-  .body-source .cm-selectionBackground, .body-source .cm-focused .cm-selectionBackground { background: rgba(196, 74, 29, 0.22); }
+  .body-source .cm-selectionBackground, .body-source .cm-focused .cm-selectionBackground { background: color-mix(in srgb, var(--console-accent) 22%, transparent); }
   .body-preview { padding: 30px 34px; overflow-wrap: anywhere; }
   .body-preview h1, .body-preview h2, .body-preview h3 { font-family: var(--console-display); font-variation-settings: "SOFT" 70, "opsz" 90; font-weight: 580; letter-spacing: -0.01em; line-height: 1.12; margin: 0 0 18px; }
   .body-preview h1 { font-size: 30px; }
