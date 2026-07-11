@@ -7,10 +7,13 @@ work complete (2026-07-10, `work/rizom-consolidated-site`): section formatters,
 `/writing` (Essays + Talks) and `/network` shipped, `/events` deferred to a
 post-migration `event`-entity plan, footer unified across faces. Phase 2's
 deployment-time config and Phase 3's push/runtime-DB copy roll into Phase 5.
-Phase 5's first step — merging main into the branch (published `@rizom` scope,
-`@rizom/site` SDK, TS7) — is done (2026-07-11, `8721c963e`); the rev-5 design now
-lives in history at `ff0e49bbc` as the port reference. Next in Phase 5: re-home
-`sites/rizom-ai` onto the published model, then the staging deploy to
+Phase 5's structural work is done (2026-07-11): the main merge (`8721c963e`) caught
+the branch up to the published `@rizom` scope / `@rizom/site` SDK / TS7, and
+`sites/rizom-ai` has been re-homed onto that published model — the rev-5 home / work /
+foundation / writing / network design re-expressed via `createRizomSite`'s content
+field DSL + `entityDisplay`, green across the full suite (`2e26c0635`, `4ca1feb55`,
+`3b56de4d5`, `ab7c9eec1`). Next in Phase 5: author the consolidated copy into
+`rizom-content`, then merge to main, publish `@rizom/site-rizom-ai`, and deploy to
 `new.rizom.ai`. **Follow-up to
 [`rizom-sites-on-hosted-rover.md`](./rizom-sites-on-hosted-rover.md)**: once the site
 packaging and hosted-rover custom-domain machinery from that plan land, the three Rizom
@@ -210,25 +213,33 @@ packages — entity plugins own their list rendering; the site configures presen
   (rover `products`, directory-sync seed-bootstrap fix, content-formatters fixes,
   `@brains/theme-rizom-ai`, plans) preserved. The rev-5 design stays in history at
   `ff0e49bbc` as the port reference.
-- Re-home `sites/rizom-ai` to `@rizom/site-rizom-ai` on published deps. Keep the layout
-  and the home/work/foundation sections, converting them from the branch's
-  `defineSection`/`createTemplate`/`StructuredContentFormatter` machinery to
-  `createRizomSite`'s `content: SiteContentDefinition` field DSL (the layout components
-  stay). Main's current `site-content.ts` (namespace `landing-page`, declarative
-  field DSL, no zod) is the target shape — replace its landing-page sections with the
-  home/work/foundation ones, and delete the old-design `sections/*`.
-- **`/writing` & `/network` swap their bespoke templates for the plugins' own list
-  templates** (the entity-package imports were the only thing breaking the published
-  model). A custom hand-written route can hold two plugin-list sections and takes
-  precedence over the auto-generated per-type index, so rev-5's combined `/writing`
-  (essays + talks) survives — the sections just reference `blog:post-list` and
-  `decks:deck-list` instead of `rizom-ai-site:writing*`, and `/network` references
-  `agent-discovery:agent-list`. Label via `entityDisplay`: `post`→"Essay",
-  `deck`→"Talk", `agent`→"Agent". Those templates render the plugins' own
-  `ContentArchive`/directory chrome, not rev-5's bespoke components — a shared
-  `@rizom/ui` journal-list is the later option if the themed default is not good
+- ✅ Re-home `sites/rizom-ai` to `@rizom/site-rizom-ai` on published deps. Done
+  2026-07-11: the rev-5 layout (faces strip, mycelium rail, four-column footer),
+  growth diagram, and the home/work/foundation sections carried over as pure
+  components, converted from `defineSection`/`StructuredContentFormatter` to
+  `createRizomSite`'s `content: SiteContentDefinition` field DSL — three namespaces
+  (`home`/`work`/`foundation`), one per page. Old products-era `sections/*` deleted.
+  Confirmed the rev-5 CSS (mycelium/reveal/growth/`[data-room]` accents) already ships
+  in `@brains/theme-rizom-ai`, so **no `themeOverride` was needed** (`2e26c0635`,
+  `4ca1feb55`).
+- ✅ **`/writing` & `/network` swapped their bespoke templates for the plugins' own
+  list templates.** Done 2026-07-11 (`ab7c9eec1`): a custom `/writing` route holds two
+  plugin-list sections (`blog:post-list` + `decks:deck-list`) so rev-5's combined
+  essays + talks page survives; `/network` references `agent-discovery:agent-list`.
+  Labels via `entityDisplay` (`post`→"Essay", `deck`→"Talk", `agent`→"Agent"), nav
+  hidden so the faces strip stays the sole nav. Required plumbing an `entityDisplay`
+  passthrough through `createRizomSite` (`3b56de4d5`). Those templates render the
+  plugins' own `ContentArchive`/directory chrome, not rev-5's bespoke components — a
+  shared `@rizom/ui` journal-list is the later option if the themed default is not good
   enough. `/events` stays deferred.
-- Reconcile the rover composition; green; merge to main; publish `@rizom/site-rizom-ai`.
+- **Author the consolidated site copy into `rizom-content`.** The re-homed site package
+  carries field shapes + components but no copy — each section renders from
+  `site-content/<page>/<section>.md` (the rev-5 `fallback` objects become markdown per
+  the `StructuredContentFormatter` heading format). Phase 3 retired `site-content/*`, so
+  home/work/foundation copy is authored fresh into `rizom-ai/rizom-content`; blog/decks/
+  agent entities already back `/writing` + `/network`.
+- Reconcile the rover composition (green — the full pre-commit suite passes across all
+  packages with the new site); merge to main; publish `@rizom/site-rizom-ai`.
 - Move rover-pilot `users/new.yaml` off the old products-era pin. It currently holds
   `@rizom/site-rizom-ai@0.2.0-alpha.148`, theme `@brains/theme-rizom`, and
   `addOverride: [atproto-registry, site-content]` — all three drift from our
