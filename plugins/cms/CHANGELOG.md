@@ -1,5 +1,17 @@
 # @brains/cms
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- [`d2bc8fc`](https://github.com/rizom-ai/brains/commit/d2bc8fc4c6170046c780f3b8fd06860b0d5aa946) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add body-summary and tag-suggestion prompt variants to the CMS. Authors can review generated frontmatter values, apply them to the local colophon draft, and save through the existing validated entity pipeline.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/auth-service@0.2.0-alpha.155
+  - @brains/console-theme@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+
 ## 0.2.0-alpha.154
 
 ### Patch Changes

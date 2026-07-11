@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- [`643847f`](https://github.com/rizom-ai/brains/commit/643847fb9ae8298fdc501da9381129c528064c03) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Isolate MCP chat conversations by verified caller and return an opaque conversation handle for explicit follow-ups and confirmations. Authenticated HTTP transports now forward their verified subject into MCP tool context instead of allowing client metadata or a shared fallback identity to collapse unrelated sessions together.
+
 ## 0.2.0-alpha.154
 
 ### Patch Changes

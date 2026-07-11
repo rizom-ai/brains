@@ -1,6 +1,6 @@
 {
   "name": "@brains/chat",
-  "version": "0.2.0-alpha.154",
+  "version": "0.2.0-alpha.155",
   "description": "Discord Chat SDK interface for Brains",
   "dependencies": {
     "@brains/plugins": "workspace:*",

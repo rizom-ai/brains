@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site",
-  "version": "0.2.0-alpha.154",
+  "version": "0.2.0-alpha.155",
   "description": "Public authoring SDK for Rizom site packages",
   "type": "module",
   "exports": {
