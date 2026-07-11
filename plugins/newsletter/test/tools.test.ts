@@ -4,8 +4,10 @@ import {
   expectSuccess,
   expectError,
 } from "@brains/plugins/test";
-import { mockFetch } from "@brains/test-utils";
+import { createSilentLogger, mockFetch } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { ButtondownPlugin } from "../src/provider/plugin";
+import { createButtondownTools } from "../src/provider/tools";
 
 // Save original fetch to restore after tests
 const originalFetch = globalThis.fetch;
@@ -16,6 +18,19 @@ afterEach(() => {
 
 describe("Buttondown Tools", () => {
   let harness: ReturnType<typeof createPluginHarness>;
+
+  it("uses OpenAI-compatible email patterns in model-visible tool schemas", () => {
+    const tools = createButtondownTools(
+      "buttondown",
+      { apiKey: "test-key", doubleOptIn: true },
+      createSilentLogger("buttondown-tools-test"),
+    );
+
+    for (const tool of tools) {
+      const jsonSchema = z.toJSONSchema(z.object(tool.inputSchema));
+      expect(JSON.stringify(jsonSchema)).not.toContain("(?!");
+    }
+  });
 
   beforeEach(async () => {
     harness = createPluginHarness();

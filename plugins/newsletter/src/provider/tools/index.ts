@@ -5,8 +5,10 @@ import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { ButtondownClient } from "../lib/buttondown-client";
 
+const toolEmailSchema = z.string().email({ pattern: z.regexes.html5Email });
+
 const subscribeParamsSchema = z.object({
-  email: z.string().email().describe("Email address to subscribe"),
+  email: toolEmailSchema.describe("Email address to subscribe"),
   name: z.string().optional().describe("Subscriber name (optional)"),
   tags: z
     .array(z.string())
@@ -15,7 +17,7 @@ const subscribeParamsSchema = z.object({
 });
 
 const unsubscribeParamsSchema = z.object({
-  email: z.string().email().describe("Email address to unsubscribe"),
+  email: toolEmailSchema.describe("Email address to unsubscribe"),
 });
 
 const listSubscribersParamsSchema = z.object({
