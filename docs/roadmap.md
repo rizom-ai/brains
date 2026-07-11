@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-06-25
+Last updated: 2026-07-11
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -60,7 +60,7 @@ These areas are effectively landed:
 - **Pending entity ingestion** — async entity creation now persists a durable `pending` placeholder immediately and enriches the same entity to `draft` (or `failed`) when the background job completes, so just-saved items are referenceable before processing finishes. A shared `shell/plugins` ingestion helper preserves entity IDs across the lifecycle; `entities/link` is the first adopter (save two links, immediately summarize both), with media/upload entities to follow
 - **Tabbed dashboard console** — the operator dashboard restructured into tabs derived from widget groups (converging to bundle ids when bundles land), a fixed Overview that answers "anything need me?" (vitals, per-group digest cards, activity ledger), operator-work badges, and the publishing three-lane board — still server-rendered Preact with progressive enhancement
 - **First-party CMS editor** — Sveltia and its browser GitHub tokens replaced by a React 19 editor at `/cms` that writes through the entity service (git persistence follows via directory-sync); frontmatter forms render from server field descriptors, the save pipeline is a visible instrument strip, and AI-assisted body editing (CodeMirror 6 + selection rewrite) landed on top
-- **Console unification** — one `@brains/console-theme` token sheet (instrument/paper climates) replaces the per-surface palettes; the console strip (route-derived surface nav, session chip, climate toggle persisted console-wide) is pinned identically across dashboard, chat, and the CMS; and a cross-surface ⌘K palette jumps to entities (CMS deep-links), dashboard tabs, and chat conversations
+- **Console unification foundation** — one `@brains/console-theme` token sheet (instrument/paper climates) replaces the per-surface palettes; the console strip (route-derived surface nav, session chip, climate toggle persisted console-wide) is pinned identically across dashboard, chat, and the CMS; and a cross-surface ⌘K palette jumps to entities (CMS deep-links), dashboard tabs, and chat conversations. Responsive behavior has shipped, but visual fidelity remains active under §5.
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
 - **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest and links while model-specific eval fixtures stay curated by their brain packages
@@ -204,6 +204,7 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
+- [console-unification.md](./plans/console-unification.md) — reopened after the shared foundation was retired prematurely. Active work: CMS-first visual fidelity across palette, typography, texture, controls, manuscript styling, and responsive composition; then Chat/Dashboard review and committed screenshot gates.
 - [cms-ai-assisted-authoring.md](./plans/cms-ai-assisted-authoring.md) — selection-scoped AI assist inside the shipped first-party CMS editor. The CodeMirror 6 upgrade and the selection rewrite (read-only `/cms/api/assist`) have shipped; summarise/tag-suggest prompt variants and the authoring-pass polish backlog remain.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.

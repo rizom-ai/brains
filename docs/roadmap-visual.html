@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-06-25 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-07-11 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -225,6 +225,14 @@
         <div class="cards">
         <div class="card status-partial">
           <div class="card-head">
+            <span class="card-name">Console unification (tokens, strip, cross-surface jump)</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">reopened after the shared foundation was retired prematurely. Active work: CMS-first visual fidelity across palette, typography, texture, controls, manuscript styling, and responsive composition; then Chat/Dashboard review and committed screenshot gates.</div>
+          <div class="card-file">console-unification.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
             <span class="card-name">CMS AI-Assisted Authoring</span>
             <span class="badge badge-partial">In progress</span>
           </div>
@@ -374,7 +382,7 @@
           <div class="completed-item"><span class="completed-name">Pending entity ingestion</span> — async entity creation now persists a durable <code>pending</code> placeholder immediately and enriches the same entity to <code>draft</code> (or <code>failed</code>) when the background job completes, so just-saved items are referenceable before processing finishes. A shared <code>shell/plugins</code> ingestion helper preserves entity IDs across the lifecycle; <code>entities/link</code> is the first adopter (save two links, immediately summarize both), with media/upload entities to follow</div>
           <div class="completed-item"><span class="completed-name">Tabbed dashboard console</span> — the operator dashboard restructured into tabs derived from widget groups (converging to bundle ids when bundles land), a fixed Overview that answers &quot;anything need me?&quot; (vitals, per-group digest cards, activity ledger), operator-work badges, and the publishing three-lane board — still server-rendered Preact with progressive enhancement</div>
           <div class="completed-item"><span class="completed-name">First-party CMS editor</span> — Sveltia and its browser GitHub tokens replaced by a React 19 editor at <code>/cms</code> that writes through the entity service (git persistence follows via directory-sync); frontmatter forms render from server field descriptors, the save pipeline is a visible instrument strip, and AI-assisted body editing (CodeMirror 6 + selection rewrite) landed on top</div>
-          <div class="completed-item"><span class="completed-name">Console unification</span> — one <code>@brains/console-theme</code> token sheet (instrument/paper climates) replaces the per-surface palettes; the console strip (route-derived surface nav, session chip, climate toggle persisted console-wide) is pinned identically across dashboard, chat, and the CMS; and a cross-surface ⌘K palette jumps to entities (CMS deep-links), dashboard tabs, and chat conversations</div>
+          <div class="completed-item"><span class="completed-name">Console unification foundation</span> — one <code>@brains/console-theme</code> token sheet (instrument/paper climates) replaces the per-surface palettes; the console strip (route-derived surface nav, session chip, climate toggle persisted console-wide) is pinned identically across dashboard, chat, and the CMS; and a cross-surface ⌘K palette jumps to entities (CMS deep-links), dashboard tabs, and chat conversations. Responsive behavior has shipped, but visual fidelity remains active under §5.</div>
           <div class="completed-item"><span class="completed-name">Assessment package split</span> — SWOT moved out of agent discovery into <code>entities/assessment</code>, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary</div>
           <div class="completed-item"><span class="completed-name">Documentation phase 3 / docs site</span> — <code>entities/doc</code> package, <code>/docs</code> routes, grouped docs navigation, release-driven content sync, and the standalone <code>rizom-ai/doc-brain</code> deploy/rebuild path for <code>docs.rizom.ai</code> are complete</div>
           <div class="completed-item"><span class="completed-name">Docs sync script</span> — <code>scripts/sync-docs-content.ts</code> generates <code>doc/*.md</code> from <code>docs/docs-manifest.yaml</code> into a content checkout; <code>bun run docs:check</code> validates manifest and links while model-specific eval fixtures stay curated by their brain packages</div>
