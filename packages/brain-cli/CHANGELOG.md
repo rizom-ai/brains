@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- [`c3c816d`](https://github.com/rizom-ai/brains/commit/c3c816d4cfa909aab95e4c520695d3a37fdac563) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use an OpenAI-compatible email regex in Buttondown tool input schemas so configured newsletter tools no longer invalidate every tool-bearing agent request under Zod 4.
+
 ## 0.2.0-alpha.152
 
 ## 0.2.0-alpha.151

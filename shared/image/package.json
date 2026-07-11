@@ -1,6 +1,6 @@
 {
   "name": "@brains/image",
-  "version": "0.2.0-alpha.152",
+  "version": "0.2.0-alpha.153",
   "description": "Image entity support with base64 storage - schemas, adapter, and utilities",
   "dependencies": {
     "@brains/entity-service": "workspace:*",

@@ -205,6 +205,7 @@
     "oauth-inspector-compat",
     "og-image-review-fixes",
     "opaque-carousel-backgrounds",
+    "openai-compatible-newsletter-email-schema",
     "ops-anchor-profile-content-seeding",
     "ops-build-brain-version-input",
     "ops-deploy-finalize-push-ref",
