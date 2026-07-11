@@ -11,9 +11,9 @@ Dashboard implementation. Those capabilities shipped in `0.2.0-alpha.149`.
 `work/console-responsive`. Dashboard, Chat, and CMS now
 share the approved responsive chrome and climate contract; CMS includes its detailed
 editorial library, manuscript, secondary states, and widgets; Chat no longer carries a
-parallel surface palette. Fixture reviews cover all three target viewports in both
-climates. Phase 8 remains: committed deterministic baselines, authenticated Rover smoke,
-merge, and release. A surface is not complete merely because it uses the shared tokens,
+parallel surface palette. Fixture reviews cover all three target viewports in both climates, and Phase 8 now has
+committed deterministic baselines with overflow, responsive-mode, safe-area, and pixel-diff
+checks. Remaining gates are authenticated Rover smoke, merge, and release. A surface is not complete merely because it uses the shared tokens,
 fits at the target width, or passes unit tests.
 
 Current approved references:

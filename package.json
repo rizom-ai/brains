@@ -16,8 +16,10 @@
     "husky": "^9.1.7",
     "ink-testing-library": "^4.0.0",
     "lint-staged": "^17.0.7",
+    "playwright-core": "^1.61.0",
     "preact": "^10.27.2",
     "prettier": "^3.8.4",
+    "sharp": "^0.35.1",
     "syncpack": "^15.3.2",
     "turbo": "^2.9.18",
     "typescript": "^6.0.3"
@@ -69,6 +71,7 @@
     "test:integration": "bun test test/integration",
     "test:unit": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "visual:console": "bun scripts/console-visual-regression.ts",
     "version:set": "bun scripts/sync-versions.ts && git add -A && git commit -m 'chore: sync package versions'",
     "version:sync": "bun scripts/sync-versions.ts",
     "workspace:affected": "turbo run test --filter=[HEAD^1]",
