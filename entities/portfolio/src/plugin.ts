@@ -103,7 +103,11 @@ const projectContentViewSchema = z.object({
   outcome: z.string(),
 });
 
-const templateProjectSchema = z.object({
+/**
+ * Datasource-facing schema. URL/display fields are added by site-builder
+ * after content resolution, before the component is rendered.
+ */
+const enrichedProjectViewSchema = z.object({
   id: z.string(),
   entityType: z.literal("project"),
   content: z.string(),
@@ -115,8 +119,8 @@ const templateProjectSchema = z.object({
   frontmatter: projectFrontmatterViewSchema,
   body: z.string(),
   structuredContent: projectContentViewSchema.optional(),
-  url: z.string(),
-  typeLabel: z.string(),
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
   coverImageUrl: z.string().optional(),
   ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
@@ -124,7 +128,7 @@ const templateProjectSchema = z.object({
 });
 
 const projectListSchema = z.object({
-  projects: z.array(templateProjectSchema),
+  projects: z.array(enrichedProjectViewSchema),
   pageTitle: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().optional(),
@@ -222,18 +226,18 @@ export class PortfolioPlugin extends EntityPlugin<
       }),
       "project-detail": createTemplate<
         {
-          project: z.output<typeof templateProjectSchema>;
-          prevProject: z.output<typeof templateProjectSchema> | null;
-          nextProject: z.output<typeof templateProjectSchema> | null;
+          project: z.output<typeof enrichedProjectViewSchema>;
+          prevProject: z.output<typeof enrichedProjectViewSchema> | null;
+          nextProject: z.output<typeof enrichedProjectViewSchema> | null;
         },
         ProjectDetailProps
       >({
         name: "project-detail",
         description: "Individual project case study template",
         schema: z.object({
-          project: templateProjectSchema,
-          prevProject: templateProjectSchema.nullable(),
-          nextProject: templateProjectSchema.nullable(),
+          project: enrichedProjectViewSchema,
+          prevProject: enrichedProjectViewSchema.nullable(),
+          nextProject: enrichedProjectViewSchema.nullable(),
         }),
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",

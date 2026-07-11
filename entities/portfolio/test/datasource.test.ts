@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { ProjectDataSource } from "../src/datasources/project-datasource";
+import { PortfolioPlugin } from "../src/plugin";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { Project } from "../src/schemas/project";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -69,6 +71,43 @@ Outcome for ${title}`;
     const listSchema = z.object({
       projects: z.array(z.any()),
       pagination: z.any().nullable(),
+    });
+
+    it("accepts datasource output before site URL enrichment", async () => {
+      const project = createMockProject(
+        "proj-1",
+        "Published Project",
+        "published-project",
+        "published",
+        2024,
+      );
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([project]);
+      spyOn(mockEntityService, "countEntities").mockResolvedValue(1);
+
+      const harness = createPluginHarness({
+        dataDir: "/tmp/test-portfolio-template-schema",
+      });
+      try {
+        await harness.installPlugin(new PortfolioPlugin({}));
+        const templateSchema = harness
+          .getTemplates()
+          .get("portfolio:project-list")?.schema;
+        if (!templateSchema)
+          throw new Error("portfolio:project-list template not found");
+
+        const result = await datasource.fetch(
+          { entityType: "project", query: { page: 1, pageSize: 10 } },
+          templateSchema,
+          mockContext,
+        );
+        const parsed = listSchema.parse(result);
+
+        expect(parsed.projects).toHaveLength(1);
+        expect(parsed.projects[0]?.url).toBeUndefined();
+        expect(parsed.projects[0]?.typeLabel).toBeUndefined();
+      } finally {
+        harness.reset();
+      }
     });
 
     it("should show only published projects when publishedOnly is true", async () => {
