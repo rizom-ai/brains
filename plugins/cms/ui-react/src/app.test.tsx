@@ -5,6 +5,7 @@ import responsiveStyles from "./responsive.css" with { type: "text" };
 import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
+  applyFieldAssistSuggestion,
   applyFieldChange,
   applySuggestionToSelection,
   BodyEditor,
@@ -13,6 +14,8 @@ import {
   emptyDraft,
   entityTitle,
   Field,
+  FieldAssistControls,
+  fieldAssistVariant,
   parseCmsHash,
   MODEL_ASSIST_TARGET,
   PipelineStations,
@@ -159,6 +162,79 @@ describe("Field", () => {
     const empty = renderField(imageField, undefined);
     expect(empty).toContain('type="file"');
     expect(empty).not.toContain(">Clear<");
+  });
+});
+
+describe("field assists", () => {
+  const tagsField: FieldDescriptor = {
+    name: "tags",
+    label: "Tags",
+    widget: "list",
+    required: false,
+    field: { name: "tags", label: "Tags", widget: "string" },
+  };
+
+  it("maps long text and string-list fields to prompt variants", () => {
+    expect(fieldAssistVariant(textField)).toBe("summarise");
+    expect(fieldAssistVariant(tagsField)).toBe("tag-suggest");
+    expect(fieldAssistVariant(stringField)).toBeNull();
+    expect(fieldAssistVariant(booleanField)).toBeNull();
+  });
+
+  it("patches only the targeted frontmatter draft field", () => {
+    const draft = { title: "Keep", summary: "Old" };
+    expect(
+      applyFieldAssistSuggestion(draft, "summary", "Concise summary"),
+    ).toEqual({ title: "Keep", summary: "Concise summary" });
+    expect(draft).toEqual({ title: "Keep", summary: "Old" });
+    expect(applyFieldAssistSuggestion(draft, "tags", ["cms", "ai"])).toEqual({
+      title: "Keep",
+      summary: "Old",
+      tags: ["cms", "ai"],
+    });
+  });
+
+  it("renders run controls and reviewable suggestions", () => {
+    const summaryIdle = renderToStaticMarkup(
+      createElement(FieldAssistControls, {
+        descriptor: textField,
+        state: { kind: "idle" },
+        onRun: () => {},
+        onApply: () => {},
+        onDiscard: () => {},
+      }),
+    );
+    expect(summaryIdle).toContain("Summarise body");
+
+    const tagsIdle = renderToStaticMarkup(
+      createElement(FieldAssistControls, {
+        descriptor: tagsField,
+        state: { kind: "idle" },
+        onRun: () => {},
+        onApply: () => {},
+        onDiscard: () => {},
+      }),
+    );
+    expect(tagsIdle).toContain("Suggest tags");
+
+    const suggested = renderToStaticMarkup(
+      createElement(FieldAssistControls, {
+        descriptor: tagsField,
+        state: {
+          kind: "suggested",
+          field: "tags",
+          variant: "tag-suggest",
+          suggestion: ["cms", "authoring"],
+        },
+        onRun: () => {},
+        onApply: () => {},
+        onDiscard: () => {},
+      }),
+    );
+    expect(suggested).toContain("cms");
+    expect(suggested).toContain("authoring");
+    expect(suggested).toContain("Apply");
+    expect(suggested).toContain("Discard");
   });
 });
 

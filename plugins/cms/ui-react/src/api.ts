@@ -186,6 +186,32 @@ export async function requestAssist(input: {
   });
 }
 
+export type FieldAssistResponse =
+  | {
+      variant: "summarise";
+      targetField: string;
+      suggestion: string;
+    }
+  | {
+      variant: "tag-suggest";
+      targetField: string;
+      suggestions: string[];
+    };
+
+export async function requestFieldAssist(input: {
+  variant: "summarise" | "tag-suggest";
+  entityType: string;
+  targetField: string;
+  body: string;
+  frontmatter: Record<string, unknown>;
+}): Promise<FieldAssistResponse> {
+  return requestJson<FieldAssistResponse>("/cms/api/assist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
 export async function fetchAgentTargets(): Promise<AgentTarget[]> {
   const { agents } = await requestJson<{ agents: AgentTarget[] }>(
     "/cms/api/agents",
