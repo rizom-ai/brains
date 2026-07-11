@@ -7,14 +7,17 @@
 strip, route-derived doors, command palette, responsive shell behavior, and the first
 Dashboard implementation. Those capabilities shipped in `0.2.0-alpha.149`.
 
-**In progress — Phase 8 remaining.** Phases 5–7 are implemented on
-`work/console-responsive`. Dashboard, Chat, and CMS now
-share the approved responsive chrome and climate contract; CMS includes its detailed
-editorial library, manuscript, secondary states, and widgets; Chat no longer carries a
-parallel surface palette. Fixture reviews cover all three target viewports in both climates, and Phase 8 now has
-committed deterministic baselines with overflow, responsive-mode, safe-area, and pixel-diff
-checks. Remaining gates are authenticated Rover smoke, merge, and release. A surface is not complete merely because it uses the shared tokens,
-fits at the target width, or passes unit tests.
+**In progress — visual fidelity is not approved.** The responsive foundation remains
+valid, but the subsequent CMS, Chat, and Dashboard visual work on
+`work/console-responsive` must be treated as an unapproved implementation, not as completed
+Phases 6–7. It was evaluated primarily against synthetic fixtures rather than by literal
+side-by-side comparison with the supplied mockups and the authenticated production screens.
+The committed screenshot baselines therefore prove only fixture consistency; they are not
+approved visual references. Remaining work starts again at direct CMS mock comparison.
+
+Do not merge or release this branch in its current state. A surface is not complete merely
+because it uses shared tokens, fits the target width, passes tests, or matches a fixture
+created from the same implementation.
 
 Current approved references:
 
@@ -24,6 +27,25 @@ Current approved references:
   1440/768/390 responsive compositions and climate behavior;
 - [`docs/cms-editor-mockups.html`](../cms-editor-mockups.html) — detailed CMS library,
   manuscript, typography, controls, and pipeline styling.
+
+## Handoff state
+
+- Last pushed implementation commits:
+  - `353243939` — CMS editorial visual pass;
+  - `01c162f62` — CMS secondary states and widgets;
+  - `c5431cfd3` — Chat token cleanup and cross-surface contract pass;
+  - `eece4966a` — deterministic fixture screenshots and pixel-diff harness.
+- These commits are technically validated but **not visually approved**.
+- `test/visual/console/baselines/` must not be used as the target appearance. Keep the
+  harness only if it is regenerated from reviewed output after fidelity work.
+- The live Rover instance runs from this worktree on port 8080; CMS and Chat require an
+  operator session. Authenticated production-screen comparison is still outstanding.
+- Resume with desktop paper CMS only. Compare the actual screen directly with
+  `docs/cms-editor-mockups.html`, enumerate visible differences, and make the smallest
+  reference-derived corrections. Do not move to responsive CMS, Chat, or Dashboard until
+  the desktop library and manuscript are explicitly approved.
+- Preserve CMS writes, CodeMirror byte fidelity, AI assist, uploads, deletion, conflict
+  handling, singleton behavior, and save-pipeline semantics while correcting visuals.
 
 ## Context
 
