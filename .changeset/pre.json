@@ -180,6 +180,7 @@
     "entity-adapter-purpose-required",
     "entity-memory-metadata",
     "externalize-preact",
+    "fix-a2a-proxied-signatures",
     "fix-brain-publish-origin-ca-subpath",
     "fix-deploy-workflow-config-script",
     "fix-document-preview-dedup",

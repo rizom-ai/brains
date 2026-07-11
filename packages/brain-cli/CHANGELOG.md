@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- [`a7f257b`](https://github.com/rizom-ai/brains/commit/a7f257bfbfd8947d63a0b6d9aefef698c799cdcc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix A2A request signing across local and deployed instances. Local callers no longer send signatures with unreachable loopback key URLs, while deployed receivers verify signatures against the public forwarded URL instead of their internal reverse-proxy URL.
+
 ## 0.2.0-alpha.153
 
 ### Patch Changes
