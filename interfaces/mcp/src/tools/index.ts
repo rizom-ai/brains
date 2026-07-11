@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from "node:crypto";
 import { z } from "@brains/utils/zod";
 import type { ToolResponse } from "@brains/mcp-service";
 import type {
@@ -9,27 +10,50 @@ import { agentResponseToToolResponse } from "./agent-response-adapter";
 
 const chatInputSchema = z.object({
   message: z.string().min(1),
-  conversationId: z.string().min(1).optional(),
+  conversationId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Opaque conversation handle returned by a previous chat call. Omit it to start a new isolated conversation.",
+    ),
 });
 
 const confirmInputSchema = z.object({
   approvalId: z.string().min(1),
   confirmed: z.boolean(),
-  conversationId: z.string().min(1).optional(),
+  conversationId: z
+    .string()
+    .min(1)
+    .describe("Exact conversation handle returned by the chat confirmation."),
 });
 
-function getConversationId(
+interface MCPConversationRef {
+  /** Opaque handle returned to the MCP caller and reused on follow-ups. */
+  handle: string;
+  /** Subject-scoped id used by the brain conversation service. */
+  internalId: string;
+}
+
+function getConversationRef(
   input: { conversationId?: string },
   userId: string,
   contextConversationId?: string,
   channelId?: string,
-): string {
-  return (
+): MCPConversationRef {
+  const handle =
     input.conversationId ??
     contextConversationId ??
     channelId ??
-    `mcp:${userId}`
-  );
+    `conversation-${randomUUID()}`;
+  const subjectScope = createHash("sha256")
+    .update(userId)
+    .digest("hex")
+    .slice(0, 16);
+  return {
+    handle,
+    internalId: `mcp:${subjectScope}:${handle}`,
+  };
 }
 
 function getChatContext(
@@ -79,7 +103,7 @@ export function createMCPTools(
           };
         }
 
-        const conversationId = getConversationId(
+        const conversation = getConversationRef(
           input,
           toolContext.userId,
           toolContext.conversationId,
@@ -87,13 +111,15 @@ export function createMCPTools(
         );
         const response = await context.agent.chat(
           input.message,
-          conversationId,
+          conversation.internalId,
           {
             ...getChatContext(toolContext),
           },
         );
 
-        return agentResponseToToolResponse(response, { conversationId });
+        return agentResponseToToolResponse(response, {
+          conversationId: conversation.handle,
+        });
       },
     },
     {
@@ -113,20 +139,22 @@ export function createMCPTools(
           };
         }
 
-        const conversationId = getConversationId(
+        const conversation = getConversationRef(
           input,
           toolContext.userId,
           toolContext.conversationId,
           toolContext.channelId,
         );
         const response = await context.agent.confirmPendingAction(
-          conversationId,
+          conversation.internalId,
           input.confirmed,
           input.approvalId,
           getChatContext(toolContext),
         );
 
-        return agentResponseToToolResponse(response, { conversationId });
+        return agentResponseToToolResponse(response, {
+          conversationId: conversation.handle,
+        });
       },
     },
   ];
