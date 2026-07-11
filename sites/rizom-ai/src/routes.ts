@@ -1,27 +1,27 @@
 import type { RouteDefinitionInput } from "@rizom/site";
 
+/**
+ * The consolidated Rizom site routes. The home page composes the rev-5 section
+ * set from the "home" content namespace; the layout owns navigation (the
+ * two-tier faces strip), so routes stay out of the entity nav.
+ */
 export const aiRoutes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",
+    title: "Rizom",
+    description: "Build the agent that represents you",
     layout: "default",
-    navigation: {
-      show: false,
-      slot: "secondary",
-      priority: 10,
-    },
+    navigation: { show: false },
     sections: [
-      { id: "hero", template: "landing-page:hero", content: {} },
-      { id: "problem", template: "landing-page:problem", content: {} },
-      { id: "answer", template: "landing-page:answer", content: {} },
-      { id: "products", template: "landing-page:products", content: {} },
-      { id: "ownership", template: "landing-page:ownership", content: {} },
-      { id: "quickstart", template: "landing-page:quickstart", content: {} },
-      { id: "mission", template: "landing-page:mission", content: {} },
-      {
-        id: "ecosystem",
-        template: "landing-page:ecosystem",
-      },
+      { id: "hero", template: "home:hero" },
+      { id: "growth", template: "home:growth" },
+      { id: "problem", template: "home:problem" },
+      { id: "your-data", template: "home:your-data" },
+      { id: "quickstart", template: "home:quickstart" },
+      { id: "mission", template: "home:mission" },
+      { id: "faces", template: "home:faces" },
+      { id: "alive", template: "home:alive" },
     ],
   },
 ];

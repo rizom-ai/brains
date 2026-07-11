@@ -1,184 +1,176 @@
-import type { SiteContentDefinition } from "@rizom/site";
-import { HeroLayout } from "./sections/hero/layout";
-import { ProblemLayout } from "./sections/problem/layout";
-import { AnswerLayout } from "./sections/answer/layout";
-import { ProductsLayout } from "./sections/products/layout";
-import { OwnershipLayout } from "./sections/ownership/layout";
-import { QuickstartLayout } from "./sections/quickstart/layout";
-import { MissionLayout } from "./sections/mission/layout";
-import { EcosystemLayout } from "./sections/ecosystem";
+import type {
+  SiteContentDefinition,
+  SiteContentFieldDefinition,
+} from "@rizom/site";
+import {
+  HomeHeroSection,
+  HomeGrowthSection,
+  HomeProblemSection,
+  HomeYourDataSection,
+  HomeQuickstartSection,
+  HomeMissionSection,
+  HomeFacesSection,
+  HomeAliveSection,
+} from "./home";
 
-const aiSiteContent: SiteContentDefinition = {
-  namespace: "landing-page",
+/** A `{ label, href }` link field, reused by hero/mission CTAs. */
+const ctaField = (label: string): SiteContentFieldDefinition => ({
+  label,
+  type: "object",
+  fields: {
+    label: { label: "Label", type: "string" },
+    href: { label: "Href", type: "string" },
+  },
+});
+
+/** A three-up card with a marker, title, and body — problem / your-data. */
+const trioFields = {
+  cap: { label: "Cap", type: "string" as const },
+  items: {
+    label: "Items",
+    type: "array" as const,
+    length: 3,
+    items: {
+      label: "Item",
+      type: "object" as const,
+      fields: {
+        marker: { label: "Marker", type: "string" as const },
+        title: { label: "Title", type: "string" as const },
+        text: { label: "Text", type: "string" as const },
+      },
+    },
+  },
+};
+
+/**
+ * The platform home page content shapes. The namespace matches the route id
+ * ("home"), so each section stores as site-content/home/<section>.md and its
+ * template resolves as "home:<section>".
+ */
+export const homeContent: SiteContentDefinition = {
+  namespace: "home",
   sections: {
     hero: {
-      description: "Rizom site hero: full-viewport intro with CTA row",
-      title: "Hero Section",
-      layout: HeroLayout,
+      description: "Platform homepage hero: kicker, headline, standfirst, CTAs",
+      title: "Hero",
+      layout: HomeHeroSection,
       fields: {
+        kicker: { label: "Kicker", type: "string" },
         headline: { label: "Headline", type: "string" },
-        subhead: { label: "Subhead", type: "string" },
-        primaryCtaLabel: { label: "Primary CTA Label", type: "string" },
-        primaryCtaHref: { label: "Primary CTA Href", type: "string" },
-        secondaryCtaLabel: { label: "Secondary CTA Label", type: "string" },
-        secondaryCtaHref: { label: "Secondary CTA Href", type: "string" },
+        standfirst: { label: "Standfirst", type: "string" },
+        primaryCta: ctaField("Primary CTA"),
+        secondaryCta: ctaField("Secondary CTA"),
+      },
+    },
+    growth: {
+      description: "You → Team → Network growth diagram with caption and note",
+      title: "Growth",
+      layout: HomeGrowthSection,
+      fields: {
+        cap: { label: "Cap", type: "string" },
+        capNote: { label: "Cap Note", type: "string" },
+        note: { label: "Note", type: "string" },
       },
     },
     problem: {
-      description: "Rizom problem section: 3-up grid of problem statements",
-      title: "Problem Section",
-      layout: ProblemLayout,
-      fields: {
-        cards: {
-          label: "Cards",
-          type: "array",
-          length: 3,
-          items: {
-            label: "Card",
-            type: "object",
-            fields: {
-              num: { label: "Num", type: "string" },
-              title: { label: "Title", type: "string" },
-              body: { label: "Body", type: "string" },
-            },
-          },
-        },
-      },
+      description: "Why it has to exist — problem trio (large numerals)",
+      title: "Problem",
+      layout: HomeProblemSection,
+      fields: trioFields,
     },
-    answer: {
-      description: "Rizom answer section: centered thesis statement",
-      title: "Answer Section",
-      layout: AnswerLayout,
-      fields: {
-        badge: { label: "Badge", type: "string" },
-        headline: { label: "Headline", type: "string" },
-        subhead: { label: "Subhead", type: "string" },
-        scalesHeadline: { label: "Scales Headline", type: "string" },
-        scalesSubhead: { label: "Scales Subhead", type: "string" },
-      },
-    },
-    products: {
-      description: "Rizom products section: array of product cards",
-      title: "Products Section",
-      layout: ProductsLayout,
-      fields: {
-        cards: {
-          label: "Cards",
-          type: "array",
-          minItems: 1,
-          items: {
-            label: "Card",
-            type: "object",
-            fields: {
-              variant: {
-                label: "Variant",
-                type: "enum",
-                options: ["rover", "relay", "ranger"],
-              },
-              label: { label: "Label", type: "string" },
-              badge: { label: "Badge", type: "string" },
-              headline: { label: "Headline", type: "string" },
-              description: { label: "Description", type: "string" },
-              tagline: {
-                label: "Tagline",
-                type: "array",
-                optional: true,
-                minItems: 1,
-                items: { label: "Tagline", type: "string" },
-              },
-              tags: {
-                label: "Tags",
-                type: "array",
-                minItems: 1,
-                items: { label: "Tag", type: "string" },
-              },
-            },
-          },
-        },
-      },
-    },
-    ownership: {
-      description: "Rizom ownership section: feature list with icon markers",
-      title: "Ownership Section",
-      layout: OwnershipLayout,
-      fields: {
-        badge: { label: "Badge", type: "string" },
-        headline: { label: "Headline", type: "string" },
-        features: {
-          label: "Features",
-          type: "array",
-          minItems: 1,
-          items: {
-            label: "Feature",
-            type: "object",
-            fields: {
-              icon: { label: "Icon", type: "string" },
-              title: { label: "Title", type: "string" },
-              body: { label: "Body", type: "string" },
-            },
-          },
-        },
-      },
+    "your-data": {
+      description: "Your data, your rules — ownership trio (mono markers)",
+      title: "Your Data",
+      layout: HomeYourDataSection,
+      fields: trioFields,
     },
     quickstart: {
-      description:
-        "Quickstart section: install/create/run commands and success lines",
-      title: "Quickstart Section",
-      layout: QuickstartLayout,
+      description: "Three-command quickstart terminal with a checklist",
+      title: "Quickstart",
+      layout: HomeQuickstartSection,
       fields: {
-        badge: { label: "Badge", type: "string" },
-        headline: { label: "Headline", type: "string" },
-        description: { label: "Description", type: "string" },
-        installCommand: { label: "Install Command", type: "string" },
-        createCommand: { label: "Create Command", type: "string" },
-        runCommand: { label: "Run Command", type: "string" },
-        okLines: {
-          label: "OK Lines",
+        cap: { label: "Cap", type: "string" },
+        capNote: { label: "Cap Note", type: "string" },
+        lines: {
+          label: "Lines",
           type: "array",
           minItems: 1,
-          items: { label: "OK Line", type: "string" },
+          items: {
+            label: "Line",
+            type: "object",
+            fields: {
+              kind: {
+                label: "Kind",
+                type: "enum",
+                options: ["comment", "command", "ok"],
+              },
+              text: { label: "Text", type: "string" },
+            },
+          },
+        },
+        checks: {
+          label: "Checks",
+          type: "array",
+          minItems: 1,
+          items: { label: "Check", type: "string" },
         },
       },
     },
     mission: {
-      description: "Mission section: closing statement with CTA row",
-      title: "Mission Section",
-      layout: MissionLayout,
+      description: "Mission band — display-italic statement, sub line, CTAs",
+      title: "Mission",
+      layout: HomeMissionSection,
       fields: {
-        preamble: { label: "Preamble", type: "string" },
-        headline: { label: "Headline", type: "string" },
-        post: { label: "Post", type: "string" },
-        primaryCtaLabel: { label: "Primary CTA Label", type: "string" },
-        primaryCtaHref: { label: "Primary CTA Href", type: "string" },
-        secondaryCtaLabel: { label: "Secondary CTA Label", type: "string" },
-        secondaryCtaHref: { label: "Secondary CTA Href", type: "string" },
+        quote: { label: "Quote", type: "string" },
+        sub: { label: "Sub", type: "string" },
+        primaryCta: ctaField("Primary CTA"),
+        secondaryCta: ctaField("Secondary CTA"),
       },
     },
-    ecosystem: {
-      description:
-        "Rizom ecosystem section: 3-card grid of sibling rizom sites",
-      title: "Ecosystem Section",
-      layout: EcosystemLayout,
+    faces: {
+      description: "One practice, three faces — platform / work / foundation",
+      title: "Faces",
+      layout: HomeFacesSection,
       fields: {
-        eyebrow: { label: "Eyebrow", type: "string" },
-        headline: { label: "Headline", type: "string" },
-        cards: {
-          label: "Cards",
+        cap: { label: "Cap", type: "string" },
+        faces: {
+          label: "Faces",
+          type: "array",
+          length: 3,
+          items: {
+            label: "Face",
+            type: "object",
+            fields: {
+              room: {
+                label: "Room",
+                type: "enum",
+                options: ["platform", "work", "foundation"],
+              },
+              kicker: { label: "Kicker", type: "string" },
+              title: { label: "Title", type: "string" },
+              go: { label: "Go", type: "string" },
+              href: { label: "Href", type: "string" },
+            },
+          },
+        },
+      },
+    },
+    alive: {
+      description: "Living-proof colophon — italic claim plus proof links",
+      title: "Alive",
+      layout: HomeAliveSection,
+      fields: {
+        claim: { label: "Claim", type: "string" },
+        links: {
+          label: "Links",
           type: "array",
           minItems: 1,
           items: {
-            label: "Card",
+            label: "Link",
             type: "object",
             fields: {
-              suffix: {
-                label: "Suffix",
-                type: "enum",
-                options: ["ai", "foundation", "work"],
-              },
-              title: { label: "Title", type: "string" },
-              body: { label: "Body", type: "string" },
-              linkLabel: { label: "Link Label", type: "string" },
-              linkHref: { label: "Link Href", type: "string" },
+              label: { label: "Label", type: "string" },
+              href: { label: "Href", type: "string" },
             },
           },
         },
@@ -186,5 +178,7 @@ const aiSiteContent: SiteContentDefinition = {
     },
   },
 };
+
+const aiSiteContent: SiteContentDefinition[] = [homeContent];
 
 export default aiSiteContent;

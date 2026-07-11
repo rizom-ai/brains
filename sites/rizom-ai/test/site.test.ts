@@ -15,19 +15,36 @@ describe("@rizom/site-rizom-ai", () => {
     );
   });
 
-  test("exposes AI-specific route sections", () => {
+  test("exposes the home route sections in rev-5 order", () => {
     const route = site.routes[0];
     const sectionIds = route?.sections?.map((section) => section.id);
 
     expect(sectionIds).toEqual([
       "hero",
+      "growth",
       "problem",
-      "answer",
-      "products",
-      "ownership",
+      "your-data",
       "quickstart",
       "mission",
-      "ecosystem",
+      "faces",
+      "alive",
+    ]);
+  });
+
+  test("home sections reference the home content namespace by string", () => {
+    const templates = site.routes[0]?.sections?.map(
+      (section) => section.template,
+    );
+
+    expect(templates).toEqual([
+      "home:hero",
+      "home:growth",
+      "home:problem",
+      "home:your-data",
+      "home:quickstart",
+      "home:mission",
+      "home:faces",
+      "home:alive",
     ]);
   });
 });
