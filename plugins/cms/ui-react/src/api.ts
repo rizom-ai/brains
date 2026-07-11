@@ -43,6 +43,11 @@ export interface EntityDetail extends EntitySummary {
   created: string;
 }
 
+export interface AgentTarget {
+  id: string;
+  label: string;
+}
+
 export interface GitSyncState {
   branch: string;
   hasChanges: boolean;
@@ -179,6 +184,28 @@ export async function requestAssist(input: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
+}
+
+export async function fetchAgentTargets(): Promise<AgentTarget[]> {
+  const { agents } = await requestJson<{ agents: AgentTarget[] }>(
+    "/cms/api/agents",
+  );
+  return agents;
+}
+
+export async function requestAgentAnswer(input: {
+  agent: string;
+  instruction: string;
+  selection: string;
+}): Promise<{ agentId: string; response: string }> {
+  return requestJson<{ agentId: string; response: string }>(
+    "/cms/api/ask-agent",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export async function fetchSyncStatus(): Promise<SyncStatus> {

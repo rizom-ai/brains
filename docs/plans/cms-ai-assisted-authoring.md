@@ -5,9 +5,10 @@
 Phases 1–2 shipped (2026-07-09): the CodeMirror 6 source pane (byte-identical
 round-trip covered by tests) and the selection rewrite — operator-gated read-only
 `POST /cms/api/assist`, assist bar UI, pure accept/discard logic — landed together in
-`feat(cms): add AI-assisted body editing`. Remaining: Phase 3 (summarise/tag-suggest
-prompt variants, authoring-friction backlog, optional streaming) and Phase 4 (ask the
-agent directory about a selection, added 2026-07-09). Successor to the shipped
+`feat(cms): add AI-assisted body editing`. Phase 4 shipped (2026-07-10): the assist
+bar can ask one approved directory agent about a selection through A2A's validated,
+signed outbound path. Remaining: Phase 3 (summarise/tag-suggest prompt variants,
+authoring-friction backlog, optional streaming). Successor to the shipped
 `first-party-cms-editor.md` plan (its optional Phase 6, plus the D1 body-editor
 upgrade that plan deferred).
 
@@ -101,22 +102,23 @@ Thin vertical slices, tests first in every phase.
 - Optional, only if v1 latency annoys in practice: streaming upgrade per the decision
   above.
 
-### Phase 4 — Ask a directory agent about a selection
+### Phase 4 — Ask a directory agent about a selection (shipped 2026-07-10)
 
 Same selection → instruction → answer shape as the rewrite assist, but the answer
 comes from a peer agent instead of the model. One ask targets **one agent** — no
 fan-out; a second opinion is a second ask with a different agent picked. The
 instruction is free-form ("is this accurate?", "what do you know about this?"), with
-preset chips (review / fact-check / related) as conveniences — the mechanism does not
-fork on intent, only the prompt does.
+preset chips (review / fact-check / related) as conveniences. A dedicated rewrite
+preset asks for replacement-only markdown and enables explicit replacement.
 
 - **UI: the existing assist bar gains a target dropdown at its head** — `model` (the
   rewrite assist, unchanged) plus one entry per approved agent, listed from the
   existing `agent` entity type. Same input, same run button (label flips from
   "Rewrite selection" to "Ask"). The response slot diverges by target: a model answer
   stays a suggestion (Accept/Discard into the draft); an agent answer is a read-only
-  panel headed by the agent id, dismiss only — quoting is a manual copy. With no a2a
-  or no approved agents the dropdown contains only `model` and the bar looks like
+  panel headed by the agent id. Ordinary answers are dismiss-only. Answers requested
+  through the rewrite preset also offer an explicit Replace selection action. With no
+  a2a or no approved agents the dropdown contains only `model` and the bar looks like
   today's.
 - **Wiring decision:** the CMS must not depend on the a2a interface package or
   reimplement its trust checks. The a2a interface registers a message-bus handler
@@ -130,7 +132,8 @@ fork on intent, only the prompt does.
   (401); contract `{ selection, instruction, agent }` → `{ agentId, response }`;
   performs no entity writes; unknown/unapproved agent → 4xx with a clear error.
 - Tests first (client): target-dropdown state (model default; agents from the entity
-  list); the agent answer panel renders markdown read-only with no accept path.
+  list); ordinary agent answers are dismiss-only, while rewrite-mode answers offer
+  explicit selection replacement.
 
 ## Verification
 

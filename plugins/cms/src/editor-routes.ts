@@ -49,6 +49,25 @@ const assistResponseSchema = z.object({
   suggestion: z.string(),
 });
 
+const askAgentPayloadSchema = z.object({
+  selection: z.string().min(1).max(8_000),
+  instruction: z.string().trim().min(1).max(2_000),
+  agent: z.string().trim().min(1).max(253),
+});
+
+const a2aCallResultSchema = z.looseObject({
+  response: z.string(),
+});
+
+const a2aAgentListSchema = z.object({
+  agents: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+    }),
+  ),
+});
+
 const UPLOAD_FORM_FIELD = "file";
 const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -225,6 +244,26 @@ export function createEditorRoutes(
         const denied = await requireSession(request);
         if (denied) return denied;
         return handleAssist(getContext(), request);
+      },
+    },
+    {
+      path: apiPath("agents"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const denied = await requireSession(request);
+        if (denied) return denied;
+        return handleListAgents(getContext());
+      },
+    },
+    {
+      path: apiPath("ask-agent"),
+      method: "POST",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const denied = await requireSession(request);
+        if (denied) return denied;
+        return handleAskAgent(getContext(), request);
       },
     },
     {
@@ -606,6 +645,67 @@ async function handleAssist(
     assistResponseSchema,
   );
   return jsonResponse({ suggestion: object.suggestion });
+}
+
+async function handleListAgents(
+  context: ServicePluginContext,
+): Promise<Response> {
+  const response = await context.messaging.send({
+    type: "a2a:call:agents",
+    payload: {},
+  });
+  if (!("success" in response) || !response.success) {
+    // No a2a interface (or no directory) means the client keeps the existing
+    // model-only assist bar.
+    return jsonResponse({ agents: [] });
+  }
+
+  const parsed = a2aAgentListSchema.safeParse(response.data);
+  return jsonResponse(parsed.success ? parsed.data : { agents: [] });
+}
+
+async function handleAskAgent(
+  context: ServicePluginContext,
+  request: Request,
+): Promise<Response> {
+  let payload: z.infer<typeof askAgentPayloadSchema>;
+  try {
+    payload = askAgentPayloadSchema.parse(await request.json());
+  } catch {
+    return jsonResponse(
+      { error: "Invalid agent ask payload or selection length" },
+      400,
+    );
+  }
+
+  const result = await context.messaging.send({
+    type: "a2a:call:request",
+    payload,
+  });
+  if (!("success" in result) || !result.success) {
+    const error =
+      "error" in result && typeof result.error === "string"
+        ? result.error
+        : "Agent call failed";
+    const unavailable = error.startsWith("No handler found");
+    return jsonResponse(
+      { error: unavailable ? "Agent asking is unavailable" : error },
+      unavailable ? 503 : 400,
+    );
+  }
+
+  if (result.data === undefined) {
+    return jsonResponse({ error: "Agent asking is unavailable" }, 503);
+  }
+  const parsed = a2aCallResultSchema.safeParse(result.data);
+  if (!parsed.success) {
+    return jsonResponse({ error: "Invalid response from agent" }, 502);
+  }
+
+  return jsonResponse({
+    agentId: payload.agent,
+    response: parsed.data.response,
+  });
 }
 
 /**
