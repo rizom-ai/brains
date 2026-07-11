@@ -37,16 +37,39 @@ const createEntityPayloadSchema = z.object({
   body: z.string().optional(),
 });
 
-const assistPayloadSchema = z.object({
+const assistContextShape = {
   entityType: z.string(),
-  instruction: z.string().trim().min(1),
-  selection: z.string().min(1).max(8_000),
   body: z.string(),
   frontmatter: z.record(z.string(), z.unknown()),
-});
+};
+
+const assistPayloadSchema = z.union([
+  z.object({
+    ...assistContextShape,
+    variant: z.literal("rewrite").optional(),
+    instruction: z.string().trim().min(1),
+    selection: z.string().min(1).max(8_000),
+  }),
+  z.object({
+    ...assistContextShape,
+    variant: z.literal("summarise"),
+    targetField: z.string().trim().min(1),
+    body: z.string().min(1),
+  }),
+  z.object({
+    ...assistContextShape,
+    variant: z.literal("tag-suggest"),
+    targetField: z.string().trim().min(1),
+    body: z.string().min(1),
+  }),
+]);
 
 const assistResponseSchema = z.object({
   suggestion: z.string(),
+});
+
+const tagAssistResponseSchema = z.object({
+  suggestions: z.array(z.string().trim().min(1)).max(12),
 });
 
 const askAgentPayloadSchema = z.object({
@@ -616,11 +639,80 @@ async function handleAssist(
     );
   }
 
-  if (!context.entities.getEffectiveFrontmatterSchema(payload.entityType)) {
+  const frontmatterSchema = context.entities.getEffectiveFrontmatterSchema(
+    payload.entityType,
+  );
+  if (!frontmatterSchema) {
     return jsonResponse(
       { error: `Unknown entity type: ${payload.entityType}` },
       404,
     );
+  }
+
+  if (payload.variant === "summarise" || payload.variant === "tag-suggest") {
+    const fieldSchema = frontmatterSchema.shape[payload.targetField];
+    if (!fieldSchema) {
+      return jsonResponse(
+        { error: `Unknown frontmatter field: ${payload.targetField}` },
+        400,
+      );
+    }
+    const descriptor = zodFieldToCmsWidget(
+      payload.targetField,
+      fieldSchema as z.ZodTypeAny,
+    );
+    const compatible =
+      payload.variant === "summarise"
+        ? descriptor.widget === "string" || descriptor.widget === "text"
+        : descriptor.widget === "list" && descriptor.field?.widget === "string";
+    if (!compatible) {
+      return jsonResponse(
+        {
+          error: `Field ${payload.targetField} is incompatible with ${payload.variant}`,
+        },
+        400,
+      );
+    }
+
+    const contextLines = [
+      "You are editing CMS frontmatter from an existing markdown body.",
+      `Entity type: ${payload.entityType}`,
+      `Target field: ${payload.targetField}`,
+      `Existing frontmatter JSON: ${JSON.stringify(payload.frontmatter)}`,
+      "",
+      "Full markdown body:",
+      payload.body,
+    ];
+
+    if (payload.variant === "summarise") {
+      const { object } = await context.ai.generateObject(
+        [
+          "Summarise the body for the target frontmatter field.",
+          "Return only the field value in the suggestion field.",
+          ...contextLines,
+        ].join("\n"),
+        assistResponseSchema,
+      );
+      return jsonResponse({
+        variant: payload.variant,
+        targetField: payload.targetField,
+        suggestion: object.suggestion,
+      });
+    }
+
+    const { object } = await context.ai.generateObject(
+      [
+        "Suggest tags for the target frontmatter field.",
+        "Return concise tag strings in the suggestions field without duplicates.",
+        ...contextLines,
+      ].join("\n"),
+      tagAssistResponseSchema,
+    );
+    return jsonResponse({
+      variant: payload.variant,
+      targetField: payload.targetField,
+      suggestions: [...new Set(object.suggestions)],
+    });
   }
 
   const prompt = [

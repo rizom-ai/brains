@@ -7,8 +7,9 @@ round-trip covered by tests) and the selection rewrite — operator-gated read-o
 `POST /cms/api/assist`, assist bar UI, pure accept/discard logic — landed together in
 `feat(cms): add AI-assisted body editing`. Phase 4 shipped (2026-07-10): the assist
 bar can ask one approved directory agent about a selection through A2A's validated,
-signed outbound path. Remaining: Phase 3 (summarise/tag-suggest prompt variants,
-authoring-friction backlog, optional streaming). Successor to the shipped
+signed outbound path. Phase 3 prompt variants shipped (2026-07-11): summaries and
+tag suggestions can patch compatible frontmatter drafts. Remaining: the
+session-driven authoring-friction backlog and optional streaming. Successor to the shipped
 `first-party-cms-editor.md` plan (its optional Phase 6, plus the D1 body-editor
 upgrade that plan deferred).
 
@@ -91,11 +92,11 @@ Thin vertical slices, tests first in every phase.
 - Server: route handler prompts the AI service (system prompt: edit the given text per
   instruction, return only the replacement markdown).
 
-### Phase 3 — Prompt variants + authoring polish
+### Phase 3 — Prompt variants + authoring polish (prompt variants shipped 2026-07-11)
 
-- Prompt variants on the same route: summarise (body → suggestion targeted at a
-  frontmatter field) and tag-suggest (proposes values; accepting patches the colophon
-  draft, schema validation on save as usual).
+- Shipped: prompt variants on the same route — summarise (body → suggestion targeted
+  at a compatible text frontmatter field) and tag-suggest (proposes string-list
+  values; accepting patches the colophon draft, schema validation on save as usual).
 - Authoring polish: the backlog comes from the operator actually writing at `/cms`,
   not speculation — collect the friction (field widgets, list view, save flow, body
   editing) from real sessions and work through it.

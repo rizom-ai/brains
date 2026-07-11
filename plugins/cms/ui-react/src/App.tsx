@@ -22,12 +22,14 @@ import {
   fetchTypes,
   requestAgentAnswer,
   requestAssist,
+  requestFieldAssist,
   updateEntity,
   uploadFile,
   type AgentTarget,
   type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
+  type FieldAssistResponse,
   type FieldDescriptor,
   type GitSyncState,
   type SyncStatus,
@@ -812,6 +814,100 @@ function ImageField(props: {
   );
 }
 
+export type FieldAssistVariant = "summarise" | "tag-suggest";
+
+export type FieldAssistState =
+  | { kind: "idle" }
+  | { kind: "loading"; field: string; variant: FieldAssistVariant }
+  | {
+      kind: "suggested";
+      field: string;
+      variant: FieldAssistVariant;
+      suggestion: string | string[];
+    }
+  | { kind: "error"; field: string; message: string };
+
+export function fieldAssistVariant(
+  descriptor: FieldDescriptor,
+): FieldAssistVariant | null {
+  if (descriptor.widget === "text") return "summarise";
+  if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
+    return "tag-suggest";
+  }
+  return null;
+}
+
+export function applyFieldAssistSuggestion(
+  draft: Record<string, unknown>,
+  field: string,
+  suggestion: string | string[],
+): Record<string, unknown> {
+  return { ...draft, [field]: suggestion };
+}
+
+export function FieldAssistControls(props: {
+  descriptor: FieldDescriptor;
+  state: FieldAssistState;
+  onRun: (variant: FieldAssistVariant, field: string) => void;
+  onApply: (field: string, suggestion: string | string[]) => void;
+  onDiscard: () => void;
+}): ReactElement | null {
+  const { descriptor, state, onRun, onApply, onDiscard } = props;
+  const variant = fieldAssistVariant(descriptor);
+  if (!variant) return null;
+  const active = "field" in state && state.field === descriptor.name;
+
+  if (active && state.kind === "suggested") {
+    return (
+      <div className="field-assist-suggestion">
+        {Array.isArray(state.suggestion) ? (
+          <span className="field-assist-tags">
+            {state.suggestion.map((tag) => (
+              <code key={tag}>{tag}</code>
+            ))}
+          </span>
+        ) : (
+          <span className="field-assist-copy">{state.suggestion}</span>
+        )}
+        <button
+          type="button"
+          className="field-assist-action"
+          onClick={() => onApply(state.field, state.suggestion)}
+        >
+          Apply
+        </button>
+        <button
+          type="button"
+          className="field-assist-action ghost"
+          onClick={onDiscard}
+        >
+          Discard
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="field-assist-controls">
+      <button
+        type="button"
+        className="field-assist-run"
+        disabled={active && state.kind === "loading"}
+        onClick={() => onRun(variant, descriptor.name)}
+      >
+        {active && state.kind === "loading"
+          ? "Thinking…"
+          : variant === "summarise"
+            ? "Summarise body"
+            : `Suggest ${descriptor.label.toLowerCase()}`}
+      </button>
+      {active && state.kind === "error" && (
+        <span className="status status-error">{state.message}</span>
+      )}
+    </div>
+  );
+}
+
 export function Field(props: {
   descriptor: FieldDescriptor;
   value: unknown;
@@ -932,6 +1028,9 @@ export function App(): ReactElement {
   const [mode, setMode] = useState<EditorMode>({ kind: "browse" });
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [body, setBody] = useState<string>("");
+  const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
+    kind: "idle",
+  });
   const [bodyMode, setBodyMode] = useState<BodyMode>("split");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
@@ -998,6 +1097,7 @@ export function App(): ReactElement {
     setMode({ kind: "browse" });
     setMobilePane("details");
     setSaveState({ kind: "idle" });
+    setFieldAssistState({ kind: "idle" });
     setEntities(null);
     setSchema(null);
     Promise.all([fetchSchema(entityType), fetchEntities(entityType)])
@@ -1042,6 +1142,7 @@ export function App(): ReactElement {
           setMode({ kind: "edit", entity });
           setDraft(entity.frontmatter);
           setBody(entity.body);
+          setFieldAssistState({ kind: "idle" });
           setSaveState(nextState);
         })
         .catch((error: unknown) => setLoadError(errorMessage(error)));
@@ -1052,6 +1153,7 @@ export function App(): ReactElement {
   const startCreate = useCallback((): void => {
     if (!schema) return;
     setSaveState({ kind: "idle" });
+    setFieldAssistState({ kind: "idle" });
     setMode({ kind: "create" });
     setDraft(emptyDraft(schema.fields));
     setBody("");
@@ -1059,8 +1161,53 @@ export function App(): ReactElement {
 
   const backToList = useCallback((): void => {
     setMode({ kind: "browse" });
+    setFieldAssistState({ kind: "idle" });
     setSaveState({ kind: "idle" });
   }, []);
+
+  const runFieldAssist = useCallback(
+    (variant: FieldAssistVariant, field: string): void => {
+      if (!entityType || body.trim().length === 0) return;
+      setFieldAssistState({ kind: "loading", field, variant });
+      requestFieldAssist({
+        variant,
+        entityType,
+        targetField: field,
+        body,
+        frontmatter: draft,
+      })
+        .then((response: FieldAssistResponse) => {
+          const suggestion =
+            response.variant === "summarise"
+              ? response.suggestion
+              : response.suggestions;
+          setFieldAssistState({
+            kind: "suggested",
+            field: response.targetField,
+            variant: response.variant,
+            suggestion,
+          });
+        })
+        .catch((error: unknown) => {
+          setFieldAssistState({
+            kind: "error",
+            field,
+            message: errorMessage(error),
+          });
+        });
+    },
+    [body, draft, entityType],
+  );
+
+  const applyFieldAssist = useCallback(
+    (field: string, suggestion: string | string[]): void => {
+      setDraft((current) =>
+        applyFieldAssistSuggestion(current, field, suggestion),
+      );
+      setFieldAssistState({ kind: "idle" });
+    },
+    [],
+  );
 
   const save = useCallback((): void => {
     if (!entityType || mode.kind === "browse" || !schema) return;
@@ -1250,16 +1397,26 @@ export function App(): ReactElement {
                 </button>
               )}
               {schema.fields.map((descriptor) => (
-                <Field
-                  key={descriptor.name}
-                  descriptor={descriptor}
-                  value={draft[descriptor.name]}
-                  onChange={(raw) =>
-                    setDraft((current) =>
-                      applyFieldChange(current, descriptor, raw),
-                    )
-                  }
-                />
+                <div key={descriptor.name} className="field-with-assist">
+                  <Field
+                    descriptor={descriptor}
+                    value={draft[descriptor.name]}
+                    onChange={(raw) =>
+                      setDraft((current) =>
+                        applyFieldChange(current, descriptor, raw),
+                      )
+                    }
+                  />
+                  {schema.hasBody && body.trim().length > 0 && (
+                    <FieldAssistControls
+                      descriptor={descriptor}
+                      state={fieldAssistState}
+                      onRun={runFieldAssist}
+                      onApply={applyFieldAssist}
+                      onDiscard={() => setFieldAssistState({ kind: "idle" })}
+                    />
+                  )}
+                </div>
               ))}
               {schema.fields.length === 0 && (
                 <p className="status">
@@ -1415,6 +1572,16 @@ const styles = `
   .field-image .image-ref button { font-family: var(--console-ui); font-size: 12px; border: 1px solid var(--console-rule-strong); background: none; color: var(--console-text-dim); border-radius: 5px; padding: 3px 9px; cursor: pointer; }
   .field-image .image-ref button:hover { color: var(--console-accent-dim); border-color: color-mix(in srgb, var(--console-accent) 40%, transparent); }
   .field-image input[type="file"] { width: 100%; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); border: 1px dashed var(--console-rule-strong); border-radius: 8px; background: var(--console-card); padding: 12px 11px; }
+  .field-with-assist .field { padding-bottom: 9px; }
+  .field-assist-controls { display: flex; align-items: center; gap: 8px; padding: 0 0 12px; }
+  .field-assist-run, .field-assist-action { border: 1px solid var(--console-rule-strong); border-radius: 999px; background: var(--console-card); color: var(--console-text-dim); font-family: var(--console-mono); font-size: 9px; padding: 5px 9px; cursor: pointer; }
+  .field-assist-run:hover, .field-assist-action:hover { border-color: var(--console-accent); color: var(--console-accent-dim); }
+  .field-assist-run[disabled] { opacity: .55; cursor: wait; }
+  .field-assist-suggestion { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; padding: 9px; border: 1px solid var(--console-rule-accent); border-radius: 7px; background: var(--console-accent-soft); }
+  .field-assist-copy { flex: 1 0 100%; font-size: 12px; line-height: 1.45; color: var(--console-text); }
+  .field-assist-tags { display: flex; flex: 1 0 100%; flex-wrap: wrap; gap: 5px; }
+  .field-assist-tags code { font-family: var(--console-mono); font-size: 10px; padding: 3px 6px; border-radius: 4px; background: var(--console-card); color: var(--console-text); }
+  .field-assist-action.ghost { background: transparent; }
 
   /* ── manuscript / body editor ── */
   .manuscript { display: flex; flex-direction: column; min-width: 0; }
