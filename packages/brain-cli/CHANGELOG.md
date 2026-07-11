@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- [#55](https://github.com/rizom-ai/brains/pull/55) [`07f7f45`](https://github.com/rizom-ai/brains/commit/07f7f45f2671cfca411f1b2210bf895b47f9cf42) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix conventional `src/site.ts` overrides that structurally match a plugin-less site package so they merge with the brain model's base site and preserve its runtime plugin and templates.
+
 ## 0.2.0-alpha.150
 
 ## 0.2.0-alpha.149
