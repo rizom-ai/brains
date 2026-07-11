@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-work",
-  "version": "0.2.0-alpha.151",
+  "version": "0.2.0-alpha.152",
   "description": "Rizom Work site package for hosted Rover deployments",
   "type": "module",
   "exports": {
@@ -18,8 +18,8 @@
     "prepack": "publish-manifest prepare"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.151",
-    "@rizom/site-rizom": "0.2.0-alpha.151",
+    "@rizom/site": "0.2.0-alpha.152",
+    "@rizom/site-rizom": "0.2.0-alpha.152",
     "preact": "^10.27.2"
   },
   "devDependencies": {

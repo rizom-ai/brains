@@ -1,6 +1,6 @@
 {
   "name": "@brains/blog",
-  "version": "0.2.0-alpha.151",
+  "version": "0.2.0-alpha.152",
   "description": "AI-powered blog post generation from existing brain content",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
