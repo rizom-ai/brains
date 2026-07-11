@@ -1,5 +1,22 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.156
+
+### Patch Changes
+
+- [`7154894`](https://github.com/rizom-ai/brains/commit/7154894218f407bb09c6d53a37efc70f38a4c112) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow blog post, project, and agent templates to validate datasource output before site-builder adds URL and display-label enrichment. This restores generated list and detail pages for standalone site overrides.
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.156
+  - @brains/content-formatters@0.2.0-alpha.156
+  - @brains/contracts@0.2.0-alpha.156
+  - @brains/media-page-composer@0.2.0-alpha.156
+  - @brains/media-renderer@0.2.0-alpha.156
+  - @brains/ui-library@0.2.0-alpha.156
+  - @brains/utils@0.2.0-alpha.156
+  - @brains/plugins@0.2.0-alpha.156
+  - @brains/templates@0.2.0-alpha.156
+
 ## 0.2.0-alpha.155
 
 ### Patch Changes

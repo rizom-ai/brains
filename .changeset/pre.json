@@ -187,6 +187,7 @@
     "fix-document-preview-dedup",
     "fix-shared-host-late-routes",
     "fix-shared-local-env-browser-build",
+    "fix-site-enrichment-template-validation",
     "fix-startup-order-singletons",
     "fix-system-create-link-routing",
     "fixed-group-alpha-republish",
