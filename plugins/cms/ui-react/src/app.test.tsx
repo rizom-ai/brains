@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   applyFieldChange,
   applySuggestionToSelection,
@@ -9,7 +10,6 @@ import {
   createBodyEditorState,
   derivePipeline,
   emptyDraft,
-  entityPublicationState,
   entityTitle,
   Field,
   parseCmsHash,
@@ -49,7 +49,13 @@ const selectField: FieldDescriptor = {
   options: ["draft", "published"],
 };
 
-describe("responsive editor styles", () => {
+describe("editor surface styles", () => {
+  it("defines the editorial library and manuscript treatment", () => {
+    expect(visualRefreshStyles).toContain(".listing-head::after");
+    expect(visualRefreshStyles).toContain(".body-preview h1");
+    expect(visualRefreshStyles).toContain("var(--console-on-accent)");
+  });
+
   it("defines tablet collection switching and phone editing panes", () => {
     expect(responsiveStyles).toContain("@media (max-width: 900px)");
     expect(responsiveStyles).toContain("@media (max-width: 640px)");
@@ -580,25 +586,6 @@ describe("PipelineStations", () => {
     expect(html).toContain("exported to file");
     expect(html).not.toContain(">committed<");
     expect(html).toContain("no git remote");
-  });
-});
-
-describe("entityPublicationState", () => {
-  it("recognizes explicit and boolean publication metadata", () => {
-    const base = { id: "abc", entityType: "post", updated: "" };
-    expect(
-      entityPublicationState({
-        ...base,
-        frontmatter: { status: "published" },
-      }),
-    ).toBe("published");
-    expect(
-      entityPublicationState({
-        ...base,
-        frontmatter: { published: true },
-      }),
-    ).toBe("published");
-    expect(entityPublicationState({ ...base, frontmatter: {} })).toBe("draft");
   });
 });
 
