@@ -1,6 +1,8 @@
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
+import { tags } from "@lezer/highlight";
 import {
   useCallback,
   useEffect,
@@ -97,11 +99,31 @@ export function applyFieldChange(
 function formatUpdated(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
+  const elapsed = Date.now() - date.getTime();
+  const minutes = Math.max(0, Math.floor(elapsed / 60_000));
+  if (minutes < 60) return `${Math.max(1, minutes)} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
   return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+}
+
+export function entityPublicationState(
+  entity: EntitySummary,
+): "draft" | "published" {
+  const status = entity.frontmatter["status"];
+  if (status === "published") return "published";
+  return entity.frontmatter["published"] === true ? "published" : "draft";
+}
+
+function singularLabel(label: string): string {
+  return label.endsWith("s") ? label.slice(0, -1) : label;
 }
 
 const BODY_MODES = ["source", "split", "preview"] as const;
@@ -114,8 +136,18 @@ const BODY_MODE_LABELS: Record<BodyMode, string> = {
 
 const externalDocumentSync = Annotation.define<boolean>();
 
+const cmsMarkdownHighlightStyle = HighlightStyle.define([
+  { tag: tags.heading, color: "var(--console-accent-dim)", fontWeight: "500" },
+  { tag: tags.meta, color: "var(--console-text-muted)" },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.strong, fontWeight: "600" },
+  { tag: [tags.link, tags.url], color: "var(--console-accent-dim)" },
+  { tag: tags.quote, color: "var(--console-text-dim)" },
+]);
+
 const bodyEditorBaseExtensions: Extension[] = [
   markdown(),
+  syntaxHighlighting(cmsMarkdownHighlightStyle),
   EditorView.lineWrapping,
 ];
 
@@ -321,10 +353,17 @@ export function BodyEditor(props: {
             </button>
           ))}
         </span>
-        <span className="doc-meta">markdown · edits the literal bytes</span>
+        <span className="doc-meta">
+          {value.trim() ? value.trim().split(/\s+/).length.toLocaleString() : 0}{" "}
+          words · markdown · perfect round-trip
+        </span>
       </header>
       {assist && showSource && (
-        <section className="assist-bar" aria-label="AI selection rewrite">
+        <section
+          className="assist-bar"
+          data-has-selection={selection ? "true" : "false"}
+          aria-label="AI selection rewrite"
+        >
           <input
             type="text"
             value={instruction}
@@ -399,34 +438,67 @@ export function BodyEditor(props: {
   );
 }
 
+const COLLECTION_ENTITY_TYPES = new Set([
+  "project",
+  "projects",
+  "series",
+  "topic",
+  "topics",
+]);
+const SITE_ENTITY_TYPES = new Set([
+  "profile",
+  "settings",
+  "site-info",
+  "siteInfo",
+]);
+
+function cmsTypeGroup(entityType: string): "Content" | "Collections" | "Site" {
+  if (SITE_ENTITY_TYPES.has(entityType)) return "Site";
+  if (COLLECTION_ENTITY_TYPES.has(entityType)) return "Collections";
+  return "Content";
+}
+
 export function TypeSwitcher(props: {
   types: EntityTypeInfo[];
   active: string | null;
   onSelect: (entityType: string) => void;
 }): ReactElement {
+  const groups = (["Content", "Collections", "Site"] as const)
+    .map((label) => ({
+      label,
+      types: props.types.filter(
+        (info) => cmsTypeGroup(info.entityType) === label,
+      ),
+    }))
+    .filter((group) => group.types.length > 0);
+
   return (
-    <nav className="types rail-group">
-      <div className="rail-title">Collections</div>
-      <ul>
-        {props.types.map((info) => (
-          <li key={info.entityType}>
-            <button
-              type="button"
-              className={
-                info.entityType === props.active ? "type active" : "type"
-              }
-              onClick={() => props.onSelect(info.entityType)}
-            >
-              {info.label}
-              {info.isSingleton ? (
-                <span className="singleton-mark">solo</span>
-              ) : (
-                <span className="count">{info.count}</span>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
+    <nav className="types">
+      {groups.map((group) => (
+        <section className="rail-group" key={group.label}>
+          <div className="rail-title">{group.label}</div>
+          <ul>
+            {group.types.map((info) => (
+              <li key={info.entityType}>
+                <button
+                  type="button"
+                  className={
+                    info.entityType === props.active ? "type active" : "type"
+                  }
+                  onClick={() => props.onSelect(info.entityType)}
+                >
+                  {info.label}
+                  {info.isSingleton ? (
+                    <span className="singleton-mark">solo</span>
+                  ) : (
+                    <span className="count">{info.count}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </nav>
   );
 }
@@ -970,6 +1042,9 @@ export function App(): ReactElement {
       : mode.kind === "create"
         ? `New ${activeType?.label ?? entityType}`
         : (activeType?.label ?? entityType);
+  const collectionLabel = activeType?.label ?? entityType;
+  const entryLabel = singularLabel(collectionLabel);
+  const syncPending = syncStatus?.git?.hasChanges === true;
 
   return (
     <div className="studio" data-view={editing ? "editor" : "listing"}>
@@ -979,7 +1054,13 @@ export function App(): ReactElement {
           content <b>studio</b>
         </span>
         <span className="crumb">
-          {activeType?.label ?? entityType}
+          {editing && !schema.isSingleton ? (
+            <button type="button" onClick={backToList}>
+              {collectionLabel}
+            </button>
+          ) : (
+            collectionLabel
+          )}
           {editing && (
             <>
               {" / "}
@@ -1003,10 +1084,11 @@ export function App(): ReactElement {
               <h3>{activeType?.label ?? entityType}</h3>
               <span className="meta">
                 {entities?.length ?? 0}{" "}
-                {entities?.length === 1 ? "entry" : "entries"}
+                {entities?.length === 1 ? "entity" : "entities"} · sorted by
+                updated
               </span>
               <button type="button" className="btn" onClick={startCreate}>
-                New entry
+                New {entryLabel.toLowerCase()}
               </button>
             </div>
             {(entities ?? []).map((entity, index) => (
@@ -1021,9 +1103,20 @@ export function App(): ReactElement {
                 </span>
                 <span className="title">
                   {entityTitle(entity)}
-                  <small>{entity.id}</small>
+                  <small>
+                    {singularLabel(entity.entityType)}/{entity.id}
+                  </small>
+                </span>
+                <span className={`chip ${entityPublicationState(entity)}`}>
+                  {entityPublicationState(entity)}
                 </span>
                 <span className="updated">{formatUpdated(entity.updated)}</span>
+                <span className="sync">
+                  <span
+                    className={syncPending ? "sync-dot pending" : "sync-dot"}
+                  />
+                  {syncPending ? "exporting" : "committed"}
+                </span>
               </button>
             ))}
             {entities?.length === 0 && (
@@ -1064,17 +1157,17 @@ export function App(): ReactElement {
             </nav>
             <aside className="colophon">
               <div className="form-title">
-                <h2>Colophon</h2>
+                <h2>
+                  <span className="cms-form-desktop-label">Frontmatter</span>
+                  <span className="cms-form-mobile-label">Colophon</span>
+                </h2>
                 <span>
-                  {entityType} ·{" "}
-                  {mode.kind === "create" ? "new" : schema.format}
+                  {entryLabel.toLowerCase()} ·{" "}
+                  {mode.kind === "create"
+                    ? "new"
+                    : entityPublicationState(mode.entity)}
                 </span>
               </div>
-              {!schema.isSingleton && (
-                <button type="button" className="backlink" onClick={backToList}>
-                  ← All {activeType?.label ?? entityType}
-                </button>
-              )}
               {schema.fields.map((descriptor) => (
                 <Field
                   key={descriptor.name}

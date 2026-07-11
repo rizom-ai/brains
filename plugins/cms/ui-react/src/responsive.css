@@ -1,10 +1,14 @@
 /* CMS responsive composition. Desktop form/editor rules stay in App.tsx;
    this module owns tablet collection switching and phone editing modes. */
 
-.cms-mobile-modes { display: none; }
+.cms-mobile-modes {
+  display: none;
+}
 
 @media (max-width: 900px) {
-  .crumb-mark { display: none; }
+  .crumb-mark {
+    display: none;
+  }
   .studio-body {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
@@ -19,8 +23,19 @@
     overscroll-behavior-inline: contain;
     scrollbar-width: none;
   }
-  .rail::-webkit-scrollbar { display: none; }
-  .rail-title { display: none; }
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+  .rail-title {
+    display: none;
+  }
+  .types {
+    display: flex;
+  }
+  .rail-group {
+    display: contents;
+    padding: 0;
+  }
   .rail ul {
     display: flex;
     gap: 6px;
@@ -39,16 +54,35 @@
     background: var(--console-accent-soft);
   }
   .rail .count,
-  .rail .singleton-mark { margin-left: 7px; }
-  .editor { grid-template-columns: 260px minmax(0, 1fr); }
-  .colophon { padding-inline: 20px; }
+  .rail .singleton-mark {
+    margin-left: 7px;
+  }
+  .editor {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+  .cms-form-desktop-label {
+    display: none;
+  }
+  .cms-form-mobile-label {
+    display: inline;
+  }
+  .form-title h2 .cms-form-mobile-label {
+    color: var(--console-text);
+  }
+  .colophon {
+    padding-inline: 20px;
+  }
   .body-source .cm-content,
-  .body-preview { padding-inline: 24px; }
+  .body-preview {
+    padding-inline: 24px;
+  }
   .track {
     width: 34px;
     margin-inline: 8px;
   }
-  .commit-ref { display: none; }
+  .commit-ref {
+    display: none;
+  }
 }
 
 @media (min-width: 641px) and (max-width: 900px) {
@@ -59,8 +93,12 @@
   .body-editor:has(.body-panes.split) .assist-bar {
     display: none;
   }
-  .body-panes.split { grid-template-columns: minmax(0, 1fr); }
-  .body-panes.split .body-source { display: none; }
+  .body-panes.split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .body-panes.split .body-source {
+    display: none;
+  }
   .form-title {
     align-items: baseline;
     margin-bottom: 12px;
@@ -70,12 +108,14 @@
     color: var(--console-text);
     font-family: var(--console-display);
     font-size: 22px;
-    font-variation-settings: "SOFT" 62, "opsz" 48;
+    font-variation-settings:
+      "SOFT" 62,
+      "opsz" 48;
     font-weight: 540;
     letter-spacing: -0.015em;
     text-transform: none;
   }
-  .form-title span {
+  .form-title > span {
     color: var(--console-accent);
     font-size: 8px;
     letter-spacing: 0.12em;
@@ -89,7 +129,9 @@
   }
   .pipeline .stations-wrap,
   .pipeline > .btn.danger,
-  .pipeline > .spacer { display: none; }
+  .pipeline > .spacer {
+    display: none;
+  }
   .cms-mobile-save-status {
     display: block;
     min-width: 0;
@@ -125,7 +167,9 @@
     font-family: var(--console-mono);
     list-style: none;
   }
-  .cms-mobile-more summary::-webkit-details-marker { display: none; }
+  .cms-mobile-more summary::-webkit-details-marker {
+    display: none;
+  }
   .cms-mobile-more button {
     position: absolute;
     right: 0;
@@ -145,20 +189,30 @@
     height: auto;
     padding: 7px 12px;
   }
-  .crumb-mark { display: none; }
+  .crumb-mark {
+    display: none;
+  }
   .crumb {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .studio-body { overflow: hidden; }
-  .rail { padding-inline: 10px; }
-  .rail .type { min-height: var(--console-touch); }
+  .studio-body {
+    overflow: hidden;
+  }
+  .rail {
+    padding-inline: 10px;
+  }
+  .rail .type {
+    min-height: var(--console-touch);
+  }
   .studio[data-view="editor"] .studio-body {
     grid-template-rows: minmax(0, 1fr);
   }
-  .studio[data-view="editor"] .rail { display: none; }
+  .studio[data-view="editor"] .rail {
+    display: none;
+  }
   .listing {
     min-width: 0;
     overflow-y: auto;
@@ -169,8 +223,12 @@
     gap: 9px;
     padding-bottom: 13px;
   }
-  .listing-head h3 { font-size: 27px; }
-  .listing-head .meta { display: none; }
+  .listing-head h3 {
+    font-size: 27px;
+  }
+  .listing-head .meta {
+    display: none;
+  }
   .listing-head .btn {
     min-height: var(--console-touch);
     margin: 0 0 0 auto;
@@ -190,8 +248,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .row .chip,
+  .row .sync {
+    display: none;
+  }
   .row .updated {
     grid-column: 2;
+    justify-self: end;
     font-family: var(--console-mono);
     font-size: 9px;
   }
@@ -245,27 +308,39 @@
     color: var(--console-text);
     font-family: var(--console-display);
     font-size: 25px;
-    font-variation-settings: "SOFT" 62, "opsz" 48;
+    font-variation-settings:
+      "SOFT" 62,
+      "opsz" 48;
     font-weight: 540;
     letter-spacing: -0.015em;
     text-transform: none;
   }
-  .form-title span {
+  .form-title > span {
     color: var(--console-accent);
     font-size: 8px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
-  .backlink { margin-bottom: 0; }
-  .field { padding-block: 12px; }
-  .editor[data-mobile-pane="details"] .manuscript { display: none; }
+  .backlink {
+    margin-bottom: 0;
+  }
+  .field {
+    padding-block: 12px;
+  }
+  .editor[data-mobile-pane="details"] .manuscript {
+    display: none;
+  }
   .editor[data-mobile-pane="write"] .colophon,
-  .editor[data-mobile-pane="preview"] .colophon { display: none; }
+  .editor[data-mobile-pane="preview"] .colophon {
+    display: none;
+  }
   .body-toolbar {
     min-height: 44px;
     padding: 7px 14px;
   }
-  .body-modes { display: none; }
+  .body-modes {
+    display: none;
+  }
   .doc-meta {
     margin-left: 0;
     font-size: 9px;
@@ -280,7 +355,9 @@
     min-width: 0;
     font-size: 16px;
   }
-  .assist-meta { display: none; }
+  .assist-meta {
+    display: none;
+  }
   .assist-suggestion {
     align-items: stretch;
     flex-wrap: wrap;
@@ -296,17 +373,31 @@
     min-height: 0;
     height: 100%;
   }
-  .body-panes.split { grid-template-columns: 1fr; }
-  .body-panes.split .body-preview { display: none; }
-  .body-source .cm-scroller { font-size: 13px; }
+  .body-panes.split {
+    grid-template-columns: 1fr;
+  }
+  .body-panes.split .body-preview {
+    display: none;
+  }
+  .body-source .cm-scroller {
+    font-size: 13px;
+  }
   .body-source .cm-content,
-  .body-preview { padding: 22px 16px 80px; }
-  .body-preview { overflow-y: auto; }
-  .body-preview h1 { font-size: 27px; }
+  .body-preview {
+    padding: 22px 16px 80px;
+  }
+  .body-preview {
+    overflow-y: auto;
+  }
+  .body-preview h1 {
+    font-size: 27px;
+  }
   .field input[type="text"],
   .field input[type="number"],
   .field select,
-  .field textarea { font-size: 16px; }
+  .field textarea {
+    font-size: 16px;
+  }
 
   .pipeline {
     grid-column: 1;
@@ -315,10 +406,7 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 10px;
     min-height: 64px;
-    padding:
-      8px
-      12px
-      calc(8px + env(safe-area-inset-bottom));
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
   }
   .save-btn,
   .pipeline .btn.danger {
@@ -328,7 +416,9 @@
     padding-inline: 18px;
     border-radius: 8px;
   }
-  .stations-wrap { display: none; }
+  .stations-wrap {
+    display: none;
+  }
   .cms-mobile-save-status {
     display: block;
     min-width: 0;
@@ -364,7 +454,9 @@
     font-family: var(--console-mono);
     list-style: none;
   }
-  .cms-mobile-more summary::-webkit-details-marker { display: none; }
+  .cms-mobile-more summary::-webkit-details-marker {
+    display: none;
+  }
   .cms-mobile-more button {
     position: absolute;
     right: 0;
@@ -376,7 +468,9 @@
     background: var(--console-card);
     color: var(--console-err);
   }
-  .pipeline > .btn.danger { display: none; }
+  .pipeline > .btn.danger {
+    display: none;
+  }
   .stations {
     min-width: 0;
     margin-left: 0;
@@ -385,7 +479,10 @@
     gap: 5px;
     font-size: 0;
   }
-  .station .dot { width: 10px; height: 10px; }
+  .station .dot {
+    width: 10px;
+    height: 10px;
+  }
   .track {
     width: clamp(18px, 7vw, 32px);
     margin-inline: 5px;
@@ -395,7 +492,9 @@
     font-size: 9px;
     text-overflow: ellipsis;
   }
-  .pipeline > .spacer { display: none; }
+  .pipeline > .spacer {
+    display: none;
+  }
   .pipeline .btn.danger {
     padding-inline: 10px;
     font-size: 11px;

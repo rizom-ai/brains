@@ -10,6 +10,7 @@ import {
   createBodyEditorState,
   derivePipeline,
   emptyDraft,
+  entityPublicationState,
   entityTitle,
   Field,
   parseCmsHash,
@@ -51,9 +52,10 @@ const selectField: FieldDescriptor = {
 
 describe("editor surface styles", () => {
   it("defines the editorial library and manuscript treatment", () => {
-    expect(visualRefreshStyles).toContain(".listing-head::after");
+    expect(visualRefreshStyles).toContain("232px minmax(0, 1fr)");
     expect(visualRefreshStyles).toContain(".body-preview h1");
-    expect(visualRefreshStyles).toContain("var(--console-on-accent)");
+    expect(visualRefreshStyles).toContain('"IBM Plex Mono"');
+    expect(visualRefreshStyles).toContain(".chip.published");
   });
 
   it("defines tablet collection switching and phone editing panes", () => {
@@ -218,7 +220,9 @@ describe("TypeSwitcher", () => {
         onSelect: () => {},
       }),
     );
+    expect(html).toContain("Content");
     expect(html).toContain("Posts");
+    expect(html).toContain("Site");
     expect(html).toContain("Site Info");
     // Active styling lands on the button for the active type only.
     expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
@@ -586,6 +590,25 @@ describe("PipelineStations", () => {
     expect(html).toContain("exported to file");
     expect(html).not.toContain(">committed<");
     expect(html).toContain("no git remote");
+  });
+});
+
+describe("entityPublicationState", () => {
+  it("recognizes explicit and boolean publication metadata", () => {
+    const base = { id: "abc", entityType: "post", updated: "" };
+    expect(
+      entityPublicationState({
+        ...base,
+        frontmatter: { status: "published" },
+      }),
+    ).toBe("published");
+    expect(
+      entityPublicationState({
+        ...base,
+        frontmatter: { published: true },
+      }),
+    ).toBe("published");
+    expect(entityPublicationState({ ...base, frontmatter: {} })).toBe("draft");
   });
 });
 

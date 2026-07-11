@@ -62,10 +62,10 @@ describe("renderEditorShellHtml", () => {
     expect(html).toContain("Sign out");
   });
 
-  it("loads the console type ramp, not IBM Plex Mono", () => {
+  it("loads the shared ramp plus the CMS editorial mono face", () => {
     const html = renderEditorShellHtml(SHELL_OPTIONS);
 
     expect(html).toContain("JetBrains+Mono");
-    expect(html).not.toContain("IBM+Plex+Mono");
+    expect(html).toContain("IBM+Plex+Mono");
   });
 });

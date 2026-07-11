@@ -1,6 +1,7 @@
 ---
 "@brains/web-chat": patch
 "@brains/cms": patch
+"@brains/console-theme": patch
 ---
 
-Bring the Chat and CMS desktop surfaces into the unified console visual language. Chat now uses a compact active-conversation header, quiet session index, manuscript-style assistant responses, and shared instrument composer treatment; CMS gains a refined editorial library, colophon, manuscript canvas, and save instrument while preserving its responsive modes.
+Bring Chat and CMS into the approved console visual language. Chat gains a compact conversation index and responsive composer; CMS now applies the detailed editorial palette, IBM Plex Mono source treatment, grouped library metadata, manuscript typography, and responsive Details/Write/Preview styling. The shared font payload includes the CMS editorial mono face.

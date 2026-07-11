@@ -85,11 +85,11 @@ describe("CONSOLE_THEME_CSS", () => {
     expect(CONSOLE_THEME_CSS).toContain(".cp-group + .cp-group");
   });
 
-  it("loads exactly the console type ramp from the fonts URL", () => {
+  it("loads the shared ramp and the CMS editorial mono face", () => {
     expect(CONSOLE_FONTS_URL).toContain("Fraunces");
     expect(CONSOLE_FONTS_URL).toContain("IBM+Plex+Sans");
     expect(CONSOLE_FONTS_URL).toContain("JetBrains+Mono");
-    expect(CONSOLE_FONTS_URL).not.toContain("IBM+Plex+Mono");
+    expect(CONSOLE_FONTS_URL).toContain("IBM+Plex+Mono");
   });
 
   it("styles chrome only from console tokens", () => {
