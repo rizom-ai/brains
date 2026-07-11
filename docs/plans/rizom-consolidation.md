@@ -234,10 +234,11 @@ packages — entity plugins own their list rendering; the site configures presen
   `addOverride: [atproto-registry, site-content]` — all three drift from our
   composition and must move: bump to the freshly published version, switch the theme to
   `@brains/theme-rizom-ai`, and carry the real `add:` set
-  (`web-chat`, `atproto-registry`, `products`, `rizom-ecosystem`, `newsletter`). Content
-  stays in the pilot's own repo, `rizom-ai/rover-new-content` (per `contentRepoPrefix:
-rover-` + handle), **not** a separately-named `rizom-content`. Then deploy to
-  `new.rizom.ai`.
+  (`web-chat`, `atproto-registry`, `products`, `rizom-ecosystem`, `newsletter`). For
+  content, override the pilot's generic per-handle default (`rizom-ai/rover-new-content`)
+  and point the staging sync at the merged `rizom-ai/rizom-content` (Decision 4) — the
+  whole reason to stage is to validate the folded corpus before the production cutover.
+  Then deploy to `new.rizom.ai`.
 
 ### Phase 6 — Production DNS cutover and retirement
 
