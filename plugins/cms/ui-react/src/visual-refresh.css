@@ -209,6 +209,7 @@
   background: var(--console-card-soft);
 }
 .form-title {
+  gap: 12px;
   padding-bottom: 18px;
   color: var(--console-text-muted);
   font-size: 10px;
@@ -226,6 +227,7 @@
 }
 .form-title > span {
   color: var(--console-accent);
+  text-align: right;
 }
 .cms-mobile-save-status,
 .cms-mobile-more {
@@ -242,12 +244,178 @@
 }
 .field input[type="text"],
 .field input[type="number"],
+.field input[type="datetime-local"],
 .field select,
 .field textarea {
   min-height: 0;
   border-color: var(--console-rule-strong);
   border-radius: 6px;
   background: var(--console-card);
+}
+.field input[type="datetime-local"] {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--console-rule-strong);
+  color: var(--console-text);
+  font: 12.5px var(--console-mono);
+  color-scheme: light;
+}
+[data-climate="instrument"] .field input[type="datetime-local"] {
+  color-scheme: dark;
+}
+.field textarea:disabled {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--console-text) 3%, var(--console-card));
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+.field input:user-invalid,
+.field select:user-invalid,
+.field textarea:user-invalid {
+  border-color: var(--console-err);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-err) 12%, transparent);
+}
+.field-inline input[type="checkbox"] {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  appearance: none;
+  flex: 0 0 auto;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 999px;
+  outline: none;
+  background: var(--console-rule);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+.field-inline input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--console-card);
+  box-shadow: 0 1px 3px color-mix(in srgb, black 28%, transparent);
+  transition: transform 150ms ease;
+}
+.field-inline input[type="checkbox"]:checked {
+  border-color: var(--console-ok);
+  background: var(--console-ok);
+}
+.field-inline input[type="checkbox"]:checked::after {
+  transform: translateX(16px);
+}
+.field-inline input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-ok) 18%, transparent);
+}
+.field-image .image-ref {
+  align-items: stretch;
+}
+.field-image .image-ref code {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+}
+.upload-zone {
+  display: grid;
+  justify-items: center;
+  padding: 22px 16px;
+  border: 1.5px dashed var(--console-text-muted);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--console-card) 75%, transparent);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+.upload-zone:hover,
+.upload-zone:focus-within {
+  border-color: var(--console-accent);
+  background: color-mix(in srgb, var(--console-accent) 4%, var(--console-card));
+}
+.upload-zone .upload-glyph {
+  color: var(--console-accent-dim);
+  font: 30px/1 var(--console-display);
+  font-variation-settings: "SOFT" 100;
+}
+.upload-zone strong {
+  margin-top: 8px;
+  color: var(--console-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+.upload-zone small {
+  margin-top: 3px;
+  color: var(--console-text-muted);
+  font: 9.5px var(--console-mono);
+}
+.upload-zone input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 5px 3px 10px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 999px;
+  background: var(--console-card);
+  color: var(--console-text-dim);
+  font-size: 12px;
+}
+.tag button {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font: 13px/1 var(--console-mono);
+}
+.tag button:hover,
+.tag button:focus-visible {
+  background: var(--console-accent-soft);
+  color: var(--console-accent-dim);
+  outline: none;
+}
+.tag-add {
+  border-style: dashed;
+  padding-left: 9px;
+}
+.field .tag-add input[type="text"] {
+  width: 58px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--console-text);
+  font-size: 12px;
+  box-shadow: none;
+}
+.field .tag-add input[type="text"]::placeholder {
+  color: var(--console-text-muted);
+}
+.field .tag-add input[type="text"]:focus {
+  width: 86px;
 }
 
 .manuscript {
@@ -353,9 +521,109 @@
     grid-row: 2;
     gap: 0;
   }
-  .pipeline .btn.danger {
-    display: none;
-  }
+}
+
+/* Validation, conflicts, destructive actions, and overlays use the same
+   editorial materials as the default manuscript instead of browser chrome. */
+.status-error {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  color: var(--console-err);
+}
+.status-error::before {
+  content: "×";
+  font-family: var(--console-mono);
+  font-weight: 500;
+}
+.pipeline {
+  position: relative;
+}
+.pipeline .conflict {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 12px);
+  width: min(430px, calc(100vw - 32px));
+  max-width: 430px;
+  margin-inline: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--console-warn) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--console-warn) 7%, var(--console-card));
+  box-shadow: 0 12px 30px color-mix(in srgb, black 12%, transparent);
+}
+.conflict h4 {
+  margin-bottom: 4px;
+  color: var(--console-text);
+  font: 560 16px/1.2 var(--console-display);
+  font-variation-settings: "SOFT" 40;
+}
+.conflict p {
+  margin-bottom: 10px;
+  color: var(--console-text-dim);
+  font-size: 12px;
+}
+.conflict .btn {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+.modal-scrim {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--console-text) 38%, transparent);
+  backdrop-filter: blur(2px);
+}
+.delete-modal {
+  width: min(100%, 430px);
+  padding: 28px 30px 24px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 9px;
+  background: var(--console-card);
+  box-shadow: 0 24px 70px color-mix(in srgb, black 22%, transparent);
+}
+.modal-mark {
+  color: var(--console-err);
+  font: 28px/1 var(--console-display);
+}
+.delete-modal h3 {
+  margin-top: 8px;
+  color: var(--console-text);
+  font: 580 23px/1.15 var(--console-display);
+  font-variation-settings:
+    "SOFT" 60,
+    "opsz" 40;
+}
+.delete-modal p {
+  margin-top: 11px;
+  color: var(--console-text-dim);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.delete-modal code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--console-rule);
+  color: var(--console-text);
+  font: 11px var(--console-mono);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.modal-actions .btn.danger {
+  border-color: var(--console-err);
+  background: var(--console-err);
+  color: var(--console-card);
+}
+.modal-actions .btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 /* Instrument is an authored equivalent, not a naive inversion of paper. */

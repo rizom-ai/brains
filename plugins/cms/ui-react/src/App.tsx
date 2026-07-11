@@ -77,7 +77,7 @@ export function emptyDraft(fields: FieldDescriptor[]): Record<string, unknown> {
 export function applyFieldChange(
   draft: Record<string, unknown>,
   descriptor: FieldDescriptor,
-  raw: string | boolean,
+  raw: unknown,
 ): Record<string, unknown> {
   const next = { ...draft };
   if (raw === "") {
@@ -94,6 +94,13 @@ export function applyFieldChange(
   }
   next[descriptor.name] = raw;
   return next;
+}
+
+function datetimeLocalValue(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 16);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
 }
 
 function formatUpdated(iso: string): string {
@@ -525,12 +532,13 @@ export function SaveStateNotice(props: {
   }
   if (state.kind === "conflict") {
     return (
-      <p className="status status-error">
-        {state.message}{" "}
-        <button type="button" className="reload" onClick={onReload}>
-          Reload entry
+      <section className="conflict" role="alert">
+        <h4>The manuscript changed elsewhere</h4>
+        <p>{state.message}</p>
+        <button type="button" className="btn ghost reload" onClick={onReload}>
+          Reload latest
         </button>
-      </p>
+      </section>
     );
   }
   if (state.kind === "error") {
@@ -683,26 +691,34 @@ function ImageField(props: {
           </button>
         </p>
       )}
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(event) => {
-          const file = event.currentTarget.files?.[0];
-          if (!file) return;
-          setUploadState({ kind: "uploading" });
-          uploadFile(file)
-            .then((result) => {
-              setUploadState({ kind: "idle" });
-              onChange(result.entityId);
-            })
-            .catch((error: unknown) =>
-              setUploadState({
-                kind: "error",
-                message: error instanceof Error ? error.message : String(error),
-              }),
-            );
-        }}
-      />
+      <label className="upload-zone">
+        <span className="upload-glyph" aria-hidden="true">
+          ↑
+        </span>
+        <strong>Choose an image</strong>
+        <small>PNG, JPEG, GIF, WebP, AVIF, or SVG</small>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (!file) return;
+            setUploadState({ kind: "uploading" });
+            uploadFile(file)
+              .then((result) => {
+                setUploadState({ kind: "idle" });
+                onChange(result.entityId);
+              })
+              .catch((error: unknown) =>
+                setUploadState({
+                  kind: "error",
+                  message:
+                    error instanceof Error ? error.message : String(error),
+                }),
+              );
+          }}
+        />
+      </label>
       {uploadState.kind === "uploading" && <p className="status">Uploading…</p>}
       {uploadState.kind === "error" && (
         <p className="status status-error">{uploadState.message}</p>
@@ -711,10 +727,69 @@ function ImageField(props: {
   );
 }
 
+function StringListField(props: {
+  descriptor: FieldDescriptor;
+  value: unknown;
+  onChange: (raw: string[]) => void;
+}): ReactElement {
+  const [pending, setPending] = useState("");
+  const values = Array.isArray(props.value)
+    ? props.value.filter((item): item is string => typeof item === "string")
+    : [];
+  const add = (): void => {
+    const next = pending.trim();
+    if (next && !values.includes(next)) props.onChange([...values, next]);
+    setPending("");
+  };
+
+  return (
+    <div className="field field-tags">
+      <span className="field-label">
+        {props.descriptor.label}
+        <em className="kind">tags</em>
+      </span>
+      <div className="tags">
+        {values.map((value) => (
+          <span className="tag" key={value}>
+            {value}
+            <button
+              type="button"
+              aria-label={`Remove ${value}`}
+              onClick={() =>
+                props.onChange(values.filter((item) => item !== value))
+              }
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <span className="tag tag-add">
+          <input
+            type="text"
+            value={pending}
+            aria-label={`Add ${props.descriptor.label.toLowerCase()} tag`}
+            placeholder="Add tag"
+            onChange={(event) => setPending(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === ",") {
+                event.preventDefault();
+                add();
+              }
+            }}
+          />
+          <button type="button" aria-label="Add tag" onClick={add}>
+            +
+          </button>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function Field(props: {
   descriptor: FieldDescriptor;
   value: unknown;
-  onChange: (raw: string | boolean) => void;
+  onChange: (raw: unknown) => void;
 }): ReactElement {
   const { descriptor, value, onChange } = props;
   const required = descriptor.required !== false;
@@ -784,9 +859,19 @@ export function Field(props: {
     );
   }
 
+  if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
+    return (
+      <StringListField
+        descriptor={descriptor}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+
   if (descriptor.widget === "list" || descriptor.widget === "object") {
-    // Structured widgets are read-only in the walking skeleton; the value
-    // round-trips untouched because saves only send draft keys.
+    // Nested structured widgets remain read-only; the value round-trips
+    // untouched because saves only send changed draft keys.
     return (
       <label className="field">
         <span className="field-label">
@@ -806,10 +891,24 @@ export function Field(props: {
     <label className="field">
       {label}
       <input
-        type={descriptor.widget === "number" ? "number" : "text"}
-        value={text}
+        type={
+          descriptor.widget === "number"
+            ? "number"
+            : descriptor.widget === "datetime"
+              ? "datetime-local"
+              : "text"
+        }
+        value={
+          descriptor.widget === "datetime" ? datetimeLocalValue(text) : text
+        }
         required={required}
-        onChange={(event) => onChange(event.currentTarget.value)}
+        onChange={(event) =>
+          onChange(
+            descriptor.widget === "datetime" && event.currentTarget.value
+              ? new Date(event.currentTarget.value).toISOString()
+              : event.currentTarget.value,
+          )
+        }
       />
     </label>
   );
@@ -821,6 +920,57 @@ type EditorMode =
   | { kind: "create" };
 
 type MobileEditorPane = "details" | "write" | "preview";
+
+export function DeleteDialog(props: {
+  entityId: string;
+  deleting?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}): ReactElement {
+  return (
+    <div
+      className="modal-scrim"
+      role="presentation"
+      onMouseDown={props.deleting ? undefined : props.onCancel}
+    >
+      <section
+        className="delete-modal"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <span className="modal-mark" aria-hidden="true">
+          ×
+        </span>
+        <h3 id="delete-title">Delete this entry?</h3>
+        <p>
+          The exported file for <code>{props.entityId}</code> will be removed.
+          Its history remains recoverable in git.
+        </p>
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn ghost"
+            autoFocus
+            disabled={props.deleting}
+            onClick={props.onCancel}
+          >
+            Keep entry
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            disabled={props.deleting}
+            onClick={props.onConfirm}
+          >
+            {props.deleting ? "Deleting…" : "Delete entry"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 export function App(): ReactElement {
   const [types, setTypes] = useState<EntityTypeInfo[] | null>(null);
@@ -836,11 +986,22 @@ export function App(): ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const saveStartedAt = useRef(0);
   // Entity id from a console-jump door, opened once its collection loads.
   const pendingDeepLinkId = useRef<string | null>(null);
 
   const activeType = types?.find((info) => info.entityType === entityType);
+
+  useEffect(() => {
+    if (!deleteOpen) return undefined;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape" && !deleting) setDeleteOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return (): void => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteOpen, deleting]);
 
   useEffect(() => {
     fetchTypes()
@@ -991,22 +1152,23 @@ export function App(): ReactElement {
   }, [entityType, mode, draft, body, schema, openEntity, syncStatus]);
 
   const remove = useCallback((): void => {
-    if (!entityType || mode.kind !== "edit") return;
+    if (!entityType || mode.kind !== "edit" || deleting) return;
     const { id } = mode.entity;
+    setDeleting(true);
     // Recoverable downstream: the delete is exported and committed, so the
     // file remains in git history.
-    if (!window.confirm(`Delete ${id}? The exported file is removed too.`)) {
-      return;
-    }
     deleteEntity(entityType, id)
       .then(async () => {
+        setDeleteOpen(false);
         setMode({ kind: "browse" });
         setEntities(await fetchEntities(entityType));
       })
-      .catch((error: unknown) =>
-        setSaveState({ kind: "error", message: errorMessage(error) }),
-      );
-  }, [entityType, mode]);
+      .catch((error: unknown) => {
+        setDeleteOpen(false);
+        setSaveState({ kind: "error", message: errorMessage(error) });
+      })
+      .finally(() => setDeleting(false));
+  }, [entityType, mode, deleting]);
 
   if (loadError) {
     return (
@@ -1249,12 +1411,16 @@ export function App(): ReactElement {
               <span className="spacer" />
               {mode.kind === "edit" && !schema.isSingleton && (
                 <>
-                  <button type="button" className="btn danger" onClick={remove}>
+                  <button
+                    type="button"
+                    className="btn danger"
+                    onClick={() => setDeleteOpen(true)}
+                  >
                     Delete
                   </button>
                   <details className="cms-mobile-more">
                     <summary aria-label="More document actions">•••</summary>
-                    <button type="button" onClick={remove}>
+                    <button type="button" onClick={() => setDeleteOpen(true)}>
                       Delete entry
                     </button>
                   </details>
@@ -1264,6 +1430,14 @@ export function App(): ReactElement {
           </form>
         )}
       </div>
+      {deleteOpen && mode.kind === "edit" && (
+        <DeleteDialog
+          entityId={mode.entity.id}
+          deleting={deleting}
+          onCancel={() => setDeleteOpen(false)}
+          onConfirm={remove}
+        />
+      )}
     </div>
   );
 }

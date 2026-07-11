@@ -8,6 +8,7 @@ import {
   applySuggestionToSelection,
   BodyEditor,
   createBodyEditorState,
+  DeleteDialog,
   derivePipeline,
   emptyDraft,
   entityPublicationState,
@@ -141,6 +142,30 @@ describe("Field", () => {
     expect(html).toContain(">published<");
   });
 
+  it("renders ISO datetimes with a native local date-time control", () => {
+    const html = renderField(
+      { name: "publishedAt", label: "Published", widget: "datetime" },
+      "2026-07-11T14:30:00.000Z",
+    );
+    expect(html).toContain('type="datetime-local"');
+    expect(html).toContain('value="2026-07-11T14:30"');
+  });
+
+  it("renders primitive string lists as removable tags", () => {
+    const html = renderField(
+      {
+        name: "tags",
+        label: "Tags",
+        widget: "list",
+        field: { name: "tags", label: "Tags", widget: "string" },
+      },
+      ["console", "responsive"],
+    );
+    expect(html).toContain("console");
+    expect(html).toContain('aria-label="Remove responsive"');
+    expect(html).toContain('placeholder="Add tag"');
+  });
+
   it("marks required fields", () => {
     const html = renderField(stringField, "");
     expect(html).toContain("required");
@@ -183,6 +208,17 @@ describe("applyFieldChange", () => {
   it("stores booleans as booleans", () => {
     expect(applyFieldChange({}, booleanField, true)).toEqual({
       published: true,
+    });
+  });
+
+  it("stores tag-list arrays without string coercion", () => {
+    const descriptor: FieldDescriptor = {
+      name: "tags",
+      label: "Tags",
+      widget: "list",
+    };
+    expect(applyFieldChange({}, descriptor, ["cms", "editorial"])).toEqual({
+      tags: ["cms", "editorial"],
     });
   });
 
@@ -390,7 +426,8 @@ describe("SaveStateNotice", () => {
       }),
     );
     expect(html).toContain("changed since it was opened");
-    expect(html).toContain(">Reload entry<");
+    expect(html).toContain("The manuscript changed elsewhere");
+    expect(html).toContain(">Reload latest<");
   });
 
   it("shows plain errors without a reload action", () => {
@@ -402,6 +439,23 @@ describe("SaveStateNotice", () => {
     );
     expect(html).toContain("title: Required");
     expect(html).not.toContain("Reload entry");
+  });
+});
+
+describe("DeleteDialog", () => {
+  it("explains recoverability and exposes explicit keep/delete actions", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeleteDialog, {
+        entityId: "field-notes",
+        onCancel: () => {},
+        onConfirm: () => {},
+      }),
+    );
+    expect(html).toContain('role="alertdialog"');
+    expect(html).toContain("field-notes");
+    expect(html).toContain("recoverable in git");
+    expect(html).toContain("Keep entry");
+    expect(html).toContain("Delete entry");
   });
 });
 
