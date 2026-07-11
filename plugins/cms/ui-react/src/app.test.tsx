@@ -344,26 +344,39 @@ describe("BodyEditor", () => {
       "Review",
       "Fact-check",
       "Related",
+      "Rewrite",
     ]);
   });
 });
 
 describe("AgentAnswerPanel", () => {
-  it("renders markdown read-only with a dismiss action and no accept path", () => {
-    const html = renderToStaticMarkup(
+  const renderAnswer = (onReplace?: () => void): string =>
+    renderToStaticMarkup(
       createElement(AgentAnswerPanel, {
         agentId: "docs.example",
         response: "**Accurate**, with one caveat.",
+        onReplace,
         onDismiss: () => {},
       }),
     );
+
+  it("keeps ordinary answers dismiss-only", () => {
+    const html = renderAnswer();
 
     expect(html).toContain("Answer from");
     expect(html).toContain("docs.example");
     expect(html).toContain('data-streamdown="strong"');
     expect(html).toContain("Accurate");
     expect(html).toContain("Dismiss");
-    expect(html).not.toContain("Accept");
+    expect(html).not.toContain("Replace selection");
+    expect(html).not.toContain(">Accept<");
+  });
+
+  it("offers replacement when the ask used rewrite mode", () => {
+    const html = renderAnswer(() => {});
+
+    expect(html).toContain("Replace selection");
+    expect(html).toContain("Dismiss");
   });
 });
 

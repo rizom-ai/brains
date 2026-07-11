@@ -250,22 +250,49 @@ function CodeMirrorBodySource(props: {
 export const MODEL_ASSIST_TARGET = "model";
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 
-export const AGENT_INSTRUCTION_PRESETS = [
-  { label: "Review", instruction: "Review this selection." },
-  { label: "Fact-check", instruction: "Fact-check this selection." },
-  { label: "Related", instruction: "What related context do you know?" },
-] as const;
+type AgentAskMode = "answer" | "rewrite";
+
+export const AGENT_INSTRUCTION_PRESETS: ReadonlyArray<{
+  label: string;
+  instruction: string;
+  mode: AgentAskMode;
+}> = [
+  { label: "Review", instruction: "Review this selection.", mode: "answer" },
+  {
+    label: "Fact-check",
+    instruction: "Fact-check this selection.",
+    mode: "answer",
+  },
+  {
+    label: "Related",
+    instruction: "What related context do you know?",
+    mode: "answer",
+  },
+  {
+    label: "Rewrite",
+    instruction:
+      "Rewrite this selection. Return only replacement markdown without commentary.",
+    mode: "rewrite",
+  },
+];
 
 type AssistState =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "suggested"; range: SelectionRange; suggestion: string }
-  | { kind: "agent-answer"; agentId: string; response: string }
+  | {
+      kind: "agent-answer";
+      agentId: string;
+      response: string;
+      range: SelectionRange;
+      replaceSelection: boolean;
+    }
   | { kind: "error"; message: string };
 
 export function AgentAnswerPanel(props: {
   agentId: string;
   response: string;
+  onReplace?: (() => void) | undefined;
   onDismiss: () => void;
 }): ReactElement {
   return (
@@ -275,6 +302,11 @@ export function AgentAnswerPanel(props: {
         <Streamdown>{props.response}</Streamdown>
       </div>
       <span className="spacer" />
+      {props.onReplace && (
+        <button type="button" className="btn" onClick={props.onReplace}>
+          Replace selection
+        </button>
+      )}
       <button type="button" className="btn ghost" onClick={props.onDismiss}>
         Dismiss
       </button>
@@ -297,6 +329,7 @@ export function BodyEditor(props: {
   const [selection, setSelection] = useState<SelectionRange | null>(null);
   const [instruction, setInstruction] = useState("");
   const [assistTarget, setAssistTarget] = useState(MODEL_ASSIST_TARGET);
+  const [agentAskMode, setAgentAskMode] = useState<AgentAskMode>("answer");
   const [assistState, setAssistState] = useState<AssistState>({ kind: "idle" });
   const agents = assist?.agents ?? EMPTY_AGENT_TARGETS;
   const showSource = mode !== "preview";
@@ -311,6 +344,7 @@ export function BodyEditor(props: {
       !agents.some((agent) => agent.id === assistTarget)
     ) {
       setAssistTarget(MODEL_ASSIST_TARGET);
+      setAgentAskMode("answer");
       setAssistState({ kind: "idle" });
     }
   }, [agents, assistTarget]);
@@ -336,13 +370,27 @@ export function BodyEditor(props: {
             instruction,
             selection: selectedText,
           }).then(({ agentId, response }) => {
-            setAssistState({ kind: "agent-answer", agentId, response });
+            setAssistState({
+              kind: "agent-answer",
+              agentId,
+              response,
+              range,
+              replaceSelection: agentAskMode === "rewrite",
+            });
           });
 
     request.catch((error: unknown) => {
       setAssistState({ kind: "error", message: errorMessage(error) });
     });
-  }, [assist, assistTarget, instruction, selectedText, selection, value]);
+  }, [
+    agentAskMode,
+    assist,
+    assistTarget,
+    instruction,
+    selectedText,
+    selection,
+    value,
+  ]);
 
   const acceptSuggestion = useCallback((): void => {
     if (assistState.kind !== "suggested") return;
@@ -352,6 +400,22 @@ export function BodyEditor(props: {
           value,
           assistState.range,
           assistState.suggestion,
+        ),
+      );
+      setAssistState({ kind: "idle" });
+    } catch (error: unknown) {
+      setAssistState({ kind: "error", message: errorMessage(error) });
+    }
+  }, [assistState, onChange, value]);
+
+  const replaceWithAgentAnswer = useCallback((): void => {
+    if (assistState.kind !== "agent-answer") return;
+    try {
+      onChange(
+        applySuggestionToSelection(
+          value,
+          assistState.range,
+          assistState.response,
         ),
       );
       setAssistState({ kind: "idle" });
@@ -385,6 +449,7 @@ export function BodyEditor(props: {
               value={assistTarget}
               onChange={(event) => {
                 setAssistTarget(event.currentTarget.value);
+                setAgentAskMode("answer");
                 setAssistState({ kind: "idle" });
               }}
             >
@@ -430,8 +495,15 @@ export function BodyEditor(props: {
                 <button
                   key={preset.label}
                   type="button"
-                  className="assist-preset"
-                  onClick={() => setInstruction(preset.instruction)}
+                  className={
+                    preset.mode === "rewrite" && agentAskMode === "rewrite"
+                      ? "assist-preset assist-preset-active"
+                      : "assist-preset"
+                  }
+                  onClick={() => {
+                    setInstruction(preset.instruction);
+                    setAgentAskMode(preset.mode);
+                  }}
                 >
                   {preset.label}
                 </button>
@@ -467,6 +539,9 @@ export function BodyEditor(props: {
         <AgentAnswerPanel
           agentId={assistState.agentId}
           response={assistState.response}
+          onReplace={
+            assistState.replaceSelection ? replaceWithAgentAnswer : undefined
+          }
           onDismiss={() => setAssistState({ kind: "idle" })}
         />
       )}
@@ -1356,7 +1431,7 @@ const styles = `
   .assist-run[disabled] { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
   .assist-presets { display: inline-flex; gap: 4px; }
   .assist-preset { border: 1px solid var(--console-rule-strong); border-radius: 999px; padding: 4px 8px; background: var(--console-card); color: var(--console-text-dim); font-family: var(--console-mono); font-size: 9px; cursor: pointer; }
-  .assist-preset:hover { border-color: var(--console-accent); color: var(--console-accent-dim); }
+  .assist-preset:hover, .assist-preset-active { border-color: var(--console-accent); color: var(--console-accent-dim); background: var(--console-accent-soft); }
   .assist-meta { font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); white-space: nowrap; }
   .assist-suggestion, .assist-agent-answer { display: flex; align-items: center; gap: 12px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); }
   .assist-suggestion { background: var(--console-ok-soft); }

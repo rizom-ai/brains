@@ -108,16 +108,17 @@ Same selection → instruction → answer shape as the rewrite assist, but the a
 comes from a peer agent instead of the model. One ask targets **one agent** — no
 fan-out; a second opinion is a second ask with a different agent picked. The
 instruction is free-form ("is this accurate?", "what do you know about this?"), with
-preset chips (review / fact-check / related) as conveniences — the mechanism does not
-fork on intent, only the prompt does.
+preset chips (review / fact-check / related) as conveniences. A dedicated rewrite
+preset asks for replacement-only markdown and enables explicit replacement.
 
 - **UI: the existing assist bar gains a target dropdown at its head** — `model` (the
   rewrite assist, unchanged) plus one entry per approved agent, listed from the
   existing `agent` entity type. Same input, same run button (label flips from
   "Rewrite selection" to "Ask"). The response slot diverges by target: a model answer
   stays a suggestion (Accept/Discard into the draft); an agent answer is a read-only
-  panel headed by the agent id, dismiss only — quoting is a manual copy. With no a2a
-  or no approved agents the dropdown contains only `model` and the bar looks like
+  panel headed by the agent id. Ordinary answers are dismiss-only. Answers requested
+  through the rewrite preset also offer an explicit Replace selection action. With no
+  a2a or no approved agents the dropdown contains only `model` and the bar looks like
   today's.
 - **Wiring decision:** the CMS must not depend on the a2a interface package or
   reimplement its trust checks. The a2a interface registers a message-bus handler
@@ -131,7 +132,8 @@ fork on intent, only the prompt does.
   (401); contract `{ selection, instruction, agent }` → `{ agentId, response }`;
   performs no entity writes; unknown/unapproved agent → 4xx with a clear error.
 - Tests first (client): target-dropdown state (model default; agents from the entity
-  list); the agent answer panel renders markdown read-only with no accept path.
+  list); ordinary agent answers are dismiss-only, while rewrite-mode answers offer
+  explicit selection replacement.
 
 ## Verification
 
