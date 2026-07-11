@@ -1,5 +1,6 @@
 import { extendSite } from "@brains/site-composition";
 import type {
+  EntityDisplayEntry,
   RouteDefinitionInput,
   SiteContentDefinition,
   SiteDefinition,
@@ -60,6 +61,12 @@ export interface CreateRizomSiteOptions {
   routes: RouteDefinitionInput[];
   content?: SiteContentDefinition | SiteContentDefinition[];
   themeOverride?: string;
+  /**
+   * Presentation config for entity-backed list/detail routes (labels, plural
+   * names, navigation). Merged onto the base site's empty map. Sites that
+   * surface plugin lists — e.g. `post`→"Essay", `deck`→"Talk" — set it here.
+   */
+  entityDisplay?: Record<string, EntityDisplayEntry>;
   /** Advanced runtime hooks for in-repo sites that need custom template/data-source wiring. */
   runtime?: RizomRuntimeHooks;
 }
@@ -100,6 +107,7 @@ export function createRizomSite(
   return extendSite(rizomBaseSite, {
     layouts: { default: options.layout },
     routes: options.routes,
+    ...(options.entityDisplay ? { entityDisplay: options.entityDisplay } : {}),
     ...(options.content ? { content: options.content } : {}),
     headScripts: [buildRizomHeadScript(options.themeProfile)],
     ...(plugin ? { plugin } : {}),
