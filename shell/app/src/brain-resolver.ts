@@ -888,16 +888,13 @@ function resolveRegisteredSitePackage(
   pkg: unknown,
   definition: BrainDefinition,
 ): SitePackage | undefined {
-  const parsedSitePackage = sitePackageSchema.safeParse(pkg);
-  if (parsedSitePackage.success) {
-    return parsedSitePackage.data;
-  }
-
   if (pkgRef === CONVENTIONAL_SITE_PACKAGE_REF) {
-    return resolveConventionalSitePackage(pkg, definition);
+    const conventionalSite = resolveConventionalSitePackage(pkg, definition);
+    if (conventionalSite) return conventionalSite;
   }
 
-  return undefined;
+  const parsedSitePackage = sitePackageSchema.safeParse(pkg);
+  return parsedSitePackage.success ? parsedSitePackage.data : undefined;
 }
 
 function resolveSitePackage(

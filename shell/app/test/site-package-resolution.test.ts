@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { defineBrain } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
+import { registerPackage } from "../src/package-registry";
 import type { SitePackage } from "../src/site-package";
 
 const definition = defineBrain({
@@ -19,6 +20,19 @@ describe("site.package resolution", () => {
 
   test("resolves the definition site when no site.package override is set", () => {
     expect(() => resolve(definition, {}, {})).not.toThrow();
+  });
+
+  test("accepts a standalone public site package without a plugin factory", () => {
+    registerPackage("@rizom/site-standalone", {
+      layouts: { default: {} },
+      routes: [],
+      content: { namespace: "standalone", sections: {} },
+      entityDisplay: {},
+    } satisfies SitePackage);
+
+    expect(() =>
+      resolve(definition, {}, { site: { package: "@rizom/site-standalone" } }),
+    ).not.toThrow();
   });
 
   test("adapts declarative SDK sites without requiring a public plugin factory", () => {
