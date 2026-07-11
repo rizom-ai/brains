@@ -6,6 +6,8 @@ describe("@rizom/site-rizom-ai", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual([
       "home",
+      "writing",
+      "network",
       "work",
       "foundation",
     ]);
@@ -34,6 +36,25 @@ describe("@rizom/site-rizom-ai", () => {
       "support",
       "follow",
     ]);
+  });
+
+  test("writing + network compose the plugins' own list templates", () => {
+    const byId = (id: string): (typeof site.routes)[number] | undefined =>
+      site.routes.find((route) => route.id === id);
+
+    expect(byId("writing")?.sections?.map((s) => s.template)).toEqual([
+      "blog:post-list",
+      "decks:deck-list",
+    ]);
+    expect(byId("network")?.sections?.[0]?.template).toBe(
+      "agent-discovery:agent-list",
+    );
+  });
+
+  test("labels entity-backed lists via entityDisplay", () => {
+    expect(site.entityDisplay["post"]?.label).toBe("Essay");
+    expect(site.entityDisplay["deck"]?.label).toBe("Talk");
+    expect(site.entityDisplay["agent"]?.label).toBe("Agent");
   });
 
   test("owns the product theme profile declaratively", () => {

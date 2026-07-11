@@ -25,6 +25,48 @@ export const aiRoutes: RouteDefinitionInput[] = [
     ],
   },
   {
+    // Everything published, in one index — essays (post) + talks (deck),
+    // rendered by the blog and decks plugins' own list templates. This custom
+    // path stands alongside the auto-generated /essays and /talks indexes.
+    id: "writing",
+    path: "/writing",
+    title: "Writing — Rizom",
+    description: "Everything published, in one index",
+    layout: "default",
+    navigation: { show: false },
+    sections: [
+      {
+        id: "essays",
+        template: "blog:post-list",
+        dataQuery: { entityType: "post", query: { limit: 100 } },
+      },
+      {
+        id: "talks",
+        template: "decks:deck-list",
+        dataQuery: { entityType: "deck", query: { limit: 100 } },
+      },
+    ],
+  },
+  {
+    // The Rizom agent directory, rendered by agent-discovery's list template.
+    id: "network",
+    path: "/network",
+    title: "Network — Rizom",
+    description: "The Rizom agent directory",
+    layout: "default",
+    navigation: { show: false },
+    sections: [
+      {
+        id: "directory",
+        template: "agent-discovery:agent-list",
+        dataQuery: {
+          entityType: "agent",
+          query: { status: "approved", limit: 100 },
+        },
+      },
+    ],
+  },
+  {
     id: "work",
     path: "/work",
     title: "Rizom Work",
