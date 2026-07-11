@@ -1,4 +1,8 @@
-import { getActiveAuthService } from "@brains/auth-service";
+import {
+  getActiveAuthService,
+  isLoopbackIssuer,
+  issuerFromRequest,
+} from "@brains/auth-service";
 import {
   JwksResolver,
   signRequest,
@@ -170,10 +174,15 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     permissionLevel: UserPermissionLevel;
     callerDomain: string | null;
   }> {
+    const internalUrl = new URL(request.url);
+    const externalUrl = new URL(
+      `${internalUrl.pathname}${internalUrl.search}`,
+      issuerFromRequest(request),
+    );
     const verified = await verifyRequest(
       {
         method: request.method,
-        url: request.url,
+        url: externalUrl.toString(),
         headers: request.headers,
         body,
       },
@@ -389,6 +398,12 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   private createRequestSigner(): A2ARequestSigner | undefined {
     const authService = getActiveAuthService();
     if (!authService) return undefined;
+
+    const issuer = authService.getIssuer();
+    // Remote peers cannot resolve loopback JWKS, and signature key IDs require HTTPS.
+    if (isLoopbackIssuer(issuer) || new URL(issuer).protocol !== "https:") {
+      return undefined;
+    }
 
     return async (request): Promise<void> => {
       const signingKey = await authService.getA2ASigningKey();
