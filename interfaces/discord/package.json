@@ -1,6 +1,6 @@
 {
   "name": "@brains/discord",
-  "version": "0.2.0-alpha.156",
+  "version": "0.2.0-alpha.157",
   "description": "Discord interface for Brains",
   "dependencies": {
     "@brains/plugins": "workspace:*",
