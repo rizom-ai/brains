@@ -621,8 +621,10 @@ describe("WebChatInterface", () => {
     expect(html).toContain('class="session-chip"');
     expect(html).toContain("Sign out");
     expect(html).toContain('href="/logout?return_to=%2Fchat"');
-    // Climate preference is console-wide.
+    // Climate preference is console-wide, toggled from the strip.
     expect(html).toContain('localStorage.getItem("console.climate")');
+    expect(html).toContain('id="climateToggle"');
+    expect(html).toContain('class="climate-chip"');
     // The ⌘K jump palette ships with the shell.
     expect(html).toContain("/api/console/jump");
     expect(html).toContain(".web-chat-session-dialog-backdrop");

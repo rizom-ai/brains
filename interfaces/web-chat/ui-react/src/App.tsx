@@ -59,10 +59,7 @@ import {
 } from "../../src/upload-policy";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
-// Console-wide climate preference — shared with the dashboard and CMS.
-const themeStorageKey = "console.climate";
 
-type ThemeMode = "paper" | "instrument";
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type SessionDialog =
   | { kind: "rename"; session: WebChatSession }
@@ -70,21 +67,6 @@ type SessionDialog =
   | { kind: "delete"; session: WebChatSession }
   | null;
 type UploadNotice = { tone: "success" | "error"; message: string } | null;
-
-function getInitialTheme(): ThemeMode {
-  if (typeof document === "undefined") return "instrument";
-  const attr = document.documentElement.getAttribute("data-climate");
-  return attr === "paper" ? "paper" : "instrument";
-}
-
-function applyTheme(theme: ThemeMode): void {
-  document.documentElement.setAttribute("data-climate", theme);
-  try {
-    localStorage.setItem(themeStorageKey, theme);
-  } catch {
-    /* localStorage unavailable — fall back to in-memory only */
-  }
-}
 
 function PromptAttachmentButton(): React.ReactElement {
   const attachments = usePromptInputAttachments();
@@ -408,7 +390,6 @@ export function App(): React.ReactElement {
   const [sessionDialog, setSessionDialog] = useState<SessionDialog>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
-  const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
   const [bootstrapStarter, setBootstrapStarter] =
@@ -421,11 +402,6 @@ export function App(): React.ReactElement {
     setDrawerOpen(false);
   }
 
-  function toggleTheme(): void {
-    const next: ThemeMode = theme === "paper" ? "instrument" : "paper";
-    setTheme(next);
-    applyTheme(next);
-  }
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const transport = useMemo(
     () =>
@@ -1375,50 +1351,6 @@ export function App(): React.ReactElement {
               >
                 <path d="M8 3v10M3 8h10" strokeLinecap="round" />
               </svg>
-            </button>
-            <button
-              className="web-chat-icon-action"
-              type="button"
-              onClick={toggleTheme}
-              aria-label={
-                theme === "paper"
-                  ? "Switch to instrument mode"
-                  : "Switch to paper mode"
-              }
-              title={
-                theme === "paper"
-                  ? "Switch to instrument mode"
-                  : "Switch to paper mode"
-              }
-            >
-              {theme === "paper" ? (
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M13 9.5A5 5 0 0 1 6.5 3a5 5 0 1 0 6.5 6.5Z"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  aria-hidden="true"
-                >
-                  <circle cx="8" cy="8" r="3" />
-                  <path
-                    d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              )}
             </button>
           </div>
         </header>

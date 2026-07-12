@@ -318,8 +318,20 @@ function ConsoleStrip({
           ⌕
         </span>
       </button>
+      <button
+        id="climateToggle"
+        class="climate-chip"
+        type="button"
+        aria-label="Toggle climate"
+      >
+        ◐
+      </button>
       <a
-        class="session-chip"
+        class={
+          operatorAccess?.isOperator
+            ? "session-chip"
+            : "session-chip is-visitor"
+        }
         href={sessionHref}
         aria-label={`${sessionLabel} · ${sessionAction}`}
       >

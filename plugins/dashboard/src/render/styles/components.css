@@ -148,20 +148,6 @@ body::after {
   padding-bottom: 5px;
   max-width: 44ch;
 }
-.theme-btn {
-  margin-left: auto;
-  margin-bottom: 4px;
-  flex: 0 0 auto;
-  font-family: var(--console-mono);
-  font-size: 11px;
-  color: var(--console-text-muted);
-  border: 1px solid var(--console-rule-strong);
-  background: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-.theme-btn:hover { color: var(--console-text); }
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
@@ -544,21 +530,19 @@ table.jobs {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 0 14px;
-  border: 1px solid color-mix(in srgb, var(--console-accent) 55%, transparent);
-  border-radius: 999px;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
   background: var(--console-accent);
-  color: var(--console-bg-deep);
-  font-family: var(--console-mono);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--console-on-accent);
+  font-family: var(--console-ui);
+  font-size: 13.5px;
+  font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
 }
-.operator-gate-link:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.operator-gate-link:hover { filter: brightness(1.06); }
 @media (max-width: 640px) {
   .operator-gate { grid-template-columns: 1fr; }
   .operator-gate-link { justify-self: start; }

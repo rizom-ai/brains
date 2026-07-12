@@ -17,6 +17,7 @@ import {
   parseCmsHash,
   PipelineStations,
   SaveStateNotice,
+  typeHasPublicationField,
   TypeSwitcher,
 } from "./App";
 import type { EntityTypeInfo, FieldDescriptor, GitSyncState } from "./api";
@@ -66,6 +67,19 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain('.studio[data-view="editor"]');
     expect(responsiveStyles).toContain(".cms-mobile-save-status");
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
+  });
+
+  it("centers the pill type switcher and keeps row meta on the title line", () => {
+    // The desktop rail aligns type rows to the baseline; the 44px mobile
+    // pills must center their label instead of pinning it to the top edge.
+    expect(responsiveStyles).toMatch(
+      /\.rail \.type \{[^}]*align-items: center/,
+    );
+    // Phone rows: the updated-time sits beside the title, not as a ragged
+    // trailing line under the slug.
+    expect(responsiveStyles).toMatch(
+      /\.row \{[^}]*grid-template-columns: 28px minmax\(0, 1fr\) auto/,
+    );
   });
 });
 
@@ -262,6 +276,61 @@ describe("TypeSwitcher", () => {
     expect(html).toContain("Site Info");
     // Active styling lands on the button for the active type only.
     expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
+  });
+
+  it("groups brain machinery under System instead of flooding Content", () => {
+    const machinery: EntityTypeInfo[] = [
+      {
+        entityType: "prompt",
+        label: "Prompts",
+        isSingleton: false,
+        hasBody: true,
+        count: 16,
+      },
+      {
+        entityType: "agent",
+        label: "Agents",
+        isSingleton: false,
+        hasBody: false,
+        count: 2,
+      },
+      {
+        entityType: "brain-character",
+        label: "Brain Characters",
+        isSingleton: true,
+        hasBody: true,
+        count: 1,
+      },
+    ];
+    const html = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types: [...types, ...machinery],
+        active: "post",
+        onSelect: () => {},
+      }),
+    );
+
+    expect(html).toContain("System");
+    // System renders last, after the authored-content groups.
+    expect(html.indexOf("System")).toBeGreaterThan(html.indexOf("Site Info"));
+    expect(html.indexOf("Prompts")).toBeGreaterThan(html.indexOf("System"));
+    expect(html.indexOf("Agents")).toBeGreaterThan(html.indexOf("System"));
+  });
+});
+
+describe("typeHasPublicationField", () => {
+  it("shows publication chips only for schemas that model publication", () => {
+    expect(typeHasPublicationField([stringField, selectField])).toBe(true);
+    expect(typeHasPublicationField([stringField, booleanField])).toBe(true);
+    // A prompt-like schema (title + target) has no publication lifecycle;
+    // rows must not all read "draft".
+    expect(
+      typeHasPublicationField([
+        stringField,
+        { name: "target", label: "Target", widget: "string" },
+      ]),
+    ).toBe(false);
+    expect(typeHasPublicationField([])).toBe(false);
   });
 });
 

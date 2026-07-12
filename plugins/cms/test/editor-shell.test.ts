@@ -57,6 +57,8 @@ describe("renderEditorShellHtml", () => {
     expect(html).toContain('href="/chat"');
     expect(html).toContain('surface-nav-link is-active" href="/cms">CMS');
     expect(html).toContain("<kbd>⌘K</kbd>");
+    expect(html).toContain('id="climateToggle"');
+    expect(html).toContain('class="climate-chip"');
     expect(html).toContain('class="session-chip"');
     expect(html).toContain('href="/logout?return_to=%2Fcms"');
     expect(html).toContain("Sign out");

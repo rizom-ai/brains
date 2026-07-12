@@ -48,6 +48,8 @@
     border: 1px solid var(--console-rule-strong);
     border-radius: 999px;
     white-space: nowrap;
+    /* Desktop rail rows align to baseline; pills must center their label. */
+    align-items: center;
   }
   .rail .type.active {
     border-color: var(--console-rule-accent);
@@ -234,9 +236,9 @@
     margin: 0 0 0 auto;
   }
   .row {
-    grid-template-columns: 28px minmax(0, 1fr);
-    gap: 8px 10px;
-    min-height: 68px;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    min-height: 60px;
     padding: 12px 2px;
   }
   .row .title {
@@ -252,9 +254,11 @@
   .row .sync {
     display: none;
   }
+  /* Meta rides the title line instead of hanging as its own ragged row. */
   .row .updated {
-    grid-column: 2;
-    justify-self: end;
+    grid-column: 3;
+    grid-row: 1;
+    align-self: baseline;
     font-family: var(--console-mono);
     font-size: 9px;
   }

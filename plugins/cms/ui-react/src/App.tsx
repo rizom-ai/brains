@@ -458,11 +458,41 @@ const SITE_ENTITY_TYPES = new Set([
   "site-info",
   "siteInfo",
 ]);
+// Brain machinery: operator-editable, but not authored content. These live
+// in their own rail group so a full brain doesn't flood "Content".
+const SYSTEM_ENTITY_TYPES = new Set([
+  "agent",
+  "agents",
+  "anchor-profile",
+  "brain-character",
+  "playbook",
+  "playbooks",
+  "prompt",
+  "prompts",
+  "skill",
+  "skills",
+  "swot",
+  "swots",
+]);
 
-function cmsTypeGroup(entityType: string): "Content" | "Collections" | "Site" {
+function cmsTypeGroup(
+  entityType: string,
+): "Content" | "Collections" | "Site" | "System" {
   if (SITE_ENTITY_TYPES.has(entityType)) return "Site";
+  if (SYSTEM_ENTITY_TYPES.has(entityType)) return "System";
   if (COLLECTION_ENTITY_TYPES.has(entityType)) return "Collections";
   return "Content";
+}
+
+/**
+ * Whether a type's schema models a publication lifecycle. Rows only wear a
+ * draft/published chip when the distinction exists — system types like
+ * prompts otherwise all read "draft".
+ */
+export function typeHasPublicationField(fields: FieldDescriptor[]): boolean {
+  return fields.some(
+    (field) => field.name === "status" || field.name === "published",
+  );
 }
 
 export function TypeSwitcher(props: {
@@ -470,7 +500,7 @@ export function TypeSwitcher(props: {
   active: string | null;
   onSelect: (entityType: string) => void;
 }): ReactElement {
-  const groups = (["Content", "Collections", "Site"] as const)
+  const groups = (["Content", "Collections", "Site", "System"] as const)
     .map((label) => ({
       label,
       types: props.types.filter(
@@ -1269,9 +1299,11 @@ export function App(): ReactElement {
                     {singularLabel(entity.entityType)}/{entity.id}
                   </small>
                 </span>
-                <span className={`chip ${entityPublicationState(entity)}`}>
-                  {entityPublicationState(entity)}
-                </span>
+                {typeHasPublicationField(schema.fields) && (
+                  <span className={`chip ${entityPublicationState(entity)}`}>
+                    {entityPublicationState(entity)}
+                  </span>
+                )}
                 <span className="updated">{formatUpdated(entity.updated)}</span>
                 <span className="sync">
                   <span
