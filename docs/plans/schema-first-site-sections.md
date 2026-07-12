@@ -2,13 +2,23 @@
 
 ## Status
 
-Not started — decided 2026-07-12 during the rizom.ai consolidation port
-(`work/rizom-consolidated-site`). Scope for this initiative: build the new package,
-wire it through `createRizomSite`, and migrate `sites/rizom-ai` onto it (authoring the
-consolidated copy on the new model). Migrating relay and removing the old
-`@brains/site-content` plugin + field DSL is a tracked **follow-up**, done once rizom-ai
-proves the model. Feeds [`rizom-consolidation.md`](./rizom-consolidation.md) Phase 5 —
-the consolidated site's copy is authored on this model, not the field DSL.
+**This initiative's scope is done** (2026-07-12, `work/rizom-consolidated-site`).
+Phase 1 (`@rizom/site-sections` + brain-side introspection), Phase 2 (`sections`
+wired through `createRizomSite` → `DeclarativeSitePlugin` registration), and Phase 3
+(all three rizom-ai pages migrated to `defineSection`; the field-DSL `site-content.ts`
+deleted; copy authored into `rizom-ai/rizom-content` as `site-content/<page>/<section>.md`
+through the derived formatter) all landed and stayed green across the full suite.
+
+Still **tracked follow-up** (not this initiative): migrate relay's content to
+`defineSection`, then remove `@brains/site-content` + the field DSL from `@rizom/site` +
+`createSiteContentTemplate`'s fields path. Feeds
+[`rizom-consolidation.md`](./rizom-consolidation.md) Phase 5 — the consolidated site's
+copy is now authored on this model.
+
+Known nicety left open: section field labels are derived from field names
+(`primaryCta` → `## Primary Cta`); a `.meta({ label })` override in the introspection
+would let headings differ from field names (e.g. "Primary CTA"). Not wired — the derived
+labels round-trip and are CMS-internal, not rendered copy.
 
 ## Why
 
