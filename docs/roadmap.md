@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -32,58 +32,16 @@ What already exists today:
 
 Collective-posture validation (§2), the trust/identity frontier (§3), and the brain-model unification (§1) proceed in parallel and do **not** gate `v0.2.0`.
 
-## Recently completed
+### Current execution focus
 
-These areas are effectively landed:
+The roadmap is broad; the active sequence is intentionally narrower:
 
-- **Entity and plugin architecture** — unified `EntityPlugin` / `ServicePlugin` / `InterfacePlugin` split
-- **System tool surface** — create, update, delete, search, extract, status, and insights consolidated into framework-level tools, with durable writes routed through explicit confirmation
-- **Plugin create interceptors** — plugins can override `system_create` behavior per entity type via `EntityPlugin.interceptCreate`; link capture and image cover-target resolution moved into their respective plugins
-- **Knowledge-context opt-in** — AI templates explicitly opt in to knowledge-base context injection, replacing an implicit default that caused embedding-API overflows on long extractive prompts
-- **Search and embeddings** — SQLite FTS + online embeddings + diagnostics
-- **Eval overhaul** — app/model/shell eval layering and comparison reporting
-- **Theme/site decoupling** — site packages are structural-only; themes resolve independently
-- **Standalone authoring** — local `src/site.ts` / `src/theme.css` conventions for models that scaffold site/theme authoring, plus deploy scaffolding through `brain init --deploy`
-- **Alpha npm publishing** — `@rizom/brain` is already shipping public alpha releases with automated Changesets-based publishing
-- **Library exports Tier 1** — `@rizom/brain/site` and `@rizom/brain/themes`
-- **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape
-- **Multi-user fleet operations** — `@rizom/ops` for operator-managed rover fleets: shared wildcard TLS with `<handle>-preview.<zone>` preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths
-- **Production deploy validation** — `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths
-- **Extracted deploy convergence** — the checked-out external deployments now use the shared HTTP-host shape: `app_port: 8080`, no active in-container `Caddyfile`, and direct `brain start` boot
-- **Rizom site follow-through** — `rizom.ai`, `rizom.foundation`, and `rizom.work` own their final route composition from app-local `src/site.ts`, over the shared `sites/rizom` core with `shared/theme-rizom` kept separate; remaining CTA/content polish belongs to the extracted app/content repos, not this monorepo roadmap
-- **Monorepo cleanup** — transitional apps/packages removed; `rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, and `yeehaa.io` extracted
-- **Agent directory tightening** — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain `discovered`, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced
-- **Finalized content preservation** — exact/finalized/approved content now persists directly through `system_create` without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts
-- **Rover eval stabilization** — the full Rover suite covers shell quality, tool invocation, multi-turn agent flows, publishing, web chat, confirmations, and plugin behavior across the inheritable preset suites described below; the mainline suite stays green
-- **Assistant instruction hardening** — the Rover system prompt now closes a set of identity-disclosure and tool-routing gaps surfaced by eval/regression work: it refuses to reveal the configured anchor/profile identity when answering "am I your anchor?"/"am I {name}?" (answering from permission level only), treats an ambiguous "make one draft" follow-up as a clarification rather than self-picking a published item or firing `system_update`, resolves a source named by title/slug through `system_get` before continuing to `system_create` in the same turn for source-derived artifact saves, and refuses to substitute `system_search` for an unavailable `system_extract` instead of presenting existing topics as newly generated — each guarded by `build-instructions` assertions
-- **Inheritable core-preset eval suite** — eval suites are now declarative and preset-aware in `brain.eval.yaml`: `core` runs `preset-core`, `default` extends `core` with `preset-default`, and `full` extends `default` with `preset-full`, so larger gates inherit smaller-preset tags instead of duplicating them. The 136 existing fixtures split 67 / 33 / 36 across the three tiers, a `--preset <name>` runner flag boots the named preset hermetically (atproto, email-resend, and other live-effect plugins stay in `evalDisable`), a committed tool-coverage ledger keeps "exhaustive" measurable (17/17 core tools asserted), and a case-level `permissions:` matrix plus turn-level multi-user context exercise public/trusted/anchor boundaries — including approval-hijack and shared-thread denial cases — in single multi-turn conversations
-- **Pending entity ingestion** — async entity creation now persists a durable `pending` placeholder immediately and enriches the same entity to `draft` (or `failed`) when the background job completes, so just-saved items are referenceable before processing finishes. A shared `shell/plugins` ingestion helper preserves entity IDs across the lifecycle; `entities/link` is the first adopter (save two links, immediately summarize both), with media/upload entities to follow
-- **Tabbed dashboard console** — the operator dashboard restructured into tabs derived from widget groups (converging to bundle ids when bundles land), a fixed Overview that answers "anything need me?" (vitals, per-group digest cards, activity ledger), operator-work badges, and the publishing three-lane board — still server-rendered Preact with progressive enhancement
-- **First-party CMS editor** — Sveltia and its browser GitHub tokens replaced by a React 19 editor at `/cms` that writes through the entity service (git persistence follows via directory-sync); frontmatter forms render from server field descriptors, the save pipeline is a visible instrument strip, and AI-assisted body editing (CodeMirror 6 + selection rewrite) landed on top
-- **Console unification foundation** — one `@brains/console-theme` token sheet (instrument/paper climates) replaces the per-surface palettes; the console strip (route-derived surface nav, session chip, climate toggle persisted console-wide) is pinned identically across dashboard, chat, and the CMS; and a cross-surface ⌘K palette jumps to entities (CMS deep-links), dashboard tabs, and chat conversations. Responsive behavior has shipped, but visual fidelity remains active under §5.
-- **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
-- **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
-- **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest and links while model-specific eval fixtures stay curated by their brain packages
-- **Shell initialization coordination** — `ShellBootloader` now owns phased startup, plugin `onReady` is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade
-- **External plugin API** — `@rizom/brain` exposes curated `/plugins`, `/entities`, `/services`, `/interfaces`, and `/templates` authoring subpaths; `brain.yaml` loads installed plugin packages via keyed `plugins.<id>.package` entries with env-var interpolation; alpha compatibility is governed by `peerDependencies`; separate-repo reference plugins `rizom-ai/brain-plugin-hello` (service/lifecycle) and `rizom-ai/brain-plugin-recipes` (durable entity) prove the path end-to-end; public entity-service types now use the canonical runtime contracts for `IEntityService`, `IEntitiesNamespace`, `ListOptions`, `SearchOptions`, and `SearchResult`; declaration bundling now has an explicit documented inline allowlist, clearer internal-import diagnostics, and focused tests
-- **Rizom ecosystem section** — entity-backed `entities/rizom-ecosystem` package powers the shared ecosystem section across Rizom site variants (rover, professional, default), with theme-aware headline contrast and shared `@rizom/ui` wordmark/header alignment
-- **Professional-site Rizom alignment** — editorial homepage refresh, tightened typography, shared Rizom-aligned section composition, and a `Wordmark` slot generalized in `@rizom/ui`
-- **Relay POC scaffolding** — `brains/relay` preset split, brain prompts, eval scaffold, and SWOT eval coverage land alongside the assessment package split
-- **Newsletter composite plugin** — `plugins/newsletter` bundles the newsletter entity with the buttondown service plugin so app authors can wire newsletter publishing in one entry
-- **Bitwarden-backed secrets** — `brain secrets:push` pushes local env-backed secrets to a conventionally named Bitwarden Secrets Manager project and rewrites `.env.schema` with pinned Varlock references; generated deploy workflows run the current Varlock CLI with only `BWS_ACCESS_TOKEN` in GitHub Actions secrets
-- **External plugin smoke testing** — `brain start --startup-check` loads configured plugins, runs `onRegister` and `onReady`, then exits without starting daemons or job workers and without requiring a real AI API key
-- **Entity visibility foundation** — entities now carry normalized `public` / `shared` / `restricted` visibility, persisted as top-level runtime state and enforced across read/search/list/update surfaces so public/trusted/anchor contexts fail closed by default
-- **Shared-space trust first slice** — configured `spaces` can grant collaborator/trusted access through centralized permission resolution, with exact/wildcard selectors, Discord channel context, bot/guest exclusion, and anchor non-escalation covered by tests
-- **Local auth issuer defaults** — local development auth now prefers the running localhost origin while preserving explicit and production issuer behavior
-- **Dashboard entry point** — the dashboard now uses permission-aware widgets/endpoints/interactions, renders first-class “ways to connect,” and has mobile ordering that leads with identity and interaction affordances before corpus metrics
-- **Preview-domain alignment** — standalone deploy scaffolding and shared preview-domain derivation now use `preview.<brain-domain>` consistently for apex and nested brain domains
-- **PDF carousel and LinkedIn document publishing** — deck-owned carousel rendering now produces Playwright-backed PDF attachments with opaque LinkedIn-safe backgrounds; operators can preview generated attachments, save durable PDF `document` entities, attach them to `social-post.documents[]`, and publish native LinkedIn document/carousel posts through the current `/rest/documents` + `/rest/posts` flow
-- **Queued entity stubs** — after confirmation, prompt-based `system_create` persists an addressable stub with `status: generating` and returns its id immediately, so multi-turn follow-ups (e.g. "now generate a cover image for that post") can reference the entity before the generation job completes; stubs are excluded from semantic search by default and the base generation handler updates the stub in place on completion or marks it `failed` on error
-- **Publish action policy** — entity write/publish actions are enforced through the centralized permission policy layer, with collaborator mutations constrained by entity type and action and Rover eval coverage for blog/newsletter publish flows
-- **Structured chat confirmations** — pending actions carry explicit approval ids and structured summary/preview cards; chat surfaces (web-chat, chat-repl, Discord) render approval cards natively and route confirmation responses through the chat transport, removing the singular-approval fallback path
-- **Web chat session management** — the bundled `/chat` surface now supports session list/switch/new, rename, archive, and explicit delete on top of the MVP, with browser-storage memory of the last selected conversation
-- **Web chat outbound attachments** — generated documents stream through the web-chat transport as AI SDK UI data parts, so saved PDF/document artifacts render inline in the chat surface with download affordances
-- **Runtime state store service** — `shell/runtime-state` ships a shell-owned, namespaced, typed store for ephemeral operational state (libSQL + Drizzle, shell-owned migrations), wired into `shell/core` service initialization and exposed to plugins via `context.runtimeState`; consumers (chat thread subscriptions, playbook run state, notification/setup-email dedupe) are pending
+1. **Finish the console fidelity release tail** — merge the remaining dynamic-state screenshot coverage, release it, then retire the console plan.
+2. **Prove the runtime identity boundary** — land the auth runtime database foundation, then build real users and per-session permissions on it.
+3. **Unify the brain model** — introduce capability bundles in vertical slices while keeping the deployed personal-publishing posture green.
+4. **Complete the hosted Rizom migration** — the package/install path and custom-domain machinery are proven; production cutovers and the one-Rizom-brain consolidation remain.
+
+Everything marked parked or exploratory below is demand-gated and is not part of this sequence.
 
 ## Strategic roadmap
 
@@ -192,7 +150,7 @@ This includes:
 Plans:
 
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
-- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — package the Rizom site variants so hosted Rover can consume them as npm-resolvable site refs, plus per-domain TLS/DNS for custom-domain brains.
+- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — **rollout tail**: npm-resolvable site packages, hash-tagged fleet images, and per-domain TLS/DNS are implemented and released; `new.rizom.ai` proves the hosted package path. Remaining work is the production Rizom/docs cutover and legacy deployment retirement.
 - [rizom-consolidation.md](./plans/rizom-consolidation.md) — follow-up end-state: one brain, one site. Fold rizom.work and rizom.foundation into rizom.ai (edge redirects for the old domains) and consolidate the three deployed brains into one relay-shaped composition carrying the atproto registry and the collective's team memory.
 - [rover-onboarding-plugin.md](./plans/rover-onboarding-plugin.md) — extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
@@ -204,8 +162,7 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
-- [console-unification.md](./plans/console-unification.md) — reopened after the shared foundation was retired prematurely. Active work: CMS-first visual fidelity across palette, typography, texture, controls, manuscript styling, and responsive composition; then Chat/Dashboard review and committed screenshot gates.
-- [cms-ai-assisted-authoring.md](./plans/cms-ai-assisted-authoring.md) — selection-scoped AI assist inside the shipped first-party CMS editor. The CodeMirror 6 upgrade and the selection rewrite (read-only `/cms/api/assist`) have shipped; summarise/tag-suggest prompt variants and the authoring-pass polish backlog remain.
+- [console-unification.md](./plans/console-unification.md) — the shared chrome, responsive composition, CMS/Chat/Dashboard fidelity pass, reviewed baselines, and release are merged. The final tail pins dynamic chat cards/attachments/progress and rich CMS colophon states before the plan retires.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
@@ -235,7 +192,6 @@ Cleanup:
 
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
-- [codebase-cleanup-backlog.md](./plans/codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package-script drift).
 
 Research probes (parked):
 

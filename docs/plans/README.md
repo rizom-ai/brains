@@ -10,7 +10,7 @@ Keep a plan here when it still answers one of these questions:
 - what tradeoff has not been settled;
 - what validation remains before a feature is considered done.
 
-Remove or fold a plan when it is implemented, superseded by a narrower plan, or only records past work.
+Remove or fold a plan when it is implemented, superseded by a narrower plan, or only records past work. Active plans may state the minimum shipped baseline needed to explain the next step, but must not retain completed phase logs; git history and changelogs are the archive.
 
 ## Priority and product direction
 
