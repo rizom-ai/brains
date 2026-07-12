@@ -15,9 +15,11 @@ console changes cannot silently regress the richest chat and CMS compositions.
 
 ## Remaining work
 
-1. **Chat dynamic states**
+1. **Chat dynamic states and composer closeout**
    - Extend the deterministic fixture conversation with entity/tool cards, attachments,
      save-quote modules, and progress states.
+   - Finish the in-flight composer simplification without changing send/attachment/stop
+     behavior or accessibility.
    - Review all target viewports and both climates against the approved visual system.
    - Commit the reviewed baselines.
 2. **CMS rich colophon states**

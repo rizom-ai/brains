@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first stable `v0.2.0` release. The deploy-validation, Rizom site, and docs-site gates have been cleared: `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths, the extracted deployment repos match the shared HTTP-host shape used by the current scaffold, the Rizom site variants are owned by their standalone app repos over the shared `sites/rizom` core, and `docs.rizom.ai` is owned by the standalone docs brain path. `@rizom/brain` is already publishing public alpha releases via changesets, so "launch" here means the current alpha cycle matures into a stable `v0.2.0` — not a repo-rename ceremony.
+`brains` is approaching its first stable `v0.2.0` release. `@rizom/brain` and the public Rizom site/tooling packages publish through Changesets; `0.2.0-alpha.157` is live on `yeehaa.io`, the full hosted Rover pilot fleet, and the `new.rizom.ai` package-path canary. The production Rizom and docs sites still run on their existing standalone deployment paths until the consolidated-site rollout is ready. "Launch" means graduating the current alpha contract to stable `v0.2.0`, not a repo-rename ceremony.
 
 What already exists today:
 
@@ -23,25 +23,30 @@ What already exists today:
 
 ### What stable `v0.2.0` means
 
-`v0.2.0` is a packaging and stability milestone, not a feature gate against any one posture. It ships when:
+`v0.2.0` is a packaging and stability milestone, not a feature gate against any one posture. The release candidate is ready when:
 
-- the runtime APIs surfaced through `@rizom/brain/{plugins,entities,services,interfaces,templates}` are treated as the supported authoring surface;
-- the `public` / `shared` / `restricted` visibility model is considered the baseline contract;
-- personal-publishing eval coverage stays green across alpha releases;
-- documented deploy and init flows continue to reconcile against the extracted production paths.
+- the runtime APIs surfaced through `@rizom/brain/{plugins,entities,services,interfaces,templates}` have an explicit compatibility sign-off;
+- the `public` / `shared` / `restricted` visibility model is accepted as the baseline contract;
+- personal-publishing eval coverage, packed external-plugin smokes, and package-boundary checks are green on one nominated alpha;
+- documented init and deploy flows reconcile against standalone and hosted Rover paths;
+- the console dynamic-state tail is merged and its changeset released;
+- that alpha is healthy on the hosted Rover canaries and `yeehaa.io` before Changesets exits prerelease mode.
 
-Collective-posture validation (§2), the trust/identity frontier (§3), and the brain-model unification (§1) proceed in parallel and do **not** gate `v0.2.0`.
+Then publish stable `0.2.0`, deploy canaries first, and roll through the fleet. Collective-posture validation (§2), multi-user completion (§3), brain-model unification (§1), and Rizom consolidation (§4) do **not** gate stable `v0.2.0`.
 
 ### Current execution focus
 
-The roadmap is broad; the active sequence is intentionally narrower:
+Priority is explicit; an existing worktree does not automatically outrank release work.
 
-1. **Finish the console fidelity release tail** — merge the remaining dynamic-state screenshot coverage, release it, then retire the console plan.
-2. **Prove the runtime identity boundary** — land the auth runtime database foundation, then build real users and per-session permissions on it.
-3. **Unify the brain model** — introduce capability bundles in vertical slices while keeping the deployed personal-publishing posture green.
-4. **Complete the hosted Rizom migration** — the package/install path and custom-domain machinery are proven; production cutovers and the one-Rizom-brain consolidation remain.
+| Priority | Outcome                            | Current execution                                                                                                                                                                                                           |
+| -------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P0**   | Stable `v0.2.0` release candidate  | Close the console dynamic-state/composer tail, nominate the final alpha, run the release-candidate gates above, then exit prerelease mode.                                                                                  |
+| **P1**   | Real runtime identity boundary     | Finish `feature/auth-runtime-db` as one database-backed source of truth with transactional role invariants and deny-by-default identity resolution; multi-user behavior follows on that foundation.                         |
+| **P1**   | One brain composed from bundles    | Start the capability-bundle walking skeleton after the release candidate is cut; keep every deployed posture green through the migration.                                                                                   |
+| **P1**   | One production Rizom brain/site    | Finish the in-flight consolidated site and content work, stage the consolidated package on `new.rizom.ai`, then cut over production. This may proceed beside bundle work but must not invent a competing model abstraction. |
+| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts wait for the [shared scheduler/heartbeat plan](./plans/shared-heartbeat-recurring-checks.md).      |
 
-Everything marked parked or exploratory below is demand-gated and is not part of this sequence.
+Everything marked parked or exploratory below is demand-gated. New work should not preempt P0/P1 without an explicit roadmap change.
 
 ## Strategic roadmap
 
@@ -132,7 +137,7 @@ Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
-- [auth-runtime-db.md](./plans/auth-runtime-db.md) — auth-specific runtime database for users, passkeys, OAuth/session stores, and audit.
+- [auth-runtime-db.md](./plans/auth-runtime-db.md) — **active on `feature/auth-runtime-db`**: auth-specific runtime database for users, passkeys, OAuth/session stores, identity bindings, and audit; storage cutover and permission invariants remain before merge.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
 - [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-brain A2A.
 
@@ -151,7 +156,7 @@ Plans:
 
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
 - [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — **rollout tail**: npm-resolvable site packages, hash-tagged fleet images, and per-domain TLS/DNS are implemented and released; `new.rizom.ai` proves the hosted package path. Remaining work is the production Rizom/docs cutover and legacy deployment retirement.
-- [rizom-consolidation.md](./plans/rizom-consolidation.md) — follow-up end-state: one brain, one site. Fold rizom.work and rizom.foundation into rizom.ai (edge redirects for the old domains) and consolidate the three deployed brains into one relay-shaped composition carrying the atproto registry and the collective's team memory.
+- [rizom-consolidation.md](./plans/rizom-consolidation.md) — **in progress on `work/rizom-consolidated-site`**: the consolidated routes, Rover composition, merged content repo, and published-site-model port exist in the worktree. Remaining work is copy/schema completion, merge/release, a real consolidated staging deploy, runtime-state migration, production cutover, and retirement.
 - [rover-onboarding-plugin.md](./plans/rover-onboarding-plugin.md) — extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord opt-in in `@rizom/ops` rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.
@@ -182,7 +187,8 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
-- [bd-priority-engine.md](./plans/bd-priority-engine.md) — Opportunity Priority Engine: proposed standalone `@brains/opportunity` package for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for opportunity prioritization; brain-agnostic, not in any default bundle.
+- [agent-proximity-map.md](./plans/agent-proximity-map.md) — **P2, not started**: radial embedding-distance map of discovered agents around the brain, with labeled semantic clusters; ships as a console dashboard widget and a public site template, plus the read-only `getEmbeddings` core API it needs.
+- [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; recurring alerts are blocked on a shared scheduler/heartbeat primitive and stay outside the entity package.
 
 ### 7. Keep the framework sustainable
 
@@ -192,6 +198,7 @@ Cleanup:
 
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
+- [shared-heartbeat-recurring-checks.md](./plans/shared-heartbeat-recurring-checks.md) — **P2 dependency** for recurring plugin checks: reuse the existing scheduler/daemon/runtime-state/notification primitives rather than shipping opportunity-specific timers.
 
 Research probes (parked):
 

@@ -125,6 +125,14 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§3</span>Trust &amp; identity — the frontier</summary>
         <div class="cards">
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Auth runtime database</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">**active on <code>feature/auth-runtime-db</code>**: auth-specific runtime database for users, passkeys, OAuth/session stores, identity bindings, and audit; storage cutover and permission invariants remain before merge.</div>
+          <div class="card-file">auth-runtime-db.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Identity &amp; trust architecture</span>
@@ -140,14 +148,6 @@
           </div>
           <div class="card-desc">runtime users, roles, active-user checks, attribution, and management surfaces.</div>
           <div class="card-file">multi-user.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Auth runtime database</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">auth-specific runtime database for users, passkeys, OAuth/session stores, and audit.</div>
-          <div class="card-file">auth-runtime-db.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -178,6 +178,14 @@
           <div class="card-desc">**rollout tail**: npm-resolvable site packages, hash-tagged fleet images, and per-domain TLS/DNS are implemented and released; <code>new.rizom.ai</code> proves the hosted package path. Remaining work is the production Rizom/docs cutover and legacy deployment retirement.</div>
           <div class="card-file">rizom-sites-on-hosted-rover.md</div>
         </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Finish Rizom consolidation — one brain, one site</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">**in progress on <code>work/rizom-consolidated-site</code>**: the consolidated routes, Rover composition, merged content repo, and published-site-model port exist in the worktree. Remaining work is copy/schema completion, merge/release, a real consolidated staging deploy, runtime-state migration, production cutover, and retirement.</div>
+          <div class="card-file">rizom-consolidation.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Rover default batch onboarding</span>
@@ -185,14 +193,6 @@
           </div>
           <div class="card-desc">next hosted Rover pilot customization/preflight work.</div>
           <div class="card-file">rover-default-batch-onboarding.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Rizom consolidation — one brain, one site</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">follow-up end-state: one brain, one site. Fold rizom.work and rizom.foundation into rizom.ai (edge redirects for the old domains) and consolidate the three deployed brains into one relay-shaped composition carrying the atproto registry and the collective's team memory.</div>
-          <div class="card-file">rizom-consolidation.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -286,10 +286,18 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Agent proximity map</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">**P2, not started**: radial embedding-distance map of discovered agents around the brain, with labeled semantic clusters; ships as a console dashboard widget and a public site template, plus the read-only <code>getEmbeddings</code> core API it needs.</div>
+          <div class="card-file">agent-proximity-map.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Opportunity Priority Engine</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">Opportunity Priority Engine: proposed standalone <code>@brains/opportunity</code> package for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for opportunity prioritization; brain-agnostic, not in any default bundle.</div>
+          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; recurring alerts are blocked on a shared scheduler/heartbeat primitive and stay outside the entity package.</div>
           <div class="card-file">bd-priority-engine.md</div>
         </div>
         </div>
@@ -320,6 +328,14 @@
           </div>
           <div class="card-desc">collapse redundant runtime/public mappers via <code>Schema.parse</code>.</div>
           <div class="card-file">plugin-contracts-consolidation.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Shared recurring checks and heartbeat</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">**P2 dependency** for recurring plugin checks: reuse the existing scheduler/daemon/runtime-state/notification primitives rather than shipping opportunity-specific timers.</div>
+          <div class="card-file">shared-heartbeat-recurring-checks.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

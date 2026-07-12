@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · Agent proximity map</title>
+<style>
+  :root {
+    --ink: #1c2024;
+    --muted: #6b7280;
+    --paper: #fafaf8;
+    --line: #e5e4df;
+    --professional: #0f766e;
+    --team: #4f46e5;
+    --collective: #b45309;
+    --cluster: #64748b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 48px 24px 96px;
+    background: var(--paper);
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 40px; }
+  section { margin-bottom: 64px; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  .note { color: var(--muted); font-size: 13px; max-width: 620px; }
+
+  .map-frame { position: relative; display: inline-block; }
+  svg { display: block; }
+  .ring { fill: none; stroke: var(--line); }
+  .ring-label { fill: #b9b6ad; font-size: 10px; }
+  .bearing-line { stroke: var(--line); stroke-dasharray: 2 4; }
+
+  .node { cursor: pointer; }
+  .node circle.dot { fill: currentColor; stroke: #fff; stroke-width: 1.5; }
+  .node.discovered circle.dot { fill-opacity: 0.3; stroke: currentColor; stroke-dasharray: 3 2; stroke-width: 1.4; }
+  .node text { font-size: 11px; fill: var(--ink); }
+  .node.dim { opacity: 0.25; }
+
+  .cluster-hull { fill: rgba(100, 116, 139, 0.06); stroke: var(--cluster); stroke-dasharray: 5 5; stroke-opacity: 0.55; }
+  .cluster-chip { font-size: 10.5px; fill: var(--cluster); font-weight: 600; letter-spacing: 0.02em; }
+  .cluster-chip-bg { fill: var(--paper); stroke: var(--cluster); stroke-opacity: 0.35; rx: 8; }
+
+  .you-core { fill: var(--ink); }
+  .you-halo { fill: none; stroke: var(--ink); stroke-opacity: 0.25; }
+  .you-label { font-size: 11px; font-weight: 600; fill: var(--ink); text-anchor: middle; }
+
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5;
+    background: #1c2024; color: #f4f4f2; border-radius: 8px;
+    padding: 8px 11px; font-size: 12px; line-height: 1.45;
+    max-width: 220px; opacity: 0; transition: opacity 120ms;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip .t-name { font-weight: 600; }
+  .tooltip .t-meta { color: #b9bec6; }
+  .tooltip .t-tags { color: #8fd3cd; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; font-size: 12.5px; color: var(--muted); align-items: center; }
+  .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .legend .hollow { background: transparent; border: 1.5px dashed #9ca3af; }
+  .legend .hull-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1.5px dashed var(--cluster); margin-right: 6px; vertical-align: -3px; }
+
+  /* Console widget frame */
+  .console { background: #16181d; border-radius: 12px; padding: 18px 20px 8px; display: inline-block; border: 1px solid #262a31; }
+  .console .w-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; width: 100%; }
+  .console .w-title { color: #e8e6e1; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+  .console .w-digest { color: #8a919c; font-size: 11.5px; }
+  .console .ring { stroke: #262a31; }
+  .console .bearing-line { stroke: #262a31; }
+  .console .node text { fill: #c7ccd4; }
+  .console .node circle.dot { stroke: #16181d; }
+  .console .cluster-hull { fill: rgba(148, 163, 184, 0.05); stroke: #7d8899; }
+  .console .cluster-chip { fill: #9aa3b0; }
+  .console .cluster-chip-bg { fill: #16181d; stroke: #3a404a; }
+  .console .you-core { fill: #e8e6e1; }
+  .console .you-halo { stroke: #e8e6e1; }
+  .console .you-label { fill: #e8e6e1; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Agent proximity map — mockup</h1>
+  <p class="sub">Radial semantic map: you at the center, every discovered agent placed by embedding distance. Two renders of the same component: website element and console dashboard widget.</p>
+
+  <section>
+    <h2>Website element</h2>
+    <p class="note">
+      <strong>Radius</strong> = cosine distance between the agent's embedding and your brain's identity embedding (closer to center = semantically closer to you).
+      <strong>Bearing</strong> = direction from a 2-component PCA of agent embeddings, so similar agents share a heading.
+      Clusters detected in full embedding space are circled and labeled with their dominant skill tags. Hover a node for details.
+    </p>
+    <div class="map-frame" id="site-map"></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--professional)"></span>professional</span>
+      <span><span class="swatch" style="background:var(--team)"></span>team</span>
+      <span><span class="swatch" style="background:var(--collective)"></span>collective</span>
+      <span><span class="swatch hollow"></span>discovered (pending review)</span>
+      <span><span class="hull-swatch"></span>semantic cluster</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Console dashboard widget</h2>
+    <p class="note">Compact render of the same component in the dashboard chrome: title + digest line, ring labels hidden, node labels only on hover. Sits next to the existing “Agent Network” widget.</p>
+    <div class="console">
+      <div class="w-head">
+        <span class="w-title">Agent Proximity</span>
+        <span class="w-digest">12 agents · 2 clusters · 1 pending index</span>
+      </div>
+      <div class="map-frame" id="console-map"></div>
+    </div>
+  </section>
+</main>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ---- fake data (mirrors the planned datasource schema) --------------------
+// distance: cosine distance to the brain-character embedding (0..~0.7)
+// bearing:  degrees, from PCA of agent embeddings — similar agents share heading
+const NODES = [
+  { id: "kai.brain",   name: "Kai",    kind: "professional", status: "approved",   tags: ["research", "writing"],      distance: 0.28, bearing: 35 },
+  { id: "mira.studio", name: "Mira",   kind: "professional", status: "approved",   tags: ["research", "editing"],      distance: 0.34, bearing: 50 },
+  { id: "sage.co",     name: "Sage",   kind: "collective",   status: "approved",   tags: ["research", "citations"],    distance: 0.31, bearing: 22 },
+  { id: "nova.works",  name: "Nova",   kind: "professional", status: "discovered", tags: ["writing", "translation"],   distance: 0.38, bearing: 42 },
+  { id: "north.ops",   name: "North",  kind: "team",         status: "approved",   tags: ["operations", "automation"], distance: 0.42, bearing: 210 },
+  { id: "forge.dev",   name: "Forge",  kind: "team",         status: "approved",   tags: ["automation", "infra"],      distance: 0.48, bearing: 226 },
+  { id: "atlas.net",   name: "Atlas",  kind: "team",         status: "discovered", tags: ["operations", "runbooks"],   distance: 0.39, bearing: 194 },
+  { id: "lumen.art",   name: "Lumen",  kind: "professional", status: "approved",   tags: ["design"],                   distance: 0.26, bearing: 140 },
+  { id: "echo.club",   name: "Echo",   kind: "collective",   status: "approved",   tags: ["community"],                distance: 0.45, bearing: 100 },
+  { id: "drift.fi",    name: "Drift",  kind: "professional", status: "discovered", tags: ["finance"],                  distance: 0.58, bearing: 320 },
+  { id: "quill.law",   name: "Quill",  kind: "professional", status: "approved",   tags: ["legal"],                    distance: 0.61, bearing: 168 },
+  { id: "pixel.zone",  name: "Pixel",  kind: "collective",   status: "discovered", tags: ["art", "curation"],          distance: 0.52, bearing: 75 },
+];
+const CLUSTERS = [
+  { label: "research & writing · 4", memberIds: ["kai.brain", "mira.studio", "sage.co", "nova.works"] },
+  { label: "ops & automation · 3",   memberIds: ["north.ops", "forge.dev", "atlas.net"] },
+];
+const KIND_COLOR = { professional: "#0f766e", team: "#4f46e5", collective: "#b45309" };
+const RING_DISTANCES = [0.2, 0.4, 0.6];
+const MAX_DISTANCE = 0.7;
+
+// ---- renderer --------------------------------------------------------------
+function polar(c, r, deg) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: c + r * Math.cos(rad), y: c - r * Math.sin(rad) };
+}
+
+function renderMap(el, opts) {
+  const S = opts.size, c = S / 2, maxR = c - opts.pad;
+  const rOf = (d) => (d / MAX_DISTANCE) * maxR;
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", S); svg.setAttribute("height", S);
+  svg.setAttribute("viewBox", `0 0 ${S} ${S}`);
+
+  const add = (parent, tag, attrs, text) => {
+    const n = document.createElementNS(svgNS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text) n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  };
+
+  // distance rings
+  for (const d of RING_DISTANCES) {
+    add(svg, "circle", { class: "ring", cx: c, cy: c, r: rOf(d) });
+    if (opts.ringLabels) add(svg, "text", { class: "ring-label", x: c + 4, y: c - rOf(d) - 4 }, d.toFixed(1));
+  }
+
+  // node positions
+  const pos = {};
+  for (const n of NODES) pos[n.id] = polar(c, rOf(n.distance), n.bearing);
+
+  // cluster hulls (under nodes)
+  for (const cl of CLUSTERS) {
+    const pts = cl.memberIds.map((id) => pos[id]);
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+    const r = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy))) + opts.nodeR * 3;
+    add(svg, "circle", { class: "cluster-hull", cx, cy, r });
+    const chipW = cl.label.length * 5.6 + 14;
+    add(svg, "rect", { class: "cluster-chip-bg", x: cx - chipW / 2, y: cy - r - 18, width: chipW, height: 16, rx: 8 });
+    add(svg, "text", { class: "cluster-chip", x: cx, y: cy - r - 6, "text-anchor": "middle" }, cl.label);
+  }
+
+  // center = you
+  add(svg, "circle", { class: "you-halo", cx: c, cy: c, r: 12 });
+  add(svg, "circle", { class: "you-core", cx: c, cy: c, r: 5 });
+  add(svg, "text", { class: "you-label", x: c, y: c + 26 }, "You");
+
+  // agent nodes
+  const tooltip = document.getElementById("tooltip");
+  for (const n of NODES) {
+    const p = pos[n.id];
+    const g = add(svg, "g", { class: `node ${n.status}`, style: `color: ${KIND_COLOR[n.kind]}` });
+    add(g, "circle", { class: "dot", cx: p.x, cy: p.y, r: opts.nodeR });
+    if (opts.nodeLabels) {
+      add(g, "text", { x: p.x + opts.nodeR + 4, y: p.y + 3.5 }, n.name);
+    }
+    g.addEventListener("mousemove", (e) => {
+      tooltip.innerHTML =
+        `<div class="t-name">${n.name} · ${n.id}</div>` +
+        `<div class="t-meta">${n.kind} · distance ${n.distance.toFixed(2)}${n.status === "discovered" ? " · pending review" : ""}</div>` +
+        `<div class="t-tags">${n.tags.join(" · ")}</div>`;
+      tooltip.style.left = e.pageX + 14 + "px";
+      tooltip.style.top = e.pageY + 10 + "px";
+      tooltip.classList.add("show");
+    });
+    g.addEventListener("mouseleave", () => tooltip.classList.remove("show"));
+  }
+
+  el.appendChild(svg);
+}
+
+renderMap(document.getElementById("site-map"), { size: 640, pad: 60, nodeR: 6, ringLabels: true, nodeLabels: true });
+renderMap(document.getElementById("console-map"), { size: 360, pad: 34, nodeR: 4.5, ringLabels: false, nodeLabels: false });
+</script>
+</body>
+</html>
