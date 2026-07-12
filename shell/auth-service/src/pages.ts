@@ -169,20 +169,17 @@ function authPageHeadAssets(): string {
       p { color: var(--paper-dim); margin: 18px 0 0; }
       button {
         margin-top: 24px;
-        border: 1px solid rgba(255, 139, 61, 0.55);
-        border-radius: 999px;
-        padding: 0.82rem 1.18rem;
-        font-family: var(--font-mono);
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        border: 0;
+        border-radius: 8px;
+        padding: 0.72rem 1.15rem;
+        font-family: var(--font-body);
+        font-size: 14.5px;
+        font-weight: 600;
         background: var(--accent);
         color: var(--ink-deep);
         cursor: pointer;
-        box-shadow: 0 10px 28px -18px var(--accent);
       }
-      button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+      button:hover { filter: brightness(1.06); }
       code {
         overflow-wrap: anywhere;
         color: var(--paper);

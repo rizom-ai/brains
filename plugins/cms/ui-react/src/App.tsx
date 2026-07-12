@@ -1,6 +1,8 @@
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
+import { tags } from "@lezer/highlight";
 import {
   useCallback,
   useEffect,
@@ -10,6 +12,7 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   ApiError,
   createEntity,
@@ -79,7 +82,7 @@ export function emptyDraft(fields: FieldDescriptor[]): Record<string, unknown> {
 export function applyFieldChange(
   draft: Record<string, unknown>,
   descriptor: FieldDescriptor,
-  raw: string | boolean,
+  raw: unknown,
 ): Record<string, unknown> {
   const next = { ...draft };
   if (raw === "") {
@@ -98,14 +101,41 @@ export function applyFieldChange(
   return next;
 }
 
+function datetimeLocalValue(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 16);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 function formatUpdated(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
+  const elapsed = Date.now() - date.getTime();
+  const minutes = Math.max(0, Math.floor(elapsed / 60_000));
+  if (minutes < 60) return `${Math.max(1, minutes)} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
   return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+}
+
+export function entityPublicationState(
+  entity: EntitySummary,
+): "draft" | "published" {
+  const status = entity.frontmatter["status"];
+  if (status === "published") return "published";
+  return entity.frontmatter["published"] === true ? "published" : "draft";
+}
+
+function singularLabel(label: string): string {
+  return label.endsWith("s") ? label.slice(0, -1) : label;
 }
 
 const BODY_MODES = ["source", "split", "preview"] as const;
@@ -118,8 +148,18 @@ const BODY_MODE_LABELS: Record<BodyMode, string> = {
 
 const externalDocumentSync = Annotation.define<boolean>();
 
+const cmsMarkdownHighlightStyle = HighlightStyle.define([
+  { tag: tags.heading, color: "var(--console-accent-dim)", fontWeight: "500" },
+  { tag: tags.meta, color: "var(--console-text-muted)" },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.strong, fontWeight: "600" },
+  { tag: [tags.link, tags.url], color: "var(--console-accent-dim)" },
+  { tag: tags.quote, color: "var(--console-text-dim)" },
+]);
+
 const bodyEditorBaseExtensions: Extension[] = [
   markdown(),
+  syntaxHighlighting(cmsMarkdownHighlightStyle),
   EditorView.lineWrapping,
 ];
 
@@ -441,10 +481,17 @@ export function BodyEditor(props: {
             </button>
           ))}
         </span>
-        <span className="doc-meta">markdown · edits the literal bytes</span>
+        <span className="doc-meta">
+          {value.trim() ? value.trim().split(/\s+/).length.toLocaleString() : 0}{" "}
+          words · markdown · perfect round-trip
+        </span>
       </header>
       {assist && showSource && (
-        <section className="assist-bar" aria-label="AI selection rewrite">
+        <section
+          className="assist-bar"
+          data-has-selection={selection ? "true" : "false"}
+          aria-label="AI selection rewrite"
+        >
           {agents.length > 0 && (
             <select
               aria-label="Assist target"
@@ -574,34 +621,97 @@ export function BodyEditor(props: {
   );
 }
 
+const COLLECTION_ENTITY_TYPES = new Set([
+  "project",
+  "projects",
+  "series",
+  "topic",
+  "topics",
+]);
+const SITE_ENTITY_TYPES = new Set([
+  "profile",
+  "settings",
+  "site-info",
+  "siteInfo",
+]);
+// Brain machinery: operator-editable, but not authored content. These live
+// in their own rail group so a full brain doesn't flood "Content".
+const SYSTEM_ENTITY_TYPES = new Set([
+  "agent",
+  "agents",
+  "anchor-profile",
+  "brain-character",
+  "playbook",
+  "playbooks",
+  "prompt",
+  "prompts",
+  "skill",
+  "skills",
+  "swot",
+  "swots",
+]);
+
+function cmsTypeGroup(
+  entityType: string,
+): "Content" | "Collections" | "Site" | "System" {
+  if (SITE_ENTITY_TYPES.has(entityType)) return "Site";
+  if (SYSTEM_ENTITY_TYPES.has(entityType)) return "System";
+  if (COLLECTION_ENTITY_TYPES.has(entityType)) return "Collections";
+  return "Content";
+}
+
+/**
+ * Whether a type's schema models a publication lifecycle. Rows only wear a
+ * draft/published chip when the distinction exists — system types like
+ * prompts otherwise all read "draft".
+ */
+export function typeHasPublicationField(fields: FieldDescriptor[]): boolean {
+  return fields.some(
+    (field) => field.name === "status" || field.name === "published",
+  );
+}
+
 export function TypeSwitcher(props: {
   types: EntityTypeInfo[];
   active: string | null;
   onSelect: (entityType: string) => void;
 }): ReactElement {
+  const groups = (["Content", "Collections", "Site", "System"] as const)
+    .map((label) => ({
+      label,
+      types: props.types.filter(
+        (info) => cmsTypeGroup(info.entityType) === label,
+      ),
+    }))
+    .filter((group) => group.types.length > 0);
+
   return (
-    <nav className="types rail-group">
-      <div className="rail-title">Collections</div>
-      <ul>
-        {props.types.map((info) => (
-          <li key={info.entityType}>
-            <button
-              type="button"
-              className={
-                info.entityType === props.active ? "type active" : "type"
-              }
-              onClick={() => props.onSelect(info.entityType)}
-            >
-              {info.label}
-              {info.isSingleton ? (
-                <span className="singleton-mark">solo</span>
-              ) : (
-                <span className="count">{info.count}</span>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
+    <nav className="types">
+      {groups.map((group) => (
+        <section className="rail-group" key={group.label}>
+          <div className="rail-title">{group.label}</div>
+          <ul>
+            {group.types.map((info) => (
+              <li key={info.entityType}>
+                <button
+                  type="button"
+                  className={
+                    info.entityType === props.active ? "type active" : "type"
+                  }
+                  onClick={() => props.onSelect(info.entityType)}
+                >
+                  {info.label}
+                  {info.isSingleton ? (
+                    <span className="singleton-mark">solo</span>
+                  ) : (
+                    <span className="count">{info.count}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </nav>
   );
 }
@@ -628,12 +738,13 @@ export function SaveStateNotice(props: {
   }
   if (state.kind === "conflict") {
     return (
-      <p className="status status-error">
-        {state.message}{" "}
-        <button type="button" className="reload" onClick={onReload}>
-          Reload entry
+      <section className="conflict" role="alert">
+        <h4>The manuscript changed elsewhere</h4>
+        <p>{state.message}</p>
+        <button type="button" className="btn ghost reload" onClick={onReload}>
+          Reload latest
         </button>
-      </p>
+      </section>
     );
   }
   if (state.kind === "error") {
@@ -786,30 +897,97 @@ function ImageField(props: {
           </button>
         </p>
       )}
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(event) => {
-          const file = event.currentTarget.files?.[0];
-          if (!file) return;
-          setUploadState({ kind: "uploading" });
-          uploadFile(file)
-            .then((result) => {
-              setUploadState({ kind: "idle" });
-              onChange(result.entityId);
-            })
-            .catch((error: unknown) =>
-              setUploadState({
-                kind: "error",
-                message: error instanceof Error ? error.message : String(error),
-              }),
-            );
-        }}
-      />
+      <label className="upload-zone">
+        <span className="upload-glyph" aria-hidden="true">
+          ↑
+        </span>
+        <strong>Choose an image</strong>
+        <small>PNG, JPEG, GIF, WebP, AVIF, or SVG</small>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (!file) return;
+            setUploadState({ kind: "uploading" });
+            uploadFile(file)
+              .then((result) => {
+                setUploadState({ kind: "idle" });
+                onChange(result.entityId);
+              })
+              .catch((error: unknown) =>
+                setUploadState({
+                  kind: "error",
+                  message:
+                    error instanceof Error ? error.message : String(error),
+                }),
+              );
+          }}
+        />
+      </label>
       {uploadState.kind === "uploading" && <p className="status">Uploading…</p>}
       {uploadState.kind === "error" && (
         <p className="status status-error">{uploadState.message}</p>
       )}
+    </div>
+  );
+}
+
+function StringListField(props: {
+  descriptor: FieldDescriptor;
+  value: unknown;
+  onChange: (raw: string[]) => void;
+}): ReactElement {
+  const [pending, setPending] = useState("");
+  const values = Array.isArray(props.value)
+    ? props.value.filter((item): item is string => typeof item === "string")
+    : [];
+  const add = (): void => {
+    const next = pending.trim();
+    if (next && !values.includes(next)) props.onChange([...values, next]);
+    setPending("");
+  };
+
+  return (
+    <div className="field field-tags">
+      <span className="field-label">
+        {props.descriptor.label}
+        <em className="kind">tags</em>
+      </span>
+      <div className="tags">
+        {values.map((value) => (
+          <span className="tag" key={value}>
+            {value}
+            <button
+              type="button"
+              aria-label={`Remove ${value}`}
+              onClick={() =>
+                props.onChange(values.filter((item) => item !== value))
+              }
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <span className="tag tag-add">
+          <input
+            type="text"
+            value={pending}
+            aria-label={`Add ${props.descriptor.label.toLowerCase()} tag`}
+            placeholder="Add tag"
+            onChange={(event) => setPending(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === ",") {
+                event.preventDefault();
+                add();
+              }
+            }}
+          />
+          <button type="button" aria-label="Add tag" onClick={add}>
+            +
+          </button>
+        </span>
+      </div>
     </div>
   );
 }
@@ -911,7 +1089,7 @@ export function FieldAssistControls(props: {
 export function Field(props: {
   descriptor: FieldDescriptor;
   value: unknown;
-  onChange: (raw: string | boolean) => void;
+  onChange: (raw: unknown) => void;
 }): ReactElement {
   const { descriptor, value, onChange } = props;
   const required = descriptor.required !== false;
@@ -981,9 +1159,19 @@ export function Field(props: {
     );
   }
 
+  if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
+    return (
+      <StringListField
+        descriptor={descriptor}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+
   if (descriptor.widget === "list" || descriptor.widget === "object") {
-    // Structured widgets are read-only in the walking skeleton; the value
-    // round-trips untouched because saves only send draft keys.
+    // Nested structured widgets remain read-only; the value round-trips
+    // untouched because saves only send changed draft keys.
     return (
       <label className="field">
         <span className="field-label">
@@ -1003,10 +1191,24 @@ export function Field(props: {
     <label className="field">
       {label}
       <input
-        type={descriptor.widget === "number" ? "number" : "text"}
-        value={text}
+        type={
+          descriptor.widget === "number"
+            ? "number"
+            : descriptor.widget === "datetime"
+              ? "datetime-local"
+              : "text"
+        }
+        value={
+          descriptor.widget === "datetime" ? datetimeLocalValue(text) : text
+        }
         required={required}
-        onChange={(event) => onChange(event.currentTarget.value)}
+        onChange={(event) =>
+          onChange(
+            descriptor.widget === "datetime" && event.currentTarget.value
+              ? new Date(event.currentTarget.value).toISOString()
+              : event.currentTarget.value,
+          )
+        }
       />
     </label>
   );
@@ -1018,6 +1220,57 @@ type EditorMode =
   | { kind: "create" };
 
 type MobileEditorPane = "details" | "write" | "preview";
+
+export function DeleteDialog(props: {
+  entityId: string;
+  deleting?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}): ReactElement {
+  return (
+    <div
+      className="modal-scrim"
+      role="presentation"
+      onMouseDown={props.deleting ? undefined : props.onCancel}
+    >
+      <section
+        className="delete-modal"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <span className="modal-mark" aria-hidden="true">
+          ×
+        </span>
+        <h3 id="delete-title">Delete this entry?</h3>
+        <p>
+          The exported file for <code>{props.entityId}</code> will be removed.
+          Its history remains recoverable in git.
+        </p>
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn ghost"
+            autoFocus
+            disabled={props.deleting}
+            onClick={props.onCancel}
+          >
+            Keep entry
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            disabled={props.deleting}
+            onClick={props.onConfirm}
+          >
+            {props.deleting ? "Deleting…" : "Delete entry"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 export function App(): ReactElement {
   const [types, setTypes] = useState<EntityTypeInfo[] | null>(null);
@@ -1037,11 +1290,22 @@ export function App(): ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const saveStartedAt = useRef(0);
   // Entity id from a console-jump door, opened once its collection loads.
   const pendingDeepLinkId = useRef<string | null>(null);
 
   const activeType = types?.find((info) => info.entityType === entityType);
+
+  useEffect(() => {
+    if (!deleteOpen) return undefined;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape" && !deleting) setDeleteOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return (): void => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteOpen, deleting]);
 
   useEffect(() => {
     fetchTypes()
@@ -1243,27 +1507,28 @@ export function App(): ReactElement {
   }, [entityType, mode, draft, body, schema, openEntity, syncStatus]);
 
   const remove = useCallback((): void => {
-    if (!entityType || mode.kind !== "edit") return;
+    if (!entityType || mode.kind !== "edit" || deleting) return;
     const { id } = mode.entity;
+    setDeleting(true);
     // Recoverable downstream: the delete is exported and committed, so the
     // file remains in git history.
-    if (!window.confirm(`Delete ${id}? The exported file is removed too.`)) {
-      return;
-    }
     deleteEntity(entityType, id)
       .then(async () => {
+        setDeleteOpen(false);
         setMode({ kind: "browse" });
         setEntities(await fetchEntities(entityType));
       })
-      .catch((error: unknown) =>
-        setSaveState({ kind: "error", message: errorMessage(error) }),
-      );
-  }, [entityType, mode]);
+      .catch((error: unknown) => {
+        setDeleteOpen(false);
+        setSaveState({ kind: "error", message: errorMessage(error) });
+      })
+      .finally(() => setDeleting(false));
+  }, [entityType, mode, deleting]);
 
   if (loadError) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
         <p className="status status-error boot-status">{loadError}</p>
       </div>
     );
@@ -1271,7 +1536,7 @@ export function App(): ReactElement {
   if (!types || (entityType && (!schema || !entities))) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
         <p className="status boot-status">Loading…</p>
       </div>
     );
@@ -1279,7 +1544,7 @@ export function App(): ReactElement {
   if (!entityType || !schema) {
     return (
       <div className="studio">
-        <style>{`${styles}\n${responsiveStyles}`}</style>
+        <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
         <p className="status boot-status">
           No editable entity types are registered.
         </p>
@@ -1294,16 +1559,25 @@ export function App(): ReactElement {
       : mode.kind === "create"
         ? `New ${activeType?.label ?? entityType}`
         : (activeType?.label ?? entityType);
+  const collectionLabel = activeType?.label ?? entityType;
+  const entryLabel = singularLabel(collectionLabel);
+  const syncPending = syncStatus?.git?.hasChanges === true;
 
   return (
-    <div className="studio">
-      <style>{`${styles}\n${responsiveStyles}`}</style>
+    <div className="studio" data-view={editing ? "editor" : "listing"}>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb-mark">
           content <b>studio</b>
         </span>
         <span className="crumb">
-          {activeType?.label ?? entityType}
+          {editing && !schema.isSingleton ? (
+            <button type="button" onClick={backToList}>
+              {collectionLabel}
+            </button>
+          ) : (
+            collectionLabel
+          )}
           {editing && (
             <>
               {" / "}
@@ -1327,10 +1601,11 @@ export function App(): ReactElement {
               <h3>{activeType?.label ?? entityType}</h3>
               <span className="meta">
                 {entities?.length ?? 0}{" "}
-                {entities?.length === 1 ? "entry" : "entries"}
+                {entities?.length === 1 ? "entity" : "entities"} · sorted by
+                updated
               </span>
               <button type="button" className="btn" onClick={startCreate}>
-                New entry
+                New {entryLabel.toLowerCase()}
               </button>
             </div>
             {(entities ?? []).map((entity, index) => (
@@ -1345,9 +1620,22 @@ export function App(): ReactElement {
                 </span>
                 <span className="title">
                   {entityTitle(entity)}
-                  <small>{entity.id}</small>
+                  <small>
+                    {singularLabel(entity.entityType)}/{entity.id}
+                  </small>
                 </span>
+                {typeHasPublicationField(schema.fields) && (
+                  <span className={`chip ${entityPublicationState(entity)}`}>
+                    {entityPublicationState(entity)}
+                  </span>
+                )}
                 <span className="updated">{formatUpdated(entity.updated)}</span>
+                <span className="sync">
+                  <span
+                    className={syncPending ? "sync-dot pending" : "sync-dot"}
+                  />
+                  {syncPending ? "exporting" : "committed"}
+                </span>
               </button>
             ))}
             {entities?.length === 0 && (
@@ -1388,14 +1676,17 @@ export function App(): ReactElement {
             </nav>
             <aside className="colophon">
               <div className="form-title">
-                <span>Colophon</span>
-                <span>{schema.format === "raw" ? "raw" : "frontmatter"}</span>
+                <h2>
+                  <span className="cms-form-desktop-label">Frontmatter</span>
+                  <span className="cms-form-mobile-label">Colophon</span>
+                </h2>
+                <span>
+                  {entryLabel.toLowerCase()} ·{" "}
+                  {mode.kind === "create"
+                    ? "new"
+                    : entityPublicationState(mode.entity)}
+                </span>
               </div>
-              {!schema.isSingleton && (
-                <button type="button" className="backlink" onClick={backToList}>
-                  ← All {activeType?.label ?? entityType}
-                </button>
-              )}
               {schema.fields.map((descriptor) => (
                 <div key={descriptor.name} className="field-with-assist">
                   <Field
@@ -1476,16 +1767,48 @@ export function App(): ReactElement {
                   if (mode.kind === "edit") openEntity(mode.entity.id);
                 }}
               />
+              <span className="cms-mobile-save-status">
+                <b>
+                  {saveState.kind === "saving"
+                    ? "Saving changes"
+                    : saveState.kind === "saved"
+                      ? "All changes saved"
+                      : "Entity pipeline"}
+                </b>
+                {syncStatus?.git?.lastCommit
+                  ? `db → file → ${syncStatus.git.lastCommit.slice(0, 7)}`
+                  : "entity db"}
+              </span>
               <span className="spacer" />
               {mode.kind === "edit" && !schema.isSingleton && (
-                <button type="button" className="btn danger" onClick={remove}>
-                  Delete
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn danger"
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    Delete
+                  </button>
+                  <details className="cms-mobile-more">
+                    <summary aria-label="More document actions">•••</summary>
+                    <button type="button" onClick={() => setDeleteOpen(true)}>
+                      Delete entry
+                    </button>
+                  </details>
+                </>
               )}
             </footer>
           </form>
         )}
       </div>
+      {deleteOpen && mode.kind === "edit" && (
+        <DeleteDialog
+          entityId={mode.entity.id}
+          deleting={deleting}
+          onCancel={() => setDeleteOpen(false)}
+          onConfirm={remove}
+        />
+      )}
     </div>
   );
 }
@@ -1543,7 +1866,7 @@ const styles = `
   .btn { font-family: var(--console-ui); font-size: 13px; font-weight: 500; border: 1px solid var(--console-text); background: var(--console-text); color: var(--console-frame); border-radius: 7px; padding: 8px 16px; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
   .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--console-text) 50%, transparent); }
   .btn.danger { background: transparent; color: var(--console-accent-dim); border-color: color-mix(in srgb, var(--console-accent) 40%, transparent); }
-  .btn.danger:hover { background: rgba(196,74,29,0.07); box-shadow: none; transform: none; }
+  .btn.danger:hover { background: color-mix(in srgb, var(--console-accent) 7%, transparent); box-shadow: none; transform: none; }
   .btn.ghost { background: transparent; color: var(--console-text-dim); border-color: var(--console-rule-strong); }
   .btn.ghost:hover { background: var(--console-rule); box-shadow: none; transform: none; }
 
@@ -1619,7 +1942,7 @@ const styles = `
   .body-source .cm-scroller { font-family: var(--console-mono); font-size: 13px; line-height: 1.75; }
   .body-source .cm-content { padding: 30px 34px; caret-color: var(--console-accent); }
   .body-source .cm-line { padding: 0; }
-  .body-source .cm-selectionBackground, .body-source .cm-focused .cm-selectionBackground { background: rgba(196, 74, 29, 0.22); }
+  .body-source .cm-selectionBackground, .body-source .cm-focused .cm-selectionBackground { background: color-mix(in srgb, var(--console-accent) 22%, transparent); }
   .body-preview { padding: 30px 34px; overflow-wrap: anywhere; }
   .body-preview h1, .body-preview h2, .body-preview h3 { font-family: var(--console-display); font-variation-settings: "SOFT" 70, "opsz" 90; font-weight: 580; letter-spacing: -0.01em; line-height: 1.12; margin: 0 0 18px; }
   .body-preview h1 { font-size: 30px; }

@@ -33,6 +33,7 @@ export function renderConsoleStripHtml({
     `<a class="console-mark" href="${home}" aria-label="Console home"><span class="pulse"></span><span>Brain <span class="console-mark-long">· <b>Console</b></span></span></a>` +
     `<nav class="surface-nav" aria-label="Console surfaces">${links}</nav>` +
     `<button class="command-chip" type="button" aria-label="Search or jump"><span class="command-chip-hint">Search or jump…</span><kbd>⌘K</kbd><span class="command-chip-icon" aria-hidden="true">⌕</span></button>` +
+    `<button id="climateToggle" class="climate-chip" type="button" aria-label="Toggle climate">◐</button>` +
     `<a class="session-chip" href="${sessionHref}" aria-label="Operator · Sign out"><span>Operator</span><strong>Sign out</strong><span class="session-chip-avatar" aria-hidden="true">OP</span></a>` +
     `</header>`
   );

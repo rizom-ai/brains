@@ -181,6 +181,25 @@
   font-size: 17px;
   line-height: 1;
 }
+.climate-chip {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--console-card) 62%, transparent);
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 15px;
+  line-height: 1;
+}
+.climate-chip:hover {
+  color: var(--console-text);
+  background: var(--console-rule);
+}
 .session-chip {
   display: inline-flex;
   align-items: center;
@@ -206,6 +225,17 @@
 .session-chip strong {
   color: var(--console-ok);
   font-weight: 600;
+}
+/* Visitor state is wayfinding, not a health signal — keep it neutral. */
+.session-chip.is-visitor {
+  background: color-mix(in srgb, var(--console-text) 7%, transparent);
+  color: var(--console-text-dim);
+}
+.session-chip.is-visitor::before {
+  background: var(--console-text-muted);
+}
+.session-chip.is-visitor strong {
+  color: var(--console-text);
 }
 .session-chip-avatar { display: none; }
 .pulse {
@@ -237,10 +267,10 @@
   [data-climate] { --console-strip-height: 102px; }
   .console-strip {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(--console-touch);
+    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(--console-touch) var(--console-touch);
     grid-template-areas:
-      "mark command session"
-      "nav nav nav";
+      "mark command climate session"
+      "nav nav nav nav";
     gap: 4px 8px;
     min-height: var(--console-strip-height);
     padding:
@@ -280,6 +310,20 @@
   }
   .command-chip kbd { display: none; }
   .command-chip-icon { display: inline; }
+  .climate-chip {
+    grid-area: climate;
+    width: var(--console-touch);
+    height: var(--console-touch);
+    min-height: var(--console-touch);
+    border-radius: 50%;
+  }
+  /* Utility circles keep the 44px target but read as quiet outlines, not
+     solid pucks — the phone strip should whisper like the desktop one. */
+  .command-chip,
+  .climate-chip {
+    border-color: var(--console-rule-strong);
+    background: transparent;
+  }
   .session-chip {
     grid-area: session;
     width: var(--console-touch);
@@ -287,7 +331,13 @@
     min-height: var(--console-touch);
     justify-content: center;
     padding: 0;
+    border: 1px solid color-mix(in srgb, var(--console-ok) 45%, transparent);
     border-radius: 50%;
+    background: transparent;
+  }
+  .session-chip.is-visitor {
+    border-color: var(--console-rule-strong);
+    background: transparent;
   }
   .session-chip::before,
   .session-chip > :not(.session-chip-avatar) { display: none; }
@@ -295,6 +345,9 @@
     display: inline;
     font-size: 10px;
     font-weight: 600;
+  }
+  .session-chip.is-visitor .session-chip-avatar {
+    color: var(--console-text-muted);
   }
 }
 
