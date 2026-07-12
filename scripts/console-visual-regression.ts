@@ -54,7 +54,8 @@ const entities = [
   {
     id: "responsive-console",
     entityType: "posts",
-    frontmatter: { title: "A console that travels well" },
+    // Published entity so the library pins both publication chip states.
+    frontmatter: { title: "A console that travels well", published: true },
     updated: "2026-07-10T10:32:00.000Z",
   },
   {
@@ -78,6 +79,18 @@ const entities = [
 ];
 const entity = {
   ...entities[1],
+  // The full colophon the mockups author: slug, select, tags, toggle,
+  // schedule, and cover image — every widget the editor renders.
+  frontmatter: {
+    title: "Notes from the rhizome",
+    slug: "field-notes",
+    summary: "",
+    series: "Trust & Identity",
+    topics: ["console", "responsive"],
+    published: false,
+    publishedAt: "2026-07-14T09:00:00.000Z",
+    coverImageId: "image/verdigris-board",
+  },
   body: "# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width.",
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
@@ -505,10 +518,43 @@ const server = Bun.serve({
         hasBody: true,
         fields: [
           { name: "title", label: "Title", widget: "string", required: true },
+          { name: "slug", label: "Slug", widget: "string", required: false },
           {
             name: "summary",
             label: "Summary",
             widget: "text",
+            required: false,
+          },
+          {
+            name: "series",
+            label: "Series",
+            widget: "select",
+            required: false,
+            options: ["Trust & Identity", "Field Notes", "Infrastructure"],
+          },
+          {
+            name: "topics",
+            label: "Topics",
+            widget: "list",
+            required: false,
+            field: { name: "topics", label: "Topics", widget: "string" },
+          },
+          {
+            name: "published",
+            label: "Published",
+            widget: "boolean",
+            required: false,
+          },
+          {
+            name: "publishedAt",
+            label: "Publish date",
+            widget: "datetime",
+            required: false,
+          },
+          {
+            name: "coverImageId",
+            label: "Cover image",
+            widget: "image",
             required: false,
           },
         ],
@@ -611,22 +657,42 @@ try {
                 ),
             ),
           );
+          // Fonts must settle before pinning scroll — a late swap reflows
+          // the thread and shifts the captured scroll position.
+          await page.evaluate(() => document.fonts.ready);
           // Pin the end of the exchange: scroll every scrollable ancestor
-          // of the final message to its bottom (phone/tablet overflow).
-          await page.evaluate(() => {
+          // of the final message to its bottom, and repeat until the
+          // positions survive a frame — the thread's stick-to-bottom
+          // spring keeps animating past the first pin.
+          const pinConversationEnd = (): number[] => {
             const marker = Array.from(document.querySelectorAll("p"))
               .reverse()
               .find((node) =>
                 node.textContent?.includes("Queued for the trust series"),
               );
+            const tops: number[] = [];
             let node: HTMLElement | null = marker ?? null;
             while (node) {
               if (node.scrollHeight > node.clientHeight + 4) {
                 node.scrollTop = node.scrollHeight;
+                tops.push(node.scrollTop);
               }
               node = node.parentElement;
             }
-          });
+            return tops;
+          };
+          let previousTops = "";
+          for (let attempt = 0; attempt < 10; attempt += 1) {
+            const tops = JSON.stringify(
+              await page.evaluate(pinConversationEnd),
+            );
+            await page.waitForTimeout(150);
+            const settled = JSON.stringify(
+              await page.evaluate(pinConversationEnd),
+            );
+            if (settled === tops && settled === previousTops) break;
+            previousTops = settled;
+          }
         }
         await page.evaluate(() => document.fonts.ready);
         await checkLayout(page, surface, viewport.width);

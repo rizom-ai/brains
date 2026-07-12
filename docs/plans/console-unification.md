@@ -25,8 +25,14 @@ Remaining before this plan retires:
   baselines the sources, actions, and attachment cards (expanded) and the main
   conversation pins the user upload chip. Progress parts are stream-only (`data-status`
   during generation) and cannot be pinned from history fixtures; they remain live-only.
-- CMS fixture schema is title+summary only; the rich colophon (select, tags, toggle,
-  date, cover image) and secondary states have no baseline coverage.
+- ~~CMS rich colophon coverage~~ — pinned 2026-07-12: the fixture schema now carries the
+  full mockup colophon (slug, select, tag list, publish toggle, schedule, cover image)
+  and the library pins both publication chip states. This surfaced and fixed a real
+  tablet bug: the 641–900px editor grid never capped its rows, so a tall colophon pushed
+  the save bar off-viewport.
+- CMS secondary states (validation, conflict, delete, media upload) still have no
+  baseline coverage — they render as overlays/replacement panes and need dedicated
+  captures if pinning them becomes worthwhile.
 - Release the pending changeset.
 
 Current approved references:
