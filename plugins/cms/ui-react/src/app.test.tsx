@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
@@ -10,8 +11,10 @@ import {
   applySuggestionToSelection,
   BodyEditor,
   createBodyEditorState,
+  DeleteDialog,
   derivePipeline,
   emptyDraft,
+  entityPublicationState,
   entityTitle,
   Field,
   FieldAssistControls,
@@ -20,6 +23,7 @@ import {
   MODEL_ASSIST_TARGET,
   PipelineStations,
   SaveStateNotice,
+  typeHasPublicationField,
   TypeSwitcher,
 } from "./App";
 import type {
@@ -59,12 +63,34 @@ const selectField: FieldDescriptor = {
   options: ["draft", "published"],
 };
 
-describe("responsive editor styles", () => {
+describe("editor surface styles", () => {
+  it("defines the editorial library and manuscript treatment", () => {
+    expect(visualRefreshStyles).toContain("232px minmax(0, 1fr)");
+    expect(visualRefreshStyles).toContain(".body-preview h1");
+    expect(visualRefreshStyles).toContain('"IBM Plex Mono"');
+    expect(visualRefreshStyles).toContain(".chip.published");
+  });
+
   it("defines tablet collection switching and phone editing panes", () => {
     expect(responsiveStyles).toContain("@media (max-width: 900px)");
     expect(responsiveStyles).toContain("@media (max-width: 640px)");
     expect(responsiveStyles).toContain('.editor[data-mobile-pane="details"]');
+    expect(responsiveStyles).toContain('.studio[data-view="editor"]');
+    expect(responsiveStyles).toContain(".cms-mobile-save-status");
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
+  });
+
+  it("centers the pill type switcher and keeps row meta on the title line", () => {
+    // The desktop rail aligns type rows to the baseline; the 44px mobile
+    // pills must center their label instead of pinning it to the top edge.
+    expect(responsiveStyles).toMatch(
+      /\.rail \.type \{[^}]*align-items: center/,
+    );
+    // Phone rows: the updated-time sits beside the title, not as a ragged
+    // trailing line under the slug.
+    expect(responsiveStyles).toMatch(
+      /\.row \{[^}]*grid-template-columns: 28px minmax\(0, 1fr\) auto/,
+    );
   });
 });
 
@@ -139,6 +165,30 @@ describe("Field", () => {
     expect(html).toContain("<select");
     expect(html).toContain('value="draft"');
     expect(html).toContain(">published<");
+  });
+
+  it("renders ISO datetimes with a native local date-time control", () => {
+    const html = renderField(
+      { name: "publishedAt", label: "Published", widget: "datetime" },
+      "2026-07-11T14:30:00.000Z",
+    );
+    expect(html).toContain('type="datetime-local"');
+    expect(html).toContain('value="2026-07-11T14:30"');
+  });
+
+  it("renders primitive string lists as removable tags", () => {
+    const html = renderField(
+      {
+        name: "tags",
+        label: "Tags",
+        widget: "list",
+        field: { name: "tags", label: "Tags", widget: "string" },
+      },
+      ["console", "responsive"],
+    );
+    expect(html).toContain("console");
+    expect(html).toContain('aria-label="Remove responsive"');
+    expect(html).toContain('placeholder="Add tag"');
   });
 
   it("marks required fields", () => {
@@ -259,6 +309,17 @@ describe("applyFieldChange", () => {
     });
   });
 
+  it("stores tag-list arrays without string coercion", () => {
+    const descriptor: FieldDescriptor = {
+      name: "tags",
+      label: "Tags",
+      widget: "list",
+    };
+    expect(applyFieldChange({}, descriptor, ["cms", "editorial"])).toEqual({
+      tags: ["cms", "editorial"],
+    });
+  });
+
   it("preserves untouched keys", () => {
     expect(applyFieldChange({ title: "Keep me" }, booleanField, true)).toEqual({
       title: "Keep me",
@@ -293,10 +354,67 @@ describe("TypeSwitcher", () => {
         onSelect: () => {},
       }),
     );
+    expect(html).toContain("Content");
     expect(html).toContain("Posts");
+    expect(html).toContain("Site");
     expect(html).toContain("Site Info");
     // Active styling lands on the button for the active type only.
     expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
+  });
+
+  it("groups brain machinery under System instead of flooding Content", () => {
+    const machinery: EntityTypeInfo[] = [
+      {
+        entityType: "prompt",
+        label: "Prompts",
+        isSingleton: false,
+        hasBody: true,
+        count: 16,
+      },
+      {
+        entityType: "agent",
+        label: "Agents",
+        isSingleton: false,
+        hasBody: false,
+        count: 2,
+      },
+      {
+        entityType: "brain-character",
+        label: "Brain Characters",
+        isSingleton: true,
+        hasBody: true,
+        count: 1,
+      },
+    ];
+    const html = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types: [...types, ...machinery],
+        active: "post",
+        onSelect: () => {},
+      }),
+    );
+
+    expect(html).toContain("System");
+    // System renders last, after the authored-content groups.
+    expect(html.indexOf("System")).toBeGreaterThan(html.indexOf("Site Info"));
+    expect(html.indexOf("Prompts")).toBeGreaterThan(html.indexOf("System"));
+    expect(html.indexOf("Agents")).toBeGreaterThan(html.indexOf("System"));
+  });
+});
+
+describe("typeHasPublicationField", () => {
+  it("shows publication chips only for schemas that model publication", () => {
+    expect(typeHasPublicationField([stringField, selectField])).toBe(true);
+    expect(typeHasPublicationField([stringField, booleanField])).toBe(true);
+    // A prompt-like schema (title + target) has no publication lifecycle;
+    // rows must not all read "draft".
+    expect(
+      typeHasPublicationField([
+        stringField,
+        { name: "target", label: "Target", widget: "string" },
+      ]),
+    ).toBe(false);
+    expect(typeHasPublicationField([])).toBe(false);
   });
 });
 
@@ -525,7 +643,8 @@ describe("SaveStateNotice", () => {
       }),
     );
     expect(html).toContain("changed since it was opened");
-    expect(html).toContain(">Reload entry<");
+    expect(html).toContain("The manuscript changed elsewhere");
+    expect(html).toContain(">Reload latest<");
   });
 
   it("shows plain errors without a reload action", () => {
@@ -537,6 +656,23 @@ describe("SaveStateNotice", () => {
     );
     expect(html).toContain("title: Required");
     expect(html).not.toContain("Reload entry");
+  });
+});
+
+describe("DeleteDialog", () => {
+  it("explains recoverability and exposes explicit keep/delete actions", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeleteDialog, {
+        entityId: "field-notes",
+        onCancel: () => {},
+        onConfirm: () => {},
+      }),
+    );
+    expect(html).toContain('role="alertdialog"');
+    expect(html).toContain("field-notes");
+    expect(html).toContain("recoverable in git");
+    expect(html).toContain("Keep entry");
+    expect(html).toContain("Delete entry");
   });
 });
 
@@ -725,6 +861,25 @@ describe("PipelineStations", () => {
     expect(html).toContain("exported to file");
     expect(html).not.toContain(">committed<");
     expect(html).toContain("no git remote");
+  });
+});
+
+describe("entityPublicationState", () => {
+  it("recognizes explicit and boolean publication metadata", () => {
+    const base = { id: "abc", entityType: "post", updated: "" };
+    expect(
+      entityPublicationState({
+        ...base,
+        frontmatter: { status: "published" },
+      }),
+    ).toBe("published");
+    expect(
+      entityPublicationState({
+        ...base,
+        frontmatter: { published: true },
+      }),
+    ).toBe("published");
+    expect(entityPublicationState({ ...base, frontmatter: {} })).toBe("draft");
   });
 });
 

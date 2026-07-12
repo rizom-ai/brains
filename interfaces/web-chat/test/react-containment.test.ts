@@ -107,6 +107,8 @@ describe("React containment", () => {
     expect(appSource).toContain("archiveConversation");
     expect(appSource).toContain("deleteConversation");
     expect(appSource).toContain("web-chat-session-dialog");
+    expect(appSource).toContain("web-chat-message-header");
+    expect(appSource).toContain("Conversations");
     expect(appSource).not.toContain("window.prompt");
     expect(appSource).not.toContain("window.confirm");
     expect(appSource).toContain('method: "PUT"');

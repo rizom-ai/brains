@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { CONSOLE_FONTS_URL, CONSOLE_THEME_CSS } from "../src";
+import {
+  CONSOLE_CLIMATE_SCRIPT,
+  CONSOLE_FONTS_URL,
+  CONSOLE_THEME_CSS,
+  renderConsoleStripHtml,
+} from "../src";
 
 function climateBlock(climate: string): string {
   const match = CONSOLE_THEME_CSS.match(
@@ -60,6 +65,7 @@ describe("CONSOLE_THEME_CSS", () => {
       ".console-mark",
       ".surface-nav-link.is-active",
       ".command-chip",
+      ".climate-chip",
       ".session-chip",
       ".pulse",
       "@keyframes console-pulse",
@@ -72,7 +78,7 @@ describe("CONSOLE_THEME_CSS", () => {
     expect(CONSOLE_THEME_CSS).toContain("@media (max-width: 900px)");
     expect(CONSOLE_THEME_CSS).toContain("@media (max-width: 640px)");
     expect(CONSOLE_THEME_CSS).toContain(
-      'grid-template-areas:\n      "mark command session"',
+      'grid-template-areas:\n      "mark command climate session"',
     );
     expect(CONSOLE_THEME_CSS).toContain("--console-touch: 44px");
     expect(CONSOLE_THEME_CSS).not.toContain("flex-wrap: wrap");
@@ -85,11 +91,11 @@ describe("CONSOLE_THEME_CSS", () => {
     expect(CONSOLE_THEME_CSS).toContain(".cp-group + .cp-group");
   });
 
-  it("loads exactly the console type ramp from the fonts URL", () => {
+  it("loads the shared ramp and the CMS editorial mono face", () => {
     expect(CONSOLE_FONTS_URL).toContain("Fraunces");
     expect(CONSOLE_FONTS_URL).toContain("IBM+Plex+Sans");
     expect(CONSOLE_FONTS_URL).toContain("JetBrains+Mono");
-    expect(CONSOLE_FONTS_URL).not.toContain("IBM+Plex+Mono");
+    expect(CONSOLE_FONTS_URL).toContain("IBM+Plex+Mono");
   });
 
   it("styles chrome only from console tokens", () => {
@@ -98,5 +104,41 @@ describe("CONSOLE_THEME_CSS", () => {
     expect(CONSOLE_THEME_CSS).not.toMatch(/var\(--dashboard-/);
     expect(CONSOLE_THEME_CSS).not.toMatch(/var\(--chat-/);
     expect(CONSOLE_THEME_CSS).not.toMatch(/var\(--(ink|paper|rule|accent)\b/);
+  });
+});
+
+describe("renderConsoleStripHtml", () => {
+  const surfaces = [
+    { id: "dashboard", label: "Dashboard", href: "/", isActive: false },
+    { id: "cms", label: "CMS", href: "/cms", isActive: true },
+  ];
+
+  it("renders the climate toggle between search and session", () => {
+    const html = renderConsoleStripHtml({ surfaces, sessionHref: "/logout" });
+
+    expect(html).toContain('id="climateToggle"');
+    expect(html).toContain('class="climate-chip"');
+    expect(html.indexOf("command-chip")).toBeLessThan(
+      html.indexOf("climate-chip"),
+    );
+    expect(html.indexOf("climate-chip")).toBeLessThan(
+      html.indexOf("session-chip"),
+    );
+  });
+});
+
+describe("CONSOLE_CLIMATE_SCRIPT", () => {
+  it("applies the stored climate immediately but binds the toggle after parse", () => {
+    // The script runs from <head> on chat and the CMS, before the strip
+    // exists in the DOM; binding must wait for DOMContentLoaded there.
+    expect(CONSOLE_CLIMATE_SCRIPT).toContain(
+      'localStorage.getItem("console.climate")',
+    );
+    expect(CONSOLE_CLIMATE_SCRIPT).toContain("DOMContentLoaded");
+  });
+
+  it("labels the toggle by destination climate instead of setting text labels", () => {
+    expect(CONSOLE_CLIMATE_SCRIPT).toContain("aria-label");
+    expect(CONSOLE_CLIMATE_SCRIPT).not.toContain("Paper mode");
   });
 });

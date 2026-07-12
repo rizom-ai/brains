@@ -1,30 +1,8 @@
 /* Rizom-flavored chat styling. Mirrors interfaces/web-chat/mockup.html;
    keep both in sync if you iterate on either.
    Served inline by renderChatPage() in chat-page.ts. */
-/* ─── Chat-only tokens. The palette and type ramp come from the shared
-   @brains/console-theme sheet (prepended by renderChatPage); below are the
-   few chat-specific derivations with no console equivalent. Components
-   reference --console-* and these directly. ─── */
-:root {
-  --chat-secondary: var(--console-secondary);
-  --chat-on-accent: var(--console-on-accent);
-  --chat-surface-soft: color-mix(in srgb, var(--console-text) 4%, transparent);
-  --chat-surface: color-mix(in srgb, var(--console-text) 8%, transparent);
-  --chat-glow-cta: color-mix(in srgb, var(--console-accent) 30%, transparent);
-  --chat-glow-cta-strong: color-mix(in srgb, var(--console-accent) 45%, transparent);
-  --chat-ember: radial-gradient(ellipse at 18% -10%, color-mix(in srgb, var(--console-accent) 8%, transparent) 0%, transparent 55%),
-                radial-gradient(ellipse at 90% 110%, color-mix(in srgb, var(--chat-secondary) 7%, transparent) 0%, transparent 45%);
-}
-[data-climate="instrument"] {
-  --chat-surface-inset: rgb(0 0 0 / 0.25);
-  --chat-surface-deep: rgb(0 0 0 / 0.35);
-  --chat-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-}
-[data-climate="paper"] {
-  --chat-surface-inset: rgb(33 29 24 / 0.05);
-  --chat-surface-deep: rgb(33 29 24 / 0.08);
-  --chat-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
-}
+/* Palette and type resolve directly from @brains/console-theme. Chat keeps
+   no parallel custom-property palette; component materials derive in place. */
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -35,7 +13,9 @@ body {
   display: flex;
   flex-direction: column;
   background-color: var(--console-bg);
-  background-image: var(--chat-ember), var(--chat-noise);
+  background-image:
+    radial-gradient(ellipse at 18% -10%, color-mix(in srgb, var(--console-accent) 8%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 110%, color-mix(in srgb, var(--console-secondary) 7%, transparent) 0%, transparent 45%);
   color: var(--console-text);
   font-family: var(--console-ui);
   font-size: 16px;
@@ -83,8 +63,8 @@ button, textarea, input { font: inherit; color: inherit; }
   width: 1px;
   background: linear-gradient(180deg,
     transparent 0%,
-    rgb(from var(--chat-secondary) r g b / 0.25) 6%,
-    rgb(from var(--chat-secondary) r g b / 0.35) 50%,
+    rgb(from var(--console-secondary) r g b / 0.25) 6%,
+    rgb(from var(--console-secondary) r g b / 0.35) 50%,
     rgb(from var(--console-accent) r g b / 0.25) 94%,
     transparent 100%);
   pointer-events: none;
@@ -177,7 +157,7 @@ button, textarea, input { font: inherit; color: inherit; }
   padding: 0.55rem 1rem;
   border: 1px solid var(--console-rule-strong);
   border-radius: 999px;
-  background: var(--chat-surface-soft);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
   color: var(--console-text);
   font-family: var(--console-mono);
   font-size: 11px;
@@ -189,7 +169,7 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 .web-chat-secondary-action:hover {
   border-color: var(--console-text-muted);
-  background: var(--chat-surface);
+  background: color-mix(in srgb, var(--console-text) 8%, transparent);
 }
 .web-chat-secondary-action svg { width: 12px; height: 12px; }
 
@@ -211,7 +191,7 @@ button, textarea, input { font: inherit; color: inherit; }
   padding: 0;
   border: 1px solid var(--console-rule-strong);
   border-radius: 50%;
-  background: var(--chat-surface-soft);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
   color: var(--console-text-dim);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -287,7 +267,7 @@ button, textarea, input { font: inherit; color: inherit; }
   width: 100%;
   border: 1px solid var(--console-rule-strong);
   border-radius: 16px;
-  background: var(--chat-surface-inset);
+  background: color-mix(in srgb, var(--console-text) 6%, transparent);
   color: var(--console-text);
   padding: 0.75rem 0.85rem;
   outline: none;
@@ -305,7 +285,7 @@ button, textarea, input { font: inherit; color: inherit; }
 .web-chat-session-dialog-actions button {
   border: 1px solid var(--console-rule-strong);
   border-radius: 999px;
-  background: var(--chat-surface-soft);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
   color: var(--console-text-dim);
   cursor: pointer;
   padding: 0.55rem 0.85rem;
@@ -396,8 +376,8 @@ button, textarea, input { font: inherit; color: inherit; }
   width: 1px;
   background: linear-gradient(180deg,
     transparent 0%,
-    rgb(from var(--chat-secondary) r g b / 0.18) 6%,
-    rgb(from var(--chat-secondary) r g b / 0.28) 90%,
+    rgb(from var(--console-secondary) r g b / 0.18) 6%,
+    rgb(from var(--console-secondary) r g b / 0.28) 90%,
     transparent 100%);
   pointer-events: none;
 }
@@ -406,7 +386,7 @@ button, textarea, input { font: inherit; color: inherit; }
   padding: 1rem;
   border: 1px solid var(--console-rule);
   border-radius: 18px;
-  background: var(--chat-surface-inset);
+  background: color-mix(in srgb, var(--console-text) 6%, transparent);
   color: var(--console-text-dim);
 }
 .web-chat-sessions-state[data-tone="error"] {
@@ -482,9 +462,9 @@ button, textarea, input { font: inherit; color: inherit; }
   display: block;
   border-radius: 999px;
   background: linear-gradient(90deg,
-    var(--chat-surface-soft),
-    var(--chat-surface),
-    var(--chat-surface-soft));
+    color-mix(in srgb, var(--console-text) 4%, transparent),
+    color-mix(in srgb, var(--console-text) 8%, transparent),
+    color-mix(in srgb, var(--console-text) 4%, transparent));
   background-size: 200% 100%;
   animation: web-chat-session-pulse 1.2s ease-in-out infinite;
 }
@@ -524,7 +504,7 @@ button, textarea, input { font: inherit; color: inherit; }
   color: inherit;
   transition: background 0.2s ease;
 }
-.web-chat-session:hover:not(:disabled) { background: var(--chat-surface-soft); }
+.web-chat-session:hover:not(:disabled) { background: color-mix(in srgb, var(--console-text) 4%, transparent); }
 .web-chat-session:disabled {
   cursor: wait;
   opacity: 0.72;
@@ -551,16 +531,16 @@ button, textarea, input { font: inherit; color: inherit; }
   border-radius: 50%;
   background: var(--console-bg);
   box-shadow:
-    inset 0 0 0 2px rgb(from var(--chat-secondary) r g b / 0.65),
+    inset 0 0 0 2px rgb(from var(--console-secondary) r g b / 0.65),
     0 0 0 3px var(--console-bg);
   z-index: 1;
   transition: box-shadow 0.2s ease;
 }
 .web-chat-session:hover::before {
   box-shadow:
-    inset 0 0 0 2px var(--chat-secondary),
+    inset 0 0 0 2px var(--console-secondary),
     0 0 0 3px var(--console-bg),
-    0 0 10px rgb(from var(--chat-secondary) r g b / 0.5);
+    0 0 10px rgb(from var(--console-secondary) r g b / 0.5);
 }
 .web-chat-session::after {
   content: "";
@@ -569,7 +549,7 @@ button, textarea, input { font: inherit; color: inherit; }
   top: 1.3rem;
   width: calc(1.6rem - 6px);
   height: 1px;
-  background: linear-gradient(90deg, rgb(from var(--chat-secondary) r g b / 0.4), transparent);
+  background: linear-gradient(90deg, rgb(from var(--console-secondary) r g b / 0.4), transparent);
 }
 .web-chat-session-body {
   grid-column: 2;
@@ -656,9 +636,9 @@ button, textarea, input { font: inherit; color: inherit; }
   color: var(--console-accent);
 }
 .web-chat-session-archive:hover:not(:disabled) {
-  border-color: rgb(from var(--chat-secondary) r g b / 0.34);
-  background: rgb(from var(--chat-secondary) r g b / 0.1);
-  color: var(--chat-secondary);
+  border-color: rgb(from var(--console-secondary) r g b / 0.34);
+  background: rgb(from var(--console-secondary) r g b / 0.1);
+  color: var(--console-secondary);
 }
 .web-chat-session-delete:hover:not(:disabled) {
   border-color: rgb(from var(--console-err) r g b / 0.34);
@@ -713,14 +693,14 @@ button, textarea, input { font: inherit; color: inherit; }
   border-radius: 20px;
   background: linear-gradient(135deg,
     rgb(from var(--console-accent) r g b / 0.09),
-    var(--chat-surface-inset));
+    color-mix(in srgb, var(--console-text) 6%, transparent));
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
 .web-chat-session-notice[data-tone="error"] {
   border-color: rgb(from var(--console-err) r g b / 0.28);
   background: linear-gradient(135deg,
     rgb(from var(--console-err) r g b / 0.1),
-    var(--chat-surface-inset));
+    color-mix(in srgb, var(--console-text) 6%, transparent));
 }
 .web-chat-session-notice-tag {
   grid-column: 1 / -1;
@@ -749,7 +729,7 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 .web-chat-conversation::-webkit-scrollbar { width: 8px; }
 .web-chat-conversation::-webkit-scrollbar-thumb {
-  background: var(--chat-surface);
+  background: color-mix(in srgb, var(--console-text) 8%, transparent);
   border-radius: 999px;
 }
 .web-chat-conversation-content {
@@ -777,7 +757,7 @@ button, textarea, input { font: inherit; color: inherit; }
   width: 180px;
   height: 88px;
   overflow: visible;
-  color: var(--chat-secondary);
+  color: var(--console-secondary);
 }
 .web-chat-empty-state-glyph path {
   fill: none;
@@ -798,7 +778,7 @@ button, textarea, input { font: inherit; color: inherit; }
   filter: drop-shadow(0 0 4px var(--console-accent));
 }
 .web-chat-empty-state-glyph circle:nth-of-type(1) { animation-delay: 1.0s; }
-.web-chat-empty-state-glyph circle:nth-of-type(2) { animation-delay: 1.3s; fill: var(--chat-secondary); filter: drop-shadow(0 0 4px var(--chat-secondary)); }
+.web-chat-empty-state-glyph circle:nth-of-type(2) { animation-delay: 1.3s; fill: var(--console-secondary); filter: drop-shadow(0 0 4px var(--console-secondary)); }
 .web-chat-empty-state-glyph circle:nth-of-type(3) { animation-delay: 1.6s; }
 @keyframes web-chat-rhizome-draw { to { stroke-dashoffset: 0; } }
 @keyframes web-chat-rhizome-pop { to { opacity: 1; } }
@@ -841,7 +821,7 @@ button, textarea, input { font: inherit; color: inherit; }
   border-radius: 28px;
   background:
     radial-gradient(circle at 14% 0%, rgb(from var(--console-accent) r g b / 0.18), transparent 34%),
-    radial-gradient(circle at 92% 18%, rgb(from var(--chat-secondary) r g b / 0.16), transparent 32%),
+    radial-gradient(circle at 92% 18%, rgb(from var(--console-secondary) r g b / 0.16), transparent 32%),
     linear-gradient(135deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.025));
   box-shadow:
     0 24px 70px rgb(0 0 0 / 0.28),
@@ -922,13 +902,13 @@ button, textarea, input { font: inherit; color: inherit; }
   border: 1px solid rgb(from var(--console-accent) r g b / 0.58);
   border-radius: 999px;
   background: linear-gradient(135deg, var(--console-accent), var(--console-accent-dim));
-  color: var(--chat-on-accent);
+  color: var(--console-on-accent);
   font-family: var(--console-mono);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  box-shadow: 0 14px 30px var(--chat-glow-cta);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--console-accent) 30%, transparent);
   cursor: pointer;
   transition:
     transform 160ms ease,
@@ -937,7 +917,7 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 .web-chat-playbook-starter button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 18px 40px var(--chat-glow-cta-strong);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--console-accent) 45%, transparent);
   filter: saturate(1.08);
 }
 .web-chat-playbook-starter button:focus-visible {
@@ -980,7 +960,7 @@ button, textarea, input { font: inherit; color: inherit; }
 .web-chat-message-bubble code {
   padding: 0.1em 0.35em;
   border-radius: 4px;
-  background: var(--chat-surface);
+  background: color-mix(in srgb, var(--console-text) 8%, transparent);
   font-family: var(--console-mono);
   font-size: 0.9em;
 }
@@ -1053,7 +1033,7 @@ button, textarea, input { font: inherit; color: inherit; }
   height: 0.35rem;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--chat-surface);
+  background: color-mix(in srgb, var(--console-text) 8%, transparent);
 }
 .web-chat-progress-meter span {
   display: block;
@@ -1075,7 +1055,7 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 
 /* assistant — editorial body, serif drop-cap on first paragraph */
-.web-chat-message[data-role="assistant"] .web-chat-message-header { color: var(--chat-secondary); }
+.web-chat-message[data-role="assistant"] .web-chat-message-header { color: var(--console-secondary); }
 .web-chat-message[data-role="assistant"] .web-chat-message-bubble {
   padding: 0.1rem 0 0;
   color: var(--console-text);
@@ -1123,7 +1103,7 @@ button, textarea, input { font: inherit; color: inherit; }
   border: 1px solid var(--console-rule-strong);
   border-radius: 12px;
   overflow: auto;
-  background: var(--chat-surface-deep);
+  background: color-mix(in srgb, var(--console-text) 12%, transparent);
   font-family: var(--console-mono);
   font-size: 13px;
   line-height: 1.6;
@@ -1233,7 +1213,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   margin-top: 0.4rem;
   padding: 0.6rem 0.75rem;
   border-left: 1px solid var(--console-rule-strong);
-  background: var(--chat-surface-inset);
+  background: color-mix(in srgb, var(--console-text) 6%, transparent);
 }
 .web-chat-data-part-body pre {
   margin: 0;
@@ -1271,7 +1251,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
 .web-chat-sources-card {
   margin: 1rem 0 0;
   border: 1px solid var(--console-rule);
-  background: var(--chat-surface-inset);
+  background: color-mix(in srgb, var(--console-text) 6%, transparent);
 }
 .web-chat-sources-summary {
   display: flex;
@@ -1360,7 +1340,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
 .web-chat-actions-card {
   margin: 1rem 0 0;
   border: 1px solid var(--console-rule);
-  background: var(--chat-surface-inset);
+  background: color-mix(in srgb, var(--console-text) 6%, transparent);
 }
 .web-chat-actions-summary {
   display: flex;
@@ -1420,7 +1400,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   border: 1px solid var(--console-rule-strong);
   border-radius: 999px;
   color: var(--console-text);
-  background: var(--chat-surface-soft);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
   font-family: var(--console-mono);
   font-size: 10px;
   font-weight: 700;
@@ -1452,7 +1432,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   border: 1px solid var(--console-rule-strong);
   background: linear-gradient(135deg,
     rgb(from var(--console-accent) r g b / 0.08) 0%,
-    rgb(from var(--chat-secondary) r g b / 0.04) 100%);
+    rgb(from var(--console-secondary) r g b / 0.04) 100%);
   overflow: hidden;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
 }
@@ -1461,7 +1441,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
-  background: linear-gradient(180deg, var(--console-accent), var(--chat-secondary));
+  background: linear-gradient(180deg, var(--console-accent), var(--console-secondary));
 }
 .web-chat-attachment-preview {
   display: block;
@@ -1472,7 +1452,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   justify-self: center;
   object-fit: contain;
   border-bottom: 1px solid var(--console-rule);
-  background: var(--chat-surface-inset);
+  background: color-mix(in srgb, var(--console-text) 6%, transparent);
 }
 .web-chat-attachment-body {
   display: grid;
@@ -1491,7 +1471,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
 .web-chat-attachment-kicker { color: var(--console-accent); }
 .web-chat-attachment-card[data-status="pending"] .web-chat-attachment-kicker,
 .web-chat-attachment-card[data-status="processing"] .web-chat-attachment-kicker {
-  color: var(--chat-secondary);
+  color: var(--console-secondary);
 }
 .web-chat-attachment-card[data-status="failed"] .web-chat-attachment-kicker {
   color: var(--console-err);
@@ -1523,7 +1503,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   border: 1px solid var(--console-rule-strong);
   border-radius: 999px;
   color: var(--console-text);
-  background: var(--chat-surface-soft);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
   font-family: var(--console-mono);
   font-size: 10px;
   font-weight: 700;
@@ -1548,8 +1528,8 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   margin: 1rem 0 0;
   border: 1px solid var(--console-rule-strong);
   background: linear-gradient(135deg,
-    rgb(from var(--chat-secondary) r g b / 0.06) 0%,
-    rgb(from var(--chat-secondary) r g b / 0.01) 100%);
+    rgb(from var(--console-secondary) r g b / 0.06) 0%,
+    rgb(from var(--console-secondary) r g b / 0.01) 100%);
   overflow: hidden;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
 }
@@ -1559,8 +1539,8 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   left: 0; top: 0; bottom: 0;
   width: 2px;
   background: linear-gradient(180deg,
-    rgb(from var(--chat-secondary) r g b / 0.9),
-    rgb(from var(--chat-secondary) r g b / 0.2));
+    rgb(from var(--console-secondary) r g b / 0.9),
+    rgb(from var(--console-secondary) r g b / 0.2));
 }
 .web-chat-confirmation-header {
   display: flex;
@@ -1573,7 +1553,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--chat-secondary);
+  color: var(--console-secondary);
 }
 .web-chat-confirmation-header::before {
   content: "[";
@@ -1617,7 +1597,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
 .web-chat-confirmation-details {
   padding: 0.75rem 0.85rem;
   border-radius: 10px;
-  background: var(--chat-surface-inset);
+  background: color-mix(in srgb, var(--console-text) 6%, transparent);
   color: var(--console-text-dim);
   font-family: var(--console-mono);
   font-size: 12.5px;
@@ -1630,7 +1610,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   padding: 0 1.1rem;
   border: 1px solid var(--console-rule-strong);
   border-radius: 999px;
-  background: var(--chat-surface-soft);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
   color: var(--console-text);
   font-family: var(--console-mono);
   font-size: 12px;
@@ -1643,13 +1623,13 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
 .web-chat-confirmation-actions button:hover { transform: translateY(-1px); border-color: var(--console-text-muted); }
 .web-chat-confirmation-actions button[data-variant="primary"] {
   background: var(--console-accent);
-  color: var(--chat-on-accent);
+  color: var(--console-on-accent);
   border-color: transparent;
-  box-shadow: 0 8px 32px -8px var(--chat-glow-cta);
+  box-shadow: 0 8px 32px -8px color-mix(in srgb, var(--console-accent) 30%, transparent);
 }
 .web-chat-confirmation-actions button[data-variant="primary"]:hover {
   background: var(--console-accent-dim);
-  box-shadow: 0 12px 36px -8px var(--chat-glow-cta-strong);
+  box-shadow: 0 12px 36px -8px color-mix(in srgb, var(--console-accent) 45%, transparent);
 }
 .web-chat-confirmation-actions button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 .web-chat-confirmation-result {
@@ -1703,7 +1683,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   transform: translateY(-50%);
   background: linear-gradient(90deg,
     rgb(from var(--console-accent) r g b / 0.45),
-    rgb(from var(--chat-secondary) r g b / 0.45));
+    rgb(from var(--console-secondary) r g b / 0.45));
 }
 .web-chat-status-rail::after {
   content: "";
@@ -1794,7 +1774,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   gap: 0.5rem;
   padding: 0.95rem 1rem 0.75rem;
   border: 1px solid var(--console-rule-strong);
-  background: var(--chat-surface-soft);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
   transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
 }
@@ -1881,7 +1861,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
 .web-chat-prompt-attachment button,
 .web-chat-prompt-attach {
   border: 1px solid var(--console-rule-strong);
-  background: var(--chat-surface);
+  background: color-mix(in srgb, var(--console-text) 8%, transparent);
   color: var(--console-text-dim);
   cursor: pointer;
   font-family: var(--console-mono);
@@ -1924,7 +1904,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   display: inline-block;
   padding: 1px 6px;
   border-radius: 4px;
-  background: var(--chat-surface);
+  background: color-mix(in srgb, var(--console-text) 8%, transparent);
   border: 1px solid var(--console-rule-strong);
   font-family: var(--console-mono);
   font-size: 10px;
@@ -1939,7 +1919,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   border: 0;
   border-radius: 999px;
   background: var(--console-accent);
-  color: var(--chat-on-accent);
+  color: var(--console-on-accent);
   font-family: var(--console-mono);
   font-size: 11px;
   font-weight: 700;
@@ -1947,12 +1927,12 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   text-transform: uppercase;
   cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-  box-shadow: 0 8px 24px -8px var(--chat-glow-cta);
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--console-accent) 30%, transparent);
 }
 .web-chat-prompt-submit:hover {
   transform: translateY(-1px);
   background: var(--console-accent-dim);
-  box-shadow: 0 14px 36px -10px var(--chat-glow-cta-strong);
+  box-shadow: 0 14px 36px -10px color-mix(in srgb, var(--console-accent) 45%, transparent);
 }
 .web-chat-prompt-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 .web-chat-prompt-submit svg {
@@ -1996,7 +1976,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     z-index: 5;
     border-right: 1px solid var(--console-rule);
     border-bottom: 0;
-    /* Theme-flipping background. Earlier rgb(from --chat-surface-deep ...)
+    /* Theme-flipping background. Earlier rgb(from derived inset colors ...)
        extracted the underlying dark RGB even in light mode, leaving the
        drawer as a dark slab on a light page. */
     background: var(--console-card);
@@ -2041,7 +2021,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     height: 40px;
     border-radius: 50%;
     border: 1px solid transparent;
-    background: var(--chat-surface);
+    background: color-mix(in srgb, var(--console-text) 8%, transparent);
     color: var(--console-text-dim);
     cursor: pointer;
     opacity: 0;
@@ -2100,7 +2080,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     height: 40px;
     border-radius: 50%;
     border: 1px solid transparent;
-    background: var(--chat-surface-soft);
+    background: color-mix(in srgb, var(--console-text) 4%, transparent);
     color: var(--console-text-dim);
     cursor: pointer;
     transition: color 0.2s, border-color 0.2s, background 0.2s;
