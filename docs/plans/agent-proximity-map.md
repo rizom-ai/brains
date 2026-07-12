@@ -97,6 +97,22 @@ Single-link threshold clustering in embedding space (min size 2), hull circles +
 
 **Ships:** the map as a composable site section.
 
+### Phase 5 — beyond first order (parked)
+
+Parked until the peer-graph substrate exists; the calls are recorded here so they don't get re-litigated. The layout already generalizes: anything we can fetch a card for we can embed and place — order is a data-availability problem, not a layout problem. Two data paths, in preference order:
+
+1. **ATProto connection records** (preferred). Agent entities already carry `brainDid`/`cardUri`; once brains publish their connections as repo records (the follows-graph shape [atproto-integration.md](./atproto-integration.md)'s discovery lane points at), 2nd/3rd order is walking public repos — no bilateral protocol, composes beyond the fleet.
+2. **A2A directory convention** (fleet-internal stopgap). Expose a brain's public agent directory over the existing `a2aEndpoint`; one crawl hop per order.
+
+Decisions:
+
+- **Radius stays semantic — order is light and routing.** Hop count is topological, embedding distance is semantic; never conflate them on the same axis. Order renders as light decay (1st order full amber, 2nd dimmer, 3rd a spore — which also preserves the 15:85 darkness budget as population grows) and as **thread routing**: a 2nd-order agent's thread grows out of the introducing 1st-order agent, not out of the center; multiple introducers branch from each. You see whose roots reach them, and that you can't reach them directly yet.
+- **Semantic pruning.** Only germinate 2nd/3rd-order nodes within a cosine-distance threshold of the center — fan-out explodes otherwise (12 agents × their dozens × theirs). The rhizome grows toward nutrients, not everywhere.
+- **Sightings, not entities.** Hearsay agents become lightweight sighting records with provenance (`introducedBy[]`, hop count, card ref), not full agent entities; promote to a real entity on approval so the directory stays clean.
+- **Product angle.** A dim bulb near the center with no thread from you is a discovery suggestion — semantically close, reachable through a named peer — which turns the map from a status display into the discovery surface itself.
+
+The mockup already sketches this: two dim sightings, one routed through `kai.brain`, one branching from both `north.ops` and `forge.dev`.
+
 ## Validation
 
 - `bun test` in `shell/entity-service` and `entities/agent-discovery`; lint via `bun scripts/lint.mjs --force --filter …`; typecheck.

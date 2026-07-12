@@ -400,7 +400,7 @@
       <article class="card">
         <div class="card-head">
           <span class="card-title">Agent Proximity</span>
-          <span class="card-subtitle">distance measured in meaning · 2 clusters</span>
+          <span class="card-subtitle">distance measured in meaning · 2 clusters · 2 sightings</span>
         </div>
         <div class="prox-body">
           <div class="soil-well" id="console-map"></div>
@@ -420,6 +420,7 @@
                 <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="5.5" cy="9" r="1.8" fill="#ffa366"/><circle cx="10.5" cy="9" r="1.8" fill="#ffa366"/><circle cx="8" cy="4.6" r="1.8" fill="#ffa366"/></svg></span>team</div>
                 <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="3.4" r="1.4" fill="#ffa366"/><circle cx="12" cy="6.4" r="1.4" fill="#ffa366"/><circle cx="10.5" cy="11" r="1.4" fill="#ffa366"/><circle cx="5.5" cy="11" r="1.4" fill="#ffa366"/><circle cx="4" cy="6.4" r="1.4" fill="#ffa366"/></svg></span>collective</div>
                 <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="7" r="3" fill="none" stroke="#f5c158" stroke-width="1.1" stroke-dasharray="2.4 2"/></svg></span>not yet lit — pending review</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="7" r="4.5" fill="#ffa366" opacity=".08"/><circle cx="8" cy="7" r="2.4" fill="#ffa366" opacity=".5"/></svg></span>second order — via a peer</div>
                 <div class="legend-row"><span class="legend-glyph"><svg width="20" height="14"><circle cx="10" cy="7" r="7" fill="rgba(107,47,160,.25)"/><path d="M3.5 10 Q 10 3, 16.5 9" stroke="#8c82c8" fill="none" stroke-width="1.1"/><circle cx="3.5" cy="10" r="1.8" fill="#ffa366"/><circle cx="16.5" cy="9" r="1.8" fill="#ffa366"/></svg></span>cluster weave</div>
               </div>
             </div>
@@ -466,6 +467,7 @@
         <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="5.5" cy="9" r="1.8" fill="#c45a08"/><circle cx="10.5" cy="9" r="1.8" fill="#c45a08"/><circle cx="8" cy="4.6" r="1.8" fill="#c45a08"/></svg></span>team</div>
         <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="3.4" r="1.4" fill="#c45a08"/><circle cx="12" cy="6.4" r="1.4" fill="#c45a08"/><circle cx="10.5" cy="11" r="1.4" fill="#c45a08"/><circle cx="5.5" cy="11" r="1.4" fill="#c45a08"/><circle cx="4" cy="6.4" r="1.4" fill="#c45a08"/></svg></span>collective</div>
         <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="7" r="3" fill="none" stroke="#b3801a" stroke-width="1.1" stroke-dasharray="2.4 2"/></svg></span>pending review</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="7" r="2.4" fill="#c45a08" opacity=".45"/></svg></span>second order — via a peer</div>
         <div class="legend-row"><span class="legend-glyph"><svg width="20" height="14"><circle cx="10" cy="7" r="7" fill="rgba(107,47,160,.12)"/><path d="M3.5 10 Q 10 3, 16.5 9" stroke="#6b2fa0" fill="none" stroke-width="1.1"/><circle cx="3.5" cy="10" r="1.8" fill="#c45a08"/><circle cx="16.5" cy="9" r="1.8" fill="#c45a08"/></svg></span>cluster weave</div>
       </div>
     </div>
@@ -493,6 +495,11 @@ const NODES = [
 const CLUSTERS = [
   { label: "research · 4",   memberIds: ["kai.brain", "mira.studio", "sage.co", "nova.works"] },
   { label: "operations · 3", memberIds: ["north.ops", "forge.dev", "atlas.net"] },
+];
+// second-order sightings — agents known through a peer, not yet connected
+const SIGHTINGS = [
+  { id: "vale.research", name: "Vale",  kind: "professional", via: ["kai.brain"],              tags: ["research", "methods"],      distance: 0.35, bearing: 64 },
+  { id: "cairn.works",   name: "Cairn", kind: "team",         via: ["north.ops", "forge.dev"], tags: ["infra", "observability"],   distance: 0.55, bearing: 221 },
 ];
 const MAX_DISTANCE = 0.7;
 const STRATA = [0.2, 0.4, 0.6];
@@ -663,6 +670,26 @@ function renderMap(container, opts) {
     agentGroups.push({ g, n, p });
   }
 
+  // second-order sightings — their threads grow from the introducing peer's
+  // roots, never from the center: reachable through someone, not directly
+  const sightingGroups = [];
+  for (const s of SIGHTINGS) {
+    const p = polar(c, rOf(s.distance), s.bearing);
+    const g = el(svg, "g", { class: "agent" });
+    for (const viaId of s.via) {
+      const vp = pos[viaId];
+      const dx = p.x - vp.x, dy = p.y - vp.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const px = -dy / len, py = dx / len;
+      const bow = (rng() - 0.5) * len * 0.5;
+      const m = { x: vp.x + dx * 0.5 + px * bow, y: vp.y + dy * 0.5 + py * bow };
+      const d = `M ${vp.x} ${vp.y} Q ${m.x} ${m.y}, ${p.x} ${p.y}`;
+      el(g, "path", { d, fill: "none", stroke: AMBER, "stroke-opacity": 0.09, "stroke-width": 2.4, filter: `url(#${opts.id}-blur)` });
+      el(g, "path", { d, fill: "none", stroke: AMBER, "stroke-opacity": 0.2, "stroke-width": 0.8 });
+    }
+    sightingGroups.push({ g, s, p });
+  }
+
   // the brain — densest concentration of light
   el(svg, "circle", { class: "you-halo", cx: c, cy: c, r: 26, fill: AMBER, opacity: 0.1, filter: `url(#${opts.id}-blur)` });
   el(svg, "circle", { cx: c, cy: c, r: 11, fill: AMBER, opacity: 0.28, filter: `url(#${opts.id}-blur)` });
@@ -670,12 +697,17 @@ function renderMap(container, opts) {
   el(svg, "circle", { cx: c, cy: c, r: 2, fill: HOT });
   el(svg, "text", { class: "you-label", x: c, y: c + 30 }, "you");
 
-  // agent bulbs — kind is scale: one mind, a team, a collective
-  function bulb(g, x, y, r, lit) {
-    if (lit) {
+  // agent bulbs — kind is scale: one mind, a team, a collective.
+  // mode: "lit" (approved), "pending" (unlit, awaiting review),
+  // "dim" (second order — light decays with every hop through the soil)
+  function bulb(g, x, y, r, mode) {
+    if (mode === "lit") {
       el(g, "circle", { class: "bulb-flicker", cx: x, cy: y, r: r * 3.2, fill: AMBER, opacity: 0.13, filter: `url(#${opts.id}-blur)` });
       el(g, "circle", { cx: x, cy: y, r, fill: AMBER });
       el(g, "circle", { cx: x, cy: y, r: r * 0.42, fill: HOT, opacity: 0.9 });
+    } else if (mode === "dim") {
+      el(g, "circle", { cx: x, cy: y, r: r * 2.6, fill: AMBER, opacity: 0.07, filter: `url(#${opts.id}-blur)` });
+      el(g, "circle", { cx: x, cy: y, r, fill: AMBER, opacity: 0.5 });
     } else {
       el(g, "circle", {
         cx: x, cy: y, r: r + 0.8, fill: "none",
@@ -684,7 +716,7 @@ function renderMap(container, opts) {
     }
   }
   for (const { g, n, p } of agentGroups) {
-    const lit = n.status === "approved";
+    const mode = n.status === "approved" ? "lit" : "pending";
     if (clusterOf[n.id] !== undefined) {
       // members carry the collective frequency in their halo
       el(g, "circle", {
@@ -693,18 +725,18 @@ function renderMap(container, opts) {
       });
     }
     if (n.kind === "professional") {
-      bulb(g, p.x, p.y, 3.4, lit);
+      bulb(g, p.x, p.y, 3.4, mode);
     } else if (n.kind === "team") {
       const rr = 4.6;
       for (const a of [90, 210, 330]) {
         const q = polar(0, rr, a);
-        bulb(g, p.x + q.x - 0, p.y + q.y - 0, 2.1, lit);
+        bulb(g, p.x + q.x, p.y + q.y, 2.1, mode);
       }
     } else {
       const rr = 6.4;
       for (const a of [90, 162, 234, 306, 18]) {
         const q = polar(0, rr, a);
-        bulb(g, p.x + q.x, p.y + q.y, 1.7, lit);
+        bulb(g, p.x + q.x, p.y + q.y, 1.7, mode);
       }
     }
     const anchor = p.x > c ? "start" : "end";
@@ -713,6 +745,27 @@ function renderMap(container, opts) {
       x: p.x + (p.x > c ? 11 : -11), y: p.y + 3,
       "text-anchor": anchor,
     }, n.name.toLowerCase());
+  }
+  for (const { g, s, p } of sightingGroups) {
+    if (s.kind === "professional") {
+      bulb(g, p.x, p.y, 3, "dim");
+    } else if (s.kind === "team") {
+      for (const a of [90, 210, 330]) {
+        const q = polar(0, 4.2, a);
+        bulb(g, p.x + q.x, p.y + q.y, 1.9, "dim");
+      }
+    } else {
+      for (const a of [90, 162, 234, 306, 18]) {
+        const q = polar(0, 6, a);
+        bulb(g, p.x + q.x, p.y + q.y, 1.5, "dim");
+      }
+    }
+    const anchor = p.x > c ? "start" : "end";
+    el(g, "text", {
+      class: "node-label", "fill-opacity": 0.55,
+      x: p.x + (p.x > c ? 11 : -11), y: p.y + 3,
+      "text-anchor": anchor,
+    }, s.name.toLowerCase());
   }
 
   // nutrient pulses — knowledge flowing node to node
@@ -760,6 +813,7 @@ function renderMap(container, opts) {
   const tooltip = document.getElementById("tooltip");
   const clearFocus = () => {
     agentGroups.forEach((o) => o.g.classList.remove("dim"));
+    sightingGroups.forEach((o) => o.g.classList.remove("dim"));
     clusterMeta.forEach((m) => {
       m.threads.classList.remove("lit", "dim");
       m.mistEl.classList.remove("dim");
@@ -769,6 +823,7 @@ function renderMap(container, opts) {
   const focusCluster = (ci) => {
     const members = new Set(CLUSTERS[ci].memberIds);
     agentGroups.forEach((o) => o.g.classList.toggle("dim", !members.has(o.n.id)));
+    sightingGroups.forEach((o) => o.g.classList.add("dim"));
     clusterMeta.forEach((m, i) => {
       m.threads.classList.toggle("lit", i === ci);
       m.threads.classList.toggle("dim", i !== ci);
@@ -787,6 +842,7 @@ function renderMap(container, opts) {
       if (ci !== undefined) focusCluster(ci);
       else {
         agentGroups.forEach((o) => o.g.classList.toggle("dim", o.g !== g));
+        sightingGroups.forEach((o) => o.g.classList.add("dim"));
         clusterMeta.forEach((m) => { m.threads.classList.add("dim"); m.mistEl.classList.add("dim"); });
       }
       moveTip(e,
@@ -794,6 +850,20 @@ function renderMap(container, opts) {
         `<div class="t-id">${n.id}</div>` +
         `<div class="t-meta">${n.kind} · <em>d ${n.distance.toFixed(2)}</em>${n.status === "discovered" ? " · pending review" : ""}</div>` +
         `<div class="t-tags">${n.tags.map((t) => `<span class="t-tag">${t}</span>`).join("")}</div>`);
+    });
+    g.addEventListener("mouseleave", clearFocus);
+  }
+  for (const { g, s } of sightingGroups) {
+    g.addEventListener("mousemove", (e) => {
+      const introducers = new Set(s.via);
+      agentGroups.forEach((o) => o.g.classList.toggle("dim", !introducers.has(o.n.id)));
+      sightingGroups.forEach((o) => o.g.classList.toggle("dim", o.g !== g));
+      clusterMeta.forEach((m) => { m.threads.classList.add("dim"); m.mistEl.classList.add("dim"); });
+      moveTip(e,
+        `<div class="t-name">${s.name}</div>` +
+        `<div class="t-id">${s.id}</div>` +
+        `<div class="t-meta">second order · via ${s.via.join(", ")} · <em>d ${s.distance.toFixed(2)}</em></div>` +
+        `<div class="t-tags">${s.tags.map((t) => `<span class="t-tag">${t}</span>`).join("")}</div>`);
     });
     g.addEventListener("mouseleave", clearFocus);
   }
