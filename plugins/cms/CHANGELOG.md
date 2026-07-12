@@ -1,5 +1,17 @@
 # @brains/cms
 
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- [`c78f915`](https://github.com/rizom-ai/brains/commit/c78f9153f7e2ca8351d809178de1efb67f26a148) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cap the tablet editor grid rows so a tall colophon scrolls inside its rail instead of pushing the save bar off-viewport at 641-900px widths.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/auth-service@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes

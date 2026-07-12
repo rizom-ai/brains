@@ -1,5 +1,20 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- [`0819819`](https://github.com/rizom-ai/brains/commit/08198194eee9619509430761ccc769c4f794f451) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Streamline the desktop chat composer to the mockup's attach / message / send pill. The boxed instrument card (MESSAGE kicker, ATTACH FILE pill, keyboard hint chips) is gone at every width; the pill that already shipped on tablet and phone now renders at desktop too, centered in the manuscript column over a full-width band.
+
+- [`895ccb8`](https://github.com/rizom-ai/brains/commit/895ccb866be59a64d63d687a45a3cea366d2d9fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the guided playbook starter card and its bootstrap endpoint. Fresh conversations open on the empty state again — the rhizome glyph with its draw animation — and playbooks start through explicit commands. Also fix the sessions drawer close button: it anchors to the drawer's real edge beside the new-session control instead of colliding with it, styled as a hairline circle.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.158
+  - @brains/contracts@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/auth-service@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes

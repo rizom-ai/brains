@@ -1,6 +1,6 @@
 {
   "name": "@brains/notifications",
-  "version": "0.2.0-alpha.157",
+  "version": "0.2.0-alpha.158",
   "description": "Generic notification routing for transactional and administrative messages",
   "dependencies": {
     "@brains/email-contracts": "workspace:*",

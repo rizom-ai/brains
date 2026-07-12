@@ -1,5 +1,54 @@
 # @brains/rover
 
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies [[`0819819`](https://github.com/rizom-ai/brains/commit/08198194eee9619509430761ccc769c4f794f451), [`c78f915`](https://github.com/rizom-ai/brains/commit/c78f9153f7e2ca8351d809178de1efb67f26a148), [`895ccb8`](https://github.com/rizom-ai/brains/commit/895ccb866be59a64d63d687a45a3cea366d2d9fe)]:
+  - @brains/web-chat@0.2.0-alpha.158
+  - @brains/cms@0.2.0-alpha.158
+  - @brains/agent-discovery@0.2.0-alpha.158
+  - @brains/assessment@0.2.0-alpha.158
+  - @brains/blog@0.2.0-alpha.158
+  - @brains/decks@0.2.0-alpha.158
+  - @brains/doc@0.2.0-alpha.158
+  - @brains/document-plugin@0.2.0-alpha.158
+  - @brains/image-plugin@0.2.0-alpha.158
+  - @brains/link@0.2.0-alpha.158
+  - @brains/note@0.2.0-alpha.158
+  - @brains/portfolio@0.2.0-alpha.158
+  - @brains/prompt@0.2.0-alpha.158
+  - @brains/rizom-ecosystem@0.2.0-alpha.158
+  - @brains/series@0.2.0-alpha.158
+  - @brains/site-info@0.2.0-alpha.158
+  - @brains/social-media@0.2.0-alpha.158
+  - @brains/topics@0.2.0-alpha.158
+  - @brains/wishlist@0.2.0-alpha.158
+  - @brains/a2a@0.2.0-alpha.158
+  - @brains/chat@0.2.0-alpha.158
+  - @brains/discord@0.2.0-alpha.158
+  - @brains/mcp@0.2.0-alpha.158
+  - @brains/webserver@0.2.0-alpha.158
+  - @brains/analytics@0.2.0-alpha.158
+  - @brains/atproto@0.2.0-alpha.158
+  - @brains/atproto-registry@0.2.0-alpha.158
+  - @brains/content-pipeline@0.2.0-alpha.158
+  - @brains/dashboard@0.2.0-alpha.158
+  - @brains/directory-sync@0.2.0-alpha.158
+  - @brains/email-resend@0.2.0-alpha.158
+  - @brains/newsletter@0.2.0-alpha.158
+  - @brains/notifications@0.2.0-alpha.158
+  - @brains/obsidian-vault@0.2.0-alpha.158
+  - @brains/playbooks@0.2.0-alpha.158
+  - @brains/rover-onboarding@0.2.0-alpha.158
+  - @brains/site-builder-plugin@0.2.0-alpha.158
+  - @brains/site-content@0.2.0-alpha.158
+  - @brains/stock-photo@0.2.0-alpha.158
+  - @brains/theme-default@0.2.0-alpha.158
+  - @brains/app@0.2.0-alpha.158
+  - @brains/auth-service@0.2.0-alpha.158
+  - @brains/site-default@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes
