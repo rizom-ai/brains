@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mockup · Agent proximity map</title>
+<title>Mockup · Agent proximity map — bioluminescent cartography</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -13,25 +13,27 @@
     --console-display: "Fraunces", "Times New Roman", serif;
     --console-ui: "IBM Plex Sans", -apple-system, system-ui, sans-serif;
     --console-mono: "JetBrains Mono", ui-monospace, monospace;
+    /* bioluminescent-infrastructure palette (docs/design) */
+    --biolume-amber: #ffa366;
+    --biolume-amber-hot: #fff8ee;
+    --biolume-amber-deep: #e87722;
+    --biolume-purple: #6b2fa0;
+    --biolume-lilac: #8c82c8;
+    --biolume-soil: #05040f;
   }
   .instrument {
     --console-bg: #0a0819;
     --console-frame: #0f0d22;
     --console-card: #14112b;
-    --console-card-soft: #1b1638;
     --console-bg-deep: #05040f;
     --console-text: #f1eadd;
     --console-text-dim: rgba(241, 234, 221, 0.62);
     --console-text-muted: rgba(241, 234, 221, 0.4);
     --console-text-faint: rgba(241, 234, 221, 0.22);
     --console-accent: #ff8b3d;
-    --console-secondary: #818cf8;
-    --console-ok: #68cc8b;
     --console-warn: #f5c158;
     --console-rule: rgba(241, 234, 221, 0.07);
     --console-rule-strong: rgba(241, 234, 221, 0.14);
-    --console-rule-accent: rgba(255, 139, 61, 0.48);
-    --console-accent-soft: rgba(255, 139, 61, 0.12);
   }
   .paper {
     --console-bg: #ece5d6;
@@ -42,22 +44,18 @@
     --console-text-muted: rgba(33, 29, 24, 0.42);
     --console-text-faint: rgba(33, 29, 24, 0.22);
     --console-accent: #c44a1d;
-    --console-secondary: #6b2fa0;
-    --console-ok: #3d6b5c;
     --console-warn: #b3801a;
     --console-rule: rgba(33, 29, 24, 0.07);
     --console-rule-strong: rgba(33, 29, 24, 0.14);
-    --console-rule-accent: rgba(196, 74, 29, 0.48);
-    --console-accent-soft: rgba(196, 74, 29, 0.1);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #17141f; font-family: var(--console-ui); }
+  body { background: #060411; font-family: var(--console-ui); }
   .mock-note {
-    max-width: 1080px;
+    max-width: 1120px;
     margin: 0 auto;
-    padding: 26px 32px 10px;
-    color: rgba(241, 234, 221, 0.45);
+    padding: 28px 32px 12px;
+    color: rgba(241, 234, 221, 0.4);
     font-family: var(--console-mono);
     font-size: 10.5px;
     letter-spacing: 0.16em;
@@ -69,7 +67,7 @@
     position: relative;
     background: var(--console-bg);
     color: var(--console-text);
-    padding: 34px 32px 54px;
+    padding: 34px 32px 58px;
     overflow: hidden;
   }
   .instrument.stage::before {
@@ -78,15 +76,9 @@
     opacity: 0.035; mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
-  .instrument.stage::after {
-    content: "";
-    position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(ellipse at 50% 0%, transparent 0%, transparent 45%, var(--console-bg-deep) 110%);
-    opacity: 0.55;
-  }
   .frame {
     position: relative; z-index: 1;
-    max-width: 1080px;
+    max-width: 1120px;
     margin: 0 auto;
     background: var(--console-frame);
     border: 1px solid var(--console-rule-strong);
@@ -134,18 +126,45 @@
     color: var(--console-text-faint);
   }
 
-  /* proximity card body: map + rail */
+  /* the soil well — the map lives below the card surface */
   .prox-body {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 230px;
-    gap: 26px;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) 216px;
+    gap: 24px;
   }
   @media (max-width: 900px) { .prox-body { grid-template-columns: 1fr; } }
-  .prox-map { display: grid; place-items: center; }
-  .prox-map svg { display: block; max-width: 100%; height: auto; }
+  .soil-well {
+    position: relative;
+    border-radius: 10px;
+    background:
+      radial-gradient(ellipse at 50% 42%, rgba(107, 47, 160, 0.08), transparent 62%),
+      var(--biolume-soil);
+    box-shadow: 0 1px 0 rgba(241, 234, 221, 0.05), inset 0 2px 24px rgba(0, 0, 0, 0.75);
+    overflow: hidden;
+    display: grid; place-items: center;
+  }
+  .soil-well::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.8  0 0 0 0 0.6  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .soil-well svg { display: block; max-width: 100%; height: auto; }
 
-  .rail { display: grid; gap: 20px; align-content: start; }
+  .rail { display: grid; gap: 18px; align-content: start; padding-top: 4px; }
+  .rail-count {
+    font-family: var(--console-display);
+    font-variation-settings: "opsz" 144, "SOFT" 20, "wght" 350;
+    font-size: 66px; line-height: 0.85; letter-spacing: -0.04em;
+    color: var(--console-text);
+    font-variant-numeric: tabular-nums;
+  }
+  .rail-count-label {
+    margin-top: 10px;
+    font-family: var(--console-mono);
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--console-text-muted);
+  }
   .rail-title {
     font-family: var(--console-mono);
     font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
@@ -170,19 +189,17 @@
   .near-dist {
     font-family: var(--console-mono);
     font-size: 12px; font-variant-numeric: tabular-nums;
-    color: var(--console-text);
+    color: var(--biolume-amber);
   }
-  .legend { display: grid; gap: 7px; }
+  .legend { display: grid; gap: 8px; }
   .legend-row {
-    display: flex; align-items: center; gap: 9px;
+    display: flex; align-items: center; gap: 10px;
     font-family: var(--console-mono);
     font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
     color: var(--console-text-muted);
   }
-  .legend-glyph { width: 14px; display: grid; place-items: center; }
-  .pending-note {
-    font-size: 12px; color: var(--console-text-muted); font-style: italic;
-  }
+  .legend-glyph { width: 18px; display: grid; place-items: center; }
+  .pending-note { font-size: 12px; color: var(--console-text-muted); font-style: italic; }
   .pending-note b { color: var(--console-warn); font-style: normal; font-weight: 500; }
 
   /* neighbouring agent-network card, abbreviated */
@@ -201,7 +218,7 @@
     display: inline-flex; align-items: baseline; gap: 8px;
   }
   .agent-network-view-tab.is-active { color: var(--console-text); border-bottom-color: var(--console-accent); }
-  .agent-network-view-count { font-size: 10px; color: var(--console-text-muted); font-variant-numeric: tabular-nums; }
+  .agent-network-view-count { font-size: 10px; color: var(--console-text-muted); }
   .list-item {
     display: flex; justify-content: space-between; gap: 14px;
     padding: 10px 4px;
@@ -226,66 +243,72 @@
     pointer-events: none;
   }
 
-  /* ================= map (shared, themed via currentColor) ================= */
-  .ring { fill: none; stroke: var(--console-rule); }
-  .crosshair { stroke: var(--console-rule); }
-  .ring-label {
-    fill: var(--console-text-faint);
-    font-family: var(--console-mono);
-    font-size: 8.5px; letter-spacing: 0.08em;
-  }
-  .node { cursor: pointer; color: var(--console-secondary); }
-  .node .glyph { fill: currentColor; }
-  .node.discovered .glyph {
-    fill: transparent; stroke: var(--console-warn);
-    stroke-width: 1.3; stroke-dasharray: 3 2.4;
-  }
-  .node .halo {
-    fill: currentColor; opacity: 0;
-    transition: opacity 160ms ease;
-  }
-  .node:hover .halo, .node.is-lit .halo { opacity: 0.16; }
-  .node.dim { opacity: 0.22; }
+  /* ================= map internals ================= */
   .node-label {
-    fill: var(--console-text-muted);
     font-family: var(--console-mono);
     font-size: 9px; letter-spacing: 0.08em; text-transform: lowercase;
+    fill: rgba(241, 234, 221, 0.44);
   }
-  .cluster-hull {
-    fill: color-mix(in srgb, var(--console-secondary) 4%, transparent);
-    stroke: color-mix(in srgb, var(--console-secondary) 38%, transparent);
-    stroke-dasharray: 2 5; stroke-linecap: round;
-  }
-  .cluster-label {
-    fill: color-mix(in srgb, var(--console-secondary) 75%, var(--console-text));
-    font-family: var(--console-mono);
-    font-size: 8.5px; font-weight: 500;
-    letter-spacing: 0.18em; text-transform: uppercase;
-  }
-  .you-core { fill: var(--console-accent); }
-  .you-pulse {
-    fill: none; stroke: var(--console-accent);
-    animation: prox-pulse 2.4s ease-in-out infinite;
-    transform-origin: center; transform-box: fill-box;
-  }
-  @keyframes prox-pulse {
-    0%, 100% { opacity: 0.55; transform: scale(0.6); }
-    70% { opacity: 0; transform: scale(1.5); }
-    71% { opacity: 0; transform: scale(0.6); }
-  }
-  @media (prefers-reduced-motion: reduce) { .you-pulse { animation: none; opacity: 0.35; } }
+  .paper-map .node-label { fill: rgba(33, 29, 24, 0.5); }
   .you-label {
-    fill: var(--console-text-dim);
     font-family: var(--console-mono);
-    font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+    font-size: 9px; letter-spacing: 0.26em; text-transform: uppercase;
     text-anchor: middle;
+    fill: rgba(241, 234, 221, 0.55);
+  }
+  .paper-map .you-label { fill: rgba(33, 29, 24, 0.55); }
+  .strata-label {
+    font-family: var(--console-mono);
+    font-size: 8px; letter-spacing: 0.08em;
+    fill: rgba(241, 234, 221, 0.16);
+  }
+  .paper-map .strata-label { fill: rgba(33, 29, 24, 0.25); }
+  .cluster-label {
+    font-family: var(--console-mono);
+    font-size: 9.5px; font-weight: 600;
+    letter-spacing: 0.24em; text-transform: uppercase;
+    fill: var(--biolume-lilac);
+    paint-order: stroke;
+    stroke: var(--biolume-soil); stroke-width: 3.5px; stroke-linejoin: round;
+    cursor: pointer;
+  }
+  .paper-map .cluster-label { fill: var(--biolume-purple); stroke: #ece5d6; }
+
+  .agent { cursor: pointer; transition: opacity 200ms ease; }
+  .agent.dim { opacity: 0.16; }
+  .cluster-threads, .cluster-mist { transition: opacity 200ms ease; }
+  .cluster-threads.dim, .cluster-mist.dim { opacity: 0.18; }
+  .cluster-threads .weave-core { transition: stroke-opacity 200ms ease; }
+  .cluster-threads.lit .weave-core { stroke-opacity: 0.8; }
+  .cluster-mist { cursor: pointer; }
+
+  .you-halo { transform-origin: center; transform-box: fill-box; animation: breathe 5.2s ease-in-out infinite; }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50% { opacity: 0.95; transform: scale(1.18); }
+  }
+  .bulb-flicker { animation: flicker 4.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes flicker {
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 1; }
+  }
+  .spore { animation: spore-drift 11s linear infinite; }
+  @keyframes spore-drift {
+    0% { transform: translateY(14px); opacity: 0; }
+    18% { opacity: 0.5; }
+    82% { opacity: 0.35; }
+    100% { transform: translateY(-26px); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .you-halo, .bulb-flicker, .spore { animation: none; }
+    .pulse-dot { display: none; }
   }
 
   .tooltip {
     position: absolute; pointer-events: none; z-index: 50;
     background: var(--console-card, #14112b);
-    border: 1px solid var(--console-rule-strong);
-    color: var(--console-text);
+    border: 1px solid var(--console-rule-strong, rgba(241,234,221,.14));
+    color: var(--console-text, #f1eadd);
     border-radius: 8px;
     padding: 9px 12px 10px;
     max-width: 240px;
@@ -293,12 +316,13 @@
     box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.7);
   }
   .tooltip.show { opacity: 1; }
-  .tooltip .t-name { font-size: 13px; color: var(--console-text); }
+  .tooltip .t-name { font-size: 13px; }
   .tooltip .t-id, .tooltip .t-meta {
     font-family: var(--console-mono);
     font-size: 9.5px; letter-spacing: 0.06em;
     color: var(--console-text-muted);
   }
+  .tooltip .t-meta em { color: var(--biolume-amber); font-style: normal; }
   .tooltip .t-tags { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px; }
   .tooltip .t-tag {
     font-family: var(--console-mono);
@@ -312,7 +336,7 @@
   .paper.stage {
     background: var(--console-bg);
     color: var(--console-text);
-    padding: 72px 32px 88px;
+    padding: 76px 32px 92px;
     position: relative;
   }
   .paper.stage::before {
@@ -321,7 +345,7 @@
     opacity: 0.06; mix-blend-mode: multiply;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
-  .site-section { position: relative; max-width: 880px; margin: 0 auto; }
+  .site-section { position: relative; max-width: 920px; margin: 0 auto; }
   .site-kicker {
     font-family: var(--console-mono);
     font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase;
@@ -332,9 +356,9 @@
     font-family: var(--console-display);
     font-variation-settings: "SOFT" 60, "opsz" 72;
     font-weight: 480;
-    font-size: clamp(34px, 5vw, 46px);
-    line-height: 1.05; letter-spacing: -0.01em;
-    max-width: 18ch;
+    font-size: clamp(36px, 5vw, 50px);
+    line-height: 1.04; letter-spacing: -0.01em;
+    max-width: 20ch;
   }
   .site-heading em {
     font-style: italic;
@@ -343,27 +367,21 @@
     color: var(--console-accent);
   }
   .site-lede {
-    margin-top: 16px; max-width: 52ch;
-    font-size: 15.5px; line-height: 1.65;
+    margin-top: 18px; max-width: 54ch;
+    font-size: 15.5px; line-height: 1.68;
     color: var(--console-text-dim);
   }
   .site-map-plate {
-    margin-top: 40px;
-    background: var(--console-card);
-    border: 1px solid var(--console-rule-strong);
-    border-radius: 14px;
-    box-shadow: 0 1px 0 rgba(255, 250, 235, 0.65) inset, 0 22px 44px -30px rgba(90, 60, 20, 0.3);
-    padding: 34px 26px 22px;
+    margin-top: 44px;
+    position: relative;
     display: grid; place-items: center;
   }
   .site-map-plate svg { max-width: 100%; height: auto; }
   .site-legend {
     display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center;
-    margin-top: 22px; padding-top: 16px;
+    margin-top: 26px; padding-top: 18px;
     border-top: 1px solid var(--console-rule);
-    width: 100%;
   }
-  .site-legend .legend-row { color: var(--console-text-muted); }
 </style>
 </head>
 <body>
@@ -382,11 +400,15 @@
       <article class="card">
         <div class="card-head">
           <span class="card-title">Agent Proximity</span>
-          <span class="card-subtitle">12 agents · 2 clusters · 1 pending index</span>
+          <span class="card-subtitle">distance measured in meaning · 2 clusters</span>
         </div>
         <div class="prox-body">
-          <div class="prox-map" id="console-map"></div>
+          <div class="soil-well" id="console-map"></div>
           <aside class="rail">
+            <div>
+              <div class="rail-count">12</div>
+              <div class="rail-count-label">agents in reach</div>
+            </div>
             <div>
               <div class="rail-title">Closest</div>
               <div id="nearest"></div>
@@ -394,14 +416,14 @@
             <div>
               <div class="rail-title">Key</div>
               <div class="legend">
-                <div class="legend-row"><span class="legend-glyph"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#818cf8"/></svg></span>professional</div>
-                <div class="legend-row"><span class="legend-glyph"><svg width="10" height="10"><rect x="1" y="1" width="8" height="8" fill="#818cf8"/></svg></span>team</div>
-                <div class="legend-row"><span class="legend-glyph"><svg width="12" height="12"><rect x="2.4" y="2.4" width="7" height="7" fill="#818cf8" transform="rotate(45 6 6)"/></svg></span>collective</div>
-                <div class="legend-row"><span class="legend-glyph"><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="none" stroke="#f5c158" stroke-width="1.3" stroke-dasharray="3 2.4"/></svg></span>pending review</div>
-                <div class="legend-row"><span class="legend-glyph"><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="none" stroke="rgba(129,140,248,.5)" stroke-dasharray="2 4" stroke-linecap="round"/></svg></span>semantic cluster</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="7" r="2.6" fill="#ffa366"/><circle cx="8" cy="7" r="1" fill="#fff8ee"/></svg></span>professional</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="5.5" cy="9" r="1.8" fill="#ffa366"/><circle cx="10.5" cy="9" r="1.8" fill="#ffa366"/><circle cx="8" cy="4.6" r="1.8" fill="#ffa366"/></svg></span>team</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="3.4" r="1.4" fill="#ffa366"/><circle cx="12" cy="6.4" r="1.4" fill="#ffa366"/><circle cx="10.5" cy="11" r="1.4" fill="#ffa366"/><circle cx="5.5" cy="11" r="1.4" fill="#ffa366"/><circle cx="4" cy="6.4" r="1.4" fill="#ffa366"/></svg></span>collective</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="7" r="3" fill="none" stroke="#f5c158" stroke-width="1.1" stroke-dasharray="2.4 2"/></svg></span>not yet lit — pending review</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="20" height="14"><circle cx="10" cy="7" r="7" fill="rgba(107,47,160,.25)"/><path d="M3.5 10 Q 10 3, 16.5 9" stroke="#8c82c8" fill="none" stroke-width="1.1"/><circle cx="3.5" cy="10" r="1.8" fill="#ffa366"/><circle cx="16.5" cy="9" r="1.8" fill="#ffa366"/></svg></span>cluster weave</div>
               </div>
             </div>
-            <p class="pending-note"><b>1 agent</b> awaiting embedding — appears once indexed.</p>
+            <p class="pending-note"><b>1 agent</b> still germinating — appears once indexed.</p>
           </aside>
         </div>
       </article>
@@ -427,23 +449,24 @@
   </div>
 </div>
 
-<p class="mock-note" style="padding-top:34px">mockup 2 / 2 — website element (paper climate, site template)</p>
+<p class="mock-note" style="padding-top:36px">mockup 2 / 2 — website element (paper climate, site template)</p>
 <div class="paper stage">
   <section class="site-section">
     <p class="site-kicker">Agent network</p>
-    <h2 class="site-heading">The agents in <em>this brain's orbit</em></h2>
+    <h2 class="site-heading">The rhizome grows <em>beneath this brain</em></h2>
     <p class="site-lede">
-      Every agent this brain has discovered, placed by how close its work sits to ours —
-      distance is measured in meaning, not geography. Circled constellations share a practice.
+      Every agent this brain has met, mapped by how close its work runs to ours —
+      distance measured in meaning, not geography. Threads thicken where practices
+      touch; where several roots interweave, a cluster fruits.
     </p>
     <div class="site-map-plate">
-      <div id="site-map"></div>
+      <div id="site-map" class="paper-map"></div>
       <div class="site-legend">
-        <div class="legend-row"><span class="legend-glyph"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#6b2fa0"/></svg></span>professional</div>
-        <div class="legend-row"><span class="legend-glyph"><svg width="10" height="10"><rect x="1" y="1" width="8" height="8" fill="#6b2fa0"/></svg></span>team</div>
-        <div class="legend-row"><span class="legend-glyph"><svg width="12" height="12"><rect x="2.4" y="2.4" width="7" height="7" fill="#6b2fa0" transform="rotate(45 6 6)"/></svg></span>collective</div>
-        <div class="legend-row"><span class="legend-glyph"><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="none" stroke="#b3801a" stroke-width="1.3" stroke-dasharray="3 2.4"/></svg></span>pending review</div>
-        <div class="legend-row"><span class="legend-glyph"><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="none" stroke="rgba(107,47,160,.5)" stroke-dasharray="2 4" stroke-linecap="round"/></svg></span>semantic cluster</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="7" r="2.6" fill="#c45a08"/></svg></span>professional</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="5.5" cy="9" r="1.8" fill="#c45a08"/><circle cx="10.5" cy="9" r="1.8" fill="#c45a08"/><circle cx="8" cy="4.6" r="1.8" fill="#c45a08"/></svg></span>team</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="3.4" r="1.4" fill="#c45a08"/><circle cx="12" cy="6.4" r="1.4" fill="#c45a08"/><circle cx="10.5" cy="11" r="1.4" fill="#c45a08"/><circle cx="5.5" cy="11" r="1.4" fill="#c45a08"/><circle cx="4" cy="6.4" r="1.4" fill="#c45a08"/></svg></span>collective</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="16" height="14"><circle cx="8" cy="7" r="3" fill="none" stroke="#b3801a" stroke-width="1.1" stroke-dasharray="2.4 2"/></svg></span>pending review</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="20" height="14"><circle cx="10" cy="7" r="7" fill="rgba(107,47,160,.12)"/><path d="M3.5 10 Q 10 3, 16.5 9" stroke="#6b2fa0" fill="none" stroke-width="1.1"/><circle cx="3.5" cy="10" r="1.8" fill="#c45a08"/><circle cx="16.5" cy="9" r="1.8" fill="#c45a08"/></svg></span>cluster weave</div>
       </div>
     </div>
   </section>
@@ -452,29 +475,39 @@
 <div class="tooltip" id="tooltip"></div>
 
 <script>
-// ---- fake data (mirrors the planned datasource schema) --------------------
+// ---- fake data (mirrors the planned datasource schema) ---------------------
 const NODES = [
   { id: "kai.brain",   name: "Kai",    kind: "professional", status: "approved",   tags: ["research", "writing"],      distance: 0.28, bearing: 35 },
-  { id: "mira.studio", name: "Mira",   kind: "professional", status: "approved",   tags: ["research", "editing"],      distance: 0.34, bearing: 50 },
-  { id: "sage.co",     name: "Sage",   kind: "collective",   status: "approved",   tags: ["research", "citations"],    distance: 0.31, bearing: 22 },
-  { id: "nova.works",  name: "Nova",   kind: "professional", status: "discovered", tags: ["writing", "translation"],   distance: 0.38, bearing: 42 },
-  { id: "north.ops",   name: "North",  kind: "team",         status: "approved",   tags: ["operations", "automation"], distance: 0.42, bearing: 210 },
-  { id: "forge.dev",   name: "Forge",  kind: "team",         status: "approved",   tags: ["automation", "infra"],      distance: 0.48, bearing: 226 },
+  { id: "mira.studio", name: "Mira",   kind: "professional", status: "approved",   tags: ["research", "editing"],      distance: 0.34, bearing: 52 },
+  { id: "sage.co",     name: "Sage",   kind: "collective",   status: "approved",   tags: ["research", "citations"],    distance: 0.31, bearing: 20 },
+  { id: "nova.works",  name: "Nova",   kind: "professional", status: "discovered", tags: ["writing", "translation"],   distance: 0.38, bearing: 40 },
+  { id: "north.ops",   name: "North",  kind: "team",         status: "approved",   tags: ["operations", "automation"], distance: 0.42, bearing: 212 },
+  { id: "forge.dev",   name: "Forge",  kind: "team",         status: "approved",   tags: ["automation", "infra"],      distance: 0.48, bearing: 228 },
   { id: "atlas.net",   name: "Atlas",  kind: "team",         status: "discovered", tags: ["operations", "runbooks"],   distance: 0.39, bearing: 194 },
-  { id: "lumen.art",   name: "Lumen",  kind: "professional", status: "approved",   tags: ["design"],                   distance: 0.26, bearing: 140 },
-  { id: "echo.club",   name: "Echo",   kind: "collective",   status: "approved",   tags: ["community"],                distance: 0.45, bearing: 100 },
-  { id: "drift.fi",    name: "Drift",  kind: "professional", status: "discovered", tags: ["finance"],                  distance: 0.58, bearing: 320 },
-  { id: "quill.law",   name: "Quill",  kind: "professional", status: "approved",   tags: ["legal"],                    distance: 0.61, bearing: 168 },
-  { id: "pixel.zone",  name: "Pixel",  kind: "collective",   status: "discovered", tags: ["art", "curation"],          distance: 0.52, bearing: 75 },
+  { id: "lumen.art",   name: "Lumen",  kind: "professional", status: "approved",   tags: ["design"],                   distance: 0.26, bearing: 138 },
+  { id: "echo.club",   name: "Echo",   kind: "collective",   status: "approved",   tags: ["community"],                distance: 0.45, bearing: 98 },
+  { id: "drift.fi",    name: "Drift",  kind: "professional", status: "discovered", tags: ["finance"],                  distance: 0.58, bearing: 322 },
+  { id: "quill.law",   name: "Quill",  kind: "professional", status: "approved",   tags: ["legal"],                    distance: 0.61, bearing: 166 },
+  { id: "pixel.zone",  name: "Pixel",  kind: "collective",   status: "discovered", tags: ["art", "curation"],          distance: 0.52, bearing: 74 },
 ];
 const CLUSTERS = [
   { label: "research · 4",   memberIds: ["kai.brain", "mira.studio", "sage.co", "nova.works"] },
   { label: "operations · 3", memberIds: ["north.ops", "forge.dev", "atlas.net"] },
 ];
-const RING_DISTANCES = [0.2, 0.4, 0.6];
 const MAX_DISTANCE = 0.7;
+const STRATA = [0.2, 0.4, 0.6];
 
-// ---- renderer --------------------------------------------------------------
+// ---- deterministic rng (site builds must not jitter) ------------------------
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 const svgNS = "http://www.w3.org/2000/svg";
 function el(parent, tag, attrs, text) {
   const n = document.createElementNS(svgNS, tag);
@@ -487,96 +520,302 @@ function polar(c, r, deg) {
   const rad = (deg * Math.PI) / 180;
   return { x: c + r * Math.cos(rad), y: c - r * Math.sin(rad) };
 }
-function glyph(parent, kind, x, y, s) {
-  if (kind === "team") {
-    return el(parent, "rect", { class: "glyph", x: x - s, y: y - s, width: s * 2, height: s * 2 });
-  }
-  if (kind === "collective") {
-    return el(parent, "rect", {
-      class: "glyph", x: x - s, y: y - s, width: s * 2, height: s * 2,
-      transform: `rotate(45 ${x} ${y})`,
-    });
-  }
-  return el(parent, "circle", { class: "glyph", cx: x, cy: y, r: s });
+function bez(p0, c1, c2, p1, t) {
+  const u = 1 - t;
+  return {
+    x: u*u*u*p0.x + 3*u*u*t*c1.x + 3*u*t*t*c2.x + t*t*t*p1.x,
+    y: u*u*u*p0.y + 3*u*u*t*c1.y + 3*u*t*t*c2.y + t*t*t*p1.y,
+  };
 }
 
+/**
+ * Bioluminescent cartography (docs/design/bioluminescent-infrastructure.md):
+ * amber light through dark soil, purple only where individual meets collective,
+ * the center as the densest concentration of light. Kind is the scale story:
+ * one point = a mind, a triplet = a team, a ring = a collective.
+ */
 function renderMap(container, opts) {
+  const theme = opts.theme; // "soil" | "paper"
+  const AMBER = theme === "soil" ? "#ffa366" : "#c45a08";
+  const HOT   = theme === "soil" ? "#fff8ee" : "#8a3505";
+  const WARN  = theme === "soil" ? "#f5c158" : "#b3801a";
+  const PURPLE = theme === "soil" ? "#8c82c8" : "#6b2fa0";
+  const PURPLE_DEEP = "#6b2fa0";
+  const STRATA_STROKE = theme === "soil" ? "rgba(241,234,221,0.055)" : "rgba(33,29,24,0.09)";
+
+  const rng = mulberry32(opts.seed ?? 133);
   const S = opts.size, c = S / 2, maxR = c - opts.pad;
   const rOf = (d) => (d / MAX_DISTANCE) * maxR;
+
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("width", S);
   svg.setAttribute("height", S);
   svg.setAttribute("viewBox", `0 0 ${S} ${S}`);
+  const defs = el(svg, "defs", {});
+  el(defs, "filter", { id: `${opts.id}-blur`, x: "-60%", y: "-60%", width: "220%", height: "220%" })
+    .appendChild((() => {
+      const b = document.createElementNS(svgNS, "feGaussianBlur");
+      b.setAttribute("stdDeviation", "2.6");
+      return b;
+    })());
+  const mist = el(defs, "radialGradient", { id: `${opts.id}-mist` });
+  el(mist, "stop", { offset: "0%", "stop-color": PURPLE_DEEP, "stop-opacity": theme === "soil" ? "0.3" : "0.13" });
+  el(mist, "stop", { offset: "70%", "stop-color": PURPLE_DEEP, "stop-opacity": theme === "soil" ? "0.12" : "0.05" });
+  el(mist, "stop", { offset: "100%", "stop-color": PURPLE_DEEP, "stop-opacity": "0" });
 
-  // crosshair + distance rings — quiet instrument furniture
-  el(svg, "line", { class: "crosshair", x1: c, y1: opts.pad - 14, x2: c, y2: S - opts.pad + 14 });
-  el(svg, "line", { class: "crosshair", x1: opts.pad - 14, y1: c, x2: S - opts.pad + 14, y2: c });
-  for (const d of RING_DISTANCES) {
-    el(svg, "circle", { class: "ring", cx: c, cy: c, r: rOf(d) });
-    el(svg, "text", { class: "ring-label", x: c + 5, y: c - rOf(d) - 5 }, d.toFixed(1));
+  // soil strata — the faintest possible depth cue
+  for (const d of STRATA) {
+    el(svg, "circle", { cx: c, cy: c, r: rOf(d), fill: "none", stroke: STRATA_STROKE, "stroke-width": 1 });
+    el(svg, "text", { class: "strata-label", x: c + 4, y: c - rOf(d) - 4 }, d.toFixed(1));
   }
 
   const pos = {};
   for (const n of NODES) pos[n.id] = polar(c, rOf(n.distance), n.bearing);
+  const clusterOf = {};
+  CLUSTERS.forEach((cl, ci) => cl.memberIds.forEach((id) => (clusterOf[id] = ci)));
 
-  // cluster hulls under everything else
+  // clusters — purple, the frequency where individual meets collective.
+  // Not a shape drawn AROUND nodes but visible weave: mist beneath,
+  // member-to-member interconnects, so the cluster reads as denser network.
+  const clusterMeta = [];
   for (const cl of CLUSTERS) {
     const pts = cl.memberIds.map((id) => pos[id]);
     const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
     const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-    const r = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy))) + 20;
-    el(svg, "circle", { class: "cluster-hull", cx, cy, r });
-    const above = cy < c;
-    el(svg, "text", {
-      class: "cluster-label", x: cx, y: above ? cy - r - 9 : cy + r + 16,
-      "text-anchor": "middle",
-    }, cl.label);
+    const r = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy))) + 26;
+    const mistEl = el(svg, "circle", { class: "cluster-mist", cx, cy, r, fill: `url(#${opts.id}-mist)` });
+
+    // lateral rhizomatic interconnects between every pair of members
+    const threads = el(svg, "g", { class: "cluster-threads" });
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const a = pts[i], b = pts[j];
+        const mx = (a.x + b.x) / 2 + (rng() - 0.5) * 34;
+        const my = (a.y + b.y) / 2 + (rng() - 0.5) * 34;
+        const d = `M ${a.x} ${a.y} Q ${mx} ${my}, ${b.x} ${b.y}`;
+        el(threads, "path", {
+          d, fill: "none", stroke: PURPLE, "stroke-opacity": 0.28,
+          "stroke-width": 2.6, filter: `url(#${opts.id}-blur)`,
+        });
+        el(threads, "path", {
+          class: "weave-core",
+          d, fill: "none", stroke: PURPLE,
+          "stroke-opacity": theme === "soil" ? 0.5 : 0.55, "stroke-width": 1,
+        });
+      }
+    }
+    clusterMeta.push({ cl, cx, cy, r, mistEl, threads });
   }
 
-  // center — the brain, pulsing
-  el(svg, "circle", { class: "you-pulse", cx: c, cy: c, r: 13, "stroke-width": 1.4 });
-  el(svg, "circle", { class: "you-core", cx: c, cy: c, r: 4.5 });
-  el(svg, "text", { class: "you-label", x: c, y: c + 27 }, "you");
-
-  // agents
-  const tooltip = document.getElementById("tooltip");
-  const groups = [];
+  // mycelial threads — one rooted curve per agent, forking as it travels
+  const center = { x: c, y: c };
+  const agentGroups = [];
+  const pulsePaths = [];
   for (const n of NODES) {
     const p = pos[n.id];
-    const g = el(svg, "g", { class: `node ${n.status}` });
-    el(g, "circle", { class: "halo", cx: p.x, cy: p.y, r: opts.nodeR * 3 });
-    glyph(g, n.kind, p.x, p.y, opts.nodeR);
-    if (opts.nodeLabels) {
-      const anchor = p.x > c ? "start" : "end";
-      el(g, "text", {
-        class: "node-label",
-        x: p.x + (p.x > c ? opts.nodeR + 6 : -opts.nodeR - 6),
-        y: p.y + 3, "text-anchor": anchor,
-      }, n.name.toLowerCase());
-    }
-    groups.push(g);
-    g.addEventListener("mousemove", (e) => {
-      groups.forEach((other) => other !== g && other.classList.add("dim"));
-      tooltip.innerHTML =
-        `<div class="t-name">${n.name}</div>` +
-        `<div class="t-id">${n.id}</div>` +
-        `<div class="t-meta">${n.kind} · d ${n.distance.toFixed(2)}${n.status === "discovered" ? " · pending review" : ""}</div>` +
-        `<div class="t-tags">${n.tags.map((t) => `<span class="t-tag">${t}</span>`).join("")}</div>`;
-      tooltip.style.left = e.pageX + 16 + "px";
-      tooltip.style.top = e.pageY + 12 + "px";
-      tooltip.classList.add("show");
+    const g = el(svg, "g", { class: "agent" });
+    const dx = p.x - c, dy = p.y - c;
+    const len = Math.hypot(dx, dy);
+    const px = -dy / len, py = dx / len; // perpendicular
+    const bow1 = (rng() - 0.5) * len * 0.42;
+    const bow2 = (rng() - 0.5) * len * 0.3;
+    const c1 = { x: c + dx * 0.34 + px * bow1, y: c + dy * 0.34 + py * bow1 };
+    const c2 = { x: c + dx * 0.7 + px * bow2, y: c + dy * 0.7 + py * bow2 };
+    const d = `M ${c} ${c} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p.x} ${p.y}`;
+    const dashed = n.status === "discovered";
+    const threadOp = dashed ? 0.16 : 0.3;
+    // glow pass
+    el(g, "path", {
+      d, fill: "none", stroke: AMBER, "stroke-opacity": threadOp * 0.5,
+      "stroke-width": 3.4, filter: `url(#${opts.id}-blur)`,
     });
-    g.addEventListener("mouseleave", () => {
-      groups.forEach((other) => other.classList.remove("dim"));
-      tooltip.classList.remove("show");
+    // core pass — thins toward the periphery, so draw two halves
+    const mid = bez(center, c1, c2, p, 0.5);
+    const q1 = bez(center, c1, c2, p, 0.25), q3 = bez(center, c1, c2, p, 0.75);
+    el(g, "path", {
+      d: `M ${c} ${c} Q ${q1.x} ${q1.y}, ${mid.x} ${mid.y}`,
+      fill: "none", stroke: AMBER, "stroke-opacity": threadOp, "stroke-width": 1.3,
+      ...(dashed ? { "stroke-dasharray": "3 5", "stroke-linecap": "round" } : {}),
+    });
+    el(g, "path", {
+      d: `M ${mid.x} ${mid.y} Q ${q3.x} ${q3.y}, ${p.x} ${p.y}`,
+      fill: "none", stroke: AMBER, "stroke-opacity": threadOp * 0.75, "stroke-width": 0.8,
+      ...(dashed ? { "stroke-dasharray": "3 5", "stroke-linecap": "round" } : {}),
+    });
+    if (!dashed) {
+      const pathEl = el(g, "path", { d, fill: "none", stroke: "none", id: `${opts.id}-thread-${agentGroups.length}` });
+      pulsePaths.push(pathEl.id);
+    }
+    // rootlets — short forks that reach into the dark and fade
+    const forks = 1 + Math.floor(rng() * 2);
+    for (let f = 0; f < forks; f++) {
+      const t = 0.35 + rng() * 0.4;
+      const fp = bez(center, c1, c2, p, t);
+      const fa = Math.atan2(dy, dx) + (rng() - 0.5) * 2.2;
+      const fl = 12 + rng() * 26;
+      const fe = { x: fp.x + Math.cos(fa) * fl, y: fp.y + Math.sin(fa) * fl };
+      const fc = { x: fp.x + Math.cos(fa + (rng() - 0.5)) * fl * 0.5, y: fp.y + Math.sin(fa + (rng() - 0.5)) * fl * 0.5 };
+      el(g, "path", {
+        d: `M ${fp.x} ${fp.y} Q ${fc.x} ${fc.y}, ${fe.x} ${fe.y}`,
+        fill: "none", stroke: AMBER, "stroke-opacity": threadOp * 0.4, "stroke-width": 0.6,
+      });
+    }
+    agentGroups.push({ g, n, p });
+  }
+
+  // the brain — densest concentration of light
+  el(svg, "circle", { class: "you-halo", cx: c, cy: c, r: 26, fill: AMBER, opacity: 0.1, filter: `url(#${opts.id}-blur)` });
+  el(svg, "circle", { cx: c, cy: c, r: 11, fill: AMBER, opacity: 0.28, filter: `url(#${opts.id}-blur)` });
+  el(svg, "circle", { cx: c, cy: c, r: 4.6, fill: AMBER });
+  el(svg, "circle", { cx: c, cy: c, r: 2, fill: HOT });
+  el(svg, "text", { class: "you-label", x: c, y: c + 30 }, "you");
+
+  // agent bulbs — kind is scale: one mind, a team, a collective
+  function bulb(g, x, y, r, lit) {
+    if (lit) {
+      el(g, "circle", { class: "bulb-flicker", cx: x, cy: y, r: r * 3.2, fill: AMBER, opacity: 0.13, filter: `url(#${opts.id}-blur)` });
+      el(g, "circle", { cx: x, cy: y, r, fill: AMBER });
+      el(g, "circle", { cx: x, cy: y, r: r * 0.42, fill: HOT, opacity: 0.9 });
+    } else {
+      el(g, "circle", {
+        cx: x, cy: y, r: r + 0.8, fill: "none",
+        stroke: WARN, "stroke-width": 1.1, "stroke-dasharray": "2.4 2", "stroke-opacity": 0.8,
+      });
+    }
+  }
+  for (const { g, n, p } of agentGroups) {
+    const lit = n.status === "approved";
+    if (clusterOf[n.id] !== undefined) {
+      // members carry the collective frequency in their halo
+      el(g, "circle", {
+        cx: p.x, cy: p.y, r: 15, fill: PURPLE_DEEP,
+        opacity: theme === "soil" ? 0.22 : 0.1, filter: `url(#${opts.id}-blur)`,
+      });
+    }
+    if (n.kind === "professional") {
+      bulb(g, p.x, p.y, 3.4, lit);
+    } else if (n.kind === "team") {
+      const rr = 4.6;
+      for (const a of [90, 210, 330]) {
+        const q = polar(0, rr, a);
+        bulb(g, p.x + q.x - 0, p.y + q.y - 0, 2.1, lit);
+      }
+    } else {
+      const rr = 6.4;
+      for (const a of [90, 162, 234, 306, 18]) {
+        const q = polar(0, rr, a);
+        bulb(g, p.x + q.x, p.y + q.y, 1.7, lit);
+      }
+    }
+    const anchor = p.x > c ? "start" : "end";
+    el(g, "text", {
+      class: "node-label",
+      x: p.x + (p.x > c ? 11 : -11), y: p.y + 3,
+      "text-anchor": anchor,
+    }, n.name.toLowerCase());
+  }
+
+  // nutrient pulses — knowledge flowing node to node
+  pulsePaths.slice(0, 6).forEach((pid, i) => {
+    const dur = 5 + (i % 3) * 1.6;
+    const begin = i * 1.9;
+    const pg = el(svg, "g", { class: "pulse-dot", opacity: 0.9 });
+    const glow = el(pg, "circle", { r: 3.2, fill: AMBER, opacity: 0.3 });
+    const core = el(pg, "circle", { r: 1.3, fill: HOT, opacity: 0.9 });
+    for (const dot of [glow, core]) {
+      const m = document.createElementNS(svgNS, "animateMotion");
+      m.setAttribute("dur", `${dur}s`);
+      m.setAttribute("begin", `${begin}s`);
+      m.setAttribute("repeatCount", "indefinite");
+      const mp = document.createElementNS(svgNS, "mpath");
+      mp.setAttribute("href", `#${pid}`);
+      m.appendChild(mp);
+      dot.appendChild(m);
+    }
+  });
+
+  // drifting spores
+  for (let i = 0; i < 9; i++) {
+    el(svg, "circle", {
+      class: "spore",
+      cx: opts.pad + rng() * (S - opts.pad * 2),
+      cy: opts.pad + rng() * (S - opts.pad * 2),
+      r: 0.7 + rng() * 0.9,
+      fill: rng() < 0.6 ? PURPLE : AMBER,
+      opacity: 0.3,
+      style: `animation-delay: -${(rng() * 11).toFixed(1)}s`,
     });
   }
+
+  // cluster labels ride the top layer so they never sink into the weave
+  for (const meta of clusterMeta) {
+    const above = meta.cy < c;
+    meta.labelEl = el(svg, "text", {
+      class: "cluster-label", x: meta.cx, y: above ? meta.cy - meta.r - 10 : meta.cy + meta.r + 20,
+      "text-anchor": "middle",
+    }, meta.cl.label);
+  }
+
+  // hover — cluster-aware: touching one member wakes the whole weave
+  const tooltip = document.getElementById("tooltip");
+  const clearFocus = () => {
+    agentGroups.forEach((o) => o.g.classList.remove("dim"));
+    clusterMeta.forEach((m) => {
+      m.threads.classList.remove("lit", "dim");
+      m.mistEl.classList.remove("dim");
+    });
+    tooltip.classList.remove("show");
+  };
+  const focusCluster = (ci) => {
+    const members = new Set(CLUSTERS[ci].memberIds);
+    agentGroups.forEach((o) => o.g.classList.toggle("dim", !members.has(o.n.id)));
+    clusterMeta.forEach((m, i) => {
+      m.threads.classList.toggle("lit", i === ci);
+      m.threads.classList.toggle("dim", i !== ci);
+      m.mistEl.classList.toggle("dim", i !== ci);
+    });
+  };
+  const moveTip = (e, html) => {
+    tooltip.innerHTML = html;
+    tooltip.style.left = e.pageX + 16 + "px";
+    tooltip.style.top = e.pageY + 12 + "px";
+    tooltip.classList.add("show");
+  };
+  for (const { g, n } of agentGroups) {
+    g.addEventListener("mousemove", (e) => {
+      const ci = clusterOf[n.id];
+      if (ci !== undefined) focusCluster(ci);
+      else {
+        agentGroups.forEach((o) => o.g.classList.toggle("dim", o.g !== g));
+        clusterMeta.forEach((m) => { m.threads.classList.add("dim"); m.mistEl.classList.add("dim"); });
+      }
+      moveTip(e,
+        `<div class="t-name">${n.name}</div>` +
+        `<div class="t-id">${n.id}</div>` +
+        `<div class="t-meta">${n.kind} · <em>d ${n.distance.toFixed(2)}</em>${n.status === "discovered" ? " · pending review" : ""}</div>` +
+        `<div class="t-tags">${n.tags.map((t) => `<span class="t-tag">${t}</span>`).join("")}</div>`);
+    });
+    g.addEventListener("mouseleave", clearFocus);
+  }
+  clusterMeta.forEach((meta, ci) => {
+    const memberNames = meta.cl.memberIds.map((id) => NODES.find((n) => n.id === id).name);
+    for (const target of [meta.mistEl, meta.labelEl]) {
+      target.addEventListener("mousemove", (e) => {
+        focusCluster(ci);
+        moveTip(e,
+          `<div class="t-name">${meta.cl.label}</div>` +
+          `<div class="t-meta">semantic cluster</div>` +
+          `<div class="t-tags">${memberNames.map((t) => `<span class="t-tag">${t.toLowerCase()}</span>`).join("")}</div>`);
+      });
+      target.addEventListener("mouseleave", clearFocus);
+    }
+  });
 
   container.appendChild(svg);
 }
 
-renderMap(document.getElementById("console-map"), { size: 560, pad: 48, nodeR: 5, nodeLabels: true });
-renderMap(document.getElementById("site-map"), { size: 620, pad: 56, nodeR: 5.5, nodeLabels: true });
+renderMap(document.getElementById("console-map"), { id: "cmap", theme: "soil", size: 700, pad: 56, seed: 133 });
+renderMap(document.getElementById("site-map"), { id: "smap", theme: "paper", size: 680, pad: 60, seed: 133 });
 
 // nearest rail
 const nearest = [...NODES].sort((a, b) => a.distance - b.distance).slice(0, 4);
@@ -588,13 +827,6 @@ document.getElementById("nearest").innerHTML = nearest
       `<span class="near-dist">${n.distance.toFixed(2)}</span></div>`,
   )
   .join("");
-
-// tooltip inherits the climate of the hovered map
-for (const [mapId, climate] of [["console-map", "instrument"], ["site-map", "paper"]]) {
-  document.getElementById(mapId).addEventListener("mouseenter", () => {
-    document.getElementById("tooltip").className = `tooltip ${climate}`;
-  }, true);
-}
 </script>
 </body>
 </html>
