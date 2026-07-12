@@ -6,7 +6,6 @@ interface WebChatRouteHandlers {
   handleChatRequest(request: Request): Promise<Response>;
   handleRemoteAgentChatRequest(request: Request): Promise<Response>;
   handleRemoteAgentConfirmRequest(request: Request): Promise<Response>;
-  handleBootstrapRequest(request: Request): Promise<Response>;
   handleActionRequest(request: Request): Promise<Response>;
   handleSessionsRequest(request: Request): Promise<Response>;
   handleDeleteSessionRequest(request: Request): Promise<Response>;
@@ -45,13 +44,6 @@ export function createWebChatRoutes({
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleChatRequest(request),
-    },
-    {
-      path: "/api/chat/bootstrap",
-      method: "GET",
-      public: true,
-      handler: (request): Promise<Response> =>
-        handlers.handleBootstrapRequest(request),
     },
     {
       path: "/api/chat/actions",

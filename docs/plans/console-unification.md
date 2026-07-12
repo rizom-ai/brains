@@ -15,23 +15,22 @@ console changes cannot silently regress the richest chat and CMS compositions.
 
 ## Remaining work
 
-1. **Chat dynamic states and composer closeout**
-   - Extend the deterministic fixture conversation with entity/tool cards, attachments,
-     save-quote modules, and progress states.
-   - Finish the in-flight composer simplification without changing send/attachment/stop
-     behavior or accessibility.
-   - Review all target viewports and both climates against the approved visual system.
-   - Commit the reviewed baselines.
-2. **CMS rich colophon states**
-   - Extend the fixture schema beyond title + summary to include select, tags, toggle,
-     date, and cover-image fields.
-   - Cover tall tablet colophons and secondary editor states without document-level
-     overflow.
-   - Review and commit the baselines at 1440×1000, 768×1024, and 390×844.
+1. ~~**Chat dynamic states and composer closeout**~~ — done 2026-07-12. The `chat-cards`
+   fixture pins sources/actions/attachment cards and the upload chip; the composer is
+   the attach/message/send pill at every width (desktop boxed card removed, hint chips
+   dropped, `aria-label` preserved). Two further chat scenarios pinned the same day:
+   `chat-empty` (rhizome empty state, restored by removing the guided playbook starter)
+   and `chat-drawer` (open drawer at 390 with the repositioned close button). Progress
+   parts are stream-only and remain live-only.
+2. ~~**CMS rich colophon states**~~ — done 2026-07-12. Fixture schema carries the full
+   mockup colophon; both publication chip states pinned; fixed the 641–900px editor grid
+   that pushed the save bar off-viewport under a tall colophon. Secondary states
+   (validation, conflict, delete, media upload) render as overlays and get dedicated
+   captures only if pinning them becomes worthwhile.
 3. **Closeout**
-   - Run the targeted console-theme, dashboard, web-chat, and CMS checks.
-   - Smoke the authenticated Rover full app.
-   - Merge, release the pending changeset, then delete this plan.
+   - ~~Run the targeted console-theme, dashboard, web-chat, and CMS checks.~~
+   - ~~Smoke the authenticated Rover full app.~~ (operator live review, 2026-07-12)
+   - Merge, release the pending changesets, then delete this plan.
 
 ## Non-goals
 
