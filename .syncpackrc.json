@@ -9,7 +9,8 @@
         "@rizom/site-rizom",
         "@rizom/site-rizom-ai",
         "@rizom/site-rizom-foundation",
-        "@rizom/site-rizom-work"
+        "@rizom/site-rizom-work",
+        "@rizom/site-sections"
       ],
       "dependencies": ["@rizom/site", "@rizom/site-rizom"],
       "dependencyTypes": ["local", "prod"]
@@ -53,7 +54,8 @@
         "@rizom/site-rizom",
         "@rizom/site-rizom-ai",
         "@rizom/site-rizom-foundation",
-        "@rizom/site-rizom-work"
+        "@rizom/site-rizom-work",
+        "@rizom/site-sections"
       ],
       "dependencies": ["@rizom/site", "@rizom/site-rizom"],
       "dependencyTypes": ["prod"],

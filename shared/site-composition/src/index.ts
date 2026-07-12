@@ -50,6 +50,10 @@ export type {
   SiteContentSectionDefinition,
   SiteContentStringFieldDefinition,
 } from "./content-definitions";
+export {
+  sectionToTemplate,
+  sectionGroupToTemplates,
+} from "./section-templates";
 export { derivePreviewDomain } from "./domain";
 export { EntityUrlGenerator } from "./entity-url-generator";
 export type { EntityDisplayMap } from "./entity-url-generator";

@@ -780,6 +780,25 @@
         "preact": "^10.27.2",
       },
     },
+    "packages/site-sections": {
+      "name": "@rizom/site-sections",
+      "version": "0.2.0-alpha.150",
+      "dependencies": {
+        "@rizom/site": "0.2.0-alpha.150",
+        "zod": "^4.1.8",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "eslint": "^10.5.0",
+        "preact": "^10.27.2",
+        "typescript": "^7.0.2",
+      },
+      "peerDependencies": {
+        "preact": "^10.27.2",
+      },
+    },
     "plugins/analytics": {
       "name": "@brains/analytics",
       "version": "0.2.0-alpha.150",
@@ -1303,11 +1322,13 @@
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "@rizom/site": "workspace:*",
+        "@rizom/site-sections": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
+        "preact": "^10.27.2",
         "typescript": "^7.0.2",
       },
     },
@@ -2651,6 +2672,8 @@
     "@rizom/site-rizom-foundation": ["@rizom/site-rizom-foundation@workspace:sites/rizom-foundation"],
 
     "@rizom/site-rizom-work": ["@rizom/site-rizom-work@workspace:sites/rizom-work"],
+
+    "@rizom/site-sections": ["@rizom/site-sections@workspace:packages/site-sections"],
 
     "@rizom/ui": ["@rizom/ui@workspace:shared/rizom-ui"],
 
