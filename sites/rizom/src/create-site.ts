@@ -4,6 +4,7 @@ import type {
   RouteDefinitionInput,
   SiteContentDefinition,
   SiteDefinition,
+  SiteSectionGroup,
 } from "@rizom/site";
 import rizomBaseSite from ".";
 import type {
@@ -60,6 +61,13 @@ export interface CreateRizomSiteOptions {
   layout: unknown;
   routes: RouteDefinitionInput[];
   content?: SiteContentDefinition | SiteContentDefinition[];
+  /**
+   * Schema-first section groups (authored via `@rizom/site-sections`'
+   * `defineSection`/`sectionGroup`). Registered as content templates at brain
+   * boot exactly like `content`, so the CMS + directory-sync + resolver treat
+   * them identically — but the section shape is derived from one zod schema.
+   */
+  sections?: SiteSectionGroup | SiteSectionGroup[];
   themeOverride?: string;
   /**
    * Presentation config for entity-backed list/detail routes (labels, plural
@@ -109,6 +117,7 @@ export function createRizomSite(
     routes: options.routes,
     ...(options.entityDisplay ? { entityDisplay: options.entityDisplay } : {}),
     ...(options.content ? { content: options.content } : {}),
+    ...(options.sections ? { sections: options.sections } : {}),
     headScripts: [buildRizomHeadScript(options.themeProfile)],
     ...(plugin ? { plugin } : {}),
     ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),

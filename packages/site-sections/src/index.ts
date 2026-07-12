@@ -1,5 +1,9 @@
 import { z } from "zod/v4";
-import type { ComponentType, UserPermissionLevel } from "@rizom/site";
+import type {
+  ComponentType,
+  SiteSectionGroup,
+  UserPermissionLevel,
+} from "@rizom/site";
 
 /**
  * Schema-first content sections for Rizom site packages.
@@ -52,15 +56,17 @@ export function defineSection<S extends z.ZodType>(
   return { schema, component, ...meta };
 }
 
-/** A namespace of sections — stored/synced under `site-content/<namespace>/`. */
-export interface SectionGroup {
-  namespace: string;
-  sections: Record<string, SectionDefinition>;
-}
+/**
+ * A namespace of sections — stored/synced under `site-content/<namespace>/`.
+ * Returns the base SDK's `SiteSectionGroup` so it drops straight into
+ * `SiteDefinition.sections`; the per-section prop tie is already enforced by
+ * `defineSection`.
+ */
+export type { SiteSectionGroup as SectionGroup } from "@rizom/site";
 
 export function sectionGroup(
   namespace: string,
   sections: Record<string, SectionDefinition>,
-): SectionGroup {
+): SiteSectionGroup {
   return { namespace, sections };
 }

@@ -6,12 +6,12 @@
     "@brains/content-formatters": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@rizom/site": "workspace:*",
-    "@rizom/site-sections": "workspace:*"
+    "@rizom/site": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@rizom/site-sections": "workspace:*",
     "eslint": "^10.5.0",
     "preact": "^10.27.2",
     "typescript": "^7.0.2"

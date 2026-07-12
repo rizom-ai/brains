@@ -1,7 +1,7 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
-import type { SectionDefinition, SectionGroup } from "@rizom/site-sections";
+import type { SiteSectionDefinition, SiteSectionGroup } from "@rizom/site";
 
 /**
  * Schema-first section → `Template`. The markdown formatter's field structure is
@@ -97,7 +97,7 @@ function shapeMappings(schema: z.ZodObject): FieldMapping[] {
  */
 export function sectionToTemplate(
   name: string,
-  section: SectionDefinition,
+  section: SiteSectionDefinition,
 ): Template {
   const schema = section.schema;
   if (!(schema instanceof z.ZodObject)) {
@@ -126,7 +126,7 @@ export function sectionToTemplate(
 
 /** Build the template registry for a section group, keyed by section id. */
 export function sectionGroupToTemplates(
-  group: SectionGroup,
+  group: SiteSectionGroup,
 ): Record<string, Template> {
   const templates: Record<string, Template> = {};
   for (const [id, section] of Object.entries(group.sections)) {
