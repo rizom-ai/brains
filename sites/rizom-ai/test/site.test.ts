@@ -12,7 +12,17 @@ describe("@rizom/site-rizom-ai", () => {
       "foundation",
     ]);
     expect(site.routes[0]?.path).toBe("/");
-    expect(site.content).toBeDefined();
+    // Every page is authored schema-first, so content travels via `sections`.
+    const sections = Array.isArray(site.sections)
+      ? site.sections
+      : site.sections
+        ? [site.sections]
+        : [];
+    expect(sections.map((group) => group.namespace)).toEqual([
+      "home",
+      "work",
+      "foundation",
+    ]);
   });
 
   test("exposes the work and foundation room sections", () => {

@@ -1,45 +1,47 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
+import type { SiteSectionGroup } from "@rizom/site";
+import { defineSection, sectionGroup, z } from "@rizom/site-sections";
 import { Section, renderHighlightedText } from "@rizom/site-rizom";
 import {
+  AliveLine,
   Band,
   CtaRow,
   IndexRow,
   SectCap,
+  ctaSchema,
   delayClass,
   ROOM_HIGHLIGHT_CLS,
-  type CtaLink,
-  type IndexRowData,
 } from "./shared";
 
 /**
  * The /foundation room (previously rizom.foundation) — the research journal: a
- * masthead, essay + city-chapter index sections, a pull-quote band, and support
- * options. Pure components; copy is content-driven via the "foundation"
- * namespace. The follow line reuses the home colophon (HomeAliveSection), wired
- * in ./site-content. The essay/event indexes are static rows here — the live
- * entity-backed list lives at /writing.
+ * masthead, essay + city-chapter index sections, a pull-quote band, support
+ * options, and a follow line (the shared colophon). Each section is authored
+ * from one zod schema; copy is content-driven, stored as markdown in
+ * site-content/foundation/<section>.md. The essay/event indexes are static rows
+ * here — the live entity-backed list lives at /writing.
  */
 
 /* ============ journal masthead ============ */
 
-export interface FoundationHeroContent {
-  volume: string;
-  meta: string;
-  headline: string;
-  standfirst: string;
-  primaryCta: CtaLink;
-  secondaryCta: CtaLink;
-}
+const heroSchema = z.object({
+  volume: z.string(),
+  meta: z.string(),
+  headline: z.string(),
+  standfirst: z.string(),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+});
 
-export function FoundationHeroSection({
+function FoundationHeroSection({
   volume,
   meta,
   headline,
   standfirst,
   primaryCta,
   secondaryCta,
-}: FoundationHeroContent): JSX.Element {
+}: z.infer<typeof heroSchema>): JSX.Element {
   return (
     <Section
       id="foundation-hero"
@@ -69,18 +71,28 @@ export function FoundationHeroSection({
 
 /* ============ index sections: research + chapters ============ */
 
-export interface FoundationIndexContent {
-  cap: string;
-  capNote: string;
-  items: IndexRowData[];
-}
+const indexRowSchema = z.object({
+  no: z.string(),
+  kicker: z.string(),
+  title: z.string(),
+  text: z.string(),
+  href: z.string().optional(),
+  meta: z.string().optional(),
+  metaSub: z.string().optional(),
+});
+
+const indexSchema = z.object({
+  cap: z.string(),
+  capNote: z.string(),
+  items: z.array(indexRowSchema),
+});
 
 function IndexSection({
   id,
   cap,
   capNote,
   items,
-}: FoundationIndexContent & { id: string }): JSX.Element {
+}: z.infer<typeof indexSchema> & { id: string }): JSX.Element {
   return (
     <Section id={id} className="py-14">
       <SectCap lead={cap} trail={capNote} />
@@ -93,29 +105,29 @@ function IndexSection({
   );
 }
 
-export function FoundationResearchSection(
-  content: FoundationIndexContent,
+function FoundationResearchSection(
+  content: z.infer<typeof indexSchema>,
 ): JSX.Element {
   return <IndexSection id="research" {...content} />;
 }
 
-export function FoundationChaptersSection(
-  content: FoundationIndexContent,
+function FoundationChaptersSection(
+  content: z.infer<typeof indexSchema>,
 ): JSX.Element {
   return <IndexSection id="events" {...content} />;
 }
 
 /* ============ pull-quote band ============ */
 
-export interface FoundationPullquoteContent {
-  quote: string;
-  attribution: string;
-}
+const pullquoteSchema = z.object({
+  quote: z.string(),
+  attribution: z.string(),
+});
 
-export function FoundationPullquoteSection({
+function FoundationPullquoteSection({
   quote,
   attribution,
-}: FoundationPullquoteContent): JSX.Element {
+}: z.infer<typeof pullquoteSchema>): JSX.Element {
   return (
     <Band quote={quote}>
       <p className="reveal reveal-delay-1 mt-[18px] font-label text-[12px] text-theme-light">
@@ -127,23 +139,23 @@ export function FoundationPullquoteSection({
 
 /* ============ support ============ */
 
-export interface SupportOption {
-  kicker: string;
-  amount: string;
-  text: string;
-}
+const supportSchema = z.object({
+  cap: z.string(),
+  capNote: z.string(),
+  options: z.array(
+    z.object({
+      kicker: z.string(),
+      amount: z.string(),
+      text: z.string(),
+    }),
+  ),
+});
 
-export interface FoundationSupportContent {
-  cap: string;
-  capNote: string;
-  options: SupportOption[];
-}
-
-export function FoundationSupportSection({
+function FoundationSupportSection({
   cap,
   capNote,
   options,
-}: FoundationSupportContent): JSX.Element {
+}: z.infer<typeof supportSchema>): JSX.Element {
   return (
     <Section id="support" className="py-14">
       <SectCap lead={cap} trail={capNote} />
@@ -165,3 +177,40 @@ export function FoundationSupportSection({
     </Section>
   );
 }
+
+/* ============ follow line ============ */
+
+// Reuses the shared colophon (AliveLine) — an italic claim plus proof links.
+const followSchema = z.object({
+  claim: z.string(),
+  links: z.array(ctaSchema),
+});
+
+/* ============ the foundation section group ============ */
+
+export const foundationSections: SiteSectionGroup = sectionGroup("foundation", {
+  hero: defineSection(heroSchema, FoundationHeroSection, {
+    title: "Hero",
+    description: "Foundation journal masthead",
+  }),
+  research: defineSection(indexSchema, FoundationResearchSection, {
+    title: "Research",
+    description: "Essay index rows",
+  }),
+  pullquote: defineSection(pullquoteSchema, FoundationPullquoteSection, {
+    title: "Pullquote",
+    description: "Pull-quote band",
+  }),
+  chapters: defineSection(indexSchema, FoundationChaptersSection, {
+    title: "Chapters",
+    description: "City chapter index rows",
+  }),
+  support: defineSection(supportSchema, FoundationSupportSection, {
+    title: "Support",
+    description: "Funding options",
+  }),
+  follow: defineSection(followSchema, AliveLine, {
+    title: "Follow",
+    description: "Follow-the-research line (shared colophon component)",
+  }),
+});

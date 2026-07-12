@@ -1,39 +1,42 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
+import type { SiteSectionGroup } from "@rizom/site";
+import { defineSection, sectionGroup, z } from "@rizom/site-sections";
 import { Section, renderHighlightedText } from "@rizom/site-rizom";
 import {
   Band,
   CtaRow,
   SectCap,
+  ctaSchema,
   delayClass,
   ROOM_HIGHLIGHT_CLS,
-  type CtaLink,
 } from "./shared";
 
 /**
  * The /work room (previously rizom.work) — coordination consulting: a TMS
  * diagnostic head, the coordination-problem statement, the workshop, personas,
- * testimonials, roster, and a closing quiz band. Pure components; copy is
- * content-driven via the "work" namespace in ./site-content.
+ * testimonials, roster, and a closing quiz band. Each section is authored from
+ * one zod schema; copy is content-driven, stored as markdown in
+ * site-content/work/<section>.md. Only the section group is exported.
  */
 
 /* ============ room head + TMS diagnostic ============ */
 
-export interface DiagnosticContent {
-  typeLabel: string;
-  teamType: string;
-  actionsLabel: string;
-  scoreDimension: string;
-  scoreValue: string;
-  scoreMax: string;
-  actions: string[];
-  runLabel: string;
-  runHref: string;
-}
+const diagnosticSchema = z.object({
+  typeLabel: z.string(),
+  teamType: z.string(),
+  actionsLabel: z.string(),
+  scoreDimension: z.string(),
+  scoreValue: z.string(),
+  scoreMax: z.string(),
+  actions: z.array(z.string()),
+  runLabel: z.string(),
+  runHref: z.string(),
+});
 
 /* The TMS radar panel — geometry verbatim from the live rizom.work
    diagnostic; palette adapted via the theme's .diag classes. */
-function DiagnosticPanel(diag: DiagnosticContent): JSX.Element {
+function DiagnosticPanel(diag: z.infer<typeof diagnosticSchema>): JSX.Element {
   return (
     <div className="diag reveal reveal-delay-1 px-[30px] pt-5 pb-[26px]">
       <div className="diag-bar" />
@@ -102,17 +105,17 @@ function DiagnosticPanel(diag: DiagnosticContent): JSX.Element {
   );
 }
 
-export interface WorkHeroContent {
-  eyebrow: string;
-  provenance: string;
-  headline: string;
-  standfirst: string;
-  primaryCta: CtaLink;
-  secondaryCta: CtaLink;
-  diagnostic: DiagnosticContent;
-}
+const heroSchema = z.object({
+  eyebrow: z.string(),
+  provenance: z.string(),
+  headline: z.string(),
+  standfirst: z.string(),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+  diagnostic: diagnosticSchema,
+});
 
-export function WorkHeroSection({
+function WorkHeroSection({
   eyebrow,
   provenance,
   headline,
@@ -120,7 +123,7 @@ export function WorkHeroSection({
   primaryCta,
   secondaryCta,
   diagnostic,
-}: WorkHeroContent): JSX.Element {
+}: z.infer<typeof heroSchema>): JSX.Element {
   return (
     <Section
       id="work-hero"
@@ -155,12 +158,12 @@ export function WorkHeroSection({
 
 /* ============ statements: problem + workshop ============ */
 
-export interface WorkStatementContent {
-  cap: string;
-  capNote?: string | undefined;
-  headline: string;
-  intro: string;
-}
+const statementSchema = z.object({
+  cap: z.string(),
+  capNote: z.string().optional(),
+  headline: z.string(),
+  intro: z.string(),
+});
 
 /* Shared `.sect` statement: cap → display headline with accent em → intro. */
 function Statement({
@@ -168,7 +171,7 @@ function Statement({
   capNote,
   headline,
   intro,
-}: WorkStatementContent): JSX.Element {
+}: z.infer<typeof statementSchema>): JSX.Element {
   return (
     <>
       <SectCap lead={cap} trail={capNote} />
@@ -182,7 +185,9 @@ function Statement({
   );
 }
 
-export function WorkProblemSection(content: WorkStatementContent): JSX.Element {
+function WorkProblemSection(
+  content: z.infer<typeof statementSchema>,
+): JSX.Element {
   return (
     <Section id="work-problem" className="py-14">
       <Statement {...content} />
@@ -190,20 +195,24 @@ export function WorkProblemSection(content: WorkStatementContent): JSX.Element {
   );
 }
 
-export interface WorkshopStep {
-  title: string;
-  lead: string;
-  text: string;
-}
+const workshopSchema = z.object({
+  cap: z.string(),
+  capNote: z.string().optional(),
+  headline: z.string(),
+  intro: z.string(),
+  steps: z.array(
+    z.object({
+      title: z.string(),
+      lead: z.string(),
+      text: z.string(),
+    }),
+  ),
+});
 
-export interface WorkWorkshopContent extends WorkStatementContent {
-  steps: WorkshopStep[];
-}
-
-export function WorkWorkshopSection({
+function WorkWorkshopSection({
   steps,
   ...statement
-}: WorkWorkshopContent): JSX.Element {
+}: z.infer<typeof workshopSchema>): JSX.Element {
   return (
     <Section id="workshop" className="py-14">
       <Statement {...statement} />
@@ -236,21 +245,21 @@ export function WorkWorkshopSection({
 
 /* ============ personas ============ */
 
-export interface Persona {
-  role: string;
-  quote: string;
-  text: string;
-}
+const personasSchema = z.object({
+  cap: z.string(),
+  personas: z.array(
+    z.object({
+      role: z.string(),
+      quote: z.string(),
+      text: z.string(),
+    }),
+  ),
+});
 
-export interface WorkPersonasContent {
-  cap: string;
-  personas: Persona[];
-}
-
-export function WorkPersonasSection({
+function WorkPersonasSection({
   cap,
   personas,
-}: WorkPersonasContent): JSX.Element {
+}: z.infer<typeof personasSchema>): JSX.Element {
   return (
     <Section id="personas" className="py-14">
       <SectCap lead={cap} />
@@ -275,22 +284,22 @@ export function WorkPersonasSection({
 
 /* ============ testimonials ============ */
 
-export interface Testimonial {
-  text: string;
-  by: string;
-}
+const quotesSchema = z.object({
+  cap: z.string(),
+  capNote: z.string(),
+  quotes: z.array(
+    z.object({
+      text: z.string(),
+      by: z.string(),
+    }),
+  ),
+});
 
-export interface WorkQuotesContent {
-  cap: string;
-  capNote: string;
-  quotes: Testimonial[];
-}
-
-export function WorkQuotesSection({
+function WorkQuotesSection({
   cap,
   capNote,
   quotes,
-}: WorkQuotesContent): JSX.Element {
+}: z.infer<typeof quotesSchema>): JSX.Element {
   return (
     <Section id="proof" className="py-14">
       <SectCap lead={cap} trail={capNote} />
@@ -323,23 +332,23 @@ export function WorkQuotesSection({
 
 /* ============ roster ============ */
 
-export interface RosterPerson {
-  init: string;
-  name: string;
-  role: string;
-}
+const rosterSchema = z.object({
+  cap: z.string(),
+  capNote: z.string(),
+  people: z.array(
+    z.object({
+      init: z.string(),
+      name: z.string(),
+      role: z.string(),
+    }),
+  ),
+});
 
-export interface WorkRosterContent {
-  cap: string;
-  capNote: string;
-  people: RosterPerson[];
-}
-
-export function WorkRosterSection({
+function WorkRosterSection({
   cap,
   capNote,
   people,
-}: WorkRosterContent): JSX.Element {
+}: z.infer<typeof rosterSchema>): JSX.Element {
   return (
     <Section id="people" className="py-14">
       <SectCap lead={cap} trail={capNote} />
@@ -367,17 +376,17 @@ export function WorkRosterSection({
 
 /* ============ closer band ============ */
 
-export interface WorkCloserContent {
-  quote: string;
-  primaryCta: CtaLink;
-  secondaryCta: CtaLink;
-}
+const closerSchema = z.object({
+  quote: z.string(),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+});
 
-export function WorkCloserSection({
+function WorkCloserSection({
   quote,
   primaryCta,
   secondaryCta,
-}: WorkCloserContent): JSX.Element {
+}: z.infer<typeof closerSchema>): JSX.Element {
   return (
     <Band quote={quote}>
       <CtaRow
@@ -388,3 +397,36 @@ export function WorkCloserSection({
     </Band>
   );
 }
+
+/* ============ the work section group ============ */
+
+export const workSections: SiteSectionGroup = sectionGroup("work", {
+  hero: defineSection(heroSchema, WorkHeroSection, {
+    title: "Hero",
+    description: "Work room head with the TMS diagnostic panel",
+  }),
+  problem: defineSection(statementSchema, WorkProblemSection, {
+    title: "Problem",
+    description: "The coordination-problem statement",
+  }),
+  workshop: defineSection(workshopSchema, WorkWorkshopSection, {
+    title: "Workshop",
+    description: "The workshop — survey, workshop, playbook",
+  }),
+  personas: defineSection(personasSchema, WorkPersonasSection, {
+    title: "Personas",
+    description: "If this sounds like you — personas",
+  }),
+  quotes: defineSection(quotesSchema, WorkQuotesSection, {
+    title: "Quotes",
+    description: "Client testimonials",
+  }),
+  roster: defineSection(rosterSchema, WorkRosterSection, {
+    title: "Roster",
+    description: "Team roster",
+  }),
+  closer: defineSection(closerSchema, WorkCloserSection, {
+    title: "Closer",
+    description: "Closing quiz CTA band",
+  }),
+});

@@ -2,18 +2,17 @@ import type { SiteDefinition } from "@rizom/site";
 import { createRizomSite } from "@rizom/site-rizom";
 import { AiLayout } from "./layout";
 import { homeSections } from "./home";
+import { workSections } from "./work";
+import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
-import aiSiteContent from "./site-content";
 
 export const rizomAiSite: SiteDefinition = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
   themeProfile: "product",
   layout: AiLayout,
   routes: aiRoutes,
-  // Home is authored schema-first; work + foundation remain field-DSL content
-  // until they migrate.
-  sections: [homeSections],
-  content: aiSiteContent,
+  // Every page is authored schema-first (see ./home, ./work, ./foundation).
+  sections: [homeSections, workSections, foundationSections],
   // The org-level indexes (/writing, /network) are hand-written routes that
   // compose the plugins' own list templates; entityDisplay just supplies the
   // labels + detail-page paths. Navigation is hidden — the layout's faces
