@@ -1,6 +1,6 @@
 {
   "name": "@brains/mcp",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
     "@brains/mcp-service": "workspace:*",
@@ -16,7 +16,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
     "@types/cors": "^2.8.17",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "files": [
     "src"

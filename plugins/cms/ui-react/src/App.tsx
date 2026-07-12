@@ -17,17 +17,22 @@ import {
   ApiError,
   createEntity,
   deleteEntity,
+  fetchAgentTargets,
   fetchEntities,
   fetchEntity,
   fetchSchema,
   fetchSyncStatus,
   fetchTypes,
+  requestAgentAnswer,
   requestAssist,
+  requestFieldAssist,
   updateEntity,
   uploadFile,
+  type AgentTarget,
   type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
+  type FieldAssistResponse,
   type FieldDescriptor,
   type GitSyncState,
   type SyncStatus,
@@ -284,11 +289,72 @@ function CodeMirrorBodySource(props: {
  * Markdown body editor: CodeMirror 6 edits the literal bytes beside a
  * streamdown preview, behind a Source | Split | Preview segment control.
  */
+export const MODEL_ASSIST_TARGET = "model";
+const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
+
+type AgentAskMode = "answer" | "rewrite";
+
+export const AGENT_INSTRUCTION_PRESETS: ReadonlyArray<{
+  label: string;
+  instruction: string;
+  mode: AgentAskMode;
+}> = [
+  { label: "Review", instruction: "Review this selection.", mode: "answer" },
+  {
+    label: "Fact-check",
+    instruction: "Fact-check this selection.",
+    mode: "answer",
+  },
+  {
+    label: "Related",
+    instruction: "What related context do you know?",
+    mode: "answer",
+  },
+  {
+    label: "Rewrite",
+    instruction:
+      "Rewrite this selection. Return only replacement markdown without commentary.",
+    mode: "rewrite",
+  },
+];
+
 type AssistState =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "suggested"; range: SelectionRange; suggestion: string }
+  | {
+      kind: "agent-answer";
+      agentId: string;
+      response: string;
+      range: SelectionRange;
+      replaceSelection: boolean;
+    }
   | { kind: "error"; message: string };
+
+export function AgentAnswerPanel(props: {
+  agentId: string;
+  response: string;
+  onReplace?: (() => void) | undefined;
+  onDismiss: () => void;
+}): ReactElement {
+  return (
+    <section className="assist-agent-answer" aria-label="Agent answer">
+      <div className="assist-answer-copy">
+        <strong>Answer from {props.agentId}</strong>
+        <Streamdown>{props.response}</Streamdown>
+      </div>
+      <span className="spacer" />
+      {props.onReplace && (
+        <button type="button" className="btn" onClick={props.onReplace}>
+          Replace selection
+        </button>
+      )}
+      <button type="button" className="btn ghost" onClick={props.onDismiss}>
+        Dismiss
+      </button>
+    </section>
+  );
+}
 
 export function BodyEditor(props: {
   value: string;
@@ -298,36 +364,75 @@ export function BodyEditor(props: {
   assist?: {
     entityType: string;
     frontmatter: Record<string, unknown>;
+    agents?: AgentTarget[];
   };
 }): ReactElement {
   const { value, mode, onChange, onModeChange, assist } = props;
   const [selection, setSelection] = useState<SelectionRange | null>(null);
   const [instruction, setInstruction] = useState("");
+  const [assistTarget, setAssistTarget] = useState(MODEL_ASSIST_TARGET);
+  const [agentAskMode, setAgentAskMode] = useState<AgentAskMode>("answer");
   const [assistState, setAssistState] = useState<AssistState>({ kind: "idle" });
+  const agents = assist?.agents ?? EMPTY_AGENT_TARGETS;
   const showSource = mode !== "preview";
   const showPreview = mode !== "source";
   const selectedText = selection
     ? value.slice(selection.from, selection.to)
     : "";
 
+  useEffect(() => {
+    if (
+      assistTarget !== MODEL_ASSIST_TARGET &&
+      !agents.some((agent) => agent.id === assistTarget)
+    ) {
+      setAssistTarget(MODEL_ASSIST_TARGET);
+      setAgentAskMode("answer");
+      setAssistState({ kind: "idle" });
+    }
+  }, [agents, assistTarget]);
+
   const runAssist = useCallback((): void => {
     if (!assist || !selection || instruction.trim().length === 0) return;
     const range = selection;
     setAssistState({ kind: "loading" });
-    requestAssist({
-      entityType: assist.entityType,
-      instruction,
-      selection: selectedText,
-      body: value,
-      frontmatter: assist.frontmatter,
-    })
-      .then(({ suggestion }) => {
-        setAssistState({ kind: "suggested", range, suggestion });
-      })
-      .catch((error: unknown) => {
-        setAssistState({ kind: "error", message: errorMessage(error) });
-      });
-  }, [assist, instruction, selectedText, selection, value]);
+
+    const request =
+      assistTarget === MODEL_ASSIST_TARGET
+        ? requestAssist({
+            entityType: assist.entityType,
+            instruction,
+            selection: selectedText,
+            body: value,
+            frontmatter: assist.frontmatter,
+          }).then(({ suggestion }) => {
+            setAssistState({ kind: "suggested", range, suggestion });
+          })
+        : requestAgentAnswer({
+            agent: assistTarget,
+            instruction,
+            selection: selectedText,
+          }).then(({ agentId, response }) => {
+            setAssistState({
+              kind: "agent-answer",
+              agentId,
+              response,
+              range,
+              replaceSelection: agentAskMode === "rewrite",
+            });
+          });
+
+    request.catch((error: unknown) => {
+      setAssistState({ kind: "error", message: errorMessage(error) });
+    });
+  }, [
+    agentAskMode,
+    assist,
+    assistTarget,
+    instruction,
+    selectedText,
+    selection,
+    value,
+  ]);
 
   const acceptSuggestion = useCallback((): void => {
     if (assistState.kind !== "suggested") return;
@@ -337,6 +442,22 @@ export function BodyEditor(props: {
           value,
           assistState.range,
           assistState.suggestion,
+        ),
+      );
+      setAssistState({ kind: "idle" });
+    } catch (error: unknown) {
+      setAssistState({ kind: "error", message: errorMessage(error) });
+    }
+  }, [assistState, onChange, value]);
+
+  const replaceWithAgentAnswer = useCallback((): void => {
+    if (assistState.kind !== "agent-answer") return;
+    try {
+      onChange(
+        applySuggestionToSelection(
+          value,
+          assistState.range,
+          assistState.response,
         ),
       );
       setAssistState({ kind: "idle" });
@@ -371,13 +492,33 @@ export function BodyEditor(props: {
           data-has-selection={selection ? "true" : "false"}
           aria-label="AI selection rewrite"
         >
+          {agents.length > 0 && (
+            <select
+              aria-label="Assist target"
+              value={assistTarget}
+              onChange={(event) => {
+                setAssistTarget(event.currentTarget.value);
+                setAgentAskMode("answer");
+                setAssistState({ kind: "idle" });
+              }}
+            >
+              <option value={MODEL_ASSIST_TARGET}>Model</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.label} — {agent.id}
+                </option>
+              ))}
+            </select>
+          )}
           <input
             type="text"
             value={instruction}
             placeholder={
               selection
                 ? "Instruction for selected text…"
-                : "Select text to rewrite…"
+                : assistTarget === MODEL_ASSIST_TARGET
+                  ? "Select text to rewrite…"
+                  : "Select text to ask about…"
             }
             onChange={(event) => setInstruction(event.currentTarget.value)}
           />
@@ -391,8 +532,33 @@ export function BodyEditor(props: {
             }
             onClick={runAssist}
           >
-            {assistState.kind === "loading" ? "Thinking…" : "Rewrite selection"}
+            {assistState.kind === "loading"
+              ? "Thinking…"
+              : assistTarget === MODEL_ASSIST_TARGET
+                ? "Rewrite selection"
+                : "Ask"}
           </button>
+          {assistTarget !== MODEL_ASSIST_TARGET && (
+            <span className="assist-presets">
+              {AGENT_INSTRUCTION_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className={
+                    preset.mode === "rewrite" && agentAskMode === "rewrite"
+                      ? "assist-preset assist-preset-active"
+                      : "assist-preset"
+                  }
+                  onClick={() => {
+                    setInstruction(preset.instruction);
+                    setAgentAskMode(preset.mode);
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </span>
+          )}
           {selection && (
             <span className="assist-meta">
               {selectedText.length} selected chars
@@ -417,6 +583,16 @@ export function BodyEditor(props: {
             Discard
           </button>
         </section>
+      )}
+      {assistState.kind === "agent-answer" && (
+        <AgentAnswerPanel
+          agentId={assistState.agentId}
+          response={assistState.response}
+          onReplace={
+            assistState.replaceSelection ? replaceWithAgentAnswer : undefined
+          }
+          onDismiss={() => setAssistState({ kind: "idle" })}
+        />
       )}
       {assistState.kind === "error" && (
         <p className="status status-error assist-status">
@@ -816,6 +992,100 @@ function StringListField(props: {
   );
 }
 
+export type FieldAssistVariant = "summarise" | "tag-suggest";
+
+export type FieldAssistState =
+  | { kind: "idle" }
+  | { kind: "loading"; field: string; variant: FieldAssistVariant }
+  | {
+      kind: "suggested";
+      field: string;
+      variant: FieldAssistVariant;
+      suggestion: string | string[];
+    }
+  | { kind: "error"; field: string; message: string };
+
+export function fieldAssistVariant(
+  descriptor: FieldDescriptor,
+): FieldAssistVariant | null {
+  if (descriptor.widget === "text") return "summarise";
+  if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
+    return "tag-suggest";
+  }
+  return null;
+}
+
+export function applyFieldAssistSuggestion(
+  draft: Record<string, unknown>,
+  field: string,
+  suggestion: string | string[],
+): Record<string, unknown> {
+  return { ...draft, [field]: suggestion };
+}
+
+export function FieldAssistControls(props: {
+  descriptor: FieldDescriptor;
+  state: FieldAssistState;
+  onRun: (variant: FieldAssistVariant, field: string) => void;
+  onApply: (field: string, suggestion: string | string[]) => void;
+  onDiscard: () => void;
+}): ReactElement | null {
+  const { descriptor, state, onRun, onApply, onDiscard } = props;
+  const variant = fieldAssistVariant(descriptor);
+  if (!variant) return null;
+  const active = "field" in state && state.field === descriptor.name;
+
+  if (active && state.kind === "suggested") {
+    return (
+      <div className="field-assist-suggestion">
+        {Array.isArray(state.suggestion) ? (
+          <span className="field-assist-tags">
+            {state.suggestion.map((tag) => (
+              <code key={tag}>{tag}</code>
+            ))}
+          </span>
+        ) : (
+          <span className="field-assist-copy">{state.suggestion}</span>
+        )}
+        <button
+          type="button"
+          className="field-assist-action"
+          onClick={() => onApply(state.field, state.suggestion)}
+        >
+          Apply
+        </button>
+        <button
+          type="button"
+          className="field-assist-action ghost"
+          onClick={onDiscard}
+        >
+          Discard
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="field-assist-controls">
+      <button
+        type="button"
+        className="field-assist-run"
+        disabled={active && state.kind === "loading"}
+        onClick={() => onRun(variant, descriptor.name)}
+      >
+        {active && state.kind === "loading"
+          ? "Thinking…"
+          : variant === "summarise"
+            ? "Summarise body"
+            : `Suggest ${descriptor.label.toLowerCase()}`}
+      </button>
+      {active && state.kind === "error" && (
+        <span className="status status-error">{state.message}</span>
+      )}
+    </div>
+  );
+}
+
 export function Field(props: {
   descriptor: FieldDescriptor;
   value: unknown;
@@ -1004,12 +1274,16 @@ export function DeleteDialog(props: {
 
 export function App(): ReactElement {
   const [types, setTypes] = useState<EntityTypeInfo[] | null>(null);
+  const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
   const [entityType, setEntityType] = useState<string | null>(null);
   const [schema, setSchema] = useState<TypeSchema | null>(null);
   const [entities, setEntities] = useState<EntitySummary[] | null>(null);
   const [mode, setMode] = useState<EditorMode>({ kind: "browse" });
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [body, setBody] = useState<string>("");
+  const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
+    kind: "idle",
+  });
   const [bodyMode, setBodyMode] = useState<BodyMode>("split");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
@@ -1054,6 +1328,9 @@ export function App(): ReactElement {
       })
       .catch((error: unknown) => setLoadError(errorMessage(error)));
     // No directory-sync installed → null, and the pipeline strip stays off.
+    fetchAgentTargets()
+      .then(setAgentTargets)
+      .catch(() => setAgentTargets([]));
     fetchSyncStatus()
       .then(setSyncStatus)
       .catch(() => setSyncStatus(null));
@@ -1084,6 +1361,7 @@ export function App(): ReactElement {
     setMode({ kind: "browse" });
     setMobilePane("details");
     setSaveState({ kind: "idle" });
+    setFieldAssistState({ kind: "idle" });
     setEntities(null);
     setSchema(null);
     Promise.all([fetchSchema(entityType), fetchEntities(entityType)])
@@ -1128,6 +1406,7 @@ export function App(): ReactElement {
           setMode({ kind: "edit", entity });
           setDraft(entity.frontmatter);
           setBody(entity.body);
+          setFieldAssistState({ kind: "idle" });
           setSaveState(nextState);
         })
         .catch((error: unknown) => setLoadError(errorMessage(error)));
@@ -1138,6 +1417,7 @@ export function App(): ReactElement {
   const startCreate = useCallback((): void => {
     if (!schema) return;
     setSaveState({ kind: "idle" });
+    setFieldAssistState({ kind: "idle" });
     setMode({ kind: "create" });
     setDraft(emptyDraft(schema.fields));
     setBody("");
@@ -1145,8 +1425,53 @@ export function App(): ReactElement {
 
   const backToList = useCallback((): void => {
     setMode({ kind: "browse" });
+    setFieldAssistState({ kind: "idle" });
     setSaveState({ kind: "idle" });
   }, []);
+
+  const runFieldAssist = useCallback(
+    (variant: FieldAssistVariant, field: string): void => {
+      if (!entityType || body.trim().length === 0) return;
+      setFieldAssistState({ kind: "loading", field, variant });
+      requestFieldAssist({
+        variant,
+        entityType,
+        targetField: field,
+        body,
+        frontmatter: draft,
+      })
+        .then((response: FieldAssistResponse) => {
+          const suggestion =
+            response.variant === "summarise"
+              ? response.suggestion
+              : response.suggestions;
+          setFieldAssistState({
+            kind: "suggested",
+            field: response.targetField,
+            variant: response.variant,
+            suggestion,
+          });
+        })
+        .catch((error: unknown) => {
+          setFieldAssistState({
+            kind: "error",
+            field,
+            message: errorMessage(error),
+          });
+        });
+    },
+    [body, draft, entityType],
+  );
+
+  const applyFieldAssist = useCallback(
+    (field: string, suggestion: string | string[]): void => {
+      setDraft((current) =>
+        applyFieldAssistSuggestion(current, field, suggestion),
+      );
+      setFieldAssistState({ kind: "idle" });
+    },
+    [],
+  );
 
   const save = useCallback((): void => {
     if (!entityType || mode.kind === "browse" || !schema) return;
@@ -1363,16 +1688,26 @@ export function App(): ReactElement {
                 </span>
               </div>
               {schema.fields.map((descriptor) => (
-                <Field
-                  key={descriptor.name}
-                  descriptor={descriptor}
-                  value={draft[descriptor.name]}
-                  onChange={(raw) =>
-                    setDraft((current) =>
-                      applyFieldChange(current, descriptor, raw),
-                    )
-                  }
-                />
+                <div key={descriptor.name} className="field-with-assist">
+                  <Field
+                    descriptor={descriptor}
+                    value={draft[descriptor.name]}
+                    onChange={(raw) =>
+                      setDraft((current) =>
+                        applyFieldChange(current, descriptor, raw),
+                      )
+                    }
+                  />
+                  {schema.hasBody && body.trim().length > 0 && (
+                    <FieldAssistControls
+                      descriptor={descriptor}
+                      state={fieldAssistState}
+                      onRun={runFieldAssist}
+                      onApply={applyFieldAssist}
+                      onDiscard={() => setFieldAssistState({ kind: "idle" })}
+                    />
+                  )}
+                </div>
               ))}
               {schema.fields.length === 0 && (
                 <p className="status">
@@ -1387,7 +1722,11 @@ export function App(): ReactElement {
                   mode={bodyMode}
                   onChange={setBody}
                   onModeChange={setBodyMode}
-                  assist={{ entityType, frontmatter: draft }}
+                  assist={{
+                    entityType,
+                    frontmatter: draft,
+                    agents: agentTargets,
+                  }}
                 />
               ) : (
                 <p className="status manuscript-empty">
@@ -1556,6 +1895,16 @@ const styles = `
   .field-image .image-ref button { font-family: var(--console-ui); font-size: 12px; border: 1px solid var(--console-rule-strong); background: none; color: var(--console-text-dim); border-radius: 5px; padding: 3px 9px; cursor: pointer; }
   .field-image .image-ref button:hover { color: var(--console-accent-dim); border-color: color-mix(in srgb, var(--console-accent) 40%, transparent); }
   .field-image input[type="file"] { width: 100%; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); border: 1px dashed var(--console-rule-strong); border-radius: 8px; background: var(--console-card); padding: 12px 11px; }
+  .field-with-assist .field { padding-bottom: 9px; }
+  .field-assist-controls { display: flex; align-items: center; gap: 8px; padding: 0 0 12px; }
+  .field-assist-run, .field-assist-action { border: 1px solid var(--console-rule-strong); border-radius: 999px; background: var(--console-card); color: var(--console-text-dim); font-family: var(--console-mono); font-size: 9px; padding: 5px 9px; cursor: pointer; }
+  .field-assist-run:hover, .field-assist-action:hover { border-color: var(--console-accent); color: var(--console-accent-dim); }
+  .field-assist-run[disabled] { opacity: .55; cursor: wait; }
+  .field-assist-suggestion { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; padding: 9px; border: 1px solid var(--console-rule-accent); border-radius: 7px; background: var(--console-accent-soft); }
+  .field-assist-copy { flex: 1 0 100%; font-size: 12px; line-height: 1.45; color: var(--console-text); }
+  .field-assist-tags { display: flex; flex: 1 0 100%; flex-wrap: wrap; gap: 5px; }
+  .field-assist-tags code { font-family: var(--console-mono); font-size: 10px; padding: 3px 6px; border-radius: 4px; background: var(--console-card); color: var(--console-text); }
+  .field-assist-action.ghost { background: transparent; }
 
   /* ── manuscript / body editor ── */
   .manuscript { display: flex; flex-direction: column; min-width: 0; }
@@ -1564,14 +1913,22 @@ const styles = `
   .body-toolbar { display: flex; align-items: center; gap: 4px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); }
   .doc-meta { margin-left: auto; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
   .assist-bar { display: flex; align-items: center; gap: 10px; padding: 10px 26px; border-bottom: 1px solid var(--console-rule-strong); background: var(--console-rule); }
-  .assist-bar input { flex: 1; min-width: 180px; font-family: var(--console-ui); font-size: 13px; color: var(--console-text); background: var(--console-card); border: 1px solid var(--console-rule-strong); border-radius: 7px; padding: 8px 11px; outline: none; }
-  .assist-bar input:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-accent) 13%, transparent); }
+  .assist-bar input, .assist-bar select { font-family: var(--console-ui); font-size: 13px; color: var(--console-text); background: var(--console-card); border: 1px solid var(--console-rule-strong); border-radius: 7px; padding: 8px 11px; outline: none; }
+  .assist-bar input { flex: 1; min-width: 180px; }
+  .assist-bar select { max-width: 220px; }
+  .assist-bar input:focus, .assist-bar select:focus { border-color: var(--console-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-accent) 13%, transparent); }
   .assist-run { padding: 8px 14px; white-space: nowrap; }
   .assist-run[disabled] { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .assist-presets { display: inline-flex; gap: 4px; }
+  .assist-preset { border: 1px solid var(--console-rule-strong); border-radius: 999px; padding: 4px 8px; background: var(--console-card); color: var(--console-text-dim); font-family: var(--console-mono); font-size: 9px; cursor: pointer; }
+  .assist-preset:hover, .assist-preset-active { border-color: var(--console-accent); color: var(--console-accent-dim); background: var(--console-accent-soft); }
   .assist-meta { font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); white-space: nowrap; }
-  .assist-suggestion { display: flex; align-items: center; gap: 12px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); background: var(--console-ok-soft); }
-  .assist-preview { max-height: 150px; overflow: auto; font-size: 13px; color: var(--console-text); }
-  .assist-preview p { margin-bottom: 6px; }
+  .assist-suggestion, .assist-agent-answer { display: flex; align-items: center; gap: 12px; padding: 12px 26px; border-bottom: 1px solid var(--console-rule-strong); }
+  .assist-suggestion { background: var(--console-ok-soft); }
+  .assist-agent-answer { background: var(--console-accent-soft); }
+  .assist-preview, .assist-answer-copy { max-height: 150px; overflow: auto; font-size: 13px; color: var(--console-text); }
+  .assist-answer-copy > strong { display: block; margin-bottom: 6px; font-family: var(--console-mono); font-size: 10px; letter-spacing: .04em; color: var(--console-accent-dim); }
+  .assist-preview p, .assist-answer-copy p { margin-bottom: 6px; }
   .assist-status { padding: 8px 26px; border-bottom: 1px solid var(--console-rule-strong); }
   .seg { display: inline-flex; border: 1px solid var(--console-rule-strong); border-radius: 7px; overflow: hidden; background: var(--console-card); }
   .seg .mode { font-family: var(--console-mono); font-size: 11.5px; letter-spacing: 0.04em; border: none; background: transparent; color: var(--console-text-muted); padding: 6px 14px; cursor: pointer; }

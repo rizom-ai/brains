@@ -1,6 +1,6 @@
 {
   "name": "@brains/content-pipeline",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "Content pipeline plugin for managing entity publishing queues, scheduling, and generation",
   "dependencies": {
     "@brains/contracts": "workspace:*",
@@ -13,7 +13,7 @@
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": {

@@ -1,6 +1,6 @@
 {
   "name": "@brains/wishlist",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "Wishlist plugin for tracking unfulfilled user requests",
   "dependencies": {
     "@brains/plugins": "workspace:*",
@@ -12,7 +12,7 @@
     "@types/bun": "^1.3.14",
     "bun-types": "^1.3.14",
     "eslint": "^10.5.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts"

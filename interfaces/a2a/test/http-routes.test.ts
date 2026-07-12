@@ -53,15 +53,24 @@ describe("A2A HTTP routes", () => {
   async function signedA2ARequest(
     body: unknown,
     signer: AuthService,
-    options: { bodyOverride?: string } = {},
+    options: {
+      bodyOverride?: string;
+      signingUrl?: string;
+      requestUrl?: string;
+      headers?: Record<string, string>;
+    } = {},
   ): Promise<Request> {
     const bodyText = JSON.stringify(body);
-    const headers = new Headers({ "Content-Type": "application/json" });
+    const headers = new Headers({
+      "Content-Type": "application/json",
+      ...options.headers,
+    });
     const signingKey = await signer.getA2ASigningKey();
+    const signingUrl = options.signingUrl ?? "http://brain/a2a";
     await signRequest(
       {
         method: "POST",
-        url: "http://brain/a2a",
+        url: signingUrl,
         headers,
         body: bodyText,
       },
@@ -69,7 +78,7 @@ describe("A2A HTTP routes", () => {
       signingKey.keyId,
     );
 
-    return new Request("http://brain/a2a", {
+    return new Request(options.requestUrl ?? signingUrl, {
       method: "POST",
       headers,
       body: options.bodyOverride ?? bodyText,
@@ -233,7 +242,68 @@ describe("A2A HTTP routes", () => {
     expect(capturedHeaders[0]?.["content-digest"]).toStartWith("sha-256=:");
   });
 
-  it("verifies signed inbound requests and maps approved peer trust to permissions", async () => {
+  it("leaves outbound requests unsigned when the auth issuer is local", async () => {
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir: await tempStorageDir(),
+        issuer: "http://localhost:8080",
+      }),
+    );
+    const capturedHeaders: Record<string, string>[] = [];
+    globalThis.fetch = Object.assign(
+      async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        const url = String(input);
+        if (url.includes(".well-known/agent-card.json")) {
+          return Response.json({
+            name: "Remote",
+            url: "https://remote.example.com/a2a",
+          });
+        }
+
+        const headers = Object.fromEntries(new Headers(init?.headers));
+        capturedHeaders.push(headers);
+        if (headers["signature"]) {
+          return new Response("Invalid HTTP signature", { status: 401 });
+        }
+
+        return new Response(
+          `data: ${JSON.stringify({
+            result: {
+              status: {
+                state: "completed",
+                message: { parts: [{ kind: "text", text: "ok" }] },
+              },
+              final: true,
+            },
+          })}\n\n`,
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    const plugin = new A2AInterface({ port: 0 });
+    const capabilities = await harness.installPlugin(plugin);
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "agent_call",
+    );
+    if (!tool) throw new Error("Expected agent_call tool");
+
+    const result = await tool.handler(
+      { agent: "remote.example.com", message: "hello" },
+      { interfaceType: "test", userId: "test" },
+    );
+
+    expect(result).toHaveProperty("success", true);
+    expect(capturedHeaders).toHaveLength(1);
+    expect(capturedHeaders[0]?.["signature"]).toBeUndefined();
+    expect(capturedHeaders[0]?.["signature-input"]).toBeUndefined();
+  });
+
+  it("verifies reverse-proxied signed requests against the external URL", async () => {
     installWebserverPlugin();
     await harness.installPlugin(
       authServicePlugin({
@@ -300,6 +370,14 @@ describe("A2A HTTP routes", () => {
           },
         },
         remoteAuth,
+        {
+          signingUrl: "https://brain.example.com/a2a",
+          requestUrl: "http://localhost:8080/a2a",
+          headers: {
+            host: "brain.example.com",
+            "x-forwarded-proto": "https",
+          },
+        },
       ),
     );
 

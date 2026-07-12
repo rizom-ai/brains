@@ -1,6 +1,6 @@
 {
   "name": "@brains/email-contracts",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "Shared email delivery message contracts",
   "dependencies": {
     "@brains/utils": "workspace:*"
@@ -9,7 +9,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "eslint": "^10.5.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts"

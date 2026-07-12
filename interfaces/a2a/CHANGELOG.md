@@ -1,5 +1,69 @@
 # @brains/a2a
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/auth-service@0.2.0-alpha.155
+  - @brains/http-signatures@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- [`a7f257b`](https://github.com/rizom-ai/brains/commit/a7f257bfbfd8947d63a0b6d9aefef698c799cdcc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix A2A request signing across local and deployed instances. Local callers no longer send signatures with unreachable loopback key URLs, while deployed receivers verify signatures against the public forwarded URL instead of their internal reverse-proxy URL.
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/auth-service@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/auth-service@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- [`b4ff7d6`](https://github.com/rizom-ai/brains/commit/b4ff7d6e3ed3cb20d2edd2858af9f3b95cb7de4b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let CMS operators ask one approved directory agent about selected markdown. The A2A interface now exposes its validated, signed outbound call path over the internal message bus, while the CMS adds an agent target picker and markdown answer panel. Ordinary answers remain dismiss-only; a dedicated rewrite mode can explicitly replace the selected draft text without changing the entity save path.
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/auth-service@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/auth-service@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.150
+  - @brains/http-signatures@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/auth-service@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

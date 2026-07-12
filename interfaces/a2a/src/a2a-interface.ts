@@ -1,4 +1,8 @@
-import { getActiveAuthService } from "@brains/auth-service";
+import {
+  getActiveAuthService,
+  isLoopbackIssuer,
+  issuerFromRequest,
+} from "@brains/auth-service";
 import {
   JwksResolver,
   signRequest,
@@ -24,7 +28,12 @@ import {
   jsonrpcRequestSchema,
   streamParamsSchema,
 } from "./jsonrpc-handler";
-import { createAgentCallTool, type A2ARequestSigner } from "./client";
+import {
+  createAgentCallTool,
+  type A2AClientDeps,
+  type A2ARequestSigner,
+} from "./client";
+import { registerA2ACallMessageHandlers } from "./message-handlers";
 import packageJson from "../package.json";
 
 const A2A_CORS_HEADERS = {
@@ -68,6 +77,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
     this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agent;
+    registerA2ACallMessageHandlers(context, this.createClientDeps(context));
 
     if (this.hasWebserver) {
       context.endpoints.register({
@@ -164,10 +174,15 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     permissionLevel: UserPermissionLevel;
     callerDomain: string | null;
   }> {
+    const internalUrl = new URL(request.url);
+    const externalUrl = new URL(
+      `${internalUrl.pathname}${internalUrl.search}`,
+      issuerFromRequest(request),
+    );
     const verified = await verifyRequest(
       {
         method: request.method,
-        url: request.url,
+        url: externalUrl.toString(),
         headers: request.headers,
         body,
       },
@@ -384,22 +399,30 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     const authService = getActiveAuthService();
     if (!authService) return undefined;
 
+    const issuer = authService.getIssuer();
+    // Remote peers cannot resolve loopback JWKS, and signature key IDs require HTTPS.
+    if (isLoopbackIssuer(issuer) || new URL(issuer).protocol !== "https:") {
+      return undefined;
+    }
+
     return async (request): Promise<void> => {
       const signingKey = await authService.getA2ASigningKey();
       await signRequest(request, signingKey.privateJwk, signingKey.keyId);
     };
   }
 
+  private createClientDeps(context: InterfacePluginContext): A2AClientDeps {
+    return {
+      requestSigner: this.createRequestSigner(),
+      requestTimeoutMs: this.config.requestTimeoutMs,
+      streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
+      maxNetworkAttempts: this.config.maxNetworkAttempts,
+      entityService: context.entityService,
+    };
+  }
+
   protected override async getTools(): Promise<Tool[]> {
-    return [
-      createAgentCallTool({
-        requestSigner: this.createRequestSigner(),
-        requestTimeoutMs: this.config.requestTimeoutMs,
-        streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
-        maxNetworkAttempts: this.config.maxNetworkAttempts,
-        entityService: this.getContext().entityService,
-      }),
-    ];
+    return [createAgentCallTool(this.createClientDeps(this.getContext()))];
   }
 
   protected override async getInstructions(): Promise<string | undefined> {

@@ -1,11 +1,11 @@
 {
   "name": "@brains/http-signatures",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/node": "^20.19.43",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts"

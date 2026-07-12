@@ -1,5 +1,85 @@
 # @brains/core
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/image@0.2.0-alpha.155
+  - @brains/contracts@0.2.0-alpha.155
+  - @brains/site-composition@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/runtime-state@0.2.0-alpha.155
+  - @brains/templates@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.154
+  - @brains/image@0.2.0-alpha.154
+  - @brains/site-composition@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+  - @brains/runtime-state@0.2.0-alpha.154
+  - @brains/templates@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.153
+  - @brains/image@0.2.0-alpha.153
+  - @brains/site-composition@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+  - @brains/runtime-state@0.2.0-alpha.153
+  - @brains/templates@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.152
+  - @brains/image@0.2.0-alpha.152
+  - @brains/site-composition@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+  - @brains/runtime-state@0.2.0-alpha.152
+  - @brains/templates@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.151
+  - @brains/image@0.2.0-alpha.151
+  - @brains/site-composition@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+  - @brains/runtime-state@0.2.0-alpha.151
+  - @brains/templates@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- [`a6c7004`](https://github.com/rizom-ai/brains/commit/a6c70040f23414a301c3f2c2fb3ddef11e7b825f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use GPT-5.6 Luna with low reasoning as the default brain model, add typed reasoning-effort configuration from brain definitions and instance overrides through the AI runtime, and simplify tool-routing prompts for more reliable status, trust, and agent recommendation workflows.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.150
+  - @brains/contracts@0.2.0-alpha.150
+  - @brains/image@0.2.0-alpha.150
+  - @brains/site-composition@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/runtime-state@0.2.0-alpha.150
+  - @brains/templates@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

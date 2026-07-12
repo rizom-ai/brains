@@ -177,7 +177,13 @@ export function registerToolOnServer(
     getToolAnnotations(tool) ?? {},
     async (params, extra) => {
       const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
-      const userId = extra._meta?.["userId"] ?? "mcp-user";
+      const verifiedSubject = extra.authInfo?.extra?.["subject"];
+      const userId =
+        (typeof verifiedSubject === "string" && verifiedSubject.length > 0
+          ? verifiedSubject
+          : undefined) ??
+        extra._meta?.["userId"] ??
+        "mcp-user";
       const conversationId = extra._meta?.["conversationId"];
       const channelId = extra._meta?.["channelId"];
       const channelName = extra._meta?.["channelName"];

@@ -1,6 +1,6 @@
 import type { Plugin } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
-import type { DeploymentConfigInput } from "./types";
+import type { DeploymentConfigInput, ReasoningEffort } from "./types";
 import type { SitePackage } from "./site-package";
 
 import { z } from "@brains/utils/zod";
@@ -112,6 +112,9 @@ export interface BrainDefinition {
    * Can be overridden per-instance via `model` in brain.yaml.
    */
   model?: string;
+
+  /** Default OpenAI reasoning effort for this brain. */
+  reasoningEffort?: ReasoningEffort;
 
   /** Brain identity — character name, role, purpose, values */
   identity?: BrainIdentity;

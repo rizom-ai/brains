@@ -16,7 +16,8 @@ import {
   type BrainAgentFactory,
   type BrainCallOptions,
 } from "./agent-types";
-import { supportsTemperature } from "./provider-selection";
+import { resolveTextModelCapabilities } from "./provider-selection";
+import type { ReasoningEffort } from "./types";
 import { buildInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
@@ -56,6 +57,7 @@ export interface BrainAgentFactoryOptions {
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
   maxTokens?: number | undefined;
+  reasoningEffort?: ReasoningEffort | undefined;
   /** Message bus for emitting tool invocation events */
   messageBus: IMessageBus;
 }
@@ -69,9 +71,16 @@ export interface BrainAgentFactoryOptions {
 export function createBrainAgentFactory(
   options: BrainAgentFactoryOptions,
 ): BrainAgentFactory {
-  const { model, modelId, webSearch, temperature, maxTokens, messageBus } =
-    options;
-  const supportsTemp = supportsTemperature(modelId);
+  const {
+    model,
+    modelId,
+    webSearch,
+    temperature,
+    maxTokens,
+    reasoningEffort,
+    messageBus,
+  } = options;
+  const capabilities = resolveTextModelCapabilities(modelId);
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
@@ -133,13 +142,21 @@ export function createBrainAgentFactory(
           tools: toolsWithContext,
           activeTools: allowedToolNames,
           // Provider options
-          ...(temperature !== undefined && supportsTemp && { temperature }),
+          ...(temperature !== undefined &&
+            capabilities.supportsTemperature && { temperature }),
           ...(maxTokens !== undefined && { maxTokens }),
-          ...(webSearch && {
+          ...((capabilities.provider === "openai" &&
+          reasoningEffort !== undefined
+            ? true
+            : webSearch) && {
             providerOptions: {
-              anthropic: {
-                webSearch: true,
-              },
+              ...(capabilities.provider === "openai" &&
+                reasoningEffort && {
+                  openai: { reasoningEffort },
+                }),
+              ...(webSearch && {
+                anthropic: { webSearch: true },
+              }),
             },
           }),
         };

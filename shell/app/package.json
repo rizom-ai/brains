@@ -1,6 +1,6 @@
 {
   "name": "@brains/app",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "High-level factory for creating Brain applications",
   "keywords": [
     "brain",
@@ -30,7 +30,7 @@
     "@types/bun": "^1.3.14",
     "@types/node": "^20.19.43",
     "eslint": "^10.5.0",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "varlock": "^1.7.0"
   },
   "exports": {

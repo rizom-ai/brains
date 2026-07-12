@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types -- JavaScript Rollup config uses JSDoc types; TypeScript return annotations are not valid in .mjs. */
+/* eslint-disable @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types -- JavaScript Rolldown config uses JSDoc types; TypeScript return annotations are not valid in .mjs. */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
-import dts from "rollup-plugin-dts";
+import { dts } from "rolldown-plugin-dts";
 
 const root = resolve(import.meta.dirname, "../../..");
+const packageDir = resolve(import.meta.dirname, "..");
 
 // Internal workspace packages whose declarations are intentionally inlined into
 // @rizom/brain's public .d.ts files. Subpath aliases come from each package's
@@ -72,8 +73,12 @@ function buildAliases() {
 const aliases = buildAliases();
 
 export default {
+  cwd: packageDir,
   input: process.env.INPUT,
-  output: { file: process.env.OUTPUT, format: "es" },
+  output: { dir: process.env.OUTPUT_DIR, format: "es" },
+  // Rolldown's JS transform should not try to discover tsconfigs for virtual
+  // declaration modules; declaration generation uses the plugin tsconfig below.
+  tsconfig: false,
   plugins: [
     {
       name: "brain-dts-alias",
@@ -98,6 +103,12 @@ export default {
         return null;
       },
     },
-    dts({ respectExternal: false, compilerOptions: { stripInternal: true } }),
+    ...dts({
+      cwd: packageDir,
+      emitDtsOnly: true,
+      generator: "oxc",
+      tsconfig: "tsconfig.json",
+      compilerOptions: { stripInternal: true },
+    }),
   ],
 };

@@ -1,5 +1,103 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/atproto-contracts@0.2.0-alpha.155
+  - @brains/dashboard@0.2.0-alpha.155
+  - @brains/auth-service@0.2.0-alpha.155
+  - @brains/content-formatters@0.2.0-alpha.155
+  - @brains/contracts@0.2.0-alpha.155
+  - @brains/http-signatures@0.2.0-alpha.155
+  - @brains/ui-library@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/templates@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.154
+  - @brains/atproto-contracts@0.2.0-alpha.154
+  - @brains/content-formatters@0.2.0-alpha.154
+  - @brains/contracts@0.2.0-alpha.154
+  - @brains/http-signatures@0.2.0-alpha.154
+  - @brains/ui-library@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/auth-service@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+  - @brains/templates@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.153
+  - @brains/atproto-contracts@0.2.0-alpha.153
+  - @brains/content-formatters@0.2.0-alpha.153
+  - @brains/contracts@0.2.0-alpha.153
+  - @brains/http-signatures@0.2.0-alpha.153
+  - @brains/ui-library@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/auth-service@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+  - @brains/templates@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.152
+  - @brains/atproto-contracts@0.2.0-alpha.152
+  - @brains/content-formatters@0.2.0-alpha.152
+  - @brains/contracts@0.2.0-alpha.152
+  - @brains/http-signatures@0.2.0-alpha.152
+  - @brains/ui-library@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/auth-service@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+  - @brains/templates@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.151
+  - @brains/atproto-contracts@0.2.0-alpha.151
+  - @brains/content-formatters@0.2.0-alpha.151
+  - @brains/contracts@0.2.0-alpha.151
+  - @brains/http-signatures@0.2.0-alpha.151
+  - @brains/ui-library@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/auth-service@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+  - @brains/templates@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- [`a6c7004`](https://github.com/rizom-ai/brains/commit/a6c70040f23414a301c3f2c2fb3ddef11e7b825f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use GPT-5.6 Luna with low reasoning as the default brain model, add typed reasoning-effort configuration from brain definitions and instance overrides through the AI runtime, and simplify tool-routing prompts for more reliable status, trust, and agent recommendation workflows.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.150
+  - @brains/dashboard@0.2.0-alpha.150
+  - @brains/atproto-contracts@0.2.0-alpha.150
+  - @brains/content-formatters@0.2.0-alpha.150
+  - @brains/contracts@0.2.0-alpha.150
+  - @brains/http-signatures@0.2.0-alpha.150
+  - @brains/ui-library@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/auth-service@0.2.0-alpha.150
+  - @brains/templates@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

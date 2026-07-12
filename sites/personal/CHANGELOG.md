@@ -1,5 +1,89 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/site-info@0.2.0-alpha.155
+  - @brains/site-engine@0.2.0-alpha.155
+  - @brains/blog@0.2.0-alpha.155
+  - @brains/site-composition@0.2.0-alpha.155
+  - @brains/ui-library@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/templates@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.154
+  - @brains/site-info@0.2.0-alpha.154
+  - @brains/site-composition@0.2.0-alpha.154
+  - @brains/site-engine@0.2.0-alpha.154
+  - @brains/ui-library@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+  - @brains/templates@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.153
+  - @brains/site-info@0.2.0-alpha.153
+  - @brains/site-composition@0.2.0-alpha.153
+  - @brains/site-engine@0.2.0-alpha.153
+  - @brains/ui-library@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+  - @brains/templates@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.152
+  - @brains/site-info@0.2.0-alpha.152
+  - @brains/site-composition@0.2.0-alpha.152
+  - @brains/site-engine@0.2.0-alpha.152
+  - @brains/ui-library@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+  - @brains/templates@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.151
+  - @brains/site-info@0.2.0-alpha.151
+  - @brains/site-composition@0.2.0-alpha.151
+  - @brains/site-engine@0.2.0-alpha.151
+  - @brains/ui-library@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+  - @brains/templates@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.150
+  - @brains/blog@0.2.0-alpha.150
+  - @brains/site-info@0.2.0-alpha.150
+  - @brains/site-composition@0.2.0-alpha.150
+  - @brains/site-engine@0.2.0-alpha.150
+  - @brains/ui-library@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/templates@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

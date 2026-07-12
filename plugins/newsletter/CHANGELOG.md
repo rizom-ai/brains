@@ -1,5 +1,67 @@
 # @brains/newsletter
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/contracts@0.2.0-alpha.155
+  - @brains/ui-library@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.154
+  - @brains/ui-library@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- [`c3c816d`](https://github.com/rizom-ai/brains/commit/c3c816d4cfa909aab95e4c520695d3a37fdac563) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use an OpenAI-compatible email regex in Buttondown tool input schemas so configured newsletter tools no longer invalidate every tool-bearing agent request under Zod 4.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.153
+  - @brains/ui-library@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.152
+  - @brains/ui-library@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.151
+  - @brains/ui-library@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.150
+  - @brains/contracts@0.2.0-alpha.150
+  - @brains/ui-library@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

@@ -1,3 +1,4 @@
+import type { ReasoningEffort } from "@brains/ai-service";
 import { dbConfigSchema, type DbConfig } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type {
@@ -53,6 +54,7 @@ export interface ShellConfigSchemaOutput {
     temperature: number;
     maxTokens: number;
     webSearch: boolean;
+    reasoningEffort?: ReasoningEffort | undefined;
   };
   embedding: {
     model: "fast-all-MiniLM-L6-v2";
@@ -100,6 +102,9 @@ const shellConfigSchemaInternal: z.ZodType<ShellConfigSchemaOutput, unknown> =
       temperature: z.number().min(0).max(2).default(0.7),
       maxTokens: z.number().positive().default(1000),
       webSearch: z.boolean().default(true),
+      reasoningEffort: z
+        .enum(["none", "low", "medium", "high", "xhigh", "max"])
+        .optional(),
     }),
 
     embedding: z.object({
@@ -178,6 +183,9 @@ export function createShellConfig(
       temperature: overrides.ai?.temperature ?? 0.7,
       maxTokens: overrides.ai?.maxTokens ?? 1000,
       webSearch: overrides.ai?.webSearch ?? true,
+      ...(overrides.ai?.reasoningEffort && {
+        reasoningEffort: overrides.ai.reasoningEffort,
+      }),
     },
     embedding: overrides.embedding ?? standardConfig.embedding,
     logging: {

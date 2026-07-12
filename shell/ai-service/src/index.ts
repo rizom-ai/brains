@@ -25,6 +25,7 @@ export type { OnlineEmbeddingConfig } from "./online-embedding-provider";
 export type {
   AIModelConfig,
   AIModelConfigUpdate,
+  ReasoningEffort,
   AIGenerationSchema,
   IAIService,
   JudgeInput,

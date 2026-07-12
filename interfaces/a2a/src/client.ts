@@ -556,10 +556,20 @@ export interface A2AClientDeps extends A2ANetworkOptions {
   };
 }
 
+export interface ExecuteAgentCallOptions {
+  /** Refuse unknown domains instead of allowing the tool's one-shot mode. */
+  requireSaved?: boolean;
+}
+
 /**
- * Create the agent_call tool for calling remote A2A agents.
+ * Execute the validated outbound path shared by the agent_call tool and
+ * trusted in-process consumers such as the CMS selection ask flow.
  */
-export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
+export async function executeAgentCall(
+  input: { agent: string; message: string },
+  deps: A2AClientDeps = {},
+  options: ExecuteAgentCallOptions = {},
+): Promise<ToolResponse> {
   const fetchFn = deps.fetch ?? globalThis.fetch;
   const networkOptions: Required<A2ANetworkOptions> = {
     requestTimeoutMs: deps.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
@@ -567,7 +577,126 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
       deps.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS,
     maxNetworkAttempts: deps.maxNetworkAttempts ?? DEFAULT_MAX_NETWORK_ATTEMPTS,
   };
+  const normalized = normalizeAgentTarget(input.agent);
 
+  if (!normalized.ok) {
+    return { success: false, error: normalized.error };
+  }
+  const { agentId } = normalized;
+
+  if (!deps.entityService) {
+    return {
+      success: false,
+      error:
+        "Agent directory is unavailable. Add the agent first, then try again.",
+    };
+  }
+
+  const entity = await deps.entityService.getEntity({
+    entityType: "agent",
+    id: agentId,
+    visibilityScope: internalFullScope(
+      "agent_call is anchor-only and resolves saved remote agents at any visibility",
+    ),
+  });
+  if (!entity) {
+    if (options.requireSaved) {
+      return {
+        success: false,
+        error: `Agent ${agentId} is not saved or approved.`,
+        code: "agent_not_saved",
+      };
+    }
+    if (!isExactDomainLikeAgentId(agentId)) {
+      return {
+        success: false,
+        error: `Agent ${input.agent} is not an exact domain-like id and is not saved. Connect or clarify the agent first.`,
+        code: "agent_not_saved",
+      };
+    }
+
+    const cardBaseUrl = `https://${agentId}`;
+    const card = await fetchAgentCard(cardBaseUrl, fetchFn);
+    if (!card) {
+      return {
+        success: false,
+        error: `Could not verify an A2A Agent Card for ${agentId}. Connect/save it first if you want to add it to the directory.`,
+        code: "agent_card_unavailable",
+      };
+    }
+
+    const oneShotEndpoint = validateCardEndpoint(card.url, agentId);
+    if (!oneShotEndpoint.ok) {
+      return { success: false, error: oneShotEndpoint.error };
+    }
+
+    const oneShotResult = await sendMessage(
+      card.url,
+      input.message,
+      fetchFn,
+      deps.requestSigner,
+      networkOptions,
+    );
+    if ("success" in oneShotResult && oneShotResult.success === true) {
+      const baseData =
+        typeof oneShotResult.data === "object" && oneShotResult.data !== null
+          ? oneShotResult.data
+          : {};
+      return {
+        ...oneShotResult,
+        data: {
+          ...baseData,
+          agentCall: { mode: "one-shot", agent: agentId },
+          agentContactCandidate: {
+            source: { kind: "url", url: normalized.sourceUrl ?? agentId },
+          },
+        },
+      };
+    }
+    return oneShotResult;
+  }
+
+  if (entity.metadata["status"] === "archived") {
+    return {
+      success: false,
+      error: `Agent ${agentId} is archived and cannot be contacted until it is restored and approved.`,
+      code: "agent_archived",
+    };
+  }
+
+  if (entity.metadata["status"] !== "approved") {
+    return {
+      success: false,
+      error: `Agent ${agentId} is discovered but not approved yet. Approve it first.`,
+      code: "agent_not_approved",
+    };
+  }
+
+  const cardBaseUrl = `https://${agentId}`;
+  const card = await fetchAgentCard(cardBaseUrl, fetchFn);
+  if (!card) {
+    return {
+      success: false,
+      error: `Could not fetch Agent Card from ${cardBaseUrl}`,
+    };
+  }
+
+  const approvedEndpoint = validateCardEndpoint(card.url, agentId);
+  if (!approvedEndpoint.ok) {
+    return { success: false, error: approvedEndpoint.error };
+  }
+
+  return sendMessage(
+    card.url,
+    input.message,
+    fetchFn,
+    deps.requestSigner,
+    networkOptions,
+  );
+}
+
+/** Create the agent_call tool for calling remote A2A agents. */
+export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
   return {
     name: "agent_call",
     description:
@@ -583,123 +712,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
           error: `Invalid input: ${parsed.error.message}`,
         };
       }
-
-      const { agent, message } = parsed.data;
-      const normalized = normalizeAgentTarget(agent);
-
-      if (!normalized.ok) {
-        return {
-          success: false,
-          error: normalized.error,
-        };
-      }
-      const { agentId } = normalized;
-
-      if (!deps.entityService) {
-        return {
-          success: false,
-          error:
-            "Agent directory is unavailable. Add the agent first, then try again.",
-        };
-      }
-
-      const entity = await deps.entityService.getEntity({
-        entityType: "agent",
-        id: agentId,
-        visibilityScope: internalFullScope(
-          "agent_call tool is anchor-only and resolves saved remote agents at any visibility",
-        ),
-      });
-      if (!entity) {
-        if (!isExactDomainLikeAgentId(agentId)) {
-          return {
-            success: false,
-            error: `Agent ${agent} is not an exact domain-like id and is not saved. Connect or clarify the agent first.`,
-            code: "agent_not_saved",
-          };
-        }
-
-        const cardBaseUrl = `https://${agentId}`;
-        const card = await fetchAgentCard(cardBaseUrl, fetchFn);
-        if (!card) {
-          return {
-            success: false,
-            error: `Could not verify an A2A Agent Card for ${agentId}. Connect/save it first if you want to add it to the directory.`,
-            code: "agent_card_unavailable",
-          };
-        }
-
-        const oneShotEndpoint = validateCardEndpoint(card.url, agentId);
-        if (!oneShotEndpoint.ok) {
-          return { success: false, error: oneShotEndpoint.error };
-        }
-
-        const oneShotResult = await sendMessage(
-          card.url,
-          message,
-          fetchFn,
-          deps.requestSigner,
-          networkOptions,
-        );
-        if ("success" in oneShotResult && oneShotResult.success === true) {
-          const baseData =
-            typeof oneShotResult.data === "object" &&
-            oneShotResult.data !== null
-              ? oneShotResult.data
-              : {};
-          return {
-            ...oneShotResult,
-            data: {
-              ...baseData,
-              agentCall: { mode: "one-shot", agent: agentId },
-              agentContactCandidate: {
-                source: { kind: "url", url: normalized.sourceUrl ?? agentId },
-              },
-            },
-          };
-        }
-        return oneShotResult;
-      }
-
-      if (entity.metadata["status"] === "archived") {
-        return {
-          success: false,
-          error: `Agent ${agentId} is archived and cannot be contacted until it is restored and approved.`,
-          code: "agent_archived",
-        };
-      }
-
-      if (entity.metadata["status"] !== "approved") {
-        return {
-          success: false,
-          error: `Agent ${agentId} is discovered but not approved yet. Approve it first.`,
-          code: "agent_not_approved",
-        };
-      }
-
-      const cardBaseUrl = `https://${agentId}`;
-      const card = await fetchAgentCard(cardBaseUrl, fetchFn);
-      if (!card) {
-        return {
-          success: false,
-          error: `Could not fetch Agent Card from ${cardBaseUrl}`,
-        };
-      }
-
-      const approvedEndpoint = validateCardEndpoint(card.url, agentId);
-      if (!approvedEndpoint.ok) {
-        return { success: false, error: approvedEndpoint.error };
-      }
-
-      const endpointUrl = card.url;
-
-      return sendMessage(
-        endpointUrl,
-        message,
-        fetchFn,
-        deps.requestSigner,
-        networkOptions,
-      );
+      return executeAgentCall(parsed.data, deps);
     },
   };
 }

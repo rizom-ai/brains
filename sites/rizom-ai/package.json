@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-ai",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "Rizom AI site package for hosted Rover deployments",
   "type": "module",
   "exports": {
@@ -18,8 +18,8 @@
     "prepack": "publish-manifest prepare"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.149",
-    "@rizom/site-rizom": "0.2.0-alpha.149",
+    "@rizom/site": "0.2.0-alpha.155",
+    "@rizom/site-rizom": "0.2.0-alpha.155",
     "preact": "^10.27.2"
   },
   "devDependencies": {
@@ -28,7 +28,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
     "eslint": "^10.5.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "publishConfig": {
     "access": "public"

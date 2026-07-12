@@ -1,6 +1,6 @@
 {
   "name": "@brains/ranger",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "dependencies": {
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "files": [
     "src",

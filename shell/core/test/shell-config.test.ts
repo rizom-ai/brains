@@ -10,6 +10,18 @@ describe("shell config", () => {
 
     expect(config.spaces).toEqual(["discord:project-*"]);
   });
+
+  it("preserves configured reasoning effort", () => {
+    const config = createShellConfig({
+      ai: {
+        apiKey: "test-key",
+        model: "gpt-5.6-luna",
+        reasoningEffort: "low",
+      },
+    });
+
+    expect(config.ai.reasoningEffort).toBe("low");
+  });
 });
 
 describe("standard shell paths", () => {

@@ -1,5 +1,59 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/messaging-service@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/messaging-service@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/messaging-service@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/messaging-service@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/messaging-service@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/messaging-service@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

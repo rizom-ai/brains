@@ -1,6 +1,6 @@
 {
   "name": "@brains/relay",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "Relay brain model — collaborative knowledge management",
   "dependencies": {
     "@brains/a2a": "workspace:*",
@@ -41,7 +41,7 @@
     "@brains/ai-evaluation": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts",

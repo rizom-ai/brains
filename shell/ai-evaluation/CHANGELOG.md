@@ -1,5 +1,77 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ai-service@0.2.0-alpha.155
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/app@0.2.0-alpha.155
+  - @brains/content-formatters@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/templates@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/ai-service@0.2.0-alpha.154
+  - @brains/app@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+  - @brains/templates@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/ai-service@0.2.0-alpha.153
+  - @brains/app@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+  - @brains/templates@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/ai-service@0.2.0-alpha.152
+  - @brains/app@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+  - @brains/templates@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/ai-service@0.2.0-alpha.151
+  - @brains/app@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+  - @brains/templates@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- Updated dependencies [[`a6c7004`](https://github.com/rizom-ai/brains/commit/a6c70040f23414a301c3f2c2fb3ddef11e7b825f)]:
+  - @brains/ai-service@0.2.0-alpha.150
+  - @brains/app@0.2.0-alpha.150
+  - @brains/plugins@0.2.0-alpha.150
+  - @brains/content-formatters@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/templates@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

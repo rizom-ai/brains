@@ -4,6 +4,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
+  AgentAnswerPanel,
+  AGENT_INSTRUCTION_PRESETS,
+  applyFieldAssistSuggestion,
   applyFieldChange,
   applySuggestionToSelection,
   BodyEditor,
@@ -14,13 +17,21 @@ import {
   entityPublicationState,
   entityTitle,
   Field,
+  FieldAssistControls,
+  fieldAssistVariant,
   parseCmsHash,
+  MODEL_ASSIST_TARGET,
   PipelineStations,
   SaveStateNotice,
   typeHasPublicationField,
   TypeSwitcher,
 } from "./App";
-import type { EntityTypeInfo, FieldDescriptor, GitSyncState } from "./api";
+import type {
+  AgentTarget,
+  EntityTypeInfo,
+  FieldDescriptor,
+  GitSyncState,
+} from "./api";
 
 const stringField: FieldDescriptor = {
   name: "title",
@@ -201,6 +212,79 @@ describe("Field", () => {
     const empty = renderField(imageField, undefined);
     expect(empty).toContain('type="file"');
     expect(empty).not.toContain(">Clear<");
+  });
+});
+
+describe("field assists", () => {
+  const tagsField: FieldDescriptor = {
+    name: "tags",
+    label: "Tags",
+    widget: "list",
+    required: false,
+    field: { name: "tags", label: "Tags", widget: "string" },
+  };
+
+  it("maps long text and string-list fields to prompt variants", () => {
+    expect(fieldAssistVariant(textField)).toBe("summarise");
+    expect(fieldAssistVariant(tagsField)).toBe("tag-suggest");
+    expect(fieldAssistVariant(stringField)).toBeNull();
+    expect(fieldAssistVariant(booleanField)).toBeNull();
+  });
+
+  it("patches only the targeted frontmatter draft field", () => {
+    const draft = { title: "Keep", summary: "Old" };
+    expect(
+      applyFieldAssistSuggestion(draft, "summary", "Concise summary"),
+    ).toEqual({ title: "Keep", summary: "Concise summary" });
+    expect(draft).toEqual({ title: "Keep", summary: "Old" });
+    expect(applyFieldAssistSuggestion(draft, "tags", ["cms", "ai"])).toEqual({
+      title: "Keep",
+      summary: "Old",
+      tags: ["cms", "ai"],
+    });
+  });
+
+  it("renders run controls and reviewable suggestions", () => {
+    const summaryIdle = renderToStaticMarkup(
+      createElement(FieldAssistControls, {
+        descriptor: textField,
+        state: { kind: "idle" },
+        onRun: () => {},
+        onApply: () => {},
+        onDiscard: () => {},
+      }),
+    );
+    expect(summaryIdle).toContain("Summarise body");
+
+    const tagsIdle = renderToStaticMarkup(
+      createElement(FieldAssistControls, {
+        descriptor: tagsField,
+        state: { kind: "idle" },
+        onRun: () => {},
+        onApply: () => {},
+        onDiscard: () => {},
+      }),
+    );
+    expect(tagsIdle).toContain("Suggest tags");
+
+    const suggested = renderToStaticMarkup(
+      createElement(FieldAssistControls, {
+        descriptor: tagsField,
+        state: {
+          kind: "suggested",
+          field: "tags",
+          variant: "tag-suggest",
+          suggestion: ["cms", "authoring"],
+        },
+        onRun: () => {},
+        onApply: () => {},
+        onDiscard: () => {},
+      }),
+    );
+    expect(suggested).toContain("cms");
+    expect(suggested).toContain("authoring");
+    expect(suggested).toContain("Apply");
+    expect(suggested).toContain("Discard");
   });
 });
 
@@ -423,6 +507,70 @@ describe("BodyEditor", () => {
     );
     expect(html).toContain("Rewrite selection");
     expect(html).toContain("AI selection rewrite");
+    expect(html).not.toContain('aria-label="Assist target"');
+  });
+
+  it("defaults the target dropdown to model and lists approved agents", () => {
+    const agents: AgentTarget[] = [
+      { id: "docs.example", label: "Docs" },
+      { id: "review.example", label: "Reviewer" },
+    ];
+    const html = renderToStaticMarkup(
+      createElement(BodyEditor, {
+        value: "Original body",
+        mode: "source",
+        onChange: () => {},
+        onModeChange: () => {},
+        assist: {
+          entityType: "post",
+          frontmatter: { title: "Hello" },
+          agents,
+        },
+      }),
+    );
+
+    expect(MODEL_ASSIST_TARGET).toBe("model");
+    expect(html).toContain('aria-label="Assist target"');
+    expect(html).toContain('<option value="model" selected="">Model</option>');
+    expect(html).toContain('value="docs.example"');
+    expect(html).toContain("Docs — docs.example");
+    expect(AGENT_INSTRUCTION_PRESETS.map((preset) => preset.label)).toEqual([
+      "Review",
+      "Fact-check",
+      "Related",
+      "Rewrite",
+    ]);
+  });
+});
+
+describe("AgentAnswerPanel", () => {
+  const renderAnswer = (onReplace?: () => void): string =>
+    renderToStaticMarkup(
+      createElement(AgentAnswerPanel, {
+        agentId: "docs.example",
+        response: "**Accurate**, with one caveat.",
+        onReplace,
+        onDismiss: () => {},
+      }),
+    );
+
+  it("keeps ordinary answers dismiss-only", () => {
+    const html = renderAnswer();
+
+    expect(html).toContain("Answer from");
+    expect(html).toContain("docs.example");
+    expect(html).toContain('data-streamdown="strong"');
+    expect(html).toContain("Accurate");
+    expect(html).toContain("Dismiss");
+    expect(html).not.toContain("Replace selection");
+    expect(html).not.toContain(">Accept<");
+  });
+
+  it("offers replacement when the ask used rewrite mode", () => {
+    const html = renderAnswer(() => {});
+
+    expect(html).toContain("Replace selection");
+    expect(html).toContain("Dismiss");
   });
 });
 

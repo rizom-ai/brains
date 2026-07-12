@@ -263,6 +263,22 @@ describe("resolve", () => {
     expect(config.aiModel).toBe("gpt-4o-mini");
   });
 
+  test("should resolve and override reasoning effort", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      model: "gpt-5.6-luna",
+      reasoningEffort: "low",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(resolve(def, {}).aiReasoningEffort).toBe("low");
+    expect(
+      resolve(def, {}, { reasoningEffort: "medium" }).aiReasoningEffort,
+    ).toBe("medium");
+  });
+
   test("should apply targeted override to interface after construction", () => {
     let capturedConfig: PluginConfig | undefined;
 

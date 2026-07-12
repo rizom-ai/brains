@@ -9,12 +9,15 @@ import { createMCPTools } from "../src/tools";
 
 type AgentService = NonNullable<MockShellOptions["agentService"]>;
 
-function createAgentService(): AgentService {
+function createAgentService(conversationIds?: string[]): AgentService {
   return {
-    chat: mock(async () => ({
-      text: "Agent response",
-      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-    })),
+    chat: mock(async (_message, conversationId) => {
+      conversationIds?.push(conversationId);
+      return {
+        text: "Agent response",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      };
+    }),
     confirmPendingAction: mock(async () => ({
       text: "Confirmed",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
@@ -61,11 +64,14 @@ describe("MCP tools", () => {
 
     expect(response).toEqual({
       success: true,
-      data: { text: "Agent response" },
+      data: {
+        text: "Agent response",
+        conversationId: "client-conversation",
+      },
     });
     expect(agentService.chat).toHaveBeenCalledWith(
       "Save this note",
-      "client-conversation",
+      expect.stringMatching(/^mcp:[a-f0-9]{16}:client-conversation$/),
       {
         userPermissionLevel: "anchor",
         interfaceType: "mcp",
@@ -80,7 +86,7 @@ describe("MCP tools", () => {
     );
   });
 
-  it("defaults chat conversation id to MCP session context", async () => {
+  it("scopes MCP session conversation ids to the verified caller", async () => {
     const agentService = createAgentService();
     const shell = createMockShell({
       logger: createSilentLogger("mcp-tools-test"),
@@ -105,9 +111,60 @@ describe("MCP tools", () => {
 
     expect(agentService.chat).toHaveBeenCalledWith(
       "Continue",
-      "session-conversation",
+      expect.stringMatching(/^mcp:[a-f0-9]{16}:session-conversation$/),
       expect.objectContaining({ userPermissionLevel: "trusted" }),
     );
+  });
+
+  it("creates an isolated conversation when the caller omits one", async () => {
+    const conversationIds: string[] = [];
+    const agentService = createAgentService(conversationIds);
+    const shell = createMockShell({
+      logger: createSilentLogger("mcp-tools-test"),
+      agentService,
+    });
+    const context = createInterfacePluginContext(shell, "mcp");
+    const [chatTool] = createMCPTools("mcp", () => context);
+    if (!chatTool) throw new Error("Expected chat tool");
+
+    const first = await chatTool.handler(
+      { message: "First" },
+      { interfaceType: "mcp", userId: "operator-1" },
+    );
+    const second = await chatTool.handler(
+      { message: "Second" },
+      { interfaceType: "mcp", userId: "operator-1" },
+    );
+
+    const firstConversation = (first as { data: { conversationId: string } })
+      .data.conversationId;
+    const secondConversation = (second as { data: { conversationId: string } })
+      .data.conversationId;
+    expect(firstConversation).toStartWith("conversation-");
+    expect(secondConversation).toStartWith("conversation-");
+    expect(secondConversation).not.toBe(firstConversation);
+    expect(conversationIds[0]).not.toBe(conversationIds[1]);
+  });
+
+  it("partitions the same conversation handle by caller", async () => {
+    const conversationIds: string[] = [];
+    const agentService = createAgentService(conversationIds);
+    const shell = createMockShell({
+      logger: createSilentLogger("mcp-tools-test"),
+      agentService,
+    });
+    const context = createInterfacePluginContext(shell, "mcp");
+    const [chatTool] = createMCPTools("mcp", () => context);
+    if (!chatTool) throw new Error("Expected chat tool");
+
+    for (const userId of ["operator-1", "operator-2"]) {
+      await chatTool.handler(
+        { message: "Continue", conversationId: "shared-handle" },
+        { interfaceType: "mcp", userId },
+      );
+    }
+
+    expect(conversationIds[0]).not.toBe(conversationIds[1]);
   });
 
   it("surfaces tool results and read-your-writes handles", async () => {
@@ -152,6 +209,7 @@ describe("MCP tools", () => {
       success: true,
       data: {
         text: "Created note.",
+        conversationId: expect.stringMatching(/^conversation-/),
         toolResults,
         readYourWrites: [
           {
@@ -210,7 +268,7 @@ describe("MCP tools", () => {
       summary: "Create note?",
       args: {
         approvalId: "approval-1",
-        conversationId: "mcp:operator-1",
+        conversationId: expect.stringMatching(/^conversation-/),
         toolCallId: "call-1",
         originalArgs: { entityType: "base", title: "Note" },
       },
@@ -248,10 +306,13 @@ describe("MCP tools", () => {
 
     expect(response).toEqual({
       success: true,
-      data: { text: "Confirmed" },
+      data: {
+        text: "Confirmed",
+        conversationId: "client-conversation",
+      },
     });
     expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
-      "client-conversation",
+      expect.stringMatching(/^mcp:[a-f0-9]{16}:client-conversation$/),
       true,
       "approval-1",
       {

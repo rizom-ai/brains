@@ -1,7 +1,7 @@
 {
   "name": "@brains/sveltia-cms",
   "private": true,
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "Archived Sveltia-based CMS plugin (original browser CMS, superseded by the first-party editor in @brains/cms)",
   "type": "module",
   "exports": {
@@ -26,6 +26,6 @@
     "@types/bun": "^1.3.14",
     "bun-types": "^1.3.14",
     "eslint": "^10.5.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }

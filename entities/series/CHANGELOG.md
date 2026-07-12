@@ -1,5 +1,83 @@
 # @brains/series
 
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.155
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/entity-service@0.2.0-alpha.155
+  - @brains/atproto-contracts@0.2.0-alpha.155
+  - @brains/content-formatters@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/templates@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.154
+  - @brains/content-formatters@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/entity-service@0.2.0-alpha.154
+  - @brains/job-queue@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+  - @brains/templates@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.153
+  - @brains/content-formatters@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/entity-service@0.2.0-alpha.153
+  - @brains/job-queue@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+  - @brains/templates@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.152
+  - @brains/content-formatters@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/entity-service@0.2.0-alpha.152
+  - @brains/job-queue@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+  - @brains/templates@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.151
+  - @brains/content-formatters@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/entity-service@0.2.0-alpha.151
+  - @brains/job-queue@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+  - @brains/templates@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.150
+  - @brains/atproto-contracts@0.2.0-alpha.150
+  - @brains/content-formatters@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/entity-service@0.2.0-alpha.150
+  - @brains/job-queue@0.2.0-alpha.150
+  - @brains/templates@0.2.0-alpha.150
+
 ## 0.2.0-alpha.149
 
 ### Patch Changes

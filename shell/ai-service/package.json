@@ -1,6 +1,6 @@
 {
   "name": "@brains/ai-service",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "AI service for text/object generation and agent conversation orchestration",
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.84",
@@ -21,7 +21,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": {

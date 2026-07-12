@@ -533,6 +533,8 @@ export function resolve(
     overrides?.plugins,
   );
   const effectiveModel = overrides?.model ?? definition.model;
+  const effectiveReasoningEffort =
+    overrides?.reasoningEffort ?? definition.reasoningEffort;
   const webserverEnabled = hasActiveInterface(
     definition,
     activeIds,
@@ -590,10 +592,12 @@ export function resolve(
     plugins: [...capabilities, ...interfaces],
 
     // AI config from environment + brain/instance model
-    ...resolveAIConfig(
-      env,
-      effectiveModel ? { model: effectiveModel } : undefined,
-    ),
+    ...resolveAIConfig(env, {
+      ...(effectiveModel && { model: effectiveModel }),
+      ...(effectiveReasoningEffort && {
+        reasoningEffort: effectiveReasoningEffort,
+      }),
+    }),
 
     // Optional fields
     ...(identity && { identity }),
@@ -884,16 +888,13 @@ function resolveRegisteredSitePackage(
   pkg: unknown,
   definition: BrainDefinition,
 ): SitePackage | undefined {
-  const parsedSitePackage = sitePackageSchema.safeParse(pkg);
-  if (parsedSitePackage.success) {
-    return parsedSitePackage.data;
-  }
-
   if (pkgRef === CONVENTIONAL_SITE_PACKAGE_REF) {
-    return resolveConventionalSitePackage(pkg, definition);
+    const conventionalSite = resolveConventionalSitePackage(pkg, definition);
+    if (conventionalSite) return conventionalSite;
   }
 
-  return undefined;
+  const parsedSitePackage = sitePackageSchema.safeParse(pkg);
+  return parsedSitePackage.success ? parsedSitePackage.data : undefined;
 }
 
 function resolveSitePackage(

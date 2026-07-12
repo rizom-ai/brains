@@ -1,4 +1,4 @@
-import type { AIModelConfig } from "./types";
+import type { AIModelConfig, ReasoningEffort } from "./types";
 
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 1000;
@@ -19,6 +19,9 @@ interface TextGenerationOptions {
   temperature?: number;
   maxTokens?: number;
   webSearch?: true;
+  providerOptions?: {
+    openai: { reasoningEffort: ReasoningEffort };
+  };
 }
 
 export function withAIModelDefaults(config: AIModelConfig): AIModelConfig {
@@ -32,6 +35,7 @@ export function withAIModelDefaults(config: AIModelConfig): AIModelConfig {
 
 export function getTextGenerationOptions(
   config: AIModelConfig,
+  provider: string,
   supportsTemp: boolean,
 ): TextGenerationOptions {
   const options: TextGenerationOptions = {};
@@ -46,6 +50,12 @@ export function getTextGenerationOptions(
 
   if (config.webSearch) {
     options.webSearch = true;
+  }
+
+  if (provider === "openai" && config.reasoningEffort) {
+    options.providerOptions = {
+      openai: { reasoningEffort: config.reasoningEffort },
+    };
   }
 
   return options;

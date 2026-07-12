@@ -40,7 +40,8 @@ logFile: ./brain.log
 port: 4321
 domain: mybrain.example.com
 database: file:./data/brain.db
-model: gpt-5.4-mini
+model: gpt-5.6-luna
+reasoningEffort: low
 preset: core
 mode: eval
 add:
@@ -160,12 +161,21 @@ Override the default AI model.
 Examples:
 
 ```yaml
-model: gpt-5.4-mini
+model: gpt-5.6-luna
 model: claude-haiku-4-5
 model: openai:gpt-4o-mini
 ```
 
 The provider is inferred from the model name unless you prefix it explicitly.
+
+### `reasoningEffort`
+
+Set OpenAI reasoning effort. Supported values are `none`, `low`, `medium`,
+`high`, `xhigh`, and `max`. Other providers ignore this setting.
+
+```yaml
+reasoningEffort: low
+```
 
 ### `preset`
 

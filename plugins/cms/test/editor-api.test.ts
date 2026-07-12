@@ -12,6 +12,7 @@ import { cmsPlugin, type CmsPlugin } from "../src";
 const postFrontmatterSchema = z.object({
   title: z.string(),
   summary: z.string().optional(),
+  tags: z.array(z.string()).optional(),
   published: z.boolean().optional(),
 });
 
@@ -360,6 +361,18 @@ describe("cms editor api", () => {
           },
         }),
       ],
+      [findRoute(plugin, "/cms/api/agents"), apiRequest("/cms/api/agents")],
+      [
+        findRoute(plugin, "/cms/api/ask-agent", "POST"),
+        apiRequest("/cms/api/ask-agent", {
+          method: "POST",
+          body: {
+            agent: "docs.example",
+            instruction: "fact-check",
+            selection: "The original body.",
+          },
+        }),
+      ],
     ];
 
     for (const [route, request] of attempts) {
@@ -411,6 +424,243 @@ describe("cms editor api", () => {
     });
     expect(stored?.content).toContain("The original body.");
     expect(stored?.content).not.toContain("A tighter body.");
+  });
+
+  it("suggests a body summary and tags without writing entities", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    await seedPost(shell, {
+      id: "hello-world",
+      body: "A detailed original body.",
+    });
+    const prompts: string[] = [];
+    shell.generateObject = async <T>(
+      prompt: string,
+    ): Promise<{ object: T }> => {
+      prompts.push(prompt);
+      return {
+        object: (prompt.includes("Suggest tags")
+          ? { suggestions: ["cms", "authoring"] }
+          : { suggestion: "A concise summary." }) as T,
+      };
+    };
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/cms/api/assist", "POST");
+
+    const summary = await route.handler(
+      apiRequest("/cms/api/assist", {
+        cookie,
+        method: "POST",
+        body: {
+          variant: "summarise",
+          entityType: "post",
+          targetField: "summary",
+          body: "A detailed original body.",
+          frontmatter: { title: "Hello World" },
+        },
+      }),
+    );
+    expect(summary.status).toBe(200);
+    expect(await summary.json()).toEqual({
+      variant: "summarise",
+      targetField: "summary",
+      suggestion: "A concise summary.",
+    });
+
+    const tags = await route.handler(
+      apiRequest("/cms/api/assist", {
+        cookie,
+        method: "POST",
+        body: {
+          variant: "tag-suggest",
+          entityType: "post",
+          targetField: "tags",
+          body: "A detailed original body.",
+          frontmatter: { title: "Hello World" },
+        },
+      }),
+    );
+    expect(tags.status).toBe(200);
+    expect(await tags.json()).toEqual({
+      variant: "tag-suggest",
+      targetField: "tags",
+      suggestions: ["cms", "authoring"],
+    });
+    expect(prompts).toHaveLength(2);
+
+    const stored = await shell.getEntityService().getEntity({
+      entityType: "post",
+      id: "hello-world",
+    });
+    expect(stored?.content).toContain("A detailed original body.");
+    expect(stored?.content).not.toContain("A concise summary.");
+    expect(stored?.content).not.toContain("authoring");
+  });
+
+  it("rejects prompt variants targeting incompatible fields", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/cms/api/assist", "POST");
+
+    for (const body of [
+      {
+        variant: "summarise",
+        entityType: "post",
+        targetField: "tags",
+        body: "Body",
+        frontmatter: { title: "Hello" },
+      },
+      {
+        variant: "tag-suggest",
+        entityType: "post",
+        targetField: "title",
+        body: "Body",
+        frontmatter: { title: "Hello" },
+      },
+    ]) {
+      const response = await route.handler(
+        apiRequest("/cms/api/assist", {
+          cookie,
+          method: "POST",
+          body,
+        }),
+      );
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it("lists approved agents only when the a2a interface answers", async () => {
+    const shell = createEditorTestShell();
+    shell.getMessageBus().subscribe("a2a:call:agents", async () => ({
+      success: true,
+      data: {
+        agents: [
+          { id: "docs.example", label: "Docs" },
+          { id: "review.example", label: "Reviewer" },
+        ],
+      },
+    }));
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/cms/api/agents").handler(
+      apiRequest("/cms/api/agents", { cookie }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      agents: [
+        { id: "docs.example", label: "Docs" },
+        { id: "review.example", label: "Reviewer" },
+      ],
+    });
+  });
+
+  it("asks one agent about a selection without writing entities", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    await seedPost(shell, { id: "hello-world", body: "The original body." });
+    const calls: unknown[] = [];
+    shell.getMessageBus().subscribe("a2a:call:request", async (message) => {
+      calls.push(message.payload);
+      return {
+        success: true,
+        data: { state: "completed", response: "The claim is accurate." },
+      };
+    });
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(
+      plugin,
+      "/cms/api/ask-agent",
+      "POST",
+    ).handler(
+      apiRequest("/cms/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          agent: "docs.example",
+          instruction: "Is this accurate?",
+          selection: "The original body.",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      agentId: "docs.example",
+      response: "The claim is accurate.",
+    });
+    expect(calls).toEqual([
+      {
+        agent: "docs.example",
+        instruction: "Is this accurate?",
+        selection: "The original body.",
+      },
+    ]);
+    const stored = await shell.getEntityService().getEntity({
+      entityType: "post",
+      id: "hello-world",
+    });
+    expect(stored?.content).toContain("The original body.");
+    expect(stored?.content).not.toContain("The claim is accurate.");
+  });
+
+  it("returns a clear 4xx when the a2a handler refuses an agent", async () => {
+    const shell = createEditorTestShell();
+    shell.getMessageBus().subscribe("a2a:call:request", async () => ({
+      success: false,
+      error: "Agent unknown.example is not saved or approved.",
+    }));
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(
+      plugin,
+      "/cms/api/ask-agent",
+      "POST",
+    ).handler(
+      apiRequest("/cms/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          agent: "unknown.example",
+          instruction: "Review",
+          selection: "Text",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Agent unknown.example is not saved or approved.",
+    });
+  });
+
+  it("degrades to model-only discovery when a2a is not installed", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const agents = await findRoute(plugin, "/cms/api/agents").handler(
+      apiRequest("/cms/api/agents", { cookie }),
+    );
+    expect(await agents.json()).toEqual({ agents: [] });
+
+    const ask = await findRoute(plugin, "/cms/api/ask-agent", "POST").handler(
+      apiRequest("/cms/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          agent: "docs.example",
+          instruction: "Review",
+          selection: "Text",
+        },
+      }),
+    );
+    expect(ask.status).toBe(503);
+    expect(await ask.json()).toEqual({ error: "Agent asking is unavailable" });
   });
 
   it("rejects empty and oversized assist selections", async () => {
@@ -502,6 +752,7 @@ describe("cms editor api", () => {
         label: string;
         widget: string;
         required?: boolean;
+        field?: { name: string; label: string; widget: string };
       }>;
     };
 
@@ -512,6 +763,13 @@ describe("cms editor api", () => {
     expect(payload.fields).toEqual([
       { name: "title", label: "Title", widget: "string" },
       { name: "summary", label: "Summary", widget: "text", required: false },
+      {
+        name: "tags",
+        label: "Tags",
+        widget: "list",
+        required: false,
+        field: { name: "tags", label: "Tags", widget: "string" },
+      },
       {
         name: "published",
         label: "Published",

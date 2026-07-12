@@ -1,6 +1,6 @@
 {
   "name": "@brains/chat-repl",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "dependencies": {
     "@brains/plugins": "workspace:*",
     "chalk": "^5.4.1",
@@ -15,7 +15,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
     "@types/react": "^19.2.17",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "files": [
     "src"

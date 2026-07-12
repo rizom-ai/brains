@@ -1,6 +1,6 @@
 {
   "name": "@brains/entity-service",
-  "version": "0.2.0-alpha.149",
+  "version": "0.2.0-alpha.155",
   "description": "Entity service for managing brain entities with database persistence and serialization",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
@@ -16,7 +16,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": {

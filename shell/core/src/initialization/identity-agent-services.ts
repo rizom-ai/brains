@@ -190,6 +190,7 @@ export function initializeIdentityAndAgentServices(
     webSearch: aiService.getConfig().webSearch,
     temperature: aiService.getConfig().temperature,
     maxTokens: aiService.getConfig().maxTokens,
+    reasoningEffort: aiService.getConfig().reasoningEffort,
     messageBus,
   });
   const assistantActorId = createBrainActorId(config.name);
