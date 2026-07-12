@@ -21,6 +21,7 @@ interface StartedDatabase {
 }
 
 const INITIAL_MIGRATION_ID = 1;
+const OPTIONAL_CHALLENGE_USER_MIGRATION_ID = 2;
 
 export class AuthRuntimeDatabase {
   private readonly storageDir: string;
@@ -68,6 +69,7 @@ export class AuthRuntimeDatabase {
     try {
       await this.configureConnection();
       await this.runMigrations();
+      await this.runOptionalChallengeUserMigration();
       await this.secureLocalDatabaseFile();
     } catch (error) {
       await this.stop();
@@ -104,6 +106,47 @@ export class AuthRuntimeDatabase {
       return;
     }
     await chmod(path, 0o600);
+  }
+
+  private async runOptionalChallengeUserMigration(): Promise<void> {
+    const existing = await this.client.execute({
+      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
+      args: [OPTIONAL_CHALLENGE_USER_MIGRATION_ID],
+    });
+    if (existing.rows.length > 0) {
+      return;
+    }
+
+    await this.client.batch(
+      [
+        `CREATE TABLE webauthn_challenges_v2 (
+          challenge_hash TEXT PRIMARY KEY,
+          user_id TEXT REFERENCES auth_users(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL CHECK (kind IN ('registration', 'authentication')),
+          expires_at INTEGER NOT NULL,
+          consumed_at INTEGER,
+          created_at INTEGER NOT NULL
+        )`,
+        `INSERT INTO webauthn_challenges_v2
+          (challenge_hash, user_id, kind, expires_at, consumed_at, created_at)
+          SELECT challenge_hash, user_id, kind, expires_at, consumed_at, created_at
+          FROM webauthn_challenges`,
+        "DROP TABLE webauthn_challenges",
+        "ALTER TABLE webauthn_challenges_v2 RENAME TO webauthn_challenges",
+        `CREATE INDEX idx_webauthn_challenges_user_id
+          ON webauthn_challenges(user_id)`,
+        {
+          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
+            VALUES (?, ?, ?)`,
+          args: [
+            OPTIONAL_CHALLENGE_USER_MIGRATION_ID,
+            "optional-webauthn-challenge-user",
+            Date.now(),
+          ],
+        },
+      ],
+      "write",
+    );
   }
 
   private async runMigrations(): Promise<void> {

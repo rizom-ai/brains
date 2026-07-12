@@ -80,9 +80,9 @@ export const webauthnChallenges = sqliteTable(
   "webauthn_challenges",
   {
     challengeHash: text("challenge_hash").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => authUsers.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => authUsers.id, {
+      onDelete: "cascade",
+    }),
     kind: text("kind", { enum: ["registration", "authentication"] }).notNull(),
     expiresAt: integer("expires_at").notNull(),
     consumedAt: integer("consumed_at"),

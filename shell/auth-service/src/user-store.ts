@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
@@ -38,6 +38,7 @@ export interface ResolveAuthIdentityInput {
 
 export class AuthUserStore {
   private readonly db: AuthRuntimeDB;
+  private firstAnchorInitialization: Promise<AuthUser> | undefined;
 
   constructor(db: AuthRuntimeDB) {
     this.db = db;
@@ -46,22 +47,57 @@ export class AuthUserStore {
   async ensureFirstAnchorUser(
     input: { displayName?: string } = {},
   ): Promise<AuthUser> {
-    const existingAnchor = await this.findFirstActiveAnchor();
-    if (existingAnchor) {
-      return existingAnchor;
+    if (this.firstAnchorInitialization) {
+      return this.firstAnchorInitialization;
     }
 
-    const users = await this.listUsers();
-    if (users.length > 0) {
-      throw new Error(
-        "Auth users already exist but no active anchor user was found",
-      );
+    const initialization = this.ensureFirstAnchorUserTransaction(input);
+    this.firstAnchorInitialization = initialization;
+    try {
+      return await initialization;
+    } finally {
+      if (this.firstAnchorInitialization === initialization) {
+        this.firstAnchorInitialization = undefined;
+      }
     }
+  }
 
-    return this.createUser({
-      displayName: input.displayName ?? "Operator",
-      role: "anchor",
-      status: "active",
+  private ensureFirstAnchorUserTransaction(input: {
+    displayName?: string;
+  }): Promise<AuthUser> {
+    return this.db.transaction(async (tx) => {
+      const [existingAnchor] = await tx
+        .select()
+        .from(authUsers)
+        .where(
+          and(eq(authUsers.role, "anchor"), eq(authUsers.status, "active")),
+        )
+        .orderBy(authUsers.createdAt)
+        .limit(1);
+      if (existingAnchor) {
+        return existingAnchor;
+      }
+
+      const [existingUser] = await tx.select().from(authUsers).limit(1);
+      if (existingUser) {
+        throw new Error(
+          "Auth users already exist but no active anchor user was found",
+        );
+      }
+
+      const now = Date.now();
+      const id = createPrefixedId("usr");
+      const user = {
+        id,
+        displayName: input.displayName ?? "Operator",
+        role: "anchor",
+        status: "active",
+        canonicalId: canonicalIdForUserId(id),
+        createdAt: now,
+        updatedAt: now,
+      } satisfies typeof authUsers.$inferInsert;
+      await tx.insert(authUsers).values(user);
+      return user;
     });
   }
 
@@ -96,32 +132,66 @@ export class AuthUserStore {
   }
 
   async updateUserRole(userId: string, role: AuthUserRole): Promise<AuthUser> {
-    const user = await this.requireUser(userId);
-    await this.assertKeepsActiveAnchor(user, { role });
+    await this.requireUser(userId);
 
-    const now = Date.now();
     await this.db
       .update(authUsers)
-      .set({ role, updatedAt: now })
-      .where(eq(authUsers.id, userId));
+      .set({ role, updatedAt: Date.now() })
+      .where(
+        and(
+          eq(authUsers.id, userId),
+          sql`NOT (
+            ${authUsers.role} = 'anchor'
+            AND ${authUsers.status} = 'active'
+            AND ${role} <> 'anchor'
+            AND NOT EXISTS (
+              SELECT 1 FROM ${authUsers} AS other
+              WHERE other.id <> ${userId}
+                AND other.role = 'anchor'
+                AND other.status = 'active'
+            )
+          )`,
+        ),
+      );
 
-    return this.requireUser(userId);
+    const updated = await this.requireUser(userId);
+    if (updated.role !== role) {
+      throw new Error("Cannot remove the last active anchor user");
+    }
+    return updated;
   }
 
   async updateUserStatus(
     userId: string,
     status: AuthUserStatus,
   ): Promise<AuthUser> {
-    const user = await this.requireUser(userId);
-    await this.assertKeepsActiveAnchor(user, { status });
+    await this.requireUser(userId);
 
-    const now = Date.now();
     await this.db
       .update(authUsers)
-      .set({ status, updatedAt: now })
-      .where(eq(authUsers.id, userId));
+      .set({ status, updatedAt: Date.now() })
+      .where(
+        and(
+          eq(authUsers.id, userId),
+          sql`NOT (
+            ${authUsers.role} = 'anchor'
+            AND ${authUsers.status} = 'active'
+            AND ${status} <> 'active'
+            AND NOT EXISTS (
+              SELECT 1 FROM ${authUsers} AS other
+              WHERE other.id <> ${userId}
+                AND other.role = 'anchor'
+                AND other.status = 'active'
+            )
+          )`,
+        ),
+      );
 
-    return this.requireUser(userId);
+    const updated = await this.requireUser(userId);
+    if (updated.status !== status) {
+      throw new Error("Cannot remove the last active anchor user");
+    }
+    return updated;
   }
 
   async attachIdentity(input: AttachAuthIdentityInput): Promise<AuthIdentity> {
@@ -144,11 +214,25 @@ export class AuthUserStore {
     return identity;
   }
 
-  async detachIdentity(identityId: string): Promise<void> {
+  async detachIdentity(identityId: string): Promise<AuthIdentity> {
+    const [identity] = await this.db
+      .select()
+      .from(authIdentities)
+      .where(eq(authIdentities.id, identityId))
+      .limit(1);
+    if (!identity) {
+      throw new Error(`Auth identity not found: ${identityId}`);
+    }
+    if (identity.revokedAt !== null) {
+      return identity;
+    }
+
+    const revokedAt = Date.now();
     await this.db
       .update(authIdentities)
-      .set({ revokedAt: Date.now() })
+      .set({ revokedAt })
       .where(eq(authIdentities.id, identityId));
+    return { ...identity, revokedAt };
   }
 
   async resolveIdentity(
@@ -178,39 +262,6 @@ export class AuthUserStore {
       throw new Error(`Auth user not found: ${userId}`);
     }
     return user;
-  }
-
-  private async findFirstActiveAnchor(): Promise<AuthUser | undefined> {
-    const [user] = await this.db
-      .select()
-      .from(authUsers)
-      .where(and(eq(authUsers.role, "anchor"), eq(authUsers.status, "active")))
-      .orderBy(authUsers.createdAt)
-      .limit(1);
-    return user;
-  }
-
-  private async assertKeepsActiveAnchor(
-    user: AuthUser,
-    update: { role?: AuthUserRole; status?: AuthUserStatus },
-  ): Promise<void> {
-    if (user.role !== "anchor" || user.status !== "active") {
-      return;
-    }
-
-    const nextRole = update.role ?? user.role;
-    const nextStatus = update.status ?? user.status;
-    if (nextRole === "anchor" && nextStatus === "active") {
-      return;
-    }
-
-    const activeAnchors = await this.db
-      .select({ id: authUsers.id })
-      .from(authUsers)
-      .where(and(eq(authUsers.role, "anchor"), eq(authUsers.status, "active")));
-    if (activeAnchors.length <= 1) {
-      throw new Error("Cannot remove the last active anchor user");
-    }
   }
 }
 

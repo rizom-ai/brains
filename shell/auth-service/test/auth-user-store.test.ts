@@ -71,6 +71,18 @@ describe("AuthUserStore", () => {
     });
   });
 
+  it("creates only one first anchor during concurrent initialization", async () => {
+    await withUserStore(async (store) => {
+      const users = await Promise.all([
+        store.ensureFirstAnchorUser({ displayName: "First" }),
+        store.ensureFirstAnchorUser({ displayName: "Second" }),
+      ]);
+
+      expect(users[0].id).toBe(users[1].id);
+      expect(await store.listUsers()).toHaveLength(1);
+    });
+  });
+
   it("resolves verified active identity bindings without storing raw lookup subjects", async () => {
     await withUserStore(async (store, database) => {
       const user = await store.createUser({
@@ -173,6 +185,33 @@ describe("AuthUserStore", () => {
         role: "anchor",
         status: "active",
       });
+    });
+  });
+
+  it("atomically preserves an active anchor during concurrent demotions", async () => {
+    await withUserStore(async (store) => {
+      const first = await store.ensureFirstAnchorUser({ displayName: "First" });
+      const second = await store.createUser({
+        displayName: "Second",
+        role: "anchor",
+      });
+
+      const results = await Promise.allSettled([
+        store.updateUserRole(first.id, "trusted"),
+        store.updateUserRole(second.id, "trusted"),
+      ]);
+
+      expect(
+        results.filter((result) => result.status === "fulfilled"),
+      ).toHaveLength(1);
+      expect(
+        results.filter((result) => result.status === "rejected"),
+      ).toHaveLength(1);
+      expect(
+        (await store.listUsers()).filter(
+          (user) => user.role === "anchor" && user.status === "active",
+        ),
+      ).toHaveLength(1);
     });
   });
 });

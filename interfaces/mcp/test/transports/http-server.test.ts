@@ -1013,6 +1013,79 @@ describe("StreamableHTTPServer", () => {
         expect(createMcpServer).toHaveBeenCalledWith("trusted");
       });
 
+      test("should reject another principal reusing an initialized session", async () => {
+        verifyBearerToken.mockImplementation(async () => ({
+          subject: "usr_anchor",
+          scope: ["mcp"],
+          permissionLevel: "anchor",
+        }));
+        const sessionId = await initializeSession(port, {
+          Authorization: "Bearer anchor-token",
+        });
+
+        verifyBearerToken.mockImplementation(async () => ({
+          subject: "usr_public",
+          scope: ["mcp"],
+          permissionLevel: "public",
+        }));
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Authorization: "Bearer public-token",
+            "mcp-session-id": sessionId,
+          },
+          body: {
+            jsonrpc: "2.0",
+            method: "tools/list",
+            params: {},
+            id: 2,
+          },
+        });
+
+        expect(response.status).toBe(403);
+        expect(response.body).toMatchObject({
+          error: { message: "Forbidden: Session belongs to another principal" },
+        });
+      });
+
+      test("should invalidate a session when its principal permission changes", async () => {
+        verifyBearerToken.mockImplementation(async () => ({
+          subject: "usr_operator",
+          scope: ["mcp"],
+          permissionLevel: "anchor",
+        }));
+        const sessionId = await initializeSession(port, {
+          Authorization: "Bearer operator-token",
+        });
+
+        verifyBearerToken.mockImplementation(async () => ({
+          subject: "usr_operator",
+          scope: ["mcp"],
+          permissionLevel: "trusted",
+        }));
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Authorization: "Bearer operator-token",
+            "mcp-session-id": sessionId,
+          },
+          body: {
+            jsonrpc: "2.0",
+            method: "tools/list",
+            params: {},
+            id: 2,
+          },
+        });
+
+        expect(response.status).toBe(403);
+        expect(response.body).toMatchObject({
+          error: {
+            message:
+              "Forbidden: Session permission changed; initialize a new session",
+          },
+        });
+      });
+
       test("should reject OAuth bearer tokens without the mcp scope", async () => {
         verifyBearerToken.mockImplementation(async () => ({
           subject: "single-operator",

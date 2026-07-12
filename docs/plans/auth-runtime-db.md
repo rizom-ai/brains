@@ -136,7 +136,7 @@ Delivery model: the auth DB does not store user emails on `auth_users`. When a u
 ### Credentials and grants
 
 - `passkey_credentials`: credential id, user id, public key, counter, transports JSON, device type, backup state, timestamps.
-- `webauthn_challenges`: challenge hash, user id, kind, expiry, consumed timestamp.
+- `webauthn_challenges`: challenge hash, optional user id, kind, expiry, consumed timestamp. Registration challenges bind a user; discoverable-credential authentication challenges do not know the user until verification.
 - `operator_sessions`: session token hash, user id, expiry, revoked timestamp.
 - `oauth_clients`: client id, optional secret hash, registered metadata JSON, timestamps.
 - `oauth_auth_codes`: code hash, client id, user id, redirect URI, PKCE challenge, scope, expiry, consumed timestamp.
@@ -289,10 +289,11 @@ Validation: OAuth code flow, refresh rotation, logout, setup-token flow, and cli
 
 - Return `AuthPrincipal` from bearer/session verification.
 - Make HTTP MCP create per-session servers at the user's permission level.
+- Bind each MCP session id to its authenticated user and permission level; reject cross-user reuse and invalidate the session when the user's role changes.
 - Add identity lookup before rule fallback for Discord/MCP/chat interfaces.
 - Keep static `MCP_AUTH_TOKEN` as deprecated anchor fallback.
 
-Validation: trusted users cannot call anchor-only tools; suspended users are denied; legacy rule fallback still works.
+Validation: trusted users cannot call anchor-only tools; suspended users are denied; MCP session ids cannot be reused by another user or retain a superseded role; legacy rule fallback still works.
 
 ### Phase 5 — Management surface
 

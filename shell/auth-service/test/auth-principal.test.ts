@@ -136,6 +136,52 @@ describe("AuthService principals", () => {
     });
   });
 
+  it("revokes user sessions when their role changes", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const collaborator = await service.createUser({
+      displayName: "Collaborator",
+      role: "trusted",
+    });
+    const session = await service.createOperatorSession(collaborator.userId);
+    const request = new Request("https://brain.example.com/dashboard", {
+      headers: { cookie: session.cookie },
+    });
+
+    expect(await service.resolveSession(request)).toMatchObject({
+      permissionLevel: "trusted",
+    });
+    expect(
+      await service.updateUserRole(collaborator.userId, "public"),
+    ).toMatchObject({ permissionLevel: "public" });
+    expect(await service.resolveSession(request)).toBeUndefined();
+  });
+
+  it("lists principals and suspends users through high-level APIs", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const collaborator = await service.createUser({
+      displayName: "Collaborator",
+      role: "trusted",
+    });
+
+    expect(await service.listUsers()).toEqual([
+      expect.objectContaining({
+        userId: collaborator.userId,
+        displayName: "Collaborator",
+        permissionLevel: "trusted",
+      }),
+    ]);
+    expect(await service.suspendUser(collaborator.userId)).toMatchObject({
+      status: "suspended",
+      permissionLevel: "trusted",
+    });
+  });
+
   it("does not resolve missing or suspended session subjects", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
@@ -202,6 +248,38 @@ describe("AuthService principals", () => {
     );
 
     expect(principal).toBeUndefined();
+  });
+
+  it("revokes user sessions when an identity is detached", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const collaborator = await service.createUser({
+      displayName: "Discord Collaborator",
+      role: "trusted",
+    });
+    const identity = await service.attachIdentity({
+      userId: collaborator.userId,
+      type: "discord",
+      subject: "1442828818493735015",
+      verifiedAt: Date.now(),
+    });
+    const session = await service.createOperatorSession(collaborator.userId);
+    const request = new Request("https://brain.example.com/dashboard", {
+      headers: { cookie: session.cookie },
+    });
+
+    expect(await service.resolveSession(request)).toBeDefined();
+    await service.detachIdentity(identity.id);
+
+    expect(await service.resolveSession(request)).toBeUndefined();
+    expect(
+      await service.resolveIdentity({
+        type: "discord",
+        subject: "1442828818493735015",
+      }),
+    ).toBeUndefined();
   });
 
   it("resolves verified identities to active auth principals", async () => {

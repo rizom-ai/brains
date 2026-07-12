@@ -24,6 +24,11 @@ export interface AuthConfig {
   requiredScopes?: string[];
 }
 
+interface SessionAuthorization {
+  subject: string;
+  permissionLevel?: ToolVisibility;
+}
+
 export interface StreamableHTTPServerConfig {
   port?: number | string;
   host?: string;
@@ -70,6 +75,7 @@ export class StreamableHTTPServer {
   private transports: Record<string, WebStandardStreamableHTTPServerTransport> =
     {};
   private sessionLastActivity = new Map<string, number>();
+  private sessionAuthorizations = new Map<string, SessionAuthorization>();
   private mcpServer: McpServer | null = null;
   private mcpTransport: IMCPTransport | null = null;
   private server: ReturnType<typeof Bun.serve> | null = null;
@@ -320,6 +326,7 @@ export class StreamableHTTPServer {
 
       this.logger.info(`Evicting idle session ${sessionId}`);
       this.sessionLastActivity.delete(sessionId);
+      this.sessionAuthorizations.delete(sessionId);
       const transport = this.transports[sessionId];
       if (transport) {
         delete this.transports[sessionId];
@@ -338,6 +345,14 @@ export class StreamableHTTPServer {
     authInfo: AuthInfo | undefined,
   ): Promise<Response> {
     const sessionId = request.headers.get("mcp-session-id") ?? undefined;
+
+    if (sessionId && this.transports[sessionId]) {
+      const authorizationError = await this.validateSessionAuthorization(
+        sessionId,
+        authInfo,
+      );
+      if (authorizationError) return authorizationError;
+    }
 
     if (request.method === "GET") {
       if (!sessionId || !this.transports[sessionId]) {
@@ -414,12 +429,17 @@ export class StreamableHTTPServer {
           onsessioninitialized: (newSessionId: string): void => {
             this.logger.info(`Session initialized: ${newSessionId}`);
             this.transports[newSessionId] = transport;
+            const authorization = sessionAuthorizationFromAuthInfo(authInfo);
+            if (authorization) {
+              this.sessionAuthorizations.set(newSessionId, authorization);
+            }
             this.touchSession(newSessionId);
           },
           onsessionclosed: (closedSessionId: string): void => {
             this.logger.info(`Session closed: ${closedSessionId}`);
             delete this.transports[closedSessionId];
             this.sessionLastActivity.delete(closedSessionId);
+            this.sessionAuthorizations.delete(closedSessionId);
           },
         });
 
@@ -459,6 +479,38 @@ export class StreamableHTTPServer {
         500,
       );
     }
+  }
+
+  private async validateSessionAuthorization(
+    sessionId: string,
+    authInfo: AuthInfo | undefined,
+  ): Promise<Response | undefined> {
+    const expected = this.sessionAuthorizations.get(sessionId);
+    if (!expected) return undefined;
+
+    const current = sessionAuthorizationFromAuthInfo(authInfo);
+    if (current?.subject !== expected.subject) {
+      this.logger.warn("Authentication failed: MCP session principal changed");
+      return this.getAuthErrorResponse(
+        "Forbidden: Session belongs to another principal",
+        403,
+      );
+    }
+
+    if (current.permissionLevel !== expected.permissionLevel) {
+      this.logger.warn("Authentication failed: MCP session permission changed");
+      const transport = this.transports[sessionId];
+      delete this.transports[sessionId];
+      this.sessionLastActivity.delete(sessionId);
+      this.sessionAuthorizations.delete(sessionId);
+      await transport?.close();
+      return this.getAuthErrorResponse(
+        "Forbidden: Session permission changed; initialize a new session",
+        403,
+      );
+    }
+
+    return undefined;
   }
 
   public async handleRequest(request: Request): Promise<Response> {
@@ -535,6 +587,7 @@ export class StreamableHTTPServer {
       this.evictionTimer = null;
     }
     this.sessionLastActivity.clear();
+    this.sessionAuthorizations.clear();
 
     for (const sessionId in this.transports) {
       try {
@@ -581,6 +634,17 @@ export class StreamableHTTPServer {
   public getSessionCount(): number {
     return Object.keys(this.transports).length;
   }
+}
+
+function sessionAuthorizationFromAuthInfo(
+  authInfo: AuthInfo | undefined,
+): SessionAuthorization | undefined {
+  const subject = authInfo?.extra?.["subject"];
+  if (typeof subject !== "string") return undefined;
+
+  const permissionLevel = authInfo?.extra?.["permissionLevel"] as
+    ToolVisibility | undefined;
+  return { subject, permissionLevel };
 }
 
 function escapeChallengeValue(value: string): string {

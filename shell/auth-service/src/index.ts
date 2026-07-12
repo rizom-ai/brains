@@ -1,3 +1,5 @@
+export { AuthAuditStore } from "./audit-store";
+export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
 export { AuthorizationCodeStore, InvalidGrantError } from "./auth-code-store";
 export type {
   AuthorizationCodeRecord,
@@ -32,6 +34,14 @@ export type {
 export { AuthRuntimeDatabase } from "./runtime-db";
 export type { AuthRuntimeDatabaseOptions, AuthRuntimeDB } from "./runtime-db";
 export { InvalidClientMetadataError, OAuthClientStore } from "./client-store";
+export { AuthCredentialStore } from "./credential-store";
+export type {
+  AddPasskeyInput,
+  SaveWebAuthnChallengeInput,
+  StoredAuthChallenge,
+  StoredPasskey,
+  WebAuthnChallengeKind,
+} from "./credential-store";
 export type {
   ClientRegistrationRequest,
   OAuthClientStoreOptions,

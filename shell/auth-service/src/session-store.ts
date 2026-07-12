@@ -174,6 +174,22 @@ export class OperatorSessionStore {
 
     return revoked;
   }
+
+  async revokeSessionsForSubject(subject: string): Promise<number> {
+    let revoked = 0;
+    await this.store.enqueueWrite(async () => {
+      const store = await this.store.read();
+      const before = store.sessions.length;
+      store.sessions = store.sessions.filter(
+        (session) => session.subject !== subject,
+      );
+      revoked = before - store.sessions.length;
+      if (revoked > 0) {
+        await this.store.write(store);
+      }
+    });
+    return revoked;
+  }
 }
 
 function getSessionTokenFromRequest(request: Request): string | undefined {

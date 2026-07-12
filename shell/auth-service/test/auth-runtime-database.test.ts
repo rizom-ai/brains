@@ -74,7 +74,7 @@ describe("AuthRuntimeDatabase", () => {
         sql: "SELECT id FROM auth_schema_migrations ORDER BY id",
         args: [],
       });
-      expect(migrations.rows.map((row) => row["id"])).toEqual([1]);
+      expect(migrations.rows.map((row) => row["id"])).toEqual([1, 2]);
       expect(await tableNames(second)).toContain("auth_users");
     } finally {
       await second.stop();

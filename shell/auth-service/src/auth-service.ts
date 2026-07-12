@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils/logger";
+import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
 import { AuthorizationCodeStore } from "./auth-code-store";
 import { OAuthClientStore } from "./client-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
@@ -16,6 +17,8 @@ import type { AuthIdentity, AuthUser } from "./runtime-schema";
 import {
   AuthUserStore,
   type AttachAuthIdentityInput,
+  type AuthUserRole,
+  type AuthUserStatus,
   type CreateAuthUserInput,
   type ResolveAuthIdentityInput,
 } from "./user-store";
@@ -101,6 +104,8 @@ export class AuthService {
   private readonly allowLocalhostIssuers: boolean;
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
+  private auditStore: AuthAuditStore | undefined;
+  private firstAnchorInitialization: Promise<AuthUser> | undefined;
   private readonly keyStore: AuthKeyStore;
   private readonly a2aKeyStore: A2AKeyStore;
   private readonly clientStore: OAuthClientStore;
@@ -167,7 +172,7 @@ export class AuthService {
       sessionStore: this.sessionStore,
       setupFlow: this.setupFlow,
       registrationUserProvider: async (): Promise<PasskeyRegistrationUser> => {
-        const user = await this.getUserStore().ensureFirstAnchorUser();
+        const user = await this.ensureFirstAnchorUser();
         return {
           subject: user.id,
           userName: user.displayName,
@@ -210,6 +215,8 @@ export class AuthService {
 
   async close(): Promise<void> {
     this.userStore = undefined;
+    this.auditStore = undefined;
+    this.firstAnchorInitialization = undefined;
     await this.runtimeDatabase.stop();
   }
 
@@ -219,6 +226,7 @@ export class AuthService {
     }
     await this.runtimeDatabase.start();
     this.userStore = new AuthUserStore(this.runtimeDatabase.db);
+    this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
   }
 
   private async migrateLegacyPasskeys(): Promise<void> {
@@ -232,7 +240,7 @@ export class AuthService {
       return;
     }
 
-    const user = await this.getUserStore().ensureFirstAnchorUser();
+    const user = await this.ensureFirstAnchorUser();
     const migrated = await this.passkeyService.rebindCredentialSubject(
       MIGRATION_SINGLE_OPERATOR_SUBJECT,
       user.id,
@@ -256,7 +264,7 @@ export class AuthService {
       return;
     }
 
-    const user = await this.getUserStore().ensureFirstAnchorUser();
+    const user = await this.ensureFirstAnchorUser();
     const migrated = await this.sessionStore.rebindSessionSubject(
       MIGRATION_SINGLE_OPERATOR_SUBJECT,
       user.id,
@@ -283,6 +291,41 @@ export class AuthService {
       throw new Error("Auth service has not been initialized");
     }
     return this.userStore;
+  }
+
+  private getAuditStore(): AuthAuditStore {
+    if (!this.auditStore) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.auditStore;
+  }
+
+  private async ensureFirstAnchorUser(): Promise<AuthUser> {
+    if (this.firstAnchorInitialization) {
+      return this.firstAnchorInitialization;
+    }
+
+    const initialization = (async (): Promise<AuthUser> => {
+      const existingUsers = await this.getUserStore().listUsers();
+      const user = await this.getUserStore().ensureFirstAnchorUser();
+      if (!existingUsers.some((existing) => existing.id === user.id)) {
+        await this.getAuditStore().append({
+          action: "auth.user.created",
+          targetType: "user",
+          targetId: user.id,
+          metadata: { role: user.role, status: user.status },
+        });
+      }
+      return user;
+    })();
+    this.firstAnchorInitialization = initialization;
+    try {
+      return await initialization;
+    } finally {
+      if (this.firstAnchorInitialization === initialization) {
+        this.firstAnchorInitialization = undefined;
+      }
+    }
   }
 
   async hasPasskeyCredentials(): Promise<boolean> {
@@ -374,12 +417,101 @@ export class AuthService {
 
   async createUser(input: CreateAuthUserInput): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
-    return principalFromUser(await this.getUserStore().createUser(input));
+    const user = await this.getUserStore().createUser(input);
+    await this.getAuditStore().append({
+      action: "auth.user.created",
+      targetType: "user",
+      targetId: user.id,
+      metadata: { role: user.role, status: user.status },
+    });
+    return principalFromUser(user);
+  }
+
+  async listUsers(): Promise<AuthPrincipal[]> {
+    await this.ensureUserStoreStarted();
+    return (await this.getUserStore().listUsers()).map(principalFromUser);
+  }
+
+  async updateUserRole(
+    userId: string,
+    role: AuthUserRole,
+  ): Promise<AuthPrincipal> {
+    await this.ensureUserStoreStarted();
+    const current = await this.getUserStore().getUser(userId);
+    const updated = await this.getUserStore().updateUserRole(userId, role);
+    if (current && current.role !== updated.role) {
+      await this.revokeUserSessionsAndRefreshTokens(userId);
+      await this.getAuditStore().append({
+        action: "auth.user.role_updated",
+        targetType: "user",
+        targetId: userId,
+        metadata: { from: current.role, to: updated.role },
+      });
+    }
+    return principalFromUser(updated);
+  }
+
+  async updateUserStatus(
+    userId: string,
+    status: AuthUserStatus,
+  ): Promise<AuthPrincipal> {
+    await this.ensureUserStoreStarted();
+    const current = await this.getUserStore().getUser(userId);
+    const updated = await this.getUserStore().updateUserStatus(userId, status);
+    if (current && current.status !== updated.status) {
+      await this.revokeUserSessionsAndRefreshTokens(userId);
+      await this.getAuditStore().append({
+        action: "auth.user.status_updated",
+        targetType: "user",
+        targetId: userId,
+        metadata: { from: current.status, to: updated.status },
+      });
+    }
+    return principalFromUser(updated);
+  }
+
+  suspendUser(userId: string): Promise<AuthPrincipal> {
+    return this.updateUserStatus(userId, "suspended");
+  }
+
+  async revokeUserSessionsAndRefreshTokens(
+    userId: string,
+  ): Promise<{ sessions: number; refreshTokens: number }> {
+    const [sessions, refreshTokens] = await Promise.all([
+      this.sessionStore.revokeSessionsForSubject(userId),
+      this.refreshTokenStore.revokeTokensForSubject(userId),
+    ]);
+    return { sessions, refreshTokens };
   }
 
   async attachIdentity(input: AttachAuthIdentityInput): Promise<AuthIdentity> {
     await this.ensureUserStoreStarted();
-    return this.getUserStore().attachIdentity(input);
+    const identity = await this.getUserStore().attachIdentity(input);
+    await this.getAuditStore().append({
+      action: "auth.identity.attached",
+      targetType: "identity",
+      targetId: identity.id,
+      metadata: { type: identity.type, userId: identity.userId },
+    });
+    return identity;
+  }
+
+  async detachIdentity(identityId: string): Promise<AuthIdentity> {
+    await this.ensureUserStoreStarted();
+    const identity = await this.getUserStore().detachIdentity(identityId);
+    await this.revokeUserSessionsAndRefreshTokens(identity.userId);
+    await this.getAuditStore().append({
+      action: "auth.identity.detached",
+      targetType: "identity",
+      targetId: identity.id,
+      metadata: { type: identity.type, userId: identity.userId },
+    });
+    return identity;
+  }
+
+  async listAuditEvents(): Promise<AuthAuditEvent[]> {
+    await this.ensureUserStoreStarted();
+    return this.getAuditStore().list();
   }
 
   async resolveIdentity(
@@ -397,7 +529,7 @@ export class AuthService {
     await this.ensureUserStoreStarted();
     const sessionSubject =
       !subject || subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
-        ? (await this.getUserStore().ensureFirstAnchorUser()).id
+        ? (await this.ensureFirstAnchorUser()).id
         : subject;
     return this.sessionStore.createSession(sessionSubject, options);
   }
