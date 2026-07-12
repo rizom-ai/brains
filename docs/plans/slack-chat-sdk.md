@@ -2,9 +2,11 @@
 
 ## Status
 
-Proposed. Save this as a separate Slack plan, independent of the Discord parity/replacement work.
+In progress. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Adapter wiring, basic routing, and platform-isolated subscription persistence are implemented in the Slack worktree; uploads, richer response parity, and live validation remain.
 
-Goal: add Slack support through `@brains/chat` using Vercel Chat SDK, while reusing the Discord/web-chat parity helpers where they are already transport-neutral.
+Keep this as a separate Slack plan, independent of the Discord parity/replacement work.
+
+Goal: add Slack support through `@brains/chat` using Vercel Chat SDK, while reusing the transport-neutral workflows already extracted from the Discord/web-chat implementation.
 
 ## Scope
 
@@ -24,8 +26,9 @@ Initial target:
 Chat SDK has a published Slack adapter:
 
 - package: `@chat-adapter/slack`
-- matching current Chat SDK version: `4.29.0`
 - main factory: `createSlackAdapter(config?)`
+- before implementation, package ranges started at `4.29.0` while the lockfile already resolved the Chat SDK packages to `4.33.0`;
+- the Slack slice aligns the declared `chat`, Discord, memory-state, and Slack adapter ranges at `4.33.0`; adapter versions must continue to move together;
 - single-workspace env/config:
   - `SLACK_BOT_TOKEN`
   - `SLACK_SIGNING_SECRET`
@@ -48,56 +51,83 @@ Slack app scopes from the adapter docs likely needed for parity smoke tests:
 
 If upload/file ingestion is added, confirm whether `files:read` is required for private Slack file URLs before implementing.
 
+## Starting implementation constraints
+
+The transport-neutral middle of `interfaces/chat` was already reusable: `MessageInterfacePlugin`, `SubscriptionRouter`, `ChatInputBuilder`, response planning, progress handling, approval handling, and upload selection provided the right base for Slack.
+
+At the start of this work, the outer Chat SDK integration was intentionally Discord-specific:
+
+- `ChatPlatform`, adapter maps, webhook maps, ownership checks, and message limits only know `discord`;
+- `DiscordChatApp` and `createDiscordChatSdkApp` own app construction and lifecycle;
+- `SubscriptionRouter` injects bot-created-thread detection but still hard-codes Discord platform and state names;
+- the durable state adapter writes every Chat SDK subscription to `chat.discord.subscriptions`;
+- raw-message metadata guards, gateway handling, component REST calls, and upload URLs are Discord-specific;
+- current tests explicitly treat Slack channel ids as unsupported.
+
+Slices 1–3 address these constraints with a small platform-host generalization at the boundary. Do not make the shared workflows lowest-common-denominator abstractions or move Slack-specific metadata parsing into shared packages. Preserve existing Discord behavior and configuration throughout.
+
 ## Proposed implementation slices
 
-### 1. Add Slack adapter wiring
+### 1. Generalize the Chat SDK host and add Slack wiring
 
-- Add `@chat-adapter/slack` to `interfaces/chat` dependencies.
-- Extend `chatConfigSchema.adapters` with `slack` config.
-- Create a Slack adapter when configured.
-- Register `/api/webhooks/chat/slack` and delegate to `app.webhooks.slack`.
-- Keep Discord routes and behavior unchanged.
-- Add tests for configured/unconfigured Slack adapter and webhook route behavior.
+- Add `@chat-adapter/slack` at the same compatible version range used by the other Chat SDK packages.
+- Extend `chatConfigSchema.adapters` with single-workspace Slack credentials and routing options: bot token, signing secret, allowed channels, mention policy, and DM policy.
+- Generalize the internal Discord-only app construction/types just enough to host Discord and Slack adapters together. Keep the Discord gateway loop and component REST client platform-specific.
+- Treat `slack` as a first-class `ChatPlatform`; update adapter/webhook maps and platform ownership checks without weakening interface ownership filtering.
+- Create a Slack adapter only when configured.
+- Register `/api/webhooks/chat/slack` and delegate to `app.webhooks.slack`; keep `/api/webhooks/chat/discord` and the Discord gateway behavior unchanged.
+- Do not read Slack credentials implicitly from the environment inside shared code; pass schema-validated configuration to the adapter.
+- Add configured/unconfigured, webhook verification, and adapter-combination tests.
 
 Acceptance criteria:
 
 - `@brains/chat` can initialize with only Slack, only Discord, both, or neither.
-- Missing Slack config does not register a working Slack webhook.
-- Discord tests still pass unchanged.
+- Missing Slack config does not expose a functioning Slack webhook.
+- Invalid Slack signatures are rejected by the adapter.
+- Discord behavior and tests remain unchanged.
+- Chat SDK package versions are aligned.
 
 ### 2. Route Slack messages to the agent
 
-- Treat `slack` as a first-class `ChatPlatform`.
-- Use conversation ids based on Chat SDK Slack thread ids.
+- Use conversation ids based on the opaque Chat SDK Slack thread ids; do not duplicate Slack id parsing when the adapter already provides normalized thread/message fields.
 - Use permission lookup namespace `slack` with actor ids from Slack user ids.
+- Add Slack-specific, guarded raw-message metadata extraction only where normalized Chat SDK fields are insufficient.
+- Reuse the shared input, response, progress, attribution, URL-capture, and subscription-routing workflows.
+- Generalize `SubscriptionRouter` platform/state naming and inject Slack-specific owned-thread detection instead of adding Slack branches to shared policy.
 - Support Slack app mentions and subscribed-thread follow-ups.
-- Support DMs if enabled in config.
-- Add optional allowed-channel gating.
+- Support DMs when enabled and optional allowed-channel gating.
+- Ignore messages from the bot itself and other event shapes that could cause reply loops.
 
 Acceptance criteria:
 
 - Mention routing calls `AgentService.chat` with Slack channel/thread context.
 - Subscribed-thread routing works in tests.
-- Public/trusted/anchor permission levels resolve via `slack:*` rules.
+- Public/trusted/anchor permission levels resolve through `slack:*` rules.
+- Allowed-channel and DM policies are enforced.
 - Slack messages from the bot itself are ignored.
+- Discord event routing remains unchanged.
 
-### 3. Persist Slack thread subscriptions
+### 3. Make subscription persistence platform-aware
 
-- Generalize the Discord subscription state adapter or add a Slack equivalent.
-- Use shell runtime state with a distinct namespace, e.g. `chat.slack.subscriptions`.
-- Persist only `subscribe`, `unsubscribe`, and `isSubscribed`.
-- Delegate all other Chat SDK state operations to memory.
+- Replace the Discord-only Chat SDK subscription state adapter with a platform-aware adapter, or compose equivalent per-platform stores.
+- Preserve the existing `chat.discord.subscriptions` namespace and use `chat.slack.subscriptions` for Slack.
+- Dispatch by the opaque thread id's known platform prefix at the state boundary; unknown platforms must not fall into the Discord namespace.
+- Persist only subscription records and their routing policy (`subscribe`, `unsubscribe`, `isSubscribed`, and the existing mention-required state).
+- Delegate locks, queues, cache, lists, OAuth installations, and other Chat SDK state operations to memory.
 
 Acceptance criteria:
 
-- Slack subscribed-thread routing can survive adapter recreation in tests.
-- Runtime-state namespace is documented and tested.
+- Discord and Slack subscriptions survive adapter recreation independently.
+- Running both adapters cannot read, overwrite, or delete the other platform's subscriptions.
+- Existing Discord runtime state remains compatible.
+- Runtime-state namespaces are documented and tested.
 - No Slack state is stored in conversation/message metadata or local files.
 
 ### 4. Slack uploads and attachment policy
 
-- Determine how Chat SDK exposes Slack file metadata and private download URLs.
-- Add Slack upload fetching only for trusted/anchor callers.
+- First determine how the pinned Chat SDK adapter exposes Slack file metadata, private download URLs, and authenticated download requirements; do not assume Discord attachment shapes.
+- Confirm the minimum Slack scopes, including whether `files:read` is required.
+- Add authenticated Slack upload fetching only for trusted/anchor callers.
 - Store source uploads through the shared runtime upload registry with a Slack-specific scope.
 - Reuse shared upload validation/selection helpers.
 - Add a Slack upload route only if needed for durable upload refs, with the same no-store/nosniff/content-disposition guardrails as Discord.
@@ -110,9 +140,9 @@ Acceptance criteria:
 
 ### 5. Confirmations, progress, and artifacts
 
-- Reuse text-based approval replies first (`yes`, `no`, explicit approval ids).
-- Defer Slack Block Kit approval buttons until the text parity path is stable.
-- Reuse message editing for progress/status where Slack adapter supports edits.
+- Reuse the shared response plan and text-based approval replies first (`yes`, `no`, explicit approval ids).
+- Keep Discord component actions isolated; defer Slack Block Kit approval buttons until the text parity path is stable.
+- Reuse message editing for progress/status where the Slack adapter supports edits, with the existing safe fallback when it does not.
 - Reuse generated artifact summary and visibility-suppression policy.
 - Native Slack artifact upload can be a later enhancement after basic link fallback is safe.
 
@@ -147,7 +177,9 @@ Smoke checks:
 - Slack Block Kit-native approval buttons.
 - Hosted shared Slack gateway.
 - Reworking Discord parity or Rover migration decisions.
-- Durable Chat SDK locks/queues/cache/list state.
+- Durable Chat SDK locks/queues/cache/list or OAuth installation state.
+- A broad rewrite of the working Discord-specific gateway, component, or upload implementations.
+- Unrelated Chat SDK dependency churn after the coordinated `4.33.0` alignment.
 
 ## Validation commands
 

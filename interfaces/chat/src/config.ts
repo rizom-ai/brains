@@ -54,10 +54,29 @@ interface DiscordChatAdapterConfigInput extends UrlCaptureConfigInput {
   captureUrlEmoji?: string | undefined;
 }
 
+export interface SlackChatAdapterConfig extends UrlCaptureConfig {
+  botToken: string;
+  signingSecret: string;
+  allowedChannels: string[];
+  requireMention: boolean;
+  allowDMs: boolean;
+  showTypingIndicator: boolean;
+}
+
+interface SlackChatAdapterConfigInput extends UrlCaptureConfigInput {
+  botToken: string;
+  signingSecret: string;
+  allowedChannels?: string[] | undefined;
+  requireMention?: boolean | undefined;
+  allowDMs?: boolean | undefined;
+  showTypingIndicator?: boolean | undefined;
+}
+
 export interface ChatConfig {
   userName: string;
   adapters: {
     discord?: DiscordChatAdapterConfig | undefined;
+    slack?: SlackChatAdapterConfig | undefined;
   };
   gatewayRunMs: number;
   gatewayRestartDelayMs: number;
@@ -68,6 +87,7 @@ export interface ChatConfigInput {
   adapters?:
     | {
         discord?: DiscordChatAdapterConfigInput | undefined;
+        slack?: SlackChatAdapterConfigInput | undefined;
       }
     | undefined;
   gatewayRunMs?: number | undefined;
@@ -92,12 +112,27 @@ const discordAdapterConfigSchema: z.ZodType<
   captureUrlEmoji: z.string().default("🔖"),
 });
 
+const slackAdapterConfigSchema: z.ZodType<
+  SlackChatAdapterConfig,
+  SlackChatAdapterConfigInput
+> = z.object({
+  botToken: z.string().min(1).describe("Slack bot token"),
+  signingSecret: z.string().min(1).describe("Slack signing secret"),
+  allowedChannels: z.array(z.string()).default([]),
+  requireMention: z.boolean().default(true),
+  allowDMs: z.boolean().default(true),
+  showTypingIndicator: z.boolean().default(true),
+  captureUrls: z.boolean().default(false),
+  blockedUrlDomains: z.array(z.string()).default(blockedUrlDomainsDefault),
+});
+
 export const chatConfigSchema: z.ZodType<ChatConfig, ChatConfigInput> =
   z.object({
     userName: z.string().default("brain"),
     adapters: z
       .object({
         discord: discordAdapterConfigSchema.optional(),
+        slack: slackAdapterConfigSchema.optional(),
       })
       .default({}),
     gatewayRunMs: z

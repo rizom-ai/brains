@@ -21,7 +21,7 @@ import type { DiscordChatAdapterConfig } from "./config";
  *
  * Type-only "chat" imports here — this module pulls in no SDK at runtime, so it
  * (and its unit test) stay free of Chat SDK module mocks. Construction lives in
- * `createDiscordChatSdkApp`, injected via `buildApp`.
+ * `createChatSdkApp`, injected via `buildApp`.
  */
 export interface ChatSdkApp {
   initialize(): Promise<void>;
@@ -63,26 +63,21 @@ export interface ChatSdkApp {
   ): void;
 }
 
-interface DiscordChatAppDeps {
+interface ChatSdkAppHostDeps {
   /** Whether Discord is configured — gates the upload route. */
   discord: DiscordChatAdapterConfig | undefined;
   /** Lazy: the runtime upload store is only available once the plugin is registered. */
   getUploadStore: () => RuntimeUploadStore | undefined;
-  /** Construct the Chat SDK app (see createDiscordChatSdkApp); injected so this stays SDK-free. */
+  /** Construct the Chat SDK app (see createChatSdkApp); injected so this stays SDK-free. */
   buildApp: (runtimeState: IRuntimeStateNamespace) => ChatSdkApp;
 }
 
-/**
- * Owns the Discord-backed Chat SDK app lifecycle and HTTP surface, keeping the
- * SDK plumbing out of ChatInterface. The interface still registers its turn
- * handlers against the built app (see `instance`) — that binding is interface
- * logic, not SDK lifecycle.
- */
-export class DiscordChatApp {
-  private readonly deps: DiscordChatAppDeps;
+/** Owns the multi-adapter Chat SDK lifecycle and HTTP surface. */
+export class ChatSdkAppHost {
+  private readonly deps: ChatSdkAppHostDeps;
   private app: ChatSdkApp | undefined;
 
-  constructor(deps: DiscordChatAppDeps) {
+  constructor(deps: ChatSdkAppHostDeps) {
     this.deps = deps;
   }
 
@@ -119,6 +114,19 @@ export class DiscordChatApp {
             });
           }
           return this.app.webhooks.discord(request);
+        },
+      },
+      {
+        path: "/api/webhooks/chat/slack",
+        method: "POST",
+        public: true,
+        handler: async (request: Request): Promise<Response> => {
+          if (!this.app?.webhooks?.slack) {
+            return new Response("Slack chat webhook not configured", {
+              status: 404,
+            });
+          }
+          return this.app.webhooks.slack(request);
         },
       },
       {

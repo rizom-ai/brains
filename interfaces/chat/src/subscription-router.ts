@@ -1,15 +1,17 @@
 import type { Message } from "chat";
 import type { ChatThread } from "./types";
 import type {
-  DiscordThreadSubscriptionState,
-  DiscordThreadSubscriptionStore,
+  ChatThreadSubscriptionState,
+  ChatThreadSubscriptionStore,
 } from "./subscription-state";
 
 const MENTION_REQUIRED_NOTICE =
   "I’ll stop auto-replying now that more people joined. Mention me if you need me.";
 
 interface SubscriptionRouterDeps {
-  getSubscriptions: () => DiscordThreadSubscriptionStore | undefined;
+  getSubscriptions: (
+    platform: string,
+  ) => ChatThreadSubscriptionStore | undefined;
   getPlatform: (thread: ChatThread) => string;
   /** Platform-specific: did the bot create this thread? Discord supplies this today. */
   isBotCreatedThread: (thread: ChatThread, message: Message) => boolean;
@@ -18,16 +20,7 @@ interface SubscriptionRouterDeps {
   };
 }
 
-/**
- * Platform-agnostic subscription/mention routing policy: subscribe to threads
- * the bot created, and once a subscribed thread has more than one human, require
- * an explicit @mention before auto-replying (announcing the switch once).
- *
- * The only platform-specific input — detecting a bot-created thread — is
- * injected, so a future Slack adapter reuses this policy with its own detection.
- * (Naming/state still say "Discord" until that second adapter lands and shows
- * what actually varies.)
- */
+/** Shared subscription and mention-required routing policy for chat adapters. */
 export class SubscriptionRouter {
   private readonly deps: SubscriptionRouterDeps;
 
@@ -40,14 +33,17 @@ export class SubscriptionRouter {
     message: Message,
   ): Promise<void> {
     if (!this.deps.isBotCreatedThread(thread, message)) return;
+    await this.subscribeThread(thread);
+  }
 
+  async subscribeThread(thread: ChatThread): Promise<void> {
     try {
       await thread.subscribe();
-      await this.deps.getSubscriptions()?.set(thread.id, {
+      await this.getSubscriptions(thread)?.set(thread.id, {
         subscribedAt: new Date().toISOString(),
       });
     } catch (error) {
-      this.deps.logger.debug("Discord thread subscription failed", {
+      this.deps.logger.debug("Chat thread subscription failed", {
         error,
         threadId: thread.id,
       });
@@ -58,10 +54,11 @@ export class SubscriptionRouter {
     thread: ChatThread,
     message: Message,
   ): Promise<boolean> {
-    if (this.deps.getPlatform(thread) !== "discord") return false;
+    const subscriptions = this.getSubscriptions(thread);
+    if (!subscriptions) return false;
     if (thread.isDM) return true;
 
-    const subscription = await this.deps.getSubscriptions()?.get(thread.id);
+    const subscription = await subscriptions.get(thread.id);
     if (!subscription) return false;
 
     if (subscription.routingMode === "mention-required") {
@@ -75,7 +72,7 @@ export class SubscriptionRouter {
       await this.shouldRequireMentionInSubscribedThread(thread);
     if (!mentionRequired) return true;
 
-    const nextSubscription: DiscordThreadSubscriptionState = {
+    const nextSubscription: ChatThreadSubscriptionState = {
       ...subscription,
       routingMode: "mention-required",
     };
@@ -83,7 +80,7 @@ export class SubscriptionRouter {
     if (!message.isMention && !subscription.mentionRequiredNoticeSent) {
       await this.postMentionRequiredNotice(thread, nextSubscription);
     } else {
-      await this.deps.getSubscriptions()?.set(thread.id, nextSubscription);
+      await subscriptions.set(thread.id, nextSubscription);
     }
 
     return Boolean(message.isMention);
@@ -91,10 +88,10 @@ export class SubscriptionRouter {
 
   private async postMentionRequiredNotice(
     thread: ChatThread,
-    subscription: DiscordThreadSubscriptionState,
+    subscription: ChatThreadSubscriptionState,
   ): Promise<void> {
     await thread.post(MENTION_REQUIRED_NOTICE);
-    await this.deps.getSubscriptions()?.set(thread.id, {
+    await this.getSubscriptions(thread)?.set(thread.id, {
       ...subscription,
       routingMode: "mention-required",
       mentionRequiredNoticeSent: true,
@@ -111,11 +108,17 @@ export class SubscriptionRouter {
       );
       return humanParticipants.length > 1;
     } catch (error) {
-      this.deps.logger.debug("Failed to inspect Discord thread participants", {
+      this.deps.logger.debug("Failed to inspect chat thread participants", {
         error,
         threadId: thread.id,
       });
       return false;
     }
+  }
+
+  private getSubscriptions(
+    thread: ChatThread,
+  ): ChatThreadSubscriptionStore | undefined {
+    return this.deps.getSubscriptions(this.deps.getPlatform(thread));
   }
 }

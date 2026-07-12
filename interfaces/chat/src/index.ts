@@ -4,6 +4,7 @@ export type {
   ChatConfig,
   ChatConfigInput,
   DiscordChatAdapterConfig,
+  SlackChatAdapterConfig,
 } from "./config";
 export { ThreadRegistry } from "./thread-registry";
 export {
@@ -17,4 +18,5 @@ export type {
   ChatWebhookMap,
   DiscordChatAdapter,
   GatewayListenerOptions,
+  SlackChatAdapter,
 } from "./types";

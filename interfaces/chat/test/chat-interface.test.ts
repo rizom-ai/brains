@@ -6,7 +6,10 @@ import { chunkMessage } from "@brains/utils/chunk-message";
 import { z } from "@brains/utils/zod";
 import { createDiscordChatUploadStoreScope } from "../src/upload-store";
 import { PromptActionStore } from "../src/prompt-action-store";
-import type { DiscordChatAdapterConfig } from "../src/config";
+import type {
+  DiscordChatAdapterConfig,
+  SlackChatAdapterConfig,
+} from "../src/config";
 import type {
   ChatAdapterMap,
   DiscordChatAdapter,
@@ -55,6 +58,11 @@ interface DiscordAdapterFactoryConfig {
   mentionRoleIds: string[];
 }
 
+interface SlackAdapterFactoryConfig {
+  botToken: string;
+  signingSecret: string;
+}
+
 let lastDiscordAdapter: MockDiscordAdapter | undefined;
 
 const createDiscordAdapterMock = mock(
@@ -77,6 +85,11 @@ const createDiscordAdapterMock = mock(
     return lastDiscordAdapter;
   },
 );
+
+const createSlackAdapterMock = mock((_config: SlackAdapterFactoryConfig) => ({
+  name: "slack" as const,
+  handleWebhook: mock(() => Promise.resolve(new Response("slack ok"))),
+}));
 
 const createMemoryStateMock = mock(() => ({
   connect: mock(() => Promise.resolve()),
@@ -144,19 +157,29 @@ class MockChatSdk {
   };
   readonly webhooks: {
     discord?: Mock<(request: Request) => Promise<Response>>;
+    slack?: Mock<(request: Request) => Promise<Response>>;
   };
   initialize = mock(() => Promise.resolve());
   shutdown = mock(() => Promise.resolve());
 
   constructor(config: MockChatSdkConfig) {
     this.config = config;
-    this.webhooks = config.adapters.discord
-      ? {
-          discord: mock((_request: Request) =>
-            Promise.resolve(new Response("webhook ok")),
-          ),
-        }
-      : {};
+    this.webhooks = {
+      ...(config.adapters.discord
+        ? {
+            discord: mock((_request: Request) =>
+              Promise.resolve(new Response("webhook ok")),
+            ),
+          }
+        : {}),
+      ...(config.adapters.slack
+        ? {
+            slack: mock((_request: Request) =>
+              Promise.resolve(new Response("slack webhook ok")),
+            ),
+          }
+        : {}),
+    };
     MockChatSdk.instances.push(this);
   }
 
@@ -234,6 +257,10 @@ void mock.module("chat", () => ({
 
 void mock.module("@chat-adapter/discord", () => ({
   createDiscordAdapter: createDiscordAdapterMock,
+}));
+
+void mock.module("@chat-adapter/slack", () => ({
+  createSlackAdapter: createSlackAdapterMock,
 }));
 
 void mock.module("@chat-adapter/state-memory", () => ({
@@ -497,6 +524,17 @@ const baseDiscordConfig: DiscordChatAdapterConfig = {
   captureUrlEmoji: "🔖",
 };
 
+const baseSlackConfig: SlackChatAdapterConfig = {
+  botToken: "slack-token",
+  signingSecret: "slack-signing-secret",
+  allowedChannels: [],
+  blockedUrlDomains: [],
+  requireMention: true,
+  allowDMs: true,
+  showTypingIndicator: true,
+  captureUrls: false,
+};
+
 function expectDiscordConfirmationContext(
   userPermissionLevel: "anchor" | "trusted" | "public" = "public",
 ): unknown {
@@ -530,6 +568,8 @@ describe("ChatInterface", () => {
   beforeEach(() => {
     MockChatSdk.instances = [];
     createDiscordAdapterMock.mockClear();
+    lastDiscordAdapter = undefined;
+    createSlackAdapterMock.mockClear();
     createMemoryStateMock.mockClear();
     originalFetch = globalThis.fetch;
     globalThis.fetch = createFetchStub(originalFetch, (_input, _init) =>
@@ -577,12 +617,50 @@ describe("ChatInterface", () => {
     ).toBe(true);
   });
 
-  it("does not create a Discord adapter or daemon when Discord is not configured", async () => {
+  it("creates Slack and Discord adapters together", async () => {
+    const plugin = new ChatInterface({
+      adapters: {
+        discord: baseDiscordConfig,
+        slack: baseSlackConfig,
+      },
+      gatewayRunMs: 50,
+    });
+
+    await harness.installPlugin(plugin);
+
+    expect(createDiscordAdapterMock).toHaveBeenCalledTimes(1);
+    expect(createSlackAdapterMock).toHaveBeenCalledWith({
+      botToken: "slack-token",
+      signingSecret: "slack-signing-secret",
+    });
+    expect(MockChatSdk.instances[0]?.config.adapters.discord).toBeDefined();
+    expect(MockChatSdk.instances[0]?.config.adapters.slack).toBeDefined();
+    expect(
+      harness.getMockShell().getDaemonRegistry().getByPlugin("chat"),
+    ).toHaveLength(1);
+  });
+
+  it("creates a Slack-only adapter and daemon", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+
+    await harness.installPlugin(plugin);
+
+    expect(createDiscordAdapterMock).not.toHaveBeenCalled();
+    expect(createSlackAdapterMock).toHaveBeenCalledTimes(1);
+    expect(MockChatSdk.instances[0]?.config.adapters.discord).toBeUndefined();
+    expect(MockChatSdk.instances[0]?.config.adapters.slack).toBeDefined();
+    expect(
+      harness.getMockShell().getDaemonRegistry().getByPlugin("chat"),
+    ).toHaveLength(1);
+  });
+
+  it("does not create a chat adapter or daemon when none is configured", async () => {
     const plugin = new ChatInterface();
 
     await harness.installPlugin(plugin);
 
     expect(createDiscordAdapterMock).not.toHaveBeenCalled();
+    expect(createSlackAdapterMock).not.toHaveBeenCalled();
     expect(createMemoryStateMock).toHaveBeenCalledTimes(1);
     expect(MockChatSdk.instances[0]?.config.adapters.discord).toBeUndefined();
     expect(
@@ -590,7 +668,7 @@ describe("ChatInterface", () => {
     ).toEqual([]);
   });
 
-  it("ignores non-Discord Chat SDK threads", async () => {
+  it("ignores unsupported Chat SDK threads", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
@@ -632,6 +710,100 @@ describe("ChatInterface", () => {
       }),
     );
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
+  it("routes Slack mentions with Slack conversation and permission context", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+    const message = createMessage();
+
+    await chat?.handlers.mentions[0]?.(thread, message);
+
+    expect(thread.startTyping).toHaveBeenCalledTimes(1);
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "Hello bot",
+      "slack-slack:C123:1712345678.000100",
+      expect.objectContaining({
+        interfaceType: "slack",
+        channelId: "slack:C123:1712345678.000100",
+        userPermissionLevel: "public",
+        actor: expect.objectContaining({
+          actorId: "slack:user-789",
+          displayName: "Mira Ops",
+          interfaceType: "slack",
+        }),
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
+  it("routes subscribed Slack thread follow-ups after an app mention", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    agentService.chat.mockClear();
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "Follow-up",
+        threadId: thread.id,
+        isMention: false,
+      }),
+    );
+
+    expect(thread.subscribe).toHaveBeenCalledTimes(1);
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "Follow-up",
+      `slack-${thread.id}`,
+      expect.objectContaining({ interfaceType: "slack" }),
+    );
+  });
+
+  it("enforces Slack allowed-channel and DM policies", async () => {
+    const plugin = new ChatInterface({
+      adapters: {
+        slack: {
+          ...baseSlackConfig,
+          allowedChannels: ["C-allowed"],
+          allowDMs: false,
+        },
+      },
+    });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const blockedChannel = createThread({
+      id: "slack:C-blocked:1712345678.000100",
+      channelId: "slack:C-blocked",
+      adapter: { name: "slack" },
+    });
+    const blockedDM = createThread({
+      id: "slack:D123:1712345678.000200",
+      channelId: "slack:D123",
+      isDM: true,
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(blockedChannel, createMessage());
+    await chat?.handlers.directMessages[0]?.(
+      blockedDM,
+      createMessage(),
+      blockedDM,
+    );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
   });
 
   it("passes queued skipped Discord messages as coalesced context", async () => {
@@ -1039,6 +1211,37 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
   });
 
+  it("keeps mention policy isolated when Discord and Slack run together", async () => {
+    const plugin = new ChatInterface({
+      adapters: {
+        discord: baseDiscordConfig,
+        slack: { ...baseSlackConfig, requireMention: false },
+      },
+    });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const discordThread = createThread();
+    const slackThread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+    const message = createMessage({ text: "No mention", isMention: false });
+    const catchAllHandler = chat?.handlers.messagePatterns.find((entry) =>
+      entry.pattern.test(message.text),
+    );
+
+    await catchAllHandler?.handler(discordThread, message);
+    expect(agentService.chat).not.toHaveBeenCalled();
+
+    await catchAllHandler?.handler(slackThread, message);
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "No mention",
+      `slack-${slackThread.id}`,
+      expect.objectContaining({ interfaceType: "slack" }),
+    );
+  });
+
   it("routes unmentioned URLs as chat when Discord mention gating is disabled", async () => {
     const plugin = createPlugin({ requireMention: false, captureUrls: true });
     await harness.installPlugin(plugin);
@@ -1271,6 +1474,45 @@ describe("ChatInterface", () => {
 
     expect(agentService.chat).not.toHaveBeenCalled();
     expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("does not fetch Slack files before authenticated upload support lands", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "slack:*", level: "trusted" }],
+      }),
+    );
+    const fetchData = mock(() => Promise.resolve(Buffer.from("secret")));
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "Read this later",
+        attachments: [
+          {
+            name: "secret.txt",
+            mimeType: "text/plain",
+            size: 6,
+            fetchData,
+          },
+        ],
+      }),
+    );
+
+    expect(fetchData).not.toHaveBeenCalled();
+    expect(agentService.chat.mock.calls[0]?.[2]).toMatchObject({
+      userPermissionLevel: "trusted",
+      interfaceType: "slack",
+    });
+    expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toBeUndefined();
   });
 
   it("passes trusted text file uploads as durable native attachments", async () => {
@@ -2014,6 +2256,56 @@ describe("ChatInterface", () => {
         fallbackText: "Approved · Action confirmed.",
         card: expect.objectContaining({ title: "Approval confirmed" }),
       }),
+    );
+  });
+
+  it("uses text-only approval flows in Slack", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Please confirm.");
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      "Approval required: Delete thing\nReply yes to confirm or no/cancel to abort.",
+    );
+
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", threadId: thread.id, isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      `slack-${thread.id}`,
+      true,
+      "approval-1",
+      expect.objectContaining({
+        interfaceType: "slack",
+        channelId: thread.id,
+        userPermissionLevel: "public",
+      }),
+    );
+    expect(thread.post).toHaveBeenLastCalledWith(
+      "Approved · Action confirmed.",
     );
   });
 
@@ -4781,6 +5073,37 @@ describe("ChatInterface", () => {
     expect(MockChatSdk.instances[0]?.webhooks.discord).toHaveBeenCalled();
   });
 
+  it("delegates configured Slack webhooks to Chat SDK", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const route = plugin
+      .getWebRoutes()
+      .find((candidate) => candidate.path === "/api/webhooks/chat/slack");
+
+    const response = await route?.handler(
+      new Request("https://brain.test/slack-hook"),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.text()).toBe("slack webhook ok");
+    expect(MockChatSdk.instances[0]?.webhooks.slack).toHaveBeenCalled();
+  });
+
+  it("returns 404 from Slack webhook route when Slack is not configured", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin
+      .getWebRoutes()
+      .find((candidate) => candidate.path === "/api/webhooks/chat/slack");
+
+    const response = await route?.handler(
+      new Request("https://brain.test/slack-hook"),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(await response?.text()).toBe("Slack chat webhook not configured");
+  });
+
   it("returns 404 from Discord webhook route when no Discord adapter is configured", async () => {
     const plugin = new ChatInterface();
     await harness.installPlugin(plugin);
@@ -4931,6 +5254,19 @@ describe("ChatInterface", () => {
     expect(await malformed?.text()).toBe("Upload not found");
     expect(unknown?.status).toBe(404);
     expect(await unknown?.text()).toBe("Upload not found");
+  });
+
+  it("runs Slack without starting the Discord gateway", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const registry = harness.getMockShell().getDaemonRegistry();
+
+    await registry.startPlugin("chat");
+    await registry.stopPlugin("chat");
+
+    expect(MockChatSdk.instances[0]?.initialize).toHaveBeenCalledTimes(1);
+    expect(lastDiscordAdapter?.startGatewayListener).toBeUndefined();
+    expect(MockChatSdk.instances[0]?.shutdown).toHaveBeenCalledTimes(1);
   });
 
   it("registers an abortable Discord gateway daemon", async () => {

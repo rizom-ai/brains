@@ -24,8 +24,8 @@ interface ThreadIdParts {
 }
 
 interface ChatInputBuilderDeps {
-  /** The platform's already-scoped upload store (Discord scope applied by the caller). */
-  getUploadStore: () => RuntimeUploadStore | undefined;
+  /** Return the platform's scoped upload store, or undefined when ingestion is unsupported. */
+  getUploadStore: (platform: string) => RuntimeUploadStore | undefined;
   getThreadIdParts: (threadId: string) => ThreadIdParts;
   logger: {
     error: (message: string, context?: Record<string, unknown>) => void;
@@ -61,7 +61,7 @@ export class ChatInputBuilder {
     const canUpload = userLevel === "anchor" || userLevel === "trusted";
     if (!canUpload) return agentInput;
 
-    const uploadStore = this.deps.getUploadStore();
+    const uploadStore = this.deps.getUploadStore(platform);
     if (!uploadStore) return agentInput;
 
     for (const attachment of message.attachments) {

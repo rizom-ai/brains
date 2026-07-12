@@ -12,8 +12,9 @@ describe("parseChatPlatform", () => {
     );
   });
 
-  it("returns undefined for unknown platforms or a null channel", () => {
-    expect(parseChatPlatform("slack:team-1:channel-1")).toBeUndefined();
+  it("recognizes Slack and rejects unknown or null channels", () => {
+    expect(parseChatPlatform("slack:team-1:channel-1")).toBe("slack");
+    expect(parseChatPlatform("other:team-1:channel-1")).toBeUndefined();
     expect(parseChatPlatform(null)).toBeUndefined();
   });
 });
@@ -29,9 +30,16 @@ describe("chunkForChannel", () => {
     expect(chunks.join("").length).toBe(5000);
   });
 
+  it("uses Slack's 4000-char limit", () => {
+    const chunks = chunkForChannel("slack:team-1:channel-1", "x".repeat(5000));
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]?.length).toBe(4000);
+    expect(chunks[1]?.length).toBe(1000);
+  });
+
   it("leaves short messages and unknown-platform channels intact", () => {
     expect(chunkForChannel("discord:guild-1:channel-1", "hi")).toEqual(["hi"]);
-    expect(chunkForChannel("slack:team-1:channel-1", "x".repeat(5000))).toEqual(
+    expect(chunkForChannel("other:team-1:channel-1", "x".repeat(5000))).toEqual(
       ["x".repeat(5000)],
     );
     expect(chunkForChannel(null, "hi")).toEqual(["hi"]);
@@ -39,13 +47,16 @@ describe("chunkForChannel", () => {
 });
 
 describe("ownsChatPlatform", () => {
-  it("owns Discord only when the Discord adapter is enabled", () => {
-    expect(ownsChatPlatform("discord", true)).toBe(true);
-    expect(ownsChatPlatform("discord", false)).toBe(false);
+  it("owns each configured chat platform", () => {
+    const enabled = new Set(["discord", "slack"] as const);
+    expect(ownsChatPlatform("discord", enabled)).toBe(true);
+    expect(ownsChatPlatform("slack", enabled)).toBe(true);
   });
 
-  it("does not own other or missing platforms", () => {
-    expect(ownsChatPlatform("slack", true)).toBe(false);
-    expect(ownsChatPlatform(undefined, true)).toBe(false);
+  it("does not own disabled, unknown, or missing platforms", () => {
+    const discordOnly = new Set(["discord"] as const);
+    expect(ownsChatPlatform("slack", discordOnly)).toBe(false);
+    expect(ownsChatPlatform("other", discordOnly)).toBe(false);
+    expect(ownsChatPlatform(undefined, discordOnly)).toBe(false);
   });
 });

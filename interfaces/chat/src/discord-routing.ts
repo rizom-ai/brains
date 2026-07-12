@@ -9,7 +9,10 @@
  */
 
 import type { PermissionLookupContext } from "@brains/plugins";
-import type { DiscordChatAdapterConfig } from "./config";
+import type {
+  DiscordChatAdapterConfig,
+  SlackChatAdapterConfig,
+} from "./config";
 
 /** The thread fields the routing policy reads. */
 export interface RoutedThread {
@@ -28,7 +31,7 @@ export interface RoutedMessage {
 
 /** The adapter-config fields the routing policy reads. */
 export type RoutingPolicyConfig = Pick<
-  DiscordChatAdapterConfig,
+  DiscordChatAdapterConfig | SlackChatAdapterConfig,
   "allowedChannels" | "allowDMs"
 >;
 
@@ -79,12 +82,18 @@ export function isAllowedChannel(
 ): boolean {
   if (config.allowedChannels.length === 0 || thread.isDM) return true;
   const ids = getThreadIdParts(thread.id);
-  return [thread.id, thread.channelId, ids.channelId, ids.threadId].some(
-    (id) => typeof id === "string" && config.allowedChannels.includes(id),
-  );
+  const slackChannelId =
+    thread.id.split(":")[0] === "slack" ? thread.id.split(":")[1] : undefined;
+  return [
+    thread.id,
+    thread.channelId,
+    ids.channelId,
+    ids.threadId,
+    slackChannelId,
+  ].some((id) => typeof id === "string" && config.allowedChannels.includes(id));
 }
 
-export function shouldRouteDiscordMessage(
+export function shouldRouteChatMessage(
   thread: RoutedThread,
   message: RoutedMessage,
   config: RoutingPolicyConfig,
@@ -94,6 +103,10 @@ export function shouldRouteDiscordMessage(
   if (message.author.isBot && !message.isMention) return false;
   return isAllowedChannel(thread, config);
 }
+
+/** @deprecated Use shouldRouteChatMessage for transport-neutral routing. */
+export const shouldRouteDiscordMessage: typeof shouldRouteChatMessage =
+  shouldRouteChatMessage;
 
 export function shouldHandleDiscordAction(
   thread: RoutedThread,
@@ -111,8 +124,10 @@ export function getPermissionContext(
   message: Pick<RoutedMessage, "author">,
 ): PermissionLookupContext {
   const ids = getThreadIdParts(thread.id);
+  const slackChannelId =
+    thread.id.split(":")[0] === "slack" ? thread.id.split(":")[1] : undefined;
   return {
-    channelId: ids.channelId ?? thread.channelId,
+    channelId: ids.channelId ?? slackChannelId ?? thread.channelId,
     isBot: Boolean(message.author.isBot),
   };
 }

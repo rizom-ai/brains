@@ -3,9 +3,11 @@ import { createMockShell } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 import {
+  createChatSubscriptionStateAdapter,
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
   discordThreadSubscriptionNamespace,
+  slackThreadSubscriptionNamespace,
 } from "../src/subscription-state";
 
 class FakeMemoryStateAdapter implements StateAdapter {
@@ -112,6 +114,46 @@ describe("createDiscordSubscriptionStateAdapter", () => {
     expect(await restarted.get<string>("cache-key")).toBeNull();
     expect(await restarted.getList("list-key")).toEqual([]);
     await restarted.disconnect();
+  });
+
+  it("isolates Discord and Slack subscriptions when both adapters run", async () => {
+    const runtimeState = createMockShell().getRuntimeState();
+    const first = createChatSubscriptionStateAdapter(
+      runtimeState,
+      ["discord", "slack"],
+      new FakeMemoryStateAdapter(),
+    );
+
+    await first.subscribe("discord:guild:channel:thread");
+    await first.subscribe("slack:C123:1712345678.000100");
+
+    const restarted = createChatSubscriptionStateAdapter(
+      runtimeState,
+      ["discord", "slack"],
+      new FakeMemoryStateAdapter(),
+    );
+    expect(await restarted.isSubscribed("discord:guild:channel:thread")).toBe(
+      true,
+    );
+    expect(await restarted.isSubscribed("slack:C123:1712345678.000100")).toBe(
+      true,
+    );
+
+    await restarted.unsubscribe("slack:C123:1712345678.000100");
+    expect(await restarted.isSubscribed("discord:guild:channel:thread")).toBe(
+      true,
+    );
+
+    const slackStore = runtimeState.scoped({
+      namespace: slackThreadSubscriptionNamespace,
+      schema: z.object({ subscribedAt: z.string().datetime() }),
+    });
+    const discordStore = runtimeState.scoped({
+      namespace: discordThreadSubscriptionNamespace,
+      schema: z.object({ subscribedAt: z.string().datetime() }),
+    });
+    expect(await slackStore.has("discord:guild:channel:thread")).toBe(false);
+    expect(await discordStore.has("slack:C123:1712345678.000100")).toBe(false);
   });
 
   it("removes persisted subscriptions on unsubscribe", async () => {
