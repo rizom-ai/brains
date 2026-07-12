@@ -1446,6 +1446,7 @@ export function App(): React.ReactElement {
             id="web-chat-input"
             ref={promptInputRef}
             value={input}
+            aria-label="Message"
             placeholder="Plant a question…"
             onInput={(event) => setInput(event.currentTarget.value)}
           />
@@ -1453,10 +1454,6 @@ export function App(): React.ReactElement {
             <PromptInputTools>
               <PromptAttachmentButton />
             </PromptInputTools>
-            <span className="web-chat-prompt-hint">
-              <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd>{" "}
-              newline
-            </span>
             <PromptSubmitControl input={input} status={status} onStop={stop} />
           </PromptInputFooter>
         </PromptInput>

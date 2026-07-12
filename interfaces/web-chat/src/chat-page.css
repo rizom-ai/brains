@@ -1893,23 +1893,6 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   display: flex; align-items: center; justify-content: space-between;
   gap: 0.75rem;
 }
-.web-chat-prompt-hint {
-  font-family: var(--console-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--console-text-muted);
-}
-.web-chat-prompt-hint kbd {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--console-text) 8%, transparent);
-  border: 1px solid var(--console-rule-strong);
-  font-family: var(--console-mono);
-  font-size: 10px;
-  color: var(--console-text);
-}
 .web-chat-prompt-submit {
   display: inline-flex;
   align-items: center;
@@ -2157,8 +2140,6 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     font-size: 16px;
     min-height: 2.5rem;
   }
-  .web-chat-prompt-hint { display: none; }
-  .web-chat-prompt-footer { justify-content: flex-end; }
   .web-chat-prompt-submit {
     min-height: 44px;
     min-width: 44px;
