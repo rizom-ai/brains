@@ -372,7 +372,7 @@ async function checkLayout(
     );
   }
 
-  if (surface === "chat" || surface === "chat-cards") {
+  if (surface.startsWith("chat")) {
     const mobileTrigger = await page
       .locator(".web-chat-mobile-trigger")
       .evaluate((node) => getComputedStyle(node).display);
@@ -487,12 +487,13 @@ const server = Bun.serve({
       return new Response("# Verdigris field notes\n", {
         headers: { "content-type": "text/markdown" },
       });
-    if (url.pathname === "/api/chat/messages")
+    if (url.pathname === "/api/chat/messages") {
+      const id = url.searchParams.get("id");
       return json({
         messages:
-          url.searchParams.get("id") === "cards" ? cardMessages : messages,
+          id === "cards" ? cardMessages : id === "empty" ? [] : messages,
       });
-    if (url.pathname === "/api/chat/bootstrap") return json({ starters: [] });
+    }
     if (url.pathname === "/cms")
       return new Response(
         climateHtml(
@@ -593,12 +594,20 @@ try {
         "dashboard",
         "chat",
         "chat-cards",
+        "chat-empty",
+        "chat-drawer",
         "cms-library",
         "cms-editor",
       ] as const) {
-        const isChat = surface === "chat" || surface === "chat-cards";
+        // The sessions drawer only exists at phone widths.
+        if (surface === "chat-drawer" && viewport.width > 760) continue;
+        const isChat = surface.startsWith("chat");
         const conversationId =
-          surface === "chat-cards" ? "cards" : "responsive";
+          surface === "chat-cards"
+            ? "cards"
+            : surface === "chat-empty"
+              ? "empty"
+              : "responsive";
         const page = await browser.newPage({
           viewport,
           locale: "en-GB",
@@ -631,8 +640,26 @@ try {
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
           { waitUntil: "networkidle" },
         );
-        if (surface === "chat") {
+        if (surface === "chat" || surface === "chat-drawer") {
           await page.getByText("And the CMS?").waitFor();
+        }
+        if (surface === "chat-empty") {
+          await page.getByText("Begin a field note.").waitFor();
+        }
+        if (surface === "chat-drawer") {
+          await page.locator(".web-chat-mobile-trigger").click();
+          // The drawer slides in over 0.3s; wait for the transform to land.
+          await page.locator(".web-chat-sessions").evaluate(
+            (node) =>
+              new Promise<void>((resolve) => {
+                const check = (): void => {
+                  const { left } = node.getBoundingClientRect();
+                  if (Math.abs(left) < 0.5) resolve();
+                  else requestAnimationFrame(check);
+                };
+                check();
+              }),
+          );
         }
         if (surface === "chat-cards") {
           await page.getByText("Queued for the trust series.").waitFor();
@@ -703,7 +730,10 @@ try {
         const name = `${surface}-${viewport.width}x${viewport.height}-${climate}.png`;
         const baselinePath = path.join(BASELINE_DIR, name);
         if (UPDATE) {
-          await writeFile(baselinePath, image);
+          // Only rewrite baselines that actually changed — wholesale
+          // rewrites churn every pinned file with re-encode noise.
+          const ratio = await comparePng(image, baselinePath).catch(() => 1);
+          if (ratio > 0.002) await writeFile(baselinePath, image);
         } else {
           try {
             const ratio = await comparePng(image, baselinePath);
