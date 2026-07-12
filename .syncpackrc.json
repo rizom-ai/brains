@@ -12,7 +12,11 @@
         "@rizom/site-rizom-work",
         "@rizom/site-sections"
       ],
-      "dependencies": ["@rizom/site", "@rizom/site-rizom"],
+      "dependencies": [
+        "@rizom/site",
+        "@rizom/site-rizom",
+        "@rizom/site-sections"
+      ],
       "dependencyTypes": ["local", "prod"]
     },
     {
@@ -57,7 +61,11 @@
         "@rizom/site-rizom-work",
         "@rizom/site-sections"
       ],
-      "dependencies": ["@rizom/site", "@rizom/site-rizom"],
+      "dependencies": [
+        "@rizom/site",
+        "@rizom/site-rizom",
+        "@rizom/site-sections"
+      ],
       "dependencyTypes": ["prod"],
       "range": ""
     },

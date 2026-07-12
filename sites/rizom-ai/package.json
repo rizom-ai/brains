@@ -20,6 +20,7 @@
   "dependencies": {
     "@rizom/site": "0.2.0-alpha.150",
     "@rizom/site-rizom": "0.2.0-alpha.150",
+    "@rizom/site-sections": "0.2.0-alpha.150",
     "preact": "^10.27.2"
   },
   "devDependencies": {

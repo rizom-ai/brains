@@ -1,6 +1,7 @@
 import type { SiteDefinition } from "@rizom/site";
 import { createRizomSite } from "@rizom/site-rizom";
 import { AiLayout } from "./layout";
+import { homeSections } from "./home";
 import { aiRoutes } from "./routes";
 import aiSiteContent from "./site-content";
 
@@ -9,6 +10,9 @@ export const rizomAiSite: SiteDefinition = createRizomSite({
   themeProfile: "product",
   layout: AiLayout,
   routes: aiRoutes,
+  // Home is authored schema-first; work + foundation remain field-DSL content
+  // until they migrate.
+  sections: [homeSections],
   content: aiSiteContent,
   // The org-level indexes (/writing, /network) are hand-written routes that
   // compose the plugins' own list templates; entityDisplay just supplies the

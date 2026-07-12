@@ -1,19 +1,28 @@
 /** @jsxImportSource preact */
 import type { JSX, ComponentChildren } from "preact";
+import { z } from "@rizom/site-sections";
 import { Button, Section, renderHighlightedText } from "@rizom/site-rizom";
 
 /**
  * Shared presentational primitives for the consolidated Rizom site — the
  * rev-5 chrome pieces every room reuses (section caption, CTA row, full-bleed
  * statement band, colophon line). Copy is content-driven via each page's
- * SiteContentDefinition; these components only lay it out. The field shapes
- * that back these props live in ./site-content.
+ * schema-first section group; these components only lay it out.
  */
 
-export interface CtaLink {
-  label: string;
-  href: string;
-}
+/**
+ * A `{ label, href }` link — the schema every CTA field reuses. The explicit
+ * annotation is required because `--isolatedDeclarations` cannot infer an
+ * exported const's type from `z.object(...)`.
+ */
+export const ctaSchema: z.ZodObject<{
+  label: z.ZodString;
+  href: z.ZodString;
+}> = z.object({
+  label: z.string(),
+  href: z.string(),
+});
+export type CtaLink = z.infer<typeof ctaSchema>;
 
 /* Rev-5 emphasis: italic Fraunces in the bright accent. */
 export const HIGHLIGHT_CLS = "italic font-[395] text-accent-bright";

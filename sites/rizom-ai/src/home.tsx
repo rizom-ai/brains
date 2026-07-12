@@ -1,5 +1,7 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
+import type { SiteSectionGroup } from "@rizom/site";
+import { defineSection, sectionGroup, z } from "@rizom/site-sections";
 import { Section, renderHighlightedText } from "@rizom/site-rizom";
 import { GrowthDiagram } from "./growth-diagram";
 import {
@@ -7,36 +9,37 @@ import {
   CtaRow,
   AliveLine,
   SectCap,
+  ctaSchema,
   delayClass,
   HIGHLIGHT_CLS,
-  type CtaLink,
 } from "./shared";
 
 /**
  * The platform home page — today's rizom.ai tightened (hero → growth diagram
  * → problem → your-data → quickstart → mission band → faces → living-proof
- * colophon). Each section is a pure component; its copy is content-driven via
- * the "home" namespace in ./site-content and shipped as markdown in
- * site-content/home/<section>.md.
+ * colophon). Each section is authored from one zod schema (its component's
+ * props are `z.infer` of that schema); copy is content-driven, stored as
+ * markdown in site-content/home/<section>.md. Only the assembled section group
+ * is exported — the schemas and components are module-local.
  */
 
 /* ============ hero ============ */
 
-export interface HomeHeroContent {
-  kicker: string;
-  headline: string;
-  standfirst: string;
-  primaryCta: CtaLink;
-  secondaryCta: CtaLink;
-}
+const heroSchema = z.object({
+  kicker: z.string(),
+  headline: z.string(),
+  standfirst: z.string(),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+});
 
-export function HomeHeroSection({
+function HomeHeroSection({
   kicker,
   headline,
   standfirst,
   primaryCta,
   secondaryCta,
-}: HomeHeroContent): JSX.Element {
+}: z.infer<typeof heroSchema>): JSX.Element {
   return (
     <Section
       id="hero"
@@ -69,17 +72,17 @@ export function HomeHeroSection({
 
 /* ============ growth diagram ============ */
 
-export interface HomeGrowthContent {
-  cap: string;
-  capNote: string;
-  note: string;
-}
+const growthSchema = z.object({
+  cap: z.string(),
+  capNote: z.string(),
+  note: z.string(),
+});
 
-export function HomeGrowthSection({
+function HomeGrowthSection({
   cap,
   capNote,
   note,
-}: HomeGrowthContent): JSX.Element {
+}: z.infer<typeof growthSchema>): JSX.Element {
   return (
     <Section id="growth" className="py-14">
       <SectCap lead={cap} trail={capNote} />
@@ -93,16 +96,18 @@ export function HomeGrowthSection({
 
 /* ============ trios: problem + your-data ============ */
 
-export interface TrioItem {
-  marker: string;
-  title: string;
-  text: string;
-}
+const trioItemSchema = z.object({
+  marker: z.string(),
+  title: z.string(),
+  text: z.string(),
+});
 
-export interface HomeTrioContent {
-  cap: string;
-  items: TrioItem[];
-}
+const trioSchema = z.object({
+  cap: z.string(),
+  items: z.array(trioItemSchema),
+});
+
+type TrioItem = z.infer<typeof trioItemSchema>;
 
 function Trio({
   items,
@@ -136,10 +141,10 @@ function Trio({
   );
 }
 
-export function HomeProblemSection({
+function HomeProblemSection({
   cap,
   items,
-}: HomeTrioContent): JSX.Element {
+}: z.infer<typeof trioSchema>): JSX.Element {
   return (
     <Section id="problem" className="py-14">
       <SectCap lead={cap} />
@@ -148,10 +153,10 @@ export function HomeProblemSection({
   );
 }
 
-export function HomeYourDataSection({
+function HomeYourDataSection({
   cap,
   items,
-}: HomeTrioContent): JSX.Element {
+}: z.infer<typeof trioSchema>): JSX.Element {
   return (
     <Section id="your-data" className="py-14">
       <SectCap lead={cap} />
@@ -162,17 +167,19 @@ export function HomeYourDataSection({
 
 /* ============ quickstart ============ */
 
-export interface TermLine {
-  kind: "comment" | "command" | "ok";
-  text: string;
-}
+const termLineSchema = z.object({
+  kind: z.enum(["comment", "command", "ok"]),
+  text: z.string(),
+});
 
-export interface HomeQuickstartContent {
-  cap: string;
-  capNote: string;
-  lines: TermLine[];
-  checks: string[];
-}
+const quickstartSchema = z.object({
+  cap: z.string(),
+  capNote: z.string(),
+  lines: z.array(termLineSchema),
+  checks: z.array(z.string()),
+});
+
+type TermLine = z.infer<typeof termLineSchema>;
 
 function termLineClass(kind: TermLine["kind"]): string {
   switch (kind) {
@@ -185,12 +192,12 @@ function termLineClass(kind: TermLine["kind"]): string {
   }
 }
 
-export function HomeQuickstartSection({
+function HomeQuickstartSection({
   cap,
   capNote,
   lines,
   checks,
-}: HomeQuickstartContent): JSX.Element {
+}: z.infer<typeof quickstartSchema>): JSX.Element {
   return (
     <Section id="quickstart" className="py-14">
       <SectCap lead={cap} trail={capNote} />
@@ -225,19 +232,19 @@ export function HomeQuickstartSection({
 
 /* ============ mission band ============ */
 
-export interface HomeMissionContent {
-  quote: string;
-  sub: string;
-  primaryCta: CtaLink;
-  secondaryCta: CtaLink;
-}
+const missionSchema = z.object({
+  quote: z.string(),
+  sub: z.string(),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+});
 
-export function HomeMissionSection({
+function HomeMissionSection({
   quote,
   sub,
   primaryCta,
   secondaryCta,
-}: HomeMissionContent): JSX.Element {
+}: z.infer<typeof missionSchema>): JSX.Element {
   return (
     <Band quote={quote}>
       <p className="reveal reveal-delay-1 mt-[18px] max-w-[52ch] font-body text-[17px] text-theme-light">
@@ -254,18 +261,20 @@ export function HomeMissionSection({
 
 /* ============ faces ============ */
 
-export interface FaceRow {
-  room: "platform" | "work" | "foundation";
-  kicker: string;
-  title: string;
-  go: string;
-  href: string;
-}
+const faceSchema = z.object({
+  room: z.enum(["platform", "work", "foundation"]),
+  kicker: z.string(),
+  title: z.string(),
+  go: z.string(),
+  href: z.string(),
+});
 
-export interface HomeFacesContent {
-  cap: string;
-  faces: FaceRow[];
-}
+const facesSchema = z.object({
+  cap: z.string(),
+  faces: z.array(faceSchema),
+});
+
+type FaceRow = z.infer<typeof faceSchema>;
 
 const FACE_KICKER_COLOR: Record<FaceRow["room"], string> = {
   platform: "text-[color:var(--palette-brass)]",
@@ -273,10 +282,10 @@ const FACE_KICKER_COLOR: Record<FaceRow["room"], string> = {
   foundation: "text-[color:var(--palette-moss)]",
 };
 
-export function HomeFacesSection({
+function HomeFacesSection({
   cap,
   faces,
-}: HomeFacesContent): JSX.Element {
+}: z.infer<typeof facesSchema>): JSX.Element {
   return (
     <Section id="faces" className="py-14">
       <SectCap lead={cap} />
@@ -311,14 +320,50 @@ export function HomeFacesSection({
 
 /* ============ living-proof colophon ============ */
 
-export interface HomeAliveContent {
-  claim: string;
-  links: CtaLink[];
-}
+// The colophon renders through the shared AliveLine component directly.
+const aliveSchema = z.object({
+  claim: z.string(),
+  links: z.array(ctaSchema),
+});
 
-export function HomeAliveSection({
-  claim,
-  links,
-}: HomeAliveContent): JSX.Element {
-  return <AliveLine claim={claim} links={links} />;
-}
+/* ============ the home section group ============ */
+
+/**
+ * The platform home page, in order. The namespace ("home") matches the route
+ * id, so each section stores as site-content/home/<section>.md and its
+ * template resolves as "home:<section>".
+ */
+export const homeSections: SiteSectionGroup = sectionGroup("home", {
+  hero: defineSection(heroSchema, HomeHeroSection, {
+    title: "Hero",
+    description: "Platform homepage hero: kicker, headline, standfirst, CTAs",
+  }),
+  growth: defineSection(growthSchema, HomeGrowthSection, {
+    title: "Growth",
+    description: "You → Team → Network growth diagram with caption and note",
+  }),
+  problem: defineSection(trioSchema, HomeProblemSection, {
+    title: "Problem",
+    description: "Why it has to exist — problem trio (large numerals)",
+  }),
+  "your-data": defineSection(trioSchema, HomeYourDataSection, {
+    title: "Your Data",
+    description: "Your data, your rules — ownership trio (mono markers)",
+  }),
+  quickstart: defineSection(quickstartSchema, HomeQuickstartSection, {
+    title: "Quickstart",
+    description: "Three-command quickstart terminal with a checklist",
+  }),
+  mission: defineSection(missionSchema, HomeMissionSection, {
+    title: "Mission",
+    description: "Mission band — display-italic statement, sub line, CTAs",
+  }),
+  faces: defineSection(facesSchema, HomeFacesSection, {
+    title: "Faces",
+    description: "One practice, three faces — platform / work / foundation",
+  }),
+  alive: defineSection(aliveSchema, AliveLine, {
+    title: "Alive",
+    description: "Living-proof colophon — italic claim plus proof links",
+  }),
+});
