@@ -232,12 +232,14 @@ packages — entity plugins own their list rendering; the site configures presen
   plugins' own `ContentArchive`/directory chrome, not rev-5's bespoke components — a
   shared `@rizom/ui` journal-list is the later option if the themed default is not good
   enough. `/events` stays deferred.
-- **Author the consolidated site copy into `rizom-content`.** The re-homed site package
-  carries field shapes + components but no copy — each section renders from
-  `site-content/<page>/<section>.md` (the rev-5 `fallback` objects become markdown per
-  the `StructuredContentFormatter` heading format). Phase 3 retired `site-content/*`, so
-  home/work/foundation copy is authored fresh into `rizom-ai/rizom-content`; blog/decks/
-  agent entities already back `/writing` + `/network`.
+- **Author the consolidated site copy into `rizom-content`** — folded into
+  [`schema-first-site-sections.md`](./schema-first-site-sections.md) Phase 3. Porting the
+  site exposed that the published field DSL duplicates each section's shape (component
+  props vs. hand-written `fields`) with no compile-time tie; rather than author 21 files
+  against that, rizom-ai migrates to a schema-first section model first, then the
+  home/work/foundation copy is authored fresh into `rizom-ai/rizom-content` as
+  `site-content/<page>/<section>.md` via the derived formatter. blog/decks/agent entities
+  already back `/writing` + `/network`.
 - Reconcile the rover composition (green — the full pre-commit suite passes across all
   packages with the new site); merge to main; publish `@rizom/site-rizom-ai`.
 - Move rover-pilot `users/new.yaml` off the old products-era pin. It currently holds
