@@ -1,8 +1,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { DataSourceRegistry } from "../src/datasource-registry";
-import type { DataSource } from "../src/types";
+import type { DataSource, DataSourceSchema } from "../src/types";
 import { createSilentLogger } from "@brains/test-utils";
-import type { z } from "@brains/utils/zod";
 
 // Test data sources
 const mockFetchDataSource: DataSource = {
@@ -16,8 +15,10 @@ const mockFetchDataSource: DataSource = {
 const mockGenerateDataSource: DataSource = {
   id: "test-generate",
   name: "Test Generate DataSource",
-  generate: async <T>(request: unknown, schema: z.ZodSchema<T>): Promise<T> =>
-    schema.parse({ result: "generated", request }),
+  generate: async <T>(
+    request: unknown,
+    schema: DataSourceSchema<T>,
+  ): Promise<T> => schema.parse({ result: "generated", request }),
 };
 
 const mockTransformDataSource: DataSource = {
@@ -26,7 +27,7 @@ const mockTransformDataSource: DataSource = {
   transform: async <T>(
     content: unknown,
     format: string,
-    schema: z.ZodSchema<T>,
+    schema: DataSourceSchema<T>,
   ): Promise<T> => schema.parse({ result: "transformed", content, format }),
 };
 
@@ -35,12 +36,14 @@ const mockMultiCapabilityDataSource: DataSource = {
   name: "Test Multi-Capability DataSource",
   fetch: async <T>(_query: unknown): Promise<T> =>
     ({ result: "multi-fetch" }) as T,
-  generate: async <T>(_request: unknown, schema: z.ZodSchema<T>): Promise<T> =>
-    schema.parse({ result: "multi-generate" }),
+  generate: async <T>(
+    _request: unknown,
+    schema: DataSourceSchema<T>,
+  ): Promise<T> => schema.parse({ result: "multi-generate" }),
   transform: async <T>(
     _content: unknown,
     _format: string,
-    schema: z.ZodSchema<T>,
+    schema: DataSourceSchema<T>,
   ): Promise<T> => schema.parse({ result: "multi-transform" }),
 };
 

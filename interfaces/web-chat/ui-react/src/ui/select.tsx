@@ -8,19 +8,19 @@ import { cn } from "@/ui-react/src/lib/utils";
 
 function Select({
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Root>) {
+}: React.ComponentProps<typeof SelectPrimitive.Root>): React.ReactNode {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
 
 function SelectGroup({
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Group>) {
+}: React.ComponentProps<typeof SelectPrimitive.Group>): React.ReactNode {
   return <SelectPrimitive.Group data-slot="select-group" {...props} />;
 }
 
 function SelectValue({
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Value>) {
+}: React.ComponentProps<typeof SelectPrimitive.Value>): React.ReactNode {
   return <SelectPrimitive.Value data-slot="select-value" {...props} />;
 }
 
@@ -31,7 +31,7 @@ function SelectTrigger({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default";
-}) {
+}): React.ReactNode {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
@@ -56,7 +56,7 @@ function SelectContent({
   position = "item-aligned",
   align = "center",
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+}: React.ComponentProps<typeof SelectPrimitive.Content>): React.ReactNode {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -90,7 +90,7 @@ function SelectContent({
 function SelectLabel({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Label>) {
+}: React.ComponentProps<typeof SelectPrimitive.Label>): React.ReactNode {
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
@@ -104,7 +104,7 @@ function SelectItem({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+}: React.ComponentProps<typeof SelectPrimitive.Item>): React.ReactNode {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -130,7 +130,7 @@ function SelectItem({
 function SelectSeparator({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
+}: React.ComponentProps<typeof SelectPrimitive.Separator>): React.ReactNode {
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
@@ -143,7 +143,9 @@ function SelectSeparator({
 function SelectScrollUpButton({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+}: React.ComponentProps<
+  typeof SelectPrimitive.ScrollUpButton
+>): React.ReactNode {
   return (
     <SelectPrimitive.ScrollUpButton
       data-slot="select-scroll-up-button"
@@ -161,7 +163,9 @@ function SelectScrollUpButton({
 function SelectScrollDownButton({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+}: React.ComponentProps<
+  typeof SelectPrimitive.ScrollDownButton
+>): React.ReactNode {
   return (
     <SelectPrimitive.ScrollDownButton
       data-slot="select-scroll-down-button"

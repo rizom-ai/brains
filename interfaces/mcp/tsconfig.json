@@ -3,6 +3,7 @@
   "include": ["src/**/*", "test/**/*"],
   "compilerOptions": {
     "rootDir": "./",
-    "exactOptionalPropertyTypes": false
+    "exactOptionalPropertyTypes": false,
+    "isolatedDeclarations": true
   }
 }

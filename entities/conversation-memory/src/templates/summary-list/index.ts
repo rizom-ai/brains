@@ -4,7 +4,9 @@ import { SummaryListLayout } from "./layout";
 import { SummaryListFormatter } from "./formatter";
 import { SUMMARY_DATASOURCE_ID } from "../../lib/constants";
 
-export const summaryListTemplate = createTemplate<SummaryListData>({
+export const summaryListTemplate: ReturnType<
+  typeof createTemplate<SummaryListData>
+> = createTemplate<SummaryListData>({
   name: "conversation-memory:summary-list",
   description: "List view of all conversation summaries",
   schema: summaryListSchema,

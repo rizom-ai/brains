@@ -1,6 +1,7 @@
 export {
   directorySyncConfigSchema,
   type DirectorySyncConfig,
+  type DirectorySyncConfigInput,
 } from "./types/config";
 
 export type {

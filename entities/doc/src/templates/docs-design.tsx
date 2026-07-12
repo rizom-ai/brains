@@ -50,7 +50,15 @@ const headerLink =
 const footerLink =
   "docs-font-label text-[13px] text-[var(--docs-text-light)] transition-colors duration-150 hover:text-[var(--docs-text)]";
 
-export const docsClasses = {
+interface DocsClasses {
+  wrap: string;
+  label: string;
+  display: string;
+  button: string;
+  primaryButton: string;
+}
+
+export const docsClasses: DocsClasses = {
   wrap: "mx-auto max-w-6xl px-6 pt-20 md:px-12 md:pt-24",
   label: labelText,
   display: displayText,

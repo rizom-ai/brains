@@ -1,3 +1,3 @@
 export { MCPInterface } from "./mcp-interface";
-export type { MCPConfig } from "./types";
+export type { MCPConfig, MCPConfigInput } from "./types";
 export { mcpConfigSchema } from "./config";

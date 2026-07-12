@@ -29,7 +29,11 @@ interface SubscriptionRouterDeps {
  * what actually varies.)
  */
 export class SubscriptionRouter {
-  constructor(private readonly deps: SubscriptionRouterDeps) {}
+  private readonly deps: SubscriptionRouterDeps;
+
+  constructor(deps: SubscriptionRouterDeps) {
+    this.deps = deps;
+  }
 
   async subscribeOwnedThread(
     thread: ChatThread,

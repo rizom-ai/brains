@@ -3,6 +3,15 @@ import { Logger, LogLevel } from "../src/logger";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { z } from "../src/zod";
+
+const logRecordSchema = z.record(z.string(), z.unknown());
+
+function parseLogRecord(
+  line: string | undefined,
+): z.output<typeof logRecordSchema> | undefined {
+  return line ? logRecordSchema.parse(JSON.parse(line)) : undefined;
+}
 
 describe("Logger file output", () => {
   let tempDir: string;
@@ -36,21 +45,15 @@ describe("Logger file output", () => {
 
     expect(lines.length).toBe(3);
 
-    const first = lines[0]
-      ? (JSON.parse(lines[0]) as Record<string, unknown>)
-      : undefined;
+    const first = parseLogRecord(lines[0]);
     expect(first?.["level"]).toBe("info");
     expect(first?.["msg"]).toBe("hello");
     expect(first?.["ctx"]).toBe("test");
 
-    const second = lines[1]
-      ? (JSON.parse(lines[1]) as Record<string, unknown>)
-      : undefined;
+    const second = parseLogRecord(lines[1]);
     expect(second?.["level"]).toBe("debug");
 
-    const third = lines[2]
-      ? (JSON.parse(lines[2]) as Record<string, unknown>)
-      : undefined;
+    const third = parseLogRecord(lines[2]);
     expect(third?.["level"]).toBe("warn");
   });
 
@@ -68,8 +71,8 @@ describe("Logger file output", () => {
     await new Promise((r) => setTimeout(r, 50));
 
     const content = await readFile(logFile, "utf-8");
-    const parsed = JSON.parse(content.trim()) as Record<string, unknown>;
-    expect(parsed["msg"]).toBe("text mode");
+    const parsed = parseLogRecord(content.trim());
+    expect(parsed?.["msg"]).toBe("text mode");
   });
 
   test("child logger inherits log file", async () => {
@@ -86,9 +89,9 @@ describe("Logger file output", () => {
     await new Promise((r) => setTimeout(r, 50));
 
     const content = await readFile(logFile, "utf-8");
-    const parsed = JSON.parse(content.trim()) as Record<string, unknown>;
-    expect(parsed["ctx"]).toBe("ChildCtx");
-    expect(parsed["msg"]).toBe("from child");
+    const parsed = parseLogRecord(content.trim());
+    expect(parsed?.["ctx"]).toBe("ChildCtx");
+    expect(parsed?.["msg"]).toBe("from child");
   });
 
   test("log file includes data args", async () => {
@@ -104,8 +107,8 @@ describe("Logger file output", () => {
     await new Promise((r) => setTimeout(r, 50));
 
     const content = await readFile(logFile, "utf-8");
-    const parsed = JSON.parse(content.trim()) as Record<string, unknown>;
-    expect(parsed["data"]).toEqual([{ key: "value" }]);
+    const parsed = parseLogRecord(content.trim());
+    expect(parsed?.["data"]).toEqual([{ key: "value" }]);
   });
 
   test("respects log level for file output", async () => {
@@ -127,9 +130,7 @@ describe("Logger file output", () => {
     const lines = content.trim().split("\n");
     expect(lines.length).toBe(1);
 
-    const parsed = lines[0]
-      ? (JSON.parse(lines[0]) as Record<string, unknown>)
-      : undefined;
+    const parsed = parseLogRecord(lines[0]);
     expect(parsed?.["level"]).toBe("warn");
   });
 });

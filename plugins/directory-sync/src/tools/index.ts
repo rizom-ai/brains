@@ -78,7 +78,7 @@ export function createDirectorySyncTools(
     createTool(
       pluginId,
       "status",
-      "Get sync and git repository status — last sync time, watching state, pending git changes. Use this for status questions, not for actually syncing or backing up.",
+      "Read directory and git sync status: last sync, watcher state, and pending git changes. Use this for every status follow-up after directory-sync_sync, even when that call returned a jobId; a sync jobId is not a system_job_status batchId.",
       z.object({}),
       async () => {
         try {

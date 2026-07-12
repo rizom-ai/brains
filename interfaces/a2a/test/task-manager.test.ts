@@ -25,6 +25,37 @@ describe("TaskManager", () => {
       const record = tm.createTask("Hello");
       expect(record.task.contextId).toBeDefined();
     });
+
+    it("should index client message ids by caller domain", () => {
+      const first = tm.createTask("Hello", undefined, {
+        callerDomain: "peer-a.example",
+        messageId: "msg-1",
+      });
+      const second = tm.createTask("Hello", undefined, {
+        callerDomain: "peer-b.example",
+        messageId: "msg-1",
+      });
+
+      expect(
+        tm.getTaskByClientMessageId("peer-a.example", "msg-1")?.task.id,
+      ).toBe(first.task.id);
+      expect(
+        tm.getTaskByClientMessageId("peer-b.example", "msg-1")?.task.id,
+      ).toBe(second.task.id);
+    });
+
+    it("should remove client message id index entries when deleting tasks", () => {
+      const record = tm.createTask("Hello", undefined, {
+        callerDomain: "peer.example",
+        messageId: "msg-1",
+      });
+
+      tm.deleteTask(record.task.id);
+
+      expect(
+        tm.getTaskByClientMessageId("peer.example", "msg-1"),
+      ).toBeUndefined();
+    });
   });
 
   describe("updateState", () => {

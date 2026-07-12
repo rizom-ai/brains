@@ -73,7 +73,11 @@ export interface TurnProcessorDeps {
 }
 
 export class TurnProcessor {
-  constructor(private readonly deps: TurnProcessorDeps) {}
+  private readonly deps: TurnProcessorDeps;
+
+  constructor(deps: TurnProcessorDeps) {
+    this.deps = deps;
+  }
 
   public async processMessage(
     input: ProcessMessageInput,

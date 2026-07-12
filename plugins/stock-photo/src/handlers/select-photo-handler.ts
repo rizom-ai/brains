@@ -7,20 +7,36 @@ import { imageAdapter } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
-export const selectPhotoJobSchema = z.object({
+export interface SelectPhotoJobData {
+  photoId: string;
+  downloadLocation: string;
+  photographerName: string;
+  photographerUrl: string;
+  sourceUrl: string;
+  imageUrl: string;
+  title?: string | undefined;
+  alt?: string | undefined;
+  targetEntityType?: string | undefined;
+  targetEntityId?: string | undefined;
+}
+
+export type SelectPhotoJobDataInput = SelectPhotoJobData;
+
+export const selectPhotoJobSchema: z.ZodType<
+  SelectPhotoJobData,
+  SelectPhotoJobDataInput
+> = z.object({
   photoId: z.string(),
-  downloadLocation: z.string().url(),
+  downloadLocation: z.url(),
   photographerName: z.string(),
-  photographerUrl: z.string().url(),
-  sourceUrl: z.string().url(),
-  imageUrl: z.string().url(),
+  photographerUrl: z.url(),
+  sourceUrl: z.url(),
+  imageUrl: z.url(),
   title: z.string().optional(),
   alt: z.string().optional(),
   targetEntityType: z.string().optional(),
   targetEntityId: z.string().optional(),
 });
-
-export type SelectPhotoJobData = z.infer<typeof selectPhotoJobSchema>;
 
 export interface SelectPhotoJobResult {
   imageEntityId: string;
@@ -40,14 +56,13 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
   SelectPhotoJobData,
   SelectPhotoJobResult
 > {
-  constructor(
-    logger: Logger,
-    private readonly deps: SelectPhotoHandlerDeps,
-  ) {
+  private readonly deps: SelectPhotoHandlerDeps;
+  constructor(logger: Logger, deps: SelectPhotoHandlerDeps) {
     super(logger, {
       schema: selectPhotoJobSchema,
       jobTypeName: "select-photo",
     });
+    this.deps = deps;
   }
 
   async process(

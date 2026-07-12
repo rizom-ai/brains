@@ -11,7 +11,15 @@ import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TopicService } from "./topic-service";
 import { TOPICS_JOB_SOURCE, TOPICS_PLUGIN_ID } from "./constants";
 
-export const topicProjectionJobDataSchema = z.discriminatedUnion("mode", [
+export type TopicProjectionJobData =
+  | { mode: "derive"; reason?: string | undefined }
+  | { mode: "rebuild"; reason?: string | undefined }
+  | { mode: "source-batch"; minRelevanceScore?: number | undefined };
+
+export const topicProjectionJobDataSchema: z.ZodType<
+  TopicProjectionJobData,
+  TopicProjectionJobData
+> = z.discriminatedUnion("mode", [
   z.object({
     mode: z.literal("derive"),
     reason: z.string().optional(),
@@ -63,10 +71,6 @@ export class TopicSourceBatchBuffer implements TopicSourceBatchStore {
     return refs;
   }
 }
-
-export type TopicProjectionJobData = z.infer<
-  typeof topicProjectionJobDataSchema
->;
 
 export interface TopicBatchResult {
   deleted?: number;

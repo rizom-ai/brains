@@ -1,5 +1,217 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.156
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.156
+  - @brains/utils@0.2.0-alpha.156
+  - @brains/conversation-service@0.2.0-alpha.156
+  - @brains/entity-service@0.2.0-alpha.156
+  - @brains/identity-service@0.2.0-alpha.156
+  - @brains/mcp-service@0.2.0-alpha.156
+  - @brains/messaging-service@0.2.0-alpha.156
+  - @brains/templates@0.2.0-alpha.156
+
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies [[`643847f`](https://github.com/rizom-ai/brains/commit/643847fb9ae8298fdc501da9381129c528064c03)]:
+  - @brains/mcp-service@0.2.0-alpha.155
+  - @brains/entity-service@0.2.0-alpha.155
+  - @brains/identity-service@0.2.0-alpha.155
+  - @brains/contracts@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/conversation-service@0.2.0-alpha.155
+  - @brains/messaging-service@0.2.0-alpha.155
+  - @brains/templates@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/conversation-service@0.2.0-alpha.154
+  - @brains/entity-service@0.2.0-alpha.154
+  - @brains/identity-service@0.2.0-alpha.154
+  - @brains/mcp-service@0.2.0-alpha.154
+  - @brains/messaging-service@0.2.0-alpha.154
+  - @brains/templates@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/conversation-service@0.2.0-alpha.153
+  - @brains/entity-service@0.2.0-alpha.153
+  - @brains/identity-service@0.2.0-alpha.153
+  - @brains/mcp-service@0.2.0-alpha.153
+  - @brains/messaging-service@0.2.0-alpha.153
+  - @brains/templates@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/conversation-service@0.2.0-alpha.152
+  - @brains/entity-service@0.2.0-alpha.152
+  - @brains/identity-service@0.2.0-alpha.152
+  - @brains/mcp-service@0.2.0-alpha.152
+  - @brains/messaging-service@0.2.0-alpha.152
+  - @brains/templates@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/conversation-service@0.2.0-alpha.151
+  - @brains/entity-service@0.2.0-alpha.151
+  - @brains/identity-service@0.2.0-alpha.151
+  - @brains/mcp-service@0.2.0-alpha.151
+  - @brains/messaging-service@0.2.0-alpha.151
+  - @brains/templates@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- [`a6c7004`](https://github.com/rizom-ai/brains/commit/a6c70040f23414a301c3f2c2fb3ddef11e7b825f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use GPT-5.6 Luna with low reasoning as the default brain model, add typed reasoning-effort configuration from brain definitions and instance overrides through the AI runtime, and simplify tool-routing prompts for more reliable status, trust, and agent recommendation workflows.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/conversation-service@0.2.0-alpha.150
+  - @brains/entity-service@0.2.0-alpha.150
+  - @brains/identity-service@0.2.0-alpha.150
+  - @brains/mcp-service@0.2.0-alpha.150
+  - @brains/messaging-service@0.2.0-alpha.150
+  - @brains/templates@0.2.0-alpha.150
+
+## 0.2.0-alpha.149
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.149
+  - @brains/utils@0.2.0-alpha.149
+  - @brains/conversation-service@0.2.0-alpha.149
+  - @brains/entity-service@0.2.0-alpha.149
+  - @brains/identity-service@0.2.0-alpha.149
+  - @brains/mcp-service@0.2.0-alpha.149
+  - @brains/messaging-service@0.2.0-alpha.149
+  - @brains/templates@0.2.0-alpha.149
+
+## 0.2.0-alpha.148
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.148
+  - @brains/utils@0.2.0-alpha.148
+  - @brains/conversation-service@0.2.0-alpha.148
+  - @brains/entity-service@0.2.0-alpha.148
+  - @brains/identity-service@0.2.0-alpha.148
+  - @brains/mcp-service@0.2.0-alpha.148
+  - @brains/messaging-service@0.2.0-alpha.148
+  - @brains/templates@0.2.0-alpha.148
+
+## 0.2.0-alpha.147
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.147
+  - @brains/utils@0.2.0-alpha.147
+  - @brains/conversation-service@0.2.0-alpha.147
+  - @brains/entity-service@0.2.0-alpha.147
+  - @brains/identity-service@0.2.0-alpha.147
+  - @brains/mcp-service@0.2.0-alpha.147
+  - @brains/messaging-service@0.2.0-alpha.147
+  - @brains/templates@0.2.0-alpha.147
+
+## 0.2.0-alpha.146
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.146
+  - @brains/utils@0.2.0-alpha.146
+  - @brains/conversation-service@0.2.0-alpha.146
+  - @brains/entity-service@0.2.0-alpha.146
+  - @brains/identity-service@0.2.0-alpha.146
+  - @brains/mcp-service@0.2.0-alpha.146
+  - @brains/messaging-service@0.2.0-alpha.146
+  - @brains/templates@0.2.0-alpha.146
+
+## 0.2.0-alpha.145
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.145
+  - @brains/utils@0.2.0-alpha.145
+  - @brains/conversation-service@0.2.0-alpha.145
+  - @brains/entity-service@0.2.0-alpha.145
+  - @brains/identity-service@0.2.0-alpha.145
+  - @brains/mcp-service@0.2.0-alpha.145
+  - @brains/messaging-service@0.2.0-alpha.145
+  - @brains/templates@0.2.0-alpha.145
+
+## 0.2.0-alpha.144
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.144
+  - @brains/utils@0.2.0-alpha.144
+  - @brains/conversation-service@0.2.0-alpha.144
+  - @brains/entity-service@0.2.0-alpha.144
+  - @brains/identity-service@0.2.0-alpha.144
+  - @brains/mcp-service@0.2.0-alpha.144
+  - @brains/messaging-service@0.2.0-alpha.144
+  - @brains/templates@0.2.0-alpha.144
+
+## 0.2.0-alpha.143
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.143
+  - @brains/utils@0.2.0-alpha.143
+  - @brains/conversation-service@0.2.0-alpha.143
+  - @brains/entity-service@0.2.0-alpha.143
+  - @brains/identity-service@0.2.0-alpha.143
+  - @brains/mcp-service@0.2.0-alpha.143
+  - @brains/messaging-service@0.2.0-alpha.143
+  - @brains/templates@0.2.0-alpha.143
+
+## 0.2.0-alpha.142
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.142
+  - @brains/utils@0.2.0-alpha.142
+  - @brains/conversation-service@0.2.0-alpha.142
+  - @brains/entity-service@0.2.0-alpha.142
+  - @brains/identity-service@0.2.0-alpha.142
+  - @brains/mcp-service@0.2.0-alpha.142
+  - @brains/messaging-service@0.2.0-alpha.142
+  - @brains/templates@0.2.0-alpha.142
+
 ## 0.2.0-alpha.141
 
 ### Patch Changes

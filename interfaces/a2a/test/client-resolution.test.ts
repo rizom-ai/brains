@@ -121,7 +121,6 @@ describe("agent_call agent resolution", () => {
     const tool = createAgentCallTool({
       fetch: fetchFn,
       entityService: createMockEntityService(entities),
-      outboundTokens: { "yeehaa.io": "token-123" },
     });
 
     const result = await tool.handler(

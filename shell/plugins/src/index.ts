@@ -4,7 +4,10 @@
 
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
-export { EntityPlugin } from "./entity/entity-plugin";
+export {
+  EntityPlugin,
+  emptyEntityPluginConfigSchema,
+} from "./entity/entity-plugin";
 export {
   hasPersistedTargets,
   reconcileDerivedEntities,
@@ -178,6 +181,9 @@ export type {
   ContentVisibility,
   EntityAdapter,
   EntityInput,
+  EntitySchema,
+  EntitySchemaParser,
+  BaseEntityFrontmatterSchema,
   EntityMutationResult,
   EntityTypeConfig,
   ICoreEntityService,
@@ -186,8 +192,10 @@ export type {
 } from "@brains/entity-service";
 export {
   BaseEntityAdapter,
+  baseEntityParserSchema,
   baseEntitySchema,
   contentVisibilitySchema,
+  emptyFrontmatterSchema,
   internalFullScope,
   isVisibleWithinScope,
   permissionToVisibilityScope,
@@ -196,11 +204,16 @@ export {
   resolveEntityOrError,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  EntityValidationError,
+  hasValidationIssues,
+  isEntityValidationError,
+  toEntityValidationError,
 } from "@brains/entity-service";
 
 // Data source infrastructure
 export type {
   DataSource,
+  DataSourceSchema,
   BaseDataSourceContext,
   PaginationInfo,
 } from "@brains/entity-service";
@@ -532,8 +545,11 @@ export type {
 
 export {
   basePluginConfigSchema,
+  PluginConfigValidationError,
   type PluginConfig,
   type PluginConfigInput,
+  type PluginConfigSchema,
+  type PluginConfigValidationIssue,
 } from "./config";
 
 export type { IAnchorProfileService } from "@brains/identity-service";
@@ -557,9 +573,8 @@ export {
   anchorExtensionParamsSchema,
   parseAgentCard,
   type ParsedAgentCard,
-  skillDataSchema,
-  type SkillData,
 } from "./a2a/agent-card-schema";
+export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
 
 // ============================================================================
 // System Integration (Daemons, Interface Plugins)

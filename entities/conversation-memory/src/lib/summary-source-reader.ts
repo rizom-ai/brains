@@ -4,7 +4,7 @@ import type {
   Message,
 } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
-import type { SummaryConfig } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 
 export interface SummarySource {
   conversation: Conversation;
@@ -13,10 +13,12 @@ export interface SummarySource {
 }
 
 export class SummarySourceReader {
-  constructor(
-    private readonly context: EntityPluginContext,
-    private readonly config: SummaryConfig,
-  ) {}
+  private readonly context: EntityPluginContext;
+  private readonly config: SummaryConfig;
+  constructor(context: EntityPluginContext, config: SummaryConfig) {
+    this.context = context;
+    this.config = config;
+  }
 
   public async readConversation(
     conversationId: string,

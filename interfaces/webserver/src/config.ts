@@ -1,9 +1,32 @@
 import { z } from "@brains/utils/zod";
 
+export interface WebserverConfig {
+  enablePreview: boolean;
+  previewDistDir: string;
+  productionDistDir: string;
+  sharedImagesDir: string;
+  previewPort: number;
+  productionPort: number;
+  apiPort: number;
+}
+
+export interface WebserverConfigInput {
+  enablePreview?: boolean | undefined;
+  previewDistDir?: string | undefined;
+  productionDistDir?: string | undefined;
+  sharedImagesDir?: string | undefined;
+  previewPort?: number | undefined;
+  productionPort?: number | undefined;
+  apiPort?: number | undefined;
+}
+
 /**
  * Webserver configuration schema
  */
-export const webserverConfigSchema = z.object({
+export const webserverConfigSchema: z.ZodType<
+  WebserverConfig,
+  WebserverConfigInput
+> = z.object({
   enablePreview: z
     .boolean()
     .default(true)
@@ -32,5 +55,3 @@ export const webserverConfigSchema = z.object({
     .describe("Port for API route server (plugin HTTP endpoints)")
     .default(3335),
 });
-
-export type WebserverConfig = z.infer<typeof webserverConfigSchema>;

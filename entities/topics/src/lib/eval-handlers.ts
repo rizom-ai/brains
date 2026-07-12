@@ -17,10 +17,10 @@ import type { TopicEntity } from "../types";
 const entityInputSchema = z.object({
   entityType: z.string(),
   content: z.string(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
-type EntityInput = z.infer<typeof entityInputSchema>;
+type EntityInput = z.output<typeof entityInputSchema>;
 
 const extractInputSchema = entityInputSchema.extend({
   minRelevanceScore: z.number().optional(),
@@ -65,6 +65,14 @@ const rebuildTopicsSchema = z.object({
 const batchInputSchema = z.object({
   entities: z.array(entityInputSchema),
 });
+
+type ExtractInput = z.output<typeof extractInputSchema>;
+type MergeTestInput = z.output<typeof mergeTestInputSchema>;
+type DetectMergeCandidateInput = z.output<typeof detectMergeCandidateSchema>;
+type MergeProcessingInput = z.output<typeof mergeProcessingSchema>;
+type RebuildTopicsInput = z.output<typeof rebuildTopicsSchema>;
+type SequentialInput = z.output<typeof sequentialInputSchema>;
+type BatchInput = z.output<typeof batchInputSchema>;
 
 function createEntityFromInput(input: EntityInput, idSuffix = ""): BaseEntity {
   return {
@@ -159,7 +167,7 @@ export function registerTopicEvalHandlers(params: {
 
   context.eval.registerHandler("extractFromEntity", async (input: unknown) => {
     await clearTopics(context);
-    const parsed = extractInputSchema.parse(input);
+    const parsed: ExtractInput = extractInputSchema.parse(input);
     const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
     const entity = createEntityFromInput(parsed);
     const topics = await extractor.extractFromEntity(entity, minScore);
@@ -170,7 +178,7 @@ export function registerTopicEvalHandlers(params: {
     "checkMergeSimilarity",
     async (input: unknown) => {
       await clearTopics(context);
-      const parsed = mergeTestInputSchema.parse(input);
+      const parsed: MergeTestInput = mergeTestInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
       const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
 
@@ -228,7 +236,8 @@ export function registerTopicEvalHandlers(params: {
     "detectMergeCandidate",
     async (input: unknown) => {
       await clearTopics(context);
-      const parsed = detectMergeCandidateSchema.parse(input);
+      const parsed: DetectMergeCandidateInput =
+        detectMergeCandidateSchema.parse(input);
       const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
 
       const topicService = new TopicService(context.entityService, logger);
@@ -256,7 +265,7 @@ export function registerTopicEvalHandlers(params: {
     "processTopicWithAutoMerge",
     async (input: unknown) => {
       await clearTopics(context);
-      const parsed = mergeProcessingSchema.parse(input);
+      const parsed: MergeProcessingInput = mergeProcessingSchema.parse(input);
       const topicService = new TopicService(context.entityService, logger);
 
       for (const existingTopic of parsed.existingTopics) {
@@ -302,7 +311,7 @@ export function registerTopicEvalHandlers(params: {
 
   context.eval.registerHandler("rebuildTopics", async (input: unknown) => {
     await clearTopics(context);
-    const parsed = rebuildTopicsSchema.parse(input);
+    const parsed: RebuildTopicsInput = rebuildTopicsSchema.parse(input);
     const topicService = new TopicService(context.entityService, logger);
 
     for (const existingTopic of parsed.existingTopics ?? []) {
@@ -329,7 +338,7 @@ export function registerTopicEvalHandlers(params: {
     "extractSequentially",
     async (input: unknown) => {
       await clearTopics(context);
-      const parsed = sequentialInputSchema.parse(input);
+      const parsed: SequentialInput = sequentialInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
       const topicService = new TopicService(context.entityService, logger);
       const perEntity: Array<{ extractedTitles: string[] }> = [];
@@ -366,7 +375,7 @@ export function registerTopicEvalHandlers(params: {
 
   context.eval.registerHandler("batchExtract", async (input: unknown) => {
     await clearTopics(context);
-    const parsed = batchInputSchema.parse(input);
+    const parsed: BatchInput = batchInputSchema.parse(input);
     const entities = parsed.entities.map((entity, index) =>
       createEntityFromInput(entity, `-batch-${index}`),
     );

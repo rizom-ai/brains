@@ -231,13 +231,19 @@ describe("initPilotRepo", () => {
     expect(buildWorkflow).toContain("target: fleet");
     expect(buildWorkflow).toContain("brainVersion");
     expect(buildWorkflow).toContain("brain_version:");
+    expect(buildWorkflow).toContain("users/*.yaml");
+    expect(buildWorkflow).toContain("cohorts/*.yaml");
+    expect(buildWorkflow).toContain("package.json");
+    expect(buildWorkflow).toContain("bun.lock");
     expect(buildWorkflow).toContain("${{ inputs.brain_version || '' }}");
+    expect(buildWorkflow).toContain(
+      "bun deploy/scripts/resolve-build-config.ts",
+    );
+    expect(buildWorkflow).toContain("SITE_PACKAGES=${{ env.SITE_PACKAGES }}");
     expect(buildWorkflow).toContain(
       "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
     );
-    expect(buildWorkflow).toContain(
-      "type=raw,value=brain-${{ env.BRAIN_VERSION }}",
-    );
+    expect(buildWorkflow).toContain("type=raw,value=${{ env.IMAGE_TAG }}");
     expect(buildWorkflow).not.toContain(
       "type=raw,value=brain-${{ env.BRAIN_VERSION }}-${{ github.sha }}",
     );
@@ -255,6 +261,7 @@ describe("initPilotRepo", () => {
       "github.event.workflow_run.conclusion == 'success'",
     );
     expect(deployWorkflow).toContain("fetch-depth: 0");
+    expect(deployWorkflow).toContain("users/*.yaml");
     expect(deployWorkflow).toContain("users/*/brain.yaml");
     expect(deployWorkflow).toContain("users/*/.env");
     expect(deployWorkflow).toContain("users/*/content/**");
@@ -294,8 +301,22 @@ describe("initPilotRepo", () => {
       "PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}",
     );
     expect(deployWorkflow).toContain(
+      "WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}",
+    );
+    expect(deployWorkflow).toContain(
+      "CONFIG_CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}",
+    );
+    expect(deployWorkflow).toContain(
+      'export CF_ZONE_ID="${CONFIG_CF_ZONE_ID:-${CF_ZONE_ID:-$SHARED_CF_ZONE_ID}}"',
+    );
+    expect(deployWorkflow).toContain('if [ -n "$WWW_DOMAIN" ]; then');
+    expect(deployWorkflow).toContain(
+      'BRAIN_DOMAIN="$WWW_DOMAIN" bun deploy/scripts/update-dns.ts',
+    );
+    expect(deployWorkflow).toContain(
       'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
     );
+    expect(deployWorkflow).toContain("https://$WWW_DOMAIN/");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/write-kamal-secrets.ts",
     );
@@ -313,7 +334,10 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("bun deploy/scripts/validate-secrets.ts");
     expect(deployWorkflow).toContain("Wait for shared image tag");
     expect(deployWorkflow).toContain(
-      "VERSION: brain-${{ steps.user_config.outputs.brain_version }}",
+      "${{ steps.user_config.outputs.image_repository }}:${{ steps.user_config.outputs.image_tag }}",
+    );
+    expect(deployWorkflow).toContain(
+      "VERSION: ${{ steps.user_config.outputs.image_tag }}",
     );
     expect(deployWorkflow).toContain(
       'bunx brains-ops render "$GITHUB_WORKSPACE"',
@@ -359,9 +383,21 @@ describe("initPilotRepo", () => {
     expect(decryptUserSecretsScript).toContain(
       'writeGitHubEnv("ATPROTO_APP_PASSWORD"',
     );
+    expect(decryptUserSecretsScript).toContain('"CERTIFICATE_PEM"');
+    expect(decryptUserSecretsScript).toContain('"PRIVATE_KEY_PEM"');
     expect(decryptUserSecretsScript).not.toContain(
       'writeGitHubEnv("ATPROTO_IDENTIFIER"',
     );
+
+    const resolveBuildScript = await readFile(
+      join(repo, "deploy", "scripts", "resolve-build-config.ts"),
+      "utf8",
+    );
+    expect(resolveBuildScript).toContain("loadPilotRegistry");
+    expect(resolveBuildScript).toContain("SITE_PACKAGES");
+    expect(resolveBuildScript).toContain("IMAGE_TAG");
+    expect(resolveBuildScript).toContain("siteOverride.package");
+    expect(resolveBuildScript).toContain("sites-");
 
     const resolveScript = await readFile(
       join(repo, "deploy", "scripts", "resolve-user-config.ts"),
@@ -369,8 +405,14 @@ describe("initPilotRepo", () => {
     );
     expect(resolveScript).toContain("brain_yaml_path");
     expect(resolveScript).toContain("preview_domain");
+    expect(resolveScript).toContain("www_domain");
+    expect(resolveScript).toContain("cloudflare_zone_id");
+    expect(resolveScript).toContain("image_tag");
+    expect(resolveScript).toContain("resolveImageTag");
+    expect(resolveScript).toContain("const previewDomain = pilotZone");
+    expect(resolveScript).toContain(": `preview.${brainDomain}`");
     expect(resolveScript).toContain(
-      "const previewDomain = `${handle}-preview.${zone}`",
+      'const wwwDomain = pilotZone ? "" : `www.${brainDomain}`',
     );
     expect(resolveScript).toContain('from "./helpers"');
 
@@ -390,6 +432,9 @@ describe("initPilotRepo", () => {
       'if (eventName !== "push" && eventName !== "workflow_run")',
     );
     expect(resolveHandlesScript).toContain('eventName === "workflow_run"');
+    expect(resolveHandlesScript).toContain(
+      "path.match(/^users\\/([^/]+)\\.yaml$/)",
+    );
 
     const reconcileWorkflow = await readFile(
       join(repo, ".github", "workflows", "reconcile.yml"),
@@ -424,7 +469,9 @@ describe("initPilotRepo", () => {
     expect(dockerfile).toContain("AS standalone");
     expect(dockerfile).toContain("AS fleet");
     expect(dockerfile).toContain("ARG BRAIN_VERSION");
+    expect(dockerfile).toContain("ARG SITE_PACKAGES");
     expect(dockerfile).toContain("bun add @rizom/brain@$BRAIN_VERSION");
+    expect(dockerfile).toContain("$SITE_PACKAGES");
     expect(dockerfile).toContain("EXPOSE 8080");
     expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
 
@@ -679,6 +726,43 @@ describe("initPilotRepo", () => {
       "BRAIN_VERSION=0.1.1-alpha.14\n",
     );
     const currentSha = commitAll(repo, "add alice env");
+    await writeFile(outputPath, "");
+
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: beforeSha,
+          GITHUB_SHA: currentSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    const output = await readFile(outputPath, "utf8");
+    expect(output).toContain('handles_json=["alice"]');
+  });
+
+  it("resolve-deploy-handles returns changed handles for user registry changes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    initializeGitRepo(repo);
+    const beforeSha = commitAll(repo, "initial");
+
+    await writeFile(
+      join(repo, "users", "alice.yaml"),
+      `handle: alice\ndiscord:\n  enabled: false\nsiteOverride:\n  package: "@rizom/site-docs"\n  version: 0.2.0-alpha.136\n`,
+    );
+    const currentSha = commitAll(repo, "update alice site package");
     await writeFile(outputPath, "");
 
     execFileSync(

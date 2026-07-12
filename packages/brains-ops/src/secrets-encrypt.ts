@@ -8,22 +8,29 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { z } from "@brains/utils/zod";
 import { toYaml } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";
 
-const encryptedUserSecretsSchema = z
-  .object({
-    gitSyncToken: z.string().min(1).optional(),
-    discordBotToken: z.string().min(1).optional(),
-    aiApiKey: z.string().min(1).optional(),
-    atprotoAppPassword: z.string().min(1).optional(),
-  })
-  .strict();
+const encryptedUserSecretsSchema: z.ZodObject<{
+  gitSyncToken: z.ZodOptional<z.ZodString>;
+  discordBotToken: z.ZodOptional<z.ZodString>;
+  aiApiKey: z.ZodOptional<z.ZodString>;
+  atprotoAppPassword: z.ZodOptional<z.ZodString>;
+  certificatePem: z.ZodOptional<z.ZodString>;
+  privateKeyPem: z.ZodOptional<z.ZodString>;
+}> = z.strictObject({
+  gitSyncToken: z.string().min(1).optional(),
+  discordBotToken: z.string().min(1).optional(),
+  aiApiKey: z.string().min(1).optional(),
+  atprotoAppPassword: z.string().min(1).optional(),
+  certificatePem: z.string().min(1).optional(),
+  privateKeyPem: z.string().min(1).optional(),
+});
 
-export type EncryptedUserSecrets = z.infer<typeof encryptedUserSecretsSchema>;
+export type EncryptedUserSecrets = z.output<typeof encryptedUserSecretsSchema>;
 
 export interface SecretsEncryptOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -89,6 +96,7 @@ export async function encryptPilotSecrets(
         await writePlaintextSecretsTemplate(plaintextPath, templateKeys);
         throw new Error(
           `Missing required secrets for ${handle}. Created ${plaintextDisplayPath}; fill it in and rerun secrets:encrypt. ${error.message}`,
+          { cause: error },
         );
       }
     }
@@ -198,12 +206,32 @@ function buildEncryptedUserSecrets(
     "atprotoAppPassword",
     "ATPROTO_APP_PASSWORD",
   );
+  const certificatePem = resolveOptionalSecretValue(
+    rootDir,
+    env,
+    localEnvValues,
+    plaintextSecrets,
+    existingSecrets,
+    "certificatePem",
+    "CERTIFICATE_PEM",
+  );
+  const privateKeyPem = resolveOptionalSecretValue(
+    rootDir,
+    env,
+    localEnvValues,
+    plaintextSecrets,
+    existingSecrets,
+    "privateKeyPem",
+    "PRIVATE_KEY_PEM",
+  );
 
   return encryptedUserSecretsSchema.parse({
     ...(aiApiKey ? { aiApiKey } : {}),
     ...(gitSyncToken ? { gitSyncToken } : {}),
     ...(discordBotToken ? { discordBotToken } : {}),
     ...(atprotoAppPassword ? { atprotoAppPassword } : {}),
+    ...(certificatePem ? { certificatePem } : {}),
+    ...(privateKeyPem ? { privateKeyPem } : {}),
   });
 }
 

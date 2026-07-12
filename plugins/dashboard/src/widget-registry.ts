@@ -1,9 +1,5 @@
 import type { ComponentType } from "preact";
-import {
-  PermissionService,
-  UserPermissionLevelSchema,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+import { PermissionService, type UserPermissionLevel } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
@@ -15,6 +11,11 @@ export interface WidgetComponentProps {
 
 export type WidgetComponent = ComponentType<WidgetComponentProps>;
 export type WidgetDataProvider = () => Promise<unknown>;
+/** Derives live digest lines / operator counts from the widget's fetched data. */
+export type WidgetDigestProvider = (data: unknown) => {
+  digest?: DashboardDigestLine[];
+  needsOperator?: number;
+};
 export type WidgetVisibility = UserPermissionLevel;
 
 export const BUILT_IN_WIDGET_RENDERERS = [
@@ -31,6 +32,8 @@ export type BuiltInWidgetRendererName =
   (typeof BUILT_IN_WIDGET_RENDERERS)[number];
 
 const builtInWidgetRendererSet = new Set<string>(BUILT_IN_WIDGET_RENDERERS);
+const widgetVisibilitySchema: z.ZodType<WidgetVisibility, WidgetVisibility> =
+  z.enum(["public", "trusted", "anchor"]);
 
 export function isBuiltInWidgetRenderer(
   rendererName: string,
@@ -38,28 +41,78 @@ export function isBuiltInWidgetRenderer(
   return builtInWidgetRendererSet.has(rendererName);
 }
 
-export const dashboardWidgetSchema = z.object({
+export type DashboardWidgetSection = "primary" | "secondary" | "sidebar";
+
+export interface DashboardDigestLine {
+  label: string;
+  value: string;
+  tone?: "plain" | "good" | "warn" | undefined;
+}
+
+export const dashboardDigestLineSchema: z.ZodType<
+  DashboardDigestLine,
+  DashboardDigestLine
+> = z.object({
+  label: z.string(),
+  value: z.string(),
+  tone: z.enum(["plain", "good", "warn"]).optional(),
+});
+
+export interface DashboardWidgetMeta {
+  id: string;
+  pluginId: string;
+  title: string;
+  description?: string | undefined;
+  group: string;
+  priority: number;
+  section: DashboardWidgetSection;
+  rendererName: string;
+  visibility: WidgetVisibility;
+  needsOperator?: number | undefined;
+  digest?: DashboardDigestLine[] | undefined;
+}
+
+export interface DashboardWidgetInput {
+  id: string;
+  pluginId: string;
+  title: string;
+  description?: string | undefined;
+  group: string;
+  priority?: number | undefined;
+  section?: DashboardWidgetSection | undefined;
+  rendererName: string;
+  visibility?: WidgetVisibility | undefined;
+  needsOperator?: number | undefined;
+  digest?: DashboardDigestLine[] | undefined;
+}
+
+export const dashboardWidgetSchema: z.ZodType<
+  DashboardWidgetMeta,
+  DashboardWidgetInput
+> = z.object({
   id: z.string(),
   pluginId: z.string(),
   title: z.string(),
   description: z.string().optional(),
+  group: z.string().min(1),
   priority: z.number().default(50),
   section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
   rendererName: z.string(),
-  visibility: UserPermissionLevelSchema.default("public"),
+  visibility: widgetVisibilitySchema.default("public"),
+  needsOperator: z.number().int().nonnegative().optional(),
+  digest: z.array(dashboardDigestLineSchema).max(4).optional(),
 });
-
-export type DashboardWidgetMeta = z.infer<typeof dashboardWidgetSchema>;
-export type DashboardWidgetInput = z.input<typeof dashboardWidgetSchema>;
 
 export interface RegisteredWidget extends DashboardWidgetInput {
   dataProvider: WidgetDataProvider;
+  digestProvider?: WidgetDigestProvider;
   component?: WidgetComponent;
   clientScript?: string;
 }
 
 export interface StoredRegisteredWidget extends DashboardWidgetMeta {
   dataProvider: WidgetDataProvider;
+  digestProvider?: WidgetDigestProvider;
   component?: WidgetComponent;
   clientScript?: string;
 }
@@ -73,9 +126,15 @@ export class DashboardWidgetRegistry {
   }
 
   register(widget: RegisteredWidget): void {
+    const parsedWidget = dashboardWidgetSchema.parse(widget);
     const normalizedWidget: StoredRegisteredWidget = {
-      ...widget,
-      ...dashboardWidgetSchema.parse(widget),
+      ...parsedWidget,
+      dataProvider: widget.dataProvider,
+      ...(widget.digestProvider
+        ? { digestProvider: widget.digestProvider }
+        : {}),
+      ...(widget.component ? { component: widget.component } : {}),
+      ...(widget.clientScript ? { clientScript: widget.clientScript } : {}),
     };
     const key = `${normalizedWidget.pluginId}:${normalizedWidget.id}`;
     this.widgets.set(key, normalizedWidget);
@@ -83,6 +142,7 @@ export class DashboardWidgetRegistry {
       key,
       title: normalizedWidget.title,
       rendererName: normalizedWidget.rendererName,
+      group: normalizedWidget.group,
     });
   }
 

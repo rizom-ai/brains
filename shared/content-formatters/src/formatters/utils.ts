@@ -1,15 +1,17 @@
+import { z } from "@brains/utils/zod";
+
 /**
  * Type-safe property access utilities
  */
+
+const recordSchema = z.record(z.string(), z.unknown());
 
 /**
  * Safely get a property from an unknown object
  */
 export function getProp(obj: unknown, key: string): unknown {
-  if (typeof obj === "object" && obj !== null && key in obj) {
-    return (obj as Record<string, unknown>)[key];
-  }
-  return undefined;
+  const parsed = recordSchema.safeParse(obj);
+  return parsed.success ? parsed.data[key] : undefined;
 }
 
 /**
@@ -64,7 +66,6 @@ export function getArrayProp<T = unknown>(
  * Check if object has all specified properties
  */
 export function hasProps(obj: unknown, keys: string[]): boolean {
-  if (typeof obj !== "object" || obj === null) return false;
-  const record = obj as Record<string, unknown>;
-  return keys.every((key) => key in record);
+  const parsed = recordSchema.safeParse(obj);
+  return parsed.success && keys.every((key) => key in parsed.data);
 }

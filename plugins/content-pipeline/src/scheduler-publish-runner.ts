@@ -17,10 +17,13 @@ export interface PublishScheduleRunnerDeps {
  * ContentScheduler owns the public API and delegates queue processing here.
  */
 export class PublishScheduleRunner {
+  private readonly deps: PublishScheduleRunnerDeps;
   private publishJobs: Map<string, ScheduledJob> = new Map();
   private immediateIntervalJob: ScheduledJob | null = null;
 
-  constructor(private readonly deps: PublishScheduleRunnerDeps) {}
+  constructor(deps: PublishScheduleRunnerDeps) {
+    this.deps = deps;
+  }
 
   public start(): void {
     for (const [entityType, cronExpr] of Object.entries(this.entitySchedules)) {

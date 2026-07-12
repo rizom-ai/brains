@@ -6,7 +6,7 @@ import {
   canExposePrompt,
   canExposeResource,
   canExposeResourceTemplate,
-  canExposeTool,
+  canExposeToolOnProtocol,
   createMcpServerInstance,
   filterToolsForPermission,
   registerPromptOnServer,
@@ -20,6 +20,7 @@ import {
 } from "./mcp-registration";
 import type {
   IMCPService,
+  MCPProtocolMode,
   Prompt,
   Resource,
   ResourceTemplate,
@@ -47,8 +48,9 @@ export class MCPService implements IMCPService {
   // Track plugin instructions for agent system prompt
   private readonly pluginInstructions = new Map<string, string>();
 
-  // Default permission level for the service
+  // Default permission level and external protocol mode for the service
   private permissionLevel: UserPermissionLevel = "anchor";
+  private protocolMode: MCPProtocolMode = "basic";
 
   /**
    * Get the singleton instance of MCPService
@@ -105,6 +107,7 @@ export class MCPService implements IMCPService {
     this.registerEntriesOnServer(
       server,
       permissionLevel ?? this.permissionLevel,
+      this.protocolMode,
     );
     return server;
   }
@@ -115,8 +118,26 @@ export class MCPService implements IMCPService {
   public setPermissionLevel(level: UserPermissionLevel): void {
     this.permissionLevel = level;
     this.mcpServer = createMcpServerInstance();
-    this.registerEntriesOnServer(this.mcpServer, this.permissionLevel);
+    this.registerEntriesOnServer(
+      this.mcpServer,
+      this.permissionLevel,
+      this.protocolMode,
+    );
     this.logger.debug(`Permission level set to ${level}`);
+  }
+
+  /**
+   * Select which tools are exposed on the external MCP protocol server.
+   */
+  public setProtocolMode(mode: MCPProtocolMode): void {
+    this.protocolMode = mode;
+    this.mcpServer = createMcpServerInstance();
+    this.registerEntriesOnServer(
+      this.mcpServer,
+      this.permissionLevel,
+      this.protocolMode,
+    );
+    this.logger.debug(`MCP protocol mode set to ${mode}`);
   }
 
   /**
@@ -139,7 +160,13 @@ export class MCPService implements IMCPService {
     });
 
     // Only expose on the MCP protocol server if transport permission allows.
-    if (canExposeTool(this.permissionLevel, validatedTool)) {
+    if (
+      canExposeToolOnProtocol(
+        this.permissionLevel,
+        validatedTool,
+        this.protocolMode,
+      )
+    ) {
       this.registerToolOnServer(
         this.mcpServer,
         pluginId,
@@ -249,9 +276,10 @@ export class MCPService implements IMCPService {
   private registerEntriesOnServer(
     server: McpServer,
     permissionLevel: UserPermissionLevel,
+    protocolMode: MCPProtocolMode,
   ): void {
     for (const { pluginId, tool } of this.registeredTools.values()) {
-      if (canExposeTool(permissionLevel, tool)) {
+      if (canExposeToolOnProtocol(permissionLevel, tool, protocolMode)) {
         this.registerToolOnServer(server, pluginId, tool, permissionLevel);
       }
     }

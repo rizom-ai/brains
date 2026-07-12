@@ -1,4 +1,5 @@
 import { BaseEntityAdapter } from "@brains/entity-service";
+import { z } from "@brains/utils/zod";
 import {
   brainCharacterSchema,
   brainCharacterBodySchema,
@@ -6,11 +7,17 @@ import {
   type BrainCharacter,
 } from "./brain-character-schema";
 
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+
 /**
  * Entity adapter for Brain Character entities
  * Uses frontmatter format for CMS compatibility
  */
-export class BrainCharacterAdapter extends BaseEntityAdapter<BrainCharacterEntity> {
+export class BrainCharacterAdapter extends BaseEntityAdapter<
+  BrainCharacterEntity,
+  Record<string, unknown>,
+  BrainCharacter
+> {
   constructor() {
     super({
       entityType: "brain-character",
@@ -38,7 +45,7 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<BrainCharacterEntit
    * Parse character body from content
    */
   public parseCharacterBody(content: string): BrainCharacter {
-    return this.parseFrontmatter(content) as BrainCharacter;
+    return this.parseFrontmatter(content);
   }
 
   /**
@@ -46,7 +53,7 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<BrainCharacterEntit
    */
   public override toMarkdown(entity: BrainCharacterEntity): string {
     const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", data as Record<string, unknown>);
+    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 
   /**
@@ -65,7 +72,7 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<BrainCharacterEntit
   public override extractMetadata(
     entity: BrainCharacterEntity,
   ): Record<string, unknown> {
-    const data = this.parseFrontmatter(entity.content) as BrainCharacter;
+    const data = this.parseFrontmatter(entity.content);
     return {
       role: data.role,
       values: data.values,
@@ -77,6 +84,6 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<BrainCharacterEntit
    */
   public override generateFrontMatter(entity: BrainCharacterEntity): string {
     const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", data as Record<string, unknown>);
+    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 }

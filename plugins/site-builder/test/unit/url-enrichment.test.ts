@@ -211,7 +211,7 @@ describe("SiteBuilder - URL Enrichment", () => {
           id: z.string(),
           entityType: z.string(),
           content: z.string(),
-          metadata: z.record(z.unknown()),
+          metadata: z.record(z.string(), z.unknown()),
           frontmatter: z.object({ title: z.string() }),
           body: z.string(),
           url: z.string(),

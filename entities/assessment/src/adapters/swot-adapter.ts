@@ -43,4 +43,4 @@ export class SwotAdapter extends BaseEntityAdapter<SwotEntity, SwotMetadata> {
   }
 }
 
-export const swotAdapter = new SwotAdapter();
+export const swotAdapter: SwotAdapter = new SwotAdapter();

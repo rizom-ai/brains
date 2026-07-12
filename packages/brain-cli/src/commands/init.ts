@@ -155,7 +155,7 @@ function writeReconcilableScaffoldFile(options: {
   path: string;
   content: string;
   executable?: boolean;
-  legacyContents?: string[];
+  legacyContents?: readonly string[];
   shouldReconcile?: (current: string) => boolean;
   regen?: boolean;
 }): void {

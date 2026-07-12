@@ -13,9 +13,12 @@ export interface GenerationScheduleRunnerDeps {
  * ContentScheduler owns the public API and delegates generation jobs here.
  */
 export class GenerationScheduleRunner {
+  private readonly deps: GenerationScheduleRunnerDeps;
   private generationJobs: Map<string, ScheduledJob> = new Map();
 
-  constructor(private readonly deps: GenerationScheduleRunnerDeps) {}
+  constructor(deps: GenerationScheduleRunnerDeps) {
+    this.deps = deps;
+  }
 
   public start(): void {
     for (const [entityType, cronExpr] of Object.entries(

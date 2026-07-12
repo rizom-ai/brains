@@ -1,25 +1,37 @@
-import { z } from "@brains/utils/zod";
-import { slugify } from "@brains/utils/string-utils";
+import { baseEntityParserSchema } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
-import { baseEntitySchema } from "@brains/plugins";
+import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 
 /**
  * Newsletter status enum
  */
-export const newsletterStatusSchema = z.enum([
-  "generating",
-  "draft",
-  "queued",
-  "published",
-  "failed",
-]);
-export type NewsletterStatus = z.infer<typeof newsletterStatusSchema>;
+export type NewsletterStatus =
+  "generating" | "draft" | "queued" | "published" | "failed";
+
+export const newsletterStatusSchema: z.ZodType<
+  NewsletterStatus,
+  NewsletterStatus
+> = z.enum(["generating", "draft", "queued", "published", "failed"]);
+
+const newsletterStatusParserSchema: z.ZodType<
+  NewsletterStatus,
+  NewsletterStatus
+> = z.enum(["generating", "draft", "queued", "published", "failed"]);
 
 /**
  * Newsletter frontmatter schema (stored in content as YAML frontmatter)
  * Contains all structured data — the body is the newsletter content
  */
-export const newsletterFrontmatterSchema = z.object({
+export const newsletterFrontmatterSchema: z.ZodObject<{
+  subject: z.ZodString;
+  status: z.ZodType<NewsletterStatus, NewsletterStatus>;
+  entityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  scheduledFor: z.ZodOptional<z.ZodString>;
+  sentAt: z.ZodOptional<z.ZodString>;
+  buttondownId: z.ZodOptional<z.ZodString>;
+  sourceEntityType: z.ZodOptional<z.ZodString>;
+}> = z.object({
   subject: z.string(),
   status: newsletterStatusSchema,
   entityIds: z.array(z.string()).optional(),
@@ -29,37 +41,69 @@ export const newsletterFrontmatterSchema = z.object({
   sourceEntityType: z.string().optional(),
 });
 
-export type NewsletterFrontmatter = z.infer<typeof newsletterFrontmatterSchema>;
+export type NewsletterFrontmatter = z.output<
+  typeof newsletterFrontmatterSchema
+>;
 
 /**
  * Newsletter metadata schema - derived from frontmatter
- * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const newsletterMetadataSchema = newsletterFrontmatterSchema
-  .pick({
-    subject: true,
-    status: true,
-    entityIds: true,
-    scheduledFor: true,
-    sentAt: true,
-    buttondownId: true,
-    sourceEntityType: true,
-  })
-  .extend({
-    error: z.string().optional(),
-  });
+export const newsletterMetadataSchema: z.ZodObject<{
+  subject: z.ZodString;
+  status: z.ZodType<NewsletterStatus, NewsletterStatus>;
+  entityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  scheduledFor: z.ZodOptional<z.ZodString>;
+  sentAt: z.ZodOptional<z.ZodString>;
+  buttondownId: z.ZodOptional<z.ZodString>;
+  sourceEntityType: z.ZodOptional<z.ZodString>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  subject: z.string(),
+  status: newsletterStatusSchema,
+  entityIds: z.array(z.string()).optional(),
+  scheduledFor: z.string().datetime().optional(),
+  sentAt: z.string().datetime().optional(),
+  buttondownId: z.string().optional(),
+  sourceEntityType: z.string().optional(),
+  error: z.string().optional(),
+});
 
-export type NewsletterMetadata = z.infer<typeof newsletterMetadataSchema>;
+export type NewsletterMetadata = z.output<typeof newsletterMetadataSchema>;
+
+const newsletterEntityMetadataParserSchema: z.ZodObject<{
+  subject: z.ZodString;
+  status: z.ZodType<NewsletterStatus, NewsletterStatus>;
+  entityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  scheduledFor: z.ZodOptional<z.ZodString>;
+  sentAt: z.ZodOptional<z.ZodString>;
+  buttondownId: z.ZodOptional<z.ZodString>;
+  sourceEntityType: z.ZodOptional<z.ZodString>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  subject: z.string(),
+  status: newsletterStatusParserSchema,
+  entityIds: z.array(z.string()).optional(),
+  scheduledFor: z.string().datetime().optional(),
+  sentAt: z.string().datetime().optional(),
+  buttondownId: z.string().optional(),
+  sourceEntityType: z.string().optional(),
+  error: z.string().optional(),
+});
 
 /**
  * Newsletter entity schema
  */
-export const newsletterSchema = baseEntitySchema.extend({
+export const newsletterSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"newsletter">;
+    metadata: typeof newsletterEntityMetadataParserSchema;
+  }>
+> = baseEntityParserSchema.extend({
   entityType: z.literal("newsletter"),
-  metadata: newsletterMetadataSchema,
+  metadata: newsletterEntityMetadataParserSchema,
 });
 
-export type Newsletter = z.infer<typeof newsletterSchema>;
+export type Newsletter = z.output<typeof newsletterSchema>;
 
 /**
  * Input for creating a newsletter
@@ -91,8 +135,10 @@ export function createNewsletter(input: CreateNewsletterInput): Newsletter {
     metadata: {
       subject: input.subject,
       status: input.status ?? "draft",
-      entityIds: input.entityIds,
-      scheduledFor: input.scheduledFor,
+      ...(input.entityIds !== undefined ? { entityIds: input.entityIds } : {}),
+      ...(input.scheduledFor !== undefined
+        ? { scheduledFor: input.scheduledFor }
+        : {}),
     },
   });
 }

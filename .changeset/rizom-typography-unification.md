@@ -13,7 +13,7 @@ during early-alpha iteration. Sites can still override locally for pull-quote
 treatments via `[font-variation-settings:'wght'_380]`.
 
 Also drops the `ProductCard` / `ProductIllustration` exports from `@rizom/ui`
-(and the matching re-exports from `@brains/site-rizom`). The product-card
+(and the matching re-exports from `@rizom/site-rizom`). The product-card
 treatment turned out to be rizom.ai-specific in both layout and tone, so the
 component now lives locally inside the rizom.ai repo. Other sites in the
 ecosystem don't render product cards.

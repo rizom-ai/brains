@@ -362,21 +362,19 @@ describe("atproto plugin", () => {
       cid: "bafytestcard",
       value: createTestBrainCardRecord(),
     }));
-    const createPdsClient = mock(
-      (): AtprotoPdsClientLike => ({
-        createSession: mock(async () => ({
-          did: "did:plc:unused",
-          handle: "unused.example.com",
-          accessJwt: "access-token",
-          refreshJwt: "refresh-token",
-        })),
-        createRecord: mock(async () => ({
-          uri: "at://repo/record",
-          cid: "cid",
-        })),
-        getRecord,
-      }),
-    );
+    const createPdsClient = mock((): AtprotoPdsClientLike => ({
+      createSession: mock(async () => ({
+        did: "did:plc:unused",
+        handle: "unused.example.com",
+        accessJwt: "access-token",
+        refreshJwt: "refresh-token",
+      })),
+      createRecord: mock(async () => ({
+        uri: "at://repo/record",
+        cid: "cid",
+      })),
+      getRecord,
+    }));
     const plugin = new AtprotoPlugin(
       { pdsEndpoint: "https://fallback-pds.example.com" },
       {

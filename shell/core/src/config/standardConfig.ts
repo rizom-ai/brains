@@ -17,12 +17,15 @@ export interface StandardConfig {
   };
 }
 
-export function createStandardPaths(
-  env: NodeJS.ProcessEnv = process.env,
-): StandardPaths {
+/**
+ * Fixed relative defaults. Core never reads the environment — the
+ * app/deploy layer resolves XDG paths and passes explicit config in
+ * (see `resolveStandardPaths` in `@brains/app`).
+ */
+export function createStandardPaths(): StandardPaths {
   return {
-    dataDir: env["XDG_DATA_HOME"] ?? "./data",
-    cacheDir: env["XDG_CACHE_HOME"] ?? "./cache",
+    dataDir: "./data",
+    cacheDir: "./cache",
     distDir: "./dist",
   };
 }

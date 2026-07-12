@@ -5,6 +5,7 @@ export type {
   ToolContext,
   ToolResponse,
   Tool,
+  MCPProtocolMode,
   Resource,
   ResourceTemplate,
   Prompt,

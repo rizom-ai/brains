@@ -12,7 +12,10 @@ import { PublishExecutor } from "./publish-executor";
 import { PublishAssetRegistry } from "./publish-assets";
 import { PublishAssetPreflight } from "./publish-asset-preflight";
 import type { ContentScheduler } from "./scheduler";
-import type { ContentPipelineConfig } from "./types/config";
+import type {
+  ContentPipelineConfig,
+  ContentPipelineConfigInput,
+} from "./types/config";
 import { contentPipelineConfigSchema } from "./types/config";
 import { subscribeToMessages } from "./lib/message-handlers";
 import { createScheduler } from "./lib/create-scheduler";
@@ -20,7 +23,10 @@ import { rebuildQueueFromEntities } from "./lib/queue-rebuild";
 import { registerDashboardWidget } from "./lib/dashboard-widget";
 import packageJson from "../package.json";
 
-export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> {
+export class ContentPipelinePlugin extends ServicePlugin<
+  ContentPipelineConfig,
+  ContentPipelineConfigInput
+> {
   private pluginContext?: ServicePluginContext;
   private queueManager!: QueueManager;
   private providerRegistry!: ProviderRegistry;
@@ -30,13 +36,8 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   private publishAssetPreflight!: PublishAssetPreflight;
   private scheduler!: ContentScheduler;
 
-  constructor(config?: Partial<ContentPipelineConfig>) {
-    super(
-      "content-pipeline",
-      packageJson,
-      config ?? {},
-      contentPipelineConfigSchema,
-    );
+  constructor(config: ContentPipelineConfigInput = {}) {
+    super("content-pipeline", packageJson, config, contentPipelineConfigSchema);
   }
 
   protected override async onRegister(
@@ -154,7 +155,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
 }
 
 export function contentPipelinePlugin(
-  config?: Partial<ContentPipelineConfig>,
+  config: ContentPipelineConfigInput = {},
 ): ContentPipelinePlugin {
   return new ContentPipelinePlugin(config);
 }

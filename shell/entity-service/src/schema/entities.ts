@@ -5,14 +5,124 @@ import {
   integer,
   primaryKey,
   check,
+  type SQLiteColumn,
+  type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
+
+type EntityTextColumn<
+  TName extends string,
+  TNotNull extends boolean,
+  THasDefault extends boolean = false,
+  TData = string,
+  TEnumValues extends [string, ...string[]] = [string, ...string[]],
+> = SQLiteColumn<
+  {
+    name: TName;
+    tableName: "entities";
+    dataType: "string";
+    columnType: "SQLiteText";
+    data: TData;
+    driverParam: string;
+    notNull: TNotNull;
+    hasDefault: THasDefault;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: TEnumValues;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  },
+  Record<string, never>,
+  { length: number | undefined }
+>;
+
+type EntityIntegerColumn<
+  TName extends string,
+  THasDefault extends boolean,
+  THasRuntimeDefault extends boolean,
+> = SQLiteColumn<
+  {
+    name: TName;
+    tableName: "entities";
+    dataType: "number";
+    columnType: "SQLiteInteger";
+    data: number;
+    driverParam: number;
+    notNull: true;
+    hasDefault: THasDefault;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: THasRuntimeDefault;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  },
+  Record<string, never>,
+  Record<string, never>
+>;
+
+type EntityJsonColumn<
+  TName extends string,
+  TData,
+  THasDefault extends boolean,
+  TExtraConfig extends object,
+> = SQLiteColumn<
+  {
+    name: TName;
+    tableName: "entities";
+    dataType: "json";
+    columnType: "SQLiteTextJson";
+    data: TData;
+    driverParam: string;
+    notNull: true;
+    hasDefault: THasDefault;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  },
+  Record<string, never>,
+  TExtraConfig
+>;
+
+type EntitiesTable = SQLiteTableWithColumns<{
+  name: "entities";
+  schema: undefined;
+  columns: {
+    id: EntityTextColumn<"id", true>;
+    entityType: EntityTextColumn<"entityType", true>;
+    content: EntityTextColumn<"content", true>;
+    contentHash: EntityTextColumn<"contentHash", true>;
+    visibility: EntityTextColumn<
+      "visibility",
+      true,
+      true,
+      "public" | "shared" | "restricted",
+      ["public", "shared", "restricted"]
+    >;
+    metadata: EntityJsonColumn<
+      "metadata",
+      Record<string, unknown>,
+      true,
+      { $type: Record<string, unknown> }
+    >;
+    created: EntityIntegerColumn<"created", true, true>;
+    updated: EntityIntegerColumn<"updated", true, true>;
+  };
+  dialect: "sqlite";
+}>;
 
 /**
  * Main entities table for entity data
  * Embeddings are stored separately in the embeddings table
  * to allow immediate entity persistence while embeddings are generated async
  */
-export const entities = sqliteTable(
+export const entities: EntitiesTable = sqliteTable(
   "entities",
   {
     // Core fields

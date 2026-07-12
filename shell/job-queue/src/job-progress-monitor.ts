@@ -1,24 +1,28 @@
-import { ProgressReporter } from "@brains/utils/progress";
 import type { Logger } from "@brains/utils/logger";
+import { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import type {
   IJobProgressMonitor,
   ProgressNotification,
 } from "@brains/utils/progress";
 import type { MessageBus } from "@brains/messaging-service";
-import type {
-  IBatchJobManager,
-  IJobQueueService,
-  JobContext,
-  JobInfo,
-} from "./types";
+import type { IBatchJobManager, IJobQueueService, JobInfo } from "./types";
+import { JobContextSchema, type JobContext } from "./schema/types";
 import type { BatchJobStatus } from "./batch-schemas";
-import type { z } from "@brains/utils/zod";
 import type { JobProgressEventSchema } from "./schemas";
+
+const jobResultRecordSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    return JSON.parse(value);
+  },
+  z.record(z.string(), z.unknown()),
+);
 
 /**
  * Progress event emitted by the monitor
  */
-export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;
+export type JobProgressEvent = z.output<typeof JobProgressEventSchema>;
 
 /**
  * Simplified service that emits job and batch progress events
@@ -27,6 +31,10 @@ export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;
  * without complex polling or state tracking.
  */
 export class JobProgressMonitor implements IJobProgressMonitor {
+  private jobQueueService: IJobQueueService;
+  private messageBus: MessageBus;
+  private batchJobManager: IBatchJobManager;
+  private logger: Logger;
   private static instance: JobProgressMonitor | null = null;
 
   /**
@@ -75,11 +83,16 @@ export class JobProgressMonitor implements IJobProgressMonitor {
    * Private constructor to enforce singleton pattern
    */
   private constructor(
-    private jobQueueService: IJobQueueService,
-    private messageBus: MessageBus,
-    private batchJobManager: IBatchJobManager,
-    private logger: Logger,
-  ) {}
+    jobQueueService: IJobQueueService,
+    messageBus: MessageBus,
+    batchJobManager: IBatchJobManager,
+    logger: Logger,
+  ) {
+    this.jobQueueService = jobQueueService;
+    this.messageBus = messageBus;
+    this.batchJobManager = batchJobManager;
+    this.logger = logger;
+  }
 
   /**
    * Start monitoring - now a no-op since we're event-driven
@@ -293,13 +306,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     }
 
     try {
-      const result =
-        typeof job.result === "string" ? JSON.parse(job.result) : job.result;
-      if (result.message) {
-        return result.message;
+      const result = jobResultRecordSchema.parse(job.result);
+      const message = result["message"];
+      if (message) {
+        return String(message);
       }
-      if (result.routesBuilt !== undefined) {
-        return `${result.routesBuilt} routes built`;
+      const routesBuilt = result["routesBuilt"];
+      if (routesBuilt !== undefined) {
+        return `${routesBuilt} routes built`;
       }
     } catch {
       // Ignore parsing errors
@@ -326,28 +340,35 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   public async handleJobStatusChange(
     jobId: string,
     status: "completed" | "failed",
-    metadata?: JobContext,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
-    if (metadata?.silent) {
+    const parsedMetadata = metadata
+      ? JobContextSchema.safeParse(metadata)
+      : undefined;
+    const jobMetadata = parsedMetadata?.success
+      ? parsedMetadata.data
+      : undefined;
+
+    if (jobMetadata?.silent) {
       return;
     }
 
     try {
       await this.emitJobStatusEvent(jobId, status);
 
-      if (metadata && this.isBatchChild(jobId, metadata.rootJobId)) {
+      if (jobMetadata && this.isBatchChild(jobId, jobMetadata.rootJobId)) {
         try {
-          const rootJobId = metadata.rootJobId;
+          const rootJobId = jobMetadata.rootJobId;
           const batchStatus =
             await this.batchJobManager.getBatchStatus(rootJobId);
           if (batchStatus) {
-            const batchMetadata = batchStatus.metadata ?? metadata;
+            const batchMetadata = batchStatus.metadata ?? jobMetadata;
             await this.emitBatchProgress(rootJobId, batchStatus, batchMetadata);
           }
         } catch (error) {
           this.logger.warn("Failed to emit batch progress", {
             jobId,
-            rootJobId: metadata.rootJobId,
+            rootJobId: jobMetadata.rootJobId,
             error,
           });
         }

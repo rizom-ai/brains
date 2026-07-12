@@ -125,6 +125,7 @@ describe("registerDecisionsWidget", () => {
       id: "conversation-memory:decisions",
       pluginId: "conversation-memory",
       title: "Recent decisions",
+      group: "knowledge",
       section: "secondary",
       priority: 30,
       rendererName: "ListWidget",

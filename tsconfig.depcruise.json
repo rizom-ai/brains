@@ -7,7 +7,6 @@
   // so the repo-wide `@/` conventions are mirrored here. Not used by tsc builds.
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       // interfaces/web-chat maps `@/*` to its package root (ui-react imports).
       "@/ui-react/*": ["interfaces/web-chat/ui-react/*"],

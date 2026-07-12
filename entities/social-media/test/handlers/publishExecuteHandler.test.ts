@@ -204,7 +204,8 @@ describe("PublishExecuteHandler", () => {
     };
 
     const config: PublishExecuteHandlerConfig = {
-      sendMessage: (request) => messageSender.sendMessage(request),
+      sendMessage: (request): ReturnType<typeof messageSender.sendMessage> =>
+        messageSender.sendMessage(request),
       logger,
       entityService,
       providers,

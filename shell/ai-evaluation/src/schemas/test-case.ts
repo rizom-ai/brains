@@ -1,36 +1,51 @@
 import { z } from "@brains/utils/zod";
-import { UserPermissionLevelSchema } from "@brains/templates";
-import { ChatContextSchema } from "@brains/plugins";
+
+export type AgentTestCaseType =
+  "tool_invocation" | "response_quality" | "multi_turn";
 
 /**
  * Agent test case types (chat-based)
  */
-export const agentTestCaseTypeSchema = z.enum([
+export const agentTestCaseTypeSchema: z.ZodEnum<{
+  tool_invocation: "tool_invocation";
+  response_quality: "response_quality";
+  multi_turn: "multi_turn";
+}> = z.enum([
   "tool_invocation", // Verifies correct tool calls
   "response_quality", // LLM-as-judge scoring
   "multi_turn", // Multi-message conversations
 ]);
 
-export type AgentTestCaseType = z.infer<typeof agentTestCaseTypeSchema>;
+export type TestCaseType = AgentTestCaseType | "plugin";
 
 /**
  * All test case types including plugin
  */
-export const testCaseTypeSchema = z.enum([
+export const testCaseTypeSchema: z.ZodEnum<{
+  tool_invocation: "tool_invocation";
+  response_quality: "response_quality";
+  multi_turn: "multi_turn";
+  plugin: "plugin";
+}> = z.enum([
   "tool_invocation",
   "response_quality",
   "multi_turn",
   "plugin", // Direct plugin functionality testing
 ]);
 
-export type TestCaseType = z.infer<typeof testCaseTypeSchema>;
+export interface ExpectedToolCall {
+  toolName: string;
+  argsContain?: Record<string, unknown> | undefined;
+  argsAbsent?: string[] | undefined;
+  shouldBeCalled: boolean;
+}
 
 /**
  * Expected tool call definition
  */
-export const expectedToolCallSchema = z.object({
+export const expectedToolCallSchema: z.ZodType<ExpectedToolCall> = z.object({
   toolName: z.string(),
-  argsContain: z.record(z.unknown()).optional(),
+  argsContain: z.record(z.string(), z.unknown()).optional(),
   argsAbsent: z
     .array(z.string())
     .optional()
@@ -40,30 +55,48 @@ export const expectedToolCallSchema = z.object({
   shouldBeCalled: z.boolean().default(true),
 });
 
-export type ExpectedToolCall = z.infer<typeof expectedToolCallSchema>;
+export interface ExpectedAnyToolCall {
+  toolNames: string[];
+  argsContain?: Record<string, unknown> | undefined;
+  shouldBeCalled: boolean;
+}
 
-export const expectedAnyToolCallSchema = z.object({
-  toolNames: z.array(z.string()).min(1),
-  argsContain: z.record(z.unknown()).optional(),
-  shouldBeCalled: z.boolean().default(true),
-});
+export const expectedAnyToolCallSchema: z.ZodType<ExpectedAnyToolCall> =
+  z.object({
+    toolNames: z.array(z.string()).min(1),
+    argsContain: z.record(z.string(), z.unknown()).optional(),
+    shouldBeCalled: z.boolean().default(true),
+  });
 
-export type ExpectedAnyToolCall = z.infer<typeof expectedAnyToolCallSchema>;
+export interface ToolCountRange {
+  min?: number | undefined;
+  max?: number | undefined;
+}
 
 /**
  * Tool count range for efficiency checks
  */
-export const toolCountRangeSchema = z.object({
+export const toolCountRangeSchema: z.ZodType<ToolCountRange> = z.object({
   min: z.number().optional(),
   max: z.number().optional(),
 });
 
-export type ToolCountRange = z.infer<typeof toolCountRangeSchema>;
+export interface SuccessCriteria {
+  expectedTools?: ExpectedToolCall[] | undefined;
+  expectedAnyTool?: ExpectedAnyToolCall[] | undefined;
+  toolCountRange?: ToolCountRange | undefined;
+  responseContains?: string[] | undefined;
+  responseContainsAny?: string[][] | undefined;
+  responseNotContains?: string[] | undefined;
+  minHelpfulnessScore?: number | undefined;
+  minAccuracyScore?: number | undefined;
+  minInstructionFollowingScore?: number | undefined;
+}
 
 /**
  * Success criteria for evaluating test results
  */
-export const successCriteriaSchema = z.object({
+export const successCriteriaSchema: z.ZodType<SuccessCriteria> = z.object({
   // Tool-based criteria
   expectedTools: z.array(expectedToolCallSchema).optional(),
   expectedAnyTool: z.array(expectedAnyToolCallSchema).optional(),
@@ -80,14 +113,40 @@ export const successCriteriaSchema = z.object({
   minInstructionFollowingScore: z.number().min(0).max(5).optional(),
 });
 
-export type SuccessCriteria = z.infer<typeof successCriteriaSchema>;
+export interface EvalAttachmentSource {
+  kind: string;
+  id: string;
+}
 
-const evalAttachmentSourceSchema = z.object({
+type EvalAttachmentSourceSchema = z.ZodObject<{
+  kind: z.ZodString;
+  id: z.ZodString;
+}>;
+
+const evalAttachmentSourceSchema: EvalAttachmentSourceSchema = z.object({
   kind: z.string().min(1),
   id: z.string().min(1),
 });
 
-const evalTextAttachmentSchema = z.object({
+export interface EvalTextAttachment {
+  kind: "text";
+  filename: string;
+  mediaType: string;
+  content: string;
+  sizeBytes?: number | undefined;
+  source?: EvalAttachmentSource | undefined;
+}
+
+type EvalTextAttachmentSchema = z.ZodObject<{
+  kind: z.ZodLiteral<"text">;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  content: z.ZodString;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<EvalAttachmentSourceSchema>;
+}>;
+
+const evalTextAttachmentSchema: EvalTextAttachmentSchema = z.object({
   kind: z.literal("text"),
   filename: z.string().min(1),
   mediaType: z.string().min(1),
@@ -96,7 +155,25 @@ const evalTextAttachmentSchema = z.object({
   source: evalAttachmentSourceSchema.optional(),
 });
 
-const evalFileAttachmentSchema = z.object({
+export interface EvalFileAttachment {
+  kind: "file";
+  filename: string;
+  mediaType: string;
+  dataBase64: string;
+  sizeBytes?: number | undefined;
+  source?: EvalAttachmentSource | undefined;
+}
+
+type EvalFileAttachmentSchema = z.ZodObject<{
+  kind: z.ZodLiteral<"file">;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  dataBase64: z.ZodString;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<EvalAttachmentSourceSchema>;
+}>;
+
+const evalFileAttachmentSchema: EvalFileAttachmentSchema = z.object({
   kind: z.literal("file"),
   filename: z.string().min(1),
   mediaType: z.string().min(1),
@@ -105,23 +182,102 @@ const evalFileAttachmentSchema = z.object({
   source: evalAttachmentSourceSchema.optional(),
 });
 
-export const evalAttachmentSchema = z.discriminatedUnion("kind", [
+export type EvalAttachment = EvalTextAttachment | EvalFileAttachment;
+
+export const evalAttachmentSchema: z.ZodDiscriminatedUnion<
+  [EvalTextAttachmentSchema, EvalFileAttachmentSchema],
+  "kind"
+> = z.discriminatedUnion("kind", [
   evalTextAttachmentSchema,
   evalFileAttachmentSchema,
 ]);
 
-export type EvalAttachment = z.infer<typeof evalAttachmentSchema>;
+type UserPermissionLevel = "anchor" | "trusted" | "public";
+type MessageRole = "user" | "assistant";
 
-export const turnContextSchema = ChatContextSchema.omit({
-  attachments: true,
-}).partial();
+const userPermissionLevelSchema: z.ZodEnum<{
+  anchor: "anchor";
+  trusted: "trusted";
+  public: "public";
+}> = z.enum(["anchor", "trusted", "public"]);
 
-export type TurnContext = z.infer<typeof turnContextSchema>;
+const messageRoleSchema: z.ZodEnum<{
+  user: "user";
+  assistant: "assistant";
+}> = z.enum(["user", "assistant"]);
+
+export interface ConversationMessageActor {
+  actorId: string;
+  canonicalId?: string | undefined;
+  interfaceType: string;
+  role: MessageRole;
+  displayName?: string | undefined;
+  username?: string | undefined;
+  isBot?: boolean | undefined;
+}
+
+const conversationMessageActorSchema: z.ZodType<ConversationMessageActor> =
+  z.object({
+    actorId: z.string(),
+    canonicalId: z.string().optional(),
+    interfaceType: z.string(),
+    role: messageRoleSchema,
+    displayName: z.string().optional(),
+    username: z.string().optional(),
+    isBot: z.boolean().optional(),
+  });
+
+export interface ConversationMessageSource {
+  messageId?: string | undefined;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  threadId?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
+}
+
+const conversationMessageSourceSchema: z.ZodType<ConversationMessageSource> =
+  z.object({
+    messageId: z.string().optional(),
+    channelId: z.string().optional(),
+    channelName: z.string().optional(),
+    threadId: z.string().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  });
+
+export interface TurnContext {
+  userPermissionLevel?: UserPermissionLevel | undefined;
+  interfaceType?: string | undefined;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  actor?: ConversationMessageActor | undefined;
+  source?: ConversationMessageSource | undefined;
+}
+
+export const turnContextSchema: z.ZodType<TurnContext> = z
+  .object({
+    userPermissionLevel: userPermissionLevelSchema.optional(),
+    interfaceType: z.string().optional(),
+    channelId: z.string().optional(),
+    channelName: z.string().optional(),
+    actor: conversationMessageActorSchema.optional(),
+    source: conversationMessageSourceSchema.optional(),
+  })
+  .partial();
+
+export interface Turn {
+  userMessage: string;
+  confirmPendingAction?: boolean | undefined;
+  approvalId?: string | undefined;
+  attachments?: EvalAttachment[] | undefined;
+  reusePreviousAttachments?: boolean | undefined;
+  context?: TurnContext | undefined;
+  successCriteria?: SuccessCriteria | undefined;
+}
 
 /**
  * Single conversation turn
  */
-export const turnSchema = z.object({
+export const turnSchema: z.ZodType<Turn> = z.object({
   userMessage: z.string(),
   confirmPendingAction: z
     .boolean()
@@ -155,33 +311,47 @@ export const turnSchema = z.object({
   successCriteria: successCriteriaSchema.optional(),
 });
 
-export type Turn = z.infer<typeof turnSchema>;
+export interface TestSetup {
+  permissionLevel: UserPermissionLevel;
+  interfaceType?: string | undefined;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+}
 
 /**
  * Test setup configuration
  */
-export const testSetupSchema = z.object({
-  permissionLevel: UserPermissionLevelSchema.default("anchor"),
+export const testSetupSchema: z.ZodType<TestSetup> = z.object({
+  permissionLevel: userPermissionLevelSchema.default("anchor"),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
 });
 
-export type TestSetup = z.infer<typeof testSetupSchema>;
+export interface Efficiency {
+  maxTokens?: number | undefined;
+  maxToolCalls?: number | undefined;
+  maxSteps?: number | undefined;
+  maxDurationMs?: number | undefined;
+}
 
 /**
  * Efficiency expectations
  */
-export const efficiencySchema = z.object({
+export const efficiencySchema: z.ZodType<Efficiency> = z.object({
   maxTokens: z.number().optional(),
   maxToolCalls: z.number().optional(),
   maxSteps: z.number().optional(),
   maxDurationMs: z.number().optional(),
 });
 
-export type Efficiency = z.infer<typeof efficiencySchema>;
+export interface PermissionMatrix {
+  public?: SuccessCriteria | undefined;
+  trusted?: SuccessCriteria | undefined;
+  anchor?: SuccessCriteria | undefined;
+}
 
-export const permissionMatrixSchema = z
+export const permissionMatrixSchema: z.ZodType<PermissionMatrix> = z
   .object({
     public: successCriteriaSchema.optional(),
     trusted: successCriteriaSchema.optional(),
@@ -189,22 +359,50 @@ export const permissionMatrixSchema = z
   })
   .partial();
 
-export type PermissionMatrix = z.infer<typeof permissionMatrixSchema>;
+export interface BaseTestCase {
+  id: string;
+  name: string;
+  description?: string | undefined;
+  tags?: string[] | undefined;
+}
 
 /**
  * Base test case fields shared by all types
  */
-export const baseTestCaseSchema = z.object({
+export const baseTestCaseSchema: z.ZodObject<{
+  id: z.ZodString;
+  name: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}> = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
 });
 
+export interface AgentTestCase extends BaseTestCase {
+  type: AgentTestCaseType;
+  setup?: TestSetup | undefined;
+  turns: Turn[];
+  successCriteria: SuccessCriteria;
+  permissions?: PermissionMatrix | undefined;
+  efficiency?: Efficiency | undefined;
+}
+
 /**
  * Agent test case definition (chat-based evaluations)
  */
-export const agentTestCaseSchema = baseTestCaseSchema.extend({
+export const agentTestCaseSchema: ReturnType<
+  typeof baseTestCaseSchema.extend<{
+    type: typeof agentTestCaseTypeSchema;
+    setup: z.ZodOptional<typeof testSetupSchema>;
+    turns: z.ZodArray<typeof turnSchema>;
+    successCriteria: typeof successCriteriaSchema;
+    permissions: z.ZodOptional<typeof permissionMatrixSchema>;
+    efficiency: z.ZodOptional<typeof efficiencySchema>;
+  }>
+> = baseTestCaseSchema.extend({
   type: agentTestCaseTypeSchema,
 
   // Test setup
@@ -223,19 +421,28 @@ export const agentTestCaseSchema = baseTestCaseSchema.extend({
   efficiency: efficiencySchema.optional(),
 });
 
-export type AgentTestCase = z.infer<typeof agentTestCaseSchema>;
+export interface PathValidation {
+  path: string;
+  equals?: unknown;
+  matches?: string | undefined;
+  exists?: boolean | undefined;
+}
 
 /**
  * Validation check for a specific path in the output
  */
-export const pathValidationSchema = z.object({
+export const pathValidationSchema: z.ZodType<PathValidation> = z.object({
   path: z.string(), // JSONPath-like: "[0].sources[0].type"
   equals: z.unknown().optional(),
   matches: z.string().optional(), // Regex pattern
   exists: z.boolean().optional(),
 });
 
-export type PathValidation = z.infer<typeof pathValidationSchema>;
+export interface ItemsContain {
+  field: string;
+  pattern?: string | undefined;
+  words?: string[] | undefined;
+}
 
 /**
  * Content check for items in an array
@@ -243,7 +450,7 @@ export type PathValidation = z.infer<typeof pathValidationSchema>;
  * - `pattern`: Regex pattern for complex matching
  * - `words`: Array of words (auto-applies word boundaries)
  */
-export const itemsContainSchema = z
+export const itemsContainSchema: z.ZodType<ItemsContain> = z
   .object({
     field: z.string(),
     pattern: z.string().optional(), // Regex pattern
@@ -253,26 +460,41 @@ export const itemsContainSchema = z
     message: "Either 'pattern' or 'words' must be provided",
   });
 
-export type ItemsContain = z.infer<typeof itemsContainSchema>;
+export interface PluginQualityCriteria {
+  minRelevanceScore?: number | undefined;
+  minAccuracyScore?: number | undefined;
+  minCoverageScore?: number | undefined;
+  minQualityScore?: number | undefined;
+  evaluationPrompt?: string | undefined;
+}
 
 /**
  * Quality criteria for plugin tests (LLM-as-judge thresholds)
  */
-export const pluginQualityCriteriaSchema = z.object({
-  minRelevanceScore: z.number().min(0).max(5).optional(),
-  minAccuracyScore: z.number().min(0).max(5).optional(),
-  minCoverageScore: z.number().min(0).max(5).optional(),
-  minQualityScore: z.number().min(0).max(5).optional(),
-  // Custom evaluation prompt for context-aware and style checks
-  evaluationPrompt: z.string().optional(),
-});
+export const pluginQualityCriteriaSchema: z.ZodType<PluginQualityCriteria> =
+  z.object({
+    minRelevanceScore: z.number().min(0).max(5).optional(),
+    minAccuracyScore: z.number().min(0).max(5).optional(),
+    minCoverageScore: z.number().min(0).max(5).optional(),
+    minQualityScore: z.number().min(0).max(5).optional(),
+    // Custom evaluation prompt for context-aware and style checks
+    evaluationPrompt: z.string().optional(),
+  });
 
-export type PluginQualityCriteria = z.infer<typeof pluginQualityCriteriaSchema>;
+export interface ExpectedOutput {
+  minItems?: number | undefined;
+  maxItems?: number | undefined;
+  exactItems?: number | undefined;
+  itemsContain?: ItemsContain[] | undefined;
+  itemsNotContain?: ItemsContain[] | undefined;
+  validateEach?: PathValidation[] | undefined;
+  qualityCriteria?: PluginQualityCriteria | undefined;
+}
 
 /**
  * Expected output schema for plugin test cases
  */
-export const expectedOutputSchema = z.object({
+export const expectedOutputSchema: z.ZodType<ExpectedOutput> = z.object({
   // Array count validation
   minItems: z.number().optional(),
   maxItems: z.number().optional(),
@@ -291,12 +513,26 @@ export const expectedOutputSchema = z.object({
   qualityCriteria: pluginQualityCriteriaSchema.optional(),
 });
 
-export type ExpectedOutput = z.infer<typeof expectedOutputSchema>;
+export interface PluginTestCase extends BaseTestCase {
+  type: "plugin";
+  plugin: string;
+  handler: string;
+  input: Record<string, unknown>;
+  expectedOutput: ExpectedOutput;
+}
 
 /**
  * Plugin test case definition (direct plugin functionality testing)
  */
-export const pluginTestCaseSchema = baseTestCaseSchema.extend({
+export const pluginTestCaseSchema: ReturnType<
+  typeof baseTestCaseSchema.extend<{
+    type: z.ZodLiteral<"plugin">;
+    plugin: z.ZodString;
+    handler: z.ZodString;
+    input: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    expectedOutput: typeof expectedOutputSchema;
+  }>
+> = baseTestCaseSchema.extend({
   type: z.literal("plugin"),
 
   // Plugin identifier
@@ -306,22 +542,23 @@ export const pluginTestCaseSchema = baseTestCaseSchema.extend({
   handler: z.string(),
 
   // Input to pass to the handler
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
 
   // Expected output validation
   expectedOutput: expectedOutputSchema,
 });
 
-export type PluginTestCase = z.infer<typeof pluginTestCaseSchema>;
+export type TestCase = AgentTestCase | PluginTestCase;
 
 /**
  * Combined test case schema (discriminated union)
  */
-export const testCaseSchema = z.discriminatedUnion("type", [
-  agentTestCaseSchema.extend({ type: z.literal("tool_invocation") }),
-  agentTestCaseSchema.extend({ type: z.literal("response_quality") }),
-  agentTestCaseSchema.extend({ type: z.literal("multi_turn") }),
-  pluginTestCaseSchema,
-]);
-
-export type TestCase = z.infer<typeof testCaseSchema>;
+export const testCaseSchema: z.ZodType<TestCase> = z.discriminatedUnion(
+  "type",
+  [
+    agentTestCaseSchema.extend({ type: z.literal("tool_invocation") }),
+    agentTestCaseSchema.extend({ type: z.literal("response_quality") }),
+    agentTestCaseSchema.extend({ type: z.literal("multi_turn") }),
+    pluginTestCaseSchema,
+  ],
+);

@@ -72,7 +72,11 @@ export interface ChatCardBuilderDeps {
  * testable presentation unit, decoupled from delivery and plugin plumbing.
  */
 export class ChatCardBuilder {
-  constructor(private readonly deps: ChatCardBuilderDeps) {}
+  private readonly deps: ChatCardBuilderDeps;
+
+  constructor(deps: ChatCardBuilderDeps) {
+    this.deps = deps;
+  }
 
   buildSupplementalCard(
     threadId: string,

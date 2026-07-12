@@ -21,11 +21,14 @@ interface DiscordGatewayLoopDeps {
  * gateway-driven adapter ever appears, promote it then.
  */
 export class DiscordGatewayLoop {
+  private readonly deps: DiscordGatewayLoopDeps;
   private adapter: DiscordChatAdapter | undefined;
   private abortController: AbortController | undefined;
   private loopPromise: Promise<void> | undefined;
 
-  constructor(private readonly deps: DiscordGatewayLoopDeps) {}
+  constructor(deps: DiscordGatewayLoopDeps) {
+    this.deps = deps;
+  }
 
   setAdapter(adapter: DiscordChatAdapter): void {
     this.adapter = adapter;

@@ -34,6 +34,40 @@ describe("rover presets", () => {
     }
   });
 
+  it("keeps site-content opt-in for hosted custom site packages", () => {
+    const defaultConfig = resolve(rover, {}, { preset: "default" });
+    const defaultPluginIds =
+      defaultConfig.plugins?.map((plugin) => plugin.id) ?? [];
+
+    expect(defaultPluginIds).not.toContain("site-content");
+
+    const config = resolve(
+      rover,
+      {},
+      { preset: "default", add: ["site-content"] },
+    );
+    const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
+
+    expect(pluginIds).toContain("site-content");
+  });
+
+  it("keeps the ATProto registry opt-in for canonical protocol hosts", () => {
+    const defaultConfig = resolve(rover, {}, { preset: "default" });
+    const defaultPluginIds =
+      defaultConfig.plugins?.map((plugin) => plugin.id) ?? [];
+
+    expect(defaultPluginIds).not.toContain("atproto-registry");
+
+    const config = resolve(
+      rover,
+      {},
+      { preset: "default", add: ["atproto-registry"] },
+    );
+    const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
+
+    expect(pluginIds).toContain("atproto-registry");
+  });
+
   it("merges ATProto identifier from brain config with app password from env", async () => {
     const overrides = parseInstanceOverrides(`brain: rover
 domain: smoke.rizom.ai
@@ -137,23 +171,13 @@ plugins:
     expect(onboarding?.config).toMatchObject({ enabled: true });
   });
 
-  it("wires CMS passkey login from CMS_CONTENT_REPO_PAT when present", () => {
-    const config = resolve(
-      rover,
-      { CMS_CONTENT_REPO_PAT: "cms-pat" },
-      { preset: "full" },
-    );
-    const cms = config.plugins?.find((plugin) => plugin.id === "cms");
-
-    expect(cms?.config).toMatchObject({
-      passkeyLogin: { contentRepoToken: "cms-pat" },
-    });
-  });
-
-  it("keeps CMS login disabled when CMS_CONTENT_REPO_PAT is absent", () => {
+  it("registers the CMS editor with no login configuration", () => {
     const config = resolve(rover, {}, { preset: "full" });
     const cms = config.plugins?.find((plugin) => plugin.id === "cms");
 
+    // The first-party editor authenticates via the operator session; the
+    // browser never receives a repository credential.
+    expect(cms).toBeDefined();
     expect(cms?.config).not.toHaveProperty("passkeyLogin");
   });
 });

@@ -23,12 +23,15 @@ interface ApprovalCardTrackerDeps {
  * dependency (clearing Discord message components) is injected.
  */
 export class ApprovalCardTracker {
+  private readonly deps: ApprovalCardTrackerDeps;
   private readonly cards = new Map<
     string,
     { message: SentMessage; summary: string; threadId: string }
   >();
 
-  constructor(private readonly deps: ApprovalCardTrackerDeps) {}
+  constructor(deps: ApprovalCardTrackerDeps) {
+    this.deps = deps;
+  }
 
   async trackPendingConfirmations(
     thread: ChatThread,

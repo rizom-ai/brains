@@ -8,8 +8,8 @@ import type {
 import { type z } from "@brains/utils/zod";
 import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
 
-type ToolSuccess = z.infer<typeof toolSuccessSchema>;
-type ToolError = z.infer<typeof toolErrorSchema>;
+type ToolSuccess = z.output<typeof toolSuccessSchema>;
+type ToolError = z.output<typeof toolErrorSchema>;
 import type { Logger } from "@brains/utils/logger";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Template } from "@brains/templates";

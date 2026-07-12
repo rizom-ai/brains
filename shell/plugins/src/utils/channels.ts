@@ -3,9 +3,14 @@ import { z } from "@brains/utils/zod";
 /**
  * Schema for validating Channel objects
  */
+const channelParserSchema = z.custom<ChannelSchema<unknown>>(
+  (value) =>
+    typeof value === "object" && value !== null && "safeParse" in value,
+);
+
 const channelSchema = z.object({
   name: z.string(),
-  schema: z.custom<z.ZodType>((val) => val instanceof z.ZodType),
+  schema: channelParserSchema,
 });
 
 /**
@@ -40,12 +45,20 @@ const channelSchema = z.object({
  * });
  * ```
  */
+export interface ChannelSchema<TPayload> {
+  safeParse(
+    input: unknown,
+  ):
+    | { success: true; data: TPayload }
+    | { success: false; error: { message: string } };
+}
+
 export interface Channel<TPayload, TResponse = unknown> {
   /** Channel name/identifier */
   readonly name: string;
 
-  /** Zod schema for validating payloads */
-  readonly schema: z.ZodType<TPayload>;
+  /** Schema for validating payloads */
+  readonly schema: ChannelSchema<TPayload>;
 
   /** Type marker for response (not used at runtime) */
   readonly _response?: TResponse;
@@ -72,7 +85,7 @@ export interface Channel<TPayload, TResponse = unknown> {
  */
 export function defineChannel<TPayload, TResponse = unknown>(
   name: string,
-  schema: z.ZodType<TPayload>,
+  schema: ChannelSchema<TPayload>,
 ): Channel<TPayload, TResponse> {
   return {
     name,

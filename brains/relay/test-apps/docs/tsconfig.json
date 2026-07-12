@@ -1,7 +1,9 @@
 {
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
+    "rootDir": ".",
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "preact",
+    "isolatedDeclarations": true
   }
 }

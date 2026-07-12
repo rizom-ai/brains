@@ -2,18 +2,16 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 
 export interface VerifiedBearerToken {
   subject: string;
   scope?: string[];
-  permissionLevel?: ToolVisibility;
-}
-
-interface AuthenticatedRequest {
   permissionLevel?: ToolVisibility;
 }
 
@@ -46,6 +44,10 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
 } as const;
+
+const errorCodeSchema = z.looseObject({
+  code: z.string().optional(),
+});
 
 function requestOrigin(request: Request): string {
   const url = new URL(request.url);
@@ -210,7 +212,7 @@ export class StreamableHTTPServer {
 
   private async authenticate(
     request: Request,
-  ): Promise<Response | AuthenticatedRequest> {
+  ): Promise<Response | AuthInfo | null> {
     const pathname = new URL(request.url).pathname;
 
     if (
@@ -218,11 +220,11 @@ export class StreamableHTTPServer {
       pathname === "/status" ||
       (pathname === "/mcp" && request.method === "OPTIONS")
     ) {
-      return {};
+      return null;
     }
 
     if (this.authConfig.disabled) {
-      return {};
+      return null;
     }
 
     const authHeader = request.headers.get("authorization");
@@ -247,7 +249,15 @@ export class StreamableHTTPServer {
       }
 
       this.logger.debug("Authentication successful");
-      return { permissionLevel: "anchor" };
+      return {
+        token,
+        clientId: "static-token-client",
+        scopes: this.authConfig.requiredScopes ?? [],
+        extra: {
+          subject: "static-token-operator",
+          permissionLevel: "anchor",
+        },
+      };
     }
 
     try {
@@ -280,7 +290,15 @@ export class StreamableHTTPServer {
       }
 
       this.logger.debug("Authentication successful");
-      return { permissionLevel: verified.permissionLevel };
+      return {
+        token: authHeader.substring(7),
+        clientId: verified.subject,
+        scopes: verified.scope ?? [],
+        extra: {
+          subject: verified.subject,
+          permissionLevel: verified.permissionLevel,
+        },
+      };
     } catch (error) {
       this.logger.warn("Authentication failed: Invalid token", error);
       return this.getAuthErrorResponse(
@@ -317,7 +335,7 @@ export class StreamableHTTPServer {
 
   private async handleMcpRequest(
     request: Request,
-    auth: AuthenticatedRequest,
+    authInfo: AuthInfo | undefined,
   ): Promise<Response> {
     const sessionId = request.headers.get("mcp-session-id") ?? undefined;
 
@@ -329,7 +347,7 @@ export class StreamableHTTPServer {
       this.touchSession(sessionId);
       this.logger.debug(`GET /mcp - SSE stream for session ${sessionId}`);
       return this.withCors(
-        await this.transports[sessionId].handleRequest(request),
+        await this.transports[sessionId].handleRequest(request, { authInfo }),
       );
     }
 
@@ -340,7 +358,7 @@ export class StreamableHTTPServer {
 
       this.logger.info(`DELETE /mcp - Terminating session ${sessionId}`);
       return this.withCors(
-        await this.transports[sessionId].handleRequest(request),
+        await this.transports[sessionId].handleRequest(request, { authInfo }),
       );
     }
 
@@ -405,8 +423,10 @@ export class StreamableHTTPServer {
           },
         });
 
+        const permissionLevel = authInfo?.extra?.["permissionLevel"] as
+          ToolVisibility | undefined;
         const sessionServer = this.mcpTransport
-          ? this.mcpTransport.createMcpServer(auth.permissionLevel)
+          ? this.mcpTransport.createMcpServer(permissionLevel)
           : this.mcpServer;
         await sessionServer.connect(transport);
       } else {
@@ -424,7 +444,7 @@ export class StreamableHTTPServer {
       }
 
       return this.withCors(
-        await transport.handleRequest(request, { parsedBody }),
+        await transport.handleRequest(request, { parsedBody, authInfo }),
       );
     } catch (error) {
       this.logger.error("MCP transport error:", error);
@@ -445,10 +465,11 @@ export class StreamableHTTPServer {
     const url = new URL(request.url);
     this.logger.debug(`${request.method} ${url.pathname}`);
 
-    const auth = await this.authenticate(request);
-    if (auth instanceof Response) {
-      return auth;
+    const authentication = await this.authenticate(request);
+    if (authentication instanceof Response) {
+      return authentication;
     }
+    const authInfo = authentication ?? undefined;
 
     if (url.pathname === "/health") {
       return this.createJsonResponse({
@@ -466,7 +487,7 @@ export class StreamableHTTPServer {
     }
 
     if (url.pathname === "/mcp") {
-      return this.handleMcpRequest(request, auth);
+      return this.handleMcpRequest(request, authInfo);
     }
 
     return this.createTextResponse("Not Found", 404);
@@ -500,8 +521,8 @@ export class StreamableHTTPServer {
         `StreamableHTTP server listening on http://${host}:${this.boundPort}/mcp`,
       );
     } catch (error) {
-      const err = error as Error & { code?: string };
-      if (err.code === "EADDRINUSE") {
+      const parsedError = errorCodeSchema.safeParse(error);
+      if (parsedError.success && parsedError.data.code === "EADDRINUSE") {
         this.logger.error(`Port ${port} is already in use`);
       }
       throw error;

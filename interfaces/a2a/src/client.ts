@@ -23,12 +23,23 @@ interface A2AError {
 
 type A2AResult = A2ASuccess | A2AError;
 
+export interface A2ARequestToSign {
+  method: "POST";
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+}
+
+export type A2ARequestSigner = (
+  request: A2ARequestToSign,
+) => Promise<void> | void;
+
 const textPartSchema = z.object({
   kind: z.literal("text"),
   text: z.string(),
 });
 
-const partsSchema = z.array(z.object({ kind: z.string() }).passthrough());
+const partsSchema = z.array(z.looseObject({ kind: z.string() }));
 
 const rpcErrorSchema = z.object({
   error: z.object({ message: z.string() }),
@@ -50,10 +61,33 @@ const taskResultSchema = z.object({
 
 const resultEnvelopeSchema = z.object({ result: z.unknown() });
 
+const sseTextPartSchema = z.looseObject({
+  kind: z.string(),
+  text: z.string().optional(),
+});
+
+const sseEventSchema = z.looseObject({
+  result: z
+    .looseObject({
+      final: z.boolean().optional(),
+      status: z
+        .looseObject({
+          state: z.string().optional(),
+          message: z
+            .looseObject({
+              parts: z.array(sseTextPartSchema).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
+
 /**
  * Extract text from a parts array
  */
-function extractText(parts: z.infer<typeof partsSchema>): string {
+function extractText(parts: z.output<typeof partsSchema>): string {
   const texts: string[] = [];
   for (const part of parts) {
     const parsed = textPartSchema.safeParse(part);
@@ -140,6 +174,11 @@ const a2aCallInputSchema = {
     ),
   message: z.string().describe("Message to send to the remote agent"),
 };
+
+const a2aCallInputParserSchema = z.object({
+  agent: z.string(),
+  message: z.string(),
+});
 
 type NormalizedAgentTarget =
   | { ok: true; agentId: string; sourceUrl?: string | undefined }
@@ -233,10 +272,11 @@ async function sendMessage(
   endpointUrl: string,
   message: string,
   fetchFn: FetchFn,
-  authToken: string | undefined,
+  requestSigner: A2ARequestSigner | undefined,
   options: Required<A2ANetworkOptions>,
 ): Promise<ToolResponse> {
   const maxAttempts = Math.max(1, options.maxNetworkAttempts);
+  const clientMessageId = crypto.randomUUID();
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -244,8 +284,27 @@ async function sendMessage(
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (authToken) {
-        headers["Authorization"] = `Bearer ${authToken}`;
+      const body = JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "message/stream",
+        params: {
+          message: {
+            kind: "message",
+            messageId: clientMessageId,
+            role: "user",
+            parts: [{ kind: "text", text: message }],
+          },
+        },
+      });
+
+      if (requestSigner) {
+        await requestSigner({
+          method: "POST",
+          url: endpointUrl,
+          headers,
+          body,
+        });
       }
 
       const response = await fetchWithTimeout(
@@ -254,19 +313,7 @@ async function sendMessage(
         {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: crypto.randomUUID(),
-            method: "message/stream",
-            params: {
-              message: {
-                kind: "message",
-                messageId: crypto.randomUUID(),
-                role: "user",
-                parts: [{ kind: "text", text: message }],
-              },
-            },
-          }),
+          body,
         },
         options.requestTimeoutMs,
       );
@@ -282,16 +329,26 @@ async function sendMessage(
         return { success: false, error: "No response body (SSE expected)" };
       }
 
-      return await readStreamToCompletion(
-        response.body,
-        options.streamIdleTimeoutMs,
-      );
+      try {
+        return await readStreamToCompletion(
+          response.body,
+          options.streamIdleTimeoutMs,
+        );
+      } catch (err) {
+        return {
+          success: false,
+          error: formatNetworkFailure(err, attempt),
+        };
+      }
     } catch (err) {
       lastError = err;
-      if (attempt < maxAttempts && isRetryableNetworkError(err)) {
-        continue;
+      const shouldRetry = attempt < maxAttempts && isRetryableNetworkError(err);
+      if (!shouldRetry) {
+        return {
+          success: false,
+          error: formatNetworkFailure(err, attempt),
+        };
       }
-      break;
     }
   }
 
@@ -325,9 +382,13 @@ async function readStreamToCompletion(
       const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
       if (!dataLine) continue;
 
-      let event: Record<string, unknown>;
+      let event: z.output<typeof sseEventSchema>;
       try {
-        event = JSON.parse(dataLine.slice(6)) as Record<string, unknown>;
+        const parsedEvent = sseEventSchema.safeParse(
+          JSON.parse(dataLine.slice(6)),
+        );
+        if (!parsedEvent.success) continue;
+        event = parsedEvent.data;
       } catch {
         reader.cancel().catch(() => {});
         return {
@@ -337,20 +398,12 @@ async function readStreamToCompletion(
       }
 
       // Check if this is a JSON-RPC envelope with a result
-      const result = event["result"] as Record<string, unknown> | undefined;
-      if (!result) continue;
-
-      const isFinal = result["final"] === true;
-      if (!isFinal) continue;
+      const result = event.result;
+      if (!result?.final) continue;
 
       // Terminal event — extract response
       reader.cancel().catch(() => {});
-      const status = result["status"] as
-        | {
-            state: string;
-            message?: { parts: Array<{ kind: string; text?: string }> };
-          }
-        | undefined;
+      const status = result.status;
 
       const state = status?.state ?? "unknown";
       const responseParts = status?.message?.parts ?? [];
@@ -376,15 +429,19 @@ async function readStreamToCompletion(
 }
 
 class A2ARequestTimeoutError extends Error {
-  constructor(readonly timeoutMs: number) {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`request timed out after ${timeoutMs}ms`);
+    this.timeoutMs = timeoutMs;
     this.name = "A2ARequestTimeoutError";
   }
 }
 
 class A2AStreamIdleTimeoutError extends Error {
-  constructor(readonly timeoutMs: number) {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`A2A stream stalled waiting for final event after ${timeoutMs}ms`);
+    this.timeoutMs = timeoutMs;
     this.name = "A2AStreamIdleTimeoutError";
   }
 }
@@ -452,7 +509,7 @@ function isRetryableNetworkError(error: unknown): boolean {
     error instanceof A2ARequestTimeoutError ||
     error instanceof A2AStreamIdleTimeoutError
   ) {
-    return true;
+    return false;
   }
 
   return error instanceof Error;
@@ -483,8 +540,8 @@ export interface A2ANetworkOptions {
 
 export interface A2AClientDeps extends A2ANetworkOptions {
   fetch?: FetchFn;
-  /** Map of remote agent domain → bearer token to send */
-  outboundTokens?: Record<string, string>;
+  /** Signs outbound A2A requests. */
+  requestSigner?: A2ARequestSigner;
   /** Entity service for agent directory resolution */
   entityService?: {
     getEntity(request: {
@@ -499,10 +556,20 @@ export interface A2AClientDeps extends A2ANetworkOptions {
   };
 }
 
+export interface ExecuteAgentCallOptions {
+  /** Refuse unknown domains instead of allowing the tool's one-shot mode. */
+  requireSaved?: boolean;
+}
+
 /**
- * Create the agent_call tool for calling remote A2A agents.
+ * Execute the validated outbound path shared by the agent_call tool and
+ * trusted in-process consumers such as the CMS selection ask flow.
  */
-export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
+export async function executeAgentCall(
+  input: { agent: string; message: string },
+  deps: A2AClientDeps = {},
+  options: ExecuteAgentCallOptions = {},
+): Promise<ToolResponse> {
   const fetchFn = deps.fetch ?? globalThis.fetch;
   const networkOptions: Required<A2ANetworkOptions> = {
     requestTimeoutMs: deps.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
@@ -510,7 +577,126 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
       deps.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS,
     maxNetworkAttempts: deps.maxNetworkAttempts ?? DEFAULT_MAX_NETWORK_ATTEMPTS,
   };
+  const normalized = normalizeAgentTarget(input.agent);
 
+  if (!normalized.ok) {
+    return { success: false, error: normalized.error };
+  }
+  const { agentId } = normalized;
+
+  if (!deps.entityService) {
+    return {
+      success: false,
+      error:
+        "Agent directory is unavailable. Add the agent first, then try again.",
+    };
+  }
+
+  const entity = await deps.entityService.getEntity({
+    entityType: "agent",
+    id: agentId,
+    visibilityScope: internalFullScope(
+      "agent_call is anchor-only and resolves saved remote agents at any visibility",
+    ),
+  });
+  if (!entity) {
+    if (options.requireSaved) {
+      return {
+        success: false,
+        error: `Agent ${agentId} is not saved or approved.`,
+        code: "agent_not_saved",
+      };
+    }
+    if (!isExactDomainLikeAgentId(agentId)) {
+      return {
+        success: false,
+        error: `Agent ${input.agent} is not an exact domain-like id and is not saved. Connect or clarify the agent first.`,
+        code: "agent_not_saved",
+      };
+    }
+
+    const cardBaseUrl = `https://${agentId}`;
+    const card = await fetchAgentCard(cardBaseUrl, fetchFn);
+    if (!card) {
+      return {
+        success: false,
+        error: `Could not verify an A2A Agent Card for ${agentId}. Connect/save it first if you want to add it to the directory.`,
+        code: "agent_card_unavailable",
+      };
+    }
+
+    const oneShotEndpoint = validateCardEndpoint(card.url, agentId);
+    if (!oneShotEndpoint.ok) {
+      return { success: false, error: oneShotEndpoint.error };
+    }
+
+    const oneShotResult = await sendMessage(
+      card.url,
+      input.message,
+      fetchFn,
+      deps.requestSigner,
+      networkOptions,
+    );
+    if ("success" in oneShotResult && oneShotResult.success === true) {
+      const baseData =
+        typeof oneShotResult.data === "object" && oneShotResult.data !== null
+          ? oneShotResult.data
+          : {};
+      return {
+        ...oneShotResult,
+        data: {
+          ...baseData,
+          agentCall: { mode: "one-shot", agent: agentId },
+          agentContactCandidate: {
+            source: { kind: "url", url: normalized.sourceUrl ?? agentId },
+          },
+        },
+      };
+    }
+    return oneShotResult;
+  }
+
+  if (entity.metadata["status"] === "archived") {
+    return {
+      success: false,
+      error: `Agent ${agentId} is archived and cannot be contacted until it is restored and approved.`,
+      code: "agent_archived",
+    };
+  }
+
+  if (entity.metadata["status"] !== "approved") {
+    return {
+      success: false,
+      error: `Agent ${agentId} is discovered but not approved yet. Approve it first.`,
+      code: "agent_not_approved",
+    };
+  }
+
+  const cardBaseUrl = `https://${agentId}`;
+  const card = await fetchAgentCard(cardBaseUrl, fetchFn);
+  if (!card) {
+    return {
+      success: false,
+      error: `Could not fetch Agent Card from ${cardBaseUrl}`,
+    };
+  }
+
+  const approvedEndpoint = validateCardEndpoint(card.url, agentId);
+  if (!approvedEndpoint.ok) {
+    return { success: false, error: approvedEndpoint.error };
+  }
+
+  return sendMessage(
+    card.url,
+    input.message,
+    fetchFn,
+    deps.requestSigner,
+    networkOptions,
+  );
+}
+
+/** Create the agent_call tool for calling remote A2A agents. */
+export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
   return {
     name: "agent_call",
     description:
@@ -519,141 +705,14 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
     visibility: "trusted",
     sideEffects: "external",
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(a2aCallInputSchema).safeParse(input);
+      const parsed = a2aCallInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
           error: `Invalid input: ${parsed.error.message}`,
         };
       }
-
-      const { agent, message } = parsed.data;
-      const normalized = normalizeAgentTarget(agent);
-
-      if (!normalized.ok) {
-        return {
-          success: false,
-          error: normalized.error,
-        };
-      }
-      const { agentId } = normalized;
-
-      if (!deps.entityService) {
-        return {
-          success: false,
-          error:
-            "Agent directory is unavailable. Add the agent first, then try again.",
-        };
-      }
-
-      const entity = await deps.entityService.getEntity({
-        entityType: "agent",
-        id: agentId,
-        visibilityScope: internalFullScope(
-          "agent_call tool is anchor-only and resolves saved remote agents at any visibility",
-        ),
-      });
-      if (!entity) {
-        if (!isExactDomainLikeAgentId(agentId)) {
-          return {
-            success: false,
-            error: `Agent ${agent} is not an exact domain-like id and is not saved. Connect or clarify the agent first.`,
-            code: "agent_not_saved",
-          };
-        }
-
-        const cardBaseUrl = `https://${agentId}`;
-        const card = await fetchAgentCard(cardBaseUrl, fetchFn);
-        if (!card) {
-          return {
-            success: false,
-            error: `Could not verify an A2A Agent Card for ${agentId}. Connect/save it first if you want to add it to the directory.`,
-            code: "agent_card_unavailable",
-          };
-        }
-
-        const oneShotEndpoint = validateCardEndpoint(card.url, agentId);
-        if (!oneShotEndpoint.ok) {
-          return { success: false, error: oneShotEndpoint.error };
-        }
-
-        const oneShotResult = await sendMessage(
-          card.url,
-          message,
-          fetchFn,
-          undefined,
-          networkOptions,
-        );
-        if ("success" in oneShotResult && oneShotResult.success === true) {
-          const baseData =
-            typeof oneShotResult.data === "object" &&
-            oneShotResult.data !== null
-              ? oneShotResult.data
-              : {};
-          return {
-            ...oneShotResult,
-            data: {
-              ...baseData,
-              agentCall: { mode: "one-shot", agent: agentId },
-              agentContactCandidate: {
-                source: { kind: "url", url: normalized.sourceUrl ?? agentId },
-              },
-            },
-          };
-        }
-        return oneShotResult;
-      }
-
-      if (entity.metadata["status"] === "archived") {
-        return {
-          success: false,
-          error: `Agent ${agentId} is archived and cannot be contacted until it is restored and approved.`,
-          code: "agent_archived",
-        };
-      }
-
-      if (entity.metadata["status"] !== "approved") {
-        return {
-          success: false,
-          error: `Agent ${agentId} is discovered but not approved yet. Approve it first.`,
-          code: "agent_not_approved",
-        };
-      }
-
-      const cardBaseUrl = `https://${agentId}`;
-      const card = await fetchAgentCard(cardBaseUrl, fetchFn);
-      if (!card) {
-        return {
-          success: false,
-          error: `Could not fetch Agent Card from ${cardBaseUrl}`,
-        };
-      }
-
-      const approvedEndpoint = validateCardEndpoint(card.url, agentId);
-      if (!approvedEndpoint.ok) {
-        return { success: false, error: approvedEndpoint.error };
-      }
-
-      const endpointUrl = card.url;
-
-      // Look up outbound token by agent domain
-      let authToken: string | undefined;
-      if (deps.outboundTokens) {
-        try {
-          const domain = new URL(endpointUrl).hostname;
-          authToken = deps.outboundTokens[domain];
-        } catch {
-          // Invalid URL — skip token
-        }
-      }
-
-      return sendMessage(
-        endpointUrl,
-        message,
-        fetchFn,
-        authToken,
-        networkOptions,
-      );
+      return executeAgentCall(parsed.data, deps);
     },
   };
 }

@@ -6,7 +6,8 @@ import type { VNode } from "preact";
 import { z } from "@brains/utils/zod";
 import type { BaseWidgetProps } from "./types";
 
-const statsDataSchema = z.record(z.unknown());
+const statsDataSchema = z.record(z.string(), z.unknown());
+const nestedStatsDataSchema = z.record(z.string(), z.unknown());
 
 export type StatsWidgetProps = BaseWidgetProps;
 
@@ -30,10 +31,10 @@ export function StatsWidget({ title, data }: StatsWidgetProps): VNode {
   // Flatten nested stats object if present
   const stats: Record<string, number> = {};
   for (const [key, value] of Object.entries(parsed.data)) {
-    if (key === "stats" && typeof value === "object" && value !== null) {
-      for (const [statKey, statValue] of Object.entries(
-        value as Record<string, unknown>,
-      )) {
+    if (key === "stats") {
+      const nestedStats = nestedStatsDataSchema.safeParse(value);
+      if (!nestedStats.success) continue;
+      for (const [statKey, statValue] of Object.entries(nestedStats.data)) {
         if (typeof statValue === "number") {
           stats[statKey] = statValue;
         }

@@ -12,6 +12,7 @@ import {
  */
 export class NewsletterAdapter extends BaseEntityAdapter<
   Newsletter,
+  NewsletterMetadata,
   NewsletterMetadata
 > {
   constructor() {
@@ -52,4 +53,4 @@ export class NewsletterAdapter extends BaseEntityAdapter<
   }
 }
 
-export const newsletterAdapter = new NewsletterAdapter();
+export const newsletterAdapter: NewsletterAdapter = new NewsletterAdapter();

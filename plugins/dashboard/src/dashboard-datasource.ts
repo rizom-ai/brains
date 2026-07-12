@@ -1,8 +1,12 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { getErrorMessage } from "@brains/utils/error";
-import type { z } from "@brains/utils/zod";
 import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
+import type {
+  DashboardDigestLine,
   DashboardWidgetRegistry,
   StoredRegisteredWidget,
   WidgetVisibility,
@@ -49,6 +53,7 @@ export class DashboardDataSource implements DataSource {
         const data = await widget.dataProvider();
         const {
           dataProvider: _,
+          digestProvider: _digestProvider,
           component: __,
           clientScript: ___,
           visibility = "public",
@@ -56,7 +61,11 @@ export class DashboardDataSource implements DataSource {
         } = widget;
         return {
           key: `${widget.pluginId}:${widget.id}`,
-          widget: { ...widgetMeta, visibility },
+          widget: {
+            ...widgetMeta,
+            visibility,
+            ...this.deriveLiveDigest(widget, data),
+          },
           data,
         };
       }),
@@ -85,9 +94,38 @@ export class DashboardDataSource implements DataSource {
     };
   }
 
+  /**
+   * Digest lines and operator counts are derived from the widget's fetched
+   * data on every render, so Overview cards and tab badges stay live. The
+   * statically registered values remain the fallback.
+   */
+  private deriveLiveDigest(
+    widget: StoredRegisteredWidget,
+    data: unknown,
+  ): { digest?: DashboardDigestLine[]; needsOperator?: number } {
+    if (!widget.digestProvider) return {};
+
+    try {
+      const derived = widget.digestProvider(data);
+      return {
+        ...(derived.digest !== undefined && { digest: derived.digest }),
+        ...(derived.needsOperator !== undefined && {
+          needsOperator: derived.needsOperator,
+        }),
+      };
+    } catch (error) {
+      this.logger.error("Widget digest provider failed", {
+        widgetId: widget.id,
+        pluginId: widget.pluginId,
+        error: getErrorMessage(error),
+      });
+      return {};
+    }
+  }
+
   async fetch<T>(
     _query: unknown,
-    _outputSchema: z.ZodSchema<T>,
+    _outputSchema: DataSourceSchema<T>,
     _context: BaseDataSourceContext,
   ): Promise<T> {
     return (await this.getDashboardData()) as T;

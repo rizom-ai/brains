@@ -96,7 +96,7 @@ async function main(): Promise<void> {
   const schemaPath = join(brainPkgDir, ".env.schema");
   if (existsSync(schemaPath)) {
     const graph = await internal.loadVarlockEnvGraph({
-      entryFilePath: schemaPath,
+      entryFilePaths: [schemaPath],
     });
     await graph.resolveEnvValues();
     try {

@@ -1,42 +1,54 @@
+import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
 import {
   siteMetadataCTASchema,
   siteMetadataSchema,
 } from "@brains/site-composition";
 
+export interface SiteInfoMetadata {
+  [key: string]: unknown;
+}
+
 /**
  * Site info metadata schema - empty as site-info doesn't use metadata for filtering
  */
-export const siteInfoMetadataSchema = z.object({});
-
-export type SiteInfoMetadata = z.infer<typeof siteInfoMetadataSchema>;
+export const siteInfoMetadataSchema: z.ZodType<SiteInfoMetadata> = z.object({});
 
 /**
  * Site info entity schema
  * Site info data (title, description, CTA, etc.) is stored in content field as structured markdown
  */
-export const siteInfoSchema = baseEntitySchema.extend({
+const siteInfoEntityMetadataSchema: z.ZodType<SiteInfoMetadata> = z.object({});
+
+export const siteInfoSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    id: z.ZodLiteral<"site-info">;
+    entityType: z.ZodLiteral<"site-info">;
+    metadata: z.ZodType<SiteInfoMetadata>;
+  }>
+> = baseEntityParserSchema.extend({
   id: z.literal("site-info"),
   entityType: z.literal("site-info"),
-  metadata: siteInfoMetadataSchema,
+  metadata: siteInfoEntityMetadataSchema,
 });
 
 /**
  * Site info entity type derived from schema
  */
-export type SiteInfoEntity = z.infer<typeof siteInfoSchema>;
+export type SiteInfoEntity = z.output<typeof siteInfoSchema>;
 
 /**
- * CTA schema - call-to-action configuration
+ * CTA schema - call-to-action configuration.
  */
-export const siteInfoCTASchema = siteMetadataCTASchema;
+export const siteInfoCTASchema: typeof siteMetadataCTASchema =
+  siteMetadataCTASchema;
 
-/**
- * Site info body schema - structure of content within the markdown
- * (Not stored as separate entity fields - parsed from content)
- */
-export const siteInfoBodySchema = siteMetadataSchema.omit({
+export const siteInfoBodySchema: ReturnType<
+  typeof siteMetadataSchema.omit<{
+    url: true;
+    analyticsScript: true;
+  }>
+> = siteMetadataSchema.omit({
   url: true,
   analyticsScript: true,
 });
@@ -44,7 +56,7 @@ export const siteInfoBodySchema = siteMetadataSchema.omit({
 /**
  * Site info body type
  */
-export type SiteInfoBody = z.infer<typeof siteInfoBodySchema>;
+export type SiteInfoBody = z.output<typeof siteInfoBodySchema>;
 
 /**
  * CTA configuration type

@@ -47,13 +47,11 @@ function createCharacterService(): IBrainCharacterService {
 
 function createProfileService(): IAnchorProfileService {
   return {
-    getProfile: mock(
-      (): AnchorProfile => ({
-        name: "Test Anchor",
-        kind: "professional",
-        description: "Test",
-      }),
-    ),
+    getProfile: mock((): AnchorProfile => ({
+      name: "Test Anchor",
+      kind: "professional",
+      description: "Test",
+    })),
   };
 }
 
@@ -153,38 +151,36 @@ describe("generated artifact tool loop", () => {
     expect(modelVisibleOutput).toContain("Open and Download controls");
 
     const agentFactory: BrainAgentFactory = () => ({
-      generate: mock(
-        async (): Promise<BrainAgentResult> => ({
-          text: "Done — the artifact card is ready.",
-          steps: [
-            {
-              toolCalls: [
-                {
-                  toolCallId: "call-1",
-                  toolName: "system_generate",
-                  input: {
-                    entityType: "document",
-                    source: {
-                      kind: "attachment",
-                      sourceEntityType: "deck",
-                      sourceEntityId: "deck-1",
-                      attachmentType: "carousel",
-                    },
+      generate: mock(async (): Promise<BrainAgentResult> => ({
+        text: "Done — the artifact card is ready.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_generate",
+                input: {
+                  entityType: "document",
+                  source: {
+                    kind: "attachment",
+                    sourceEntityType: "deck",
+                    sourceEntityId: "deck-1",
+                    attachmentType: "carousel",
                   },
                 },
-              ],
-              toolResults: [
-                {
-                  toolCallId: "call-1",
-                  toolName: "system_generate",
-                  output: toolOutput,
-                },
-              ],
-            },
-          ],
-          usage,
-        }),
-      ),
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_generate",
+                output: toolOutput,
+              },
+            ],
+          },
+        ],
+        usage,
+      })),
     });
 
     const logger = createSilentLogger();

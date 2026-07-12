@@ -8,15 +8,16 @@ import { openSync, writeSync } from "node:fs";
 /**
  * Log levels
  */
-export enum LogLevel {
-  SILLY = 0,
-  VERBOSE = 1,
-  DEBUG = 2,
-  INFO = 3,
-  WARN = 4,
-  ERROR = 5,
-  NONE = 6, // Silent mode - no output
-}
+export const LogLevel = {
+  SILLY: 0,
+  VERBOSE: 1,
+  DEBUG: 2,
+  INFO: 3,
+  WARN: 4,
+  ERROR: 5,
+  NONE: 6,
+} as const;
+export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
 
 /**
  * Logger implementation with Component Interface Standardization pattern
@@ -234,4 +235,6 @@ export class Logger {
 }
 
 // Export default logger instance
-export default Logger.getInstance();
+const defaultLogger: Logger = Logger.getInstance();
+
+export default defaultLogger;

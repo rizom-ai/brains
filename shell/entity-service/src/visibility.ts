@@ -1,17 +1,27 @@
 import { z } from "@brains/utils/zod";
 
-const canonicalContentVisibilitySchema = z.enum([
-  "public",
-  "shared",
-  "restricted",
-]);
+const canonicalContentVisibilitySchema: z.ZodEnum<{
+  public: "public";
+  shared: "shared";
+  restricted: "restricted";
+}> = z.enum(["public", "shared", "restricted"]);
 
 export type ContentVisibility = z.infer<
   typeof canonicalContentVisibilitySchema
 >;
 export type RawContentVisibility = ContentVisibility | "private";
 
-export const contentVisibilitySchema = z
+export const contentVisibilitySchema: z.ZodPipe<
+  z.ZodOptional<
+    z.ZodUnion<
+      readonly [
+        typeof canonicalContentVisibilitySchema,
+        z.ZodLiteral<"private">,
+      ]
+    >
+  >,
+  z.ZodTransform<ContentVisibility, RawContentVisibility | undefined>
+> = z
   .union([canonicalContentVisibilitySchema, z.literal("private")])
   .optional()
   .transform((value): ContentVisibility => {

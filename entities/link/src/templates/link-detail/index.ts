@@ -2,7 +2,9 @@ import { createTemplate } from "@brains/templates";
 import { linkDetailDataSchema, type LinkDetailData } from "./schema";
 import { LinkDetailLayout } from "./layout";
 
-export const linkDetailTemplate = createTemplate<LinkDetailData>({
+export const linkDetailTemplate: ReturnType<
+  typeof createTemplate<LinkDetailData>
+> = createTemplate<LinkDetailData>({
   name: "link:link-detail",
   description: "Detail view of a captured link",
   schema: linkDetailDataSchema,

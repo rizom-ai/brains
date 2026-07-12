@@ -3,16 +3,12 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
 import { Logger, LogLevel } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import { NOTIFICATIONS_SEND } from "@brains/notifications";
 import {
-  AuthKeyStore,
-  AuthRuntimeDatabase,
   AuthService,
-  OperatorSessionStore,
   PasskeyStore,
-  RefreshTokenStore,
   authServicePlugin,
   normalizeIssuer,
 } from "../src";
@@ -27,28 +23,6 @@ const setupRequiredToolDataSchema = z.object({
 const setupCompleteToolDataSchema = z.object({
   status: z.literal("complete"),
 });
-
-const passkeyStoreFileSchema = z.object({
-  registrationChallenges: z.array(
-    z.object({
-      subject: z.string(),
-    }),
-  ),
-});
-
-const authUserRowSchema = z.object({
-  id: z.string().startsWith("usr_"),
-  display_name: z.string(),
-  role: z.literal("anchor"),
-  status: z.literal("active"),
-});
-
-const signingKeyRowsSchema = z.array(
-  z.object({
-    kid: z.string(),
-    status: z.literal("active"),
-  }),
-);
 
 const tempDirs: string[] = [];
 
@@ -103,7 +77,7 @@ describe("AuthService", () => {
     );
   });
 
-  it("generates and reuses an ES256 public JWKS key from the auth database", async () => {
+  it("generates and reuses public JWKS keys for OAuth and A2A", async () => {
     const storageDir = await tempStorageDir();
     const service = new AuthService({
       storageDir,
@@ -117,69 +91,115 @@ describe("AuthService", () => {
     });
     const second = await secondService.getJwks();
 
-    expect(first.keys).toHaveLength(1);
-    expect(first.keys[0]).toMatchObject({
+    expect(first.keys).toHaveLength(2);
+
+    const oauthKey = first.keys.find((key) => key.alg === "ES256");
+    expect(oauthKey).toMatchObject({
       kty: "EC",
       crv: "P-256",
       use: "sig",
       alg: "ES256",
     });
-    expect(first.keys[0]?.["d"]).toBeUndefined();
-    const firstKey = first.keys[0];
-    if (!firstKey) {
-      throw new Error("Expected JWKS response to include a signing key");
-    }
-    expect(second.keys[0]?.kid).toBe(firstKey.kid);
+    expect(oauthKey?.["d"]).toBeUndefined();
 
-    const runtimeDatabase = new AuthRuntimeDatabase({ storageDir });
-    await runtimeDatabase.start();
-    const rows = await runtimeDatabase.client.execute(
-      "SELECT kid, status FROM oauth_signing_keys",
+    const a2aKey = first.keys.find((key) => key.alg === "EdDSA");
+    expect(a2aKey).toMatchObject({
+      kty: "OKP",
+      crv: "Ed25519",
+      use: "sig",
+      alg: "EdDSA",
+    });
+    expect(a2aKey?.["d"]).toBeUndefined();
+
+    expect(second.keys.find((key) => key.alg === "ES256")?.kid).toBe(
+      oauthKey?.kid,
     );
-    await runtimeDatabase.stop();
-    expect(signingKeyRowsSchema.parse(rows.rows)).toEqual([
-      { kid: firstKey.kid, status: "active" },
-    ]);
+    expect(second.keys.find((key) => key.alg === "EdDSA")?.kid).toBe(
+      a2aKey?.kid,
+    );
 
-    let legacyFileExists = true;
-    try {
-      await stat(join(storageDir, "oauth-signing-key.jwk"));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        legacyFileExists = false;
-      } else {
-        throw error;
-      }
-    }
-    expect(legacyFileExists).toBe(false);
+    const authDatabaseStats = await stat(join(storageDir, "auth.db"));
+    expect(authDatabaseStats.mode & 0o777).toBe(0o600);
+    const a2aKeyStats = await stat(join(storageDir, "a2a-signing-key.jwk"));
+    expect(a2aKeyStats.mode & 0o777).toBe(0o600);
   });
 
-  it("imports an existing legacy OAuth signing key into the auth database", async () => {
+  it("returns an A2A signing key id rooted at the issuer JWKS", async () => {
     const storageDir = await tempStorageDir();
-    const legacyKeyStore = new AuthKeyStore({ storageDir });
-    const legacyPublicKey = await legacyKeyStore.getPublicJwk();
-
     const service = new AuthService({
       storageDir,
       issuer: "https://brain.example.com",
     });
-    const jwks = await service.getJwks();
 
-    expect(jwks.keys[0]).toMatchObject({
-      kid: legacyPublicKey.kid,
-      x: legacyPublicKey.x,
-      y: legacyPublicKey.y,
+    const signingKey = await service.getA2ASigningKey();
+    const jwks = await service.getJwks();
+    const publicA2AKey = jwks.keys.find((key) => key.alg === "EdDSA");
+
+    expect(signingKey.keyId).toBe(
+      `https://brain.example.com/.well-known/jwks.json#${publicA2AKey?.kid}`,
+    );
+    expect(signingKey.privateJwk).toMatchObject({
+      kty: "OKP",
+      crv: "Ed25519",
+      alg: "EdDSA",
+      kid: publicA2AKey?.kid,
+    });
+    expect(signingKey.privateJwk.d).toBeString();
+  });
+
+  it("persists A2A peer trust grants in runtime auth storage", async () => {
+    const storageDir = await tempStorageDir();
+    const first = new AuthService({ storageDir });
+
+    await first.grantA2APeerTrust({
+      domain: "Remote.Example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
     });
 
-    const runtimeDatabase = new AuthRuntimeDatabase({ storageDir });
-    await runtimeDatabase.start();
-    const rows = await runtimeDatabase.client.execute(
-      "SELECT kid, status FROM oauth_signing_keys",
+    const second = new AuthService({ storageDir });
+    const grant = await second.getA2APeerTrust("remote.example");
+    expect(grant).toEqual({
+      domain: "remote.example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
+    });
+  });
+
+  it("does not allow A2A peer trust grants to confer anchor permission", async () => {
+    const service = new AuthService({ storageDir: await tempStorageDir() });
+
+    let caught: unknown;
+    try {
+      await service.grantA2APeerTrust({
+        domain: "remote.example",
+        keyFingerprint: "fingerprint-1",
+        grantedLevel: "anchor",
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught).toHaveProperty(
+      "message",
+      "A2A peer trust grants must be trusted or public",
     );
-    await runtimeDatabase.stop();
-    expect(signingKeyRowsSchema.parse(rows.rows)).toEqual([
-      { kid: legacyPublicKey.kid, status: "active" },
-    ]);
+  });
+
+  it("revokes A2A peer trust grants from runtime auth storage", async () => {
+    const storageDir = await tempStorageDir();
+    const service = new AuthService({ storageDir });
+
+    await service.grantA2APeerTrust({
+      domain: "remote.example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
+    });
+    await service.revokeA2APeerTrust("remote.example");
+
+    const reloaded = new AuthService({ storageDir });
+    expect(await reloaded.getA2APeerTrust("remote.example")).toBeUndefined();
   });
 
   it("serves OAuth well-known metadata from request host", async () => {
@@ -320,137 +340,6 @@ describe("AuthService", () => {
     expect(options.authenticatorSelection).toMatchObject({
       userVerification: "required",
     });
-
-    const passkeyStore = passkeyStoreFileSchema.parse(
-      JSON.parse(
-        await readFile(join(storageDir, "oauth-passkeys.json"), "utf8"),
-      ) as unknown,
-    );
-    const challengeSubject = passkeyStore.registrationChallenges[0]?.subject;
-    if (!challengeSubject) {
-      throw new Error("Expected a registration challenge subject");
-    }
-    expect(challengeSubject).toStartWith("usr_");
-
-    const authDb = new AuthRuntimeDatabase({ storageDir });
-    await authDb.start();
-    try {
-      const users = await authDb.client.execute({
-        sql: "SELECT id, display_name, role, status FROM auth_users",
-        args: [],
-      });
-      expect(users.rows.map((row) => authUserRowSchema.parse(row))).toEqual([
-        {
-          id: challengeSubject,
-          display_name: "Operator",
-          role: "anchor",
-          status: "active",
-        },
-      ]);
-    } finally {
-      await authDb.stop();
-    }
-  });
-
-  it("creates operator sessions for the first owner user by default", async () => {
-    const service = new AuthService({
-      storageDir: await tempStorageDir(),
-      issuer: "http://localhost:8080",
-    });
-
-    const session = await service.createOperatorSession();
-
-    expect(session.subject).toStartWith("usr_");
-  });
-
-  it("migrates existing single-operator passkeys to the first owner user", async () => {
-    const storageDir = await tempStorageDir();
-    await seedPasskeyCredential(storageDir);
-
-    const service = new AuthService({
-      storageDir,
-      issuer: "http://localhost:8080",
-    });
-    await service.initialize();
-
-    const credentials = await new PasskeyStore({
-      storageDir,
-    }).listCredentials();
-    expect(credentials).toHaveLength(1);
-    const migratedSubject = credentials[0]?.subject;
-    if (!migratedSubject) {
-      throw new Error("Expected migrated credential subject");
-    }
-    expect(migratedSubject).toStartWith("usr_");
-
-    const authDb = new AuthRuntimeDatabase({ storageDir });
-    await authDb.start();
-    try {
-      const users = await authDb.client.execute({
-        sql: "SELECT id, display_name, role, status FROM auth_users",
-        args: [],
-      });
-      expect(users.rows.map((row) => authUserRowSchema.parse(row))).toEqual([
-        {
-          id: migratedSubject,
-          display_name: "Operator",
-          role: "anchor",
-          status: "active",
-        },
-      ]);
-    } finally {
-      await authDb.stop();
-    }
-  });
-
-  it("revokes existing single-operator refresh tokens during migration", async () => {
-    const storageDir = await tempStorageDir();
-    const refreshTokenStore = new RefreshTokenStore({ storageDir });
-    const issued = await refreshTokenStore.issueToken({
-      clientId: "client-id",
-      subject: "single-operator",
-      scope: "mcp",
-    });
-
-    const service = new AuthService({
-      storageDir,
-      issuer: "http://localhost:8080",
-    });
-    await service.initialize();
-
-    let rotateError: unknown;
-    try {
-      await refreshTokenStore.rotateToken(issued.token, "client-id");
-    } catch (error) {
-      rotateError = error;
-    }
-    expect(rotateError).toBeInstanceOf(Error);
-    if (rotateError instanceof Error) {
-      expect(rotateError.message).toBe("Refresh token revoked");
-    }
-  });
-
-  it("migrates existing single-operator sessions to the first owner user", async () => {
-    const storageDir = await tempStorageDir();
-    await new OperatorSessionStore({ storageDir }).createSession(
-      "single-operator",
-    );
-
-    const service = new AuthService({
-      storageDir,
-      issuer: "http://localhost:8080",
-    });
-    await service.initialize();
-
-    const sessions = await new OperatorSessionStore({
-      storageDir,
-    }).listSessions();
-    expect(sessions).toHaveLength(1);
-    const migratedSubject = sessions[0]?.subject;
-    if (!migratedSubject) {
-      throw new Error("Expected migrated session subject");
-    }
-    expect(migratedSubject).toStartWith("usr_");
   });
 
   it("hides setup page without the one-shot setup token", async () => {
@@ -491,21 +380,6 @@ describe("AuthService", () => {
 
     expect(setup?.expiresAt).toBeGreaterThanOrEqual(before + 24 * 60 * 60);
     expect(setup?.expiresAt).toBeLessThanOrEqual(after + 24 * 60 * 60);
-  });
-
-  it("defaults plugin storage under the shell data directory", async () => {
-    const dataDir = await tempStorageDir();
-    const harness = new PluginTestHarness({
-      dataDir,
-      domain: "brain.example.com",
-    });
-
-    await harness.installPlugin(
-      authServicePlugin({ issuer: "https://brain.example.com" }),
-    );
-
-    const dbStats = await stat(join(dataDir, "auth", "auth.db"));
-    expect(dbStats.isFile()).toBe(true);
   });
 
   it("allows configuring the first-passkey setup token lifetime", async () => {
@@ -1286,8 +1160,8 @@ describe("AuthService", () => {
       }),
       { issuer: "https://brain.example.com", audience: client.client_id },
     );
-    expect(verified?.subject).toStartWith("usr_");
     expect(verified).toMatchObject({
+      subject: expect.stringMatching(/^usr_/),
       issuer: "https://brain.example.com",
       audience: client.client_id,
       scope: ["openid", "profile", "mcp"],
@@ -1478,7 +1352,9 @@ describe("AuthService", () => {
     });
 
     const beforeLogout = await service.getOperatorSession(request);
-    expect(beforeLogout?.subject).toStartWith("usr_");
+    expect(beforeLogout).toMatchObject({
+      subject: expect.stringMatching(/^usr_/),
+    });
 
     const response = await service.handleRequest(
       new Request("https://brain.example.com/logout?return_to=/dashboard", {

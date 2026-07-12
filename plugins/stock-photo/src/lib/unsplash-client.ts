@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import type {
   StockPhotoProvider,
   SearchResult,
@@ -39,7 +40,7 @@ export class UnsplashClient implements StockPhotoProvider {
       );
     }
 
-    const data = (await response.json()) as UnsplashSearchResponse;
+    const data = unsplashSearchResponseSchema.parse(await response.json());
 
     return {
       photos: data.results.map(toPhotoCandidate),
@@ -62,7 +63,7 @@ export class UnsplashClient implements StockPhotoProvider {
   }
 }
 
-// -- Unsplash API response types (internal) --
+// -- Unsplash API response schemas (internal) --
 
 interface UnsplashPhoto {
   id: string;
@@ -94,6 +95,38 @@ interface UnsplashSearchResponse {
   total_pages: number;
   results: UnsplashPhoto[];
 }
+
+const unsplashPhotoSchema: z.ZodType<UnsplashPhoto> = z.looseObject({
+  id: z.string(),
+  description: z.string().nullable(),
+  alt_description: z.string().nullable(),
+  urls: z.looseObject({
+    raw: z.url(),
+    full: z.url(),
+    regular: z.url(),
+    small: z.url(),
+    thumb: z.url(),
+  }),
+  links: z.looseObject({
+    html: z.url(),
+    download_location: z.url(),
+  }),
+  user: z.looseObject({
+    name: z.string(),
+    links: z.looseObject({
+      html: z.url(),
+    }),
+  }),
+  width: z.number().int().nonnegative(),
+  height: z.number().int().nonnegative(),
+});
+
+const unsplashSearchResponseSchema: z.ZodType<UnsplashSearchResponse> =
+  z.looseObject({
+    total: z.number().int().nonnegative(),
+    total_pages: z.number().int().nonnegative(),
+    results: z.array(unsplashPhotoSchema),
+  });
 
 function toPhotoCandidate(photo: UnsplashPhoto): PhotoCandidate {
   return {

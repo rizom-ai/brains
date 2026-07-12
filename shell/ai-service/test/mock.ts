@@ -1,11 +1,12 @@
 import type {
   IAIService,
   AIModelConfig,
+  AIModelConfigUpdate,
   ImageGenerationResult,
   JudgeInput,
+  AIGenerationSchema,
 } from "../src";
-import type { LanguageModel } from "ai";
-import type { z } from "@brains/utils/zod";
+import { asSchema, type LanguageModel } from "ai";
 
 /**
  * Mock AI Service for testing
@@ -36,7 +37,7 @@ export function createMockAIService(): IAIService {
     generateObject: async <T>(
       _systemPrompt: string,
       userPrompt: string,
-      schema: z.ZodType<T>,
+      schema: AIGenerationSchema<T>,
     ): Promise<{
       object: T;
       usage: {
@@ -89,11 +90,18 @@ export function createMockAIService(): IAIService {
         };
       }
 
-      // Parse with schema to ensure it matches
-      const parsed = schema.parse(mockObject);
+      // Validate with schema to ensure it matches
+      const validate = asSchema(schema).validate;
+      if (!validate) {
+        throw new Error("Mock AI schema does not provide validation");
+      }
+      const parsed = await validate(mockObject);
+      if (!parsed.success) {
+        throw parsed.error;
+      }
 
       return {
-        object: parsed,
+        object: parsed.value,
         usage: {
           promptTokens: 100,
           completionTokens: 50,
@@ -120,7 +128,7 @@ export function createMockAIService(): IAIService {
       return { verdict: object, usage };
     },
 
-    updateConfig: (_config: Partial<AIModelConfig>): void => {
+    updateConfig: (_config: AIModelConfigUpdate): void => {
       // Mock implementation - does nothing
     },
 

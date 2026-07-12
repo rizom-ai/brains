@@ -2,7 +2,7 @@ import {
   BaseEntityAdapter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import {
   anchorProfileSchema,
   anchorProfileBodySchema,
@@ -10,11 +10,21 @@ import {
   type AnchorProfile,
 } from "./anchor-profile-schema";
 
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+
+interface ProfileBodyParser<T> {
+  parse(data: unknown): T;
+}
+
 /**
  * Entity adapter for Anchor Profile entities
  * Uses frontmatter format for CMS compatibility
  */
-export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity> {
+export class AnchorProfileAdapter extends BaseEntityAdapter<
+  AnchorProfileEntity,
+  Record<string, unknown>,
+  AnchorProfile
+> {
   constructor() {
     super({
       entityType: "anchor-profile",
@@ -30,9 +40,7 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
    * Create profile content in frontmatter format
    * Validates input data through Zod schema
    */
-  public createProfileContent(
-    params: z.input<typeof anchorProfileBodySchema>,
-  ): string {
+  public createProfileContent(params: AnchorProfile): string {
     const validatedData = anchorProfileBodySchema.parse(params);
     return this.buildMarkdown("", validatedData);
   }
@@ -45,11 +53,11 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
   public parseProfileBody(content: string): AnchorProfile;
   public parseProfileBody<T extends Record<string, unknown>>(
     content: string,
-    schema: z.ZodSchema<T>,
+    schema: ProfileBodyParser<T>,
   ): T;
   public parseProfileBody<T extends Record<string, unknown>>(
     content: string,
-    schema?: z.ZodSchema<T>,
+    schema?: ProfileBodyParser<T>,
   ): AnchorProfile | T {
     if (schema) {
       const { metadata: parsed, content: body } = parseMarkdownWithFrontmatter(
@@ -58,7 +66,7 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
       );
       return body ? { ...parsed, story: body } : parsed;
     }
-    return this.parseFrontmatter(content) as AnchorProfile;
+    return this.parseFrontmatter(content);
   }
 
   /**
@@ -78,7 +86,7 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
   public override extractMetadata(
     entity: AnchorProfileEntity,
   ): Record<string, unknown> {
-    const data = this.parseFrontmatter(entity.content) as AnchorProfile;
+    const data = this.parseFrontmatter(entity.content);
     return {
       name: data.name,
       email: data.email,
@@ -91,6 +99,6 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
    */
   public override generateFrontMatter(entity: AnchorProfileEntity): string {
     const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", data as Record<string, unknown>);
+    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 }

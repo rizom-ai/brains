@@ -1,4 +1,5 @@
-import type { AppConfig, DeploymentConfigInput } from "./types";
+import { z } from "@brains/utils/zod";
+import type { AppConfig } from "./types";
 import type { App as AppClass } from "./app";
 import type { ToolResponse } from "@brains/mcp-service";
 
@@ -28,9 +29,22 @@ function requireArgValue(
   return value;
 }
 
-function parseJsonFlag<T>(args: string[], flag: string, defaultValue: T): T {
+interface JsonFlagSchema<T> {
+  parse(value: unknown): T;
+}
+
+const cliArgsSchema = z.array(z.string());
+const cliFlagsSchema = z.record(z.string(), z.unknown());
+const jsonValueSchema = z.unknown();
+
+function parseJsonFlag<T>(
+  args: string[],
+  flag: string,
+  defaultValue: T,
+  schema: JsonFlagSchema<T>,
+): T {
   const value = getArgValue(args, flag);
-  return value ? (JSON.parse(value) as T) : defaultValue;
+  return value ? schema.parse(JSON.parse(value)) : defaultValue;
 }
 
 function createHeadlessConfig(config: AppConfig): AppConfig {
@@ -109,41 +123,41 @@ async function invokeCliTool(
  * This is used by deploy scripts to extract config without starting the app
  */
 function exportDeployConfig(config: AppConfig): void {
-  const deployment: DeploymentConfigInput = config.deployment ?? {};
+  const deployment = config.deployment;
 
   const deployConfig = {
     name: config.name,
     version: config.version,
     // Server
-    provider: deployment.provider ?? "hetzner",
-    serverSize: deployment.serverSize ?? "cx33",
-    location: deployment.location ?? "fsn1",
+    provider: deployment.provider,
+    serverSize: deployment.serverSize,
+    location: deployment.location,
     domain: deployment.domain,
     // Docker
     docker: {
-      enabled: deployment.docker?.enabled ?? true,
-      image: deployment.docker?.image ?? config.name,
+      enabled: deployment.docker.enabled,
+      image: deployment.docker.image ?? config.name,
     },
     // Ports
     ports: {
-      default: deployment.ports?.default ?? 3333,
-      preview: deployment.ports?.preview ?? 4321,
-      production: deployment.ports?.production ?? 8080,
+      default: deployment.ports.default,
+      preview: deployment.ports.preview,
+      production: deployment.ports.production,
     },
     // CDN
     cdn: {
-      enabled: deployment.cdn?.enabled ?? false,
-      provider: deployment.cdn?.provider ?? "none",
+      enabled: deployment.cdn.enabled,
+      provider: deployment.cdn.provider,
     },
     // DNS
     dns: {
-      enabled: deployment.dns?.enabled ?? false,
-      provider: deployment.dns?.provider ?? "none",
+      enabled: deployment.dns.enabled,
+      provider: deployment.dns.provider,
     },
     // Paths (compute defaults based on app name)
     paths: {
-      install: deployment.paths?.install ?? `/opt/${config.name}`,
-      data: deployment.paths?.data ?? `/opt/${config.name}/data`,
+      install: deployment.paths.install ?? `/opt/${config.name}`,
+      data: deployment.paths.data ?? `/opt/${config.name}/data`,
     },
   };
 
@@ -250,12 +264,8 @@ async function runCliCommand(
     "--cli-command",
     "❌ --cli-command requires a command name",
   );
-  const cliArgs = parseJsonFlag<string[]>(args, "--cli-args", []);
-  const cliFlags = parseJsonFlag<Record<string, unknown>>(
-    args,
-    "--cli-flags",
-    {},
-  );
+  const cliArgs = parseJsonFlag(args, "--cli-args", [], cliArgsSchema);
+  const cliFlags = parseJsonFlag(args, "--cli-flags", {}, cliFlagsSchema);
 
   const app = await initializeHeadlessApp(config, App);
   const cliTools = app.getShell().getMCPService().getCliTools();
@@ -296,13 +306,9 @@ async function runTool(
     "❌ --tool requires a tool name",
   );
 
-  let toolInput: Record<string, unknown> = {};
+  let toolInput: unknown = {};
   try {
-    toolInput = parseJsonFlag<Record<string, unknown>>(
-      args,
-      "--tool-input",
-      {},
-    );
+    toolInput = parseJsonFlag(args, "--tool-input", {}, jsonValueSchema);
   } catch {
     console.error("❌ --tool-input must be valid JSON");
     process.exit(1);
@@ -373,7 +379,7 @@ async function runDiagnostics(
   );
   for (const entities of entityLists) {
     for (const entity of entities) {
-      const meta = entity.metadata as Record<string, unknown>;
+      const meta = cliFlagsSchema.parse(entity.metadata);
       const title = String(meta["title"] ?? meta["name"] ?? entity.id);
       allEntities.push({ id: entity.id, entityType: entity.entityType, title });
     }

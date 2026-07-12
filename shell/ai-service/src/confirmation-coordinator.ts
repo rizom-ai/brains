@@ -89,12 +89,17 @@ export function resolveConfirmationContext(
 }
 
 export class ConfirmationCoordinator {
-  constructor(
-    private readonly actors: {
-      peek(conversationId: string): ConversationActor | undefined;
-      scheduleEviction(conversationId: string): void;
-    },
-  ) {}
+  private readonly actors: {
+    peek(conversationId: string): ConversationActor | undefined;
+    scheduleEviction(conversationId: string): void;
+  };
+
+  constructor(actors: {
+    peek(conversationId: string): ConversationActor | undefined;
+    scheduleEviction(conversationId: string): void;
+  }) {
+    this.actors = actors;
+  }
 
   /**
    * Confirm or cancel a pending action addressed by approval id,

@@ -17,7 +17,7 @@ const systemListResponseSchema = z.object({
   }),
 });
 
-const entityIdsSchema = z.array(z.object({ id: z.string() }).passthrough());
+const entityIdsSchema = z.array(z.looseObject({ id: z.string() }));
 
 const makeEntity = (id: string, visibility: ContentVisibility): BaseEntity => ({
   id,

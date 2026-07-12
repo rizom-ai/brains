@@ -18,7 +18,7 @@ const testJobSchema = z.object({
   shouldFail: z.boolean().optional(),
 });
 
-type TestJobData = z.infer<typeof testJobSchema>;
+type TestJobData = z.output<typeof testJobSchema>;
 type TestGenerationResult = GenerationResult & { slug?: string };
 
 class TestGenerationHandler extends BaseGenerationJobHandler<

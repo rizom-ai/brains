@@ -14,8 +14,11 @@ export interface PromptAction {
  */
 export class PromptActionStore {
   private readonly actions = new Map<string, PromptAction>();
+  private readonly maxEntries: number;
 
-  constructor(private readonly maxEntries = 1000) {}
+  constructor(maxEntries = 1000) {
+    this.maxEntries = maxEntries;
+  }
 
   register(
     threadId: string,

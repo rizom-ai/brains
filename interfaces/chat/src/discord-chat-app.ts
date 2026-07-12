@@ -79,9 +79,12 @@ interface DiscordChatAppDeps {
  * logic, not SDK lifecycle.
  */
 export class DiscordChatApp {
+  private readonly deps: DiscordChatAppDeps;
   private app: ChatSdkApp | undefined;
 
-  constructor(private readonly deps: DiscordChatAppDeps) {}
+  constructor(deps: DiscordChatAppDeps) {
+    this.deps = deps;
+  }
 
   /** Construct the Chat SDK app. Returns it so the interface can register handlers. */
   build(runtimeState: IRuntimeStateNamespace): ChatSdkApp {

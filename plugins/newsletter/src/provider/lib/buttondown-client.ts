@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 
 export interface ButtondownConfig {
   apiKey: string;
@@ -15,10 +16,14 @@ const BUTTONDOWN_API_URL = "https://api.buttondown.email/v1";
  * "already_subscribed" is a local status indicating the subscriber already exists
  */
 export type SubscriberType =
-  | "unactivated"
-  | "regular"
-  | "unsubscribed"
-  | "already_subscribed";
+  "unactivated" | "regular" | "unsubscribed" | "already_subscribed";
+
+const subscriberTypeSchema: z.ZodType<SubscriberType, SubscriberType> = z.enum([
+  "unactivated",
+  "regular",
+  "unsubscribed",
+  "already_subscribed",
+]);
 
 /**
  * Buttondown subscriber
@@ -27,7 +32,7 @@ export interface Subscriber {
   id: string;
   email: string;
   subscriber_type: SubscriberType;
-  metadata?: Record<string, string>;
+  metadata?: Record<string, string> | undefined;
 }
 
 /**
@@ -44,15 +49,22 @@ export interface CreateSubscriberInput {
  */
 export type EmailStatus = "draft" | "about_to_send" | "scheduled" | "sent";
 
+const emailStatusSchema: z.ZodType<EmailStatus, EmailStatus> = z.enum([
+  "draft",
+  "about_to_send",
+  "scheduled",
+  "sent",
+]);
+
 /**
  * Buttondown email
  */
 export interface ButtondownEmail {
   id: string;
   subject: string;
-  body?: string;
+  body?: string | undefined;
   status: EmailStatus;
-  publish_date?: string;
+  publish_date?: string | undefined;
 }
 
 /**
@@ -73,27 +85,45 @@ export interface ListResponse<T> {
   count: number;
 }
 
-/**
- * Buttondown API error response
- */
-interface ButtondownError {
-  detail?: string;
-  message?: string;
-  code?: string;
-}
+const subscriberSchema = z.looseObject({
+  id: z.string(),
+  email: z.string(),
+  subscriber_type: subscriberTypeSchema,
+  metadata: z.record(z.string(), z.string()).optional(),
+});
+
+const buttondownEmailSchema = z.looseObject({
+  id: z.string(),
+  subject: z.string(),
+  body: z.string().optional(),
+  status: emailStatusSchema,
+  publish_date: z.string().optional(),
+});
+
+const listSubscribersResponseSchema = z.looseObject({
+  results: z.array(subscriberSchema),
+  count: z.number(),
+});
+
+const buttondownErrorSchema = z.looseObject({
+  detail: z.string().optional(),
+  message: z.string().optional(),
+  code: z.string().optional(),
+});
 
 /**
  * Error thrown for failed Buttondown API requests, preserving the structured
  * error code from the response body (e.g. "email_already_exists")
  */
 export class ButtondownApiError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-    public readonly code?: string,
-  ) {
+  public readonly status: number;
+  public readonly code: string | undefined;
+
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = "ButtondownApiError";
+    this.status = status;
+    this.code = code;
   }
 }
 
@@ -105,18 +135,20 @@ export class ButtondownApiError extends Error {
  * @see https://api.buttondown.email/v1/docs
  */
 export class ButtondownClient {
-  constructor(
-    private config: ButtondownConfig,
-    private logger: Logger,
-  ) {}
+  private config: ButtondownConfig;
+  private logger: Logger;
+  constructor(config: ButtondownConfig, logger: Logger) {
+    this.config = config;
+    this.logger = logger;
+  }
 
   /**
    * Make an authenticated request to the Buttondown API
    */
-  private async request<T>(
+  private async request(
     endpoint: string,
     options: RequestInit = {},
-  ): Promise<T> {
+  ): Promise<unknown> {
     const url = `${BUTTONDOWN_API_URL}${endpoint}`;
 
     this.logger.debug("Buttondown API request", {
@@ -134,25 +166,26 @@ export class ButtondownClient {
     });
 
     if (!response.ok) {
-      const error = (await response
-        .json()
-        .catch(() => ({}))) as ButtondownError;
-      const message =
-        error.detail ?? error.message ?? `HTTP ${response.status}`;
+      const errorPayload = await response.json().catch(() => ({}));
+      const error = buttondownErrorSchema.safeParse(errorPayload);
+      const message = error.success
+        ? (error.data.detail ?? error.data.message ?? `HTTP ${response.status}`)
+        : `HTTP ${response.status}`;
+      const code = error.success ? error.data.code : undefined;
       this.logger.error("Buttondown API error", {
         endpoint,
         status: response.status,
-        code: error.code,
+        code,
         error: message,
       });
       throw new ButtondownApiError(
         `Buttondown API error: ${message}`,
         response.status,
-        error.code,
+        code,
       );
     }
 
-    return response.json() as Promise<T>;
+    return response.json();
   }
 
   /**
@@ -181,10 +214,12 @@ export class ButtondownClient {
     this.logger.info("Creating subscriber", { email: input.email });
 
     try {
-      return await this.request<Subscriber>("/subscribers", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
+      return subscriberSchema.parse(
+        await this.request("/subscribers", {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      );
     } catch (error) {
       // Duplicate email - look up the existing subscriber and flag it
       if (
@@ -206,8 +241,8 @@ export class ButtondownClient {
    * Get a subscriber by email address
    */
   async getSubscriberByEmail(email: string): Promise<Subscriber> {
-    return this.request<Subscriber>(
-      `/subscribers/${encodeURIComponent(email)}`,
+    return subscriberSchema.parse(
+      await this.request(`/subscribers/${encodeURIComponent(email)}`),
     );
   }
 
@@ -240,7 +275,7 @@ export class ButtondownClient {
     const query = params.toString();
     const endpoint = query ? `/subscribers?${query}` : "/subscribers";
 
-    return this.request<ListResponse<Subscriber>>(endpoint);
+    return listSubscribersResponseSchema.parse(await this.request(endpoint));
   }
 
   /**
@@ -267,17 +302,19 @@ export class ButtondownClient {
       status: input.status ?? "draft",
     });
 
-    return this.request<ButtondownEmail>("/emails", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    return buttondownEmailSchema.parse(
+      await this.request("/emails", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    );
   }
 
   /**
    * Get an email by ID
    */
   async getEmail(id: string): Promise<ButtondownEmail> {
-    return this.request<ButtondownEmail>(`/emails/${id}`);
+    return buttondownEmailSchema.parse(await this.request(`/emails/${id}`));
   }
 
   /**
@@ -285,7 +322,7 @@ export class ButtondownClient {
    */
   async validateCredentials(): Promise<boolean> {
     try {
-      await this.request<ListResponse<Subscriber>>("/subscribers?page_size=1");
+      await this.request("/subscribers?page_size=1");
       return true;
     } catch {
       return false;

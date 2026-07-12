@@ -43,7 +43,22 @@ In Inspector:
 
 The brain advertises OAuth metadata, dynamically registers the client, opens a browser/passkey authorization flow, and issues an access token with the `mcp` scope.
 
-Once connected, you can list tools/resources and run safe tool calls such as `system_status`.
+Once connected, you can list tools/resources. In the default `basic` mode, raw write tools are intentionally hidden: use read-only tools such as `system_search`, `system_get`, `system_list`, and `job_status` for structured queries, and use `chat` for any create/update/delete or reasoning request.
+
+If `chat` returns `needsConfirmation`, call `confirm` with the returned `approvalId` and `conversationId`. Successful `chat`/`confirm` responses may include `readYourWrites` handles with entity IDs and job IDs to fetch with `system_get` or poll with `job_status`.
+
+## Debug mode
+
+For local/operator inspection, configure MCP with `mode: debug` to advertise raw tools. Debug mode requires `anchor` permissions and is refused for unauthenticated HTTP.
+
+```yaml
+plugins:
+  mcp:
+    transport: stdio
+    mode: debug
+```
+
+Use `debug` only when you intentionally want to bypass the agent-gated command path for inspection or development.
 
 ## Deprecated static-token fallback
 

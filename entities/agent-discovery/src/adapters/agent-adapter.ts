@@ -1,11 +1,10 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import { slugifyUrl } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import {
   agentEntitySchema,
   agentFrontmatterSchema,
-  agentSkillSchema,
   agentStatusSchema,
   type AgentEntity,
   type AgentFrontmatter,
@@ -19,13 +18,19 @@ import {
 } from "../lib/agent-skill-markdown";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 
+const agentBodySkillSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+});
+
 const agentBodySchema = z.object({
   about: z.string(),
-  skills: z.array(agentSkillSchema),
+  skills: z.array(agentBodySkillSchema),
   notes: z.string(),
 });
 
-type AgentBody = z.infer<typeof agentBodySchema>;
+type AgentBody = z.output<typeof agentBodySchema>;
 
 const bodyFormatter = new StructuredContentFormatter<AgentBody>(
   agentBodySchema,

@@ -9,6 +9,8 @@ import { GENERATE_MESSAGES } from "../src/types/messages";
 import type { IMessageBus } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 
+type SchedulerConfigOverrides = Partial<SchedulerConfig>;
+
 // Mock message bus
 function createMockMessageBus(): IMessageBus & {
   _sentMessages: Array<{ type: string; payload: unknown }>;
@@ -37,7 +39,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
   let messageBus: ReturnType<typeof createMockMessageBus>;
   let onGenerateMock: ReturnType<typeof mock>;
 
-  function baseConfig(overrides?: Partial<SchedulerConfig>): SchedulerConfig {
+  function baseConfig(overrides?: SchedulerConfigOverrides): SchedulerConfig {
     return {
       queueManager,
       providerRegistry,

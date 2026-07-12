@@ -11,6 +11,8 @@ import {
   createMockMessageSender,
 } from "@brains/test-utils";
 
+type SiteBuildJobHandlerConfigOverrides = Partial<SiteBuildJobHandlerConfig>;
+
 /**
  * Tests that SiteBuildJobHandler uses siteUrl/previewUrl from its config
  * (which the plugin populates from context.siteUrl/context.previewUrl).
@@ -35,7 +37,7 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
     mockProgressReporter = createMockProgressReporter();
   });
 
-  function createHandler(overrides: Partial<SiteBuildJobHandlerConfig> = {}): {
+  function createHandler(overrides: SiteBuildJobHandlerConfigOverrides = {}): {
     handler: SiteBuildJobHandler;
     sendMessage: ReturnType<typeof mock>;
   } {

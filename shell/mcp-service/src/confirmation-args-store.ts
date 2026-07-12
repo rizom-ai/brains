@@ -10,9 +10,7 @@ function stableForConfirmation(value: unknown): unknown {
 }
 
 export type ConfirmationArgsValidationResult =
-  | { status: "ok" }
-  | { status: "missing" }
-  | { status: "mismatch" };
+  { status: "ok" } | { status: "missing" } | { status: "mismatch" };
 
 const DEFAULT_CONFIRMATION_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_MAX_PENDING = 1000;

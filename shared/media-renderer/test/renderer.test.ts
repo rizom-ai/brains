@@ -13,6 +13,8 @@ const pngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const pdfBuffer = Buffer.from("%PDF-1.7\n%test");
 
 class FakePage implements MediaPage {
+  private readonly screenshotData: Buffer;
+  private readonly pdfData: Buffer;
   public gotoCalls: Array<{
     url: string;
     options: {
@@ -22,10 +24,10 @@ class FakePage implements MediaPage {
   }> = [];
   public closed = false;
 
-  constructor(
-    private readonly screenshotData: Buffer = pngBuffer,
-    private readonly pdfData: Buffer = pdfBuffer,
-  ) {}
+  constructor(screenshotData: Buffer = pngBuffer, pdfData: Buffer = pdfBuffer) {
+    this.screenshotData = screenshotData;
+    this.pdfData = pdfData;
+  }
 
   async goto(
     url: string,
@@ -51,14 +53,16 @@ class FakePage implements MediaPage {
 }
 
 class FakeBrowser implements MediaBrowser {
+  public readonly page: FakePage;
+  private readonly closeBehavior: "ok" | "throw";
   public closeCalls = 0;
   public closed = false;
   public receivedViewport: ViewportOptions | undefined;
 
-  constructor(
-    public readonly page: FakePage,
-    private readonly closeBehavior: "ok" | "throw" = "ok",
-  ) {}
+  constructor(page: FakePage, closeBehavior: "ok" | "throw" = "ok") {
+    this.page = page;
+    this.closeBehavior = closeBehavior;
+  }
 
   async newPage(options?: { viewport?: ViewportOptions }): Promise<MediaPage> {
     this.receivedViewport = options?.viewport;

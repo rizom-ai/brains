@@ -1,8 +1,15 @@
 import type { JSX, ComponentChildren } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const cardVariants = cva(
+export type CardVariant = "vertical" | "horizontal" | "compact";
+
+export interface CardVariantProps {
+  variant?: VariantValue<CardVariant>;
+}
+
+const cardVariants: VariantFunction<CardVariantProps> = cva(
   "bg-theme-subtle rounded-lg border border-theme hover:shadow-lg transition-shadow",
   {
     variants: {
@@ -18,9 +25,7 @@ const cardVariants = cva(
   },
 );
 
-export type CardVariant = "vertical" | "horizontal" | "compact";
-
-export interface CardProps extends VariantProps<typeof cardVariants> {
+export interface CardProps extends CardVariantProps {
   href?: string | undefined;
   className?: string;
   children: ComponentChildren;

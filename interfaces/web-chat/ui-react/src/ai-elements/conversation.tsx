@@ -10,7 +10,10 @@ import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
 export type ConversationProps = ComponentProps<typeof StickToBottom>;
 
-export const Conversation = ({ className, ...props }: ConversationProps) => (
+export const Conversation = ({
+  className,
+  ...props
+}: ConversationProps): React.ReactNode => (
   <StickToBottom
     className={cn(
       "web-chat-conversation relative flex-1 overflow-y-hidden",
@@ -30,7 +33,7 @@ export type ConversationContentProps = ComponentProps<
 export const ConversationContent = ({
   className,
   ...props
-}: ConversationContentProps) => (
+}: ConversationContentProps): React.ReactNode => (
   <StickToBottom.Content
     className={cn(
       "web-chat-conversation-content flex flex-col gap-8 p-4",
@@ -55,7 +58,7 @@ export const ConversationEmptyState = ({
   icon,
   children,
   ...props
-}: ConversationEmptyStateProps) => (
+}: ConversationEmptyStateProps): React.ReactNode => (
   <div
     className={cn(
       "web-chat-empty-state flex size-full flex-col items-center justify-center gap-3 p-8 text-center",
@@ -97,7 +100,7 @@ export type ConversationScrollButtonProps = ComponentProps<typeof Button>;
 export const ConversationScrollButton = ({
   className,
   ...props
-}: ConversationScrollButtonProps) => {
+}: ConversationScrollButtonProps): React.ReactNode => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
   const handleScrollToBottom = useCallback(() => {
@@ -159,7 +162,7 @@ export const ConversationDownload = ({
   className,
   children,
   ...props
-}: ConversationDownloadProps) => {
+}: ConversationDownloadProps): React.ReactNode => {
   const handleDownload = useCallback(() => {
     const markdown = messagesToMarkdown(messages, formatMessage);
     const blob = new Blob([markdown], { type: "text/markdown" });

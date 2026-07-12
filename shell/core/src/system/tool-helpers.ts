@@ -9,11 +9,15 @@ import type {
   PermissionService,
   UserPermissionLevel,
 } from "@brains/templates";
-import { type z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import type { SystemServices } from "./types";
 
 const PLUGIN_ID = "system";
+const updateFieldsSchema = z.record(z.string(), z.unknown());
+const wrappedUpdateFieldsSchema = z.looseObject({
+  fields: updateFieldsSchema,
+});
 
 const ROLE_LABELS: Record<UserPermissionLevel, string> = {
   anchor: "Owner/anchor",
@@ -62,7 +66,7 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
   description: string,
   inputSchema: TSchema,
   handler: (
-    input: z.infer<TSchema>,
+    input: z.output<TSchema>,
     context: ToolContext,
   ) => Promise<ToolResponse>,
   options: {
@@ -80,7 +84,7 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
       if (!parseResult.success) {
         return {
           success: false,
-          error: `Invalid input: ${parseResult.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+          error: `Invalid input: ${parseResult.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
         };
       }
       try {
@@ -170,26 +174,15 @@ export function normalizeUpdateInput(input: {
   }
 
   try {
-    const parsed = JSON.parse(input.content) as unknown;
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      !Array.isArray(parsed)
-    ) {
-      if (
-        "fields" in parsed &&
-        typeof parsed.fields === "object" &&
-        parsed.fields !== null &&
-        !Array.isArray(parsed.fields)
-      ) {
-        return {
-          fields: parsed.fields as Record<string, unknown>,
-        };
-      }
+    const parsed = JSON.parse(input.content);
+    const wrapped = wrappedUpdateFieldsSchema.safeParse(parsed);
+    if (wrapped.success) {
+      return { fields: wrapped.data.fields };
+    }
 
-      return {
-        fields: parsed as Record<string, unknown>,
-      };
+    const fields = updateFieldsSchema.safeParse(parsed);
+    if (fields.success) {
+      return { fields: fields.data };
     }
   } catch {
     // Not JSON — treat as full content replacement.
@@ -222,8 +215,12 @@ export function getEntityDisplayLabel(entity: BaseEntity): string {
   return label ?? entity.id;
 }
 
+interface FrontmatterShapeSchema {
+  shape: Record<string, unknown>;
+}
+
 export function hasStructuredFrontmatter(
-  schema: z.ZodObject<z.ZodRawShape> | undefined,
+  schema: FrontmatterShapeSchema | undefined,
 ): boolean {
   return !!schema && Object.keys(schema.shape).length > 0;
 }

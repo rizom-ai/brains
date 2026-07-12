@@ -31,18 +31,17 @@ describe("RemoteAgentService", () => {
     );
 
     const call = fetchMock.mock.calls[0];
-    expect(call?.[0]).toBe("http://brain.test/api/chat/confirm");
+    expect(call?.[0]).toBe("http://brain.test/api/agent/chat/confirm");
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({
       conversationId: "conversation-1",
       confirmed: true,
       approvalId: "approval:delete",
-      context: { userPermissionLevel: "anchor", interfaceType: "evaluation" },
     });
   });
 
   it("should parse multiple pending confirmations and approval cards", async () => {
     const fetchMock = mock(
-      async () =>
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
         new Response(
           JSON.stringify({
             text: "Confirmation required.",
@@ -79,6 +78,9 @@ describe("RemoteAgentService", () => {
     const service = new RemoteAgentService({ baseUrl: "http://brain.test" });
     const response = await service.chat("change things", "conversation-1");
 
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://brain.test/api/agent/chat",
+    );
     expect(
       response.pendingConfirmations?.map((confirmation) => confirmation.id),
     ).toEqual(["approval:update", "approval:delete"]);
@@ -87,7 +89,7 @@ describe("RemoteAgentService", () => {
 
   it("should ignore legacy singular pending confirmations from remote responses", async () => {
     const fetchMock = mock(
-      async () =>
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
         new Response(
           JSON.stringify({
             text: "Confirmation required.",

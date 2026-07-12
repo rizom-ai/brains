@@ -93,6 +93,30 @@ async function makeRequest(
   };
 }
 
+async function initializeSession(
+  port: number,
+  headers: Record<string, string>,
+): Promise<string> {
+  const response = await makeRequest("POST", "/mcp", {
+    port,
+    headers,
+    body: {
+      jsonrpc: "2.0",
+      method: "initialize",
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "test-client", version: "1.0.0" },
+      },
+      id: 1,
+    },
+  });
+  expect(response.status).toBe(200);
+  const sessionId = response.headers["mcp-session-id"];
+  if (!sessionId) throw new Error("Expected MCP session id");
+  return sessionId;
+}
+
 describe("StreamableHTTPServer", () => {
   let server: StreamableHTTPServer | undefined;
   let mockLogger: TransportLogger;
@@ -629,6 +653,7 @@ describe("StreamableHTTPServer", () => {
 
     describe("with authentication enabled", () => {
       let port: number;
+      let capturedSubject: unknown;
 
       beforeEach(async () => {
         server = new StreamableHTTPServer({
@@ -644,6 +669,10 @@ describe("StreamableHTTPServer", () => {
         const mcpServer = new McpServer({
           name: "test-server",
           version: "1.0",
+        });
+        mcpServer.tool("capture_subject", {}, async (_params, extra) => {
+          capturedSubject = extra.authInfo?.extra?.["subject"];
+          return { content: [{ type: "text", text: "ok" }] };
         });
         server.connectMCPServer(mcpServer);
       });
@@ -779,6 +808,24 @@ describe("StreamableHTTPServer", () => {
         );
       });
 
+      test("should forward the static-token subject to MCP tools", async () => {
+        const headers = { Authorization: `Bearer ${testToken}` };
+        const sessionId = await initializeSession(port, headers);
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: { ...headers, "mcp-session-id": sessionId },
+          body: {
+            jsonrpc: "2.0",
+            method: "tools/call",
+            params: { name: "capture_subject", arguments: {} },
+            id: 2,
+          },
+        });
+
+        expect(response.status).toBe(200);
+        expect(capturedSubject).toBe("static-token-operator");
+      });
+
       test("should reject requests with malformed auth header", async () => {
         const response = await makeRequest("POST", "/mcp", {
           port,
@@ -802,6 +849,7 @@ describe("StreamableHTTPServer", () => {
     describe("with OAuth bearer verification", () => {
       let port: number;
       let verifyBearerToken: ReturnType<typeof mock>;
+      let capturedSubject: unknown;
 
       beforeEach(async () => {
         verifyBearerToken = mock(async (_request: Request) => ({
@@ -823,6 +871,10 @@ describe("StreamableHTTPServer", () => {
           name: "test-server",
           version: "1.0",
         });
+        mcpServer.tool("capture_subject", {}, async (_params, extra) => {
+          capturedSubject = extra.authInfo?.extra?.["subject"];
+          return { content: [{ type: "text", text: "ok" }] };
+        });
         server.connectMCPServer(mcpServer);
       });
 
@@ -841,6 +893,24 @@ describe("StreamableHTTPServer", () => {
         expect(mockLogger.debug).toHaveBeenCalledWith(
           expect.stringContaining("Authentication successful"),
         );
+      });
+
+      test("should forward the verified OAuth subject to MCP tools", async () => {
+        const headers = { Authorization: "Bearer oauth-access-token" };
+        const sessionId = await initializeSession(port, headers);
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: { ...headers, "mcp-session-id": sessionId },
+          body: {
+            jsonrpc: "2.0",
+            method: "tools/call",
+            params: { name: "capture_subject", arguments: {} },
+            id: 2,
+          },
+        });
+
+        expect(response.status).toBe(200);
+        expect(capturedSubject).toBe("single-operator");
       });
 
       test("should reject invalid OAuth bearer tokens", async () => {
@@ -910,6 +980,7 @@ describe("StreamableHTTPServer", () => {
             new McpServer({ name: "base-server", version: "1.0" }),
           createMcpServer,
           setPermissionLevel: mock(() => {}),
+          setProtocolMode: mock(() => {}),
         };
         server?.connectMCPServer(
           new McpServer({ name: "base-server", version: "1.0" }),

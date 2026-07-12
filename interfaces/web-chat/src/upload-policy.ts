@@ -25,12 +25,18 @@ import {
   type TextUploadValidationResult,
 } from "@brains/plugins/message-interface/upload-policy";
 
-export const defaultWebChatUploadFilename = defaultMessageUploadFilename;
-export const webChatTextUploadAccept = messageTextUploadAccept;
-export const webChatBinaryUploadAccept = messageBinaryUploadAccept;
-export const webChatUploadAccept = messageUploadAccept;
-export const webChatTextUploadMaxBytes = messageTextUploadMaxBytes;
-export const webChatUploadMaxBytes = messageUploadMaxBytes;
+export const defaultWebChatUploadFilename: typeof defaultMessageUploadFilename =
+  defaultMessageUploadFilename;
+export const webChatTextUploadAccept: typeof messageTextUploadAccept =
+  messageTextUploadAccept;
+export const webChatBinaryUploadAccept: typeof messageBinaryUploadAccept =
+  messageBinaryUploadAccept;
+export const webChatUploadAccept: typeof messageUploadAccept =
+  messageUploadAccept;
+export const webChatTextUploadMaxBytes: typeof messageTextUploadMaxBytes =
+  messageTextUploadMaxBytes;
+export const webChatUploadMaxBytes: typeof messageUploadMaxBytes =
+  messageUploadMaxBytes;
 
 export {
   isLikelyUtf8Text,

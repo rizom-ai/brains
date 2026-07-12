@@ -34,17 +34,21 @@ import { and, eq, desc, asc, sql, count, gt } from "drizzle-orm";
  * Conversation Service - Core infrastructure for storing and retrieving conversations
  */
 export class ConversationService implements IConversationService {
+  private readonly db: ConversationDB;
+  private readonly logger: Logger;
   private static instance: ConversationService | null = null;
   private readonly messageBus: MessageBus;
   private readonly config: ConversationServiceConfig;
   private dbClient: Client | null = null;
 
   constructor(
-    private readonly db: ConversationDB,
-    private readonly logger: Logger,
+    db: ConversationDB,
+    logger: Logger,
     messageBus: MessageBus,
     config: ConversationServiceConfig = {},
   ) {
+    this.db = db;
+    this.logger = logger;
     this.messageBus = messageBus;
     this.config = {
       digestTriggerInterval: 5,

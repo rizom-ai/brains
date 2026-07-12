@@ -3,13 +3,9 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import {
-  PermissionService,
-  ServicePlugin,
-  UserPermissionLevelSchema,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { PermissionService, ServicePlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import {
   BUILT_IN_WIDGET_RENDERERS,
   DashboardWidgetRegistry,
@@ -18,6 +14,7 @@ import {
 import type {
   RegisteredWidget,
   WidgetComponent,
+  WidgetDigestProvider,
   WidgetVisibility,
 } from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
@@ -25,17 +22,37 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "./dashboard-page";
+import { deriveConsoleSurfaces } from "@brains/console-theme";
+import {
+  buildConsoleJumpGroups,
+  type ConsoleJumpEntityHit,
+} from "./console-jump";
 import { resolveWidgetsForRender } from "./render/resolve-widgets";
+import type {
+  DashboardActivityEvent,
+  DashboardJobProgressItem,
+} from "./render/types";
 import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
-const dashboardConfigSchema = z.object({
-  version: z.string().default("1.0.0"),
-  routePath: z.string().default("/dashboard"),
-  themeCSS: z.string().optional(),
-});
+export interface DashboardConfig {
+  version: string;
+  routePath: string;
+  themeCSS?: string | undefined;
+}
 
-type DashboardConfig = z.infer<typeof dashboardConfigSchema>;
+export interface DashboardConfigInput {
+  version?: string | undefined;
+  routePath?: string | undefined;
+  themeCSS?: string | undefined;
+}
+
+const dashboardConfigSchema: z.ZodType<DashboardConfig, DashboardConfigInput> =
+  z.object({
+    version: z.string().default("1.0.0"),
+    routePath: z.string().default("/dashboard"),
+    themeCSS: z.string().optional(),
+  });
 
 const registerWidgetPayloadSchema = z
   .object({
@@ -43,18 +60,38 @@ const registerWidgetPayloadSchema = z
     pluginId: z.string(),
     title: z.string(),
     description: z.string().optional(),
+    group: z.string().min(1),
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
-    visibility: UserPermissionLevelSchema.default("public"),
+    visibility: z.enum(["public", "trusted", "anchor"]).default("public"),
+    needsOperator: z.number().int().nonnegative().optional(),
+    digest: z
+      .array(
+        z.object({
+          label: z.string(),
+          value: z.string(),
+          tone: z.enum(["plain", "good", "warn"]).optional(),
+        }),
+      )
+      .max(4)
+      .optional(),
     component: z.custom<WidgetComponent>().optional(),
     clientScript: z.string().optional(),
-    dataProvider: z.function().returns(z.promise(z.unknown())),
+    dataProvider: z.custom<() => Promise<unknown>>(
+      (value) => typeof value === "function",
+      { message: "Expected dashboard widget data provider function" },
+    ),
+    digestProvider: z
+      .custom<WidgetDigestProvider>((value) => typeof value === "function", {
+        message: "Expected dashboard widget digest provider function",
+      })
+      .optional(),
   })
   .superRefine((payload, refinementContext) => {
     if (!isBuiltInWidgetRenderer(payload.rendererName) && !payload.component) {
       refinementContext.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Custom dashboard widgets must register a Preact component.",
         path: ["component"],
       });
@@ -66,32 +103,186 @@ const unregisterWidgetPayloadSchema = z.object({
   widgetId: z.string().optional(),
 });
 
+const entityActivityPayloadSchema = z.object({
+  entityType: z.string(),
+  entityId: z.string(),
+  conversationId: z.string().optional(),
+});
+
+const jobProgressPayloadSchema = z.object({
+  id: z.string(),
+  type: z.enum(["job", "batch"]),
+  status: z.enum(["pending", "processing", "completed", "failed"]),
+  message: z.string().optional(),
+  progress: z
+    .object({
+      current: z.number(),
+      total: z.number(),
+      percentage: z.number(),
+    })
+    .optional(),
+  jobDetails: z
+    .object({
+      jobType: z.string(),
+      priority: z.number(),
+      retryCount: z.number(),
+    })
+    .optional(),
+});
+
+const directorySyncStatusResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    syncPath: z.string(),
+    isInitialized: z.boolean(),
+    watchEnabled: z.boolean(),
+    lastSync: z.string().datetime().optional(),
+    totalFiles: z.number().int().nonnegative().optional(),
+    byEntityType: z
+      .record(z.string(), z.number().int().nonnegative())
+      .optional(),
+  }),
+});
+
 function createRegisteredWidget(
-  payload: z.infer<typeof registerWidgetPayloadSchema>,
+  payload: z.output<typeof registerWidgetPayloadSchema>,
 ): RegisteredWidget {
   return {
     id: payload.id,
     pluginId: payload.pluginId,
     title: payload.title,
     ...(payload.description ? { description: payload.description } : {}),
+    group: payload.group,
     priority: payload.priority,
     section: payload.section,
     rendererName: payload.rendererName,
     visibility: payload.visibility,
+    ...(payload.needsOperator !== undefined && {
+      needsOperator: payload.needsOperator,
+    }),
+    ...(payload.digest ? { digest: payload.digest } : {}),
     ...(payload.component ? { component: payload.component } : {}),
     ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
     dataProvider: payload.dataProvider as () => Promise<unknown>,
+    ...(payload.digestProvider
+      ? { digestProvider: payload.digestProvider as WidgetDigestProvider }
+      : {}),
   };
 }
 
-export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
+export class DashboardPlugin extends ServicePlugin<
+  DashboardConfig,
+  DashboardConfigInput
+> {
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
   private ctx: ServicePluginContext | undefined;
+  private activityLog: DashboardActivityEvent[] = [];
+  private jobProgress: DashboardJobProgressItem[] = [];
 
-  constructor(config?: Partial<DashboardConfig>) {
-    super("dashboard", packageJson, config ?? {}, dashboardConfigSchema);
+  constructor(config: DashboardConfigInput = {}) {
+    super("dashboard", packageJson, config, dashboardConfigSchema);
+  }
+
+  private recordActivity(
+    action: DashboardActivityEvent["action"],
+    payload: unknown,
+  ): void {
+    const parsed = entityActivityPayloadSchema.safeParse(payload);
+    if (!parsed.success) return;
+
+    this.activityLog = [
+      {
+        action,
+        entityType: parsed.data.entityType,
+        entityId: parsed.data.entityId,
+        timestamp: new Date().toISOString(),
+        ...(parsed.data.conversationId
+          ? { conversationId: parsed.data.conversationId }
+          : {}),
+      },
+      ...this.activityLog,
+    ].slice(0, 12);
+  }
+
+  private recordJobProgress(payload: unknown): void {
+    const parsed = jobProgressPayloadSchema.safeParse(payload);
+    if (!parsed.success) return;
+
+    const progressLabel = parsed.data.progress
+      ? `${parsed.data.progress.current}/${parsed.data.progress.total}`
+      : undefined;
+    const nextItem: DashboardJobProgressItem = {
+      id: parsed.data.id,
+      kind: parsed.data.type,
+      status: parsed.data.status,
+      updatedAt: new Date().toISOString(),
+      ...(parsed.data.message ? { message: parsed.data.message } : {}),
+      ...(parsed.data.jobDetails?.jobType
+        ? { jobType: parsed.data.jobDetails.jobType }
+        : {}),
+      ...(progressLabel ? { progressLabel } : {}),
+    };
+
+    this.jobProgress = [
+      nextItem,
+      ...this.jobProgress.filter(
+        (item) => item.id !== nextItem.id || item.kind !== nextItem.kind,
+      ),
+    ].slice(0, 8);
+  }
+
+  private async getIndexStatus(): Promise<DashboardRenderInput["indexStatus"]> {
+    if (!this.ctx) return undefined;
+
+    const entityService = this.ctx
+      .entityService as typeof this.ctx.entityService & {
+      isIndexReady?: () => boolean;
+      awaitIndexReady?: (options: {
+        timeoutMs: number;
+        intervalMs?: number;
+      }) => Promise<NonNullable<DashboardRenderInput["indexStatus"]>>;
+    };
+
+    try {
+      if (typeof entityService.awaitIndexReady === "function") {
+        return await entityService.awaitIndexReady({
+          timeoutMs: 0,
+          intervalMs: 0,
+        });
+      }
+
+      if (typeof entityService.isIndexReady === "function") {
+        return { ready: entityService.isIndexReady() };
+      }
+    } catch (error) {
+      this.logger.debug("Semantic index status unavailable", {
+        error: getErrorMessage(error),
+      });
+    }
+
+    return undefined;
+  }
+
+  private async getDirectorySyncStatus(): Promise<
+    DashboardRenderInput["directorySyncStatus"]
+  > {
+    if (!this.ctx) return undefined;
+
+    try {
+      const response = await this.ctx.messaging.send({
+        type: "sync:status:request",
+        payload: {},
+      });
+      const parsed = directorySyncStatusResponseSchema.safeParse(response);
+      return parsed.success ? parsed.data.data : undefined;
+    } catch (error) {
+      this.logger.debug("Directory sync status unavailable", {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
   }
 
   protected override async onRegister(
@@ -117,6 +308,23 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
       kind: "admin",
       priority: 30,
       visibility: "public",
+    });
+
+    context.messaging.subscribe("entity:created", async (message) => {
+      this.recordActivity("created", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("entity:updated", async (message) => {
+      this.recordActivity("updated", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("entity:deleted", async (message) => {
+      this.recordActivity("deleted", message.payload);
+      return { success: true };
+    });
+    context.messaging.subscribe("job-progress", async (message) => {
+      this.recordJobProgress(message.payload);
+      return { success: true };
     });
 
     context.messaging.subscribe(
@@ -197,13 +405,16 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           );
           const hiddenWidgetCount =
             anchorWidgets.length - visibleWidgets.length;
-          const [dashboardData, appInfo] = await Promise.all([
-            this.datasource.getDashboardData({
-              permissionLevel,
-              widgets: visibleWidgets,
-            }),
-            ctx.appInfo(),
-          ]);
+          const [dashboardData, appInfo, directorySyncStatus, indexStatus] =
+            await Promise.all([
+              this.datasource.getDashboardData({
+                permissionLevel,
+                widgets: visibleWidgets,
+              }),
+              ctx.appInfo(),
+              this.getDirectorySyncStatus(),
+              this.getIndexStatus(),
+            ]);
           const character = ctx.identity.get();
           const profile = ctx.identity.getProfile();
 
@@ -247,9 +458,18 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             baseUrl,
             widgets: resolvedWidgets.widgets,
             widgetScripts: resolvedWidgets.widgetScripts,
+            dashboardPath: this.config.routePath,
+            surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
+              activeId: "dashboard",
+              self: { id: "dashboard", href: this.config.routePath },
+            }),
             character,
             profile,
             appInfo: visibleAppInfo,
+            activityLog: this.activityLog,
+            jobProgress: this.jobProgress,
+            ...(indexStatus !== undefined && { indexStatus }),
+            ...(directorySyncStatus !== undefined && { directorySyncStatus }),
             ...(this.config.themeCSS !== undefined && {
               themeCSS: this.config.themeCSS,
             }),
@@ -266,6 +486,64 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           });
         },
       },
+      {
+        path: "/api/console/jump",
+        method: "GET",
+        public: true,
+        handler: async (request: Request): Promise<Response> => {
+          const operatorSession =
+            await getActiveAuthService()?.getOperatorSession(request);
+          if (!operatorSession) {
+            return Response.json(
+              { error: "Operator session required" },
+              { status: 401 },
+            );
+          }
+          const ctx = this.ctx;
+          if (!ctx) {
+            return Response.json({ groups: [] });
+          }
+
+          const query =
+            new URL(request.url).searchParams.get("q")?.trim() ?? "";
+
+          let entities: ConsoleJumpEntityHit[] = [];
+          if (query.length >= 2) {
+            try {
+              const results = await ctx.entityService.search({
+                query,
+                options: { limit: 6 },
+              });
+              entities = results.map((result) => ({
+                entityType: result.entity.entityType,
+                id: result.entity.id,
+                title:
+                  (result.entity as { title?: string }).title ??
+                  result.entity.id,
+              }));
+            } catch {
+              // Search degrades to no entity doors (e.g. index warming).
+            }
+          }
+
+          const widgetGroups = (
+            this.widgetRegistry?.list({ permissionLevel: "anchor" }) ?? []
+          ).map((widget) => widget.group);
+          const cmsPath = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
+            activeId: "dashboard",
+          }).find((surface) => surface.id === "cms")?.href;
+
+          return Response.json({
+            groups: buildConsoleJumpGroups({
+              query,
+              groups: [...widgetGroups, "knowledge", "system"],
+              dashboardPath: this.config.routePath,
+              cmsPath,
+              entities,
+            }),
+          });
+        },
+      },
     ];
   }
 
@@ -279,7 +557,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
 }
 
 export function dashboardPlugin(
-  config?: Partial<DashboardConfig>,
+  config: DashboardConfigInput = {},
 ): DashboardPlugin {
   return new DashboardPlugin(config);
 }

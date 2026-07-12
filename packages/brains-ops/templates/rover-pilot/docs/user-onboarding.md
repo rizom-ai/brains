@@ -54,40 +54,40 @@ Most people spend most of their time in Chat. The CMS becomes useful once you ha
 ---
 
 ## Other ways to chat with Rover
- 
+
 `/chat` is the primary interface, but Rover can also be reached through messaging platforms. Discord is tested and working. Slack, WhatsApp Business, and similar should work out of the box — we'll send setup steps if that's part of your configuration.
 
 **Talking to another Rover**
- 
+
 If you know another Rover user, you can add them to your contacts and call their Rover directly from your chat.
- 
-- To add: *Add jane.rizom.ai to my contacts.*
-- To call: *Call jane.rizom.ai and ask [your question].*
-You'll need their address — in the format `name.rizom.ai` — which they can share with you directly.
- 
+
+- To add: _Add jane.rizom.ai to my contacts._
+- To call: _Call jane.rizom.ai and ask [your question]._
+  You'll need their address — in the format `name.rizom.ai` — which they can share with you directly.
+
 ---
- 
+
 ## Connecting Rover to other tools
- 
+
 Rover can connect to external tools via MCP — a standard protocol that works in two directions: agentic AI clients (like Claude Desktop) can use it to talk to Rover, and Rover can use it to talk to productivity tools like Notion or Linear.
- 
+
 Plugins exist for a number of tools already, and new ones can be built quickly in response to what you actually need. If there's a tool you'd want Rover to connect to, tell us.
- 
+
 If MCP is part of your setup, we'll send specific instructions alongside your URL.
- 
+
 ---
- 
+
 ## A few common questions
- 
+
 **How do I access my data?**
 Your primary interface is the CMS (`/cms`), where you can browse and edit everything you've saved. If you're set up with GitHub access, your content also lives in a private repository you can access directly.
- 
+
 **Does Rover connect to the internet?**
 No — and that's intentional. Rover works with what you've put into it, not with whatever the internet currently says. That means its answers are grounded in your actual knowledge base, not in generic search results.
- 
+
 **What does this cost?**
 Nothing during the pilot. We cover hosting costs while you're part of the programme.
- 
+
 ---
 
 ## This is a pilot

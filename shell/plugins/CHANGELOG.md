@@ -1,5 +1,256 @@
 # @brains/plugins
 
+## 0.2.0-alpha.156
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.156
+  - @brains/contracts@0.2.0-alpha.156
+  - @brains/site-composition@0.2.0-alpha.156
+  - @brains/utils@0.2.0-alpha.156
+  - @brains/conversation-service@0.2.0-alpha.156
+  - @brains/identity-service@0.2.0-alpha.156
+  - @brains/job-queue@0.2.0-alpha.156
+  - @brains/messaging-service@0.2.0-alpha.156
+  - @brains/runtime-state@0.2.0-alpha.156
+  - @brains/templates@0.2.0-alpha.156
+
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.155
+  - @brains/identity-service@0.2.0-alpha.155
+  - @brains/content-formatters@0.2.0-alpha.155
+  - @brains/contracts@0.2.0-alpha.155
+  - @brains/site-composition@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/conversation-service@0.2.0-alpha.155
+  - @brains/messaging-service@0.2.0-alpha.155
+  - @brains/runtime-state@0.2.0-alpha.155
+  - @brains/templates@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.154
+  - @brains/contracts@0.2.0-alpha.154
+  - @brains/site-composition@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/conversation-service@0.2.0-alpha.154
+  - @brains/identity-service@0.2.0-alpha.154
+  - @brains/job-queue@0.2.0-alpha.154
+  - @brains/messaging-service@0.2.0-alpha.154
+  - @brains/runtime-state@0.2.0-alpha.154
+  - @brains/templates@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.153
+  - @brains/contracts@0.2.0-alpha.153
+  - @brains/site-composition@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/conversation-service@0.2.0-alpha.153
+  - @brains/identity-service@0.2.0-alpha.153
+  - @brains/job-queue@0.2.0-alpha.153
+  - @brains/messaging-service@0.2.0-alpha.153
+  - @brains/runtime-state@0.2.0-alpha.153
+  - @brains/templates@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.152
+  - @brains/contracts@0.2.0-alpha.152
+  - @brains/site-composition@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/conversation-service@0.2.0-alpha.152
+  - @brains/identity-service@0.2.0-alpha.152
+  - @brains/job-queue@0.2.0-alpha.152
+  - @brains/messaging-service@0.2.0-alpha.152
+  - @brains/runtime-state@0.2.0-alpha.152
+  - @brains/templates@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.151
+  - @brains/contracts@0.2.0-alpha.151
+  - @brains/site-composition@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/conversation-service@0.2.0-alpha.151
+  - @brains/identity-service@0.2.0-alpha.151
+  - @brains/job-queue@0.2.0-alpha.151
+  - @brains/messaging-service@0.2.0-alpha.151
+  - @brains/runtime-state@0.2.0-alpha.151
+  - @brains/templates@0.2.0-alpha.151
+
+## 0.2.0-alpha.150
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.150
+  - @brains/contracts@0.2.0-alpha.150
+  - @brains/site-composition@0.2.0-alpha.150
+  - @brains/utils@0.2.0-alpha.150
+  - @brains/conversation-service@0.2.0-alpha.150
+  - @brains/identity-service@0.2.0-alpha.150
+  - @brains/job-queue@0.2.0-alpha.150
+  - @brains/messaging-service@0.2.0-alpha.150
+  - @brains/runtime-state@0.2.0-alpha.150
+  - @brains/templates@0.2.0-alpha.150
+
+## 0.2.0-alpha.149
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.149
+  - @brains/contracts@0.2.0-alpha.149
+  - @brains/site-composition@0.2.0-alpha.149
+  - @brains/utils@0.2.0-alpha.149
+  - @brains/conversation-service@0.2.0-alpha.149
+  - @brains/identity-service@0.2.0-alpha.149
+  - @brains/job-queue@0.2.0-alpha.149
+  - @brains/messaging-service@0.2.0-alpha.149
+  - @brains/runtime-state@0.2.0-alpha.149
+  - @brains/templates@0.2.0-alpha.149
+
+## 0.2.0-alpha.148
+
+### Patch Changes
+
+- [`d82b56c`](https://github.com/rizom-ai/brains/commit/d82b56cd9729a7a1d06a1232fea0674d9853da87) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Extract the operator-console token sheet into @brains/console-theme: one
+  --console-\* vocabulary with two climates (instrument/paper) plus the shared
+  console-strip chrome, replacing the dashboard's --dashboard-\* tokens. The
+  strip's surface links now derive from registered web routes (service plugin
+  contexts gain read access to the web-route registry), and the light/dark
+  toggle becomes the console-wide climate preference persisted as
+  console.climate.
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.148
+  - @brains/contracts@0.2.0-alpha.148
+  - @brains/site-composition@0.2.0-alpha.148
+  - @brains/utils@0.2.0-alpha.148
+  - @brains/conversation-service@0.2.0-alpha.148
+  - @brains/identity-service@0.2.0-alpha.148
+  - @brains/job-queue@0.2.0-alpha.148
+  - @brains/messaging-service@0.2.0-alpha.148
+  - @brains/runtime-state@0.2.0-alpha.148
+  - @brains/templates@0.2.0-alpha.148
+
+## 0.2.0-alpha.147
+
+### Patch Changes
+
+- [`6d95483`](https://github.com/rizom-ai/brains/commit/6d95483c589c3e77b23c42bf9516c03be8253e1f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the CMS body textarea with a CodeMirror 6 markdown source pane and add the first selection-rewrite AI assist route/UI while preserving literal-byte editing and the existing Source/Split/Preview modes.
+
+  Expose the plugin AI namespace on service plugin contexts so service-backed routes can perform read-only AI assists.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.147
+  - @brains/contracts@0.2.0-alpha.147
+  - @brains/site-composition@0.2.0-alpha.147
+  - @brains/utils@0.2.0-alpha.147
+  - @brains/conversation-service@0.2.0-alpha.147
+  - @brains/identity-service@0.2.0-alpha.147
+  - @brains/job-queue@0.2.0-alpha.147
+  - @brains/messaging-service@0.2.0-alpha.147
+  - @brains/runtime-state@0.2.0-alpha.147
+  - @brains/templates@0.2.0-alpha.147
+
+## 0.2.0-alpha.146
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.146
+  - @brains/contracts@0.2.0-alpha.146
+  - @brains/site-composition@0.2.0-alpha.146
+  - @brains/utils@0.2.0-alpha.146
+  - @brains/conversation-service@0.2.0-alpha.146
+  - @brains/identity-service@0.2.0-alpha.146
+  - @brains/job-queue@0.2.0-alpha.146
+  - @brains/messaging-service@0.2.0-alpha.146
+  - @brains/runtime-state@0.2.0-alpha.146
+  - @brains/templates@0.2.0-alpha.146
+
+## 0.2.0-alpha.145
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.145
+  - @brains/contracts@0.2.0-alpha.145
+  - @brains/site-composition@0.2.0-alpha.145
+  - @brains/utils@0.2.0-alpha.145
+  - @brains/conversation-service@0.2.0-alpha.145
+  - @brains/identity-service@0.2.0-alpha.145
+  - @brains/job-queue@0.2.0-alpha.145
+  - @brains/messaging-service@0.2.0-alpha.145
+  - @brains/runtime-state@0.2.0-alpha.145
+  - @brains/templates@0.2.0-alpha.145
+
+## 0.2.0-alpha.144
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.144
+  - @brains/contracts@0.2.0-alpha.144
+  - @brains/site-composition@0.2.0-alpha.144
+  - @brains/utils@0.2.0-alpha.144
+  - @brains/conversation-service@0.2.0-alpha.144
+  - @brains/identity-service@0.2.0-alpha.144
+  - @brains/job-queue@0.2.0-alpha.144
+  - @brains/messaging-service@0.2.0-alpha.144
+  - @brains/runtime-state@0.2.0-alpha.144
+  - @brains/templates@0.2.0-alpha.144
+
+## 0.2.0-alpha.143
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.143
+  - @brains/contracts@0.2.0-alpha.143
+  - @brains/site-composition@0.2.0-alpha.143
+  - @brains/utils@0.2.0-alpha.143
+  - @brains/conversation-service@0.2.0-alpha.143
+  - @brains/identity-service@0.2.0-alpha.143
+  - @brains/job-queue@0.2.0-alpha.143
+  - @brains/messaging-service@0.2.0-alpha.143
+  - @brains/runtime-state@0.2.0-alpha.143
+  - @brains/templates@0.2.0-alpha.143
+
+## 0.2.0-alpha.142
+
+### Patch Changes
+
+- Updated dependencies [[`e789ec6`](https://github.com/rizom-ai/brains/commit/e789ec67cd3edc20ff1cf4ac9a7de08de0f415a5), [`6aa5d6c`](https://github.com/rizom-ai/brains/commit/6aa5d6c8f1eeec935e98e116e97f9ad64148d5ed)]:
+  - @brains/site-composition@0.2.0-alpha.142
+  - @brains/content-formatters@0.2.0-alpha.142
+  - @brains/contracts@0.2.0-alpha.142
+  - @brains/utils@0.2.0-alpha.142
+  - @brains/conversation-service@0.2.0-alpha.142
+  - @brains/identity-service@0.2.0-alpha.142
+  - @brains/job-queue@0.2.0-alpha.142
+  - @brains/messaging-service@0.2.0-alpha.142
+  - @brains/runtime-state@0.2.0-alpha.142
+  - @brains/templates@0.2.0-alpha.142
+
 ## 0.2.0-alpha.141
 
 ### Patch Changes

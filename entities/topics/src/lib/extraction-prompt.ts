@@ -10,7 +10,7 @@ const MAX_EXISTING_TOPIC_TITLES = 40;
  */
 export async function listExistingTopicTitles(
   entityService: IEntityService,
-  limit = MAX_EXISTING_TOPIC_TITLES,
+  limit: number = MAX_EXISTING_TOPIC_TITLES,
   targetVisibility?: ContentVisibility,
 ): Promise<string[]> {
   const topics = await entityService.listEntities({

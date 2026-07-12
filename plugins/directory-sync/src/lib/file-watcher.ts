@@ -42,8 +42,7 @@ export class FileWatcher {
   private readonly watchInterval: number;
   private readonly logger: Logger;
   private readonly onFileChange?:
-    | ((event: string, path: string) => Promise<void>)
-    | undefined;
+    ((event: string, path: string) => Promise<void>) | undefined;
 
   constructor(options: FileWatcherOptions) {
     this.syncPath = options.syncPath;

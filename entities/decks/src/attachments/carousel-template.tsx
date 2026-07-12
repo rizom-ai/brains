@@ -6,18 +6,27 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const DECK_CAROUSEL_ATTACHMENT_TYPE = "carousel";
 export const DECK_CAROUSEL_TEMPLATE_NAME = "decks:carousel";
 
-export const deckCarouselSlideSchema = z.object({
+type DeckCarouselSlideSchema = z.ZodObject<{
+  markdown: z.ZodString;
+}>;
+
+export const deckCarouselSlideSchema: DeckCarouselSlideSchema = z.object({
   markdown: z.string().min(1),
 });
 
-export const deckCarouselTemplateSchema = z.object({
+export const deckCarouselTemplateSchema: z.ZodObject<{
+  title: z.ZodString;
+  brandLabel: z.ZodOptional<z.ZodString>;
+  eyebrow: z.ZodOptional<z.ZodString>;
+  slides: z.ZodArray<DeckCarouselSlideSchema>;
+}> = z.object({
   title: z.string().min(1),
   brandLabel: z.string().min(1).optional(),
   eyebrow: z.string().min(1).optional(),
   slides: z.array(deckCarouselSlideSchema).min(1),
 });
 
-export type DeckCarouselTemplateData = z.infer<
+export type DeckCarouselTemplateData = z.output<
   typeof deckCarouselTemplateSchema
 >;
 

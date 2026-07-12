@@ -1,4 +1,4 @@
-import { Marked } from "marked";
+import { Marked, type Tokens } from "marked";
 import sanitizeHtml from "sanitize-html";
 
 export type ImageRenderer = (
@@ -102,11 +102,7 @@ export function markdownToHtml(
   const instance = imageRenderer
     ? new Marked({ gfm: true, breaks: true }).use({
         renderer: {
-          image(
-            href: string,
-            title: string | null,
-            text: string,
-          ): string | false {
+          image({ href, title, text }: Tokens.Image): string | false {
             return imageRenderer(href, title, text) ?? false;
           },
         },

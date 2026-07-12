@@ -3,7 +3,7 @@ import {
   type ConversationMessageActor,
   type Message,
 } from "@brains/plugins";
-import type { SummaryConfig } from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
 
 export interface SummaryPromptInput {
   messages: Message[];

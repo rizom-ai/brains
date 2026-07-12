@@ -6,6 +6,7 @@ import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { createTestAgent } from "./fixtures/agent";
+import { getTemplates } from "../src/lib/register-templates";
 
 function createMockAgent(
   id: string,
@@ -54,6 +55,26 @@ describe("AgentDataSource", () => {
     const listSchema = z.object({
       agents: z.array(z.any()),
       pagination: z.any().nullable(),
+    });
+
+    it("accepts datasource output before site URL enrichment", async () => {
+      const agent = createMockAgent("agent-1", "Yeehaa", "approved");
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([agent]);
+      spyOn(mockEntityService, "countEntities").mockResolvedValue(1);
+
+      const templateSchema = getTemplates()["agent-list"]?.schema;
+      if (!templateSchema) throw new Error("agent-list template not found");
+
+      const result = await datasource.fetch(
+        { entityType: "agent", query: { page: 1, pageSize: 10 } },
+        templateSchema,
+        mockContext,
+      );
+      const parsed = listSchema.parse(result);
+
+      expect(parsed.agents).toHaveLength(1);
+      expect(parsed.agents[0]?.url).toBeUndefined();
+      expect(parsed.agents[0]?.typeLabel).toBeUndefined();
     });
 
     it("should return transformed agents with parsed body sections", async () => {

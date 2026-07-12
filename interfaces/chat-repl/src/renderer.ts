@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { marked } from "marked";
+import { marked, type Tokens } from "marked";
 
 /**
  * Custom marked renderer that outputs styled terminal text using chalk
@@ -7,13 +7,15 @@ import { marked } from "marked";
  */
 class TerminalRenderer extends marked.Renderer {
   // Block elements
-  override heading(text: string, level: number): string {
+  override heading({ tokens, depth }: Tokens.Heading): string {
+    const text = this.parser.parseInline(tokens);
     const levels = ["#", "##", "###", "####", "#####", "######"];
-    const prefix = chalk.cyan(levels[level - 1]);
+    const prefix = chalk.cyan(levels[depth - 1]);
     return `\n${prefix} ${chalk.bold(text)}\n`;
   }
 
-  override paragraph(text: string): string {
+  override paragraph({ tokens }: Tokens.Paragraph): string {
+    const text = this.parser.parseInline(tokens);
     // Color entity ID lines that start with [ID]
     let coloredText = text.replace(/^\[([^\]]+)\]/, (_match, id) => {
       return chalk.cyan.bold(`[${id}]`);
@@ -52,15 +54,16 @@ class TerminalRenderer extends marked.Renderer {
     return lines.join("\n");
   }
 
-  override code(code: string, language?: string): string {
+  override code({ text, lang: language }: Tokens.Code): string {
     const lang = language ?? "text";
     const header = chalk.gray(`┌─ ${lang} ${"─".repeat(47 - lang.length)}┐`);
     const footer = chalk.gray(`└${"─".repeat(50)}┘`);
-    const lines = code.split("\n").map((line) => chalk.gray("│ ") + line);
+    const lines = text.split("\n").map((line) => chalk.gray("│ ") + line);
     return `${header}\n${lines.join("\n")}\n${footer}\n`;
   }
 
-  override blockquote(quote: string): string {
+  override blockquote({ tokens }: Tokens.Blockquote): string {
+    const quote = this.parser.parse(tokens);
     const lines = quote.trim().split("\n");
     return (
       lines.map((line) => chalk.gray("│ ") + chalk.italic(line)).join("\n") +
@@ -68,13 +71,13 @@ class TerminalRenderer extends marked.Renderer {
     );
   }
 
-  override list(body: string, _ordered: boolean): string {
-    return body + "\n";
+  override list({ items }: Tokens.List): string {
+    return items.map((item) => this.listitem(item)).join("") + "\n";
   }
 
-  override listitem(text: string, _task: boolean, _checked: boolean): string {
+  override listitem({ tokens }: Tokens.ListItem): string {
     // Remove any trailing newline from the text
-    const cleanText = text.trimEnd();
+    const cleanText = this.parser.parse(tokens).trimEnd();
     const bullet = chalk.cyan("•");
     return `  ${bullet} ${cleanText}\n`;
   }
@@ -88,28 +91,29 @@ class TerminalRenderer extends marked.Renderer {
   }
 
   // Inline elements
-  override strong(text: string): string {
-    return chalk.bold(text);
+  override strong({ tokens }: Tokens.Strong): string {
+    return chalk.bold(this.parser.parseInline(tokens));
   }
 
-  override em(text: string): string {
-    return chalk.italic(text);
+  override em({ tokens }: Tokens.Em): string {
+    return chalk.italic(this.parser.parseInline(tokens));
   }
 
-  override codespan(code: string): string {
-    return chalk.bgGray.white(` ${code} `);
+  override codespan({ text }: Tokens.Codespan): string {
+    return chalk.bgGray.white(` ${text} `);
   }
 
-  override link(href: string, _title: string | null, text: string): string {
+  override link({ href, tokens }: Tokens.Link): string {
+    const text = this.parser.parseInline(tokens);
     return chalk.blue.underline(text) + chalk.gray(` (${href})`);
   }
 
   // Pass through for unsupported elements
-  override image(_href: string, _title: string | null, text: string): string {
+  override image({ text }: Tokens.Image): string {
     return `[${text}]`;
   }
 
-  override text(text: string): string {
+  override text({ text }: Tokens.Text | Tokens.Escape): string {
     return text;
   }
 }
@@ -131,8 +135,6 @@ export class CLIMarkdownRenderer {
       gfm: true,
       breaks: true,
       pedantic: false,
-      mangle: false,
-      headerIds: false,
     };
 
     // Parse and render the markdown

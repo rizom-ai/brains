@@ -63,16 +63,20 @@ describe("DashboardPlugin", () => {
   });
 
   describe("Web routes", () => {
-    it("should expose the existing dashboard web route", async () => {
+    it("should expose the dashboard page and console jump routes", async () => {
       const routes = plugin.getWebRoutes();
-      expect(routes).toHaveLength(1);
-      expect(routes[0]).toMatchObject({
+      expect(routes).toHaveLength(2);
+      const pageRoute = routes.find((route) => route.path === "/dashboard");
+      expect(pageRoute).toMatchObject({
         path: "/dashboard",
         method: "GET",
         public: true,
       } satisfies Partial<WebRouteDefinition>);
+      expect(
+        routes.find((route) => route.path === "/api/console/jump"),
+      ).toBeDefined();
 
-      const response = await routes[0]?.handler(
+      const response = await pageRoute?.handler(
         new Request("http://brain/dashboard"),
       );
       expect(response?.status).toBe(200);
@@ -83,6 +87,171 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Identity");
       expect(html).toContain("dashboard:dashboard");
       expect(html).not.toContain("data-cms-frame");
+      // The jump palette ships with the page, wired to the strip's ⌘K.
+      expect(html).toContain("/api/console/jump");
+    });
+
+    it("should require an operator session for the console jump", async () => {
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=verd"),
+      );
+
+      expect(response?.status).toBe(401);
+    });
+
+    it("should return grouped jump doors for an operator", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-jump-auth-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createOperatorSession();
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=", {
+          headers: { Cookie: cookie },
+        }),
+      );
+
+      expect(response?.status).toBe(200);
+      const data = (await response?.json()) as {
+        groups: Array<{ id: string; items: Array<{ href: string }> }>;
+      };
+      const tabs = data.groups.find((group) => group.id === "tabs");
+      expect(tabs?.items.map((item) => item.href)).toContain(
+        "/dashboard#system",
+      );
+      // No CMS plugin in this harness → entity doors have no destination.
+      expect(data.groups.find((group) => group.id === "entities")).toBe(
+        undefined,
+      );
+    });
+
+    it("should map search hits to CMS doors, falling back to ids", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-jump-entities-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createOperatorSession();
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+
+      const shell = harness.getMockShell();
+      shell.registerPlugin({
+        id: "cms",
+        getWebRoutes: () => [
+          {
+            path: "/cms",
+            method: "GET",
+            public: true,
+            handler: async (): Promise<Response> => new Response("ok"),
+          },
+        ],
+      } as unknown as Parameters<typeof shell.registerPlugin>[0]);
+
+      const entityService = shell.getEntityService();
+      entityService.search = (async () => [
+        {
+          entity: {
+            id: "verdigris-pigments",
+            entityType: "note",
+            title: "Verdigris pigments",
+            content: "",
+            created: "",
+            updated: "",
+            contentHash: "",
+          },
+          score: 1,
+          excerpt: "",
+        },
+        {
+          entity: {
+            id: "untitled-note",
+            entityType: "note",
+            content: "",
+            created: "",
+            updated: "",
+            contentHash: "",
+          },
+          score: 0.5,
+          excerpt: "",
+        },
+      ]) as typeof entityService.search;
+
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=verd", {
+          headers: { Cookie: cookie },
+        }),
+      );
+
+      expect(response?.status).toBe(200);
+      const data = (await response?.json()) as {
+        groups: Array<{
+          id: string;
+          items: Array<Record<string, string>>;
+        }>;
+      };
+      const entities = data.groups.find((group) => group.id === "entities");
+      expect(entities?.items).toEqual([
+        {
+          id: "note/verdigris-pigments",
+          title: "Verdigris pigments",
+          sub: "note",
+          href: "/cms#/note/verdigris-pigments",
+          tag: "edit in cms",
+        },
+        {
+          id: "note/untitled-note",
+          title: "untitled-note",
+          sub: "note",
+          href: "/cms#/note/untitled-note",
+          tag: "edit in cms",
+        },
+      ]);
+    });
+
+    it("should degrade to tab doors alone when search fails", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-jump-degrade-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createOperatorSession();
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+
+      const shell = harness.getMockShell();
+      const entityService = shell.getEntityService();
+      entityService.search = (async () => {
+        throw new Error("index warming");
+      }) as typeof entityService.search;
+
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+      // "sys" matches the System tab and is long enough to trigger the
+      // (failing) entity search — the response degrades, never errors.
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=sys", {
+          headers: { Cookie: cookie },
+        }),
+      );
+
+      expect(response?.status).toBe(200);
+      const data = (await response?.json()) as {
+        groups: Array<{ id: string }>;
+      };
+      expect(data.groups.find((group) => group.id === "entities")).toBe(
+        undefined,
+      );
+      expect(data.groups.find((group) => group.id === "tabs")).toBeDefined();
     });
 
     it("should hide restricted endpoints and interactions from public visitors", async () => {
@@ -127,7 +296,100 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Public Site");
       expect(html).toContain("A2A");
       expect(html).not.toContain("MCP");
-      expect(html).not.toContain("CMS");
+      expect(html).not.toContain(
+        'interaction-link--admin" href="http://brain/cms"',
+      );
+    });
+
+    it("should remove a tab when all widgets in that group are hidden", async () => {
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "pipeline",
+        pluginId: "content-pipeline",
+        title: "Publication Pipeline",
+        group: "publishing",
+        section: "primary",
+        priority: 10,
+        rendererName: "PipelineWidget",
+        visibility: "anchor",
+        dataProvider: async () => ({ summary: {}, items: [] }),
+      });
+
+      const routes = plugin.getWebRoutes();
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain('href="#overview"');
+      expect(html).not.toContain('href="#publishing"');
+      expect(html).not.toContain("Publication Pipeline");
+    });
+
+    it("should render recent entity and job progress events", async () => {
+      harness.subscribe("sync:status:request", async () => ({
+        success: true,
+        data: {
+          syncPath: "/brain/content",
+          isInitialized: true,
+          watchEnabled: true,
+          lastSync: "2026-07-08T09:30:00.000Z",
+          totalFiles: 2,
+          byEntityType: { note: 2 },
+        },
+      }));
+      (
+        harness.getEntityService() as unknown as {
+          awaitIndexReady: () => Promise<{
+            ready: boolean;
+            degraded: boolean;
+            activeEmbeddingJobs: number;
+            missingEmbeddings: number;
+            staleEmbeddings: number;
+            failedEmbeddings: number;
+          }>;
+        }
+      ).awaitIndexReady = async (): Promise<{
+        ready: boolean;
+        degraded: boolean;
+        activeEmbeddingJobs: number;
+        missingEmbeddings: number;
+        staleEmbeddings: number;
+        failedEmbeddings: number;
+      }> => ({
+        ready: true,
+        degraded: false,
+        activeEmbeddingJobs: 0,
+        missingEmbeddings: 0,
+        staleEmbeddings: 0,
+        failedEmbeddings: 0,
+      });
+
+      await harness.sendMessage("entity:updated", {
+        entityType: "note",
+        entityId: "project-plan",
+      });
+      await harness.sendMessage("job-progress", {
+        id: "job-1",
+        type: "job",
+        status: "processing",
+        progress: { current: 1, total: 3, percentage: 33 },
+        jobDetails: { jobType: "site:build", priority: 0, retryCount: 0 },
+      });
+
+      const routes = plugin.getWebRoutes();
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain("note/project-plan");
+      expect(html).toContain("site:build");
+      expect(html).toContain("1/3");
+      expect(html).toContain("/brain/content");
+      expect(html).toContain("2 files");
+      expect(html).toContain("note 2");
+      expect(html).toContain("Content sync");
+      expect(html).toContain("Semantic index · ready · 0 active");
     });
 
     it("should show anchor endpoints and interactions to signed-in operators", async () => {
@@ -181,6 +443,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "test-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Test Widget",
         section: "primary",
         priority: 10,
@@ -203,6 +466,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "test-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Test Widget",
         section: "primary",
         priority: 10,
@@ -225,6 +489,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "widget-1",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Widget 1",
         section: "primary",
         priority: 10,
@@ -235,6 +500,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "widget-2",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Widget 2",
         section: "secondary",
         priority: 20,
@@ -272,10 +538,28 @@ describe("DashboardPlugin", () => {
       });
     });
 
+    it("should reject a widget registration without a group", async () => {
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "legacy-widget",
+        pluginId: "test-plugin",
+        title: "Legacy Widget",
+        section: "primary",
+        priority: 10,
+        rendererName: "StatsWidget",
+        dataProvider: async () => ({ ok: true }),
+      });
+
+      const registry = plugin.getWidgetRegistry();
+      const testPluginWidgets =
+        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      expect(testPluginWidgets).toHaveLength(0);
+    });
+
     it("should reject a custom renderer without a component", async () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "broken-widget",
         pluginId: "test-plugin",
+        group: "knowledge",
         title: "Broken Widget",
         section: "secondary",
         priority: 14,
@@ -293,6 +577,7 @@ describe("DashboardPlugin", () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "swot",
         pluginId: "swot",
+        group: "knowledge",
         title: "SWOT",
         section: "secondary",
         priority: 14,

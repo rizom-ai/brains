@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed integration plan. This refines the broader [Operator runtime database](./operator-runtime-db.md) direction for auth-specific state and supersedes the earlier JSON-first idea for canonical identity links unless the DB work is explicitly deferred again.
+Active implementation plan. Phases 1–2 and parts of phases 3–4 have an implementation on `feature/auth-runtime-db`, now merged with the current `main` baseline. The branch is not merge-ready: storage remains split between SQLite and JSON, permission fallback needs a deny-by-default correction, and user-role invariants need transactional enforcement.
 
 ## Goal
 
@@ -16,7 +16,7 @@ This plan owns auth-specific schema, auth storage APIs, JSON/JWK migration, and 
 
 ## Current baseline
 
-`shell/auth-service` already provides OAuth/passkey/JWT foundation, but persistence is split across JSON/JWK files in `./data/auth`:
+On `main`, `shell/auth-service` provides the OAuth/passkey/JWT and A2A signing/trust foundation, but persistence is split across JSON/JWK files in `./data/auth`:
 
 - `oauth-passkeys.json`
 - `oauth-sessions.json`
@@ -25,8 +25,32 @@ This plan owns auth-specific schema, auth storage APIs, JSON/JWK migration, and 
 - `oauth-refresh-tokens.json`
 - `oauth-setup-state.json`
 - `oauth-signing-key.jwk`
+- `a2a-signing-key.jwk`
+- `a2a-peer-trust.json`
 
-The runtime subject is still `single-operator`. Canonical identity plumbing exists, but has no private store after the git-backed `canonical-identity-link` entity was removed.
+The mainline runtime subject is still `single-operator`. Canonical identity plumbing exists, but has no private store after the git-backed `canonical-identity-link` entity was removed.
+
+## Implementation checkpoint — 2026-07-12
+
+Implemented on `feature/auth-runtime-db`:
+
+- Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, initial schema, and idempotent bootstrap.
+- `auth_users` and `auth_identities` stores with hashed lookup keys, active-user resolution, first-anchor creation, and last-active-anchor checks.
+- First-passkey, legacy passkey, and legacy session subjects migrate from `single-operator` to `usr_<uuid>`; legacy refresh tokens are revoked.
+- OAuth signing-key import and persistence in the database while preserving mainline's separate Ed25519 A2A signing key.
+- Session, bearer, and linked-identity principal APIs.
+- Initial per-principal MCP session permissions and Discord identity lookup.
+- Database, user-store, principal, MCP, and Discord tests; merged-main migration coverage still needs to be restored.
+
+Still open before merge:
+
+1. **Finish the storage cutover.** Passkeys, WebAuthn challenges, OAuth clients/codes, sessions, refresh tokens, setup state, and A2A peer trust still execute against JSON stores even though most corresponding SQL tables exist. Replace the split source of truth with database-backed stores and explicit import checkpoints.
+2. **Make role invariants transactional.** First-anchor creation and last-active-anchor protection currently use check-then-write logic. Enforce them in transactions and add concurrent mutation tests.
+3. **Deny invalid linked identities before rule fallback.** Discord currently cannot distinguish “no binding” from “binding exists but is revoked or its user is suspended,” so the latter can fall back to configured permissions. Return an explicit resolution state and deny inactive/revoked bindings.
+4. **Adopt ordered migrations.** Replace the single `CREATE IF NOT EXISTS` bootstrap batch with versioned, ordered migrations that fail safely and can evolve the schema.
+5. **Complete management and revocation APIs.** Expose role/status/identity mutations through `AuthService`, revoke affected sessions and grants atomically, and append audit events.
+6. **Restore the package declaration contract.** The inferred Drizzle schema currently requires `isolatedDeclarations: false` after the TypeScript 7 mainline merge. Add explicit exported table types, following the other database packages, and restore `isolatedDeclarations: true` before merge.
+7. **Revalidate on current architecture.** Run auth, MCP, Discord, A2A, typecheck, and lint checks after the storage and permission corrections; the pre-merge branch checks are not sufficient evidence for release.
 
 ## Consumers to satisfy
 
@@ -35,6 +59,7 @@ The runtime subject is still `single-operator`. Canonical identity plumbing exis
 - **Chat / hosted Discord**: explicit `discord:<id>` to user lookup for routing and attribution, without storing those bindings in content.
 - **Conversation memory**: optional canonical identity enrichment from private runtime identity bindings.
 - **CMS passkey login**: a valid operator session to gate release of the shared content PAT (see `plugins/cms/src/plugin.ts`, where the GitHub OAuth and passkey-gated PAT login methods already consume `auth-service`). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
+- **A2A peer trust**: the peer-trust records (domain, pinned key fingerprint, granted inbound level) that directory approval writes per [a2a-request-signing.md](./a2a-request-signing.md) decision 6 — trust grants must live on this runtime plane, never in git-synced content.
 - **Future dashboard People UX / CLI**: user, role, passkey, and identity management.
 
 ## Core decisions
@@ -227,6 +252,8 @@ Migration should be repeatable and should not create duplicate users, credential
 
 ### Phase 1 — DB foundation and schema
 
+**Status: partially implemented.** Local lifecycle, schema bootstrap, permissions, and temp-DB tests exist. Ordered/versioned migrations remain open.
+
 - Add auth DB open/close lifecycle and migrations.
 - Add repositories and tests against a temp SQLite DB.
 - Keep existing JSON stores as runtime source until migration code is ready.
@@ -234,6 +261,8 @@ Migration should be repeatable and should not create duplicate users, credential
 Validation: migrations are idempotent; file permissions are private; DB opens in local and test environments.
 
 ### Phase 2 — Users and passkeys
+
+**Status: partially implemented.** Users, identities, first-anchor setup, and legacy subject rebinding exist. Passkey credentials/challenges still use JSON, and anchor invariants need transactions.
 
 - Add `auth_users`, `auth_identities`, passkey credential/challenge tables.
 - First setup creates an owner user.
@@ -245,6 +274,8 @@ Validation: fresh setup, login, and old passkey migration all produce `usr_<uuid
 
 ### Phase 3 — OAuth/session stores
 
+**Status: started.** OAuth signing keys use the DB and legacy refresh tokens are revoked; all other listed stores remain JSON-backed.
+
 - Move clients, auth codes, sessions, refresh tokens, setup tokens, and signing keys into DB-backed stores.
 - Revoke old `single-operator` refresh tokens.
 - Add user-status checks for sessions and bearer tokens.
@@ -253,6 +284,8 @@ Validation: fresh setup, login, and old passkey migration all produce `usr_<uuid
 Validation: OAuth code flow, refresh rotation, logout, setup-token flow, and client registration work from DB stores.
 
 ### Phase 4 — Permission integration
+
+**Status: partially implemented.** Principal resolution and MCP/Discord integration exist, but inactive/revoked Discord bindings must deny instead of falling back.
 
 - Return `AuthPrincipal` from bearer/session verification.
 - Make HTTP MCP create per-session servers at the user's permission level.

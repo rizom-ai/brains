@@ -86,7 +86,11 @@ export interface WebsiteStats {
 export class CloudflareClient {
   private readonly graphqlUrl = "https://api.cloudflare.com/client/v4/graphql";
 
-  constructor(private config: CloudflareConfig) {}
+  private config: CloudflareConfig;
+
+  constructor(config: CloudflareConfig) {
+    this.config = config;
+  }
 
   /**
    * Execute a GraphQL query and return the adaptive groups from the

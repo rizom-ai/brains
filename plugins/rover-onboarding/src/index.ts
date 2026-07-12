@@ -9,13 +9,22 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
-const roverOnboardingConfigSchema = z
+export interface RoverOnboardingConfig {
+  enabled: boolean;
+}
+
+export interface RoverOnboardingConfigInput {
+  enabled?: boolean | undefined;
+}
+
+const roverOnboardingConfigSchema: z.ZodType<
+  RoverOnboardingConfig,
+  RoverOnboardingConfigInput
+> = z
   .object({
     enabled: z.boolean().default(false),
   })
   .strict();
-
-export type RoverOnboardingConfig = z.infer<typeof roverOnboardingConfigSchema>;
 
 interface BundledPlaybook {
   id: string;
@@ -44,10 +53,13 @@ const bundledPlaybooks: BundledPlaybook[] = [
   },
 ];
 
-export class RoverOnboardingPlugin extends ServicePlugin<RoverOnboardingConfig> {
-  readonly dependencies = ["playbook", "playbooks"];
+export class RoverOnboardingPlugin extends ServicePlugin<
+  RoverOnboardingConfig,
+  RoverOnboardingConfigInput
+> {
+  readonly dependencies: string[] = ["playbook", "playbooks"];
 
-  constructor(config: Partial<RoverOnboardingConfig> = {}) {
+  constructor(config: RoverOnboardingConfigInput = {}) {
     super("rover-onboarding", packageJson, config, roverOnboardingConfigSchema);
   }
 
@@ -95,7 +107,7 @@ export class RoverOnboardingPlugin extends ServicePlugin<RoverOnboardingConfig> 
 }
 
 export function roverOnboardingPlugin(
-  config: Partial<RoverOnboardingConfig> = {},
+  config: RoverOnboardingConfigInput = {},
 ): Plugin {
   return new RoverOnboardingPlugin(config);
 }

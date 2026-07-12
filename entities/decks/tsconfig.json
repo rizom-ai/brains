@@ -3,7 +3,8 @@
   "compilerOptions": {
     "outDir": "./dist",
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "preact",
+    "isolatedDeclarations": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"],
   "exclude": ["node_modules", "dist"]

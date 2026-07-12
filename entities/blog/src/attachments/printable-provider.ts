@@ -34,15 +34,20 @@ export interface BlogPrintableAttachmentProviderDeps {
 export class BlogPrintableAttachmentProvider implements AttachmentProvider {
   readonly metadata = { outputEntityType: "document" } as const;
 
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
   private readonly renderPdf: RenderPdf;
 
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
     deps: BlogPrintableAttachmentProviderDeps = {},
   ) {
+    this.context = context;
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
   }
 

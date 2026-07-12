@@ -1,26 +1,31 @@
 import type { JSX } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import { Button } from "./Button";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const newsletterSignupVariants = cva("newsletter-signup", {
-  variants: {
-    variant: {
-      /** Horizontal inline form - for footer, minimal presence */
-      inline: "",
-      /** Card with background - for sidebar, end of post */
-      card: "p-6 rounded-lg bg-theme-subtle",
-      /** Full-width section - for homepage, dedicated page */
-      section: "py-16 text-center",
+export interface NewsletterSignupVariantProps {
+  variant?: VariantValue<"inline" | "card" | "section">;
+}
+
+const newsletterSignupVariants: VariantFunction<NewsletterSignupVariantProps> =
+  cva("newsletter-signup", {
+    variants: {
+      variant: {
+        /** Horizontal inline form - for footer, minimal presence */
+        inline: "",
+        /** Card with background - for sidebar, end of post */
+        card: "p-6 rounded-lg bg-theme-subtle",
+        /** Full-width section - for homepage, dedicated page */
+        section: "py-16 text-center",
+      },
     },
-  },
-  defaultVariants: {
-    variant: "card",
-  },
-});
+    defaultVariants: {
+      variant: "card",
+    },
+  });
 
-export interface NewsletterSignupProps
-  extends VariantProps<typeof newsletterSignupVariants> {
+export interface NewsletterSignupProps extends NewsletterSignupVariantProps {
   /** Form title */
   title?: string;
   /** Description text below title */

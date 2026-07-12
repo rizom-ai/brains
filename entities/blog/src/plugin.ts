@@ -28,10 +28,15 @@ import { BlogOgImageAttachmentProvider } from "./attachments/og-image-provider";
 import { BLOG_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
-export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
-  readonly entityType = blogPostAdapter.entityType;
-  readonly schema = blogPostSchema;
-  readonly adapter = blogPostAdapter;
+export class BlogPlugin extends EntityPlugin<
+  BlogPost,
+  BlogConfig,
+  BlogConfigInput
+> {
+  readonly entityType: typeof blogPostAdapter.entityType =
+    blogPostAdapter.entityType;
+  readonly schema: typeof blogPostSchema = blogPostSchema;
+  readonly adapter: typeof blogPostAdapter = blogPostAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;

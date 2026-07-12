@@ -24,7 +24,7 @@ import {
 } from "@brains/site-composition";
 import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
-import type { SiteBuilderConfig } from "./config";
+import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 
 import packageJson from "../package.json";
@@ -33,7 +33,10 @@ import packageJson from "../package.json";
  * Site Builder Plugin
  * Provides static site generation capabilities
  */
-export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
+export class SiteBuilderPlugin extends ServicePlugin<
+  SiteBuilderConfig,
+  SiteBuilderConfigInput
+> {
   private siteBuilder?: SiteBuilder;
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
@@ -50,7 +53,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     return this._routeRegistry;
   }
 
-  constructor(config: Partial<SiteBuilderConfig> = {}) {
+  constructor(config: SiteBuilderConfigInput = {}) {
     const layouts = config.layouts ?? {};
     super(
       "site-builder",
@@ -352,8 +355,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 /**
  * Factory function to create the plugin
  */
-export function siteBuilderPlugin(
-  config: Partial<SiteBuilderConfig> = {},
-): Plugin {
+export function siteBuilderPlugin(config: SiteBuilderConfigInput = {}): Plugin {
   return new SiteBuilderPlugin(config);
 }

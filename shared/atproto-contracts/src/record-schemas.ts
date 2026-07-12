@@ -95,9 +95,9 @@ function buildAtprotoFieldSchema(
 
 function buildAtprotoObjectShape(
   property: AtprotoSchemaProperty,
-): z.ZodRawShape {
+): Record<string, z.ZodType<unknown>> {
   const requiredFields = new Set(property.required ?? []);
-  const shape: z.ZodRawShape = {};
+  const shape: Record<string, z.ZodType<unknown>> = {};
   for (const [field, fieldProperty] of Object.entries(
     property.properties ?? {},
   )) {
@@ -183,7 +183,12 @@ export function buildAtprotoRecordSchema(
     : schema;
 }
 
-export const canonicalAtprotoRecordSchemas = {
+export type CanonicalAtprotoRecordSchemaId = CanonicalAtprotoLexiconId;
+
+export const canonicalAtprotoRecordSchemas: Record<
+  CanonicalAtprotoRecordSchemaId,
+  AtprotoRecordSchema
+> = {
   "ai.rizom.brain.card": buildAtprotoRecordSchema(
     canonicalAtprotoLexicons["ai.rizom.brain.card"],
   ),
@@ -211,10 +216,7 @@ export const canonicalAtprotoRecordSchemas = {
   "ai.rizom.brain.topic": buildAtprotoRecordSchema(
     canonicalAtprotoLexicons["ai.rizom.brain.topic"],
   ),
-} satisfies Record<CanonicalAtprotoLexiconId, AtprotoRecordSchema>;
-
-export type CanonicalAtprotoRecordSchemaId =
-  keyof typeof canonicalAtprotoRecordSchemas;
+};
 
 export function listCanonicalAtprotoRecordSchemas(): AtprotoRecordSchema[] {
   return Object.values(canonicalAtprotoRecordSchemas);
@@ -224,6 +226,23 @@ export function getCanonicalAtprotoRecordSchema(
   id: string,
 ): AtprotoRecordSchema | undefined {
   return canonicalAtprotoRecordSchemas[id as CanonicalAtprotoLexiconId];
+}
+
+function getRecordPathValue(
+  record: Record<string, unknown>,
+  path: readonly PropertyKey[],
+): unknown {
+  let value: unknown = record;
+  for (const segment of path) {
+    if (typeof segment === "symbol") return undefined;
+    if (Array.isArray(value)) {
+      value = value[Number(segment)];
+      continue;
+    }
+    if (!isRecord(value)) return undefined;
+    value = value[String(segment)];
+  }
+  return value;
 }
 
 function formatAtprotoSchemaIssue(
@@ -237,7 +256,10 @@ function formatAtprotoSchemaIssue(
       record["$type"],
     )} !== ${lexicon.id}`;
   }
-  if (issue.code === "invalid_type" && issue.received === "undefined") {
+  if (
+    issue.code === "invalid_type" &&
+    getRecordPathValue(record, issue.path) === undefined
+  ) {
     return `Missing required AT Protocol record field: ${path}`;
   }
   if (issue.code === "invalid_type") {

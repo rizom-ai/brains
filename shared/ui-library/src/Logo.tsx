@@ -1,8 +1,13 @@
 import type { VNode } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const logoVariants = cva("", {
+export interface LogoVariantProps {
+  variant?: VariantValue<"full" | "icon" | "text">;
+}
+
+const logoVariants: VariantFunction<LogoVariantProps> = cva("", {
   variants: {
     variant: {
       full: "",
@@ -15,7 +20,7 @@ const logoVariants = cva("", {
   },
 });
 
-export interface LogoProps extends VariantProps<typeof logoVariants> {
+export interface LogoProps extends LogoVariantProps {
   /**
    * Height in pixels (width will be auto-calculated based on aspect ratio)
    */

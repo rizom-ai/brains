@@ -1,0 +1,22 @@
+{
+  "name": "@brains/http-signatures",
+  "version": "0.2.0-alpha.156",
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/node": "^20.19.43",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "clean": "rm -rf dist",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

@@ -412,14 +412,6 @@ test("Button renders correctly", () => {
 });
 ```
 
-## Storybook
-
-View all components in Storybook:
-
-```bash
-bun run storybook
-```
-
 ## Exports
 
 - All UI components

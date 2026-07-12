@@ -60,8 +60,7 @@ async function executeTool(
   input: Record<string, unknown>,
 ): Promise<ToolResponse> {
   const tool = capabilities.tools.find((t) => t.name === toolName) as
-    | Tool
-    | undefined;
+    Tool | undefined;
   if (!tool) {
     throw new Error(`Tool ${toolName} not found`);
   }

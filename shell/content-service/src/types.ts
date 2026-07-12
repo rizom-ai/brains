@@ -1,11 +1,32 @@
-import { z } from "@brains/utils/zod";
+import { z, type ZodType } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { ContentVisibility } from "@brains/entity-service";
+
+export type ContentTemplateDataSchema<T> = ZodType<T, unknown>;
+/** @deprecated Use ContentTemplateDataSchema<T>. */
+export type ContentTemplateSchemaParser<T> = ContentTemplateDataSchema<T>;
+
+export interface ContentTemplateInput {
+  name: string;
+  description: string;
+  schema: unknown;
+  basePrompt?: string | undefined;
+  requiredPermission: "anchor" | "trusted" | "public";
+  formatter?: unknown;
+  dataSourceId?: string | undefined;
+  layout?:
+    | {
+        component: unknown;
+        description?: string | undefined;
+        packageName?: string | undefined;
+      }
+    | undefined;
+}
 
 /**
  * Zod schema for ContentTemplate validation (used in plugin configurations)
  */
-export const ContentTemplateSchema = z.object({
+export const ContentTemplateSchema: z.ZodType<ContentTemplateInput> = z.object({
   name: z.string(),
   description: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime - required
@@ -26,10 +47,10 @@ export const ContentTemplateSchema = z.object({
  * ContentTemplate for reusable generation patterns and view rendering
  */
 export interface ContentTemplate<T = unknown> extends Omit<
-  z.infer<typeof ContentTemplateSchema>,
+  ContentTemplateInput,
   "schema" | "formatter"
 > {
-  schema: z.ZodType<T>;
+  schema: ContentTemplateDataSchema<T>;
   formatter?: ContentFormatter<T>;
   dataSourceId?: string;
 }
@@ -38,9 +59,9 @@ export interface ContentTemplate<T = unknown> extends Omit<
  * Context for content generation - simplified for template-based approach
  */
 export interface GenerationContext {
-  prompt?: string;
-  conversationHistory?: string;
-  data?: Record<string, unknown>;
+  prompt?: string | undefined;
+  conversationHistory?: string | undefined;
+  data?: Record<string, unknown> | undefined;
 }
 
 /**

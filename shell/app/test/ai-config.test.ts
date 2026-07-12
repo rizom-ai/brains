@@ -34,6 +34,16 @@ describe("resolveAIConfig", () => {
     expect(config.aiModel).toBeUndefined();
   });
 
+  it("should pass through configured reasoning effort", () => {
+    const config = resolveAIConfig(
+      { AI_API_KEY: "sk-test" },
+      { model: "gpt-5.6-luna", reasoningEffort: "low" },
+    );
+
+    expect(config.aiModel).toBe("gpt-5.6-luna");
+    expect(config.aiReasoningEffort).toBe("low");
+  });
+
   describe("AI_IMAGE_KEY", () => {
     it("should use AI_IMAGE_KEY as separate image key", () => {
       const config = resolveAIConfig({

@@ -119,9 +119,10 @@ export interface MessageJobTrackingInfo extends BaseJobTrackingInfo {
  * - onProgressUpdate(): Handle progress updates (optional override)
  */
 export abstract class MessageInterfacePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo = MessageJobTrackingInfo,
-> extends InterfacePlugin<TConfig, TTrackingInfo> {
+> extends InterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
   /**
    * Check if a file is a supported text file for upload
    */
@@ -276,7 +277,10 @@ export abstract class MessageInterfacePlugin<
    * Track progress events for UI state
    * Key: event ID, Value: latest event data
    */
-  protected progressEvents = new Map<string, JobProgressEvent>();
+  protected progressEvents: Map<string, JobProgressEvent> = new Map<
+    string,
+    JobProgressEvent
+  >();
 
   /**
    * Send a message to a specific channel

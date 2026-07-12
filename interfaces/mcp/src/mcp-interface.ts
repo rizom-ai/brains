@@ -12,7 +12,7 @@ import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
 import type { IMCPTransport } from "@brains/mcp-service";
 import { getActiveAuthService } from "@brains/auth-service";
-import { mcpConfigSchema, type MCPConfig } from "./config";
+import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { createMCPTools } from "./tools";
 import { setupJobProgressListener } from "./handlers";
 import packageJson from "../package.json";
@@ -26,7 +26,7 @@ import packageJson from "../package.json";
  * - For HTTP: new MCPInterface({ transport: "http", httpPort: 3333 })
  * - For both: Add two instances with different configs
  */
-export class MCPInterface extends InterfacePlugin<MCPConfig> {
+export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
   // After validation with defaults, config is complete
   declare protected config: MCPConfig;
 
@@ -35,7 +35,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private httpServer: StreamableHTTPServer | undefined;
   private domain: string | undefined;
 
-  constructor(config: Partial<MCPConfig> = {}) {
+  constructor(config: MCPConfigInput = {}) {
     // Default authToken from environment if not provided
     const configWithDefaults = {
       ...config,
@@ -220,6 +220,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
           lastCheck: new Date(),
           details: {
             transport: this.config.transport,
+            mode: this.config.mode,
             url:
               this.config.transport === "http"
                 ? this.domain
@@ -267,20 +268,38 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       transportUserId,
     );
 
-    // Static-token HTTP auth remains an anchor fallback. OAuth-authenticated
-    // HTTP sessions get per-user permissions when each session initializes.
-    if (this.config.transport === "http" && this.config.authToken) {
+    const activeAuthService = getActiveAuthService();
+    const hasHttpAuth =
+      this.config.transport === "http" &&
+      (this.config.authToken ? true : activeAuthService !== undefined);
+
+    // Static-token auth uses anchor permissions. OAuth sessions replace this
+    // fallback with the authenticated principal's level when initialized.
+    if (hasHttpAuth) {
       userLevel = "anchor";
       this.logger.debug(
-        "HTTP static-token authentication configured - authenticated users will have anchor permissions",
+        "HTTP authentication configured; session permissions resolve during initialization",
       );
     }
 
-    // Pass the determined permission level to the MCP transport
+    if (this.config.mode === "debug") {
+      if (this.config.transport === "http" && !hasHttpAuth) {
+        throw new Error(
+          "MCP debug mode requires authenticated HTTP transport; configure authToken or OAuth auth service.",
+        );
+      }
+
+      if (userLevel !== "anchor") {
+        throw new Error("MCP debug mode requires anchor permissions.");
+      }
+    }
+
+    // Pass the determined protocol mode and permission level to the MCP transport
+    this.mcpTransport.setProtocolMode(this.config.mode);
     this.mcpTransport.setPermissionLevel(userLevel);
 
     this.logger.debug(
-      `Starting MCP ${this.config.transport} transport with ${userLevel} permissions`,
+      `Starting MCP ${this.config.transport} transport in ${this.config.mode} mode with ${userLevel} permissions`,
     );
 
     if (this.config.transport === "stdio") {

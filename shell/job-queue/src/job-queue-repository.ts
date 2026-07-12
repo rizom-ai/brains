@@ -19,13 +19,17 @@ export interface JobQueueStats {
  * Keeps persistence details out of JobQueueService orchestration logic.
  */
 export class JobQueueRepository {
+  private db: LibSQLDatabase<Record<string, unknown>>;
+  private claimTimeoutMs: number;
   private logger: Logger;
 
   constructor(
-    private db: LibSQLDatabase<Record<string, unknown>>,
+    db: LibSQLDatabase<Record<string, unknown>>,
     logger: Logger,
-    private claimTimeoutMs: number = 300_000,
+    claimTimeoutMs: number = 300_000,
   ) {
+    this.db = db;
+    this.claimTimeoutMs = claimTimeoutMs;
     this.logger = logger.child("JobQueueRepository");
   }
 
@@ -262,7 +266,9 @@ export class JobQueueRepository {
    * concurrent workers never race on the same row — if two workers run this
    * at once, exactly one of them gets the job and the other gets `null`.
    */
-  public async claimNextReady(now = Date.now()): Promise<JobQueue | null> {
+  public async claimNextReady(
+    now: number = Date.now(),
+  ): Promise<JobQueue | null> {
     const claimExpiredBefore = now - this.claimTimeoutMs;
     const terminalClaimExpired = sql`${jobQueue.status} = ${JOB_STATUS.PROCESSING} AND ${jobQueue.retryCount} + 1 > ${jobQueue.maxRetries}`;
 

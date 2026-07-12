@@ -3,12 +3,23 @@ export { defineConfig } from "./config";
 export { handleCLI } from "./cli";
 export { SeedDataManager } from "./seed-data-manager";
 export { MigrationManager } from "./migration-manager";
+export {
+  resolveStandardConfig,
+  resolveStandardConfigWithDirectories,
+  resolveStandardPaths,
+} from "./standard-paths";
 export type {
   AppConfig,
+  AppConfigInput,
   DeploymentConfig,
   DeploymentConfigInput,
+  ReasoningEffort,
 } from "./types";
-export { deploymentConfigSchema, logLevelSchema } from "./types";
+export {
+  deploymentConfigSchema,
+  logLevelSchema,
+  reasoningEffortSchema,
+} from "./types";
 export type { LogLevel } from "./types";
 
 // Brain definition / resolver API

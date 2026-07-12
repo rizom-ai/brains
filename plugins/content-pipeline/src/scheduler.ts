@@ -190,6 +190,7 @@ export class ContentScheduler {
     } catch (error) {
       throw new Error(
         `Invalid ${scheduleType} cron expression for ${entityType}: "${cronExpr}" - ${getErrorMessage(error)}`,
+        { cause: error },
       );
     }
   }

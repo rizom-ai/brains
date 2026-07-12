@@ -1,23 +1,29 @@
 import type { Plugin } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { playbookAdapter } from "./adapters/playbook-adapter";
+import {
+  playbookAdapter,
+  type PlaybookAdapter,
+} from "./adapters/playbook-adapter";
+import { playbookSchema, type PlaybookEntity } from "./schemas/playbook";
 import {
   playbookConfigSchema,
-  playbookSchema,
   type PlaybookConfig,
-  type PlaybookEntity,
-} from "./schemas/playbook";
+  type PlaybookConfigInput,
+} from "./schemas/playbook-config";
 import packageJson from "../../package.json";
+
+const playbookEntityType = "playbook";
 
 export class PlaybookPlugin extends EntityPlugin<
   PlaybookEntity,
-  PlaybookConfig
+  PlaybookConfig,
+  PlaybookConfigInput
 > {
-  readonly entityType = playbookAdapter.entityType;
-  readonly schema = playbookSchema;
-  readonly adapter = playbookAdapter;
+  readonly entityType: typeof playbookEntityType = playbookEntityType;
+  readonly schema: typeof playbookSchema = playbookSchema;
+  readonly adapter: PlaybookAdapter = playbookAdapter;
 
-  constructor(config: Partial<PlaybookConfig> = {}) {
+  constructor(config: PlaybookConfigInput = {}) {
     super("playbook", packageJson, config, playbookConfigSchema);
   }
 
@@ -26,7 +32,7 @@ export class PlaybookPlugin extends EntityPlugin<
   }
 }
 
-export function playbookPlugin(config: Partial<PlaybookConfig> = {}): Plugin {
+export function playbookPlugin(config: PlaybookConfigInput = {}): Plugin {
   return new PlaybookPlugin(config);
 }
 
@@ -39,7 +45,6 @@ export {
   playbookAudienceSchema,
   playbookBodySchema,
   playbookCompletionModeSchema,
-  playbookConfigSchema,
   playbookFrontmatterSchema,
   playbookMetadataSchema,
   playbookSchema,
@@ -49,7 +54,6 @@ export {
   type PlaybookAudience,
   type PlaybookBody,
   type PlaybookCompletionMode,
-  type PlaybookConfig,
   type PlaybookEntity,
   type PlaybookFrontmatter,
   type PlaybookMetadata,
@@ -57,6 +61,11 @@ export {
   type PlaybookStatus,
   type PlaybookTransition,
 } from "./schemas/playbook";
+export {
+  playbookConfigSchema,
+  type PlaybookConfig,
+  type PlaybookConfigInput,
+} from "./schemas/playbook-config";
 export {
   assertValidPlaybookBody,
   validatePlaybookBody,

@@ -81,6 +81,7 @@ export function registerDecisionsWidget(params: {
           id: WIDGET_ID,
           pluginId,
           title: "Recent decisions",
+          group: "knowledge",
           section: "secondary",
           priority: 30,
           rendererName: "ListWidget",
@@ -92,4 +93,4 @@ export function registerDecisionsWidget(params: {
   );
 }
 
-export const DECISIONS_WIDGET_ID = WIDGET_ID;
+export const DECISIONS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

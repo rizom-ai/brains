@@ -13,9 +13,14 @@ import {
   EntityPlugin,
   resolveEntityOrError,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import {
+  type Image,
+  imageAdapter,
+  type ImageAdapter,
+  imageSchema,
+} from "@brains/image";
 import { slugify } from "@brains/utils/string-utils";
-import { imageSchema, imageAdapter, type Image } from "@brains/image";
+import { z } from "@brains/utils/zod";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
 import { SourceImageRenderJobHandler } from "./handlers/source-image-render-handler";
 import { UploadPromotionJobHandler } from "./handlers/upload-promotion-handler";
@@ -33,14 +38,22 @@ import packageJson from "../package.json";
 const PENDING_IMAGE_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-const imageConfigSchema = z.object({
+type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+
+interface ImageConfig {
+  defaultAspectRatio: ImageAspectRatio;
+}
+
+interface ImageConfigInput {
+  defaultAspectRatio?: ImageAspectRatio | undefined;
+}
+
+const imageConfigSchema: z.ZodType<ImageConfig, ImageConfigInput> = z.object({
   defaultAspectRatio: z
     .enum(["1:1", "16:9", "9:16", "4:3", "3:4"])
     .default("16:9")
     .describe("Default aspect ratio for generated images"),
 });
-
-type ImageConfig = z.infer<typeof imageConfigSchema>;
 
 function normalizeText(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -162,12 +175,16 @@ function buildUploadedImageAttachment(input: {
  * - system_generate { entityType: "image", source: { kind: "prompt", prompt: "..." } } — AI generation
  * - system_update { fields: { coverImageId } } — set cover image references
  */
-export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
-  readonly entityType = imageAdapter.entityType;
-  readonly schema = imageSchema;
-  readonly adapter = imageAdapter;
+export class ImagePlugin extends EntityPlugin<
+  Image,
+  ImageConfig,
+  ImageConfigInput
+> {
+  readonly entityType: typeof imageAdapter.entityType = imageAdapter.entityType;
+  readonly schema: typeof imageSchema = imageSchema;
+  readonly adapter: ImageAdapter = imageAdapter;
 
-  constructor(config: Partial<ImageConfig> = {}) {
+  constructor(config: ImageConfigInput = {}) {
     super("image", packageJson, config, imageConfigSchema);
   }
 
@@ -571,6 +588,6 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   }
 }
 
-export function imagePlugin(config?: Partial<ImageConfig>): Plugin {
+export function imagePlugin(config: ImageConfigInput = {}): Plugin {
   return new ImagePlugin(config);
 }

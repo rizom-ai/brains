@@ -11,10 +11,12 @@ import { getSeriesName } from "../lib/series-metadata";
  * Automatically creates/updates/deletes series based on seriesName values.
  */
 export class SeriesManager {
-  constructor(
-    private readonly entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {}
+  private readonly entityService: IEntityService;
+  private readonly logger: Logger;
+  constructor(entityService: IEntityService, logger: Logger) {
+    this.entityService = entityService;
+    this.logger = logger;
+  }
 
   /**
    * Sync all series entities from current entities across all types.

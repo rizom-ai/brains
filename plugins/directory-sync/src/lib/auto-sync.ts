@@ -1,9 +1,12 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { createId } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import type { DirectorySync } from "./directory-sync";
 import { unlink, access } from "fs/promises";
 import type { DirectorySyncConfig, JobRequest } from "../types";
+
+const jobDataSchema = z.record(z.string(), z.unknown());
 
 /**
  * Subscribe to entity CRUD events and mirror changes to the filesystem
@@ -115,7 +118,7 @@ export function setupFileWatcher(
     const operations = [
       {
         type: job.type,
-        data: job.data as Record<string, unknown>,
+        data: jobDataSchema.parse(job.data),
       },
     ];
 

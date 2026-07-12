@@ -1,13 +1,18 @@
-import { z } from "@brains/utils/zod";
+import { z, type ZodType } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { VNode } from "preact";
-import { UserPermissionLevelSchema } from "./permission-service";
 
 /**
  * Component type for layouts - using Preact
  * Returns a Preact VNode
  */
-export type ComponentType<P = unknown> = (props: P) => VNode;
+export type ComponentType<P = unknown> = {
+  bivarianceHack(props: P): VNode;
+}["bivarianceHack"];
+
+export type TemplateDataSchema<T> = ZodType<T, unknown>;
+/** @deprecated Use TemplateDataSchema<T>. */
+export type TemplateSchemaParser<T> = TemplateDataSchema<T>;
 
 /**
  * A runtime script that a template depends on. Site-builder collects
@@ -25,6 +30,23 @@ export interface RuntimeScript {
   module?: boolean;
 }
 
+export interface TemplateInput {
+  name: string;
+  description: string;
+  schema: unknown;
+  basePrompt?: string | undefined;
+  useKnowledgeContext?: boolean | undefined;
+  requiredPermission: "anchor" | "trusted" | "public";
+  formatter?: unknown;
+  layout?:
+    | {
+        component?: unknown;
+        fullscreen?: boolean | undefined;
+      }
+    | undefined;
+  dataSourceId?: string | undefined;
+}
+
 /**
  * Helper function to create a type-safe component that automatically parses props
  * using the provided Zod schema
@@ -34,7 +56,7 @@ export interface RuntimeScript {
  * @param TComponent - Type expected by component (e.g., with required url/typeLabel)
  */
 export function createTypedComponent<TSchema, TComponent = TSchema>(
-  schema: z.ZodType<TSchema, z.ZodTypeDef, unknown>,
+  schema: TemplateDataSchema<TSchema>,
   component: ComponentType<TComponent>,
 ): ComponentType<unknown> {
   return (props: unknown) => {
@@ -49,10 +71,10 @@ export function createTypedComponent<TSchema, TComponent = TSchema>(
  * This is the single source of truth for what constitutes a template
  */
 export interface Template extends Omit<
-  z.infer<typeof TemplateSchema>,
+  TemplateInput,
   "schema" | "layout" | "formatter"
 > {
-  schema: z.ZodType<unknown, z.ZodTypeDef, unknown>;
+  schema: TemplateDataSchema<unknown>;
 
   // View rendering capability (optional)
   layout?: {
@@ -87,7 +109,7 @@ export interface Template extends Omit<
  */
 export function createTemplate<TSchema = unknown, TComponent = TSchema>(
   template: Omit<Template, "layout" | "schema"> & {
-    schema: z.ZodType<TSchema, z.ZodTypeDef, unknown>;
+    schema: TemplateDataSchema<TSchema>;
     layout?: {
       component?: ComponentType<TComponent>;
       fullscreen?: boolean;
@@ -121,21 +143,19 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
 /**
  * Template schema for validation
  */
-export const TemplateSchema = z.object({
+export const TemplateSchema: z.ZodType<TemplateInput> = z.object({
   name: z.string(),
   description: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime - required
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
   useKnowledgeContext: z.boolean().optional(),
-  requiredPermission: UserPermissionLevelSchema,
+  requiredPermission: z.enum(["anchor", "trusted", "public"]),
   formatter: z.any().optional(), // ContentFormatter instance
   layout: z
     .object({
-      component: z.any(), // ComponentType or string
+      component: z.any().optional(), // ComponentType or string
       fullscreen: z.boolean().optional(),
     })
     .optional(),
   dataSourceId: z.string().optional(),
 });
-
-export type TemplateInput = z.infer<typeof TemplateSchema>;

@@ -161,14 +161,15 @@ describe("@rizom/brain public plugin API surface", () => {
       readFileSync(join(externalPluginFixtureDir, "package.json"), "utf-8"),
     );
 
-    expect(source).toContain('from "@rizom/brain"');
+    expect(source).toContain('PLUGIN_API_VERSION, z } from "@rizom/brain"');
     expect(source).toContain('from "@rizom/brain/plugins"');
     expect(source).toContain('from "@rizom/brain/entities"');
     expect(source).toContain('from "@rizom/brain/interfaces"');
-    expect(source).toContain('from "zod"');
+    expect(source).not.toContain('from "zod"');
     expect(source).not.toContain("@brains/");
     expect(packageJson.peerDependencies?.["@rizom/brain"]).toBeDefined();
-    expect(packageJson.peerDependencies?.["zod"]).toBeDefined();
+    expect(packageJson.peerDependencies?.["zod"]).toBeUndefined();
+    expect(packageJson.devDependencies?.["zod"]).toBeUndefined();
     expect(packageJson.rizomBrain?.pluginApi).toBeUndefined();
 
     const tsconfig = readFileSync(

@@ -4,6 +4,8 @@ import { uiAssetPath } from "./chat-page";
 interface WebChatRouteHandlers {
   handleChatPage(request: Request): Promise<Response>;
   handleChatRequest(request: Request): Promise<Response>;
+  handleRemoteAgentChatRequest(request: Request): Promise<Response>;
+  handleRemoteAgentConfirmRequest(request: Request): Promise<Response>;
   handleBootstrapRequest(request: Request): Promise<Response>;
   handleActionRequest(request: Request): Promise<Response>;
   handleSessionsRequest(request: Request): Promise<Response>;
@@ -133,6 +135,20 @@ export function createWebChatRoutes({
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleUploadDownloadRequest(request),
+    },
+    {
+      path: "/api/agent/chat",
+      method: "POST",
+      public: true,
+      handler: (request): Promise<Response> =>
+        handlers.handleRemoteAgentChatRequest(request),
+    },
+    {
+      path: "/api/agent/chat/confirm",
+      method: "POST",
+      public: true,
+      handler: (request): Promise<Response> =>
+        handlers.handleRemoteAgentConfirmRequest(request),
     },
   ];
 }

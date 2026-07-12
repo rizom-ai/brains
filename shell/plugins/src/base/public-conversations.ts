@@ -1,6 +1,7 @@
-import type {
-  Conversation as RuntimeConversation,
-  Message as RuntimeMessage,
+import {
+  coerceConversationMetadata,
+  type Conversation as RuntimeConversation,
+  type Message as RuntimeMessage,
 } from "@brains/conversation-service";
 import {
   messageRoleSchema,
@@ -8,23 +9,6 @@ import {
   type Message,
   type MessageRole,
 } from "../contracts/conversations";
-
-function parseMetadata(
-  metadata: string | null | undefined,
-): Record<string, unknown> {
-  if (!metadata) return {};
-
-  try {
-    const parsed: unknown = JSON.parse(metadata);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    // Invalid historical metadata stays internal; public contract receives an empty object.
-  }
-
-  return {};
-}
 
 function toPublicRole(role: string): MessageRole {
   const result = messageRoleSchema.safeParse(role);
@@ -34,7 +18,7 @@ function toPublicRole(role: string): MessageRole {
 export function toPublicConversation(
   conversation: RuntimeConversation,
 ): Conversation {
-  const metadata = parseMetadata(conversation.metadata);
+  const metadata = coerceConversationMetadata(conversation.metadata);
   const channelName =
     typeof metadata["channelName"] === "string"
       ? metadata["channelName"]
@@ -61,6 +45,6 @@ export function toPublicMessage(message: RuntimeMessage): Message {
     role: toPublicRole(message.role),
     content: message.content,
     timestamp: message.timestamp,
-    metadata: parseMetadata(message.metadata),
+    metadata: coerceConversationMetadata(message.metadata),
   };
 }

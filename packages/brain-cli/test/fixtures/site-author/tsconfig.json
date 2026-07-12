@@ -2,8 +2,11 @@
   "extends": "../../../tsconfig.instance.json",
   "compilerOptions": {
     "noEmit": true,
+    "declaration": true,
+    "rootDir": ".",
     "types": ["bun-types"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "isolatedDeclarations": true
   },
   "include": ["src/**/*.ts"]
 }

@@ -5,7 +5,7 @@ import { absoluteUrl } from "./issuer";
 import { htmlResponse } from "./http-responses";
 import { renderSetupPage } from "./pages";
 
-export const DEFAULT_SETUP_TOKEN_TTL_SECONDS = 24 * 60 * 60;
+export const DEFAULT_SETUP_TOKEN_TTL_SECONDS: number = 24 * 60 * 60;
 
 interface SetupTokenState {
   token: string;

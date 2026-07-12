@@ -1,7 +1,5 @@
 import type { PresetName } from "@brains/app";
 
-const PRESET_NAMES = new Set<string>(["core", "default", "full"]);
-
 export interface CliOptions {
   skipLLMJudge: boolean;
   parallel: boolean;
@@ -44,7 +42,10 @@ export function parseSingleFlag(
 }
 
 function parsePreset(value: string | undefined): PresetName | undefined {
-  return value && PRESET_NAMES.has(value) ? (value as PresetName) : undefined;
+  if (value === "core" || value === "default" || value === "full") {
+    return value;
+  }
+  return undefined;
 }
 
 export function parseCliOptions(args: string[]): CliOptions {

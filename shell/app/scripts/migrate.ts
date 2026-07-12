@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { getStandardConfigWithDirectories } from "@brains/core";
+import { resolveStandardConfigWithDirectories } from "../src/standard-paths";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
@@ -7,7 +7,7 @@ import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { Logger } from "@brains/utils/logger";
 
 async function main(): Promise<void> {
-  const config = await getStandardConfigWithDirectories();
+  const config = await resolveStandardConfigWithDirectories();
   const logger = Logger.getInstance();
 
   logger.info("Running database migrations...");

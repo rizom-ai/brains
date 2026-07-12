@@ -6,23 +6,34 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import { wishSchema, type WishEntity } from "./schemas/wish";
+
+const wishDigestSourceSchema = z.object({
+  items: z.array(z.object({ name: z.string(), count: z.number() })),
+});
 import {
   wishlistConfigSchema,
-  wishSchema,
   type WishlistConfig,
-  type WishEntity,
-} from "./schemas/wish";
-import { wishAdapter } from "./adapters/wish-adapter";
+  type WishlistConfigInput,
+} from "./schemas/wishlist-config";
+import { WishAdapter, wishAdapter } from "./adapters/wish-adapter";
 import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
 import packageJson from "../package.json";
 
-export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
-  readonly entityType = wishAdapter.entityType;
-  readonly schema = wishSchema;
-  readonly adapter = wishAdapter;
+const wishEntityType = "wish";
 
-  constructor(config: Partial<WishlistConfig> = {}) {
+export class WishlistPlugin extends EntityPlugin<
+  WishEntity,
+  WishlistConfig,
+  WishlistConfigInput
+> {
+  readonly entityType: typeof wishEntityType = wishEntityType;
+  readonly schema: typeof wishSchema = wishSchema;
+  readonly adapter: WishAdapter = wishAdapter;
+
+  constructor(config: WishlistConfigInput = {}) {
     super("wishlist", packageJson, config, wishlistConfigSchema);
   }
 
@@ -74,9 +85,24 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
           id: "top-wishes",
           pluginId: this.id,
           title: "Top Wishes",
+          group: "knowledge",
           section: "secondary",
           priority: 30,
           rendererName: "ListWidget",
+          digestProvider: (data: unknown) => {
+            const { items } = wishDigestSourceSchema.parse(data);
+            const top = items[0];
+            return {
+              digest: top
+                ? [
+                    {
+                      label: "Top wish",
+                      value: `${top.name} · ×${top.count}`,
+                    },
+                  ]
+                : [{ label: "Wishes", value: "none yet" }],
+            };
+          },
           dataProvider: async () => {
             const wishes = await context.entityService.listEntities<WishEntity>(
               {
@@ -113,28 +139,29 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
   }
 }
 
-export function createWishlistPlugin(
-  config: Partial<WishlistConfig> = {},
-): Plugin {
+export function createWishlistPlugin(config: WishlistConfigInput = {}): Plugin {
   return new WishlistPlugin(config);
 }
 
-export const wishlistPlugin = createWishlistPlugin;
+export const wishlistPlugin: typeof createWishlistPlugin = createWishlistPlugin;
 
 export type {
-  WishlistConfig,
   WishEntity,
   WishFrontmatter,
   WishMetadata,
   WishStatus,
   WishPriority,
 } from "./schemas/wish";
+export type {
+  WishlistConfig,
+  WishlistConfigInput,
+} from "./schemas/wishlist-config";
 export {
-  wishlistConfigSchema,
   wishSchema,
   wishFrontmatterSchema,
   wishMetadataSchema,
   wishStatusSchema,
   wishPrioritySchema,
 } from "./schemas/wish";
-export { WishAdapter } from "./adapters/wish-adapter";
+export { wishlistConfigSchema } from "./schemas/wishlist-config";
+export { WishAdapter };

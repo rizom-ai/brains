@@ -4,9 +4,9 @@
   "compilerOptions": {
     "rootDir": "./",
     "moduleResolution": "bundler",
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "isolatedDeclarations": true
   }
 }

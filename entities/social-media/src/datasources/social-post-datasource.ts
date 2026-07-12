@@ -1,12 +1,15 @@
 import {
   BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
   type BaseQuery,
+  type EntityDataSourceConfig,
   type NavigationResult,
   type PaginationInfo,
 } from "@brains/plugins";
-import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSourceSchema,
+  IEntityService,
+} from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -17,7 +20,31 @@ import {
   type SocialPostWithData,
 } from "../schemas/social-post";
 
-const socialPostQuerySchema = baseQuerySchema.extend({
+interface SocialPostQuery {
+  [key: string]: unknown;
+  id?: string | undefined;
+  limit?: number | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+  baseUrl?: string | undefined;
+  platform?: "linkedin" | undefined;
+  status?:
+    "generating" | "draft" | "queued" | "published" | "failed" | undefined;
+  sortByQueue?: boolean | undefined;
+  nextInQueue?: boolean | undefined;
+}
+
+interface SocialPostInput {
+  entityType?: string | undefined;
+  query?: SocialPostQuery | undefined;
+}
+
+const socialPostQuerySchema: z.ZodType<SocialPostQuery> = z.looseObject({
+  id: z.string().optional(),
+  limit: z.number().optional(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  baseUrl: z.string().optional(),
   platform: z.enum(["linkedin"]).optional(),
   status: z
     .enum(["generating", "draft", "queued", "published", "failed"])
@@ -26,11 +53,10 @@ const socialPostQuerySchema = baseQuerySchema.extend({
   nextInQueue: z.boolean().optional(),
 });
 
-const socialPostInputSchema = baseInputSchema.extend({
+const socialPostInputSchema: z.ZodType<SocialPostInput> = z.looseObject({
+  entityType: z.string().optional(),
   query: socialPostQuerySchema.optional(),
 });
-
-type SocialPostQuery = z.infer<typeof socialPostQuerySchema>;
 
 /**
  * Parse frontmatter and extract body from entity.
@@ -67,12 +93,12 @@ export class SocialPostDataSource extends BaseEntityDataSource<
   SocialPost,
   SocialPostWithData
 > {
-  readonly id = "social-media:posts";
-  readonly name = "Social Post DataSource";
-  readonly description =
+  readonly id: string = "social-media:posts";
+  readonly name: string = "Social Post DataSource";
+  readonly description: string =
     "Fetches and transforms social post entities for queue management and publishing";
 
-  protected readonly config = {
+  protected readonly config: EntityDataSourceConfig = {
     entityType: "social-post",
     defaultSort: [
       {
@@ -130,7 +156,7 @@ export class SocialPostDataSource extends BaseEntityDataSource<
    */
   override async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);
@@ -153,9 +179,10 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     if (parsedQuery.status) metadataFilter["status"] = parsedQuery.status;
     const hasFilter = Object.keys(metadataFilter).length > 0;
 
-    const sortFields = parsedQuery.sortByQueue
-      ? [{ field: "queueOrder" as const, direction: "asc" as const }]
-      : this.config.defaultSort;
+    const sortFields: EntityDataSourceConfig["defaultSort"] =
+      parsedQuery.sortByQueue
+        ? [{ field: "queueOrder" as const, direction: "asc" as const }]
+        : this.config.defaultSort;
 
     const { items, pagination } = await this.fetchList(
       parsedQuery,
@@ -175,7 +202,7 @@ export class SocialPostDataSource extends BaseEntityDataSource<
    * Fetch the next post in queue (lowest queueOrder with status=queued).
    */
   private async fetchNextInQueue<T>(
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const entities = await entityService.listEntities<SocialPost>({

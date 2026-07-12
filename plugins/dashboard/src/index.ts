@@ -1,15 +1,18 @@
 // Main plugin export
 export { DashboardPlugin, dashboardPlugin } from "./plugin";
+export type { DashboardConfig, DashboardConfigInput } from "./plugin";
 
 // Widget registry exports
 export {
   BUILT_IN_WIDGET_RENDERERS,
   DashboardWidgetRegistry,
+  dashboardDigestLineSchema,
   dashboardWidgetSchema,
   isBuiltInWidgetRenderer,
 } from "./widget-registry";
 export type {
   RegisteredWidget,
+  DashboardDigestLine,
   DashboardWidgetMeta,
   WidgetComponent,
   WidgetComponentProps,
@@ -20,4 +23,8 @@ export type {
 // DataSource exports
 export { DashboardDataSource } from "./dashboard-datasource";
 export { dashboardDataSchema } from "./widget-schema";
-export type { DashboardData, WidgetData } from "./widget-schema";
+export type {
+  DashboardData,
+  WidgetData,
+  WidgetDigestLine,
+} from "./widget-schema";

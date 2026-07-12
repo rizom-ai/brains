@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
-import { nowSeconds } from "@brains/utils/date";
 import { JsonFileStore } from "./json-file-store";
+import { nowSeconds } from "@brains/utils/date";
+import { z } from "@brains/utils/zod";
+import { join } from "node:path";
 import { redirectUriMatches } from "./redirect-uri";
 
 const DEFAULT_AUTH_CODE_STORE_FILE = "oauth-auth-codes.json";
@@ -44,36 +45,50 @@ export interface AuthorizationCodeStoreOptions {
   storeFile?: string;
 }
 
-function isAuthorizationCodeRecord(
-  value: unknown,
-): value is AuthorizationCodeRecord {
-  if (!value || typeof value !== "object") return false;
-  const code = value as Record<string, unknown>;
-  return (
-    typeof code["code"] === "string" &&
-    typeof code["client_id"] === "string" &&
-    typeof code["redirect_uri"] === "string" &&
-    typeof code["code_challenge"] === "string" &&
-    code["code_challenge_method"] === "S256" &&
-    typeof code["subject"] === "string" &&
-    typeof code["created_at"] === "number" &&
-    typeof code["expires_at"] === "number"
-  );
-}
+const authorizationCodeRecordSchema = z
+  .looseObject({
+    code: z.string(),
+    client_id: z.string(),
+    redirect_uri: z.string(),
+    code_challenge: z.string(),
+    code_challenge_method: z.literal("S256"),
+    scope: z.string().optional(),
+    subject: z.string(),
+    created_at: z.number(),
+    expires_at: z.number(),
+    consumed_at: z.number().optional(),
+  })
+  .transform((code): AuthorizationCodeRecord => ({
+    code: code.code,
+    client_id: code.client_id,
+    redirect_uri: code.redirect_uri,
+    code_challenge: code.code_challenge,
+    code_challenge_method: code.code_challenge_method,
+    ...(code.scope !== undefined ? { scope: code.scope } : {}),
+    subject: code.subject,
+    created_at: code.created_at,
+    expires_at: code.expires_at,
+    ...(code.consumed_at !== undefined
+      ? { consumed_at: code.consumed_at }
+      : {}),
+  }));
+
+const authCodeStoreFileSchema = z.looseObject({
+  codes: z.array(z.unknown()).optional(),
+});
 
 function parseStoreFile(value: unknown): AuthCodeStoreFile {
-  if (!value || typeof value !== "object") {
-    return { codes: [] };
-  }
-
-  const codes = (value as { codes?: unknown }).codes;
-  if (!Array.isArray(codes)) {
-    return { codes: [] };
-  }
+  const parsed = authCodeStoreFileSchema.safeParse(value);
+  if (!parsed.success) return { codes: [] };
 
   return {
-    codes: codes.filter(isAuthorizationCodeRecord),
+    codes: parsed.data.codes?.flatMap(parseAuthorizationCode) ?? [],
   };
+}
+
+function parseAuthorizationCode(value: unknown): AuthorizationCodeRecord[] {
+  const parsed = authorizationCodeRecordSchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
 }
 
 async function pkceS256(verifier: string): Promise<string> {

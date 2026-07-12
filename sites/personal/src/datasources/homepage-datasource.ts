@@ -1,12 +1,15 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { fetchAnchorProfileData } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
 import {
-  fetchSiteInfo,
   fetchRecentEntities,
+  fetchSiteInfo,
   requireCta,
   type SiteInfoCTA,
 } from "@brains/site-info";
-import { type z } from "@brains/utils/zod";
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 import {
   type BlogPost,
@@ -26,16 +29,19 @@ interface HomepageDataSourceOutput {
  * Fetches profile and recent blog posts — no decks, no portfolio
  */
 export class HomepageDataSource implements DataSource {
+  private readonly postsListUrl: string;
   public readonly id = "personal:homepage";
   public readonly name = "Personal Homepage DataSource";
   public readonly description =
     "Fetches profile and blog posts for a personal homepage";
 
-  constructor(private readonly postsListUrl: string) {}
+  constructor(postsListUrl: string) {
+    this.postsListUrl = postsListUrl;
+  }
 
   async fetch<T>(
     _query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const entityService = context.entityService;

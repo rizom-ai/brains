@@ -334,6 +334,8 @@ export class EntityService implements IEntityService {
       missingEmbeddings: stats.missingEmbeddings,
       staleEmbeddings: stats.staleEmbeddings,
       failedEmbeddings: stats.failedEmbeddings,
+      embeddableEntities: stats.embeddableEntities,
+      embeddedEntities: stats.embeddedEntities,
     };
   }
 

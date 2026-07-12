@@ -43,9 +43,13 @@ before touching — not opportunistic edits.
 
 ### Minor (fix opportunistically)
 
-- `sites/professional` and `sites/personal` homepage datasources share
-  ~60% structure; extract a shared datasource helper if a third site
-  appears.
+- ~~`sites/professional` and `sites/personal` homepage datasource
+  overlap~~ — DONE 2026-07-04 (`a30edc7ac`): the shared logic was
+  extracted into `site-datasource-helpers.ts` in `@brains/site-info`
+  (`fetchRecentEntities`, `fetchSiteInfo`, `requireCta`) plus
+  `fetchAnchorProfileData` in `@brains/plugins`. Each site's datasource
+  is now pure declaration (entity types, counts, schemas, output
+  shape) — the right residue, nothing further to extract.
 
 ## Checked and cleared (do not re-flag)
 

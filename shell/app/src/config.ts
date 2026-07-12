@@ -1,10 +1,10 @@
-import { appConfigSchema, type AppConfig } from "./types";
+import { appConfigSchema, type AppConfig, type AppConfigInput } from "./types";
 
 /**
  * Define configuration for a Brain app
  * This validates the config and returns it - execution is handled by the config file itself
  */
-export function defineConfig(config: AppConfig): AppConfig {
+export function defineConfig(config: AppConfigInput): AppConfig {
   // Validate config at definition time
   const validated = appConfigSchema.parse({
     ...config,

@@ -1,29 +1,44 @@
-import { z } from "zod";
+import { z } from "@brains/utils/zod";
 import type { FileUIPart, UIMessage } from "ai";
 import { defaultWebChatUploadFilename } from "../../src/upload-policy";
 
-export const uploadEndpoint = "/api/chat/uploads";
-export const defaultUploadFilename = defaultWebChatUploadFilename;
-export const uploadPartType = "data-upload";
+export const uploadEndpoint: string = "/api/chat/uploads";
+export const defaultUploadFilename: typeof defaultWebChatUploadFilename =
+  defaultWebChatUploadFilename;
+export const uploadPartType = "data-upload" as const;
 
-export const webChatUploadRefSchema = z.object({
+export interface WebChatUploadRef {
+  kind: "upload";
+  id: string;
+}
+
+export interface WebChatUploadResponse {
+  id: string;
+  ref: WebChatUploadRef;
+  filename: string;
+  mediaType: string;
+  sizeBytes: number;
+  createdAt: string;
+  url?: string | undefined;
+  downloadUrl?: string | undefined;
+}
+
+export const webChatUploadRefSchema: z.ZodType<WebChatUploadRef> = z.object({
   kind: z.literal("upload"),
   id: z.string().min(1),
 });
 
-export const webChatUploadResponseSchema = z.object({
-  id: z.string().min(1),
-  ref: webChatUploadRefSchema,
-  filename: z.string().min(1),
-  mediaType: z.string().min(1),
-  sizeBytes: z.number().nonnegative(),
-  createdAt: z.string().datetime(),
-  url: z.string().min(1).optional(),
-  downloadUrl: z.string().min(1).optional(),
-});
-
-export type WebChatUploadRef = z.infer<typeof webChatUploadRefSchema>;
-export type WebChatUploadResponse = z.infer<typeof webChatUploadResponseSchema>;
+export const webChatUploadResponseSchema: z.ZodType<WebChatUploadResponse> =
+  z.object({
+    id: z.string().min(1),
+    ref: webChatUploadRefSchema,
+    filename: z.string().min(1),
+    mediaType: z.string().min(1),
+    sizeBytes: z.number().nonnegative(),
+    createdAt: z.string().datetime(),
+    url: z.string().min(1).optional(),
+    downloadUrl: z.string().min(1).optional(),
+  });
 export type UploadFetch = (
   input: RequestInfo | URL,
   init?: RequestInit,

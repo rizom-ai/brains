@@ -3,26 +3,41 @@ import { z } from "@brains/utils/zod";
 /**
  * Daemon health status schema
  */
-export const DaemonHealthSchema = z.object({
+export const DaemonHealthSchema: z.ZodObject<{
+  status: z.ZodEnum<{
+    healthy: "healthy";
+    warning: "warning";
+    error: "error";
+    unknown: "unknown";
+  }>;
+  message: z.ZodOptional<z.ZodString>;
+  lastCheck: z.ZodOptional<z.ZodDate>;
+  details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.object({
   status: z.enum(["healthy", "warning", "error", "unknown"]),
   message: z.string().optional(),
   lastCheck: z.date().optional(),
   details: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type DaemonHealth = z.infer<typeof DaemonHealthSchema>;
+export type DaemonHealth = z.output<typeof DaemonHealthSchema>;
 
 /**
  * Daemon status info schema for validation
  */
-export const DaemonStatusInfoSchema = z.object({
+export const DaemonStatusInfoSchema: z.ZodObject<{
+  name: z.ZodString;
+  pluginId: z.ZodString;
+  status: z.ZodString;
+  health: z.ZodOptional<typeof DaemonHealthSchema>;
+}> = z.object({
   name: z.string(),
   pluginId: z.string(),
   status: z.string(),
   health: DaemonHealthSchema.optional(),
 });
 
-export type DaemonStatusInfo = z.infer<typeof DaemonStatusInfoSchema>;
+export type DaemonStatusInfo = z.output<typeof DaemonStatusInfoSchema>;
 
 /**
  * Daemon interface for long-running interface processes

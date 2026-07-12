@@ -139,4 +139,4 @@ export class DeckAdapter extends BaseEntityAdapter<
   }
 }
 
-export const deckAdapter = new DeckAdapter();
+export const deckAdapter: DeckAdapter = new DeckAdapter();

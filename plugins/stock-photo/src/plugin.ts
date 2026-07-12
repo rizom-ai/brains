@@ -13,21 +13,32 @@ export interface StockPhotoDeps {
   fetchImage?: FetchImageFn;
 }
 
-const stockPhotoConfigSchema = z.object({
+interface StockPhotoConfig {
+  provider: "unsplash";
+  apiKey?: string | undefined;
+}
+
+interface StockPhotoConfigInput {
+  provider?: "unsplash" | undefined;
+  apiKey?: string | undefined;
+}
+
+const stockPhotoConfigSchema: z.ZodType<
+  StockPhotoConfig,
+  StockPhotoConfigInput
+> = z.object({
   provider: z.enum(["unsplash"]).default("unsplash"),
   apiKey: z.string().optional().describe("Stock photo provider API key"),
 });
 
-type StockPhotoConfig = z.infer<typeof stockPhotoConfigSchema>;
-
-export class StockPhotoPlugin extends ServicePlugin<StockPhotoConfig> {
+export class StockPhotoPlugin extends ServicePlugin<
+  StockPhotoConfig,
+  StockPhotoConfigInput
+> {
   private readonly deps: StockPhotoDeps;
   private cachedTools: Tool[] | null = null;
 
-  constructor(
-    config: Partial<StockPhotoConfig> = {},
-    deps: StockPhotoDeps = {},
-  ) {
+  constructor(config: StockPhotoConfigInput = {}, deps: StockPhotoDeps = {}) {
     super("stock-photo", packageJson, config, stockPhotoConfigSchema);
     this.deps = deps;
   }
@@ -72,7 +83,7 @@ export class StockPhotoPlugin extends ServicePlugin<StockPhotoConfig> {
 }
 
 export function stockPhotoPlugin(
-  config: Partial<StockPhotoConfig> = {},
+  config: StockPhotoConfigInput = {},
   deps: StockPhotoDeps = {},
 ): StockPhotoPlugin {
   return new StockPhotoPlugin(config, deps);

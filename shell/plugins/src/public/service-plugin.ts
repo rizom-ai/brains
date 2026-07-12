@@ -1,11 +1,11 @@
 import { ServicePlugin as RuntimeServicePlugin } from "../service/service-plugin";
 import type { ServicePluginContext as RuntimeServicePluginContext } from "../service/context";
+import type { PluginConfigSchema } from "../config";
 import type {
   IShell,
   PluginCapabilities,
   PluginRegistrationContext,
 } from "../interfaces";
-import type { z } from "@brains/utils/zod";
 import type { Plugin, Resource, ServicePluginContext, Tool } from "./types";
 
 interface ServicePluginHooks {
@@ -17,15 +17,20 @@ interface ServicePluginHooks {
   getInstructions(): Promise<string | undefined>;
 }
 
-class ServicePluginDelegate<TConfig> extends RuntimeServicePlugin<TConfig> {
+class ServicePluginDelegate<TConfig, TConfigInput> extends RuntimeServicePlugin<
+  TConfig,
+  TConfigInput
+> {
+  private readonly hooks: ServicePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
-    private readonly hooks: ServicePluginHooks,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
+    hooks: ServicePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
+    this.hooks = hooks;
   }
 
   protected override onRegister(
@@ -57,19 +62,19 @@ class ServicePluginDelegate<TConfig> extends RuntimeServicePlugin<TConfig> {
   }
 }
 
-export abstract class ServicePlugin<TConfig = unknown> implements Plugin {
+export abstract class ServicePlugin<TConfig, TConfigInput> implements Plugin {
   public readonly type = "service" as const;
   public readonly id: string;
   public readonly version: string;
   public readonly packageName: string;
   public readonly description?: string;
-  private readonly delegate: ServicePluginDelegate<TConfig>;
+  private readonly delegate: ServicePluginDelegate<TConfig, TConfigInput>;
 
   protected constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
-    configSchema: z.ZodTypeAny,
+    config: TConfigInput,
+    configSchema: PluginConfigSchema<TConfig>,
   ) {
     this.id = id;
     this.version = packageJson.version;

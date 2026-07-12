@@ -1,10 +1,8 @@
 {
   "extends": "@brains/typescript-config/base.json",
-  "include": [
-    "src/**/*",
-    "test/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "compilerOptions": {
+    "isolatedDeclarations": true
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules"]
 }

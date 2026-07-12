@@ -6,7 +6,7 @@ import {
 } from "@brains/test-utils";
 import { SummaryProjector } from "../../src/lib/summary-projector";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
-import { summaryConfigSchema } from "../../src/schemas/summary";
+import { summaryConfigSchema } from "../../src/schemas/summary-config";
 import type { SummaryEntry } from "../../src/schemas/summary";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
 import {

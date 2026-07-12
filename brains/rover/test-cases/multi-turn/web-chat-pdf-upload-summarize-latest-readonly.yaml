@@ -42,15 +42,15 @@ turns:
         - "Confirmation required"
         - "Completed: Create"
         - "draft is generating"
-        - "saved"
+        - "saved as"
+        - "I've saved"
+        - "I’ve saved"
 
 successCriteria:
   expectedTools:
     - toolName: system_create
       shouldBeCalled: false
-    - toolName: system_upload_save
-      shouldBeCalled: false
-    - toolName: document_generate
+    - toolName: system_generate
       shouldBeCalled: false
   responseNotContains:
     - "Confirmation required"

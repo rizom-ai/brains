@@ -8,7 +8,7 @@ import {
   buildSummaryCoverageData,
   registerSummaryCoverageWidget,
 } from "../../../src/lib/widgets/coverage";
-import { summaryConfigSchema } from "../../../src/schemas/summary";
+import { summaryConfigSchema } from "../../../src/schemas/summary-config";
 import type { SummaryEntity } from "../../../src/schemas/summary";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
@@ -230,6 +230,7 @@ describe("registerSummaryCoverageWidget", () => {
       id: "conversation-memory:coverage",
       pluginId: "conversation-memory",
       title: "Conversation memory coverage",
+      group: "system",
       section: "secondary",
       priority: 80,
       rendererName: "ListWidget",

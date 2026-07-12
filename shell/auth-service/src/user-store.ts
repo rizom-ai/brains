@@ -37,7 +37,11 @@ export interface ResolveAuthIdentityInput {
 }
 
 export class AuthUserStore {
-  constructor(private readonly db: AuthRuntimeDB) {}
+  private readonly db: AuthRuntimeDB;
+
+  constructor(db: AuthRuntimeDB) {
+    this.db = db;
+  }
 
   async ensureFirstAnchorUser(
     input: { displayName?: string } = {},

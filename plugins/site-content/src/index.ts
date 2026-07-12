@@ -6,9 +6,13 @@ export {
   siteContentSchema,
   siteContentMetadataSchema,
 } from "./schemas/site-content";
+export {
+  siteContentPluginConfigSchema,
+  type SiteContentPluginConfig,
+  type SiteContentPluginConfigInput,
+} from "./schemas/config";
 export type {
   SiteContentDefinition,
   SiteContentFieldDefinition,
-  SiteContentPluginConfig,
   SiteContentSectionDefinition,
 } from "./definitions";

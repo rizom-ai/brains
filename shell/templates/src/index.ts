@@ -3,6 +3,8 @@ export type {
   TemplateInput,
   ComponentType,
   RuntimeScript,
+  TemplateDataSchema,
+  TemplateSchemaParser,
 } from "./types";
 export { TemplateSchema, createTypedComponent, createTemplate } from "./types";
 export { TemplateRegistry } from "./registry";
@@ -23,7 +25,9 @@ export type {
   EntityAction,
   EntityActionRequiredLevel,
   EntityActionPolicyRule,
+  EntityActionPolicyRuleInput,
   EntityActionPolicyConfig,
+  EntityActionPolicyConfigInput,
   EntityActionPolicyEntry,
   EntityActionPolicy,
   PermissionConfig,

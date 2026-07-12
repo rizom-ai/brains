@@ -5,7 +5,7 @@ import type {
   Plugin,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AgentDataSource } from "../datasources/agent-datasource";
 import { AgentGenerationJobHandler } from "../handlers/agent-generation-handler";
@@ -17,15 +17,24 @@ import { getTemplates } from "../lib/register-templates";
 import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import packageJson from "../../package.json";
 
-const agentAdapter = new AgentAdapter();
+const agentAdapter: AgentAdapter = new AgentAdapter();
 
-export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
-  readonly entityType = AGENT_ENTITY_TYPE;
-  readonly schema = agentEntitySchema;
-  readonly adapter = agentAdapter;
+export class AgentDiscoveryPlugin extends EntityPlugin<
+  AgentEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  readonly entityType: typeof AGENT_ENTITY_TYPE = AGENT_ENTITY_TYPE;
+  readonly schema: typeof agentEntitySchema = agentEntitySchema;
+  readonly adapter: AgentAdapter = agentAdapter;
 
   constructor() {
-    super(AGENT_DISCOVERY_PLUGIN_ID, packageJson);
+    super(
+      AGENT_DISCOVERY_PLUGIN_ID,
+      packageJson,
+      {},
+      emptyEntityPluginConfigSchema,
+    );
   }
 
   protected override createGenerationHandler(

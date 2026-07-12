@@ -125,7 +125,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,
         );
-        if (input.entityType === "post" && input.status === "published") {
+        if (input.entityType === "post") {
           items.sort((left, right) => {
             const leftDate = left.metadata["publishedAt"];
             const rightDate = right.metadata["publishedAt"];

@@ -1,20 +1,28 @@
 import type { JSX } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const statBadgeVariants = cva("px-2 py-1 rounded-full", {
-  variants: {
-    variant: {
-      default: "bg-theme",
-      muted: "bg-theme-muted",
+export interface StatBadgeVariantProps {
+  variant?: VariantValue<"default" | "muted">;
+}
+
+const statBadgeVariants: VariantFunction<StatBadgeVariantProps> = cva(
+  "px-2 py-1 rounded-full",
+  {
+    variants: {
+      variant: {
+        default: "bg-theme",
+        muted: "bg-theme-muted",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
     },
   },
-  defaultVariants: {
-    variant: "default",
-  },
-});
+);
 
-export interface StatBadgeProps extends VariantProps<typeof statBadgeVariants> {
+export interface StatBadgeProps extends StatBadgeVariantProps {
   count: number;
   label: string;
   className?: string;

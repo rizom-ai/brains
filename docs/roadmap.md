@@ -58,6 +58,9 @@ These areas are effectively landed:
 - **Assistant instruction hardening** — the Rover system prompt now closes a set of identity-disclosure and tool-routing gaps surfaced by eval/regression work: it refuses to reveal the configured anchor/profile identity when answering "am I your anchor?"/"am I {name}?" (answering from permission level only), treats an ambiguous "make one draft" follow-up as a clarification rather than self-picking a published item or firing `system_update`, resolves a source named by title/slug through `system_get` before continuing to `system_create` in the same turn for source-derived artifact saves, and refuses to substitute `system_search` for an unavailable `system_extract` instead of presenting existing topics as newly generated — each guarded by `build-instructions` assertions
 - **Inheritable core-preset eval suite** — eval suites are now declarative and preset-aware in `brain.eval.yaml`: `core` runs `preset-core`, `default` extends `core` with `preset-default`, and `full` extends `default` with `preset-full`, so larger gates inherit smaller-preset tags instead of duplicating them. The 136 existing fixtures split 67 / 33 / 36 across the three tiers, a `--preset <name>` runner flag boots the named preset hermetically (atproto, email-resend, and other live-effect plugins stay in `evalDisable`), a committed tool-coverage ledger keeps "exhaustive" measurable (17/17 core tools asserted), and a case-level `permissions:` matrix plus turn-level multi-user context exercise public/trusted/anchor boundaries — including approval-hijack and shared-thread denial cases — in single multi-turn conversations
 - **Pending entity ingestion** — async entity creation now persists a durable `pending` placeholder immediately and enriches the same entity to `draft` (or `failed`) when the background job completes, so just-saved items are referenceable before processing finishes. A shared `shell/plugins` ingestion helper preserves entity IDs across the lifecycle; `entities/link` is the first adopter (save two links, immediately summarize both), with media/upload entities to follow
+- **Tabbed dashboard console** — the operator dashboard restructured into tabs derived from widget groups (converging to bundle ids when bundles land), a fixed Overview that answers "anything need me?" (vitals, per-group digest cards, activity ledger), operator-work badges, and the publishing three-lane board — still server-rendered Preact with progressive enhancement
+- **First-party CMS editor** — Sveltia and its browser GitHub tokens replaced by a React 19 editor at `/cms` that writes through the entity service (git persistence follows via directory-sync); frontmatter forms render from server field descriptors, the save pipeline is a visible instrument strip, and AI-assisted body editing (CodeMirror 6 + selection rewrite) landed on top
+- **Console unification** — one `@brains/console-theme` token sheet (instrument/paper climates) replaces the per-surface palettes; the console strip (route-derived surface nav, session chip, climate toggle persisted console-wide) is pinned identically across dashboard, chat, and the CMS; and a cross-surface ⌘K palette jumps to entities (CMS deep-links), dashboard tabs, and chat conversations
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
 - **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest and links while model-specific eval fixtures stay curated by their brain packages
@@ -118,7 +121,6 @@ The bundled web chat UI (`/chat` — sessions, confirmations, uploads, progress,
 Plans:
 
 - [brain-model-unification.md](./plans/brain-model-unification.md) — **the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + `brain init` recipes. Supersedes the three-reference-model framing.
-- [rover-core-preset-evals.md](./plans/rover-core-preset-evals.md) — preset-aware eval harness merged; remaining work fills behavioral coverage and re-tags toward bundle combinations as unification lands.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
 
@@ -190,6 +192,8 @@ This includes:
 Plans:
 
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
+- [rizom-sites-on-hosted-rover.md](./plans/rizom-sites-on-hosted-rover.md) — package the Rizom site variants so hosted Rover can consume them as npm-resolvable site refs, plus per-domain TLS/DNS for custom-domain brains.
+- [rizom-consolidation.md](./plans/rizom-consolidation.md) — follow-up end-state: one brain, one site. Fold rizom.work and rizom.foundation into rizom.ai (edge redirects for the old domains) and consolidate the three deployed brains into one relay-shaped composition carrying the atproto registry and the collective's team memory.
 - [rover-onboarding-plugin.md](./plans/rover-onboarding-plugin.md) — extract Rover onboarding playbooks into a first-party service plugin that owns bundled content and lifecycle wiring.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord opt-in in `@rizom/ops` rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.
@@ -200,9 +204,8 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
-- [first-party-cms-editor.md](./plans/first-party-cms-editor.md) — first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync). The committed CMS direction, replacing the Sveltia/GitHub-App token path.
-- [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, separate from Discord replacement work.
-- [chat-message-interface-shared-workflows.md](./plans/chat-message-interface-shared-workflows.md) — extraction pass moving Discord/Web-chat-generic workflows into `MessageInterface` helpers before Slack duplicates them.
+- [cms-ai-assisted-authoring.md](./plans/cms-ai-assisted-authoring.md) — selection-scoped AI assist inside the shipped first-party CMS editor. The CodeMirror 6 upgrade and the selection rewrite (read-only `/cms/api/assist`) have shipped; summarise/tag-suggest prompt variants and the authoring-pass polish backlog remain.
+- [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
@@ -221,7 +224,6 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
-- [mcp-external-redesign.md](./plans/mcp-external-redesign.md) — CQRS split for external MCP: raw read tools stay composable (`readOnlyHint`), all mutations route through a single agent-gated `chat` command; `debug` mode keeps raw write tools local-only.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — Opportunity Priority Engine: proposed standalone `@brains/opportunity` package for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for opportunity prioritization; brain-agnostic, not in any default bundle.
 
 ### 7. Keep the framework sustainable
@@ -230,14 +232,9 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
-- [env-handling.md](./plans/env-handling.md) — co-locate env declarations and move `process.env` reads out of `shell/core` into the app/deploy layer.
-- [unify-build-pipeline.md](./plans/unify-build-pipeline.md) — collapse duplicated build responsibilities.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
-- [external-dependency-review.md](./plans/external-dependency-review.md) — dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [codebase-cleanup-backlog.md](./plans/codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package-script drift).
-- [system-create-source-architecture.md](./plans/system-create-source-architecture.md) — agent interpretation boundary: language is data, not control flow. The model interprets NL once into typed tool args; all other branching is on types and policy. Deletes the NL guards (`call-options.ts` regexes, routing prose, source-precedence sniffing) and makes `system_create` source-only at the model boundary. Supersedes the former save-note-source-resolution and agent-instruction-surface plans.
-- [upload-attachment-visibility.md](./plans/upload-attachment-visibility.md) — sibling of the interpretation-boundary plan: what attachments the model sees is data and cost policy, never message wording. Deletes the wording-based upload/attachment selection (`selectReferencedAttachments`, `conversation-messages.ts` narrowing helpers) so the model resolves "it/this/latest" against candidate refs instead of code regexes.
 
 Research probes (parked):
 

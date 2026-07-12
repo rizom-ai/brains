@@ -1,18 +1,26 @@
 import type { JSX, ComponentChildren } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const navLinksVariants = cva("flex flex-wrap", {
-  variants: {
-    orientation: {
-      horizontal: "justify-center gap-6 items-center",
-      vertical: "flex-col gap-2.5",
+export interface NavLinksVariantProps {
+  orientation?: VariantValue<"horizontal" | "vertical">;
+}
+
+const navLinksVariants: VariantFunction<NavLinksVariantProps> = cva(
+  "flex flex-wrap",
+  {
+    variants: {
+      orientation: {
+        horizontal: "justify-center gap-6 items-center",
+        vertical: "flex-col gap-2.5",
+      },
+    },
+    defaultVariants: {
+      orientation: "horizontal",
     },
   },
-  defaultVariants: {
-    orientation: "horizontal",
-  },
-});
+);
 
 export interface NavigationItem {
   label: string;
@@ -20,7 +28,7 @@ export interface NavigationItem {
   priority: number;
 }
 
-export interface NavLinksProps extends VariantProps<typeof navLinksVariants> {
+export interface NavLinksProps extends NavLinksVariantProps {
   items: NavigationItem[];
   className?: string;
   linkClassName?: string;

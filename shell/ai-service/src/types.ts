@@ -1,5 +1,8 @@
-import type { z } from "@brains/utils/zod";
 import type { LanguageModel } from "ai";
+import type { ZodType } from "@brains/utils/zod";
+
+export type ReasoningEffort =
+  "none" | "low" | "medium" | "high" | "xhigh" | "max";
 
 /**
  * AI model configuration
@@ -16,7 +19,13 @@ export interface AIModelConfig {
   temperature?: number;
   maxTokens?: number;
   webSearch?: boolean;
+  /** OpenAI reasoning effort. Ignored by providers that do not support it. */
+  reasoningEffort?: ReasoningEffort;
 }
+
+export type AIModelConfigUpdate = Partial<AIModelConfig>;
+
+export type AIGenerationSchema<T> = ZodType<T>;
 
 /**
  * AI Service interface for generating text and structured objects
@@ -24,7 +33,7 @@ export interface AIModelConfig {
 export interface JudgeInput<T> {
   instruction: string;
   material: string;
-  schema: z.ZodType<T>;
+  schema: AIGenerationSchema<T>;
 }
 
 export interface IAIService {
@@ -43,7 +52,7 @@ export interface IAIService {
   generateObject<T>(
     systemPrompt: string,
     userPrompt: string,
-    schema: z.ZodType<T>,
+    schema: AIGenerationSchema<T>,
   ): Promise<{
     object: T;
     usage: {
@@ -62,7 +71,7 @@ export interface IAIService {
     };
   }>;
 
-  updateConfig(config: Partial<AIModelConfig>): void;
+  updateConfig(config: AIModelConfigUpdate): void;
 
   getConfig(): AIModelConfig;
 

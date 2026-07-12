@@ -21,9 +21,14 @@ export {
  * silently dropped. Add fields here when shared config (e.g. a card cache TTL
  * or discovery toggle) is introduced.
  */
-export const agentDiscoveryCompositeConfigSchema = z.object({}).strict();
+export const agentDiscoveryCompositeConfigSchema: z.ZodObject<
+  Record<string, never>
+> = z.object({}).strict();
 
-export type AgentDiscoveryCompositeConfig = z.infer<
+export type AgentDiscoveryCompositeConfig = z.output<
+  typeof agentDiscoveryCompositeConfigSchema
+>;
+export type AgentDiscoveryCompositeConfigInput = z.input<
   typeof agentDiscoveryCompositeConfigSchema
 >;
 
@@ -35,9 +40,7 @@ export type AgentDiscoveryCompositeConfig = z.infer<
  * capability when the brain should derive assessment outputs from the
  * agent/skill evidence.
  */
-export function agentDiscovery(
-  config: AgentDiscoveryCompositeConfig = {},
-): Plugin[] {
+export function agentDiscovery(config: Record<string, unknown> = {}): Plugin[] {
   agentDiscoveryCompositeConfigSchema.parse(config);
   return [agentDiscoveryPlugin(), agentToolsPlugin(), skillPlugin()];
 }

@@ -1,7 +1,11 @@
-import { extendSite } from "@brains/site-composition";
-import rizomSite from "@brains/site-rizom";
+import {
+  extendSite,
+  type RouteDefinitionInput,
+  type SitePackage,
+} from "@brains/site-composition";
+import rizomSite from "@rizom/site-rizom";
 
-const docsSections = [
+const docsSections: RouteDefinitionInput["sections"] = [
   {
     id: "docs",
     template: "docs:doc-list",
@@ -12,7 +16,7 @@ const docsSections = [
   },
 ];
 
-export default extendSite(rizomSite, {
+const docsSite: SitePackage = extendSite(rizomSite, {
   routes: [
     {
       id: "docs-home",
@@ -38,3 +42,5 @@ export default extendSite(rizomSite, {
     },
   ],
 });
+
+export default docsSite;

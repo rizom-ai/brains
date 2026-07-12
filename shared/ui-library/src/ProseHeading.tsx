@@ -1,24 +1,31 @@
 import type { JSX, ComponentChildren } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
-
-const proseHeadingVariants = cva("", {
-  variants: {
-    level: {
-      1: "text-4xl font-bold mb-8 mt-0 leading-tight tracking-tight",
-      2: "text-3xl font-semibold mt-16 mb-6 border-b pb-4 leading-snug tracking-tight",
-      3: "text-2xl font-semibold mt-10 mb-4 leading-snug tracking-tight",
-    },
-  },
-  defaultVariants: {
-    level: 1,
-  },
-});
+import type { VariantFunction, VariantValue } from "./variant-types";
 
 export type HeadingLevel = 1 | 2 | 3;
 
-export interface ProseHeadingProps
-  extends VariantProps<typeof proseHeadingVariants> {
+export interface ProseHeadingVariantProps {
+  level?: VariantValue<HeadingLevel>;
+}
+
+const proseHeadingVariants: VariantFunction<ProseHeadingVariantProps> = cva(
+  "",
+  {
+    variants: {
+      level: {
+        1: "text-4xl font-bold mb-8 mt-0 leading-tight tracking-tight",
+        2: "text-3xl font-semibold mt-16 mb-6 border-b pb-4 leading-snug tracking-tight",
+        3: "text-2xl font-semibold mt-10 mb-4 leading-snug tracking-tight",
+      },
+    },
+    defaultVariants: {
+      level: 1,
+    },
+  },
+);
+
+export interface ProseHeadingProps extends ProseHeadingVariantProps {
   children: ComponentChildren;
   className?: string;
 }

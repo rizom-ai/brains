@@ -2,14 +2,25 @@
  * Reusable formatters for common entity field types
  */
 
-import { z } from "zod";
+import { z } from "@brains/utils/zod";
 
 /**
  * Source reference schema
  * type can be any entity type (post, link, summary, conversation, etc.)
  * entityId and contentHash enable tracking which entities have been processed
  */
-export const sourceReferenceSchema = z.object({
+export interface SourceReference {
+  slug: string;
+  title: string;
+  type: string;
+  entityId: string;
+  contentHash: string;
+}
+
+export const sourceReferenceSchema: z.ZodType<
+  SourceReference,
+  SourceReference
+> = z.object({
   slug: z.string(),
   title: z.string(),
   type: z.string(),
@@ -17,13 +28,16 @@ export const sourceReferenceSchema = z.object({
   contentHash: z.string(),
 });
 
-export type SourceReference = z.infer<typeof sourceReferenceSchema>;
-
 /**
  * Formatter for source lists in entity markdown
  * Formats sources as "- Title (slug) [type] <entityId|contentHash>" for roundtrip capability
  */
-export const SourceListFormatter = {
+export const SourceListFormatter: {
+  format(sources: SourceReference[]): string;
+  parse(text: string): SourceReference[];
+  extractSection(markdown: string): string | null;
+  replaceSection(markdown: string, sources: SourceReference[]): string;
+} = {
   /**
    * Format source objects to markdown list
    */

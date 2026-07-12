@@ -17,7 +17,10 @@ interface CategoryRow {
 }
 
 export class MarkdownReporter implements IReporter {
-  constructor(private options: MarkdownReporterOptions) {}
+  private options: MarkdownReporterOptions;
+  constructor(options: MarkdownReporterOptions) {
+    this.options = options;
+  }
 
   async report(summary: EvaluationSummary): Promise<void> {
     await mkdir(this.options.outputDirectory, { recursive: true });

@@ -1,8 +1,14 @@
 import type { JSX } from "preact";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
+import type { VariantFunction, VariantValue } from "./variant-types";
 
-const tagVariants = cva("rounded-full", {
+export interface TagVariantProps {
+  variant?: VariantValue<"default" | "muted" | "accent">;
+  size?: VariantValue<"xs" | "sm" | "md" | "lg">;
+}
+
+const tagVariants: VariantFunction<TagVariantProps> = cva("rounded-full", {
   variants: {
     variant: {
       default: "bg-theme-muted text-theme",
@@ -22,7 +28,7 @@ const tagVariants = cva("rounded-full", {
   },
 });
 
-export interface TagsListProps extends VariantProps<typeof tagVariants> {
+export interface TagsListProps extends TagVariantProps {
   tags: string[];
   maxVisible?: number;
   className?: string;

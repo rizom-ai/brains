@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brain CMS — Editor Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #f4efe6;
+    --paper-deep: #ece5d6;
+    --panel: #faf7f0;
+    --ink: #211d18;
+    --ink-60: rgba(33, 29, 24, 0.62);
+    --ink-40: rgba(33, 29, 24, 0.42);
+    --ink-15: rgba(33, 29, 24, 0.15);
+    --ink-08: rgba(33, 29, 24, 0.08);
+    --vermilion: #c44a1d;
+    --vermilion-deep: #a03a13;
+    --verdigris: #3d6b5c;
+    --verdigris-soft: rgba(61, 107, 92, 0.14);
+    --amber: #b3801a;
+    --hairline: 1px solid var(--ink-15);
+    --display: "Fraunces", serif;
+    --ui: "IBM Plex Sans", sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--ui);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* paper grain */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::selection { background: rgba(196, 74, 29, 0.22); }
+
+  /* ============ mockup chrome (the frame around each screen) ============ */
+  .mock-header {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 32px 24px;
+  }
+  .mock-header .kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--vermilion);
+  }
+  .mock-header h1 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 60, "opsz" 90;
+    font-weight: 560;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    margin-top: 10px;
+    max-width: 16em;
+  }
+  .mock-header h1 em {
+    font-style: italic;
+    font-weight: 480;
+    color: var(--vermilion-deep);
+  }
+  .mock-header p.lede {
+    margin-top: 14px;
+    max-width: 58ch;
+    color: var(--ink-60);
+    font-size: 15px;
+  }
+  .mock-nav {
+    max-width: 1240px;
+    margin: 26px auto 0;
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+    border-bottom: var(--hairline);
+  }
+  .mock-nav a {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    color: var(--ink-60);
+    padding: 10px 18px 12px;
+    border-bottom: 2px solid transparent;
+    transform: translateY(1px);
+  }
+  .mock-nav a:hover { color: var(--ink); }
+  .mock-nav a span { color: var(--vermilion); margin-right: 6px; }
+
+  .screen {
+    max-width: 1240px;
+    margin: 72px auto 0;
+    padding: 0 32px 8px;
+  }
+  .screen:last-of-type { margin-bottom: 120px; }
+  .screen > .screen-label {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .screen > .screen-label .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--vermilion);
+  }
+  .screen > .screen-label h2 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 40;
+    font-weight: 540;
+    font-size: 22px;
+  }
+  .screen > .screen-label .note {
+    font-size: 12.5px;
+    color: var(--ink-40);
+    margin-left: auto;
+    text-align: right;
+    max-width: 42ch;
+  }
+
+  .frame {
+    background: var(--panel);
+    border: 1px solid var(--ink-15);
+    border-radius: 10px;
+    box-shadow:
+      0 1px 2px rgba(33,29,24,0.05),
+      0 18px 44px -22px rgba(33,29,24,0.28);
+    overflow: hidden;
+  }
+
+  /* ============ app top bar (shared) ============ */
+  .appbar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 0 20px;
+    height: 52px;
+    border-bottom: var(--hairline);
+    background: linear-gradient(to bottom, rgba(255,255,255,0.5), transparent);
+  }
+  .brandmark {
+    display: flex; align-items: center; gap: 9px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    white-space: nowrap;
+  }
+  .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--vermilion);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(196,74,29,0.45); }
+    55% { box-shadow: 0 0 0 6px rgba(196,74,29,0); }
+  }
+  .brandmark b { color: var(--ink); font-weight: 500; }
+  .appbar .crumb {
+    font-size: 13px;
+    color: var(--ink-60);
+  }
+  .appbar .crumb strong { color: var(--ink); font-weight: 500; }
+  .appbar .spacer { flex: 1; }
+  .cmdk-hint {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-40);
+    border: var(--hairline);
+    border-radius: 6px;
+    padding: 5px 10px;
+    background: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .cmdk-hint:hover { border-color: var(--ink-40); color: var(--ink-60); }
+  .cmdk-hint kbd {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    border: 1px solid var(--ink-15);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    background: #fff;
+  }
+  .session-chip {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--verdigris);
+    background: var(--verdigris-soft);
+    border-radius: 99px;
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+  .session-chip::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--verdigris);
+  }
+
+  /* ============ SCREEN 1 — library ============ */
+  .library {
+    display: grid;
+    grid-template-columns: 232px 1fr;
+    min-height: 640px;
+  }
+  .rail {
+    border-right: var(--hairline);
+    padding: 22px 0 26px;
+    background:
+      linear-gradient(to right, transparent 60%, rgba(33,29,24,0.025)),
+      var(--paper-deep);
+  }
+  .rail .rail-group { padding: 0 0 18px; }
+  .rail .rail-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-40);
+    padding: 0 20px 8px;
+  }
+  .rail a {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 20px;
+    text-decoration: none;
+    color: var(--ink-60);
+    font-size: 13.5px;
+    border-left: 2px solid transparent;
+    transition: background .12s ease;
+  }
+  .rail a:hover { background: rgba(255,255,255,0.55); color: var(--ink); }
+  .rail a.active {
+    color: var(--ink);
+    font-weight: 500;
+    border-left-color: var(--vermilion);
+    background: rgba(255,255,255,0.75);
+  }
+  .rail a .count {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-40);
+  }
+  .rail a .singleton-mark {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+  }
+
+  .listing { padding: 26px 30px 34px; }
+  .listing-head {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .listing-head h3 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 70, "opsz" 60;
+    font-weight: 580;
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .listing-head .meta {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-40);
+    padding-bottom: 5px;
+  }
+  .btn {
+    font-family: var(--ui);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 7px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px -4px rgba(33,29,24,0.5); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--ink-60);
+    border-color: var(--ink-15);
+  }
+  .btn.ghost:hover { color: var(--ink); border-color: var(--ink-40); box-shadow: none; }
+  .btn.danger { background: transparent; color: var(--vermilion-deep); border-color: rgba(196,74,29,0.4); }
+  .btn.danger:hover { background: rgba(196,74,29,0.07); box-shadow: none; }
+  .listing-head .btn { margin-left: auto; margin-bottom: 2px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 44px 1fr 130px 150px 120px;
+    gap: 18px;
+    align-items: baseline;
+    padding: 15px 4px 14px;
+    border-bottom: var(--hairline);
+    cursor: pointer;
+    transition: background .12s ease;
+  }
+  .row:hover { background: rgba(255,255,255,0.65); }
+  .row .idx {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-40);
+  }
+  .row .title {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 50, "opsz" 30;
+    font-weight: 520;
+    font-size: 17.5px;
+    letter-spacing: -0.005em;
+  }
+  .row:hover .title { color: var(--vermilion-deep); }
+  .row .title small {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-40);
+    margin-top: 3px;
+    letter-spacing: 0;
+  }
+  .chip {
+    justify-self: start;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 99px;
+    padding: 3px 10px;
+  }
+  .chip.published { color: var(--verdigris); background: var(--verdigris-soft); }
+  .chip.draft { color: var(--amber); background: rgba(179,128,26,0.13); }
+  .row .updated { font-size: 12.5px; color: var(--ink-60); }
+  .row .sync {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-40);
+  }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--verdigris); }
+  .sync-dot.pending { background: var(--amber); animation: pulse 1.6s ease-in-out infinite; }
+
+  /* ============ SCREEN 2 — editor ============ */
+  .editor {
+    display: grid;
+    grid-template-columns: 330px 1fr;
+    min-height: 700px;
+  }
+  .colophon {
+    border-right: var(--hairline);
+    background: var(--paper-deep);
+    padding: 26px 26px 120px;
+    position: relative;
+  }
+  .colophon::after {
+    content: "";
+    position: absolute;
+    top: 0; right: -1px; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--ink-15), transparent 92%);
+  }
+  .colophon .form-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-40);
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 18px;
+  }
+  .colophon .form-title span:last-child { color: var(--vermilion); }
+  .field { padding: 14px 0 16px; border-top: var(--hairline); }
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--ink-60);
+    margin-bottom: 7px;
+  }
+  .field label .req { font-family: var(--mono); font-size: 10px; color: var(--vermilion); }
+  .field label .kind { font-family: var(--mono); font-size: 10px; color: var(--ink-40); font-weight: 400; }
+  .field input[type="text"], .field input[type="date"], .field select {
+    width: 100%;
+    font-family: var(--ui);
+    font-size: 14px;
+    color: var(--ink);
+    background: rgba(255,255,255,0.72);
+    border: 1px solid var(--ink-15);
+    border-radius: 6px;
+    padding: 8px 11px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--vermilion);
+    box-shadow: 0 0 0 3px rgba(196,74,29,0.13);
+  }
+  .field .mono-input { font-family: var(--mono); font-size: 12.5px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    font-size: 12px;
+    background: rgba(255,255,255,0.8);
+    border: 1px solid var(--ink-15);
+    border-radius: 99px;
+    padding: 3px 6px 3px 11px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tag i {
+    font-style: normal;
+    font-size: 13px;
+    color: var(--ink-40);
+    cursor: pointer;
+    line-height: 1;
+  }
+  .tag i:hover { color: var(--vermilion); }
+  .tag.add {
+    color: var(--ink-40);
+    padding: 3px 11px;
+    border-style: dashed;
+    cursor: pointer;
+  }
+  .tag.add:hover { color: var(--ink); border-color: var(--ink-40); }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle {
+    width: 38px; height: 22px;
+    background: var(--verdigris);
+    border-radius: 99px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .cover {
+    border: 1px dashed var(--ink-15);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.5);
+    overflow: hidden;
+  }
+  .cover .thumb {
+    height: 92px;
+    background:
+      radial-gradient(120px 60px at 30% 40%, rgba(196,74,29,0.5), transparent),
+      radial-gradient(160px 80px at 75% 65%, rgba(61,107,92,0.55), transparent),
+      linear-gradient(140deg, #e9dfc9, #d9cba9);
+  }
+  .cover .cover-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-60);
+    padding: 8px 11px;
+    border-top: var(--hairline);
+  }
+  .cover .cover-meta a { color: var(--vermilion-deep); text-decoration: none; }
+
+  .manuscript { display: flex; flex-direction: column; }
+  .manuscript-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 26px;
+    border-bottom: var(--hairline);
+  }
+  .seg {
+    display: inline-flex;
+    border: var(--hairline);
+    border-radius: 7px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.5);
+  }
+  .seg button {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    border: none;
+    background: transparent;
+    color: var(--ink-40);
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .seg button.on { background: var(--ink); color: var(--paper); }
+  .manuscript-toolbar .doc-meta {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-40);
+  }
+  .writing {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex: 1;
+  }
+  .writing .pane { padding: 30px 34px 120px; }
+  .writing .pane.source {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--ink);
+    border-right: var(--hairline);
+    white-space: pre-wrap;
+  }
+  .writing .pane.source .md-h { color: var(--vermilion-deep); font-weight: 500; }
+  .writing .pane.source .md-syntax { color: var(--ink-40); }
+  .writing .pane.source .md-em { font-style: italic; }
+  .caret {
+    display: inline-block;
+    width: 2px; height: 1.15em;
+    background: var(--vermilion);
+    vertical-align: text-bottom;
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .pane.preview h1 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 70, "opsz" 90;
+    font-weight: 580;
+    font-size: 30px;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    margin-bottom: 18px;
+  }
+  .pane.preview p {
+    font-size: 15px;
+    line-height: 1.72;
+    color: var(--ink);
+    margin-bottom: 14px;
+    max-width: 62ch;
+  }
+  .pane.preview p em { font-family: var(--display); font-style: italic; }
+  .pane.preview blockquote {
+    border-left: 2px solid var(--vermilion);
+    padding: 2px 0 2px 18px;
+    margin: 18px 0;
+    color: var(--ink-60);
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 80;
+    font-style: italic;
+    font-size: 16.5px;
+  }
+
+  /* the pipeline strip */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-top: 2px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0 20px;
+    height: 58px;
+    grid-column: 1 / -1;
+  }
+  .pipeline .save-btn {
+    font-family: var(--ui);
+    font-weight: 600;
+    font-size: 13.5px;
+    background: var(--vermilion);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 22px;
+    cursor: pointer;
+    transition: transform .12s ease, background .15s ease;
+  }
+  .pipeline .save-btn:hover { background: var(--vermilion-deep); transform: translateY(-1px); }
+  .stations {
+    display: flex;
+    align-items: center;
+    margin-left: 30px;
+    flex: 1;
+  }
+  .station {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: rgba(244,239,230,0.45);
+    white-space: nowrap;
+  }
+  .station .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(244,239,230,0.35);
+    transition: all .2s ease;
+  }
+  .station.done { color: rgba(244,239,230,0.95); }
+  .station.done .dot { background: var(--verdigris); border-color: var(--verdigris); box-shadow: 0 0 10px rgba(61,107,92,0.7); }
+  .station.active { color: #fff; }
+  .station.active .dot { border-color: var(--amber); background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
+  .track {
+    height: 1px;
+    flex: 1;
+    max-width: 90px;
+    background: rgba(244,239,230,0.22);
+    margin: 0 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .track .flow {
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, var(--verdigris) 50%, transparent);
+    transform: translateX(-100%);
+  }
+  .track.flowing .flow { animation: flow 0.9s ease-in-out infinite; }
+  @keyframes flow { to { transform: translateX(100%); } }
+  .pipeline .commit-ref {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(244,239,230,0.55);
+    margin-left: 26px;
+  }
+  .pipeline .commit-ref b { color: var(--paper); font-weight: 500; }
+
+  /* ============ SCREEN 3 — states ============ */
+  .states-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 26px;
+  }
+  .state-card { display: flex; flex-direction: column; }
+  .state-card .state-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-40);
+    margin: 0 0 10px 2px;
+  }
+  .state-card .state-label b { color: var(--vermilion); font-weight: 500; }
+  .state-card .frame { flex: 1; padding: 24px; }
+
+  .field.invalid input { border-color: var(--vermilion); box-shadow: 0 0 0 3px rgba(196,74,29,0.12); }
+  .err {
+    display: flex; align-items: baseline; gap: 7px;
+    font-size: 12px;
+    color: var(--vermilion-deep);
+    margin-top: 7px;
+  }
+  .err::before { content: "×"; font-family: var(--mono); font-weight: 500; }
+  .err code { font-family: var(--mono); font-size: 11px; color: var(--ink-40); }
+
+  .conflict {
+    border: 1px solid rgba(179,128,26,0.45);
+    background: rgba(179,128,26,0.07);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .conflict h4 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 40;
+    font-size: 16.5px;
+    font-weight: 560;
+    margin-bottom: 6px;
+  }
+  .conflict p { font-size: 13px; color: var(--ink-60); margin-bottom: 12px; }
+  .conflict p code { font-family: var(--mono); font-size: 11.5px; background: rgba(255,255,255,0.7); padding: 1px 5px; border-radius: 4px; }
+  .conflict .actions { display: flex; gap: 8px; }
+
+  .modal-demo {
+    background: rgba(33,29,24,0.35);
+    border-radius: 8px;
+    padding: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal {
+    background: var(--panel);
+    border-radius: 10px;
+    box-shadow: 0 24px 60px -12px rgba(33,29,24,0.5);
+    padding: 26px 28px;
+    max-width: 400px;
+  }
+  .modal h4 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 50;
+    font-size: 19px;
+    font-weight: 560;
+    margin-bottom: 8px;
+  }
+  .modal p { font-size: 13.5px; color: var(--ink-60); margin-bottom: 8px; }
+  .modal p code { font-family: var(--mono); font-size: 12px; }
+  .modal .fate {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-40);
+    border-top: var(--hairline);
+    margin-top: 14px;
+    padding-top: 12px;
+    line-height: 1.8;
+  }
+  .modal .fate b { color: var(--verdigris); font-weight: 500; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+  .upload-zone {
+    border: 1.5px dashed var(--ink-40);
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    background: rgba(255,255,255,0.45);
+    transition: border-color .15s ease, background .15s ease;
+    cursor: pointer;
+  }
+  .upload-zone:hover { border-color: var(--vermilion); background: rgba(196,74,29,0.04); }
+  .upload-zone .glyph {
+    font-family: var(--display);
+    font-size: 30px;
+    font-variation-settings: "SOFT" 100;
+    color: var(--vermilion);
+    line-height: 1;
+  }
+  .upload-zone h5 { font-size: 14px; font-weight: 500; margin-top: 10px; }
+  .upload-zone p { font-size: 12px; color: var(--ink-40); margin-top: 4px; }
+  .upload-zone p code { font-family: var(--mono); font-size: 11px; }
+  .upload-progress {
+    margin-top: 18px;
+    display: flex; align-items: center; gap: 12px;
+    text-align: left;
+    background: rgba(255,255,255,0.75);
+    border: var(--hairline);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .upload-progress .mini-thumb {
+    width: 40px; height: 40px; border-radius: 6px; flex-shrink: 0;
+    background:
+      radial-gradient(30px 18px at 40% 40%, rgba(196,74,29,0.6), transparent),
+      linear-gradient(140deg, #dcd0b6, #c9b890);
+  }
+  .upload-progress .up-meta { flex: 1; }
+  .upload-progress .up-meta .name { font-family: var(--mono); font-size: 12px; }
+  .upload-progress .bar {
+    height: 3px; border-radius: 99px;
+    background: var(--ink-08);
+    margin-top: 7px;
+    overflow: hidden;
+  }
+  .upload-progress .bar i {
+    display: block; height: 100%; width: 68%;
+    background: var(--verdigris);
+    border-radius: 99px;
+  }
+  .upload-progress .pct { font-family: var(--mono); font-size: 11px; color: var(--ink-40); }
+
+  .singleton-note {
+    display: flex; gap: 12px; align-items: baseline;
+    padding: 13px 16px;
+    background: rgba(179,128,26,0.09);
+    border: 1px solid rgba(179,128,26,0.3);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--ink-60);
+    margin-bottom: 18px;
+  }
+  .singleton-note b {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+
+  .footer-note {
+    max-width: 1240px;
+    margin: 90px auto 70px;
+    padding: 0 32px;
+    font-size: 13px;
+    color: var(--ink-40);
+    border-top: var(--hairline);
+    padding-top: 22px;
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+  }
+  .footer-note .col { max-width: 46ch; }
+  .footer-note b { color: var(--ink-60); font-weight: 500; }
+
+  @media (max-width: 980px) {
+    .library, .editor, .writing, .states-grid { grid-template-columns: 1fr; }
+    .colophon { border-right: none; border-bottom: var(--hairline); }
+  }
+</style>
+</head>
+<body>
+
+<header class="mock-header">
+  <div class="kicker">Brain · Operator Console — Design Mockups</div>
+  <h1>The editor is a window into a <em>living brain</em>, not a file cabinet.</h1>
+  <p class="lede">Three screens for the first-party CMS. Every write goes through the entity
+  service, and the interface says so: the save pipeline — entity DB, export, commit — is a
+  visible instrument, not a hidden side effect. Typography and palette extend the existing
+  operator console (Fraunces + IBM Plex, pulse mark).</p>
+</header>
+
+<nav class="mock-nav">
+  <a href="#s1"><span>01</span>Library</a>
+  <a href="#s2"><span>02</span>Manuscript</a>
+  <a href="#s3"><span>03</span>States</a>
+</nav>
+
+<!-- ================= SCREEN 1 ================= -->
+<section class="screen" id="s1">
+  <div class="screen-label">
+    <span class="num">01</span>
+    <h2>Library — collection browser</h2>
+    <span class="note">Rail groups entity types; singletons marked. Types + counts come from
+    <code>/cms/api/types</code>.</span>
+  </div>
+  <div class="frame">
+    <div class="appbar">
+      <div class="brandmark"><span class="pulse"></span>Brain · <b>CMS</b></div>
+      <div class="crumb">Library / <strong>Posts</strong></div>
+      <div class="spacer"></div>
+      <div class="cmdk-hint">Jump to any type or entity… <kbd>⌘K</kbd></div>
+      <div class="session-chip">passkey · anchor</div>
+    </div>
+    <div class="library">
+      <aside class="rail">
+        <div class="rail-group">
+          <div class="rail-title">Content</div>
+          <a class="active" href="#s1">Posts <span class="count">24</span></a>
+          <a href="#s1">Notes <span class="count">112</span></a>
+          <a href="#s1">Links <span class="count">86</span></a>
+          <a href="#s1">Decks <span class="count">7</span></a>
+        </div>
+        <div class="rail-group">
+          <div class="rail-title">Collections</div>
+          <a href="#s1">Series <span class="count">4</span></a>
+          <a href="#s1">Projects <span class="count">9</span></a>
+          <a href="#s1">Topics <span class="count">31</span></a>
+        </div>
+        <div class="rail-group">
+          <div class="rail-title">Site</div>
+          <a href="#s1">Site info <span class="singleton-mark">SINGLETON</span></a>
+          <a href="#s1">Profile <span class="singleton-mark">SINGLETON</span></a>
+        </div>
+      </aside>
+      <main class="listing">
+        <div class="listing-head">
+          <h3>Posts</h3>
+          <span class="meta">24 entities · sorted by updated</span>
+          <button class="btn">New post</button>
+        </div>
+        <div class="row">
+          <span class="idx">01</span>
+          <div class="title">Domain as identity: how two brains learn to trust each other
+            <small>post/domain-as-identity</small></div>
+          <span class="chip draft">draft</span>
+          <span class="updated">18 minutes ago</span>
+          <span class="sync"><span class="sync-dot pending"></span>exporting</span>
+        </div>
+        <div class="row">
+          <span class="idx">02</span>
+          <div class="title">The knowledge base is ready when it says it is
+            <small>post/index-readiness</small></div>
+          <span class="chip published">published</span>
+          <span class="updated">yesterday</span>
+          <span class="sync"><span class="sync-dot"></span>committed</span>
+        </div>
+        <div class="row">
+          <span class="idx">03</span>
+          <div class="title">One writer, many readers
+            <small>post/single-writer-model</small></div>
+          <span class="chip published">published</span>
+          <span class="updated">3 days ago</span>
+          <span class="sync"><span class="sync-dot"></span>committed</span>
+        </div>
+        <div class="row">
+          <span class="idx">04</span>
+          <div class="title">Playbooks: teaching a brain to finish what it starts
+            <small>post/playbook-gates</small></div>
+          <span class="chip published">published</span>
+          <span class="updated">last week</span>
+          <span class="sync"><span class="sync-dot"></span>committed</span>
+        </div>
+        <div class="row">
+          <span class="idx">05</span>
+          <div class="title">Notes on a quiet protocol
+            <small>post/quiet-protocol</small></div>
+          <span class="chip draft">draft</span>
+          <span class="updated">2 weeks ago</span>
+          <span class="sync"><span class="sync-dot"></span>committed</span>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SCREEN 2 ================= -->
+<section class="screen" id="s2">
+  <div class="screen-label">
+    <span class="num">02</span>
+    <h2>Manuscript — edit view</h2>
+    <span class="note">Left: frontmatter form rendered from server field descriptors.
+    Right: Floor-tier body editor with streamdown preview. Bottom: the single-writer pipeline.
+    Press <b>Save</b> to see it run.</span>
+  </div>
+  <div class="frame">
+    <div class="appbar">
+      <div class="brandmark"><span class="pulse"></span>Brain · <b>CMS</b></div>
+      <div class="crumb">Posts / <strong>Domain as identity</strong></div>
+      <div class="spacer"></div>
+      <div class="cmdk-hint">⌘K</div>
+      <div class="session-chip">passkey · anchor</div>
+    </div>
+    <div class="editor">
+      <aside class="colophon">
+        <div class="form-title"><span>Frontmatter</span><span>post · draft</span></div>
+        <div class="field">
+          <label>Title <span class="req">required</span></label>
+          <input type="text" value="Domain as identity: how two brains learn to trust each other" />
+        </div>
+        <div class="field">
+          <label>Slug <span class="kind">string</span></label>
+          <input type="text" class="mono-input" value="domain-as-identity" />
+        </div>
+        <div class="field">
+          <label>Series <span class="kind">reference</span></label>
+          <select><option>Trust &amp; Identity</option></select>
+        </div>
+        <div class="field">
+          <label>Topics <span class="kind">string[]</span></label>
+          <div class="tags">
+            <span class="tag">identity <i>×</i></span>
+            <span class="tag">a2a <i>×</i></span>
+            <span class="tag">cryptography <i>×</i></span>
+            <span class="tag add">+ add</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="toggle-row">
+            <label style="margin:0">Published</label>
+            <div class="toggle"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Publish date <span class="kind">date</span></label>
+          <input type="date" value="2026-07-09" />
+        </div>
+        <div class="field">
+          <label>Cover image <span class="kind">image entity</span></label>
+          <div class="cover">
+            <div class="thumb"></div>
+            <div class="cover-meta"><span>image/handshake-abstract</span><a href="#s3">replace</a></div>
+          </div>
+        </div>
+      </aside>
+      <div class="manuscript">
+        <div class="manuscript-toolbar">
+          <div class="seg">
+            <button class="on">Source</button>
+            <button>Split</button>
+            <button>Preview</button>
+          </div>
+          <span class="doc-meta">1,240 words · markdown · perfect round-trip</span>
+        </div>
+        <div class="writing">
+          <div class="pane source"><span class="md-syntax">#</span> <span class="md-h">Domain as identity</span>
+
+Two brains that have never met can already talk — but only
+as strangers. Trust, until now, meant a shared secret pasted
+into two config files by two humans over a video call.
+
+<span class="md-syntax">&gt;</span> <span class="md-em">A leaked token is a stolen name.</span>
+
+The better answer was sitting in plain sight: each brain
+already <span class="md-syntax">*</span><span class="md-em">lives at a domain</span><span class="md-syntax">*</span>, and a domain can publish keys.
+Sign every request, verify against the published key, and
+the caller's name stops being a secret anyone can carry —<span class="caret"></span></div>
+          <div class="pane preview">
+            <h1>Domain as identity</h1>
+            <p>Two brains that have never met can already talk — but only as strangers.
+            Trust, until now, meant a shared secret pasted into two config files by two
+            humans over a video call.</p>
+            <blockquote>A leaked token is a stolen name.</blockquote>
+            <p>The better answer was sitting in plain sight: each brain already
+            <em>lives at a domain</em>, and a domain can publish keys. Sign every request,
+            verify against the published key, and the caller's name stops being a secret
+            anyone can carry —</p>
+          </div>
+        </div>
+        <div class="pipeline" id="pipeline">
+          <button class="save-btn" onclick="runSave()">Save</button>
+          <div class="stations">
+            <div class="station" data-st="0"><span class="dot"></span>entity db</div>
+            <div class="track"><span class="flow"></span></div>
+            <div class="station" data-st="1"><span class="dot"></span>exported to file</div>
+            <div class="track"><span class="flow"></span></div>
+            <div class="station" data-st="2"><span class="dot"></span>committed</div>
+          </div>
+          <div class="commit-ref" id="commitRef">last write <b>e4f21c9</b> · 18 min ago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SCREEN 3 ================= -->
+<section class="screen" id="s3">
+  <div class="screen-label">
+    <span class="num">03</span>
+    <h2>States — validation, conflicts, media, singleton</h2>
+    <span class="note">Field-level rejection happens before any write reaches the entity
+    service; stale writes are caught by the contentHash precondition.</span>
+  </div>
+  <div class="states-grid">
+
+    <div class="state-card">
+      <div class="state-label"><b>3a</b> — field-level validation, pre-write</div>
+      <div class="frame" style="padding:24px">
+        <div class="field invalid" style="border-top:none">
+          <label>Slug <span class="req">required</span></label>
+          <input type="text" class="mono-input" value="Domain As Identity!" />
+          <div class="err">must match <code>^[a-z0-9-]+$</code> — lowercase letters, digits, hyphens</div>
+        </div>
+        <div class="field invalid">
+          <label>Publish date <span class="kind">date</span></label>
+          <input type="text" class="mono-input" value="next tuesday" />
+          <div class="err">not a valid ISO date</div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:18px">
+          <button class="btn" style="opacity:.45; cursor:not-allowed">Save</button>
+          <span style="font-size:12px; color:var(--ink-40); align-self:center">2 fields blocked the write — nothing was sent</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="state-card">
+      <div class="state-label"><b>3b</b> — stale write (contentHash precondition)</div>
+      <div class="frame" style="padding:24px">
+        <div class="conflict">
+          <h4>This entity changed while you were editing</h4>
+          <p>Your edit is based on <code>hash 9c41f2</code>, but the entity is now at
+          <code>hash b07ae1</code> — updated by <code>directory-sync</code> two minutes ago
+          (a git import touched this file).</p>
+          <div class="actions">
+            <button class="btn ghost">Review their version</button>
+            <button class="btn">Take mine anyway</button>
+          </div>
+        </div>
+        <p style="font-size:12px; color:var(--ink-40); margin-top:14px">The single-writer
+        model makes this honest: the editor and git-sync write through the same service, so
+        conflicts are detected at the door, not discovered in a merge.</p>
+      </div>
+    </div>
+
+    <div class="state-card">
+      <div class="state-label"><b>3c</b> — image upload → image entity</div>
+      <div class="frame" style="padding:24px">
+        <div class="upload-zone">
+          <div class="glyph">⌘</div>
+          <h5>Drop an image, or click to choose</h5>
+          <p>becomes an <code>image</code> entity · synced to git like everything else</p>
+          <div class="upload-progress">
+            <div class="mini-thumb"></div>
+            <div class="up-meta">
+              <div class="name">handshake-abstract.png → image/handshake-abstract</div>
+              <div class="bar"><i></i></div>
+            </div>
+            <span class="pct">68%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="state-card">
+      <div class="state-label"><b>3d</b> — delete, and singleton editing</div>
+      <div class="frame" style="padding:0">
+        <div class="modal-demo">
+          <div class="modal">
+            <h4>Delete “Notes on a quiet protocol”?</h4>
+            <p>Removes <code>post/quiet-protocol</code> through the entity service.</p>
+            <div class="fate">
+              <b>what happens:</b> entity row deleted → <code>entity:deleted</code> emitted →
+              file removed by directory-sync → commit. Recoverable from git history.
+            </div>
+            <div class="actions">
+              <button class="btn ghost">Cancel</button>
+              <button class="btn danger">Delete</button>
+            </div>
+          </div>
+        </div>
+        <div style="padding:20px 24px">
+          <div class="singleton-note"><b>singleton</b> “Site info” has exactly one record —
+          the rail opens it straight into the manuscript view, no list in between.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer-note">
+  <div class="col"><b>Why the pipeline strip is the centerpiece:</b> the entire reason this
+  editor exists is that writes go through the entity service instead of the browser pushing
+  to GitHub. Making save legible as <i>db → export → commit</i> turns the architecture into
+  the UX.</div>
+  <div class="col"><b>Build notes:</b> React 19 + Vite, served at /cms behind the passkey
+  session (chip, top right). Forms render from server field descriptors — no Zod in the
+  bundle. Body editor is the Floor tier (textarea + streamdown); the Source/Split/Preview
+  segment anticipates the CodeMirror upgrade without requiring it.</div>
+</footer>
+
+<script>
+  function runSave() {
+    const stations = document.querySelectorAll("#pipeline .station");
+    const tracks = document.querySelectorAll("#pipeline .track");
+    const ref = document.getElementById("commitRef");
+    stations.forEach(s => s.classList.remove("done", "active"));
+    tracks.forEach(t => t.classList.remove("flowing"));
+    ref.style.opacity = "0.4";
+
+    const steps = [
+      () => { stations[0].classList.add("active"); },
+      () => { stations[0].classList.replace("active", "done"); tracks[0].classList.add("flowing"); stations[1].classList.add("active"); },
+      () => { tracks[0].classList.remove("flowing"); stations[1].classList.replace("active", "done"); tracks[1].classList.add("flowing"); stations[2].classList.add("active"); },
+      () => { tracks[1].classList.remove("flowing"); stations[2].classList.replace("active", "done");
+              ref.innerHTML = "last write <b>a91d40e</b> · just now"; ref.style.opacity = "1"; },
+    ];
+    steps.forEach((fn, i) => setTimeout(fn, 250 + i * 850));
+  }
+</script>
+</body>
+</html>

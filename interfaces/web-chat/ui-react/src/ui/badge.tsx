@@ -3,8 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
 
 import { cn } from "@/ui-react/src/lib/utils";
+import type { CvaClassProp } from "./variant-types";
 
-const badgeVariants = cva(
+type BadgeVariants = (
+  props?: {
+    variant?:
+      | "default"
+      | "secondary"
+      | "destructive"
+      | "outline"
+      | "ghost"
+      | "link"
+      | null
+      | undefined;
+  } & CvaClassProp,
+) => string;
+
+const badgeVariants: BadgeVariants = cva(
   "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3",
   {
     variants: {
@@ -32,7 +47,7 @@ function Badge({
   asChild = false,
   ...props
 }: React.ComponentProps<"span"> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+  VariantProps<typeof badgeVariants> & { asChild?: boolean }): React.ReactNode {
   const Comp = asChild ? Slot.Root : "span";
 
   return (

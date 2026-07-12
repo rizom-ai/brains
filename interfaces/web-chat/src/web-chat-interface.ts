@@ -11,12 +11,14 @@ import {
   type InterfacePluginContext,
   type JobContext,
   type JobProgressEvent,
+  type MessageArtifactEntity,
   type MessageInterfaceOutput,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   type WebRouteDefinition,
   type ToolStatusUpdate,
   type UserPermissionLevel,
+  type ChatContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -41,8 +43,13 @@ import {
   handleStreamedConfirmations as handleStreamedConfirmationsRoute,
   writeText as writeStreamText,
 } from "./chat-stream";
-import { webChatConfigSchema, type WebChatConfig } from "./config";
+import {
+  webChatConfigSchema,
+  type WebChatConfig,
+  type WebChatConfigInput,
+} from "./config";
 import { toProgressData, toToolStatusData } from "./event-data";
+import { deriveConsoleSurfaces } from "@brains/console-theme";
 import { renderChatPage, uiAssetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
@@ -65,6 +72,21 @@ const chatActionRequestSchema = z
   .object({
     conversationId: z.string().min(1),
     action: agentEventActionSchema,
+  })
+  .strict();
+
+const remoteAgentChatRequestSchema = z
+  .object({
+    message: z.string().min(1),
+    conversationId: z.string().min(1),
+  })
+  .strict();
+
+const remoteAgentConfirmRequestSchema = z
+  .object({
+    conversationId: z.string().min(1),
+    confirmed: z.boolean(),
+    approvalId: z.string().min(1),
   })
   .strict();
 
@@ -103,15 +125,17 @@ const defaultResolveOperatorSession: OperatorSessionResolver = async (
   return session !== undefined;
 };
 
-export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
+export class WebChatInterface extends MessageInterfacePlugin<
+  WebChatConfig,
+  WebChatConfigInput
+> {
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly resolveOperatorSession: OperatorSessionResolver;
   private readonly resolveCallerPermissionLevel:
-    | PermissionLevelResolver
-    | undefined;
+    PermissionLevelResolver | undefined;
 
-  constructor(config: Partial<WebChatConfig> = {}, deps: WebChatDeps = {}) {
+  constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
     this.resolveOperatorSession =
       deps.resolveOperatorSession ?? defaultResolveOperatorSession;
@@ -149,6 +173,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleChatPage(request),
         handleChatRequest: (request): Promise<Response> =>
           this.handleChatRequest(request),
+        handleRemoteAgentChatRequest: (request): Promise<Response> =>
+          this.handleRemoteAgentChatRequest(request),
+        handleRemoteAgentConfirmRequest: (request): Promise<Response> =>
+          this.handleRemoteAgentConfirmRequest(request),
         handleBootstrapRequest: (request): Promise<Response> =>
           this.handleBootstrapRequest(request),
         handleActionRequest: (request): Promise<Response> =>
@@ -273,9 +301,25 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return this.createOperatorLoginRequiredResponse(request);
     }
 
-    return new Response(renderChatPage(), {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    const requestUrl = new URL(request.url);
+    const returnTo = encodeURIComponent(
+      `${requestUrl.pathname}${requestUrl.search}`,
+    );
+    return new Response(
+      renderChatPage({
+        surfaces: deriveConsoleSurfaces(
+          this.getContext().webRoutes.getRoutes(),
+          {
+            activeId: "web-chat",
+            self: { id: "web-chat", href: this.config.routePath },
+          },
+        ),
+        sessionHref: `/logout?return_to=${returnTo}`,
+      }),
+      {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      },
+    );
   }
 
   private async handleBootstrapRequest(request: Request): Promise<Response> {
@@ -385,6 +429,80 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
+  private async handleRemoteAgentChatRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Invalid JSON body", { status: 400 });
+    }
+
+    const parsed = remoteAgentChatRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response("Invalid remote agent chat request", { status: 400 });
+    }
+
+    const response = await this.getContext().agent.chat(
+      parsed.data.message,
+      parsed.data.conversationId,
+      this.createRemoteAgentChatContext(parsed.data.conversationId),
+    );
+
+    return Response.json(response);
+  }
+
+  private async handleRemoteAgentConfirmRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Invalid JSON body", { status: 400 });
+    }
+
+    const parsed = remoteAgentConfirmRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response("Invalid remote agent confirm request", {
+        status: 400,
+      });
+    }
+
+    const response = await this.getContext().agent.confirmPendingAction(
+      parsed.data.conversationId,
+      parsed.data.confirmed,
+      parsed.data.approvalId,
+      this.createRemoteAgentChatContext(parsed.data.conversationId),
+    );
+
+    return Response.json(response);
+  }
+
+  private createRemoteAgentChatContext(conversationId: string): ChatContext {
+    return {
+      userPermissionLevel: "anchor",
+      interfaceType: "remote-agent",
+      channelId: conversationId,
+      channelName: "Remote Agent",
+      actor: {
+        actorId: `remote-agent:${conversationId}:operator`,
+        interfaceType: "remote-agent",
+        role: "user",
+        displayName: "Remote agent operator",
+      },
+    };
+  }
+
   private async handleChatRequest(request: Request): Promise<Response> {
     if (!(await this.resolveOperatorSession(request))) {
       return new Response("Forbidden", { status: 403 });
@@ -439,7 +557,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           entityType: string;
           id: string;
           visibilityScope?: unknown;
-        }): ReturnType<typeof streamContext.entityService.getEntity> =>
+        }): Promise<MessageArtifactEntity | null | undefined> =>
           streamContext.entityService.getEntity(
             ref as Parameters<typeof streamContext.entityService.getEntity>[0],
           ),

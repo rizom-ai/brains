@@ -38,10 +38,11 @@ import {
   type SentMessage,
 } from "chat";
 import type { ChatThread } from "./types";
-import { z } from "zod";
+import { z } from "@brains/utils/zod";
 import {
   chatConfigSchema,
   type ChatConfig,
+  type ChatConfigInput,
   type DiscordChatAdapterConfig,
 } from "./config";
 import { PromptActionStore } from "./prompt-action-store";
@@ -93,15 +94,13 @@ interface DiscordCardOutput {
   fallbackText?: string;
 }
 
-const chatCardElementSchema = z
-  .object({
-    type: z.literal("card"),
-    children: z.array(z.object({ type: z.string() }).passthrough()),
-    imageUrl: z.string().optional(),
-    subtitle: z.string().optional(),
-    title: z.string().optional(),
-  })
-  .passthrough();
+const chatCardElementSchema = z.looseObject({
+  type: z.literal("card"),
+  children: z.array(z.looseObject({ type: z.string() })),
+  imageUrl: z.string().optional(),
+  subtitle: z.string().optional(),
+  title: z.string().optional(),
+});
 
 const discordCardOutputSchema = z.object({
   card: z.custom<CardElement>(
@@ -110,7 +109,10 @@ const discordCardOutputSchema = z.object({
   fallbackText: z.string().optional(),
 });
 
-export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
+export class ChatInterface extends MessageInterfacePlugin<
+  ChatConfig,
+  ChatConfigInput
+> {
   declare protected config: ChatConfig;
 
   private readonly threadRegistry = new ThreadRegistry();
@@ -162,7 +164,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private readonly discordApp: DiscordChatApp;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
 
-  constructor(config: Partial<ChatConfig> = {}) {
+  constructor(config: ChatConfigInput = {}) {
     super("chat", packageJson, config, chatConfigSchema);
     this.gatewayLoop = new DiscordGatewayLoop({
       getApp: (): ChatSdkApp | undefined => this.discordApp.instance,

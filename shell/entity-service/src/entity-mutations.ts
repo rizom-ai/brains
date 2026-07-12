@@ -20,13 +20,18 @@ import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
+import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { createId } from "@brains/utils/id";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 import { and, eq, sql } from "drizzle-orm";
+
+const jsonObjectSchema = z.custom<object>(
+  (value) =>
+    typeof value === "object" && value !== null && !Array.isArray(value),
+);
 
 function toStableJsonValue(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -35,9 +40,10 @@ function toStableJsonValue(value: unknown): unknown {
     );
   }
 
-  if (value && typeof value === "object") {
+  const parsedObject = jsonObjectSchema.safeParse(value);
+  if (parsedObject.success) {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
+      Object.entries(parsedObject.data)
         .filter(([, item]) => item !== undefined)
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([key, item]) => [key, toStableJsonValue(item)]),
@@ -502,6 +508,8 @@ export class EntityMutations {
       missingEmbeddings: candidates.missingEmbeddings,
       staleEmbeddings: candidates.staleEmbeddings,
       failedEmbeddings: candidates.failedEmbeddings,
+      embeddableEntities: candidates.embeddableEntities,
+      embeddedEntities: candidates.embeddedEntities,
     };
   }
 
@@ -514,6 +522,8 @@ export class EntityMutations {
         missingEmbeddings: 0,
         staleEmbeddings: 0,
         failedEmbeddings: 0,
+        embeddableEntities: 0,
+        embeddedEntities: 0,
       };
     }
 
@@ -545,6 +555,8 @@ export class EntityMutations {
     let missingEmbeddings = 0;
     let staleEmbeddings = 0;
     let failedEmbeddings = 0;
+    let embeddableEntities = 0;
+    let embeddedEntities = 0;
 
     for (const row of entityRows) {
       const entityConfig = this.entityRegistry.getEntityTypeConfig(
@@ -554,6 +566,7 @@ export class EntityMutations {
         skipped++;
         continue;
       }
+      embeddableEntities++;
 
       const failureKey = embeddingReferenceKey({
         entityId: row.id,
@@ -584,6 +597,7 @@ export class EntityMutations {
         continue;
       }
 
+      embeddedEntities++;
       skipped++;
     }
 
@@ -594,6 +608,8 @@ export class EntityMutations {
       missingEmbeddings,
       staleEmbeddings,
       failedEmbeddings,
+      embeddableEntities,
+      embeddedEntities,
     };
   }
 

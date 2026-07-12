@@ -1,50 +1,80 @@
-import { z } from "@brains/utils/zod";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 
-/**
- * Series frontmatter schema (stored in content as YAML frontmatter)
- */
-export const seriesFrontmatterSchema = z.object({
+export const seriesFrontmatterSchema: z.ZodObject<{
+  title: z.ZodString;
+  slug: z.ZodString;
+  coverImageId: z.ZodOptional<z.ZodString>;
+}> = z.object({
   title: z.string(),
   slug: z.string(),
   coverImageId: z.string().optional(),
 });
 
-export type SeriesFrontmatter = z.infer<typeof seriesFrontmatterSchema>;
+export type SeriesFrontmatter = z.output<typeof seriesFrontmatterSchema>;
 
 /**
  * Series metadata schema (searchable fields only)
  */
-export const seriesMetadataSchema = seriesFrontmatterSchema.pick({
-  title: true,
-  slug: true,
+export const seriesMetadataSchema: z.ZodObject<{
+  title: z.ZodString;
+  slug: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  slug: z.string(),
 });
 
-export type SeriesMetadata = z.infer<typeof seriesMetadataSchema>;
+export type SeriesMetadata = z.output<typeof seriesMetadataSchema>;
+
+const seriesEntityMetadataParserSchema: z.ZodObject<{
+  title: z.ZodString;
+  slug: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  slug: z.string(),
+});
 
 /**
  * Series entity schema
  */
-export const seriesSchema = baseEntitySchema.extend({
-  metadata: seriesMetadataSchema,
+export const seriesSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"series">;
+    metadata: typeof seriesEntityMetadataParserSchema;
+  }>
+> = baseEntityParserSchema.extend({
+  entityType: z.literal("series"),
+  metadata: seriesEntityMetadataParserSchema,
 });
 
-export type Series = z.infer<typeof seriesSchema>;
+export type Series = z.output<typeof seriesSchema>;
 
 /**
  * Series with parsed frontmatter (returned by datasource)
  */
-export const seriesWithDataSchema = seriesSchema.extend({
+export const seriesWithDataSchema: ReturnType<
+  typeof seriesSchema.extend<{
+    frontmatter: typeof seriesFrontmatterSchema;
+  }>
+> = seriesSchema.extend({
   frontmatter: seriesFrontmatterSchema,
 });
 
-export type SeriesWithData = z.infer<typeof seriesWithDataSchema>;
+export type SeriesWithData = z.output<typeof seriesWithDataSchema>;
 
 /**
  * Series list item schema (for templates)
  */
-export const seriesListItemSchema = seriesWithDataSchema.extend({
+export const seriesListItemSchema: ReturnType<
+  typeof seriesWithDataSchema.extend<{
+    description: z.ZodOptional<z.ZodString>;
+    postCount: z.ZodNumber;
+    coverImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageWidth: z.ZodOptional<z.ZodNumber>;
+    coverImageHeight: z.ZodOptional<z.ZodNumber>;
+  }>
+> = seriesWithDataSchema.extend({
   description: z.string().optional(),
   postCount: z.number(),
   coverImageUrl: z.string().optional(),
@@ -52,16 +82,18 @@ export const seriesListItemSchema = seriesWithDataSchema.extend({
   coverImageHeight: z.number().optional(),
 });
 
-export type SeriesListItem = z.infer<typeof seriesListItemSchema>;
+export type SeriesListItem = z.output<typeof seriesListItemSchema>;
+
+export interface SeriesBody {
+  description?: string | undefined;
+}
 
 /**
  * Series body schema (structured content in markdown body)
  */
-export const seriesBodySchema = z.object({
+export const seriesBodySchema: z.ZodType<SeriesBody> = z.object({
   description: z.string().optional(),
 });
-
-export type SeriesBody = z.infer<typeof seriesBodySchema>;
 
 /**
  * Create formatter for series content body

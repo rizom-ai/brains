@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import { join } from "node:path";
-import { nowSeconds } from "@brains/utils/date";
 import { JsonFileStore } from "./json-file-store";
+import { nowSeconds } from "@brains/utils/date";
+import { z } from "@brains/utils/zod";
+import { join } from "node:path";
 
 const DEFAULT_REFRESH_TOKEN_STORE_FILE = "oauth-refresh-tokens.json";
 const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -51,26 +52,48 @@ function createRefreshToken(): string {
   return `ort_${randomUUID()}`;
 }
 
-function isRefreshTokenRecord(value: unknown): value is RefreshTokenRecord {
-  if (!value || typeof value !== "object") return false;
-  const token = value as Record<string, unknown>;
-  return (
-    typeof token["id"] === "string" &&
-    typeof token["token_hash"] === "string" &&
-    typeof token["client_id"] === "string" &&
-    typeof token["subject"] === "string" &&
-    typeof token["created_at"] === "number" &&
-    typeof token["expires_at"] === "number"
-  );
-}
+const refreshTokenRecordSchema = z
+  .looseObject({
+    id: z.string(),
+    token_hash: z.string(),
+    client_id: z.string(),
+    subject: z.string(),
+    scope: z.string().optional(),
+    created_at: z.number(),
+    expires_at: z.number(),
+    revoked_at: z.number().optional(),
+    replaced_by: z.string().optional(),
+  })
+  .transform((token): RefreshTokenRecord => ({
+    id: token.id,
+    token_hash: token.token_hash,
+    client_id: token.client_id,
+    subject: token.subject,
+    ...(token.scope !== undefined ? { scope: token.scope } : {}),
+    created_at: token.created_at,
+    expires_at: token.expires_at,
+    ...(token.revoked_at !== undefined ? { revoked_at: token.revoked_at } : {}),
+    ...(token.replaced_by !== undefined
+      ? { replaced_by: token.replaced_by }
+      : {}),
+  }));
+
+const refreshTokenStoreFileSchema = z.looseObject({
+  refreshTokens: z.array(z.unknown()).optional(),
+});
 
 function parseStoreFile(value: unknown): RefreshTokenStoreFile {
-  if (!value || typeof value !== "object") return { refreshTokens: [] };
-  const refreshTokens = (value as { refreshTokens?: unknown }).refreshTokens;
-  if (!Array.isArray(refreshTokens)) return { refreshTokens: [] };
+  const parsed = refreshTokenStoreFileSchema.safeParse(value);
+  if (!parsed.success) return { refreshTokens: [] };
+
   return {
-    refreshTokens: refreshTokens.filter(isRefreshTokenRecord),
+    refreshTokens: parsed.data.refreshTokens?.flatMap(parseRefreshToken) ?? [],
   };
+}
+
+function parseRefreshToken(value: unknown): RefreshTokenRecord[] {
+  const parsed = refreshTokenRecordSchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
 }
 
 function pruneExpired(store: RefreshTokenStoreFile): RefreshTokenStoreFile {

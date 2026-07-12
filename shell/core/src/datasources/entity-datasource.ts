@@ -1,4 +1,8 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/entity-service";
+import type {
+  DataSource,
+  DataSourceSchema,
+  BaseDataSourceContext,
+} from "@brains/entity-service";
 import type { IEntityService } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { SHELL_DATASOURCE_IDS } from "../constants";
@@ -10,26 +14,31 @@ const entityQuerySchema = z.object({
   }),
 });
 
+type EntityQuery = z.output<typeof entityQuerySchema>;
+
 export class EntityDataSource implements DataSource {
-  readonly id = SHELL_DATASOURCE_IDS.ENTITIES;
+  private entityService: IEntityService;
+  readonly id: string = SHELL_DATASOURCE_IDS.ENTITIES;
   readonly name = "Entity DataSource";
   readonly description = "Fetches entity content from the entity service";
 
-  constructor(private entityService: IEntityService) {}
+  constructor(entityService: IEntityService) {
+    this.entityService = entityService;
+  }
 
   async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     _context?: BaseDataSourceContext,
   ): Promise<T> {
     const parseResult = entityQuerySchema.safeParse(query);
     if (!parseResult.success) {
       const issues = parseResult.error.issues
-        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
         .join(", ");
       throw new Error(`EntityDataSource: Invalid query - ${issues}`);
     }
-    const params = parseResult.data;
+    const params: EntityQuery = parseResult.data;
 
     const entityService = _context?.entityService ?? this.entityService;
     const entity = await entityService.getEntity({

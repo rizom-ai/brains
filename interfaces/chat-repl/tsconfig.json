@@ -5,7 +5,8 @@
     "rootDir": "./",
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "isolatedDeclarations": true
   },
   "include": ["src", "test"],
   "exclude": ["node_modules", "dist"]

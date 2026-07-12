@@ -33,16 +33,12 @@ const searchInputSchema = {
 const selectInputSchema = {
   photoId: z.string().describe("Photo ID from search results"),
   downloadLocation: z
-    .string()
     .url()
     .describe("Download tracking URL (required by provider ToS)"),
   photographerName: z.string().describe("Photographer name for attribution"),
-  photographerUrl: z
-    .string()
-    .url()
-    .describe("Photographer profile URL for attribution"),
-  sourceUrl: z.string().url().describe("Photo page URL on provider"),
-  imageUrl: z.string().url().describe("Image URL to download"),
+  photographerUrl: z.url().describe("Photographer profile URL for attribution"),
+  sourceUrl: z.url().describe("Photo page URL on provider"),
+  imageUrl: z.url().describe("Image URL to download"),
   title: z.string().optional().describe("Image entity title"),
   alt: z.string().optional().describe("Alt text for the image"),
   targetEntityType: z
@@ -54,6 +50,25 @@ const selectInputSchema = {
     .optional()
     .describe("Entity ID to set cover image on"),
 };
+
+const searchInputParserSchema = z.object({
+  query: z.string(),
+  perPage: z.number().min(1).max(30).default(10),
+  page: z.number().min(1).default(1),
+});
+
+const selectInputParserSchema = z.object({
+  photoId: z.string(),
+  downloadLocation: z.url(),
+  photographerName: z.string(),
+  photographerUrl: z.url(),
+  sourceUrl: z.url(),
+  imageUrl: z.url(),
+  title: z.string().optional(),
+  alt: z.string().optional(),
+  targetEntityType: z.string().optional(),
+  targetEntityId: z.string().optional(),
+});
 
 export function createStockPhotoTools(
   pluginId: string,
@@ -71,7 +86,7 @@ function createSearchTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
     visibility: "anchor",
     sideEffects: "none",
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(searchInputSchema).safeParse(input);
+      const parsed = searchInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
@@ -102,7 +117,7 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
     visibility: "anchor",
     sideEffects: "external",
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(selectInputSchema).safeParse(input);
+      const parsed = selectInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,

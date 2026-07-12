@@ -1,5 +1,4 @@
-import type { EntityAdapter } from "@brains/entity-service";
-import type { z } from "@brains/utils/zod";
+import type { EntityAdapter, EntitySchema } from "@brains/entity-service";
 import {
   imageSchema,
   type Image,
@@ -43,7 +42,7 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   public readonly entityType = "image" as const;
   public readonly purpose =
     "Image assets such as generated covers, social previews, and uploaded images.";
-  public readonly schema = imageSchema;
+  public readonly schema: EntitySchema<Image> = imageSchema;
 
   public toMarkdown(entity: Image): string {
     return entity.content;
@@ -70,7 +69,7 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
 
   public parseFrontMatter<TFrontmatter>(
     _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
+    schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter {
     return schema.parse({});
   }
@@ -124,4 +123,4 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   }
 }
 
-export const imageAdapter = new ImageAdapter();
+export const imageAdapter: ImageAdapter = new ImageAdapter();

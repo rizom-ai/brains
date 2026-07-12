@@ -76,4 +76,4 @@ export class LinkAdapter extends BaseEntityAdapter<LinkEntity, LinkMetadata> {
   }
 }
 
-export const linkAdapter = new LinkAdapter();
+export const linkAdapter: LinkAdapter = new LinkAdapter();

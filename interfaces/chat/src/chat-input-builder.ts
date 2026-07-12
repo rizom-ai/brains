@@ -39,7 +39,11 @@ interface ChatInputBuilderDeps {
  * the scoped upload store, is injected so a future Slack adapter reuses this.
  */
 export class ChatInputBuilder {
-  constructor(private readonly deps: ChatInputBuilderDeps) {}
+  private readonly deps: ChatInputBuilderDeps;
+
+  constructor(deps: ChatInputBuilderDeps) {
+    this.deps = deps;
+  }
 
   async build(
     platform: string,

@@ -8,6 +8,7 @@ import {
 } from "react";
 import { type EventChatAction } from "@brains/contracts";
 import { Chat, useChat } from "@ai-sdk/react";
+import { z } from "@brains/utils/zod";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
@@ -45,7 +46,12 @@ import {
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
 import { groupMessagePartSections, type RenderedPart } from "./message-parts";
-import { toUiMessage, type WebChatMessagesResponse } from "./history-messages";
+import {
+  buildConversationJumpGroup,
+  parseChatSessionHash,
+  type JumpLocalGroup,
+} from "./jump-local";
+import { toUiMessage, webChatMessagesResponseSchema } from "./history-messages";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
   webChatUploadAccept,
@@ -53,9 +59,10 @@ import {
 } from "../../src/upload-policy";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
-const themeStorageKey = "brain:theme";
+// Console-wide climate preference — shared with the dashboard and CMS.
+const themeStorageKey = "console.climate";
 
-type ThemeMode = "light" | "dark";
+type ThemeMode = "paper" | "instrument";
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type SessionDialog =
   | { kind: "rename"; session: WebChatSession }
@@ -65,13 +72,13 @@ type SessionDialog =
 type UploadNotice = { tone: "success" | "error"; message: string } | null;
 
 function getInitialTheme(): ThemeMode {
-  if (typeof document === "undefined") return "dark";
-  const attr = document.documentElement.getAttribute("data-theme");
-  return attr === "light" ? "light" : "dark";
+  if (typeof document === "undefined") return "instrument";
+  const attr = document.documentElement.getAttribute("data-climate");
+  return attr === "paper" ? "paper" : "instrument";
 }
 
 function applyTheme(theme: ThemeMode): void {
-  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.setAttribute("data-climate", theme);
   try {
     localStorage.setItem(themeStorageKey, theme);
   } catch {
@@ -136,15 +143,17 @@ function PromptSubmitControl({
 const dayMs = 24 * 60 * 60 * 1000;
 const sessionTitleMaxLength = 48;
 
-interface WebChatSession {
-  id: string;
-  title: string;
-  lastActiveAt: string;
-}
+const webChatSessionSchema = z.looseObject({
+  id: z.string(),
+  title: z.string(),
+  lastActiveAt: z.string(),
+});
 
-interface WebChatSessionsResponse {
-  sessions: WebChatSession[];
-}
+const webChatSessionsResponseSchema = z.looseObject({
+  sessions: z.array(webChatSessionSchema),
+});
+
+type WebChatSession = z.output<typeof webChatSessionSchema>;
 
 interface WebChatStarter {
   id: string;
@@ -273,16 +282,13 @@ interface ProgressData {
   progress?: { current: number; total: number; percentage: number };
 }
 
+const progressDataSchema = z.looseObject({
+  status: z.enum(["pending", "processing", "completed", "failed"]),
+  operationType: z.string(),
+});
+
 export function isProgressData(data: unknown): data is ProgressData {
-  if (typeof data !== "object" || data === null) return false;
-  const record = data as Record<string, unknown>;
-  return (
-    typeof record["status"] === "string" &&
-    ["pending", "processing", "completed", "failed"].includes(
-      record["status"],
-    ) &&
-    typeof record["operationType"] === "string"
-  );
+  return progressDataSchema.safeParse(data).success;
 }
 
 function formatOperationType(operationType: string): string {
@@ -416,7 +422,7 @@ export function App(): React.ReactElement {
   }
 
   function toggleTheme(): void {
-    const next: ThemeMode = theme === "light" ? "dark" : "light";
+    const next: ThemeMode = theme === "paper" ? "instrument" : "paper";
     setTheme(next);
     applyTheme(next);
   }
@@ -584,8 +590,13 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not load saved sessions."),
         );
       }
-      const body = (await response.json()) as WebChatSessionsResponse;
-      setSessions(body.sessions);
+      const parsed = webChatSessionsResponseSchema.safeParse(
+        await response.json(),
+      );
+      if (!parsed.success) {
+        throw new Error("Could not load saved sessions.");
+      }
+      setSessions(parsed.data.sessions);
       setSessionsStatus("ready");
       setSessionError(null);
     } catch (error) {
@@ -635,8 +646,13 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not reopen that session."),
         );
       }
-      const body = (await response.json()) as WebChatMessagesResponse;
-      const nextMessages = body.messages.map(toUiMessage);
+      const parsed = webChatMessagesResponseSchema.safeParse(
+        await response.json(),
+      );
+      if (!parsed.success) {
+        throw new Error("Could not reopen that session.");
+      }
+      const nextMessages = parsed.data.messages.map(toUiMessage);
       try {
         localStorage.setItem(conversationStorageKey, nextConversationId);
       } catch {
@@ -793,6 +809,34 @@ export function App(): React.ReactElement {
     closeDrawer();
     focusPromptTextarea(promptInputRef.current);
   }
+
+  // Chat's contribution to the cross-surface ⌘K palette: the endpoint
+  // doesn't know this operator's conversations, so they append locally.
+  useEffect(() => {
+    window.__consoleJumpLocal = (query): JumpLocalGroup[] => {
+      const group = buildConversationJumpGroup(sessions, query);
+      return group ? [group] : [];
+    };
+    return (): void => {
+      delete window.__consoleJumpLocal;
+    };
+  }, [sessions]);
+
+  // A conversation door (#s/{id}) — from the palette on any surface —
+  // resumes that session and clears the hash.
+  useEffect(() => {
+    const activateFromHash = (): void => {
+      const sessionId = parseChatSessionHash(window.location.hash);
+      if (sessionId === null) return;
+      window.history.replaceState(null, "", window.location.pathname);
+      void switchConversation(sessionId);
+    };
+    activateFromHash();
+    window.addEventListener("hashchange", activateFromHash);
+    return (): void =>
+      window.removeEventListener("hashchange", activateFromHash);
+    // Mount-only by design: doors normally arrive via full navigation.
+  }, []);
 
   function openRenameDialog(session: WebChatSession): void {
     closeDrawer();
@@ -1309,17 +1353,17 @@ export function App(): React.ReactElement {
               type="button"
               onClick={toggleTheme}
               aria-label={
-                theme === "light"
-                  ? "Switch to dark mode"
-                  : "Switch to light mode"
+                theme === "paper"
+                  ? "Switch to instrument mode"
+                  : "Switch to paper mode"
               }
               title={
-                theme === "light"
-                  ? "Switch to dark mode"
-                  : "Switch to light mode"
+                theme === "paper"
+                  ? "Switch to instrument mode"
+                  : "Switch to paper mode"
               }
             >
-              {theme === "light" ? (
+              {theme === "paper" ? (
                 <svg
                   viewBox="0 0 16 16"
                   fill="none"

@@ -115,10 +115,7 @@ export class ApiServer {
     for (const route of this.routes) {
       const handler = createApiRouteHandler(route, this.messageBus);
       const method = route.definition.method.toLowerCase() as
-        | "get"
-        | "post"
-        | "put"
-        | "delete";
+        "get" | "post" | "put" | "delete";
 
       app[method](route.fullPath, handler);
       this.logger.debug(

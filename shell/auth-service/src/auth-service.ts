@@ -1,11 +1,16 @@
 import type { Logger } from "@brains/utils/logger";
 import { AuthorizationCodeStore } from "./auth-code-store";
 import { OAuthClientStore } from "./client-store";
-import { AuthKeyStore } from "./key-store";
+import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import {
   PasskeyService,
   type PasskeyRegistrationUser,
 } from "./passkey-service";
+import {
+  A2APeerTrustStore,
+  type A2APeerTrustRecord,
+  type GrantA2APeerTrustInput,
+} from "./peer-trust-store";
 import { AuthRuntimeDatabase } from "./runtime-db";
 import type { AuthIdentity, AuthUser } from "./runtime-schema";
 import {
@@ -51,6 +56,7 @@ import {
   type OperatorSetupRequired,
 } from "./setup-flow";
 import type {
+  A2APrivateJwk,
   AuthorizationServerMetadata,
   JwksResponse,
   ProtectedResourceMetadata,
@@ -68,6 +74,11 @@ export interface AuthPrincipal {
   status: "active" | "invited" | "suspended";
   permissionLevel: "anchor" | "trusted" | "public";
   canonicalId?: string;
+}
+
+export interface A2ASigningKey {
+  privateJwk: A2APrivateJwk;
+  keyId: string;
 }
 
 export interface AuthServiceOptions {
@@ -91,10 +102,12 @@ export class AuthService {
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
   private readonly keyStore: AuthKeyStore;
+  private readonly a2aKeyStore: A2AKeyStore;
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly sessionStore: OperatorSessionStore;
   private readonly refreshTokenStore: RefreshTokenStore;
+  private readonly peerTrustStore: A2APeerTrustStore;
   private readonly passkeyService: PasskeyService;
   private readonly setupFlow: SetupFlow;
   private readonly oauthEndpoints: OAuthEndpoints;
@@ -118,6 +131,7 @@ export class AuthService {
       storageDir: options.storageDir,
       runtimeDatabase: this.runtimeDatabase,
     });
+    this.a2aKeyStore = new A2AKeyStore({ storageDir: options.storageDir });
     this.clientStore = new OAuthClientStore({ storageDir: options.storageDir });
     this.authCodeStore = new AuthorizationCodeStore({
       storageDir: options.storageDir,
@@ -126,6 +140,9 @@ export class AuthService {
       storageDir: options.storageDir,
     });
     this.refreshTokenStore = new RefreshTokenStore({
+      storageDir: options.storageDir,
+    });
+    this.peerTrustStore = new A2APeerTrustStore({
       storageDir: options.storageDir,
     });
     this.passkeyService = new PasskeyService({
@@ -170,8 +187,11 @@ export class AuthService {
     await this.migrateLegacyPasskeys();
     await this.migrateLegacySessions();
     await this.migrateLegacyRefreshTokens();
-    await this.keyStore.getPrivateJwk();
-    this.logger?.debug("Auth service signing key loaded");
+    await Promise.all([
+      this.keyStore.getPrivateJwk(),
+      this.a2aKeyStore.getPrivateJwk(),
+    ]);
+    this.logger?.debug("Auth service signing keys loaded");
 
     if (!(await this.hasPasskeyCredentials())) {
       await this.setupFlow.ensureSetupToken();
@@ -270,13 +290,42 @@ export class AuthService {
   }
 
   async getJwks(): Promise<JwksResponse> {
+    const [oauthKey, a2aKey] = await Promise.all([
+      this.keyStore.getPublicJwk(),
+      this.a2aKeyStore.getPublicJwk(),
+    ]);
     return {
-      keys: [await this.keyStore.getPublicJwk()],
+      keys: [oauthKey, a2aKey],
     };
   }
 
+  async getA2ASigningKey(): Promise<A2ASigningKey> {
+    const privateJwk = await this.a2aKeyStore.getPrivateJwk();
+    return {
+      privateJwk,
+      keyId: absoluteUrl(
+        this.issuer,
+        `/.well-known/jwks.json#${privateJwk.kid}`,
+      ),
+    };
+  }
+
+  grantA2APeerTrust(
+    input: GrantA2APeerTrustInput,
+  ): Promise<A2APeerTrustRecord> {
+    return this.peerTrustStore.grant(input);
+  }
+
+  getA2APeerTrust(domain: string): Promise<A2APeerTrustRecord | undefined> {
+    return this.peerTrustStore.get(domain);
+  }
+
+  revokeA2APeerTrust(domain: string): Promise<void> {
+    return this.peerTrustStore.revoke(domain);
+  }
+
   getAuthorizationServerMetadata(
-    issuer = this.issuer,
+    issuer: string = this.issuer,
   ): AuthorizationServerMetadata {
     const normalized = normalizeIssuer(issuer);
     return {
@@ -302,7 +351,7 @@ export class AuthService {
 
   getProtectedResourceMetadata(
     resource: string,
-    issuer = this.issuer,
+    issuer: string = this.issuer,
   ): ProtectedResourceMetadata {
     return {
       resource,
@@ -411,12 +460,12 @@ export class AuthService {
     return principalFromUser(user);
   }
 
-  getSetupUrl(issuer = this.issuer): string | undefined {
+  getSetupUrl(issuer: string = this.issuer): string | undefined {
     return this.setupFlow.getSetupUrl(issuer);
   }
 
   async getOperatorSetupRequired(
-    issuer = this.issuer,
+    issuer: string = this.issuer,
   ): Promise<OperatorSetupRequired | undefined> {
     return this.setupFlow.getOperatorSetupRequired(issuer);
   }

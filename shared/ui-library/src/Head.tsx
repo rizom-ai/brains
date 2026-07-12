@@ -1,4 +1,4 @@
-import { createContext, h, type JSX } from "preact";
+import { createContext, h, type Context, type JSX } from "preact";
 import { useContext } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 
@@ -18,7 +18,8 @@ export interface HeadProps {
  * Context for sharing the HeadCollector during SSR
  * The collector is provided by the site builder during rendering
  */
-export const HeadContext = createContext<HeadCollectorInterface | null>(null);
+export const HeadContext: Context<HeadCollectorInterface | null> =
+  createContext<HeadCollectorInterface | null>(null);
 
 /**
  * Interface for HeadCollector to avoid circular dependency

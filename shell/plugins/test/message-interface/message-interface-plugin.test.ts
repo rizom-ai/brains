@@ -11,9 +11,13 @@ const testConfigSchema = z.object({
   testOption: z.string().default("default"),
 });
 
-class TestMessageInterface extends MessageInterfacePlugin<{
-  testOption: string;
-}> {
+type TestMessageInterfaceConfig = z.output<typeof testConfigSchema>;
+type TestMessageInterfaceConfigInput = z.input<typeof testConfigSchema>;
+
+class TestMessageInterface extends MessageInterfacePlugin<
+  TestMessageInterfaceConfig,
+  TestMessageInterfaceConfigInput
+> {
   public sentMessages: Array<{ channelId: string | null; message: string }> =
     [];
   public progressUpdates: JobProgressEvent[] = [];

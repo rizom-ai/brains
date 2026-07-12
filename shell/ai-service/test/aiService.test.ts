@@ -10,8 +10,8 @@ import {
 } from "bun:test";
 import { AIService } from "../src/aiService";
 import { createSilentLogger, createTestLogger } from "@brains/test-utils";
-import { z } from "@brains/utils/zod";
 import { LogLevel } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import * as ai from "ai";
 import * as anthropicSdk from "@ai-sdk/anthropic";
 
@@ -348,6 +348,21 @@ describe("AIService", () => {
         expect.objectContaining({ maxTokens: 1000 }),
       );
     });
+
+    it("should pass configured reasoning effort to OpenAI", async () => {
+      const service = AIService.createFresh(
+        { model: "gpt-5.6-luna", reasoningEffort: "low" },
+        logger,
+      );
+
+      await service.generateText("System", "User");
+
+      expect(generateTextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerOptions: { openai: { reasoningEffort: "low" } },
+        }),
+      );
+    });
   });
 
   describe("Judgment", () => {
@@ -477,6 +492,24 @@ describe("AIService", () => {
       );
       expect(generateObjectSpy).toHaveBeenCalledWith(
         expect.objectContaining({ maxTokens: 1000 }),
+      );
+    });
+
+    it("should preserve OpenAI reasoning options for object generation", async () => {
+      const service = AIService.createFresh(
+        { model: "gpt-5.6-luna", reasoningEffort: "low" },
+        logger,
+      );
+
+      await service.generateObject("System", "User", testSchema);
+
+      expect(generateObjectSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerOptions: {
+            openai: { reasoningEffort: "low" },
+            anthropic: { structuredOutputMode: "jsonTool" },
+          },
+        }),
       );
     });
   });

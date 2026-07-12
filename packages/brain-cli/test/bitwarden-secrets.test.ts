@@ -7,6 +7,7 @@ import {
 } from "../src/lib/bitwarden-secrets";
 
 class FakeSecretWriter implements BitwardenSecretWriter {
+  private readonly existing: BitwardenSecret[];
   readonly calls: Array<
     | { type: "list"; project: BitwardenProject }
     | { type: "create"; project: BitwardenProject; key: string; value: string }
@@ -18,7 +19,9 @@ class FakeSecretWriter implements BitwardenSecretWriter {
       }
   > = [];
 
-  constructor(private readonly existing: BitwardenSecret[] = []) {}
+  constructor(existing: BitwardenSecret[] = []) {
+    this.existing = existing;
+  }
 
   async listProjectSecrets(
     project: BitwardenProject,

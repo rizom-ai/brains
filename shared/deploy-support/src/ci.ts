@@ -72,7 +72,7 @@ export async function readJsonResponse(
     throw new Error(`${label} returned an empty response (${response.status})`);
   }
   try {
-    return JSON.parse(text) as unknown;
+    return JSON.parse(text);
   } catch {
     throw new Error(
       `${label} returned invalid JSON (${response.status}): ${text}`,
@@ -110,7 +110,15 @@ export function writeGitHubOutput(key: string, value: string): void {
 
 export function writeGitHubEnv(key: string, value: string): void {
   const envPath = process.env["GITHUB_ENV"];
-  if (envPath) {
-    appendFileSync(envPath, `${key}=${value}\n`);
+  if (!envPath) {
+    return;
   }
+
+  if (value.includes("\n")) {
+    const delimiter = `EOF_${key}_${Date.now().toString(36)}`;
+    appendFileSync(envPath, `${key}<<${delimiter}\n${value}\n${delimiter}\n`);
+    return;
+  }
+
+  appendFileSync(envPath, `${key}=${value}\n`);
 }

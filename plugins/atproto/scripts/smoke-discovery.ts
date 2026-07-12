@@ -164,8 +164,7 @@ async function main(): Promise<void> {
       repos: [IDENTIFIER],
     });
     const event = events[0]?.payload as
-      | { record?: { brain?: { did?: string } } }
-      | undefined;
+      { record?: { brain?: { did?: string } } } | undefined;
     check(
       "discover valid card",
       result.discovered === 1 && result.skipped === 0,

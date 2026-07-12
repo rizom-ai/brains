@@ -8,10 +8,12 @@ import { publishBroadcast, publishRequest } from "./message-dispatcher";
  * delivery mode.
  */
 export class MessagePublisher {
-  constructor(
-    private readonly registry: HandlerRegistry,
-    private readonly logger: Logger,
-  ) {}
+  private readonly registry: HandlerRegistry;
+  private readonly logger: Logger;
+  constructor(registry: HandlerRegistry, logger: Logger) {
+    this.registry = registry;
+    this.logger = logger;
+  }
 
   async publish<T = unknown>(
     message: MessageWithPayload<T>,

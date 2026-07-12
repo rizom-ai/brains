@@ -1,5 +1,10 @@
 import type { EntityPluginContext } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { buildAgentNetworkWidgetData } from "./agent-network-widget";
+
+const networkDigestSourceSchema = z.object({
+  counts: z.object({ agents: z.number(), skills: z.number() }),
+});
 import {
   AgentNetworkWidget,
   agentNetworkWidgetScript,
@@ -22,12 +27,22 @@ export function registerAgentNetworkDashboardWidget(
           id: AGENT_NETWORK_WIDGET_ID,
           pluginId,
           title: "Agent Network",
+          group: "network",
           section: "secondary",
           priority: 15,
           rendererName: AGENT_NETWORK_WIDGET_RENDERER,
           component: AgentNetworkWidget,
           clientScript: agentNetworkWidgetScript,
           dataProvider: async () => buildAgentNetworkWidgetData(context),
+          digestProvider: (data: unknown) => {
+            const { counts } = networkDigestSourceSchema.parse(data);
+            return {
+              digest: [
+                { label: "Agents", value: String(counts.agents) },
+                { label: "Skills", value: String(counts.skills) },
+              ],
+            };
+          },
         },
       });
 

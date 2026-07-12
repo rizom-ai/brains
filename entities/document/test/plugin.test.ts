@@ -110,7 +110,9 @@ describe("DocumentPlugin", () => {
   });
 
   it("promotes an uploaded PDF into a durable document entity", async () => {
-    const harness = createPluginHarness<DocumentPlugin>();
+    const harness = createPluginHarness<DocumentPlugin>({
+      dataDir: `/tmp/test-document-upload-${crypto.randomUUID()}`,
+    });
     await harness.installPlugin(new DocumentPlugin());
     const store = harness
       .getMockShell()
@@ -177,7 +179,9 @@ describe("DocumentPlugin", () => {
   });
 
   it("rejects non-PDF upload promotion to document", async () => {
-    const harness = createPluginHarness<DocumentPlugin>();
+    const harness = createPluginHarness<DocumentPlugin>({
+      dataDir: `/tmp/test-document-upload-${crypto.randomUUID()}`,
+    });
     await harness.installPlugin(new DocumentPlugin());
     const store = harness
       .getMockShell()

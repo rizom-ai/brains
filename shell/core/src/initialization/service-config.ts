@@ -33,6 +33,9 @@ export function createAIModelConfig(config: ShellConfig): AIModelConfig {
     temperature: config.ai.temperature,
     maxTokens: config.ai.maxTokens,
     webSearch: config.ai.webSearch,
+    ...(config.ai.reasoningEffort && {
+      reasoningEffort: config.ai.reasoningEffort,
+    }),
     ...(config.ai.imageApiKey ? { imageApiKey: config.ai.imageApiKey } : {}),
   };
 }

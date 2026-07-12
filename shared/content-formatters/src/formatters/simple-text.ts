@@ -1,11 +1,13 @@
 import { ResponseFormatter } from "./base";
-import { z } from "zod";
+import { z } from "@brains/utils/zod";
+
+interface SimpleTextResponse {
+  message: string;
+}
 
 const simpleTextResponseSchema = z.object({
   message: z.string(),
 });
-
-type SimpleTextResponse = z.infer<typeof simpleTextResponseSchema>;
 
 export class SimpleTextResponseFormatter extends ResponseFormatter<SimpleTextResponse> {
   format(data: SimpleTextResponse): string {

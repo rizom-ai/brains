@@ -46,7 +46,7 @@ const atprotoLexiconSchema = z.object({
       record: z.object({
         type: z.literal("object"),
         required: z.array(z.string()).optional(),
-        properties: z.record(atprotoLexiconPropertySchema),
+        properties: z.record(z.string(), atprotoLexiconPropertySchema),
       }),
     }),
   }),
@@ -56,7 +56,21 @@ export function parseAtprotoLexicon(input: unknown): AtprotoLexicon {
   return atprotoLexiconSchema.parse(input);
 }
 
-export const canonicalAtprotoLexicons = {
+export type CanonicalAtprotoLexiconId =
+  | "ai.rizom.brain.card"
+  | "ai.rizom.brain.deck"
+  | "ai.rizom.brain.link"
+  | "ai.rizom.brain.note"
+  | "ai.rizom.brain.post"
+  | "ai.rizom.brain.project"
+  | "ai.rizom.brain.series"
+  | "ai.rizom.brain.socialPost"
+  | "ai.rizom.brain.topic";
+
+export const canonicalAtprotoLexicons: Record<
+  CanonicalAtprotoLexiconId,
+  AtprotoLexicon
+> = {
   "ai.rizom.brain.card": parseAtprotoLexicon(cardLexiconJson),
   "ai.rizom.brain.deck": parseAtprotoLexicon(deckLexiconJson),
   "ai.rizom.brain.link": parseAtprotoLexicon(linkLexiconJson),
@@ -66,9 +80,7 @@ export const canonicalAtprotoLexicons = {
   "ai.rizom.brain.series": parseAtprotoLexicon(seriesLexiconJson),
   "ai.rizom.brain.socialPost": parseAtprotoLexicon(socialPostLexiconJson),
   "ai.rizom.brain.topic": parseAtprotoLexicon(topicLexiconJson),
-} as const satisfies Record<string, AtprotoLexicon>;
-
-export type CanonicalAtprotoLexiconId = keyof typeof canonicalAtprotoLexicons;
+};
 
 export type AtprotoLexiconStatus = "draft" | "approved" | "deprecated";
 
@@ -102,7 +114,10 @@ function approvedLexiconMetadata(
   };
 }
 
-export const canonicalAtprotoLexiconMetadata = {
+export const canonicalAtprotoLexiconMetadata: Record<
+  CanonicalAtprotoLexiconId,
+  Omit<AtprotoLexiconMetadata, "id">
+> = {
   "ai.rizom.brain.card": approvedLexiconMetadata("@brains/atproto"),
   "ai.rizom.brain.deck": approvedLexiconMetadata("@brains/decks"),
   "ai.rizom.brain.link": approvedLexiconMetadata("@brains/link"),

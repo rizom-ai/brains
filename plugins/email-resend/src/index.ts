@@ -6,16 +6,33 @@ import {
 } from "@brains/email-contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import { type FetchLike } from "@brains/utils/fetch-like";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
-const emailResendConfigSchema = z.object({
+interface EmailResendConfig {
+  apiKey?: string | undefined;
+  from?: string | undefined;
+}
+
+type EmailResendConfigInput = EmailResendConfig;
+
+interface ResendEmailResponse {
+  id?: string | undefined;
+}
+
+const emailResendConfigSchema: z.ZodType<
+  EmailResendConfig,
+  EmailResendConfigInput
+> = z.object({
   apiKey: z.string().min(1).optional(),
   from: z.string().min(1).optional(),
 });
 
-type EmailResendConfig = z.infer<typeof emailResendConfigSchema>;
+const resendEmailResponseSchema: z.ZodType<ResendEmailResponse, unknown> =
+  z.looseObject({
+    id: z.string().optional(),
+  });
 
 export type EmailSendResult = SendEmailResult;
 
@@ -23,11 +40,14 @@ export interface EmailResendPluginDependencies {
   fetchImpl?: FetchLike;
 }
 
-export class EmailResendPlugin extends ServicePlugin<EmailResendConfig> {
+export class EmailResendPlugin extends ServicePlugin<
+  EmailResendConfig,
+  EmailResendConfigInput
+> {
   private readonly fetchImpl: FetchLike;
 
   constructor(
-    config: Partial<EmailResendConfig> = {},
+    config: EmailResendConfigInput = {},
     dependencies: EmailResendPluginDependencies = {},
   ) {
     super("email-resend", packageJson, config, emailResendConfigSchema);
@@ -97,13 +117,13 @@ export class EmailResendPlugin extends ServicePlugin<EmailResendConfig> {
       throw new Error("Resend email request failed");
     }
 
-    const body = (await response.json()) as { id?: string };
+    const body = resendEmailResponseSchema.parse(await response.json());
     return body.id ? { status: "sent", id: body.id } : { status: "sent" };
   }
 }
 
 export function emailResendPlugin(
-  config: Partial<EmailResendConfig> = {},
+  config: EmailResendConfigInput = {},
 ): EmailResendPlugin {
   return new EmailResendPlugin(config);
 }

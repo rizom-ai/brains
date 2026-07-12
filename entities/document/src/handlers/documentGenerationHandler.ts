@@ -6,12 +6,12 @@ import {
   saveProcessedEntity,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
-import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
+import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import {
   countPdfPages,
   createPdfDataUrl,
@@ -27,8 +27,27 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const DOCUMENT_ID_MAX_LENGTH = 80;
 const DOCUMENT_ID_HASH_LENGTH = 10;
 
-export const documentGenerationJobSchemaBase = z.object({
-  renderUrl: z.string().url().optional(),
+const documentGenerationJobSchemaShape: {
+  renderUrl: z.ZodOptional<z.ZodURL>;
+  sourceEntityType: z.ZodString;
+  sourceEntityId: z.ZodString;
+  attachmentType: z.ZodString;
+  documentId: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+  filename: z.ZodOptional<z.ZodString>;
+  dedupKey: z.ZodOptional<z.ZodString>;
+  replace: z.ZodOptional<z.ZodBoolean>;
+  pageCount: z.ZodOptional<z.ZodNumber>;
+  maxPageCount: z.ZodOptional<z.ZodNumber>;
+  maxBytes: z.ZodOptional<z.ZodNumber>;
+  timeoutMs: z.ZodOptional<z.ZodNumber>;
+  width: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+  height: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+  format: z.ZodOptional<z.ZodString>;
+  targetEntityType: z.ZodOptional<z.ZodString>;
+  targetEntityId: z.ZodOptional<z.ZodString>;
+} = {
+  renderUrl: z.url().optional(),
   sourceEntityType: z.string().min(1),
   sourceEntityId: z.string().min(1),
   attachmentType: z.string().min(1),
@@ -46,9 +65,17 @@ export const documentGenerationJobSchemaBase = z.object({
   format: z.string().optional(),
   targetEntityType: z.string().min(1).optional(),
   targetEntityId: z.string().min(1).optional(),
-});
+};
 
-export const documentGenerationJobSchema =
+export const documentGenerationJobSchemaBase: z.ZodObject<
+  typeof documentGenerationJobSchemaShape
+> = z.object(documentGenerationJobSchemaShape);
+
+export type DocumentGenerationJobDataBase = z.output<
+  typeof documentGenerationJobSchemaBase
+>;
+
+export const documentGenerationJobSchema: z.ZodType<DocumentGenerationJobDataBase> =
   documentGenerationJobSchemaBase.refine(
     (data) =>
       (data.targetEntityType === undefined &&
@@ -61,7 +88,7 @@ export const documentGenerationJobSchema =
     },
   );
 
-export type DocumentGenerationJobData = z.infer<
+export type DocumentGenerationJobData = z.output<
   typeof documentGenerationJobSchema
 >;
 
@@ -85,20 +112,22 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
   DocumentGenerationJobData,
   DocumentGenerationResult
 > {
+  private readonly context: Pick<
+    ServicePluginContext,
+    "entityService" | "attachments"
+  >;
   private readonly renderPdf: RenderPdf;
 
   constructor(
     logger: Logger,
-    private readonly context: Pick<
-      ServicePluginContext,
-      "entityService" | "attachments"
-    >,
+    context: Pick<ServicePluginContext, "entityService" | "attachments">,
     deps: DocumentGenerationHandlerDeps = {},
   ) {
     super(logger, {
       schema: documentGenerationJobSchema,
       jobTypeName: "document-generate",
     });
+    this.context = context;
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
   }
 

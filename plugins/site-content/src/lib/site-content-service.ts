@@ -9,12 +9,14 @@ import {
 } from "./site-content-operations";
 
 export class SiteContentService {
+  private readonly siteConfig: SiteGenerationConfig | undefined;
   private readonly operations: SiteContentOperations;
 
   constructor(
     pluginContext: ServicePluginContext,
-    private readonly siteConfig?: SiteGenerationConfig,
+    siteConfig?: SiteGenerationConfig,
   ) {
+    this.siteConfig = siteConfig;
     this.operations = new SiteContentOperations(pluginContext);
   }
 

@@ -44,6 +44,9 @@ const DEFAULT_CONVERSATION_ACTOR_IDLE_TTL_MS = 30 * 60 * 1000;
 type ConversationActor = ReturnType<typeof createActor<typeof agentMachine>>;
 
 export class AgentService implements IAgentService {
+  private mcpService: IMCPService;
+  private identityService: IBrainCharacterService;
+  private profileService: IAnchorProfileService;
   private static instance: AgentService | null = null;
   private logger: Logger;
   private stepLimit: number;
@@ -128,13 +131,16 @@ export class AgentService implements IAgentService {
    * Private constructor to enforce factory methods
    */
   private constructor(
-    private mcpService: IMCPService,
+    mcpService: IMCPService,
     conversationService: IConversationService,
-    private identityService: IBrainCharacterService,
-    private profileService: IAnchorProfileService,
+    identityService: IBrainCharacterService,
+    profileService: IAnchorProfileService,
     logger: Logger,
     config: AgentConfig,
   ) {
+    this.mcpService = mcpService;
+    this.identityService = identityService;
+    this.profileService = profileService;
     this.logger = logger.child("AgentService");
     this.stepLimit = config.stepLimit ?? DEFAULT_STEP_LIMIT;
     this.agentFactory = config.agentFactory;

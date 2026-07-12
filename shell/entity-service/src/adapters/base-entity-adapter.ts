@@ -1,10 +1,11 @@
 import { z } from "@brains/utils/zod";
-import type { BaseEntity, EntityAdapter } from "../types";
+import type { BaseEntity, EntityAdapter, EntitySchema } from "../types";
 import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
   generateFrontmatter,
 } from "../frontmatter";
+import { EntityValidationError } from "../errors";
 
 /** Interface for objects that can generate a body template. */
 export interface BodyTemplateProvider {
@@ -15,23 +16,24 @@ const defaultBodyFormatter: BodyTemplateProvider = {
   generateBodyTemplate: () => "",
 };
 
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+
+export type DefaultEntityFrontmatter<TMetadata extends object> = {
+  [K in keyof TMetadata]?: TMetadata[K] | undefined;
+};
+
+export type BaseEntityFrontmatterSchema<TFrontmatter> =
+  z.ZodObject<z.ZodRawShape> & z.ZodType<TFrontmatter>;
+
 export interface BaseEntityAdapterConfig<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata extends object,
-  TFrontmatter extends object = TMetadata,
+  TFrontmatter = DefaultEntityFrontmatter<TMetadata>,
 > {
   entityType: string;
   purpose: string;
-  schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
-  // A ZodObject (so callers can extend its shape) whose parsed output is
-  // TFrontmatter — this preserves the output type through to parseFrontmatter
-  // without a cast.
-  frontmatterSchema: z.ZodObject<
-    z.ZodRawShape,
-    z.UnknownKeysParam,
-    z.ZodTypeAny,
-    TFrontmatter
-  >;
+  schema: EntitySchema<TEntity>;
+  frontmatterSchema: BaseEntityFrontmatterSchema<TFrontmatter>;
   isSingleton?: boolean;
   hasBody?: boolean;
   supportsCoverImage?: boolean;
@@ -50,20 +52,18 @@ export interface BaseEntityAdapterConfig<
 export abstract class BaseEntityAdapter<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata extends object = Record<string, unknown>,
-  TFrontmatter extends object = TMetadata,
+  TFrontmatter = DefaultEntityFrontmatter<TMetadata>,
 > implements EntityAdapter<TEntity, TMetadata> {
   public readonly entityType: string;
   public readonly purpose: string;
-  public readonly schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
+  public readonly schema: EntitySchema<TEntity>;
   public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
   public readonly isSingleton?: boolean;
   public readonly hasBody?: boolean;
   public readonly supportsCoverImage?: boolean;
 
   // Stored separately with output type preserved for type-safe parsing.
-  // The public `frontmatterSchema` widens to ZodObject<ZodRawShape> (so it can
-  // be extended/merged), while this keeps the TFrontmatter output type.
-  private readonly fmSchema: z.ZodType<TFrontmatter, z.ZodTypeDef, unknown>;
+  private readonly fmSchema: z.ZodType<TFrontmatter>;
   private readonly bodyFormatter: BodyTemplateProvider;
 
   constructor(
@@ -123,7 +123,7 @@ export abstract class BaseEntityAdapter<
 
   private readExistingFrontmatter(content: string): Record<string, unknown> {
     try {
-      return parseMarkdownWithFrontmatter(content, z.record(z.unknown()))
+      return parseMarkdownWithFrontmatter(content, frontmatterRecordSchema)
         .metadata;
     } catch {
       return {};
@@ -134,8 +134,15 @@ export abstract class BaseEntityAdapter<
     return entity.metadata;
   }
 
-  public parseFrontMatter<T>(markdown: string, schema: z.ZodSchema<T>): T {
-    return parseMarkdownWithFrontmatter(markdown, schema).metadata;
+  public parseFrontMatter<T>(
+    markdown: string,
+    schema: { parse(data: unknown): T },
+  ): T {
+    try {
+      return parseMarkdownWithFrontmatter(markdown, schema).metadata;
+    } catch (error) {
+      throw new EntityValidationError(this.entityType, error);
+    }
   }
 
   public getBodyTemplate(): string {
@@ -143,8 +150,7 @@ export abstract class BaseEntityAdapter<
   }
 
   public generateFrontMatter(entity: TEntity): string {
-    const metadata = entity.metadata as Record<string, unknown>;
-    return generateFrontmatter(metadata);
+    return generateFrontmatter(frontmatterRecordSchema.parse(entity.metadata));
   }
 
   // ── Protected helpers for use in toMarkdown/fromMarkdown ──
@@ -152,7 +158,7 @@ export abstract class BaseEntityAdapter<
   /** Strip frontmatter and return the body content. */
   protected extractBody(markdown: string): string {
     try {
-      return parseMarkdownWithFrontmatter(markdown, z.record(z.unknown()))
+      return parseMarkdownWithFrontmatter(markdown, frontmatterRecordSchema)
         .content;
     } catch {
       return markdown;
@@ -161,7 +167,11 @@ export abstract class BaseEntityAdapter<
 
   /** Parse frontmatter using this adapter's frontmatter schema. */
   protected parseFrontmatter(markdown: string): TFrontmatter {
-    return parseMarkdownWithFrontmatter(markdown, this.fmSchema).metadata;
+    try {
+      return parseMarkdownWithFrontmatter(markdown, this.fmSchema).metadata;
+    } catch (error) {
+      throw new EntityValidationError(this.entityType, error);
+    }
   }
 
   /** Combine body and frontmatter into a markdown string. */

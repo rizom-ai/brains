@@ -13,7 +13,7 @@ const TestDataSchema = z.object({
   content: z.string(),
 });
 
-type TestData = z.infer<typeof TestDataSchema>;
+type TestData = z.output<typeof TestDataSchema>;
 
 // Mock DataSource for testing
 const mockDataSource: DataSource = {

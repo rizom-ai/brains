@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { asSchema } from "ai";
 import type {
   AIModelConfig,
   IAIService,
@@ -20,6 +21,21 @@ interface JudgeCall {
 
 interface TestAIService extends IAIService {
   judgeCalls: JudgeCall[];
+}
+
+async function parseJudgeSchema<T>(
+  input: JudgeInput<T>,
+  value: unknown,
+): Promise<T> {
+  const validate = asSchema(input.schema).validate;
+  if (!validate) {
+    throw new Error("Test judge schema does not provide validation");
+  }
+  const result = await validate(value);
+  if (!result.success) {
+    throw result.error;
+  }
+  return result.value;
 }
 
 function createAIServiceWithJudge(): TestAIService {
@@ -48,7 +64,7 @@ function createAIServiceWithJudge(): TestAIService {
         instruction: input.instruction,
         material: input.material,
       });
-      return { verdict: input.schema.parse(verdict), usage };
+      return { verdict: await parseJudgeSchema(input, verdict), usage };
     },
     updateConfig(): void {},
     getConfig(): AIModelConfig {
