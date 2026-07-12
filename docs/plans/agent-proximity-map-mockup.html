@@ -4,127 +4,455 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Mockup · Agent proximity map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
+  /* ---- console tokens (mirrors shared/console-theme/src/console.css) ---- */
   :root {
-    --ink: #1c2024;
-    --muted: #6b7280;
-    --paper: #fafaf8;
-    --line: #e5e4df;
-    --professional: #0f766e;
-    --team: #4f46e5;
-    --collective: #b45309;
-    --cluster: #64748b;
+    --console-display: "Fraunces", "Times New Roman", serif;
+    --console-ui: "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+    --console-mono: "JetBrains Mono", ui-monospace, monospace;
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 48px 24px 96px;
-    background: var(--paper);
-    color: var(--ink);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  .instrument {
+    --console-bg: #0a0819;
+    --console-frame: #0f0d22;
+    --console-card: #14112b;
+    --console-card-soft: #1b1638;
+    --console-bg-deep: #05040f;
+    --console-text: #f1eadd;
+    --console-text-dim: rgba(241, 234, 221, 0.62);
+    --console-text-muted: rgba(241, 234, 221, 0.4);
+    --console-text-faint: rgba(241, 234, 221, 0.22);
+    --console-accent: #ff8b3d;
+    --console-secondary: #818cf8;
+    --console-ok: #68cc8b;
+    --console-warn: #f5c158;
+    --console-rule: rgba(241, 234, 221, 0.07);
+    --console-rule-strong: rgba(241, 234, 221, 0.14);
+    --console-rule-accent: rgba(255, 139, 61, 0.48);
+    --console-accent-soft: rgba(255, 139, 61, 0.12);
   }
-  main { max-width: 960px; margin: 0 auto; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 40px; }
-  section { margin-bottom: 64px; }
-  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 8px; }
-  .note { color: var(--muted); font-size: 13px; max-width: 620px; }
+  .paper {
+    --console-bg: #ece5d6;
+    --console-frame: #f4efe6;
+    --console-card: #faf7f0;
+    --console-text: #211d18;
+    --console-text-dim: rgba(33, 29, 24, 0.62);
+    --console-text-muted: rgba(33, 29, 24, 0.42);
+    --console-text-faint: rgba(33, 29, 24, 0.22);
+    --console-accent: #c44a1d;
+    --console-secondary: #6b2fa0;
+    --console-ok: #3d6b5c;
+    --console-warn: #b3801a;
+    --console-rule: rgba(33, 29, 24, 0.07);
+    --console-rule-strong: rgba(33, 29, 24, 0.14);
+    --console-rule-accent: rgba(196, 74, 29, 0.48);
+    --console-accent-soft: rgba(196, 74, 29, 0.1);
+  }
 
-  .map-frame { position: relative; display: inline-block; }
-  svg { display: block; }
-  .ring { fill: none; stroke: var(--line); }
-  .ring-label { fill: #b9b6ad; font-size: 10px; }
-  .bearing-line { stroke: var(--line); stroke-dasharray: 2 4; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #17141f; font-family: var(--console-ui); }
+  .mock-note {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 26px 32px 10px;
+    color: rgba(241, 234, 221, 0.45);
+    font-family: var(--console-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
 
-  .node { cursor: pointer; }
-  .node circle.dot { fill: currentColor; stroke: #fff; stroke-width: 1.5; }
-  .node.discovered circle.dot { fill-opacity: 0.3; stroke: currentColor; stroke-dasharray: 3 2; stroke-width: 1.4; }
-  .node text { font-size: 11px; fill: var(--ink); }
-  .node.dim { opacity: 0.25; }
+  /* ================= console · network tab ================= */
+  .instrument.stage {
+    position: relative;
+    background: var(--console-bg);
+    color: var(--console-text);
+    padding: 34px 32px 54px;
+    overflow: hidden;
+  }
+  .instrument.stage::before {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.035; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .instrument.stage::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 0%, transparent 0%, transparent 45%, var(--console-bg-deep) 110%);
+    opacity: 0.55;
+  }
+  .frame {
+    position: relative; z-index: 1;
+    max-width: 1080px;
+    margin: 0 auto;
+    background: var(--console-frame);
+    border: 1px solid var(--console-rule-strong);
+    border-radius: 12px;
+    box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+  }
+  .dashboard-tabs {
+    display: flex; align-items: flex-end; gap: 2px;
+    padding: 18px 26px 0;
+    border-bottom: 1px solid var(--console-rule-strong);
+  }
+  .dashboard-tab {
+    font-family: var(--console-mono);
+    font-size: 12px; letter-spacing: 0.05em;
+    color: var(--console-text-muted);
+    padding: 9px 16px 11px;
+    border-bottom: 2px solid transparent;
+    transform: translateY(1px);
+    text-decoration: none; white-space: nowrap;
+  }
+  .dashboard-tab.is-active { color: var(--console-text); border-bottom-color: var(--console-accent); }
+  .canvas { padding: 26px; display: grid; gap: 14px; }
 
-  .cluster-hull { fill: rgba(100, 116, 139, 0.06); stroke: var(--cluster); stroke-dasharray: 5 5; stroke-opacity: 0.55; }
-  .cluster-chip { font-size: 10.5px; fill: var(--cluster); font-weight: 600; letter-spacing: 0.02em; }
-  .cluster-chip-bg { fill: var(--paper); stroke: var(--cluster); stroke-opacity: 0.35; rx: 8; }
+  .card {
+    background: var(--console-card);
+    border: 1px solid var(--console-rule-strong);
+    border-radius: 10px;
+    padding: 14px 18px 16px;
+    position: relative;
+  }
+  .card-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; margin-bottom: 12px;
+  }
+  .card-title {
+    font-family: var(--console-mono);
+    font-size: 10.5px; font-weight: 500;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--console-text-muted);
+  }
+  .card-subtitle {
+    font-family: var(--console-mono);
+    font-size: 10px; letter-spacing: 0.04em;
+    color: var(--console-text-faint);
+  }
 
-  .you-core { fill: var(--ink); }
-  .you-halo { fill: none; stroke: var(--ink); stroke-opacity: 0.25; }
-  .you-label { font-size: 11px; font-weight: 600; fill: var(--ink); text-anchor: middle; }
+  /* proximity card body: map + rail */
+  .prox-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 230px;
+    gap: 26px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .prox-body { grid-template-columns: 1fr; } }
+  .prox-map { display: grid; place-items: center; }
+  .prox-map svg { display: block; max-width: 100%; height: auto; }
+
+  .rail { display: grid; gap: 20px; align-content: start; }
+  .rail-title {
+    font-family: var(--console-mono);
+    font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--console-text-faint);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--console-rule);
+  }
+  .near-row {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline; gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--console-rule);
+  }
+  .near-row:last-child { border-bottom: none; }
+  .near-name { font-size: 13px; color: var(--console-text-dim); }
+  .near-id {
+    display: block;
+    font-family: var(--console-mono);
+    font-size: 9.5px; letter-spacing: 0.06em;
+    color: var(--console-text-faint);
+  }
+  .near-dist {
+    font-family: var(--console-mono);
+    font-size: 12px; font-variant-numeric: tabular-nums;
+    color: var(--console-text);
+  }
+  .legend { display: grid; gap: 7px; }
+  .legend-row {
+    display: flex; align-items: center; gap: 9px;
+    font-family: var(--console-mono);
+    font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--console-text-muted);
+  }
+  .legend-glyph { width: 14px; display: grid; place-items: center; }
+  .pending-note {
+    font-size: 12px; color: var(--console-text-muted); font-style: italic;
+  }
+  .pending-note b { color: var(--console-warn); font-style: normal; font-weight: 500; }
+
+  /* neighbouring agent-network card, abbreviated */
+  .agent-network-view-tabs {
+    display: flex; gap: 24px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--console-rule); padding-bottom: 2px;
+  }
+  .agent-network-view-tab {
+    background: transparent; border: none;
+    padding: 2px 0 10px; margin-bottom: -1px;
+    font-family: var(--console-mono);
+    font-size: 10.5px; font-weight: 500;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--console-text-faint);
+    border-bottom: 1px solid transparent;
+    display: inline-flex; align-items: baseline; gap: 8px;
+  }
+  .agent-network-view-tab.is-active { color: var(--console-text); border-bottom-color: var(--console-accent); }
+  .agent-network-view-count { font-size: 10px; color: var(--console-text-muted); font-variant-numeric: tabular-nums; }
+  .list-item {
+    display: flex; justify-content: space-between; gap: 14px;
+    padding: 10px 4px;
+    border-top: 1px solid var(--console-rule);
+  }
+  .list-item:first-of-type { border-top: none; }
+  .list-name { display: block; font-size: 13px; color: var(--console-text); }
+  .list-desc { display: block; font-size: 12px; color: var(--console-text-muted); }
+  .pill {
+    align-self: center;
+    font-family: var(--console-mono);
+    font-size: 9.5px; letter-spacing: 0.1em; text-transform: lowercase;
+    padding: 2px 9px; border-radius: 100px;
+    border: 1px solid var(--console-rule-strong);
+    color: var(--console-text-muted);
+    white-space: nowrap;
+  }
+  .pill--warn { color: var(--console-warn); border-color: color-mix(in srgb, var(--console-warn) 35%, transparent); }
+  .fade-hint {
+    -webkit-mask-image: linear-gradient(to bottom, black 30%, transparent);
+    mask-image: linear-gradient(to bottom, black 30%, transparent);
+    pointer-events: none;
+  }
+
+  /* ================= map (shared, themed via currentColor) ================= */
+  .ring { fill: none; stroke: var(--console-rule); }
+  .crosshair { stroke: var(--console-rule); }
+  .ring-label {
+    fill: var(--console-text-faint);
+    font-family: var(--console-mono);
+    font-size: 8.5px; letter-spacing: 0.08em;
+  }
+  .node { cursor: pointer; color: var(--console-secondary); }
+  .node .glyph { fill: currentColor; }
+  .node.discovered .glyph {
+    fill: transparent; stroke: var(--console-warn);
+    stroke-width: 1.3; stroke-dasharray: 3 2.4;
+  }
+  .node .halo {
+    fill: currentColor; opacity: 0;
+    transition: opacity 160ms ease;
+  }
+  .node:hover .halo, .node.is-lit .halo { opacity: 0.16; }
+  .node.dim { opacity: 0.22; }
+  .node-label {
+    fill: var(--console-text-muted);
+    font-family: var(--console-mono);
+    font-size: 9px; letter-spacing: 0.08em; text-transform: lowercase;
+  }
+  .cluster-hull {
+    fill: color-mix(in srgb, var(--console-secondary) 4%, transparent);
+    stroke: color-mix(in srgb, var(--console-secondary) 38%, transparent);
+    stroke-dasharray: 2 5; stroke-linecap: round;
+  }
+  .cluster-label {
+    fill: color-mix(in srgb, var(--console-secondary) 75%, var(--console-text));
+    font-family: var(--console-mono);
+    font-size: 8.5px; font-weight: 500;
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .you-core { fill: var(--console-accent); }
+  .you-pulse {
+    fill: none; stroke: var(--console-accent);
+    animation: prox-pulse 2.4s ease-in-out infinite;
+    transform-origin: center; transform-box: fill-box;
+  }
+  @keyframes prox-pulse {
+    0%, 100% { opacity: 0.55; transform: scale(0.6); }
+    70% { opacity: 0; transform: scale(1.5); }
+    71% { opacity: 0; transform: scale(0.6); }
+  }
+  @media (prefers-reduced-motion: reduce) { .you-pulse { animation: none; opacity: 0.35; } }
+  .you-label {
+    fill: var(--console-text-dim);
+    font-family: var(--console-mono);
+    font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+    text-anchor: middle;
+  }
 
   .tooltip {
-    position: absolute; pointer-events: none; z-index: 5;
-    background: #1c2024; color: #f4f4f2; border-radius: 8px;
-    padding: 8px 11px; font-size: 12px; line-height: 1.45;
-    max-width: 220px; opacity: 0; transition: opacity 120ms;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+    position: absolute; pointer-events: none; z-index: 50;
+    background: var(--console-card, #14112b);
+    border: 1px solid var(--console-rule-strong);
+    color: var(--console-text);
+    border-radius: 8px;
+    padding: 9px 12px 10px;
+    max-width: 240px;
+    opacity: 0; transition: opacity 120ms;
+    box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.7);
   }
   .tooltip.show { opacity: 1; }
-  .tooltip .t-name { font-weight: 600; }
-  .tooltip .t-meta { color: #b9bec6; }
-  .tooltip .t-tags { color: #8fd3cd; }
+  .tooltip .t-name { font-size: 13px; color: var(--console-text); }
+  .tooltip .t-id, .tooltip .t-meta {
+    font-family: var(--console-mono);
+    font-size: 9.5px; letter-spacing: 0.06em;
+    color: var(--console-text-muted);
+  }
+  .tooltip .t-tags { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .tooltip .t-tag {
+    font-family: var(--console-mono);
+    font-size: 9px; letter-spacing: 0.08em; text-transform: lowercase;
+    padding: 1px 7px; border-radius: 100px;
+    border: 1px solid var(--console-rule-strong);
+    color: var(--console-text-dim);
+  }
 
-  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; font-size: 12.5px; color: var(--muted); align-items: center; }
-  .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
-  .legend .hollow { background: transparent; border: 1.5px dashed #9ca3af; }
-  .legend .hull-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1.5px dashed var(--cluster); margin-right: 6px; vertical-align: -3px; }
-
-  /* Console widget frame */
-  .console { background: #16181d; border-radius: 12px; padding: 18px 20px 8px; display: inline-block; border: 1px solid #262a31; }
-  .console .w-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; width: 100%; }
-  .console .w-title { color: #e8e6e1; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
-  .console .w-digest { color: #8a919c; font-size: 11.5px; }
-  .console .ring { stroke: #262a31; }
-  .console .bearing-line { stroke: #262a31; }
-  .console .node text { fill: #c7ccd4; }
-  .console .node circle.dot { stroke: #16181d; }
-  .console .cluster-hull { fill: rgba(148, 163, 184, 0.05); stroke: #7d8899; }
-  .console .cluster-chip { fill: #9aa3b0; }
-  .console .cluster-chip-bg { fill: #16181d; stroke: #3a404a; }
-  .console .you-core { fill: #e8e6e1; }
-  .console .you-halo { stroke: #e8e6e1; }
-  .console .you-label { fill: #e8e6e1; }
+  /* ================= site element · paper ================= */
+  .paper.stage {
+    background: var(--console-bg);
+    color: var(--console-text);
+    padding: 72px 32px 88px;
+    position: relative;
+  }
+  .paper.stage::before {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.06; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .site-section { position: relative; max-width: 880px; margin: 0 auto; }
+  .site-kicker {
+    font-family: var(--console-mono);
+    font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--console-accent);
+    margin-bottom: 14px;
+  }
+  .site-heading {
+    font-family: var(--console-display);
+    font-variation-settings: "SOFT" 60, "opsz" 72;
+    font-weight: 480;
+    font-size: clamp(34px, 5vw, 46px);
+    line-height: 1.05; letter-spacing: -0.01em;
+    max-width: 18ch;
+  }
+  .site-heading em {
+    font-style: italic;
+    font-variation-settings: "SOFT" 100, "opsz" 72;
+    font-weight: 430;
+    color: var(--console-accent);
+  }
+  .site-lede {
+    margin-top: 16px; max-width: 52ch;
+    font-size: 15.5px; line-height: 1.65;
+    color: var(--console-text-dim);
+  }
+  .site-map-plate {
+    margin-top: 40px;
+    background: var(--console-card);
+    border: 1px solid var(--console-rule-strong);
+    border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(255, 250, 235, 0.65) inset, 0 22px 44px -30px rgba(90, 60, 20, 0.3);
+    padding: 34px 26px 22px;
+    display: grid; place-items: center;
+  }
+  .site-map-plate svg { max-width: 100%; height: auto; }
+  .site-legend {
+    display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center;
+    margin-top: 22px; padding-top: 16px;
+    border-top: 1px solid var(--console-rule);
+    width: 100%;
+  }
+  .site-legend .legend-row { color: var(--console-text-muted); }
 </style>
 </head>
 <body>
-<main>
-  <h1>Agent proximity map — mockup</h1>
-  <p class="sub">Radial semantic map: you at the center, every discovered agent placed by embedding distance. Two renders of the same component: website element and console dashboard widget.</p>
 
-  <section>
-    <h2>Website element</h2>
-    <p class="note">
-      <strong>Radius</strong> = cosine distance between the agent's embedding and your brain's identity embedding (closer to center = semantically closer to you).
-      <strong>Bearing</strong> = direction from a 2-component PCA of agent embeddings, so similar agents share a heading.
-      Clusters detected in full embedding space are circled and labeled with their dominant skill tags. Hover a node for details.
+<p class="mock-note">mockup 1 / 2 — console · network tab (instrument climate)</p>
+<div class="instrument stage">
+  <div class="frame">
+    <div class="dashboard-tabs">
+      <a class="dashboard-tab" href="#">overview</a>
+      <a class="dashboard-tab is-active" href="#">network</a>
+      <a class="dashboard-tab" href="#">content</a>
+      <a class="dashboard-tab" href="#">system</a>
+    </div>
+    <div class="canvas">
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-title">Agent Proximity</span>
+          <span class="card-subtitle">12 agents · 2 clusters · 1 pending index</span>
+        </div>
+        <div class="prox-body">
+          <div class="prox-map" id="console-map"></div>
+          <aside class="rail">
+            <div>
+              <div class="rail-title">Closest</div>
+              <div id="nearest"></div>
+            </div>
+            <div>
+              <div class="rail-title">Key</div>
+              <div class="legend">
+                <div class="legend-row"><span class="legend-glyph"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#818cf8"/></svg></span>professional</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="10" height="10"><rect x="1" y="1" width="8" height="8" fill="#818cf8"/></svg></span>team</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="12" height="12"><rect x="2.4" y="2.4" width="7" height="7" fill="#818cf8" transform="rotate(45 6 6)"/></svg></span>collective</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="none" stroke="#f5c158" stroke-width="1.3" stroke-dasharray="3 2.4"/></svg></span>pending review</div>
+                <div class="legend-row"><span class="legend-glyph"><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="none" stroke="rgba(129,140,248,.5)" stroke-dasharray="2 4" stroke-linecap="round"/></svg></span>semantic cluster</div>
+              </div>
+            </div>
+            <p class="pending-note"><b>1 agent</b> awaiting embedding — appears once indexed.</p>
+          </aside>
+        </div>
+      </article>
+
+      <article class="card fade-hint" aria-hidden="true">
+        <div class="card-head">
+          <span class="card-title">Agent Network</span>
+        </div>
+        <div class="agent-network-view-tabs">
+          <span class="agent-network-view-tab is-active">Agents <span class="agent-network-view-count">12</span></span>
+          <span class="agent-network-view-tab">Skills <span class="agent-network-view-count">26</span></span>
+        </div>
+        <div class="list-item">
+          <div><span class="list-name">Kai · kai.brain</span><span class="list-desc">Research partner.</span></div>
+        </div>
+        <div class="list-item">
+          <div><span class="list-name">North · north.ops</span><span class="list-desc">Operations team.</span></div>
+          <span class="pill pill--warn">review</span>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</div>
+
+<p class="mock-note" style="padding-top:34px">mockup 2 / 2 — website element (paper climate, site template)</p>
+<div class="paper stage">
+  <section class="site-section">
+    <p class="site-kicker">Agent network</p>
+    <h2 class="site-heading">The agents in <em>this brain's orbit</em></h2>
+    <p class="site-lede">
+      Every agent this brain has discovered, placed by how close its work sits to ours —
+      distance is measured in meaning, not geography. Circled constellations share a practice.
     </p>
-    <div class="map-frame" id="site-map"></div>
-    <div class="legend">
-      <span><span class="swatch" style="background:var(--professional)"></span>professional</span>
-      <span><span class="swatch" style="background:var(--team)"></span>team</span>
-      <span><span class="swatch" style="background:var(--collective)"></span>collective</span>
-      <span><span class="swatch hollow"></span>discovered (pending review)</span>
-      <span><span class="hull-swatch"></span>semantic cluster</span>
-    </div>
-  </section>
-
-  <section>
-    <h2>Console dashboard widget</h2>
-    <p class="note">Compact render of the same component in the dashboard chrome: title + digest line, ring labels hidden, node labels only on hover. Sits next to the existing “Agent Network” widget.</p>
-    <div class="console">
-      <div class="w-head">
-        <span class="w-title">Agent Proximity</span>
-        <span class="w-digest">12 agents · 2 clusters · 1 pending index</span>
+    <div class="site-map-plate">
+      <div id="site-map"></div>
+      <div class="site-legend">
+        <div class="legend-row"><span class="legend-glyph"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#6b2fa0"/></svg></span>professional</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="10" height="10"><rect x="1" y="1" width="8" height="8" fill="#6b2fa0"/></svg></span>team</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="12" height="12"><rect x="2.4" y="2.4" width="7" height="7" fill="#6b2fa0" transform="rotate(45 6 6)"/></svg></span>collective</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="none" stroke="#b3801a" stroke-width="1.3" stroke-dasharray="3 2.4"/></svg></span>pending review</div>
+        <div class="legend-row"><span class="legend-glyph"><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="none" stroke="rgba(107,47,160,.5)" stroke-dasharray="2 4" stroke-linecap="round"/></svg></span>semantic cluster</div>
       </div>
-      <div class="map-frame" id="console-map"></div>
     </div>
   </section>
-</main>
+</div>
 
 <div class="tooltip" id="tooltip"></div>
 
 <script>
 // ---- fake data (mirrors the planned datasource schema) --------------------
-// distance: cosine distance to the brain-character embedding (0..~0.7)
-// bearing:  degrees, from PCA of agent embeddings — similar agents share heading
 const NODES = [
   { id: "kai.brain",   name: "Kai",    kind: "professional", status: "approved",   tags: ["research", "writing"],      distance: 0.28, bearing: 35 },
   { id: "mira.studio", name: "Mira",   kind: "professional", status: "approved",   tags: ["research", "editing"],      distance: 0.34, bearing: 50 },
@@ -140,88 +468,133 @@ const NODES = [
   { id: "pixel.zone",  name: "Pixel",  kind: "collective",   status: "discovered", tags: ["art", "curation"],          distance: 0.52, bearing: 75 },
 ];
 const CLUSTERS = [
-  { label: "research & writing · 4", memberIds: ["kai.brain", "mira.studio", "sage.co", "nova.works"] },
-  { label: "ops & automation · 3",   memberIds: ["north.ops", "forge.dev", "atlas.net"] },
+  { label: "research · 4",   memberIds: ["kai.brain", "mira.studio", "sage.co", "nova.works"] },
+  { label: "operations · 3", memberIds: ["north.ops", "forge.dev", "atlas.net"] },
 ];
-const KIND_COLOR = { professional: "#0f766e", team: "#4f46e5", collective: "#b45309" };
 const RING_DISTANCES = [0.2, 0.4, 0.6];
 const MAX_DISTANCE = 0.7;
 
 // ---- renderer --------------------------------------------------------------
+const svgNS = "http://www.w3.org/2000/svg";
+function el(parent, tag, attrs, text) {
+  const n = document.createElementNS(svgNS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (text) n.textContent = text;
+  parent.appendChild(n);
+  return n;
+}
 function polar(c, r, deg) {
   const rad = (deg * Math.PI) / 180;
   return { x: c + r * Math.cos(rad), y: c - r * Math.sin(rad) };
 }
+function glyph(parent, kind, x, y, s) {
+  if (kind === "team") {
+    return el(parent, "rect", { class: "glyph", x: x - s, y: y - s, width: s * 2, height: s * 2 });
+  }
+  if (kind === "collective") {
+    return el(parent, "rect", {
+      class: "glyph", x: x - s, y: y - s, width: s * 2, height: s * 2,
+      transform: `rotate(45 ${x} ${y})`,
+    });
+  }
+  return el(parent, "circle", { class: "glyph", cx: x, cy: y, r: s });
+}
 
-function renderMap(el, opts) {
+function renderMap(container, opts) {
   const S = opts.size, c = S / 2, maxR = c - opts.pad;
   const rOf = (d) => (d / MAX_DISTANCE) * maxR;
-  const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", S); svg.setAttribute("height", S);
+  svg.setAttribute("width", S);
+  svg.setAttribute("height", S);
   svg.setAttribute("viewBox", `0 0 ${S} ${S}`);
 
-  const add = (parent, tag, attrs, text) => {
-    const n = document.createElementNS(svgNS, tag);
-    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
-    if (text) n.textContent = text;
-    parent.appendChild(n);
-    return n;
-  };
-
-  // distance rings
+  // crosshair + distance rings — quiet instrument furniture
+  el(svg, "line", { class: "crosshair", x1: c, y1: opts.pad - 14, x2: c, y2: S - opts.pad + 14 });
+  el(svg, "line", { class: "crosshair", x1: opts.pad - 14, y1: c, x2: S - opts.pad + 14, y2: c });
   for (const d of RING_DISTANCES) {
-    add(svg, "circle", { class: "ring", cx: c, cy: c, r: rOf(d) });
-    if (opts.ringLabels) add(svg, "text", { class: "ring-label", x: c + 4, y: c - rOf(d) - 4 }, d.toFixed(1));
+    el(svg, "circle", { class: "ring", cx: c, cy: c, r: rOf(d) });
+    el(svg, "text", { class: "ring-label", x: c + 5, y: c - rOf(d) - 5 }, d.toFixed(1));
   }
 
-  // node positions
   const pos = {};
   for (const n of NODES) pos[n.id] = polar(c, rOf(n.distance), n.bearing);
 
-  // cluster hulls (under nodes)
+  // cluster hulls under everything else
   for (const cl of CLUSTERS) {
     const pts = cl.memberIds.map((id) => pos[id]);
     const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
     const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-    const r = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy))) + opts.nodeR * 3;
-    add(svg, "circle", { class: "cluster-hull", cx, cy, r });
-    const chipW = cl.label.length * 5.6 + 14;
-    add(svg, "rect", { class: "cluster-chip-bg", x: cx - chipW / 2, y: cy - r - 18, width: chipW, height: 16, rx: 8 });
-    add(svg, "text", { class: "cluster-chip", x: cx, y: cy - r - 6, "text-anchor": "middle" }, cl.label);
+    const r = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy))) + 20;
+    el(svg, "circle", { class: "cluster-hull", cx, cy, r });
+    const above = cy < c;
+    el(svg, "text", {
+      class: "cluster-label", x: cx, y: above ? cy - r - 9 : cy + r + 16,
+      "text-anchor": "middle",
+    }, cl.label);
   }
 
-  // center = you
-  add(svg, "circle", { class: "you-halo", cx: c, cy: c, r: 12 });
-  add(svg, "circle", { class: "you-core", cx: c, cy: c, r: 5 });
-  add(svg, "text", { class: "you-label", x: c, y: c + 26 }, "You");
+  // center — the brain, pulsing
+  el(svg, "circle", { class: "you-pulse", cx: c, cy: c, r: 13, "stroke-width": 1.4 });
+  el(svg, "circle", { class: "you-core", cx: c, cy: c, r: 4.5 });
+  el(svg, "text", { class: "you-label", x: c, y: c + 27 }, "you");
 
-  // agent nodes
+  // agents
   const tooltip = document.getElementById("tooltip");
+  const groups = [];
   for (const n of NODES) {
     const p = pos[n.id];
-    const g = add(svg, "g", { class: `node ${n.status}`, style: `color: ${KIND_COLOR[n.kind]}` });
-    add(g, "circle", { class: "dot", cx: p.x, cy: p.y, r: opts.nodeR });
+    const g = el(svg, "g", { class: `node ${n.status}` });
+    el(g, "circle", { class: "halo", cx: p.x, cy: p.y, r: opts.nodeR * 3 });
+    glyph(g, n.kind, p.x, p.y, opts.nodeR);
     if (opts.nodeLabels) {
-      add(g, "text", { x: p.x + opts.nodeR + 4, y: p.y + 3.5 }, n.name);
+      const anchor = p.x > c ? "start" : "end";
+      el(g, "text", {
+        class: "node-label",
+        x: p.x + (p.x > c ? opts.nodeR + 6 : -opts.nodeR - 6),
+        y: p.y + 3, "text-anchor": anchor,
+      }, n.name.toLowerCase());
     }
+    groups.push(g);
     g.addEventListener("mousemove", (e) => {
+      groups.forEach((other) => other !== g && other.classList.add("dim"));
       tooltip.innerHTML =
-        `<div class="t-name">${n.name} · ${n.id}</div>` +
-        `<div class="t-meta">${n.kind} · distance ${n.distance.toFixed(2)}${n.status === "discovered" ? " · pending review" : ""}</div>` +
-        `<div class="t-tags">${n.tags.join(" · ")}</div>`;
-      tooltip.style.left = e.pageX + 14 + "px";
-      tooltip.style.top = e.pageY + 10 + "px";
+        `<div class="t-name">${n.name}</div>` +
+        `<div class="t-id">${n.id}</div>` +
+        `<div class="t-meta">${n.kind} · d ${n.distance.toFixed(2)}${n.status === "discovered" ? " · pending review" : ""}</div>` +
+        `<div class="t-tags">${n.tags.map((t) => `<span class="t-tag">${t}</span>`).join("")}</div>`;
+      tooltip.style.left = e.pageX + 16 + "px";
+      tooltip.style.top = e.pageY + 12 + "px";
       tooltip.classList.add("show");
     });
-    g.addEventListener("mouseleave", () => tooltip.classList.remove("show"));
+    g.addEventListener("mouseleave", () => {
+      groups.forEach((other) => other.classList.remove("dim"));
+      tooltip.classList.remove("show");
+    });
   }
 
-  el.appendChild(svg);
+  container.appendChild(svg);
 }
 
-renderMap(document.getElementById("site-map"), { size: 640, pad: 60, nodeR: 6, ringLabels: true, nodeLabels: true });
-renderMap(document.getElementById("console-map"), { size: 360, pad: 34, nodeR: 4.5, ringLabels: false, nodeLabels: false });
+renderMap(document.getElementById("console-map"), { size: 560, pad: 48, nodeR: 5, nodeLabels: true });
+renderMap(document.getElementById("site-map"), { size: 620, pad: 56, nodeR: 5.5, nodeLabels: true });
+
+// nearest rail
+const nearest = [...NODES].sort((a, b) => a.distance - b.distance).slice(0, 4);
+document.getElementById("nearest").innerHTML = nearest
+  .map(
+    (n) =>
+      `<div class="near-row"><span><span class="near-name">${n.name}</span>` +
+      `<span class="near-id">${n.id}</span></span>` +
+      `<span class="near-dist">${n.distance.toFixed(2)}</span></div>`,
+  )
+  .join("");
+
+// tooltip inherits the climate of the hovered map
+for (const [mapId, climate] of [["console-map", "instrument"], ["site-map", "paper"]]) {
+  document.getElementById(mapId).addEventListener("mouseenter", () => {
+    document.getElementById("tooltip").className = `tooltip ${climate}`;
+  }, true);
+}
 </script>
 </body>
 </html>
