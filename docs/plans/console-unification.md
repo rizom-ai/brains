@@ -21,9 +21,10 @@ for what the fixtures cover.
 
 Remaining before this plan retires:
 
-- Chat dynamic message states — entity/tool cards, attachments, save-quote modules,
-  progress — are implemented but not pinned by fixtures or reviewed against the
-  specimens. Extend the fixture conversation to include these shapes, review, baseline.
+- ~~Chat dynamic message states~~ — pinned 2026-07-12: the `chat-cards` fixture session
+  baselines the sources, actions, and attachment cards (expanded) and the main
+  conversation pins the user upload chip. Progress parts are stream-only (`data-status`
+  during generation) and cannot be pinned from history fixtures; they remain live-only.
 - CMS fixture schema is title+summary only; the rich colophon (select, tags, toggle,
   date, cover image) and secondary states have no baseline coverage.
 - Release the pending changeset.

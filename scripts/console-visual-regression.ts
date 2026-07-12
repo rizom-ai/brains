@@ -89,6 +89,11 @@ const sessions = [
     lastActiveAt: "2026-07-10T12:04:00.000Z",
   },
   {
+    id: "cards",
+    title: "Verdigris export review",
+    lastActiveAt: "2026-07-10T11:15:00.000Z",
+  },
+  {
     id: "release",
     title: "Prepare alpha release",
     lastActiveAt: "2026-07-09T16:30:00.000Z",
@@ -105,6 +110,18 @@ const messages = [
     role: "user",
     content:
       "Can you check the responsive console foundation before the next release?",
+    // Pins the user upload chip in the top-anchored conversation, where it
+    // stays visible at every viewport.
+    attachments: [
+      {
+        kind: "text",
+        filename: "verdigris-field-notes.md",
+        mediaType: "text/markdown",
+        sizeBytes: 4182,
+        createdAt: "2026-07-10T11:58:00.000Z",
+        source: { kind: "upload", id: "upload-verdigris" },
+      },
+    ],
   },
   {
     id: "m2",
@@ -118,6 +135,84 @@ const messages = [
     role: "assistant",
     content:
       "The CMS preserves its warm editorial climate. Desktop separates colophon from manuscript; tablet and phone retain Details, Write, and Preview.",
+  },
+];
+// A second, short session pinning the dynamic message states the mockups
+// specify: user upload chip, retrieved-source citations, suggested actions,
+// and an exported attachment card. Cards render as <details>; the capture
+// opens them. Short enough that the whole exchange fits at 1440×1000.
+const cardMessages = [
+  {
+    id: "m5",
+    role: "user",
+    content: "Pull the verdigris research together for the trust series.",
+  },
+  {
+    id: "m6",
+    role: "assistant",
+    content:
+      "Queued for the trust series. Two notes ground the draft, and the excerpt board below is exported for review.",
+    cards: [
+      {
+        kind: "sources",
+        id: "card-sources",
+        title: "Grounding notes",
+        sources: [
+          {
+            id: "src-1",
+            title: "Verdigris pigments in early print",
+            source: "entity",
+            entityType: "note",
+            entityId: "verdigris-pigments",
+            excerpt:
+              "The copper acetate greens survive best in dry margins; the trust series should lead with the 1503 plates.",
+            provenance: { score: 0.92 },
+          },
+          {
+            id: "src-2",
+            title: "Domain as identity",
+            source: "entity",
+            entityType: "post",
+            entityId: "domain-as-identity",
+          },
+        ],
+      },
+      {
+        kind: "actions",
+        id: "card-actions",
+        title: "Next moves",
+        defaultOpen: true,
+        actions: [
+          {
+            type: "prompt",
+            id: "act-1",
+            label: "Draft the series opener",
+            prompt: "Draft the trust series opener from the verdigris notes.",
+            description: "Uses both grounding notes",
+          },
+          {
+            type: "event",
+            id: "act-2",
+            label: "Queue for export",
+            event: "publishing:queue",
+          },
+        ],
+      },
+      {
+        kind: "attachment",
+        id: "card-attachment",
+        title: "Verdigris excerpt board",
+        description: "Exported preview for the trust series review.",
+        attachment: {
+          mediaType: "image/png",
+          url: "/fixture/verdigris.png",
+          previewUrl: "/fixture/verdigris.png",
+          filename: "verdigris-board.png",
+          sizeBytes: 48213,
+          source: { entityType: "note", entityId: "verdigris-pigments" },
+        },
+      },
+    ],
   },
 ];
 
@@ -264,7 +359,7 @@ async function checkLayout(
     );
   }
 
-  if (surface === "chat") {
+  if (surface === "chat" || surface === "chat-cards") {
     const mobileTrigger = await page
       .locator(".web-chat-mobile-trigger")
       .evaluate((node) => getComputedStyle(node).display);
@@ -333,10 +428,27 @@ await Promise.all([readFile(cmsAsset), readFile(chatAsset)]).catch(() => {
   );
 });
 
+// Deterministic preview image for the attachment card: a flat verdigris
+// board rendered once at startup.
+const fixtureImage = await sharp({
+  create: {
+    width: 480,
+    height: 270,
+    channels: 3,
+    background: { r: 61, g: 107, b: 92 },
+  },
+})
+  .png()
+  .toBuffer();
+
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname === "/fixture/verdigris.png")
+      return new Response(fixtureImage, {
+        headers: { "content-type": "image/png" },
+      });
     if (url.pathname === "/dashboard")
       return new Response(
         climateHtml(renderDashboardPageHtml(dashboardInput()), request),
@@ -358,7 +470,15 @@ const server = Bun.serve({
         headers: { "content-type": "text/javascript" },
       });
     if (url.pathname === "/api/chat/sessions") return json({ sessions });
-    if (url.pathname === "/api/chat/messages") return json({ messages });
+    if (url.pathname === "/api/chat/uploads")
+      return new Response("# Verdigris field notes\n", {
+        headers: { "content-type": "text/markdown" },
+      });
+    if (url.pathname === "/api/chat/messages")
+      return json({
+        messages:
+          url.searchParams.get("id") === "cards" ? cardMessages : messages,
+      });
     if (url.pathname === "/api/chat/bootstrap") return json({ starters: [] });
     if (url.pathname === "/cms")
       return new Response(
@@ -426,33 +546,40 @@ try {
       for (const surface of [
         "dashboard",
         "chat",
+        "chat-cards",
         "cms-library",
         "cms-editor",
       ] as const) {
+        const isChat = surface === "chat" || surface === "chat-cards";
+        const conversationId =
+          surface === "chat-cards" ? "cards" : "responsive";
         const page = await browser.newPage({
           viewport,
           locale: "en-GB",
           deviceScaleFactor: 1,
         });
-        await page.addInitScript((now): void => {
-          Date.now = (): number => now;
-          localStorage.setItem(
-            "console.climate",
-            new URL(location.href).searchParams.get("climate") ?? "instrument",
-          );
-          localStorage.setItem("brain:web-chat:conversation-id", "responsive");
-        }, FIXED_NOW);
+        await page.addInitScript(
+          ({ now, conversation }): void => {
+            Date.now = (): number => now;
+            localStorage.setItem(
+              "console.climate",
+              new URL(location.href).searchParams.get("climate") ??
+                "instrument",
+            );
+            localStorage.setItem(
+              "brain:web-chat:conversation-id",
+              conversation,
+            );
+          },
+          { now: FIXED_NOW, conversation: conversationId },
+        );
         const route =
-          surface === "dashboard"
-            ? "/dashboard"
-            : surface === "chat"
-              ? "/chat"
-              : "/cms";
+          surface === "dashboard" ? "/dashboard" : isChat ? "/chat" : "/cms";
         const hash =
           surface === "cms-editor"
             ? "#/posts/field-notes"
-            : surface === "chat"
-              ? "#s/responsive"
+            : isChat
+              ? `#s/${conversationId}`
               : "";
         await page.goto(
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
@@ -460,6 +587,46 @@ try {
         );
         if (surface === "chat") {
           await page.getByText("And the CMS?").waitFor();
+        }
+        if (surface === "chat-cards") {
+          await page.getByText("Queued for the trust series.").waitFor();
+          // Cards ship collapsed; the baselines pin their expanded bodies.
+          await page.evaluate(() => {
+            for (const details of Array.from(
+              document.querySelectorAll("details"),
+            )) {
+              details.open = true;
+            }
+          });
+          await page.evaluate(() =>
+            Promise.all(
+              Array.from(document.images)
+                .filter((image) => !image.complete)
+                .map(
+                  (image) =>
+                    new Promise((resolve) => {
+                      image.addEventListener("load", resolve, { once: true });
+                      image.addEventListener("error", resolve, { once: true });
+                    }),
+                ),
+            ),
+          );
+          // Pin the end of the exchange: scroll every scrollable ancestor
+          // of the final message to its bottom (phone/tablet overflow).
+          await page.evaluate(() => {
+            const marker = Array.from(document.querySelectorAll("p"))
+              .reverse()
+              .find((node) =>
+                node.textContent?.includes("Queued for the trust series"),
+              );
+            let node: HTMLElement | null = marker ?? null;
+            while (node) {
+              if (node.scrollHeight > node.clientHeight + 4) {
+                node.scrollTop = node.scrollHeight;
+              }
+              node = node.parentElement;
+            }
+          });
         }
         await page.evaluate(() => document.fonts.ready);
         await checkLayout(page, surface, viewport.width);
