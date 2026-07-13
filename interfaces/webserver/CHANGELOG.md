@@ -1,5 +1,12 @@
 # @brains/webserver
 
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.162
+
 ## 0.2.0-alpha.161
 
 ### Patch Changes

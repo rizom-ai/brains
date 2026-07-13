@@ -1,6 +1,6 @@
 {
   "name": "@brains/stock-photo",
-  "version": "0.2.0-alpha.161",
+  "version": "0.2.0-alpha.162",
   "description": "Stock photo search and selection — Unsplash provider",
   "dependencies": {
     "@brains/image": "workspace:*",

@@ -1,5 +1,63 @@
 # @brains/rover
 
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- [`457e95f`](https://github.com/rizom-ai/brains/commit/457e95f38476ef5fdc2b676ae83153de6be66599) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Themes become independently published npm packages, completing the
+  published-package model for brain.yaml: `@rizom/theme-default` (the editorial
+  base) and `@rizom/theme-rizom-ai` (the consolidated rizom.ai theme, depending
+  on the base so fixes flow via npm resolution) publish dist-only artifacts with
+  their CSS inlined. The brain entrypoint registers `@rizom/theme-default` and
+  keeps a `@brains/theme-default` alias for pre-rename brain.yaml files; hosted
+  deployments install `@rizom/*` theme refs next to the brain instead of
+  requiring themes to be bundled into a brain release.
+- Updated dependencies [[`457e95f`](https://github.com/rizom-ai/brains/commit/457e95f38476ef5fdc2b676ae83153de6be66599)]:
+  - @rizom/theme-default@0.2.0-alpha.162
+  - @brains/agent-discovery@0.2.0-alpha.162
+  - @brains/assessment@0.2.0-alpha.162
+  - @brains/blog@0.2.0-alpha.162
+  - @brains/decks@0.2.0-alpha.162
+  - @brains/doc@0.2.0-alpha.162
+  - @brains/document-plugin@0.2.0-alpha.162
+  - @brains/image-plugin@0.2.0-alpha.162
+  - @brains/link@0.2.0-alpha.162
+  - @brains/note@0.2.0-alpha.162
+  - @brains/portfolio@0.2.0-alpha.162
+  - @brains/products@0.2.0-alpha.162
+  - @brains/prompt@0.2.0-alpha.162
+  - @brains/rizom-ecosystem@0.2.0-alpha.162
+  - @brains/series@0.2.0-alpha.162
+  - @brains/site-info@0.2.0-alpha.162
+  - @brains/social-media@0.2.0-alpha.162
+  - @brains/topics@0.2.0-alpha.162
+  - @brains/wishlist@0.2.0-alpha.162
+  - @brains/a2a@0.2.0-alpha.162
+  - @brains/chat@0.2.0-alpha.162
+  - @brains/discord@0.2.0-alpha.162
+  - @brains/mcp@0.2.0-alpha.162
+  - @brains/web-chat@0.2.0-alpha.162
+  - @brains/webserver@0.2.0-alpha.162
+  - @brains/analytics@0.2.0-alpha.162
+  - @brains/atproto@0.2.0-alpha.162
+  - @brains/atproto-registry@0.2.0-alpha.162
+  - @brains/cms@0.2.0-alpha.162
+  - @brains/content-pipeline@0.2.0-alpha.162
+  - @brains/dashboard@0.2.0-alpha.162
+  - @brains/directory-sync@0.2.0-alpha.162
+  - @brains/email-resend@0.2.0-alpha.162
+  - @brains/newsletter@0.2.0-alpha.162
+  - @brains/notifications@0.2.0-alpha.162
+  - @brains/obsidian-vault@0.2.0-alpha.162
+  - @brains/playbooks@0.2.0-alpha.162
+  - @brains/rover-onboarding@0.2.0-alpha.162
+  - @brains/site-builder-plugin@0.2.0-alpha.162
+  - @brains/site-content@0.2.0-alpha.162
+  - @brains/stock-photo@0.2.0-alpha.162
+  - @brains/app@0.2.0-alpha.162
+  - @brains/auth-service@0.2.0-alpha.162
+  - @brains/site-default@0.2.0-alpha.162
+
 ## 0.2.0-alpha.161
 
 ### Patch Changes

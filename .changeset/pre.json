@@ -242,6 +242,7 @@
     "public-entity-types-reconciliation",
     "public-site-package-deps-republish",
     "public-site-package-deps",
+    "published-theme-packages",
     "quiet-dingos-search",
     "relay-auth-service",
     "relay-operator-surface-evals",
