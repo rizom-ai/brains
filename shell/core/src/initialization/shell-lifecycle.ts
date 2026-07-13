@@ -1,12 +1,5 @@
-import { Cause, Effect, Exit, Scope } from "effect";
-
-async function runEffect<A>(effect: Effect.Effect<A>): Promise<A> {
-  const exit = await Effect.runPromiseExit(effect);
-  if (Exit.isSuccess(exit)) {
-    return exit.value;
-  }
-  throw Cause.squash(exit.cause);
-}
+import { Effect, Exit, Scope } from "effect";
+import { runEffectPromise } from "../effect-runtime";
 
 /**
  * Owns resources whose lifetime matches one Shell instance.
@@ -43,7 +36,7 @@ export class ShellLifecycle {
     if (this.closed) {
       throw new Error("Cannot start background work after shell shutdown");
     }
-    await runEffect(Effect.forkIn(effect, this.scope));
+    await runEffectPromise(Effect.forkIn(effect, this.scope));
   }
 
   /** Close once. Effect scopes run registered finalizers in reverse order. */
@@ -52,6 +45,6 @@ export class ShellLifecycle {
   ): Promise<void> {
     if (this.closed) return;
     this.closed = true;
-    await runEffect(Scope.close(this.scope, exit));
+    await runEffectPromise(Scope.close(this.scope, exit));
   }
 }

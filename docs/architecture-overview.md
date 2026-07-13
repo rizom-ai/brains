@@ -22,6 +22,22 @@ brain model + brain.yaml instance config = running brain
 5. **Brain model / instance separation** — reusable models live in `brains/`; running instances are lightweight directories centered on `brain.yaml`.
 6. **Public API first** — external code should use the published `@rizom/brain/*` authoring APIs. Internal packages may use workspace packages, but should still avoid reaching into shell internals unless there is no supported boundary yet.
 
+## Effect runtime boundary
+
+The shell uses Effect for internal control-plane concerns where ownership and structured concurrency matter: startup rollback, resource finalization, daemon lifecycle, background monitors, worker fibers, and concurrent lifecycle barriers.
+
+The boundary is intentionally narrow:
+
+- Public shell, plugin, daemon, and job APIs remain Promise-based.
+- Cancellation crosses public boundaries as standard `AbortSignal`, not Effect types.
+- Zod remains the schema and external contract system; Effect Schema is not used in parallel.
+- Simple CRUD, validation, and synchronous registry operations should not be wrapped mechanically in Effect.
+- Long-running work must be attached to an owning scope or supervised fiber; detached fibers require an explicit reason.
+- Wrapping a Promise does not make its underlying operation cancellable. Cancellation-sensitive adapters must consume the signal supplied by Effect.
+- Persistent jobs drain gracefully by default so interruption cannot abandon a claimed queue row.
+
+This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages.
+
 ## Workspace structure
 
 The monorepo is organized into these main categories:

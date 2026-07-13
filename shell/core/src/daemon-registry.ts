@@ -12,13 +12,8 @@ import {
   startDaemonInfo,
   stopDaemonInfo,
 } from "./daemon-operations";
-import { Cause, Effect, Exit, Scope } from "effect";
-
-async function runEffect<A>(effect: Effect.Effect<A>): Promise<A> {
-  const exit = await Effect.runPromiseExit(effect);
-  if (Exit.isSuccess(exit)) return exit.value;
-  throw Cause.squash(exit.cause);
-}
+import { Effect, Exit, Scope } from "effect";
+import { runEffectPromise } from "./effect-runtime";
 
 /**
  * Daemon registry for managing long-running interface processes
@@ -119,10 +114,10 @@ export class DaemonRegistry {
     );
 
     try {
-      await runEffect(Scope.extend(daemonResource, scope));
+      await runEffectPromise(Scope.extend(daemonResource, scope));
       this.daemonScopes.set(name, scope);
     } catch (error) {
-      await runEffect(Scope.close(scope, Exit.fail(error)));
+      await runEffectPromise(Scope.close(scope, Exit.fail(error)));
       throw error;
     }
   }
@@ -143,7 +138,7 @@ export class DaemonRegistry {
     }
 
     this.daemonScopes.delete(name);
-    await runEffect(Scope.close(scope, Exit.void));
+    await runEffectPromise(Scope.close(scope, Exit.void));
   }
 
   /**
