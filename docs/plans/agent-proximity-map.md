@@ -2,7 +2,7 @@
 
 ## Status
 
-P2, implemented in `work/agent-proximity-website`; merge and release remain. The interactive console map shipped in `0.2.0-alpha.161`, and the composable website element is implemented and validated in the worktree. This does not preempt the P0 release candidate or P1 identity/model/Rizom lanes. Mockup at [agent-proximity-map-mockup.html](./agent-proximity-map-mockup.html) (open in a browser); delete it together with this plan after the website element ships.
+P2, implemented on `main`; only the changeset release remains. The interactive console map shipped in `0.2.0-alpha.161`; the composable website element is merged with its changeset pending. This does not preempt the P0 release candidate or P1 identity/model/Rizom lanes. Mockup at [agent-proximity-map-mockup.html](./agent-proximity-map-mockup.html) (open in a browser); delete it together with this plan after the website element ships.
 
 ## Context
 

@@ -209,6 +209,38 @@ const SITE_STYLES = `
   letter-spacing: 0.04em;
   pointer-events: none;
 }
+.agent-proximity-site .proximity-tooltip-name {
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.8rem;
+  color: var(--console-text);
+}
+.agent-proximity-site .proximity-tooltip-meta { color: var(--console-text-muted); }
+.agent-proximity-site .proximity-tooltip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+}
+.agent-proximity-site .proximity-tooltip-tag {
+  padding: 0 0.45rem;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 100px;
+  color: var(--console-text-dim);
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+.agent-proximity-site .proximity-field--dense .proximity-node-label,
+.agent-proximity-site .proximity-field--dense .proximity-label-leader {
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.agent-proximity-site .proximity-field--dense .proximity-agent:hover .proximity-node-label,
+.agent-proximity-site .proximity-field--dense .proximity-agent:focus .proximity-node-label,
+.agent-proximity-site .proximity-field--dense .proximity-agent:hover .proximity-label-leader,
+.agent-proximity-site .proximity-field--dense .proximity-agent:focus .proximity-label-leader {
+  opacity: 1;
+}
 .agent-proximity-site .proximity-empty {
   display: grid;
   min-height: 18rem;
@@ -262,6 +294,8 @@ const SITE_STYLES = `
   .agent-proximity-site .proximity-center-halo,
   .agent-proximity-site .proximity-bulb-glow,
   .agent-proximity-site .proximity-spore { animation: none; }
+  /* SMIL motion can't be paused from CSS — hide the pulse dots instead. */
+  .agent-proximity-site .proximity-pulse { display: none; }
 }
 `;
 

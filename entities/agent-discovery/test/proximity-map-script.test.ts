@@ -10,7 +10,20 @@ describe("proximityMapScript", () => {
     expect(proximityMapScript).toContain("focusCluster");
     expect(proximityMapScript).toContain('addEventListener("mouseenter"');
     expect(proximityMapScript).toContain('addEventListener("focus"');
-    expect(proximityMapScript).toContain("textContent");
     expect(proximityMapScript).toContain('status === "archived"');
+  });
+
+  test("wakes free agents from their chart row", () => {
+    expect(proximityMapScript).toContain("data-proximity-freeagents");
+    expect(proximityMapScript).toContain("focusFreeAgents");
+  });
+
+  test("builds the structured tooltip with textContent, never markup injection", () => {
+    expect(proximityMapScript).toContain("proximity-tooltip-name");
+    expect(proximityMapScript).toContain("proximity-tooltip-meta");
+    expect(proximityMapScript).toContain("proximity-tooltip-tag");
+    expect(proximityMapScript).toContain("createElement");
+    expect(proximityMapScript).toContain("textContent");
+    expect(proximityMapScript).not.toContain("innerHTML");
   });
 });

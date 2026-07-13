@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import {
+  collectRouteAssets,
   collectRouteScripts,
   type RouteScriptContext,
   type RouteScriptTemplate,
@@ -105,5 +106,41 @@ describe("collectRouteScripts", () => {
     const route = makeRoute(["hero"]);
 
     expect(collectRouteScripts(route, ctx)).toEqual([]);
+  });
+});
+
+describe("collectRouteAssets", () => {
+  it("gathers static assets only from templates used on the given routes", () => {
+    const ctx = makeContext({
+      hero: makeTemplate(),
+      map: {
+        runtimeScripts: [{ src: "/scripts/map.js", defer: true }],
+        staticAssets: { "/scripts/map.js": "(function(){/* map */})();" },
+      },
+      unused: {
+        staticAssets: { "/scripts/unused.js": "nope" },
+      },
+    });
+
+    const assets = collectRouteAssets([makeRoute(["hero", "map"])], ctx);
+    expect(assets).toEqual({ "/scripts/map.js": "(function(){/* map */})();" });
+  });
+
+  it("dedupes by path across routes with the first declaration winning", () => {
+    const ctx = makeContext({
+      map: { staticAssets: { "/scripts/shared.js": "first" } },
+      mapAlt: { staticAssets: { "/scripts/shared.js": "second" } },
+    });
+
+    const assets = collectRouteAssets(
+      [makeRoute(["map"]), makeRoute(["mapAlt"])],
+      ctx,
+    );
+    expect(assets).toEqual({ "/scripts/shared.js": "first" });
+  });
+
+  it("returns an empty map when no used template declares assets", () => {
+    const ctx = makeContext({ hero: makeTemplate() });
+    expect(collectRouteAssets([makeRoute(["hero"])], ctx)).toEqual({});
   });
 });

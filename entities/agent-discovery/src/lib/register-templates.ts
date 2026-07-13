@@ -109,7 +109,9 @@ const agentListSchema = z.object({
   selectedStatus: z.union([z.literal("all"), agentStatusSchema]),
 });
 
-const proximityMapRuntimeScript = `data:text/javascript;charset=utf-8,${encodeURIComponent(proximityMapScript)}`;
+// Served as a real file (emitted via template staticAssets) rather than a
+// data: URI — data: script srcs are blocked by any script-src CSP.
+const PROXIMITY_SCRIPT_SRC = "/scripts/agent-proximity-map.js";
 
 export function getTemplates(): Record<string, Template> {
   return {
@@ -119,7 +121,8 @@ export function getTemplates(): Record<string, Template> {
       schema: proximityMapDataSchema,
       dataSourceId: AGENT_PROXIMITY_DATASOURCE_ID,
       requiredPermission: "public",
-      runtimeScripts: [{ src: proximityMapRuntimeScript, defer: true }],
+      runtimeScripts: [{ src: PROXIMITY_SCRIPT_SRC, defer: true }],
+      staticAssets: { [PROXIMITY_SCRIPT_SRC]: proximityMapScript },
       layout: {
         component: AgentProximityMapTemplate,
       },

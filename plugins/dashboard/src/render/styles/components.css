@@ -1481,6 +1481,40 @@ table.jobs {
   letter-spacing: 0.04em;
   pointer-events: none;
 }
+.proximity-tooltip-name {
+  font-family: var(--console-ui);
+  font-size: 13px;
+  color: var(--console-text);
+}
+.proximity-tooltip-meta { color: var(--console-text-muted); }
+.proximity-tooltip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.proximity-tooltip-tag {
+  padding: 1px 7px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 100px;
+  color: var(--console-text-dim);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+/* Past the label budget the field switches to dense mode: labels and their
+   leader lines surface only for the hovered or focused agent. */
+.proximity-field--dense .proximity-node-label,
+.proximity-field--dense .proximity-label-leader {
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.proximity-field--dense .proximity-agent:hover .proximity-node-label,
+.proximity-field--dense .proximity-agent:focus .proximity-node-label,
+.proximity-field--dense .proximity-agent:hover .proximity-label-leader,
+.proximity-field--dense .proximity-agent:focus .proximity-label-leader {
+  opacity: 1;
+}
 .proximity-empty { min-height: 180px; padding: 28px 4px; }
 @keyframes proximityBreathe {
   0%, 100% { opacity: 0.55; transform: scale(1); }
@@ -1505,6 +1539,8 @@ table.jobs {
   .proximity-center-halo,
   .proximity-bulb-glow,
   .proximity-spore { animation: none; }
+  /* SMIL motion can't be paused from CSS — hide the pulse dots instead. */
+  .proximity-pulse { display: none; }
 }
 
 .colophon {

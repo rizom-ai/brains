@@ -68,7 +68,7 @@ describe("AgentProximityMapTemplate", () => {
     );
   });
 
-  test("registers a public datasource template and scoped runtime script", () => {
+  test("registers a public datasource template and a CSP-safe runtime script asset", () => {
     const template = getTemplates()["agent-proximity-map"];
     if (!template) throw new Error("agent-proximity-map template not found");
 
@@ -77,11 +77,10 @@ describe("AgentProximityMapTemplate", () => {
     expect(template.schema.safeParse(data).success).toBe(true);
     expect(template.runtimeScripts).toHaveLength(1);
     expect(template.runtimeScripts?.[0]?.defer).toBe(true);
-    expect(template.runtimeScripts?.[0]?.src).toStartWith(
-      "data:text/javascript;charset=utf-8,",
-    );
-    expect(
-      decodeURIComponent(template.runtimeScripts?.[0]?.src ?? ""),
-    ).toContain("[data-proximity-map]");
+    // A real file, not a data: URI — data: script srcs are blocked by any
+    // script-src CSP, which would silently kill all map interactivity.
+    const src = template.runtimeScripts?.[0]?.src ?? "";
+    expect(src).toBe("/scripts/agent-proximity-map.js");
+    expect(template.staticAssets?.[src]).toContain("[data-proximity-map]");
   });
 });

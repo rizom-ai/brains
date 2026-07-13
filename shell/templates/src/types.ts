@@ -98,6 +98,14 @@ export interface Template extends Omit<
    * templates on a route, dedupes by src, and injects into <head>.
    */
   runtimeScripts?: RuntimeScript[];
+
+  /**
+   * Static files this template needs served alongside the site — typically
+   * the file behind a runtimeScripts src. Keyed by output-relative path;
+   * site-builder writes each entry into the build output for routes that
+   * actually render this template.
+   */
+  staticAssets?: Record<string, string>;
 }
 
 /**
@@ -115,6 +123,7 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
       fullscreen?: boolean;
     };
     runtimeScripts?: RuntimeScript[];
+    staticAssets?: Record<string, string>;
   },
 ): Template {
   const { layout, schema, ...rest } = template;

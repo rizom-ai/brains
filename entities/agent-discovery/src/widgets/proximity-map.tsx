@@ -213,9 +213,11 @@ function weavePath(first: Point, second: Point, random: () => number): string {
 function Bulb({
   node,
   point,
+  blurRef,
 }: {
   node: ProximityMapNode;
   point: Point;
+  blurRef: string;
 }): JSX.Element {
   const archived = node.status === "archived";
   const pending = node.status === "discovered";
@@ -259,7 +261,7 @@ function Bulb({
           r={radius * 3.2}
           fill="var(--console-accent)"
           opacity="0.13"
-          filter="url(#proximity-blur)"
+          filter={blurRef}
         />
         <circle cx={x} cy={y} r={radius} fill="var(--console-accent)" />
         <circle
@@ -309,6 +311,10 @@ function EmptyProximityMap({ data }: { data: ProximityMapData }): JSX.Element {
   );
 }
 
+/** Labels crowd past this many active nodes; dense mode shows them on hover. */
+const LABEL_BUDGET = 28;
+const MAX_PULSES = 6;
+
 export function ProximityMap({
   data,
   surface = "dashboard",
@@ -317,6 +323,12 @@ export function ProximityMap({
   surface?: "dashboard" | "site";
 }): JSX.Element {
   if (data.nodes.length === 0) return <EmptyProximityMap data={data} />;
+
+  // Defs and thread ids are namespaced per surface so two maps on one page
+  // never share (or theme-leak through) each other's filters and gradients.
+  const blurId = `proximity-blur-${surface}`;
+  const mistId = `proximity-mist-${surface}`;
+  const blurRef = `url(#${blurId})`;
 
   const maxNodeDistance = Math.max(...data.nodes.map((node) => node.distance));
   const maxDistance = Math.max(data.distanceRange.max, maxNodeDistance, 0.1);
@@ -331,10 +343,17 @@ export function ProximityMap({
   const weaveRandom = mulberry32(7331);
   const activeNodes = data.nodes.filter((node) => node.status !== "archived");
   const nodesById = new Map(data.nodes.map((node) => [node.id, node]));
+  const freeAgents = activeNodes.filter(
+    (node) => !clusterIdByNode.has(node.id),
+  );
+  const pulseLayouts = layouts
+    .filter(({ node }) => node.status === "approved")
+    .slice(0, MAX_PULSES);
+  const dense = activeNodes.length > LABEL_BUDGET;
 
   return (
     <div
-      class={`proximity-field proximity-field--${surface}`}
+      class={`proximity-field proximity-field--${surface}${dense ? " proximity-field--dense" : ""}`}
       data-proximity-map
     >
       <svg
@@ -347,16 +366,10 @@ export function ProximityMap({
         aria-label="Semantic proximity of saved agents to this brain"
       >
         <defs>
-          <filter
-            id="proximity-blur"
-            x="-60%"
-            y="-60%"
-            width="220%"
-            height="220%"
-          >
+          <filter id={blurId} x="-60%" y="-60%" width="220%" height="220%">
             <feGaussianBlur stdDeviation="2.6" />
           </filter>
-          <radialGradient id="proximity-mist">
+          <radialGradient id={mistId}>
             <stop
               offset="0%"
               stop-color="var(--console-secondary)"
@@ -413,7 +426,6 @@ export function ProximityMap({
               data-proximity-cluster-id={`cluster-${clusterIndex}`}
               data-proximity-cluster-label={cluster.label}
               data-proximity-cluster-members={cluster.memberIds.length}
-              role="button"
               tabIndex={0}
             >
               <circle
@@ -421,7 +433,7 @@ export function ProximityMap({
                 cx={geometry.center.x}
                 cy={geometry.center.y}
                 r={geometry.radius}
-                fill="url(#proximity-mist)"
+                fill={`url(#${mistId})`}
               />
               <g class="proximity-cluster-weave">
                 {paths.map((path, index) => (
@@ -432,7 +444,7 @@ export function ProximityMap({
                       stroke="var(--console-secondary)"
                       strokeOpacity="0.22"
                       strokeWidth="2.6"
-                      filter="url(#proximity-blur)"
+                      filter={blurRef}
                     />
                     <path
                       d={path}
@@ -473,12 +485,17 @@ export function ProximityMap({
           return (
             <g key={`thread:${node.id}`}>
               <path
+                id={
+                  node.status === "approved"
+                    ? `proximity-thread-${surface}-${node.id}`
+                    : undefined
+                }
                 d={path}
                 fill="none"
                 stroke={stroke}
                 strokeOpacity={archived ? 0.012 : pending ? 0.08 : 0.14}
                 strokeWidth="3.4"
-                filter={archived ? undefined : "url(#proximity-blur)"}
+                filter={archived ? undefined : blurRef}
               />
               <path
                 d={path}
@@ -500,6 +517,34 @@ export function ProximityMap({
           );
         })}
 
+        {/* nutrient pulses — energy transfer along established connections */}
+        {pulseLayouts.map(({ node }, index) => (
+          <g
+            key={`pulse:${node.id}`}
+            class="proximity-pulse"
+            aria-hidden="true"
+          >
+            <circle r="3.2" fill="var(--console-accent)" opacity="0.3">
+              <animateMotion
+                dur={`${5 + (index % 3) * 1.6}s`}
+                begin={`${index * 1.9}s`}
+                repeatCount="indefinite"
+              >
+                <mpath href={`#proximity-thread-${surface}-${node.id}`} />
+              </animateMotion>
+            </circle>
+            <circle r="1.3" fill="var(--console-text)" opacity="0.9">
+              <animateMotion
+                dur={`${5 + (index % 3) * 1.6}s`}
+                begin={`${index * 1.9}s`}
+                repeatCount="indefinite"
+              >
+                <mpath href={`#proximity-thread-${surface}-${node.id}`} />
+              </animateMotion>
+            </circle>
+          </g>
+        ))}
+
         <g data-proximity-center={data.center.kind}>
           <circle
             class="proximity-center-halo"
@@ -508,7 +553,7 @@ export function ProximityMap({
             r="26"
             fill="var(--console-accent)"
             opacity="0.1"
-            filter="url(#proximity-blur)"
+            filter={blurRef}
           />
           <circle
             cx={CENTER_X}
@@ -516,7 +561,7 @@ export function ProximityMap({
             r="11"
             fill="var(--console-accent)"
             opacity="0.28"
-            filter="url(#proximity-blur)"
+            filter={blurRef}
           />
           <circle
             cx={CENTER_X}
@@ -548,7 +593,6 @@ export function ProximityMap({
               data-proximity-status={node.status}
               data-proximity-distance={node.distance.toFixed(2)}
               data-proximity-tags={node.tags.join(", ")}
-              role="button"
               tabIndex={0}
             >
               <title>{`${node.name} · distance ${node.distance.toFixed(2)}${node.status === "discovered" ? " · pending review" : node.status === "archived" ? " · archived" : ""}`}</title>
@@ -559,12 +603,13 @@ export function ProximityMap({
                   r="15"
                   fill="var(--console-secondary)"
                   opacity="0.2"
-                  filter="url(#proximity-blur)"
+                  filter={blurRef}
                 />
               )}
-              <Bulb node={node} point={point} />
+              <Bulb node={node} point={point} blurRef={blurRef} />
               {Math.abs(labelY - point.y) > 7 && (
                 <path
+                  class="proximity-label-leader"
                   d={`M ${point.x + (labelAnchor === "start" ? 6 : -6)} ${point.y} L ${labelX + (labelAnchor === "start" ? -3 : 3)} ${labelY - 3}`}
                   fill="none"
                   stroke="var(--console-rule-strong)"
@@ -613,40 +658,56 @@ export function ProximityMap({
 
           <div
             class="proximity-hud proximity-hud-chart"
-            aria-label="Semantic constellations"
+            aria-label="Semantic proximity chart"
           >
-            <div class="proximity-hud-title">Constellations</div>
-            {data.clusters.length > 0 ? (
-              data.clusters.map((cluster, index) => (
-                <div
-                  class="proximity-constellation-row"
-                  key={`${cluster.label}:${index}`}
-                  data-proximity-constellation={`cluster-${index}`}
-                  data-proximity-cluster-label={cluster.label}
-                  data-proximity-cluster-members={cluster.memberIds.length}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <span>
-                    <span class="proximity-constellation-name">
-                      {cluster.label}
-                    </span>
-                    <span class="proximity-constellation-members">
-                      {cluster.memberIds
-                        .flatMap((id) => {
-                          const node = nodesById.get(id);
-                          return node ? [node.name] : [];
-                        })
-                        .join(" · ")}
-                    </span>
-                  </span>
-                  <span class="proximity-constellation-count">
-                    {cluster.memberIds.length} agents
-                  </span>
-                </div>
-              ))
-            ) : (
+            <div class="proximity-hud-title">Chart</div>
+            {data.clusters.length === 0 && freeAgents.length === 0 && (
               <p class="proximity-constellation-empty">No constellations yet</p>
+            )}
+            {data.clusters.map((cluster, index) => (
+              <div
+                class="proximity-constellation-row"
+                key={`${cluster.label}:${index}`}
+                data-proximity-constellation={`cluster-${index}`}
+                data-proximity-cluster-label={cluster.label}
+                data-proximity-cluster-members={cluster.memberIds.length}
+                tabIndex={0}
+              >
+                <span>
+                  <span class="proximity-constellation-name">
+                    {cluster.label}
+                  </span>
+                  <span class="proximity-constellation-members">
+                    {cluster.memberIds
+                      .flatMap((id) => {
+                        const node = nodesById.get(id);
+                        return node ? [node.name] : [];
+                      })
+                      .join(" · ")}
+                  </span>
+                </span>
+                <span class="proximity-constellation-count">
+                  {cluster.memberIds.length} agents
+                </span>
+              </div>
+            ))}
+            {freeAgents.length > 0 && (
+              <div
+                class="proximity-constellation-row"
+                data-proximity-freeagents
+                tabIndex={0}
+              >
+                <span>
+                  <span class="proximity-constellation-name">free agents</span>
+                  <span class="proximity-constellation-members">
+                    {freeAgents.map((node) => node.name).join(" · ")}
+                  </span>
+                </span>
+                <span class="proximity-constellation-count">
+                  {freeAgents.length}{" "}
+                  {freeAgents.length === 1 ? "agent" : "agents"}
+                </span>
+              </div>
             )}
           </div>
 

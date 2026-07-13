@@ -3,6 +3,7 @@ export const proximityMapScript = `(function () {
     var nodes = map.querySelectorAll("[data-proximity-node]");
     var clusters = map.querySelectorAll("[data-proximity-cluster-id]");
     var constellations = map.querySelectorAll("[data-proximity-constellation]");
+    var freeAgentRows = map.querySelectorAll("[data-proximity-freeagents]");
     var tooltip = map.querySelector("[data-proximity-tooltip]");
 
     function reset() {
@@ -15,15 +16,41 @@ export const proximityMapScript = `(function () {
       constellations.forEach(function (constellation) {
         constellation.style.opacity = "";
       });
+      freeAgentRows.forEach(function (row) {
+        row.style.opacity = "";
+      });
       if (tooltip) {
         tooltip.hidden = true;
         tooltip.textContent = "";
       }
     }
 
-    function showTooltip(anchor, text) {
+    // Structured tooltip built exclusively through textContent — agent names
+    // arrive from remote agent cards and must never be parsed as markup.
+    function showTooltip(anchor, parts) {
       if (!tooltip) return;
-      tooltip.textContent = text;
+      tooltip.textContent = "";
+      var name = document.createElement("div");
+      name.className = "proximity-tooltip-name";
+      name.textContent = parts.name;
+      tooltip.appendChild(name);
+      if (parts.meta) {
+        var meta = document.createElement("div");
+        meta.className = "proximity-tooltip-meta";
+        meta.textContent = parts.meta;
+        tooltip.appendChild(meta);
+      }
+      if (parts.tags && parts.tags.length > 0) {
+        var tags = document.createElement("div");
+        tags.className = "proximity-tooltip-tags";
+        parts.tags.forEach(function (tagText) {
+          var tag = document.createElement("span");
+          tag.className = "proximity-tooltip-tag";
+          tag.textContent = tagText;
+          tags.appendChild(tag);
+        });
+        tooltip.appendChild(tags);
+      }
       tooltip.hidden = false;
       var mapRect = map.getBoundingClientRect();
       var anchorRect = anchor.getBoundingClientRect();
@@ -31,6 +58,15 @@ export const proximityMapScript = `(function () {
       var top = anchorRect.top - mapRect.top - 8;
       tooltip.style.left = Math.min(left, mapRect.width - tooltip.offsetWidth - 12) + "px";
       tooltip.style.top = Math.max(12, top) + "px";
+    }
+
+    function dimChartRows() {
+      constellations.forEach(function (constellation) {
+        constellation.style.opacity = "0.28";
+      });
+      freeAgentRows.forEach(function (row) {
+        row.style.opacity = "0.28";
+      });
     }
 
     function focusCluster(clusterId) {
@@ -42,9 +78,27 @@ export const proximityMapScript = `(function () {
         var active = cluster.getAttribute("data-proximity-cluster-id") === clusterId;
         cluster.style.opacity = active ? "1" : "0.14";
       });
+      dimChartRows();
       constellations.forEach(function (constellation) {
-        var active = constellation.getAttribute("data-proximity-constellation") === clusterId;
-        constellation.style.opacity = active ? "1" : "0.28";
+        if (constellation.getAttribute("data-proximity-constellation") === clusterId) {
+          constellation.style.opacity = "1";
+        }
+      });
+    }
+
+    function focusFreeAgents() {
+      nodes.forEach(function (candidate) {
+        var solo =
+          !candidate.getAttribute("data-proximity-node-cluster") &&
+          candidate.getAttribute("data-proximity-status") !== "archived";
+        candidate.style.opacity = solo ? "1" : "0.2";
+      });
+      clusters.forEach(function (cluster) {
+        cluster.style.opacity = "0.14";
+      });
+      dimChartRows();
+      freeAgentRows.forEach(function (row) {
+        row.style.opacity = "1";
       });
     }
 
@@ -59,9 +113,7 @@ export const proximityMapScript = `(function () {
         clusters.forEach(function (cluster) {
           cluster.style.opacity = "0.14";
         });
-        constellations.forEach(function (constellation) {
-          constellation.style.opacity = "0.28";
-        });
+        dimChartRows();
       }
 
       var name = node.getAttribute("data-proximity-name") || "Agent";
@@ -70,39 +122,48 @@ export const proximityMapScript = `(function () {
       var distance = node.getAttribute("data-proximity-distance") || "";
       var tags = node.getAttribute("data-proximity-tags") || "";
       var statusLabel = status === "discovered" ? " · pending review" : status === "archived" ? " · archived" : "";
-      showTooltip(node, name + " · " + kind + statusLabel + " · distance " + distance + (tags ? " · " + tags : ""));
+      showTooltip(node, {
+        name: name,
+        meta: kind + statusLabel + " · distance " + distance,
+        tags: tags ? tags.split(", ") : [],
+      });
     }
 
     function activateConstellation(target, clusterId) {
       focusCluster(clusterId);
       var label = target.getAttribute("data-proximity-cluster-label") || "Constellation";
       var members = target.getAttribute("data-proximity-cluster-members") || "0";
-      showTooltip(target, label + " · constellation · " + members + " agents");
+      showTooltip(target, {
+        name: label,
+        meta: "constellation · " + members + " agents",
+      });
+    }
+
+    function bind(element, activate) {
+      element.addEventListener("mouseenter", activate);
+      element.addEventListener("mouseleave", reset);
+      element.addEventListener("focus", activate);
+      element.addEventListener("blur", reset);
     }
 
     nodes.forEach(function (node) {
-      node.addEventListener("mouseenter", function () { activateNode(node); });
-      node.addEventListener("mouseleave", reset);
-      node.addEventListener("focus", function () { activateNode(node); });
-      node.addEventListener("blur", reset);
+      bind(node, function () { activateNode(node); });
     });
 
     clusters.forEach(function (cluster) {
       var clusterId = cluster.getAttribute("data-proximity-cluster-id");
       if (!clusterId) return;
-      cluster.addEventListener("mouseenter", function () { activateConstellation(cluster, clusterId); });
-      cluster.addEventListener("mouseleave", reset);
-      cluster.addEventListener("focus", function () { activateConstellation(cluster, clusterId); });
-      cluster.addEventListener("blur", reset);
+      bind(cluster, function () { activateConstellation(cluster, clusterId); });
     });
 
     constellations.forEach(function (constellation) {
       var clusterId = constellation.getAttribute("data-proximity-constellation");
       if (!clusterId) return;
-      constellation.addEventListener("mouseenter", function () { activateConstellation(constellation, clusterId); });
-      constellation.addEventListener("mouseleave", reset);
-      constellation.addEventListener("focus", function () { activateConstellation(constellation, clusterId); });
-      constellation.addEventListener("blur", reset);
+      bind(constellation, function () { activateConstellation(constellation, clusterId); });
+    });
+
+    freeAgentRows.forEach(function (row) {
+      bind(row, function () { focusFreeAgents(); });
     });
   });
 })();`;
