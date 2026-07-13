@@ -261,6 +261,22 @@ Acceptance criteria:
 - Cross-thread, stale, replayed, and blocked-channel actions do not execute.
 - Discord suggested-action behavior remains unchanged.
 
+### 12. Preserve upload context for suggested actions
+
+Fix the live-trial gap where clicking a native suggested action such as **Describe image** retained the conversation but omitted the uploaded image from the new agent call.
+
+- Resolve recent trusted uploads for prompt-button turns through the existing transport-neutral upload-continuity service.
+- Apply the clicking user's permission level before restoring upload bytes.
+- Pass those attachments to the agent with the registered prompt while preserving the existing thread, stale-token, replay, and channel checks.
+- Do not change Discord message-button presentation or permit public users to restore uploads.
+
+Acceptance criteria:
+
+- A trusted or anchor Slack user can upload an image and click **Describe image**; the action turn receives that image as a native attachment.
+- Public prompt-button actions do not receive prior upload bytes.
+- Suggested actions without prior uploads continue to work.
+- Existing Slack and Discord action routing remains unchanged.
+
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.

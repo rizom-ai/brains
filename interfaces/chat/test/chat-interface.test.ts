@@ -4640,6 +4640,11 @@ describe("ChatInterface", () => {
   });
 
   it("posts and routes native Slack suggested-action cards", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "slack:*", level: "trusted" }],
+      }),
+    );
     agentService.chat
       .mockResolvedValueOnce({
         text: "I got a-campus-that-remembers.pdf.",
@@ -4679,7 +4684,21 @@ describe("ChatInterface", () => {
       adapter: { name: "slack" },
     });
 
-    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    const pdf = Buffer.from("%PDF-1.7 suggested action");
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "Use a-campus-that-remembers.pdf",
+        attachments: [
+          {
+            name: "a-campus-that-remembers.pdf",
+            mimeType: "application/pdf",
+            size: pdf.byteLength,
+            fetchData: mock(() => Promise.resolve(pdf)),
+          },
+        ],
+      }),
+    );
 
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -4738,9 +4757,106 @@ describe("ChatInterface", () => {
       expect.objectContaining({
         interfaceType: "slack",
         channelId: thread.id,
+        userPermissionLevel: "trusted",
+        attachments: [
+          expect.objectContaining({
+            kind: "file",
+            filename: "a-campus-that-remembers.pdf",
+            data: pdf,
+            source: expect.objectContaining({ kind: "slack-chat-upload" }),
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("does not restore uploads for public Slack suggested actions", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [
+          { pattern: "slack:user-789", level: "trusted" },
+          { pattern: "slack:*", level: "public" },
+        ],
+      }),
+    );
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "I got private.png.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        cards: [
+          {
+            kind: "actions",
+            id: "private-image-actions",
+            title: "Try next",
+            actions: [
+              {
+                type: "prompt",
+                id: "describe-image",
+                label: "Describe image",
+                prompt: "Describe the image",
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "No private attachment available.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+    const image = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "Use private.png",
+        attachments: [
+          {
+            name: "private.png",
+            mimeType: "image/png",
+            size: image.byteLength,
+            fetchData: mock(() => Promise.resolve(image)),
+          },
+        ],
+      }),
+    );
+
+    const actionToken = getFirstPromptActionToken(thread);
+    const actionButton = getCardActionButtons(thread, "Try next")[0];
+    const promptActionHandler = chat?.handlers.actions.find(
+      ({ actionIds }) => Array.isArray(actionIds) && actionIds.length === 0,
+    )?.handler;
+    await promptActionHandler?.({
+      actionId: actionButton?.id ?? "",
+      adapter: { name: "slack" },
+      messageId: "private-image-actions-message",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "public-user",
+        userName: "guest",
+        fullName: "Guest User",
+        isBot: false,
+        isMe: false,
+      },
+      value: actionToken,
+    } as MockActionEvent);
+
+    expect(agentService.chat.mock.calls[1]?.[2]).toEqual(
+      expect.objectContaining({
         userPermissionLevel: "public",
       }),
     );
+    expect(agentService.chat.mock.calls[1]?.[2]?.attachments).toBeUndefined();
   });
 
   it("caps Discord source and action card buttons to component limits", async () => {

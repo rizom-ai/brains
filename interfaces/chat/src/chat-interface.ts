@@ -591,6 +591,15 @@ export class ChatInterface extends MessageInterfacePlugin<
       logLabel: "Error handling chat prompt action",
       body: async () => {
         if (!this.context) return;
+        const attachments = await this.uploadContinuity[
+          platform
+        ].selectPriorUploads({
+          conversationId,
+          currentAttachments: [],
+          canRestore:
+            userPermissionLevel === "anchor" ||
+            userPermissionLevel === "trusted",
+        });
         const response = await this.context.agent.chat(
           action.prompt,
           conversationId,
@@ -600,6 +609,7 @@ export class ChatInterface extends MessageInterfacePlugin<
             channelId,
             channelName: getChannelName(thread),
             ...this.buildActionEventMetadata(platform, thread, event),
+            ...(attachments.length > 0 ? { attachments } : {}),
           },
         );
         await this.renderAgentResponse({
