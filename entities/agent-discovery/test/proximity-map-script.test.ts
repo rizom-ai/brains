@@ -6,16 +6,13 @@ describe("proximityMapScript", () => {
     expect(proximityMapScript).toContain("[data-proximity-map]");
     expect(proximityMapScript).toContain("data-proximity-node-cluster");
     expect(proximityMapScript).toContain("data-proximity-cluster-id");
-    expect(proximityMapScript).toContain("data-proximity-constellation");
     expect(proximityMapScript).toContain("focusCluster");
     expect(proximityMapScript).toContain('addEventListener("mouseenter"');
     expect(proximityMapScript).toContain('addEventListener("focus"');
     expect(proximityMapScript).toContain('status === "archived"');
-  });
-
-  test("wakes free agents from their chart row", () => {
-    expect(proximityMapScript).toContain("data-proximity-freeagents");
-    expect(proximityMapScript).toContain("focusFreeAgents");
+    // the chart column is gone — the map is the only interaction surface
+    expect(proximityMapScript).not.toContain("data-proximity-constellation");
+    expect(proximityMapScript).not.toContain("data-proximity-freeagents");
   });
 
   test("builds the structured tooltip with textContent, never markup injection", () => {

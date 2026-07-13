@@ -76,22 +76,29 @@ describe("ProximityMap", () => {
     expect(html).toContain('data-proximity-cluster="research · 2"');
     expect(html).toContain('data-proximity-cluster-id="cluster-0"');
     expect(html).toContain("data-proximity-tooltip");
-    expect(html).toContain("Chart");
-    expect(html).not.toContain("Closest");
-    expect(html).toContain('data-proximity-constellation="cluster-0"');
-    expect(html).toContain("Alpha · Beta");
     expect(html).toContain("pending indexing");
   });
 
-  test("charts unclustered active agents as free agents with hover linkage", () => {
+  test("gives the map the full card width — no chart column", () => {
     const html = render(<ProximityMap data={data} />);
 
-    expect(html).toContain("data-proximity-freeagents");
-    expect(html).toContain("free agents");
-    // only unclustered ACTIVE agents chart as free agents — archived stay out
-    expect(html).toContain(
-      '<span class="proximity-constellation-members">Gamma</span>',
-    );
+    expect(html).not.toContain("proximity-hud-chart");
+    expect(html).not.toContain("data-proximity-constellation");
+    expect(html).not.toContain("data-proximity-freeagents");
+    // constellations stay legible on the map itself
+    expect(html).toContain('data-proximity-cluster="research · 2"');
+    expect(html).toContain("proximity-cluster-label");
+  });
+
+  test("breathes a ripple whose arrival order is the proximity order", () => {
+    const html = render(<ProximityMap data={data} />);
+
+    expect(html).toContain("proximity-ripple");
+    expect(html).toContain('attributeName="r"');
+    // every non-archived bulb answers the wavefront when it arrives;
+    // archived traces stay dark (alpha, beta, gamma — not old)
+    const shimmers = html.split("proximityRippleShimmer").length - 1;
+    expect(shimmers).toBe(3);
   });
 
   test("runs nutrient pulses along approved threads only", () => {
@@ -121,7 +128,8 @@ describe("ProximityMap", () => {
     const html = render(<ProximityMap data={data} />);
 
     expect(html).not.toContain('role="button"');
-    expect(html).toContain('tabindex="0"');
+    // SVG attributes keep their casing in preact SSR output
+    expect(html).toContain('tabIndex="0"');
   });
 
   test("switches to dense label mode past the label budget", () => {

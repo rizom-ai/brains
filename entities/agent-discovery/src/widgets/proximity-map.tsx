@@ -11,9 +11,13 @@ export { proximityMapScript } from "./proximity-map-script";
 
 const WIDTH = 1000;
 const HEIGHT = 520;
-const CENTER_X = 360;
+// The map owns the full card width; the brain sits just right of center so
+// the count HUD (top-left) and the organism balance asymmetrically.
+const CENTER_X = 520;
 const CENTER_Y = 260;
 const MAX_RADIUS = 220;
+// The site surface crops to the disc, following the center.
+const SITE_VIEWBOX = `${CENTER_X - 340} 0 680 ${HEIGHT}`;
 
 interface Point {
   x: number;
@@ -314,6 +318,18 @@ function EmptyProximityMap({ data }: { data: ProximityMapData }): JSX.Element {
 /** Labels crowd past this many active nodes; dense mode shows them on hover. */
 const LABEL_BUDGET = 28;
 const MAX_PULSES = 6;
+/** The brain breathes light outward; bulbs shimmer as the wavefront crosses
+ * their radius, so the arrival order IS the proximity order. */
+const RIPPLE_PERIOD_S = 8;
+const RIPPLE_R_START = 14;
+const RIPPLE_R_END = 232;
+
+function rippleShimmerStyle(radius: number): string {
+  const arrival =
+    (RIPPLE_PERIOD_S * (radius - RIPPLE_R_START)) /
+    (RIPPLE_R_END - RIPPLE_R_START);
+  return `animation:proximityRippleShimmer ${RIPPLE_PERIOD_S}s linear infinite;animation-delay:${arrival.toFixed(2)}s`;
+}
 
 export function ProximityMap({
   data,
@@ -342,10 +358,6 @@ export function ProximityMap({
   });
   const weaveRandom = mulberry32(7331);
   const activeNodes = data.nodes.filter((node) => node.status !== "archived");
-  const nodesById = new Map(data.nodes.map((node) => [node.id, node]));
-  const freeAgents = activeNodes.filter(
-    (node) => !clusterIdByNode.has(node.id),
-  );
   const pulseLayouts = layouts
     .filter(({ node }) => node.status === "approved")
     .slice(0, MAX_PULSES);
@@ -357,9 +369,7 @@ export function ProximityMap({
       data-proximity-map
     >
       <svg
-        viewBox={
-          surface === "site" ? `40 0 680 ${HEIGHT}` : `0 0 ${WIDTH} ${HEIGHT}`
-        }
+        viewBox={surface === "site" ? SITE_VIEWBOX : `0 0 ${WIDTH} ${HEIGHT}`}
         width="100%"
         height="auto"
         role="img"
@@ -545,6 +555,41 @@ export function ProximityMap({
           </g>
         ))}
 
+        {/* outward ripple — a soft blurred pass under a thin bright edge */}
+        <g class="proximity-ripple" aria-hidden="true">
+          {[
+            { width: 5, opacity: "0.1;0.07;0", blurred: true },
+            { width: 1.1, opacity: "0.38;0.22;0", blurred: false },
+          ].map((pass) => (
+            <circle
+              key={pass.width}
+              cx={CENTER_X}
+              cy={CENTER_Y}
+              fill="none"
+              stroke="var(--console-accent)"
+              strokeWidth={pass.width}
+              filter={pass.blurred ? blurRef : undefined}
+            >
+              <animate
+                attributeName="r"
+                values={`${RIPPLE_R_START};${RIPPLE_R_END}`}
+                dur={`${RIPPLE_PERIOD_S}s`}
+                repeatCount="indefinite"
+                calcMode="spline"
+                keyTimes="0;1"
+                keySplines="0.2 0 0.4 1"
+              />
+              <animate
+                attributeName="stroke-opacity"
+                values={pass.opacity}
+                keyTimes="0;0.6;1"
+                dur={`${RIPPLE_PERIOD_S}s`}
+                repeatCount="indefinite"
+              />
+            </circle>
+          ))}
+        </g>
+
         <g data-proximity-center={data.center.kind}>
           <circle
             class="proximity-center-halo"
@@ -582,10 +627,17 @@ export function ProximityMap({
 
         {layouts.map(({ node, point, labelX, labelY, labelAnchor }) => {
           const clusterId = clusterIdByNode.get(node.id);
+          const shimmer =
+            node.status === "archived"
+              ? undefined
+              : rippleShimmerStyle(
+                  radiusForDistance(node.distance, maxDistance),
+                );
           return (
             <g
               class="proximity-agent"
               key={node.id}
+              style={shimmer}
               data-proximity-node={node.id}
               data-proximity-node-cluster={clusterId}
               data-proximity-name={node.name}
@@ -654,61 +706,6 @@ export function ProximityMap({
           <div class="proximity-hud proximity-hud-count" aria-hidden="true">
             <div class="proximity-count-number">{activeNodes.length}</div>
             <div class="proximity-count-label">agents in reach</div>
-          </div>
-
-          <div
-            class="proximity-hud proximity-hud-chart"
-            aria-label="Semantic proximity chart"
-          >
-            <div class="proximity-hud-title">Chart</div>
-            {data.clusters.length === 0 && freeAgents.length === 0 && (
-              <p class="proximity-constellation-empty">No constellations yet</p>
-            )}
-            {data.clusters.map((cluster, index) => (
-              <div
-                class="proximity-constellation-row"
-                key={`${cluster.label}:${index}`}
-                data-proximity-constellation={`cluster-${index}`}
-                data-proximity-cluster-label={cluster.label}
-                data-proximity-cluster-members={cluster.memberIds.length}
-                tabIndex={0}
-              >
-                <span>
-                  <span class="proximity-constellation-name">
-                    {cluster.label}
-                  </span>
-                  <span class="proximity-constellation-members">
-                    {cluster.memberIds
-                      .flatMap((id) => {
-                        const node = nodesById.get(id);
-                        return node ? [node.name] : [];
-                      })
-                      .join(" · ")}
-                  </span>
-                </span>
-                <span class="proximity-constellation-count">
-                  {cluster.memberIds.length} agents
-                </span>
-              </div>
-            ))}
-            {freeAgents.length > 0 && (
-              <div
-                class="proximity-constellation-row"
-                data-proximity-freeagents
-                tabIndex={0}
-              >
-                <span>
-                  <span class="proximity-constellation-name">free agents</span>
-                  <span class="proximity-constellation-members">
-                    {freeAgents.map((node) => node.name).join(" · ")}
-                  </span>
-                </span>
-                <span class="proximity-constellation-count">
-                  {freeAgents.length}{" "}
-                  {freeAgents.length === 1 ? "agent" : "agents"}
-                </span>
-              </div>
-            )}
           </div>
 
           <div class="proximity-hud proximity-hud-foot">

@@ -2,7 +2,7 @@
 
 ## Status
 
-P2, implemented on `main`; only the changeset release remains. The interactive console map shipped in `0.2.0-alpha.161`; the composable website element is merged with its changeset pending. This does not preempt the P0 release candidate or P1 identity/model/Rizom lanes. Mockup at [agent-proximity-map-mockup.html](./agent-proximity-map-mockup.html) (open in a browser); delete it together with this plan after the website element ships.
+P2, released. The interactive console map shipped in `0.2.0-alpha.161`; the composable website element plus the review polish (CSP-safe runtime-script asset via template `staticAssets`, chart HUD with free-agents row, nutrient pulses, namespaced SVG defs, structured tooltip, dense label mode) shipped in `0.2.0-alpha.165`. Remaining: a site composition actually using the template (the consolidated Rizom site's map-led home is the candidate), then delete this plan and the mockup ([agent-proximity-map-mockup.html](./agent-proximity-map-mockup.html)) per cleanup policy. Phase 2 stays parked. This does not preempt the P0 release candidate or P1 identity/model/Rizom lanes.
 
 ## Context
 
