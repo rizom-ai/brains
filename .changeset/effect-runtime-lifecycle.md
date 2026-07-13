@@ -5,6 +5,7 @@
 "@brains/job-queue": patch
 "@brains/mcp-service": patch
 "@brains/plugins": patch
+"@brains/runtime-state": patch
 "@brains/mcp": patch
 "@brains/web-chat": patch
 ---

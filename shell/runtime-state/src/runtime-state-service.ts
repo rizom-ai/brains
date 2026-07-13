@@ -18,6 +18,11 @@ export class RuntimeStateService implements IRuntimeStateNamespace {
   private readonly db: RuntimeStateDB;
   private readonly client: Client;
   private readonly logger: Logger;
+  private readonly databaseUrl: string;
+  private walInitialization: Promise<void> | null = null;
+  private walInitializationSettled = false;
+  private closeRequested = false;
+  private clientClosed = false;
 
   static getInstance(
     config: RuntimeStateServiceConfig,
@@ -46,14 +51,29 @@ export class RuntimeStateService implements IRuntimeStateNamespace {
     const { db, client, url } = createRuntimeStateDatabase(config);
     this.db = db;
     this.client = client;
+    this.databaseUrl = url;
     this.logger = logger.child("RuntimeStateService");
+  }
 
-    enableRuntimeStateWALMode(client, url).catch((error) => {
+  /** Settle non-fatal database readiness work before the shell becomes ready. */
+  initialize(): Promise<void> {
+    if (this.closeRequested) return Promise.resolve();
+    this.walInitialization ??= this.initializeWALMode();
+    return this.walInitialization;
+  }
+
+  private async initializeWALMode(): Promise<void> {
+    try {
+      await enableRuntimeStateWALMode(this.client, this.databaseUrl);
+    } catch (error) {
       this.logger.warn(
         "Failed to enable runtime state WAL mode (non-fatal)",
         error,
       );
-    });
+    } finally {
+      this.walInitializationSettled = true;
+      if (this.closeRequested) this.closeClient();
+    }
   }
 
   scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T> {
@@ -61,6 +81,15 @@ export class RuntimeStateService implements IRuntimeStateNamespace {
   }
 
   close(): void {
+    this.closeRequested = true;
+    if (!this.walInitialization || this.walInitializationSettled) {
+      this.closeClient();
+    }
+  }
+
+  private closeClient(): void {
+    if (this.clientClosed) return;
+    this.clientClosed = true;
     this.client.close();
   }
 }

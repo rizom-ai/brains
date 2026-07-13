@@ -105,6 +105,9 @@ export interface JobHandler<
  * Job queue service interface
  */
 export interface IJobQueueService {
+  /** Settle database readiness work before runtime services start. */
+  initialize?(): Promise<void>;
+
   /**
    * Register a job handler for a specific type
    */

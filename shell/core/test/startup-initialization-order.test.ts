@@ -41,6 +41,26 @@ describe("Startup Initialization Order", () => {
       "../src/initialization/shellBootloader.ts",
     );
 
+    it("should settle database readiness before loading plugins", () => {
+      const source = readFileSync(shellBootloaderPath, "utf-8");
+      const pluginInitializationIndex = source.indexOf(
+        "shellInitializer.initializeAll",
+      );
+
+      expect(source).toContain("entityService.initialize()");
+      expect(source).toContain("jobQueueService.initialize?.()");
+      expect(source).toContain("runtimeStateService.initialize()");
+      expect(source.indexOf("entityService.initialize()")).toBeLessThan(
+        pluginInitializationIndex,
+      );
+      expect(source.indexOf("jobQueueService.initialize?.()")).toBeLessThan(
+        pluginInitializationIndex,
+      );
+      expect(source.indexOf("runtimeStateService.initialize()")).toBeLessThan(
+        pluginInitializationIndex,
+      );
+    });
+
     it("should initialize identity services after plugins-registered sync and before plugin ready hooks", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 

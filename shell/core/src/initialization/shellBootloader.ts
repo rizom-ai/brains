@@ -62,9 +62,14 @@ export class ShellBootloader {
       this.config,
     );
 
-    // Initialize databases (WAL mode, migrations, indexes, ATTACH) before
-    // plugins load — they need search and embeddings to work.
-    await this.services.entityService.initialize();
+    // Settle database readiness (WAL mode, migrations, indexes, ATTACH)
+    // before plugins load or runtime services can use the connections.
+    await runConcurrentPhase([
+      (): Promise<void> => this.services.entityService.initialize(),
+      (): Promise<void> =>
+        this.services.jobQueueService.initialize?.() ?? Promise.resolve(),
+      (): Promise<void> => this.services.runtimeStateService.initialize(),
+    ]);
 
     await shellInitializer.initializeAll(
       this.services.templateRegistry,
