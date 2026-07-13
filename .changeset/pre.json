@@ -123,6 +123,7 @@
     "agent-connect-approves",
     "agent-network-expertise-search",
     "agent-proximity-embedding-access",
+    "agent-proximity-site-element",
     "align-preview-domain-routing",
     "atproto-discovery-agent-events",
     "atproto-registry-contracts",

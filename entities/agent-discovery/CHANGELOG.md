@@ -1,5 +1,23 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- [`983ff85`](https://github.com/rizom-ai/brains/commit/983ff852d6415c62407afa900668d358774a98ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the semantic agent proximity map as a composable public website section with a dedicated datasource, paper-climate rendering, and route-scoped interaction script.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.163
+  - @brains/atproto-contracts@0.2.0-alpha.163
+  - @brains/content-formatters@0.2.0-alpha.163
+  - @brains/contracts@0.2.0-alpha.163
+  - @brains/http-signatures@0.2.0-alpha.163
+  - @brains/ui-library@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/auth-service@0.2.0-alpha.163
+  - @brains/plugins@0.2.0-alpha.163
+  - @brains/templates@0.2.0-alpha.163
+
 ## 0.2.0-alpha.162
 
 ### Patch Changes

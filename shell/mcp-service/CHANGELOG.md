@@ -1,5 +1,14 @@
 # @brains/mcp-service
 
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/messaging-service@0.2.0-alpha.163
+  - @brains/templates@0.2.0-alpha.163
+
 ## 0.2.0-alpha.162
 
 ### Patch Changes

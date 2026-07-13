@@ -1,6 +1,6 @@
 {
   "name": "@brains/core",
-  "version": "0.2.0-alpha.162",
+  "version": "0.2.0-alpha.163",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
