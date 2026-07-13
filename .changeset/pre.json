@@ -223,6 +223,7 @@
     "openai-compatible-newsletter-email-schema",
     "ops-anchor-profile-content-seeding",
     "ops-build-brain-version-input",
+    "ops-commit-untracked-generated-config",
     "ops-deploy-finalize-push-ref",
     "ops-dockerfile-reconcile",
     "ops-merge-encrypted-user-secrets",
