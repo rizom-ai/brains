@@ -42,7 +42,7 @@
     "@brains/test-utils": "0.2.0",
     "@brains/theme-base": "0.2.0",
     "@brains/theme-brutalist": "0.2.0",
-    "@brains/theme-default": "0.2.0",
+    "@rizom/theme-default": "0.2.0",
     "@brains/theme-editorial": "0.2.0",
     "@brains/theme-geometric": "0.2.0",
     "@brains/theme-mylittlephoney": "0.2.0",
@@ -115,7 +115,7 @@
     "@brains/sveltia-cms": "0.2.0-alpha.141",
     "@brains/console-theme": "0.2.0-alpha.143",
     "@rizom/site-sections": "0.2.0-alpha.159",
-    "@brains/theme-rizom-ai": "0.2.0-alpha.141"
+    "@rizom/theme-rizom-ai": "0.2.0-alpha.141"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
