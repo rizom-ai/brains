@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for live trial. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Webhook and Socket Mode wiring, routing, platform-isolated subscription persistence, text-based confirmations, progress fallbacks, and permission-gated uploads are implemented; live validation remains.
+Ready for one-time Slack provisioning and a live trial. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Webhook and Socket Mode wiring, routing, platform-isolated subscription persistence, text-based confirmations, progress fallbacks, permission-gated uploads, and the programmatic local-trial harness are implemented; live validation remains.
 
 Keep this as a separate Slack plan, independent of the Discord parity/replacement work.
 
@@ -154,9 +154,29 @@ Acceptance criteria:
 - Progress messages update or fall back safely.
 - Generated artifact fallback links never expose out-of-scope stored artifacts.
 
-### 6. Live Slack trial
+### 6. Add a programmatic local-trial harness
 
-Run a real Slack app trial after automated tests pass. Automated tests cover valid and invalid Slack request signatures plus abortable Socket Mode lifecycle. Use Socket Mode for the first local trial so only real workspace credentials are required; a publicly reachable webhook is optional.
+Make the first live trial reproducible without editing an existing Rover test app or exposing a webhook.
+
+- Commit a Slack app manifest for the supported single-workspace Socket Mode configuration, including bot scopes, events, `socket_mode_enabled`, and the `connections:write` app-token requirement.
+- Add a dedicated Rover Slack test app at `brains/rover/test-apps/slack/brain.yaml` that opts into `chat`, removes the legacy Discord interface, configures `mode: socket`, and keeps credentials in environment interpolation only.
+- Add a documented `bun start:slack` Rover script that uses the same model-owned startup path as the existing preset test apps.
+- Add a preflight command that checks required Slack environment variables without printing values, calls Slack `auth.test`, reports the app/workspace identity, validates Socket Mode, and fails clearly for missing scopes or invalid credentials. Normal Rover startup remains responsible for model-wide credentials such as `AI_API_KEY`.
+- Keep the default smoke flow operator-driven from Slack. A fully automated message/file sender is optional and must require a separate, explicitly supplied test-user token; never make a user token part of normal setup.
+- Document the one-time manual boundary: workspace authorization/app installation and creation of the `xapp-...` app-level token require Slack approval.
+- Never generate, copy, log, or commit Slack credentials.
+
+Acceptance criteria:
+
+- A developer can provision/update the app from the committed manifest using Slack's app-manifest workflow after authenticating to a workspace.
+- `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_TEST_USER_ID`, `AI_API_KEY`, and other required model credentials can be supplied through the shell or an ignored local env file.
+- One command starts the dedicated Rover Slack test app without modifying another tracked test config.
+- Preflight verifies credentials and app identity without exposing secrets.
+- Missing credentials fail before Rover startup with actionable messages.
+
+### 7. Live Slack trial
+
+Run a real Slack app trial after the programmatic harness and automated tests pass. Automated tests cover valid and invalid Slack request signatures plus abortable Socket Mode lifecycle. Use Socket Mode for the first local trial so only real workspace credentials and the one-time Slack workspace approval are required; a publicly reachable webhook is optional.
 
 Smoke checks:
 
@@ -176,6 +196,8 @@ Smoke checks:
 
 - Multi-workspace OAuth installs.
 - Serverless Socket Mode forwarding or a hosted socket gateway.
+- Automating Slack workspace consent, bypassing app-install approval, or storing operator/test-user credentials.
+- A required test-user token for the normal local trial path.
 - Slack Block Kit-native approval buttons.
 - Hosted shared Slack gateway.
 - Reworking Discord parity or Rover migration decisions.
@@ -190,5 +212,7 @@ Use focused checks per slice:
 - `cd interfaces/chat && bun run typecheck`
 - `cd interfaces/chat && bun test`
 - `cd interfaces/chat && bun run lint`
+- `cd brains/rover && bun test test/chat-interface-opt-in.test.ts`
+- run the Slack preflight command with intentionally missing credentials and confirm it fails safely
 
 Run broader workspace checks only when shared contracts, runtime state, package exports, or migrations change.

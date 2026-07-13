@@ -72,6 +72,7 @@
     "start:core": "bun run build:ui && cd test-apps/core && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:default": "bun run build:ui && cd test-apps/default && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:full": "bun run build:ui && cd test-apps/full && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
+    "start:slack": "bun run --filter @brains/chat slack:preflight && bun run build:ui && cd test-apps/slack && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

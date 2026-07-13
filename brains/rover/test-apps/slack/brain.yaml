@@ -1,0 +1,34 @@
+brain: rover
+preset: core
+
+add:
+  - chat
+remove:
+  - discord
+
+permissions:
+  rules:
+    - pattern: "slack:${SLACK_TEST_USER_ID}"
+      level: anchor
+    - pattern: "slack:*"
+      level: public
+
+plugins:
+  chat:
+    adapters:
+      slack:
+        mode: socket
+        botToken: ${SLACK_BOT_TOKEN}
+        appToken: ${SLACK_APP_TOKEN}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+  rover-onboarding:
+    enabled: false
+  directory-sync:
+    seedContentPath: ../../eval-content-core
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/rover-slack-test-content
+      gitUrl: file:///tmp/rover-slack-test-content.git

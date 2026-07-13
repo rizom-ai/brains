@@ -56,7 +56,24 @@ plugins:
 
 Slack supports a single workspace in either webhook or Socket Mode. Create a Slack app with the scopes and events documented in [`docs/plans/slack-chat-sdk.md`](../../docs/plans/slack-chat-sdk.md), including `files:read` when uploads are enabled.
 
-For local testing, enable **Socket Mode**, create an app-level `xapp-...` token with `connections:write`, and configure:
+For local testing, create the Slack app from [`slack-app-manifest.yaml`](./slack-app-manifest.yaml), authorize/install it in the test workspace, then create an app-level `xapp-...` token with `connections:write`. The manifest enables Socket Mode and declares the supported scopes/events.
+
+The dedicated Rover trial validates credentials and starts with one command:
+
+```bash
+export SLACK_BOT_TOKEN='xoxb-...'
+export SLACK_APP_TOKEN='xapp-...'
+export SLACK_TEST_USER_ID='U...'
+export AI_API_KEY='...'
+export GIT_SYNC_TOKEN='...'
+
+cd brains/rover
+bun start:slack
+```
+
+The preflight calls `auth.test`, validates Socket Mode, and probes file, conversation, and user access without printing tokens or socket URLs. Workspace authorization, app installation, and app-token creation remain one-time Slack-approved steps.
+
+The dedicated test app configuration is:
 
 ```yaml
 plugins:

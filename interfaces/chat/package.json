@@ -24,6 +24,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
+    "slack:preflight": "bun scripts/slack-preflight.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

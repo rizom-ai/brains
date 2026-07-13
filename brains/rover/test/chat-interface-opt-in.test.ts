@@ -10,6 +10,27 @@ describe("Rover ChatInterface opt-in", () => {
     expect(rover.evalDisable).toContain("chat");
   });
 
+  it("ships a dedicated Socket Mode trial app and start command", async () => {
+    const brainYaml = await Bun.file(
+      new URL("../test-apps/slack/brain.yaml", import.meta.url),
+    ).text();
+    const packageJson = (await Bun.file(
+      new URL("../package.json", import.meta.url),
+    ).json()) as { scripts?: Record<string, string> };
+
+    expect(brainYaml).toContain("preset: core");
+    expect(brainYaml).toContain("- chat");
+    expect(brainYaml).toContain("- discord");
+    expect(brainYaml).toContain("mode: socket");
+    expect(brainYaml).toContain("botToken: ${SLACK_BOT_TOKEN}");
+    expect(brainYaml).toContain("appToken: ${SLACK_APP_TOKEN}");
+    expect(brainYaml).toContain('pattern: "slack:${SLACK_TEST_USER_ID}"');
+    expect(packageJson.scripts?.["start:slack"]).toContain(
+      "@brains/chat slack:preflight",
+    );
+    expect(packageJson.scripts?.["start:slack"]).toContain("test-apps/slack");
+  });
+
   it("can switch local trials from discord to chat with add/remove overrides", () => {
     const config = resolve(
       rover,
