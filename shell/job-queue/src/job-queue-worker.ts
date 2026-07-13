@@ -9,7 +9,13 @@ import type {
   JobQueueWorkerStats,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
-import { Effect, Exit, Fiber, FiberMap, Scope } from "effect";
+import { Effect, Exit, Fiber, FiberMap, Schedule, Scope } from "effect";
+import type { Clock } from "effect";
+
+interface JobQueueWorkerRuntimeOptions {
+  /** Internal clock boundary used for deterministic polling tests. */
+  clock?: Clock.Clock;
+}
 
 /**
  * Generic job queue worker that processes jobs from the queue
@@ -31,6 +37,7 @@ export class JobQueueWorker {
   private currentPoll: Promise<void> | null = null;
   private workerScope: Scope.CloseableScope | null = null;
   private jobFibers: FiberMap.FiberMap<string, void, never> | null = null;
+  private readonly clock: Clock.Clock | undefined;
 
   /**
    * Get the singleton instance
@@ -65,8 +72,21 @@ export class JobQueueWorker {
     progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
+  ): JobQueueWorker;
+  public static createFresh(
+    jobQueueService: IJobQueueService,
+    progressMonitor: IJobProgressMonitor,
+    logger: Logger,
+    config?: JobQueueWorkerConfig,
+    runtimeOptions?: JobQueueWorkerRuntimeOptions,
   ): JobQueueWorker {
-    return new JobQueueWorker(jobQueueService, progressMonitor, logger, config);
+    return new JobQueueWorker(
+      jobQueueService,
+      progressMonitor,
+      logger,
+      config,
+      runtimeOptions,
+    );
   }
 
   /**
@@ -77,10 +97,12 @@ export class JobQueueWorker {
     progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
+    runtimeOptions?: JobQueueWorkerRuntimeOptions,
   ) {
     this.logger = logger.child("JobQueueWorker");
     this.jobQueueService = jobQueueService;
     this.progressMonitor = progressMonitor;
+    this.clock = runtimeOptions?.clock;
     this.config = {
       concurrency: config?.concurrency ?? 1,
       pollInterval: config?.pollInterval ?? 1000,
@@ -330,22 +352,39 @@ export class JobQueueWorker {
   }
 
   /**
-   * Poll until stop is requested. The fiber replaces recursive timer
-   * scheduling and is interrupted by stop() when sleeping or between polls.
+   * Poll on a spaced schedule until stop is requested. The fiber is
+   * interrupted by stop() while waiting or between polls.
    */
   private runPollingLoop(): Effect.Effect<void> {
-    return Effect.gen(this, function* () {
-      while (this.isWorkerRunning() && !this.isStopRequested()) {
-        yield* Effect.sleep(this.config.pollInterval);
-        if (!this.isWorkerRunning() || this.isStopRequested()) break;
-
-        // Keep the Promise reference because dequeue itself is not abortable.
-        // stop() waits for it before draining any jobs claimed by that poll.
-        this.currentPoll = this.processAvailableJobs();
-        yield* Effect.promise(() => this.currentPoll ?? Promise.resolve());
-        this.currentPoll = null;
+    const poll = Effect.suspend(() => {
+      if (!this.isWorkerRunning() || this.isStopRequested()) {
+        return Effect.interrupt;
       }
-    }).pipe(
+
+      // Keep the Promise reference because dequeue itself is not abortable.
+      // stop() waits for it before draining any jobs claimed by that poll.
+      this.currentPoll = this.processAvailableJobs();
+      return Effect.promise(() => this.currentPoll ?? Promise.resolve()).pipe(
+        Effect.andThen(
+          Effect.suspend(() => {
+            this.currentPoll = null;
+            return !this.isWorkerRunning() || this.isStopRequested()
+              ? Effect.interrupt
+              : Effect.void;
+          }),
+        ),
+      );
+    });
+
+    const scheduledPolling = poll.pipe(
+      Effect.schedule(Schedule.spaced(this.config.pollInterval)),
+      Effect.asVoid,
+    );
+    const loop = this.clock
+      ? Effect.withClock(scheduledPolling, this.clock)
+      : scheduledPolling;
+
+    return loop.pipe(
       Effect.ensuring(
         Effect.sync(() => {
           this.pollFiber = null;
