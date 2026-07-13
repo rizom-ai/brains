@@ -88,11 +88,13 @@ export type {
 export {
   InvalidRefreshTokenError,
   RefreshTokenStore,
+  RuntimeRefreshTokenStore,
 } from "./refresh-token-store";
 export type {
   ConsumedRefreshToken,
   IssuedRefreshToken,
   IssueRefreshTokenInput,
+  RefreshTokenPersistence,
   RefreshTokenRecord,
   RefreshTokenStoreOptions,
 } from "./refresh-token-store";

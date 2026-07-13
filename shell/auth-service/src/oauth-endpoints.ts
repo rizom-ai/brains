@@ -9,7 +9,7 @@ import {
 } from "./client-store";
 import {
   InvalidRefreshTokenError,
-  type RefreshTokenStore,
+  type RefreshTokenPersistence,
 } from "./refresh-token-store";
 import type { AuthKeyStore } from "./key-store";
 import type {
@@ -45,7 +45,7 @@ interface AuthorizationApprovalTokenState {
 export interface OAuthEndpointsOptions {
   clientStore: OAuthClientPersistence;
   authCodeStore: AuthorizationCodePersistence;
-  refreshTokenStore: RefreshTokenStore;
+  refreshTokenStore: RefreshTokenPersistence;
   sessionStore: OperatorSessionPersistence;
   keyStore: AuthKeyStore;
 }
@@ -58,7 +58,7 @@ export interface OAuthEndpointsOptions {
 export class OAuthEndpoints {
   private readonly clientStore: OAuthClientPersistence;
   private readonly authCodeStore: AuthorizationCodePersistence;
-  private readonly refreshTokenStore: RefreshTokenStore;
+  private readonly refreshTokenStore: RefreshTokenPersistence;
   private readonly sessionStore: OperatorSessionPersistence;
   private readonly keyStore: AuthKeyStore;
   private readonly authorizationApprovalTokens = new Map<

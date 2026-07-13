@@ -27,7 +27,10 @@ import {
   type CreateAuthUserInput,
   type ResolveAuthIdentityInput,
 } from "./user-store";
-import { RefreshTokenStore } from "./refresh-token-store";
+import {
+  RefreshTokenStore,
+  RuntimeRefreshTokenStore,
+} from "./refresh-token-store";
 import { SetupStateStore } from "./setup-state-store";
 import {
   clearOperatorSessionCookie,
@@ -122,7 +125,8 @@ export class AuthService {
   private readonly authCodeStore: RuntimeAuthorizationCodeStore;
   private readonly legacySessionStore: OperatorSessionStore;
   private readonly sessionStore: RuntimeOperatorSessionStore;
-  private readonly refreshTokenStore: RefreshTokenStore;
+  private readonly legacyRefreshTokenStore: RefreshTokenStore;
+  private readonly refreshTokenStore: RuntimeRefreshTokenStore;
   private readonly peerTrustStore: A2APeerTrustStore;
   private readonly legacyPasskeyStore: PasskeyStore;
   private readonly passkeyService: PasskeyService;
@@ -163,9 +167,10 @@ export class AuthService {
       storageDir: options.storageDir,
     });
     this.sessionStore = new RuntimeOperatorSessionStore(this.runtimeDatabase);
-    this.refreshTokenStore = new RefreshTokenStore({
+    this.legacyRefreshTokenStore = new RefreshTokenStore({
       storageDir: options.storageDir,
     });
+    this.refreshTokenStore = new RuntimeRefreshTokenStore(this.runtimeDatabase);
     this.peerTrustStore = new A2APeerTrustStore({
       storageDir: options.storageDir,
     });
@@ -408,11 +413,29 @@ export class AuthService {
   }
 
   private async migrateLegacyRefreshTokens(): Promise<void> {
-    const revoked = await this.refreshTokenStore.revokeTokensForSubject(
-      MIGRATION_SINGLE_OPERATOR_SUBJECT,
-    );
-    if (revoked > 0) {
-      this.logger?.info("Revoked legacy operator refresh tokens", { revoked });
+    const tokens = await this.legacyRefreshTokenStore.listTokens();
+    let migrated = 0;
+    let skippedLegacy = 0;
+    for (const token of tokens) {
+      if (token.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT) {
+        skippedLegacy += 1;
+        continue;
+      }
+      const user = await this.getUserStore().getUser(token.subject);
+      if (!user) {
+        throw new Error(
+          `Cannot migrate refresh token: auth user ${token.subject} was not found`,
+        );
+      }
+      if (await this.refreshTokenStore.importToken(token)) {
+        migrated += 1;
+      }
+    }
+    if (migrated > 0 || skippedLegacy > 0) {
+      this.logger?.info("Migrated legacy OAuth refresh tokens", {
+        migrated,
+        skippedLegacy,
+      });
     }
   }
 
