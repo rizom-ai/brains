@@ -549,10 +549,11 @@ export class ChatInterface extends MessageInterfacePlugin<
   private async handlePromptAction(event: ActionEvent): Promise<void> {
     if (!this.context || !event.thread || !event.value) return;
     const platform = event.adapter.name;
-    if (!this.isEnabledPlatform(platform) || platform !== "discord") return;
+    if (!this.isEnabledPlatform(platform)) return;
+    if (platform !== "discord" && platform !== "slack") return;
 
     const thread = event.thread;
-    if (!shouldHandleChatAction(thread, this.config.adapters.discord)) return;
+    if (!shouldHandleChatAction(thread, this.getPlatformConfig(thread))) return;
 
     const action = this.promptActions.get(event.value);
     if (action?.threadId !== thread.id) {
@@ -566,14 +567,15 @@ export class ChatInterface extends MessageInterfacePlugin<
     }
     this.promptActions.consume(event.value);
 
-    const ids = getThreadIdParts(thread.id);
     const userPermissionLevel = this.context.permissions.getUserLevel(
       platform,
       event.user.userId,
-      {
-        channelId: ids.channelId ?? thread.channelId,
-        isBot: Boolean(event.user.isBot),
-      },
+      getPermissionContext(thread, {
+        author: {
+          isMe: event.user.isMe,
+          isBot: event.user.isBot,
+        },
+      }),
     );
     const conversationId = this.getConversationId(platform, thread.id);
     const channelId = thread.id;
@@ -1251,8 +1253,9 @@ export class ChatInterface extends MessageInterfacePlugin<
       const fallbackText = this.cardBuilder.formatStructuredCard(
         directive.card,
       );
+      const isSlack = this.getPlatform(thread) === "slack";
       const sent = await thread.post(
-        this.getPlatform(thread) === "slack"
+        isSlack && directive.card.kind !== "actions"
           ? fallbackText
           : { card: built, fallbackText },
       );

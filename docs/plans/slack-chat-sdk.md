@@ -245,6 +245,22 @@ Acceptance criteria:
 - No separate `Confirmation required.`, `Status: output-available`, or `Generated artifact ready` message appears in that flow.
 - Non-artifact confirmations and Discord output retain their existing behavior.
 
+### 11. Add native Slack suggested-action cards
+
+Render structured follow-up prompts as Slack Block Kit cards instead of flattening them into an `Actions:` text list.
+
+- Render prompt actions with native Slack buttons and retain fallback text.
+- Route Slack prompt buttons through the existing token, thread, permission, and conversation checks.
+- Consume action tokens after one use and preserve stale-action notices.
+- Keep unsupported event actions unavailable rather than silently executing them.
+
+Acceptance criteria:
+
+- Slack displays suggested prompt actions as a titled card with buttons.
+- Clicking a button sends the registered prompt to the same Slack conversation with the clicking user's permission context.
+- Cross-thread, stale, replayed, and blocked-channel actions do not execute.
+- Discord suggested-action behavior remains unchanged.
+
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.

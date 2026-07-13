@@ -4628,6 +4628,108 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("posts and routes native Slack suggested-action cards", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "I got a-campus-that-remembers.pdf.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        cards: [
+          {
+            kind: "actions",
+            id: "slack-actions-1",
+            title: "Try next",
+            actions: [
+              {
+                type: "prompt",
+                id: "summarize-pdf",
+                label: "Summarize PDF",
+                prompt: "Summarize the PDF",
+              },
+              {
+                type: "prompt",
+                id: "save-document",
+                label: "Save document",
+                prompt: "Save the document",
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Here is the summary.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Actions: Try next\n- Summarize PDF\n- Save document",
+        card: expect.objectContaining({
+          title: "Try next",
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              type: "actions",
+              children: expect.arrayContaining([
+                expect.objectContaining({
+                  id: "chat.prompt",
+                  label: "Summarize PDF",
+                  value: expect.stringMatching(/^action_/),
+                }),
+                expect.objectContaining({
+                  id: "chat.prompt",
+                  label: "Save document",
+                  value: expect.stringMatching(/^action_/),
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      }),
+    );
+
+    const actionToken = getFirstPromptActionToken(thread);
+    const promptActionHandler = chat?.handlers.actions.find(
+      ({ actionIds }) => actionIds === "chat.prompt",
+    )?.handler;
+    await promptActionHandler?.({
+      actionId: "chat.prompt",
+      adapter: { name: "slack" },
+      messageId: "slack-actions-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: actionToken,
+    } as MockActionEvent);
+
+    expect(agentService.chat).toHaveBeenNthCalledWith(
+      2,
+      "Summarize the PDF",
+      `slack-${thread.id}`,
+      expect.objectContaining({
+        interfaceType: "slack",
+        channelId: thread.id,
+        userPermissionLevel: "public",
+      }),
+    );
+  });
+
   it("caps Discord source and action card buttons to component limits", async () => {
     const longLabel = `Draft ${"launch ".repeat(20)}`;
     agentService.chat.mockResolvedValueOnce({
