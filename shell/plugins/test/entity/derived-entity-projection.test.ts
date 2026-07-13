@@ -151,6 +151,14 @@ function getMetadataName(entity: BaseEntity): string | undefined {
   return typeof name === "string" ? name : undefined;
 }
 
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve: () => void = () => {};
+  const promise = new Promise<void>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
+
 describe("derived entity projections", () => {
   it("registers a job handler and queues initial sync once instead of running inline", async () => {
     const context = createProjectionContext();
@@ -392,6 +400,72 @@ describe("derived entity projections", () => {
     });
     expect(context.captured.updatedEntities).toHaveLength(1);
     expect(context.captured.createdEntities).toHaveLength(1);
+  });
+
+  it("preserves stale deletion failure identity", async () => {
+    const context = createProjectionContext({
+      listEntities: { derived: [entity("stale")] },
+    });
+    const deleteError = new Error("delete failed");
+    context.entityService.deleteEntity = (): Promise<boolean> =>
+      Promise.reject(deleteError);
+
+    const reconciliation = reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [],
+      getId: (item: { id: string }) => item.id,
+      toEntityInput: (_item, id) => ({
+        id,
+        entityType: "derived",
+        content: "",
+        metadata: {},
+      }),
+      deleteStale: true,
+      concurrency: 2,
+    });
+
+    expect(await reconciliation.catch((error: unknown) => error)).toBe(
+      deleteError,
+    );
+  });
+
+  it("keeps mutation slots full when one item is slow", async () => {
+    const context = createProjectionContext({ listEntities: { derived: [] } });
+    const slowMutation = deferred();
+    const thirdStarted = deferred();
+    const originalCreate = context.entityService.createEntity;
+    context.entityService.createEntity = async (
+      request,
+    ): ReturnType<typeof originalCreate> => {
+      if (request.entity.id === "slow") await slowMutation.promise;
+      if (request.entity.id === "third") thirdStarted.resolve();
+      return originalCreate(request);
+    };
+
+    const reconciliation = reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [{ id: "slow" }, { id: "fast" }, { id: "third" }],
+      getId: (item) => item.id,
+      toEntityInput: (_item, id) => ({
+        id,
+        entityType: "derived",
+        content: `content:${id}`,
+        metadata: {},
+      }),
+      concurrency: 2,
+    });
+
+    const reusedSlot = await Promise.race([
+      thirdStarted.promise.then(() => true),
+      Bun.sleep(100).then(() => false),
+    ]);
+    slowMutation.resolve();
+    const result = await reconciliation;
+
+    expect(reusedSlot).toBe(true);
+    expect(result.created).toBe(3);
   });
 
   it("looks up existing targets at the declared outputVisibility scope", async () => {
