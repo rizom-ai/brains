@@ -13,8 +13,8 @@ import {
 } from "./refresh-token-store";
 import type { AuthKeyStore } from "./key-store";
 import type {
+  OperatorSessionPersistence,
   OperatorSessionRecord,
-  OperatorSessionStore,
 } from "./session-store";
 import { signJwt } from "./jwt";
 import { hasMatchingRedirectUri } from "./redirect-uri";
@@ -47,7 +47,7 @@ export interface OAuthEndpointsOptions {
   clientStore: OAuthClientStore;
   authCodeStore: AuthorizationCodeStore;
   refreshTokenStore: RefreshTokenStore;
-  sessionStore: OperatorSessionStore;
+  sessionStore: OperatorSessionPersistence;
   keyStore: AuthKeyStore;
 }
 
@@ -60,7 +60,7 @@ export class OAuthEndpoints {
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly refreshTokenStore: RefreshTokenStore;
-  private readonly sessionStore: OperatorSessionStore;
+  private readonly sessionStore: OperatorSessionPersistence;
   private readonly keyStore: AuthKeyStore;
   private readonly authorizationApprovalTokens = new Map<
     string,

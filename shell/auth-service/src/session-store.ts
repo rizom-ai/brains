@@ -1,8 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
 import { join } from "node:path";
+import type { AuthRuntimeDatabase } from "./runtime-db";
+import { operatorSessions } from "./runtime-schema";
 
 const DEFAULT_SESSION_STORE_FILE = "oauth-sessions.json";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
@@ -29,6 +32,18 @@ export interface CreateOperatorSessionResult {
 export interface OperatorSessionStoreOptions {
   storageDir: string;
   storeFile?: string;
+}
+
+export interface OperatorSessionPersistence {
+  createSession(
+    subject: string,
+    options?: { secure?: boolean },
+  ): Promise<CreateOperatorSessionResult>;
+  getSessionFromRequest(
+    request: Request,
+  ): Promise<OperatorSessionRecord | undefined>;
+  revokeSessionFromRequest(request: Request): Promise<boolean>;
+  revokeSessionsForSubject(subject: string): Promise<number>;
 }
 
 function hashToken(token: string): string {
@@ -69,7 +84,113 @@ export function clearOperatorSessionCookie(secure = false): string {
   }`;
 }
 
-export class OperatorSessionStore {
+export class RuntimeOperatorSessionStore implements OperatorSessionPersistence {
+  private readonly database: AuthRuntimeDatabase;
+
+  constructor(database: AuthRuntimeDatabase) {
+    this.database = database;
+  }
+
+  async importSession(
+    session: OperatorSessionRecord,
+    userId: string,
+  ): Promise<boolean> {
+    const inserted = await this.database.db
+      .insert(operatorSessions)
+      .values({
+        tokenHash: session.token_hash,
+        userId,
+        expiresAt: session.expires_at,
+        revokedAt: null,
+        createdAt: session.created_at,
+      })
+      .onConflictDoNothing()
+      .returning({ tokenHash: operatorSessions.tokenHash });
+    return inserted.length > 0;
+  }
+
+  async createSession(
+    subject: string,
+    options: { secure?: boolean } = {},
+  ): Promise<CreateOperatorSessionResult> {
+    const token = `oss_${randomUUID()}`;
+    const createdAt = nowSeconds();
+    const expiresAt = createdAt + SESSION_TTL_SECONDS;
+    await this.database.db.insert(operatorSessions).values({
+      tokenHash: hashToken(token),
+      userId: subject,
+      expiresAt,
+      revokedAt: null,
+      createdAt,
+    });
+    return {
+      subject,
+      cookie: sessionCookie(token, expiresAt, options.secure ?? false),
+      expiresAt,
+    };
+  }
+
+  async getSessionFromRequest(
+    request: Request,
+  ): Promise<OperatorSessionRecord | undefined> {
+    const token = getSessionTokenFromRequest(request);
+    if (!token) return undefined;
+
+    const [row] = await this.database.db
+      .select()
+      .from(operatorSessions)
+      .where(
+        and(
+          eq(operatorSessions.tokenHash, hashToken(token)),
+          isNull(operatorSessions.revokedAt),
+          gt(operatorSessions.expiresAt, nowSeconds()),
+        ),
+      )
+      .limit(1);
+    return row
+      ? {
+          id: row.tokenHash,
+          token_hash: row.tokenHash,
+          subject: row.userId,
+          created_at: row.createdAt,
+          expires_at: row.expiresAt,
+        }
+      : undefined;
+  }
+
+  async revokeSessionFromRequest(request: Request): Promise<boolean> {
+    const token = getSessionTokenFromRequest(request);
+    if (!token) return false;
+
+    const revoked = await this.database.db
+      .update(operatorSessions)
+      .set({ revokedAt: nowSeconds() })
+      .where(
+        and(
+          eq(operatorSessions.tokenHash, hashToken(token)),
+          isNull(operatorSessions.revokedAt),
+        ),
+      )
+      .returning({ tokenHash: operatorSessions.tokenHash });
+    return revoked.length > 0;
+  }
+
+  async revokeSessionsForSubject(subject: string): Promise<number> {
+    const revoked = await this.database.db
+      .update(operatorSessions)
+      .set({ revokedAt: nowSeconds() })
+      .where(
+        and(
+          eq(operatorSessions.userId, subject),
+          isNull(operatorSessions.revokedAt),
+        ),
+      )
+      .returning({ tokenHash: operatorSessions.tokenHash });
+    return revoked.length;
+  }
+}
+
+export class OperatorSessionStore implements OperatorSessionPersistence {
   private readonly store: JsonFileStore<SessionStoreFile>;
 
   constructor(options: OperatorSessionStoreOptions) {

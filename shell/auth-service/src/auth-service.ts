@@ -29,6 +29,7 @@ import { SetupStateStore } from "./setup-state-store";
 import {
   clearOperatorSessionCookie,
   OperatorSessionStore,
+  RuntimeOperatorSessionStore,
   type CreateOperatorSessionResult,
   type OperatorSessionRecord,
 } from "./session-store";
@@ -114,7 +115,8 @@ export class AuthService {
   private readonly a2aKeyStore: A2AKeyStore;
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
-  private readonly sessionStore: OperatorSessionStore;
+  private readonly legacySessionStore: OperatorSessionStore;
+  private readonly sessionStore: RuntimeOperatorSessionStore;
   private readonly refreshTokenStore: RefreshTokenStore;
   private readonly peerTrustStore: A2APeerTrustStore;
   private readonly legacyPasskeyStore: PasskeyStore;
@@ -146,9 +148,10 @@ export class AuthService {
     this.authCodeStore = new AuthorizationCodeStore({
       storageDir: options.storageDir,
     });
-    this.sessionStore = new OperatorSessionStore({
+    this.legacySessionStore = new OperatorSessionStore({
       storageDir: options.storageDir,
     });
+    this.sessionStore = new RuntimeOperatorSessionStore(this.runtimeDatabase);
     this.refreshTokenStore = new RefreshTokenStore({
       storageDir: options.storageDir,
     });
@@ -326,24 +329,29 @@ export class AuthService {
   }
 
   private async migrateLegacySessions(): Promise<void> {
-    const sessions = await this.sessionStore.listSessions();
-    if (
-      !sessions.some(
-        (session) => session.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT,
-      )
-    ) {
-      return;
+    const sessions = await this.legacySessionStore.listSessions();
+    let migrated = 0;
+    let anchorUser: AuthUser | undefined;
+
+    for (const session of sessions) {
+      const user =
+        session.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
+          ? (anchorUser ??= await this.ensureFirstAnchorUser())
+          : await this.getUserStore().getUser(session.subject);
+      if (!user) {
+        throw new Error(
+          `Cannot migrate operator session: auth user ${session.subject} was not found`,
+        );
+      }
+      if (await this.sessionStore.importSession(session, user.id)) {
+        migrated += 1;
+      }
     }
 
-    const user = await this.ensureFirstAnchorUser();
-    const migrated = await this.sessionStore.rebindSessionSubject(
-      MIGRATION_SINGLE_OPERATOR_SUBJECT,
-      user.id,
-    );
     if (migrated > 0) {
       this.logger?.info("Migrated legacy operator sessions", {
         migrated,
-        userId: user.id,
+        ...(anchorUser ? { userId: anchorUser.id } : {}),
       });
     }
   }
