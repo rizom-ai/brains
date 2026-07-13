@@ -280,6 +280,45 @@ describe("AuthService principals", () => {
         subject: "1442828818493735015",
       }),
     ).toBeUndefined();
+    expect(
+      await service.resolveIdentityAccess({
+        type: "discord",
+        subject: "1442828818493735015",
+      }),
+    ).toEqual({ state: "denied" });
+  });
+
+  it("distinguishes unbound identities from inactive bindings", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+
+    expect(
+      await service.resolveIdentityAccess({
+        type: "discord",
+        subject: "unknown",
+      }),
+    ).toEqual({ state: "unbound" });
+
+    const collaborator = await service.createUser({
+      displayName: "Suspended Collaborator",
+      role: "trusted",
+    });
+    await service.attachIdentity({
+      userId: collaborator.userId,
+      type: "discord",
+      subject: "known",
+      verifiedAt: Date.now(),
+    });
+    await service.suspendUser(collaborator.userId);
+
+    expect(
+      await service.resolveIdentityAccess({
+        type: "discord",
+        subject: "known",
+      }),
+    ).toEqual({ state: "denied" });
   });
 
   it("resolves verified identities to active auth principals", async () => {

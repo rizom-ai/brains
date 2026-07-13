@@ -1,4 +1,4 @@
-import { getActiveAuthService } from "@brains/auth-service";
+import { getActiveAuthService, type AuthPrincipal } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
   buildApprovalResultView,
@@ -489,6 +489,11 @@ export class DiscordInterface extends MessageInterfacePlugin<
 
     const conversationId = `discord-${spaceChannelId}`;
     const channelName = this.getChannelName(discordMessage);
+    const authResolution = await this.resolveDiscordAuth(
+      this.context,
+      discordMessage.author.id,
+      { channelId: spaceChannelId },
+    );
 
     await this.context.conversations.start({
       sessionId: conversationId,
@@ -513,6 +518,9 @@ export class DiscordInterface extends MessageInterfacePlugin<
           threadId: discordMessage.channel.isThread()
             ? discordMessage.channel.id
             : undefined,
+          ...(authResolution.principal
+            ? { principal: authResolution.principal }
+            : {}),
         },
       ),
     });
@@ -546,11 +554,12 @@ export class DiscordInterface extends MessageInterfacePlugin<
     }
 
     const conversationId = `discord-${replyChannelId}`;
-    const userPermissionLevel = await this.resolveDiscordUserPermissionLevel(
+    const authResolution = await this.resolveDiscordAuth(
       this.context,
       discordMessage.author.id,
       permissionContext,
     );
+    const userPermissionLevel = authResolution.permissionLevel;
     const channelName = this.getChannelName(discordMessage);
 
     this.startProcessingInput(replyChannelId);
@@ -586,6 +595,9 @@ export class DiscordInterface extends MessageInterfacePlugin<
               replyChannelId !== channelId || discordMessage.channel.isThread()
                 ? replyChannelId
                 : undefined,
+            ...(authResolution.principal
+              ? { principal: authResolution.principal }
+              : {}),
           },
         ),
       });
@@ -791,14 +803,38 @@ export class DiscordInterface extends MessageInterfacePlugin<
     userId: string,
     permissionContext: PermissionLookupContext,
   ): Promise<UserPermissionLevel> {
-    const principal = await getActiveAuthService()?.resolveIdentity({
+    return (await this.resolveDiscordAuth(context, userId, permissionContext))
+      .permissionLevel;
+  }
+
+  private async resolveDiscordAuth(
+    context: InterfacePluginContext,
+    userId: string,
+    permissionContext: PermissionLookupContext,
+  ): Promise<{
+    permissionLevel: UserPermissionLevel;
+    principal?: AuthPrincipal;
+  }> {
+    const resolution = await getActiveAuthService()?.resolveIdentityAccess({
       type: "discord",
       subject: userId,
     });
-    return (
-      principal?.permissionLevel ??
-      context.permissions.getUserLevel("discord", userId, permissionContext)
-    );
+    if (resolution?.state === "resolved") {
+      return {
+        permissionLevel: resolution.principal.permissionLevel,
+        principal: resolution.principal,
+      };
+    }
+    if (resolution?.state === "denied") {
+      return { permissionLevel: "public" };
+    }
+    return {
+      permissionLevel: context.permissions.getUserLevel(
+        "discord",
+        userId,
+        permissionContext,
+      ),
+    };
   }
 
   private async resolveDiscordArtifactFiles(
@@ -1013,13 +1049,19 @@ export class DiscordInterface extends MessageInterfacePlugin<
     message: Message,
     channelId: string,
     channelName: string,
-    options: { threadId?: string | undefined } = {},
+    options: {
+      threadId?: string | undefined;
+      principal?: AuthPrincipal | undefined;
+    } = {},
   ): Record<string, unknown> {
     return {
       actor: {
         actorId: `discord:${message.author.id}`,
         interfaceType: "discord",
         role: "user",
+        ...(options.principal?.canonicalId
+          ? { canonicalId: options.principal.canonicalId }
+          : {}),
         displayName: this.getAuthorDisplayName(message),
         username: message.author.username,
         isBot: Boolean(message.author.bot),

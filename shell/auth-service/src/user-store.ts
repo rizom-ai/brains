@@ -36,6 +36,11 @@ export interface ResolveAuthIdentityInput {
   issuer?: string;
 }
 
+export type AuthIdentityLookupResult =
+  | { state: "resolved"; user: AuthUser }
+  | { state: "denied" }
+  | { state: "unbound" };
+
 export class AuthUserStore {
   private readonly db: AuthRuntimeDB;
   private firstAnchorInitialization: Promise<AuthUser> | undefined;
@@ -284,6 +289,13 @@ export class AuthUserStore {
   async resolveIdentity(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthUser | undefined> {
+    const result = await this.resolveIdentityAccess(input);
+    return result.state === "resolved" ? result.user : undefined;
+  }
+
+  async resolveIdentityAccess(
+    input: ResolveAuthIdentityInput,
+  ): Promise<AuthIdentityLookupResult> {
     const identityKeyHash = hashIdentityKey(normalizeIdentityKey(input));
     const [row] = await this.db
       .select({ user: authUsers })
@@ -299,7 +311,16 @@ export class AuthUserStore {
       )
       .limit(1);
 
-    return row?.user;
+    if (row) {
+      return { state: "resolved", user: row.user };
+    }
+
+    const [knownBinding] = await this.db
+      .select({ id: authIdentities.id })
+      .from(authIdentities)
+      .where(eq(authIdentities.identityKeyHash, identityKeyHash))
+      .limit(1);
+    return knownBinding ? { state: "denied" } : { state: "unbound" };
   }
 
   private async requireUser(userId: string): Promise<AuthUser> {

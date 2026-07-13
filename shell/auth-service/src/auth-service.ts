@@ -89,6 +89,16 @@ export interface AuthPrincipal {
   canonicalId?: string;
 }
 
+export type AuthIdentityAccessResolution =
+  | { state: "resolved"; principal: AuthPrincipal }
+  | { state: "denied" }
+  | { state: "unbound" };
+
+export interface AuthMutationContext {
+  /** Authenticated user performing the mutation, for audit attribution. */
+  actorUserId?: string;
+}
+
 export interface A2ASigningKey {
   privateJwk: A2APrivateJwk;
   keyId: string;
@@ -526,7 +536,10 @@ export class AuthService {
     return this.passkeyService.hasCredentials();
   }
 
-  async revokePasskey(credentialId: string): Promise<void> {
+  async revokePasskey(
+    credentialId: string,
+    context: AuthMutationContext = {},
+  ): Promise<void> {
     await this.ensureUserStoreStarted();
     const credential = await this.getCredentialStore().getPasskey(credentialId);
     if (!credential) {
@@ -541,6 +554,7 @@ export class AuthService {
     });
     await this.revokeUserSessionsAndRefreshTokens(credential.userId);
     await this.getAuditStore().append({
+      ...auditActor(context),
       action: "auth.passkey.revoked",
       targetType: "passkey",
       targetId: credentialId,
@@ -638,10 +652,14 @@ export class AuthService {
     return this.clientStore.getClient(clientId);
   }
 
-  async createUser(input: CreateAuthUserInput): Promise<AuthPrincipal> {
+  async createUser(
+    input: CreateAuthUserInput,
+    context: AuthMutationContext = {},
+  ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
     const user = await this.getUserStore().createUser(input);
     await this.getAuditStore().append({
+      ...auditActor(context),
       action: "auth.user.created",
       targetType: "user",
       targetId: user.id,
@@ -658,6 +676,7 @@ export class AuthService {
   async updateUserRole(
     userId: string,
     role: AuthUserRole,
+    context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
     const current = await this.getUserStore().getUser(userId);
@@ -665,6 +684,7 @@ export class AuthService {
     if (current && current.role !== updated.role) {
       await this.revokeUserSessionsAndRefreshTokens(userId);
       await this.getAuditStore().append({
+        ...auditActor(context),
         action: "auth.user.role_updated",
         targetType: "user",
         targetId: userId,
@@ -677,6 +697,7 @@ export class AuthService {
   async updateUserStatus(
     userId: string,
     status: AuthUserStatus,
+    context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
     await this.ensureUserStoreStarted();
     const current = await this.getUserStore().getUser(userId);
@@ -684,6 +705,7 @@ export class AuthService {
     if (current && current.status !== updated.status) {
       await this.revokeUserSessionsAndRefreshTokens(userId);
       await this.getAuditStore().append({
+        ...auditActor(context),
         action: "auth.user.status_updated",
         targetType: "user",
         targetId: userId,
@@ -693,8 +715,11 @@ export class AuthService {
     return principalFromUser(updated);
   }
 
-  suspendUser(userId: string): Promise<AuthPrincipal> {
-    return this.updateUserStatus(userId, "suspended");
+  suspendUser(
+    userId: string,
+    context: AuthMutationContext = {},
+  ): Promise<AuthPrincipal> {
+    return this.updateUserStatus(userId, "suspended", context);
   }
 
   async revokeUserSessionsAndRefreshTokens(
@@ -707,10 +732,14 @@ export class AuthService {
     return { sessions, refreshTokens };
   }
 
-  async attachIdentity(input: AttachAuthIdentityInput): Promise<AuthIdentity> {
+  async attachIdentity(
+    input: AttachAuthIdentityInput,
+    context: AuthMutationContext = {},
+  ): Promise<AuthIdentity> {
     await this.ensureUserStoreStarted();
     const identity = await this.getUserStore().attachIdentity(input);
     await this.getAuditStore().append({
+      ...auditActor(context),
       action: "auth.identity.attached",
       targetType: "identity",
       targetId: identity.id,
@@ -719,11 +748,15 @@ export class AuthService {
     return identity;
   }
 
-  async detachIdentity(identityId: string): Promise<AuthIdentity> {
+  async detachIdentity(
+    identityId: string,
+    context: AuthMutationContext = {},
+  ): Promise<AuthIdentity> {
     await this.ensureUserStoreStarted();
     const identity = await this.getUserStore().detachIdentity(identityId);
     await this.revokeUserSessionsAndRefreshTokens(identity.userId);
     await this.getAuditStore().append({
+      ...auditActor(context),
       action: "auth.identity.detached",
       targetType: "identity",
       targetId: identity.id,
@@ -740,9 +773,18 @@ export class AuthService {
   async resolveIdentity(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthPrincipal | undefined> {
+    const result = await this.resolveIdentityAccess(input);
+    return result.state === "resolved" ? result.principal : undefined;
+  }
+
+  async resolveIdentityAccess(
+    input: ResolveAuthIdentityInput,
+  ): Promise<AuthIdentityAccessResolution> {
     await this.ensureUserStoreStarted();
-    const user = await this.getUserStore().resolveIdentity(input);
-    return user ? principalFromUser(user) : undefined;
+    const result = await this.getUserStore().resolveIdentityAccess(input);
+    return result.state === "resolved"
+      ? { state: "resolved", principal: principalFromUser(result.user) }
+      : result;
   }
 
   async createOperatorSession(
@@ -987,6 +1029,12 @@ export class AuthService {
       },
     });
   }
+}
+
+function auditActor(context: AuthMutationContext): {
+  actorUserId?: string;
+} {
+  return context.actorUserId ? { actorUserId: context.actorUserId } : {};
 }
 
 function legacyTimestampToMilliseconds(timestamp: number): number {

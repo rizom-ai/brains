@@ -55,6 +55,42 @@ describe("AuthService audit integration", () => {
     ]);
   });
 
+  it("records the authenticated actor for management mutations", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const owner = await service.createUser({
+      displayName: "Owner",
+      role: "anchor",
+    });
+    const context = { actorUserId: owner.userId };
+    const user = await service.createUser(
+      { displayName: "Collaborator", role: "trusted" },
+      context,
+    );
+    await service.updateUserRole(user.userId, "public", context);
+    const identity = await service.attachIdentity(
+      {
+        userId: user.userId,
+        type: "discord",
+        subject: "1442828818493735015",
+        verifiedAt: Date.now(),
+      },
+      context,
+    );
+    await service.detachIdentity(identity.id, context);
+    await service.suspendUser(user.userId, context);
+
+    const actorEvents = (await service.listAuditEvents()).filter(
+      (event) => event.targetId !== owner.userId,
+    );
+    expect(actorEvents).toHaveLength(5);
+    expect(
+      actorEvents.every((event) => event.actorUserId === owner.userId),
+    ).toBe(true);
+  });
+
   it("audits user and identity mutations", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),

@@ -15,6 +15,8 @@ export type {
 export { AuthService } from "./auth-service";
 export type {
   A2ASigningKey,
+  AuthIdentityAccessResolution,
+  AuthMutationContext,
   AuthPrincipal,
   AuthServiceOptions,
   OperatorSetupRequired,

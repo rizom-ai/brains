@@ -95,16 +95,21 @@ const mockClientInstance = {
 
 let mockActiveAuthService:
   | {
-      resolveIdentity: Mock<
+      resolveIdentityAccess: Mock<
         (input: { type: string; subject: string; issuer?: string }) => Promise<
           | {
-              userId: string;
-              displayName: string;
-              role: "anchor" | "trusted" | "public";
-              status: "active" | "invited" | "suspended";
-              permissionLevel: "anchor" | "trusted" | "public";
+              state: "resolved";
+              principal: {
+                userId: string;
+                displayName: string;
+                role: "anchor" | "trusted" | "public";
+                status: "active" | "invited" | "suspended";
+                permissionLevel: "anchor" | "trusted" | "public";
+                canonicalId?: string;
+              };
             }
-          | undefined
+          | { state: "denied" }
+          | { state: "unbound" }
         >
       >;
     }
@@ -330,20 +335,24 @@ describe("DiscordInterface", () => {
     });
 
     it("should use linked auth principal permissions for Discord users", async () => {
-      const resolveIdentity = mock(async () => ({
-        userId: "usr_mira",
-        displayName: "Mira",
-        role: "trusted" as const,
-        status: "active" as const,
-        permissionLevel: "trusted" as const,
+      const resolveIdentityAccess = mock(async () => ({
+        state: "resolved" as const,
+        principal: {
+          userId: "usr_mira",
+          displayName: "Mira",
+          role: "trusted" as const,
+          status: "active" as const,
+          permissionLevel: "trusted" as const,
+          canonicalId: "user:mira",
+        },
       }));
-      mockActiveAuthService = { resolveIdentity };
+      mockActiveAuthService = { resolveIdentityAccess };
 
       const msg = createDiscordMessage();
       messageCreateHandler?.(msg);
       await new Promise((r) => setTimeout(r, 100));
 
-      expect(resolveIdentity).toHaveBeenCalledWith({
+      expect(resolveIdentityAccess).toHaveBeenCalledWith({
         type: "discord",
         subject: "user-789",
       });
@@ -353,7 +362,26 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           interfaceType: "discord",
           userPermissionLevel: "trusted",
+          actor: expect.objectContaining({ canonicalId: "user:mira" }),
         }),
+      );
+    });
+
+    it("should deny known inactive bindings before permission-rule fallback", async () => {
+      mockActiveAuthService = {
+        resolveIdentityAccess: mock(async () => ({ state: "denied" as const })),
+      };
+
+      const msg = createDiscordMessage({
+        author: { id: "trusted-user", username: "mira", globalName: "Mira" },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        "Hello bot",
+        expect.stringContaining("discord-"),
+        expect.objectContaining({ userPermissionLevel: "public" }),
       );
     });
 
@@ -605,6 +633,42 @@ describe("DiscordInterface", () => {
       expect(mockAgentService.chat).not.toHaveBeenCalled();
       expect(mockSend).not.toHaveBeenCalled();
       expect(mockStartThread).not.toHaveBeenCalled();
+    });
+
+    it("should attribute passive messages to linked canonical users", async () => {
+      mockActiveAuthService = {
+        resolveIdentityAccess: mock(async () => ({
+          state: "resolved" as const,
+          principal: {
+            userId: "usr_mira",
+            displayName: "Mira",
+            role: "trusted" as const,
+            status: "active" as const,
+            permissionLevel: "trusted" as const,
+            canonicalId: "user:mira",
+          },
+        })),
+      };
+      const conversationService = createMockConversationService();
+      await installDiscordWithSpaces(
+        ["discord:channel-123"],
+        conversationService,
+      );
+
+      const msg = createDiscordMessage({
+        content: "Linked team update",
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(conversationService.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({ canonicalId: "user:mira" }),
+          }),
+        }),
+      );
     });
 
     it("should ignore unmentioned server messages outside configured spaces when mention is required", async () => {

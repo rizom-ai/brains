@@ -39,15 +39,15 @@ Implemented on `feature/auth-runtime-db`:
 - Idempotent JSON/JWK imports that preserve legacy files unchanged; unsafe `single-operator` refresh tokens are deliberately skipped.
 - Transactional first-anchor creation and last-active-anchor protection with concurrent mutation coverage.
 - Session, bearer, and linked-identity principal APIs with role/status revocation behavior.
-- Per-principal MCP session permissions, cross-user session protection, role-change invalidation, and deny-by-default inactive/revoked identity handling.
-- High-level user, role, status, identity, passkey-revocation, and audit APIs.
+- Per-principal MCP session permissions, cross-user session protection, role-change invalidation, and explicit `resolved`/`denied`/`unbound` identity handling so inactive or revoked bindings cannot fall through to static rules.
+- High-level user, role, status, identity, passkey-revocation, and audit APIs with optional authenticated-actor attribution for management mutations.
 - Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
 Still open before merge:
 
 1. **Add a non-agent management surface.** Expose user, identity, and user-specific passkey administration through an authenticated dashboard/API and optional local CLI, with explicit operator confirmation. Do not register these operations as model-visible tools.
-2. **Wire remaining consumers.** Connect canonical identity lookup and conversation/job/tool attribution to resolved auth principals.
-3. **Review audit coverage.** Ensure every management mutation records an actor where available and add useful authentication-failure events without logging secrets.
+2. **Wire remaining consumers.** Discord now carries linked canonical ids into active and passive conversation actors; connect the remaining canonical identity, MCP/web-chat, job, and tool attribution paths to resolved auth principals.
+3. **Complete audit wiring.** Have the future admin surface supply the authenticated actor context, cover remaining privileged mutations, and add useful authentication-failure events without logging secrets.
 4. **Revalidate across consumers.** Run auth, MCP, Discord, A2A, typecheck, and lint checks together after the remaining integration work.
 
 ## Consumers to satisfy
@@ -309,6 +309,8 @@ Validation: trusted users cannot call anchor-only tools; suspended users are den
 Validation: owners can create/promote/suspend users; trusted users cannot manage users; last owner cannot be demoted or suspended.
 
 ### Phase 6 — Consumers
+
+**Status: partially implemented.** Linked Discord messages now carry auth-backed canonical ids into active agent turns and passive conversation capture.
 
 - Wire `CanonicalIdentityService` to auth DB identity lookup.
 - Wire chat/hosted Discord routing to identity lookup where needed.
