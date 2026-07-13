@@ -40,7 +40,7 @@ Priority is explicit; an existing worktree does not automatically outrank releas
 
 | Priority | Outcome                            | Current execution                                                                                                                                                                                                           |
 | -------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0**   | Stable `v0.2.0` release candidate  | Close the console dynamic-state/composer tail, nominate the final alpha, run the release-candidate gates above, then exit prerelease mode.                                                                                  |
+| **P0**   | Stable `v0.2.0` release candidate  | The console dynamic-state/composer tail is closed and released; nominate the final alpha, run the release-candidate gates above, then exit prerelease mode.                                                                 |
 | **P1**   | Real runtime identity boundary     | Finish `feature/auth-runtime-db` as one database-backed source of truth with transactional role invariants and deny-by-default identity resolution; multi-user behavior follows on that foundation.                         |
 | **P1**   | One brain composed from bundles    | Start the capability-bundle walking skeleton after the release candidate is cut; keep every deployed posture green through the migration.                                                                                   |
 | **P1**   | One production Rizom brain/site    | Finish the in-flight consolidated site and content work, stage the consolidated package on `new.rizom.ai`, then cut over production. This may proceed beside bundle work but must not invent a competing model abstraction. |
@@ -167,7 +167,6 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
-- [console-unification.md](./plans/console-unification.md) — the shared chrome, responsive composition, CMS/Chat/Dashboard fidelity pass, reviewed baselines, and release are merged. The final tail pins dynamic chat cards/attachments/progress and rich CMS colophon states before the plan retires.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
