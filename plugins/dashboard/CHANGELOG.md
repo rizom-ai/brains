@@ -1,5 +1,17 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- [`14120e9`](https://github.com/rizom-ai/brains/commit/14120e9c487f9fe19c974e320bbd49e70900e6ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give the proximity map the full card width and let it breathe: the chart column duplicated what the map already says (constellation labels, member names, hover-wake on the mists), so it is gone along with its styles and script handlers. The disc recenters for the wide field and the site crop follows the map center. The console soil is no longer a dark rectangle — it pools, dense at the disc and dissolving into the card with no geometric boundary, grain and outer content fading with it. And every eight seconds a ripple of light leaves the center; each bulb shimmers as the wavefront crosses its radius, so the arrival order is the proximity order — archived traces give no answer. Ripple, shimmer, and nutrient pulses all stop under prefers-reduced-motion.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/auth-service@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+
 ## 0.2.0-alpha.165
 
 ### Patch Changes
