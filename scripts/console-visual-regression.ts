@@ -382,7 +382,11 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewport.height + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
-  if (surface === "cms-editor") {
+  if (
+    surface === "cms-editor" ||
+    surface === "cms-delete" ||
+    surface === "cms-conflict"
+  ) {
     const modes = await page
       .locator(".cms-mobile-modes")
       .evaluate((node) => getComputedStyle(node).display);
@@ -560,6 +564,16 @@ const server = Bun.serve({
           },
         ],
       });
+    if (url.pathname === "/cms/api/entities" && request.method === "PUT")
+      // Every fixture save conflicts, so the cms-conflict scenario can pin
+      // the reconcile card. No other scenario saves.
+      return Response.json(
+        {
+          error:
+            "The entry changed after you opened it — directory sync imported a newer version of this manuscript.",
+        },
+        { status: 409 },
+      );
     if (url.pathname === "/cms/api/entities" && url.searchParams.has("id"))
       return json({ entity });
     if (url.pathname === "/cms/api/entities") return json({ entities });
@@ -598,9 +612,18 @@ try {
         "chat-drawer",
         "cms-library",
         "cms-editor",
+        "cms-delete",
+        "cms-conflict",
       ] as const) {
         // The sessions drawer only exists at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
+        // The delete dialog and conflict card are pinned at desktop and
+        // phone; tablet adds no distinct composition for these overlays.
+        if (
+          (surface === "cms-delete" || surface === "cms-conflict") &&
+          viewport.width === 768
+        )
+          continue;
         const isChat = surface.startsWith("chat");
         const conversationId =
           surface === "chat-cards"
@@ -628,14 +651,17 @@ try {
           },
           { now: FIXED_NOW, conversation: conversationId },
         );
+        const isCmsEditor =
+          surface === "cms-editor" ||
+          surface === "cms-delete" ||
+          surface === "cms-conflict";
         const route =
           surface === "dashboard" ? "/dashboard" : isChat ? "/chat" : "/cms";
-        const hash =
-          surface === "cms-editor"
-            ? "#/posts/field-notes"
-            : isChat
-              ? `#s/${conversationId}`
-              : "";
+        const hash = isCmsEditor
+          ? "#/posts/field-notes"
+          : isChat
+            ? `#s/${conversationId}`
+            : "";
         await page.goto(
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
           { waitUntil: "networkidle" },
@@ -720,6 +746,23 @@ try {
             if (settled === tops && settled === previousTops) break;
             previousTops = settled;
           }
+        }
+        if (surface === "cms-delete") {
+          // Open the delete confirmation. Phone tucks the control behind
+          // the ••• disclosure; wider widths show it in the pipeline bar.
+          if (viewport.width <= 640) {
+            await page.locator(".cms-mobile-more summary").click();
+            await page.getByRole("button", { name: "Delete entry" }).click();
+          } else {
+            await page.locator(".pipeline .btn.danger").click();
+          }
+          await page.locator(".delete-modal").waitFor();
+        }
+        if (surface === "cms-conflict") {
+          // Save against the fixture's unconditional 409 to raise the
+          // reconcile card above the save bar.
+          await page.locator(".save-btn").click();
+          await page.locator(".conflict").waitFor();
         }
         await page.evaluate(() => document.fonts.ready);
         await checkLayout(page, surface, viewport.width);
