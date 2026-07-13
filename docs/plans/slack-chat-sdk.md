@@ -320,6 +320,20 @@ Acceptance criteria:
 - Generic approval-request text does not duplicate the native approval card.
 - Existing Discord behavior and platform upload-route isolation remain unchanged.
 
+### 15. Remove duplicate Slack action labels
+
+Fix native suggested-action cards rendering each action label once as plain text and again on its button.
+
+- For Slack action cards, render prompt/event labels only in the native buttons.
+- Keep the fallback text complete for notifications and accessibility.
+- Preserve Discord action-card text, descriptions, component limits, and button behavior.
+
+Acceptance criteria:
+
+- A Slack **Try next** card shows **Describe image** and **Save image** once each, as buttons.
+- Action tokens and routing remain unchanged.
+- Discord cards retain their existing descriptive text and buttons.
+
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.

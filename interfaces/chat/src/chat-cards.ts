@@ -149,10 +149,12 @@ export class ChatCardBuilder {
     threadId: string,
     card: Extract<StructuredChatCard, { kind: "actions" }>,
   ): CardElement {
-    const children: CardChild[] = card.actions.map((action) => ({
-      type: "text" as const,
-      content: this.formatActionCardText(action),
-    }));
+    const children: CardChild[] = threadId.startsWith("slack:")
+      ? []
+      : card.actions.map((action) => ({
+          type: "text" as const,
+          content: this.formatActionCardText(action),
+        }));
     const buttons: Array<{
       type: "button";
       id: string;

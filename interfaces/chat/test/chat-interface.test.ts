@@ -370,6 +370,7 @@ const cardPostSchema = z.object({
       z
         .object({
           type: z.string(),
+          content: z.string().optional(),
           children: z.array(cardActionButtonSchema).optional(),
         })
         .passthrough(),
@@ -4975,6 +4976,16 @@ describe("ChatInterface", () => {
     const actionToken = getFirstPromptActionToken(thread);
     const actionButtons = getCardActionButtons(thread, "Try next");
     expect(actionButtons[0]?.id).not.toBe(actionButtons[1]?.id);
+    const actionCard = thread.post.mock.calls
+      .map(([message]) => cardPostSchema.safeParse(message))
+      .find(
+        (parsed) => parsed.success && parsed.data.card.title === "Try next",
+      );
+    expect(
+      actionCard?.success
+        ? actionCard.data.card.children.filter((child) => child.type === "text")
+        : undefined,
+    ).toEqual([]);
     const promptActionHandler = chat?.handlers.actions.find(
       ({ actionIds }) => Array.isArray(actionIds) && actionIds.length === 0,
     )?.handler;
