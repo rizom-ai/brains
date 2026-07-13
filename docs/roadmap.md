@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -195,6 +195,7 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
+- [effect-runtime-hardening.md](./plans/effect-runtime-hardening.md) — active structured-concurrency and resource-ownership hardening for shell lifecycle, plugins, jobs, AI cancellation, and the eventual first genuine `Layer` slice.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [shared-heartbeat-recurring-checks.md](./plans/shared-heartbeat-recurring-checks.md) — **P2 dependency** for recurring plugin checks: reuse the existing scheduler/daemon/runtime-state/notification primitives rather than shipping opportunity-specific timers.
