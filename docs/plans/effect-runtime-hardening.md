@@ -28,7 +28,7 @@ Use Effect as the internal shell control plane for structured concurrency and re
    - Files: `shell/plugins/src/base-plugin.ts`, context factories, `shell/plugins/src/manager/plugin-lifecycle.ts`
    - Messaging subscriptions and other registration-time resources are not uniformly retained for rollback or disable.
    - Own subscriptions, handlers, and background fibers per plugin; close the scope after failed registration, disable, and shell shutdown.
-   - Before implementation, settle whether disabling also unregisters tools, resources, instructions, and job handlers.
+   - Decision: plugin instances are one-shot resources for a shell lifetime. Disable is terminal teardown; dynamic re-enable is unsupported until every capability registry has an explicit idempotent unload contract.
 
 ### P1 — cancellation and scheduling
 
