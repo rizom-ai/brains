@@ -169,7 +169,9 @@ export class ChatCardBuilder {
         });
         buttons.push({
           type: "button",
-          id: PROMPT_ACTION,
+          id: threadId.startsWith("slack:")
+            ? `${PROMPT_ACTION}:${token}`
+            : PROMPT_ACTION,
           label: this.truncateDiscordButtonLabel(action.label),
           value: token,
         });

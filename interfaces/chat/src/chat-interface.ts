@@ -544,6 +544,11 @@ export class ChatInterface extends MessageInterfacePlugin<
     app.onAction(PROMPT_ACTION, async (event) => {
       await this.handlePromptAction(event);
     });
+
+    app.onAction(async (event) => {
+      if (!event.actionId.startsWith(`${PROMPT_ACTION}:`)) return;
+      await this.handlePromptAction(event);
+    });
   }
 
   private async handlePromptAction(event: ActionEvent): Promise<void> {

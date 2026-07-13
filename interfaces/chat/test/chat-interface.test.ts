@@ -256,10 +256,20 @@ class MockChatSdk {
   }
 
   onAction(
-    actionIds: string[] | string,
-    handler: (event: MockActionEvent) => Promise<void>,
+    actionIdsOrHandler:
+      string[] | string | ((event: MockActionEvent) => Promise<void>),
+    handler?: (event: MockActionEvent) => Promise<void>,
   ): void {
-    this.handlers.actions.push({ actionIds, handler });
+    if (typeof actionIdsOrHandler === "function") {
+      this.handlers.actions.push({
+        actionIds: [],
+        handler: actionIdsOrHandler,
+      });
+      return;
+    }
+    if (handler) {
+      this.handlers.actions.push({ actionIds: actionIdsOrHandler, handler });
+    }
   }
 }
 
@@ -392,7 +402,8 @@ function getPromptActionTokens(thread: MockThread): string[] {
       for (const button of child.children ?? []) {
         if (
           button.type === "button" &&
-          button.id === "chat.prompt" &&
+          (button.id === "chat.prompt" ||
+            button.id?.startsWith("chat.prompt:")) &&
           button.value
         ) {
           tokens.push(button.value);
@@ -4680,12 +4691,12 @@ describe("ChatInterface", () => {
               type: "actions",
               children: expect.arrayContaining([
                 expect.objectContaining({
-                  id: "chat.prompt",
+                  id: expect.stringMatching(/^chat\.prompt:action_/),
                   label: "Summarize PDF",
                   value: expect.stringMatching(/^action_/),
                 }),
                 expect.objectContaining({
-                  id: "chat.prompt",
+                  id: expect.stringMatching(/^chat\.prompt:action_/),
                   label: "Save document",
                   value: expect.stringMatching(/^action_/),
                 }),
@@ -4697,11 +4708,13 @@ describe("ChatInterface", () => {
     );
 
     const actionToken = getFirstPromptActionToken(thread);
+    const actionButtons = getCardActionButtons(thread, "Try next");
+    expect(actionButtons[0]?.id).not.toBe(actionButtons[1]?.id);
     const promptActionHandler = chat?.handlers.actions.find(
-      ({ actionIds }) => actionIds === "chat.prompt",
+      ({ actionIds }) => Array.isArray(actionIds) && actionIds.length === 0,
     )?.handler;
     await promptActionHandler?.({
-      actionId: "chat.prompt",
+      actionId: actionButtons[0]?.id ?? "",
       adapter: { name: "slack" },
       messageId: "slack-actions-message-1",
       openModal: mock(() => Promise.resolve(undefined)),

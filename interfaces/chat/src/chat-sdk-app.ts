@@ -61,6 +61,7 @@ export interface ChatSdkApp {
       context?: MessageContext,
     ) => Promise<void>,
   ): void;
+  onAction(handler: (event: ActionEvent) => Promise<void>): void;
   onAction(
     actionIds: string[] | string,
     handler: (event: ActionEvent) => Promise<void>,
