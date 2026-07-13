@@ -13,6 +13,27 @@ import { PluginError } from "../errors";
 import { PluginLifecycle } from "./plugin-lifecycle";
 import { DependencyResolver } from "./dependency-resolver";
 import { CapabilityRegistrar } from "./capability-registrar";
+import { Effect, Either } from "effect";
+
+async function runConcurrentPhase(
+  operations: Array<() => Promise<void>>,
+): Promise<void> {
+  const results = await Effect.runPromise(
+    Effect.all(
+      operations.map((operation) =>
+        Effect.either(
+          Effect.tryPromise({
+            try: operation,
+            catch: (error) => error,
+          }),
+        ),
+      ),
+      { concurrency: "unbounded" },
+    ),
+  );
+  const firstFailure = results.find(Either.isLeft);
+  if (firstFailure) throw firstFailure.left;
+}
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "./types";
@@ -199,9 +220,9 @@ export class PluginManager implements IPluginManager {
   public async readyPlugins(): Promise<void> {
     this.logger.debug("Dispatching plugin ready hooks...");
 
-    await Promise.all(
-      this.initializedPluginIds.map((id) =>
-        this.pluginLifecycle.readyPlugin(id),
+    await runConcurrentPhase(
+      this.initializedPluginIds.map(
+        (id) => (): Promise<void> => this.pluginLifecycle.readyPlugin(id),
       ),
     );
   }
@@ -212,9 +233,10 @@ export class PluginManager implements IPluginManager {
   public async startPluginDaemons(): Promise<void> {
     this.logger.debug("Starting plugin daemons...");
 
-    await Promise.all(
-      this.initializedPluginIds.map((id) =>
-        this.pluginLifecycle.startPluginDaemons(id),
+    await runConcurrentPhase(
+      this.initializedPluginIds.map(
+        (id) => (): Promise<void> =>
+          this.pluginLifecycle.startPluginDaemons(id),
       ),
     );
   }

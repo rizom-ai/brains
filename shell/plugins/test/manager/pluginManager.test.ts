@@ -201,6 +201,65 @@ describe("PluginManager", (): void => {
     );
   });
 
+  test("ready phase waits for sibling fibers before reporting failure", async (): Promise<void> => {
+    let releaseReady: () => void = () => {};
+    let notifyReadyStarted: () => void = () => {};
+    const readyGate = new Promise<void>((resolve) => {
+      releaseReady = resolve;
+    });
+    const readyStarted = new Promise<void>((resolve) => {
+      notifyReadyStarted = resolve;
+    });
+
+    class SlowReadyPlugin extends TestPlugin {
+      override async ready(): Promise<void> {
+        notifyReadyStarted();
+        await readyGate;
+        this.readyCalled = true;
+      }
+    }
+
+    const failingPlugin = new TestPlugin({
+      id: "failing-ready",
+      version: "1.0.0",
+      readyError: true,
+    });
+    const slowPlugin = new SlowReadyPlugin({
+      id: "slow-ready",
+      version: "1.0.0",
+    });
+
+    pluginManager.registerPlugin(failingPlugin);
+    pluginManager.registerPlugin(slowPlugin);
+    await pluginManager.initializePlugins();
+
+    const readyPhase = pluginManager.readyPlugins();
+    let phaseSettled = false;
+    void readyPhase.then(
+      () => {
+        phaseSettled = true;
+      },
+      () => {
+        phaseSettled = true;
+      },
+    );
+
+    await readyStarted;
+    await Promise.resolve();
+    expect(phaseSettled).toBe(false);
+
+    releaseReady();
+    let readyError: unknown;
+    try {
+      await readyPhase;
+    } catch (error) {
+      readyError = error;
+    }
+
+    expect(readyError).toBeInstanceOf(Error);
+    expect(slowPlugin.readyCalled).toBe(true);
+  });
+
   test("plugin dependencies are respected during initialization", async (): Promise<void> => {
     // Create plugin initialization tracker
     const initOrder: string[] = [];
