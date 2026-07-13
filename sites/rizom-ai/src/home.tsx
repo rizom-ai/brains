@@ -9,6 +9,8 @@ import {
   CtaRow,
   AliveLine,
   SectCap,
+  Trio,
+  trioSchema,
   ctaSchema,
   delayClass,
   HIGHLIGHT_CLS,
@@ -94,52 +96,7 @@ function HomeGrowthSection({
   );
 }
 
-/* ============ trios: problem + your-data ============ */
-
-const trioItemSchema = z.object({
-  marker: z.string(),
-  title: z.string(),
-  text: z.string(),
-});
-
-const trioSchema = z.object({
-  cap: z.string(),
-  items: z.array(trioItemSchema),
-});
-
-type TrioItem = z.infer<typeof trioItemSchema>;
-
-function Trio({
-  items,
-  mono,
-}: {
-  items: TrioItem[];
-  mono: boolean;
-}): JSX.Element {
-  return (
-    <div className="mt-[30px] grid max-w-[1040px] gap-11 md:grid-cols-3">
-      {items.map((item, i) => (
-        <div key={item.title} className={`reveal ${delayClass(i)}`}>
-          {mono ? (
-            <span className="inline-block pt-3 pb-[15px] font-label text-[14px] font-medium tracking-[0.1em] text-accent">
-              {item.marker}
-            </span>
-          ) : (
-            <span className="block font-display text-[44px] font-light leading-none text-theme-light [font-variation-settings:'SOFT'_30,'opsz'_100]">
-              {item.marker}
-            </span>
-          )}
-          <b className="mt-2.5 block font-display text-[21px] font-[520] tracking-[-0.006em] text-theme [font-variation-settings:'SOFT'_55]">
-            {item.title}
-          </b>
-          <p className="mt-2 font-body text-[15.5px] text-theme-light">
-            {item.text}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
+/* ============ problem trio ============ */
 
 function HomeProblemSection({
   cap,
@@ -149,83 +106,6 @@ function HomeProblemSection({
     <Section id="problem" className="py-14">
       <SectCap lead={cap} />
       <Trio items={items} mono={false} />
-    </Section>
-  );
-}
-
-function HomeYourDataSection({
-  cap,
-  items,
-}: z.infer<typeof trioSchema>): JSX.Element {
-  return (
-    <Section id="your-data" className="py-14">
-      <SectCap lead={cap} />
-      <Trio items={items} mono={true} />
-    </Section>
-  );
-}
-
-/* ============ quickstart ============ */
-
-const termLineSchema = z.object({
-  kind: z.enum(["comment", "command", "ok"]),
-  text: z.string(),
-});
-
-const quickstartSchema = z.object({
-  cap: z.string(),
-  capNote: z.string(),
-  lines: z.array(termLineSchema),
-  checks: z.array(z.string()),
-});
-
-type TermLine = z.infer<typeof termLineSchema>;
-
-function termLineClass(kind: TermLine["kind"]): string {
-  switch (kind) {
-    case "comment":
-      return "text-theme-light opacity-70";
-    case "ok":
-      return "text-secondary";
-    case "command":
-      return "text-theme";
-  }
-}
-
-function HomeQuickstartSection({
-  cap,
-  capNote,
-  lines,
-  checks,
-}: z.infer<typeof quickstartSchema>): JSX.Element {
-  return (
-    <Section id="quickstart" className="py-14">
-      <SectCap lead={cap} trail={capNote} />
-      <div className="mt-7 grid max-w-[1000px] items-start gap-12 md:grid-cols-[1.15fr_1fr]">
-        <div className="reveal reveal-delay-1 border border-theme bg-theme-subtle/60 px-6 py-5 font-label text-[14px] leading-[1.9]">
-          {lines.map((line, i) => (
-            <div key={i} className={termLineClass(line.kind)}>
-              {line.kind === "command" && (
-                <span className="select-none text-accent">$ </span>
-              )}
-              {line.text}
-            </div>
-          ))}
-        </div>
-        <ul className="reveal reveal-delay-2 font-body text-[15.5px] text-theme-light">
-          {checks.map((check) => (
-            <li
-              key={check}
-              className="flex gap-2.5 border-b border-theme-light py-[7px]"
-            >
-              <span aria-hidden="true" className="font-label text-secondary">
-                ✓
-              </span>
-              {check}
-            </li>
-          ))}
-        </ul>
-      </div>
     </Section>
   );
 }
@@ -345,14 +225,6 @@ export const homeSections: SiteSectionGroup = sectionGroup("home", {
   problem: defineSection(trioSchema, HomeProblemSection, {
     title: "Problem",
     description: "Why it has to exist — problem trio (large numerals)",
-  }),
-  "your-data": defineSection(trioSchema, HomeYourDataSection, {
-    title: "Your Data",
-    description: "Your data, your rules — ownership trio (mono markers)",
-  }),
-  quickstart: defineSection(quickstartSchema, HomeQuickstartSection, {
-    title: "Quickstart",
-    description: "Three-command quickstart terminal with a checklist",
   }),
   mission: defineSection(missionSchema, HomeMissionSection, {
     title: "Mission",

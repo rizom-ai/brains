@@ -195,3 +195,59 @@ const DELAY_CLASSES = ["", "reveal-delay-1", "reveal-delay-2"];
 export function delayClass(index: number): string {
   return DELAY_CLASSES[index % DELAY_CLASSES.length] ?? "";
 }
+
+/* The three-up marker/title/text grid shared by two rooms: home's "why it
+   has to exist" problem trio (large display numerals) and /brain's "your
+   data, your rules" principles (mono markers). One schema, one component,
+   the marker style toggled by `mono`. */
+export const trioItemSchema: z.ZodObject<{
+  marker: z.ZodString;
+  title: z.ZodString;
+  text: z.ZodString;
+}> = z.object({
+  marker: z.string(),
+  title: z.string(),
+  text: z.string(),
+});
+
+export const trioSchema: z.ZodObject<{
+  cap: z.ZodString;
+  items: z.ZodArray<typeof trioItemSchema>;
+}> = z.object({
+  cap: z.string(),
+  items: z.array(trioItemSchema),
+});
+
+export type TrioItem = z.infer<typeof trioItemSchema>;
+
+export function Trio({
+  items,
+  mono,
+}: {
+  items: TrioItem[];
+  mono: boolean;
+}): JSX.Element {
+  return (
+    <div className="mt-[30px] grid max-w-[1040px] gap-11 md:grid-cols-3">
+      {items.map((item, i) => (
+        <div key={item.title} className={`reveal ${delayClass(i)}`}>
+          {mono ? (
+            <span className="inline-block pt-3 pb-[15px] font-label text-[14px] font-medium tracking-[0.1em] text-accent">
+              {item.marker}
+            </span>
+          ) : (
+            <span className="block font-display text-[44px] font-light leading-none text-theme-light [font-variation-settings:'SOFT'_30,'opsz'_100]">
+              {item.marker}
+            </span>
+          )}
+          <b className="mt-2.5 block font-display text-[21px] font-[520] tracking-[-0.006em] text-theme [font-variation-settings:'SOFT'_55]">
+            {item.title}
+          </b>
+          <p className="mt-2 font-body text-[15.5px] text-theme-light">
+            {item.text}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}

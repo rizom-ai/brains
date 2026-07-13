@@ -9,7 +9,7 @@ import { RizomFrame, type RizomLayoutProps } from "@rizom/site-rizom";
  * the route path; each face keeps its live links and old-domain nameplate.
  */
 
-type FaceKey = "platform" | "work" | "foundation";
+type FaceKey = "brain" | "work" | "foundation";
 
 interface FaceLink {
   label: string;
@@ -17,24 +17,33 @@ interface FaceLink {
   external?: boolean;
 }
 
+// The three faces of the practice. Home ("/") is the umbrella above them —
+// it claims no face in the strip and wears the plain wordmark.
 const FACES: { key: FaceKey; label: string; href: string }[] = [
-  { key: "platform", label: "Platform", href: "/" },
+  { key: "brain", label: "Brain", href: "/brain" },
   { key: "work", label: "Work", href: "/work" },
   { key: "foundation", label: "Foundation", href: "/foundation" },
 ];
 
 interface FaceChrome {
-  /** Old-domain suffix shown after the wordmark as the room nameplate */
+  /** Suffix shown after the wordmark as the room nameplate */
   nameplate: string | null;
   links: FaceLink[];
   cta: FaceLink;
 }
 
 const FACE_CHROME: Record<FaceKey, FaceChrome> = {
-  platform: {
-    nameplate: null,
-    links: [{ label: "Docs ↗", href: "https://docs.rizom.ai", external: true }],
-    cta: { label: "Get Started", href: "#hero" },
+  brain: {
+    nameplate: "brain",
+    links: [
+      { label: "Docs ↗", href: "https://docs.rizom.ai", external: true },
+      {
+        label: "GitHub ↗",
+        href: "https://github.com/rizom-ai",
+        external: true,
+      },
+    ],
+    cta: { label: "Get Started", href: "/brain#quickstart" },
   },
   work: {
     nameplate: "work",
@@ -58,12 +67,30 @@ const FACE_CHROME: Record<FaceKey, FaceChrome> = {
   },
 };
 
+// The umbrella page's own chrome: the plain wordmark, links into the room and
+// docs, and a get-started CTA that points at the product room.
+const HOME_CHROME: FaceChrome = {
+  nameplate: null,
+  links: [
+    { label: "Brain", href: "/brain" },
+    { label: "Docs ↗", href: "https://docs.rizom.ai", external: true },
+  ],
+  cta: { label: "Get Started", href: "/brain" },
+};
+
+function isHome(path: string): boolean {
+  return path === "/";
+}
+
+// The active face drives the room accent (data-room). Home and /brain both
+// wear brass — home because it is the umbrella, /brain because brass is the
+// product face — so both resolve to "brain" (the theme's default accent).
 function activeFace(path: string): FaceKey {
   if (path === "/work" || path.startsWith("/work/")) return "work";
   if (path === "/foundation" || path.startsWith("/foundation/")) {
     return "foundation";
   }
-  return "platform";
+  return "brain";
 }
 
 // The org-level indexes: cross-room aggregations (everything published,
@@ -84,12 +111,13 @@ function orgIndexActive(path: string): string | null {
 function FacesStrip({ path }: { path: string }): JSX.Element {
   const face = activeFace(path);
   const activeIndex = orgIndexActive(path);
+  const home = isHome(path);
   return (
     <div className="relative z-[2] flex items-baseline gap-6 border-b border-theme-light px-6 py-3 font-label text-label-xs uppercase tracking-[0.14em] md:px-10 xl:px-20">
       <span className="text-theme-muted">rizom</span>
       {FACES.map((item) =>
-        // An org index is cross-room, so no room face is current there.
-        item.key === face && !activeIndex ? (
+        // No face is current on the umbrella home, nor on a cross-room index.
+        item.key === face && !activeIndex && !home ? (
           <a
             key={item.key}
             href={item.href}
@@ -129,8 +157,7 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
   );
 }
 
-function Wordmark({ face }: { face: FaceKey }): JSX.Element {
-  const nameplate = FACE_CHROME[face].nameplate;
+function Wordmark({ nameplate }: { nameplate: string | null }): JSX.Element {
   return (
     <a
       href="/"
@@ -148,8 +175,14 @@ function Wordmark({ face }: { face: FaceKey }): JSX.Element {
   );
 }
 
-function FaceNav({ face }: { face: FaceKey }): JSX.Element {
-  const chrome = FACE_CHROME[face];
+function FaceNav({
+  face,
+  home,
+}: {
+  face: FaceKey;
+  home: boolean;
+}): JSX.Element {
+  const chrome = home ? HOME_CHROME : FACE_CHROME[face];
   // Deliberately NOT merged with siteInfo.navigation: entity plugins
   // register slot-based nav entries for every list route (topics,
   // posts, …), which floods the bar. Each room owns its own links.
@@ -157,7 +190,7 @@ function FaceNav({ face }: { face: FaceKey }): JSX.Element {
 
   return (
     <nav className="relative z-[2] flex items-baseline gap-8 px-6 py-5 md:px-10 xl:px-20">
-      <Wordmark face={face} />
+      <Wordmark nameplate={chrome.nameplate} />
       <div className="hidden items-baseline gap-7 md:flex">
         {links.map((link) => (
           <a
@@ -199,9 +232,9 @@ interface FooterColumn {
    Shown on every face; the signature comes from the site-info entity. */
 const FOOTER_COLUMNS: FooterColumn[] = [
   {
-    heading: "The platform",
+    heading: "The brain",
     links: [
-      { label: "Get started", href: "/#quickstart" },
+      { label: "Get started", href: "/brain#quickstart" },
       { label: "Documentation ↗", href: "https://docs.rizom.ai" },
       { label: "GitHub ↗", href: "https://github.com/rizom-ai" },
       { label: "Network", href: "/network" },
@@ -324,6 +357,7 @@ function RizomAiChrome({
   children: ComponentChildren;
 }): JSX.Element {
   const face = activeFace(path);
+  const home = isHome(path);
   return (
     <RizomFrame canvas={false}>
       {/* xl:pl matches the mockup's 148px left rail (68 + the 80px
@@ -332,7 +366,7 @@ function RizomAiChrome({
         <MyceliumRail />
         <header className="sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
           <FacesStrip path={path} />
-          <FaceNav face={face} />
+          <FaceNav face={face} home={home} />
         </header>
         <main>{children}</main>
         <SiteFooter siteInfo={siteInfo} />

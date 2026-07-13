@@ -6,6 +6,7 @@ describe("@rizom/site-rizom-ai", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual([
       "home",
+      "brain",
       "writing",
       "network",
       "work",
@@ -20,8 +21,24 @@ describe("@rizom/site-rizom-ai", () => {
         : [];
     expect(sections.map((group) => group.namespace)).toEqual([
       "home",
+      "brain",
       "work",
       "foundation",
+    ]);
+  });
+
+  test("exposes the /brain room — the product's own page", () => {
+    const brain = site.routes.find((route) => route.id === "brain");
+    expect(brain?.path).toBe("/brain");
+    // The two pure-product sections move off the umbrella home page into the
+    // room that owns the product story.
+    expect(brain?.sections?.map((s) => s.id)).toEqual([
+      "your-data",
+      "quickstart",
+    ]);
+    expect(brain?.sections?.map((s) => s.template)).toEqual([
+      "brain:your-data",
+      "brain:quickstart",
     ]);
   });
 
@@ -78,16 +95,16 @@ describe("@rizom/site-rizom-ai", () => {
     expect(head).not.toContain("canvas");
   });
 
-  test("exposes the home route sections in rev-5 order", () => {
+  test("exposes the home route sections — product story moved to /brain", () => {
     const route = site.routes[0];
     const sectionIds = route?.sections?.map((section) => section.id);
 
+    // your-data + quickstart now live on /brain; the umbrella home keeps the
+    // network story, the mission band, and the faces.
     expect(sectionIds).toEqual([
       "hero",
       "growth",
       "problem",
-      "your-data",
-      "quickstart",
       "mission",
       "faces",
       "alive",
@@ -103,8 +120,6 @@ describe("@rizom/site-rizom-ai", () => {
       "home:hero",
       "home:growth",
       "home:problem",
-      "home:your-data",
-      "home:quickstart",
       "home:mission",
       "home:faces",
       "home:alive",
