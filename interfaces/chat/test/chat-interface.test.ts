@@ -4,7 +4,10 @@ import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
 import { chunkMessage } from "@brains/utils/chunk-message";
 import { z } from "@brains/utils/zod";
-import { createDiscordChatUploadStoreScope } from "../src/upload-store";
+import {
+  createDiscordChatUploadStoreScope,
+  createSlackChatUploadStoreScope,
+} from "../src/upload-store";
 import { PromptActionStore } from "../src/prompt-action-store";
 import type {
   DiscordChatAdapterConfig,
@@ -1476,7 +1479,7 @@ describe("ChatInterface", () => {
     expect(thread.post).not.toHaveBeenCalled();
   });
 
-  it("does not fetch Slack files before authenticated upload support lands", async () => {
+  it("fetches trusted Slack files through the adapter and stores them durably", async () => {
     harness.setPermissionService(
       new PermissionService({
         rules: [{ pattern: "slack:*", level: "trusted" }],
@@ -1507,11 +1510,63 @@ describe("ChatInterface", () => {
       }),
     );
 
-    expect(fetchData).not.toHaveBeenCalled();
+    expect(fetchData).toHaveBeenCalledTimes(1);
     expect(agentService.chat.mock.calls[0]?.[2]).toMatchObject({
       userPermissionLevel: "trusted",
       interfaceType: "slack",
+      attachments: [
+        expect.objectContaining({
+          kind: "text",
+          filename: "secret.txt",
+          content: "secret",
+          source: expect.objectContaining({ kind: "slack-chat-upload" }),
+        }),
+      ],
     });
+
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "Use secret.txt again",
+        threadId: thread.id,
+        isMention: false,
+      }),
+    );
+    expect(agentService.chat.mock.calls[1]?.[2]?.attachments).toEqual([
+      expect.objectContaining({
+        filename: "secret.txt",
+        source: expect.objectContaining({ kind: "slack-chat-upload" }),
+      }),
+    ]);
+  });
+
+  it("does not fetch Slack files for public users", async () => {
+    const fetchData = mock(() => Promise.resolve(Buffer.from("secret")));
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "Read this",
+        attachments: [
+          {
+            name: "secret.txt",
+            mimeType: "text/plain",
+            size: 6,
+            fetchData,
+          },
+        ],
+      }),
+    );
+
+    expect(fetchData).not.toHaveBeenCalled();
     expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toBeUndefined();
   });
 
@@ -1632,6 +1687,60 @@ describe("ChatInterface", () => {
     expect(pdfFetchData).not.toHaveBeenCalled();
     expect(agentService.chat.mock.calls[0]?.[0]).toBe("Use these");
     expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toBeUndefined();
+  });
+
+  it("passes trusted Slack image and PDF uploads as native attachments", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "slack:*", level: "trusted" }],
+      }),
+    );
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+    const image = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const pdf = Buffer.from("%PDF-1.7");
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "Use these",
+        attachments: [
+          {
+            name: "diagram.png",
+            mimeType: "image/png",
+            size: image.byteLength,
+            fetchData: mock(() => Promise.resolve(image)),
+          },
+          {
+            name: "brief.pdf",
+            mimeType: "application/pdf",
+            size: pdf.byteLength,
+            fetchData: mock(() => Promise.resolve(pdf)),
+          },
+        ],
+      }),
+    );
+
+    expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toEqual([
+      expect.objectContaining({
+        kind: "file",
+        filename: "diagram.png",
+        data: image,
+        source: expect.objectContaining({ kind: "slack-chat-upload" }),
+      }),
+      expect.objectContaining({
+        kind: "file",
+        filename: "brief.pdf",
+        data: pdf,
+        source: expect.objectContaining({ kind: "slack-chat-upload" }),
+      }),
+    ]);
   });
 
   it("passes trusted image and PDF uploads as durable native file attachments", async () => {
@@ -2306,6 +2415,64 @@ describe("ChatInterface", () => {
     );
     expect(thread.post).toHaveBeenLastCalledWith(
       "Approved · Action confirmed.",
+    );
+  });
+
+  it("requires explicit ids for multiple Slack approvals", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Choose one.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+        {
+          id: "approval-2",
+          toolName: "system_publish",
+          summary: "Publish two",
+          args: {},
+        },
+      ],
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    expect(thread.post).toHaveBeenCalledWith(
+      "Approvals pending:\napproval-1: Publish one\napproval-2: Publish two\nReply yes <approval-id> to confirm one item, or no <approval-id> to abort it.",
+    );
+
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", threadId: thread.id, isMention: false }),
+    );
+    expect(thread.post).toHaveBeenLastCalledWith(
+      "Multiple approvals are pending; include one approval id with yes or no/cancel: approval-1, approval-2.",
+    );
+    expect(agentService.confirmPendingAction).not.toHaveBeenCalled();
+
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "yes approval-2",
+        threadId: thread.id,
+        isMention: false,
+      }),
+    );
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      `slack-${thread.id}`,
+      true,
+      "approval-2",
+      expect.objectContaining({ interfaceType: "slack" }),
     );
   });
 
@@ -4739,6 +4906,45 @@ describe("ChatInterface", () => {
     expect(thread.post).not.toHaveBeenCalled();
   });
 
+  it("edits tracked Slack responses with text progress fallbacks", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Queued build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [{ toolName: "site_build", jobId: "job-slack" }],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await new Promise((resolve) => setTimeout(resolve, 510));
+    await harness.sendMessage("job-progress", {
+      id: "job-slack",
+      type: "job",
+      status: "processing",
+      message: "Building routes",
+      progress: { current: 2, total: 4, percentage: 50 },
+      metadata: {
+        rootJobId: "job-slack",
+        operationType: "content_operations",
+        operationTarget: "Site",
+        interfaceType: "slack",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).toHaveBeenCalledWith(
+      "Job processing: content operations: Site 2/4 (50%)\nBuilding routes",
+    );
+  });
+
   it("edits tracked Discord agent responses for async job progress", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Queued build.",
@@ -5117,6 +5323,52 @@ describe("ChatInterface", () => {
 
     expect(response?.status).toBe(404);
     expect(await response?.text()).toBe("Discord chat webhook not configured");
+  });
+
+  it("serves only Slack-scoped uploads from the Slack upload route", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const slackStore = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped(createSlackChatUploadStoreScope());
+    const discordStore = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped(createDiscordChatUploadStoreScope());
+    const slackRecord = await slackStore.save({
+      filename: "slack.txt",
+      mediaType: "text/plain",
+      content: Buffer.from("slack source"),
+    });
+    const discordRecord = await discordStore.save({
+      filename: "discord.txt",
+      mediaType: "text/plain",
+      content: Buffer.from("discord source"),
+    });
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) =>
+          candidate.path === "/api/webhooks/chat/slack/uploads" &&
+          candidate.method === "GET",
+      );
+
+    const found = await route?.handler(
+      new Request(
+        `https://brain.test/api/webhooks/chat/slack/uploads?id=${slackRecord.id}`,
+      ),
+    );
+    const wrongScope = await route?.handler(
+      new Request(
+        `https://brain.test/api/webhooks/chat/slack/uploads?id=${discordRecord.id}`,
+      ),
+    );
+
+    expect(found?.status).toBe(200);
+    expect(found?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await found?.text()).toBe("slack source");
+    expect(wrongScope?.status).toBe(404);
   });
 
   it("returns 404 from Discord upload route when no Discord adapter is configured", async () => {

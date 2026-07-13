@@ -2,7 +2,10 @@ import { describe, it, expect, mock } from "bun:test";
 import type { Mock } from "bun:test";
 import type { RuntimeUploadStore, WebRouteDefinition } from "@brains/plugins";
 import { ChatSdkAppHost, type ChatSdkApp } from "../src/chat-sdk-app";
-import type { DiscordChatAdapterConfig } from "../src/config";
+import type {
+  DiscordChatAdapterConfig,
+  SlackChatAdapterConfig,
+} from "../src/config";
 
 // No module mocks: ChatSdkAppHost imports no SDK at runtime, and the app it
 // drives is injected via `buildApp`. The test supplies a plain fake app.
@@ -20,6 +23,17 @@ const DISCORD_CONFIG: DiscordChatAdapterConfig = {
   useThreads: true,
   captureUrls: true,
   captureUrlEmoji: "🔖",
+};
+
+const SLACK_CONFIG: SlackChatAdapterConfig = {
+  botToken: "slack-token",
+  signingSecret: "slack-signing-secret",
+  allowedChannels: [],
+  blockedUrlDomains: [],
+  requireMention: true,
+  allowDMs: true,
+  showTypingIndicator: true,
+  captureUrls: false,
 };
 
 interface FakeApp extends ChatSdkApp {
@@ -72,6 +86,7 @@ function createUploadStore(
 
 function makeApp(options?: {
   discord?: DiscordChatAdapterConfig | undefined;
+  slack?: SlackChatAdapterConfig | undefined;
   uploadStore?: RuntimeUploadStore | undefined;
   app?: FakeApp;
   build?: boolean;
@@ -84,6 +99,7 @@ function makeApp(options?: {
   const buildApp = mock(() => app);
   const discordApp = new ChatSdkAppHost({
     discord: options && "discord" in options ? options.discord : DISCORD_CONFIG,
+    slack: options && "slack" in options ? options.slack : SLACK_CONFIG,
     getUploadStore: (): RuntimeUploadStore | undefined =>
       options && "uploadStore" in options
         ? options.uploadStore
@@ -103,6 +119,18 @@ function uploadRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
         candidate.method === "GET",
     );
   if (!route) throw new Error("upload route missing");
+  return route;
+}
+
+function slackUploadRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
+  const route = discordApp
+    .getWebRoutes()
+    .find(
+      (candidate) =>
+        candidate.path === "/api/webhooks/chat/slack/uploads" &&
+        candidate.method === "GET",
+    );
+  if (!route) throw new Error("Slack upload route missing");
   return route;
 }
 
@@ -198,6 +226,22 @@ describe("ChatSdkAppHost", () => {
     );
     expect(response.status).toBe(404);
     expect(await response.text()).toBe("Discord chat uploads not configured");
+  });
+
+  it("serves Slack uploads only when Slack is configured", async () => {
+    const configured = makeApp();
+    const response = await slackUploadRoute(configured.discordApp).handler(
+      new Request("https://brain.test/api/webhooks/chat/slack/uploads?id=u1"),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+
+    const unconfigured = makeApp({ slack: undefined });
+    const missing = await slackUploadRoute(unconfigured.discordApp).handler(
+      new Request("https://brain.test/api/webhooks/chat/slack/uploads?id=u1"),
+    );
+    expect(missing.status).toBe(404);
+    expect(await missing.text()).toBe("Slack chat uploads not configured");
   });
 
   it("rejects a missing upload id with 400", async () => {

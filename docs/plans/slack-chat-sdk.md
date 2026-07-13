@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Adapter wiring, basic routing, and platform-isolated subscription persistence are implemented in the Slack worktree; uploads, richer response parity, and live validation remain.
+Ready for live trial. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Adapter wiring, routing, platform-isolated subscription persistence, text-based confirmations, progress fallbacks, and permission-gated uploads are implemented; live validation remains.
 
 Keep this as a separate Slack plan, independent of the Discord parity/replacement work.
 
@@ -48,8 +48,9 @@ Slack app scopes from the adapter docs likely needed for parity smoke tests:
 - `chat:write`
 - `reactions:read`, `reactions:write`
 - `users:read`
+- `files:read` when upload ingestion is enabled
 
-If upload/file ingestion is added, confirm whether `files:read` is required for private Slack file URLs before implementing.
+The Slack adapter exposes `fetchData()` for private files and performs the download with the bot token. Slack returns an HTML login page without `files:read`, so the scope is required for upload ingestion.
 
 ## Starting implementation constraints
 
@@ -125,9 +126,9 @@ Acceptance criteria:
 
 ### 4. Slack uploads and attachment policy
 
-- First determine how the pinned Chat SDK adapter exposes Slack file metadata, private download URLs, and authenticated download requirements; do not assume Discord attachment shapes.
-- Confirm the minimum Slack scopes, including whether `files:read` is required.
-- Add authenticated Slack upload fetching only for trusted/anchor callers.
+- Use the pinned Chat SDK adapter's normalized file metadata and authenticated `fetchData()` callback; do not assume Discord attachment shapes or fetch `url_private` directly.
+- Require the `files:read` Slack scope.
+- Invoke authenticated Slack upload fetching only for trusted/anchor callers.
 - Store source uploads through the shared runtime upload registry with a Slack-specific scope.
 - Reuse shared upload validation/selection helpers.
 - Add a Slack upload route only if needed for durable upload refs, with the same no-store/nosniff/content-disposition guardrails as Discord.

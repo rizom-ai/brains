@@ -35,8 +35,8 @@ interface ChatInputBuilderDeps {
 /**
  * Turns an incoming chat message into agent input: validates and stores each
  * file attachment (collecting notices for rejects), producing the message text
- * plus ChatAttachments. Platform-agnostic — the only platform-specific input,
- * the scoped upload store, is injected so a future Slack adapter reuses this.
+ * plus ChatAttachments. Platform-agnostic — the platform-scoped upload store
+ * is injected, while each adapter supplies its own authenticated fetchData().
  */
 export class ChatInputBuilder {
   private readonly deps: ChatInputBuilderDeps;

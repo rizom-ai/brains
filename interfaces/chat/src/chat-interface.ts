@@ -77,7 +77,12 @@ import {
   createSlackThreadSubscriptionStore,
   type ChatThreadSubscriptionStore,
 } from "./subscription-state";
-import { createDiscordChatUploadStoreScope } from "./upload-store";
+import {
+  createDiscordChatUploadStoreScope,
+  createSlackChatUploadStoreScope,
+  discordChatUploadRefKind,
+  slackChatUploadRefKind,
+} from "./upload-store";
 import {
   getChannelName,
   getPermissionContext,
@@ -123,7 +128,9 @@ export class ChatInterface extends MessageInterfacePlugin<
 
   private readonly threadRegistry = new ThreadRegistry();
   private readonly pendingApprovals: PendingApprovalTracker;
-  private readonly uploadContinuity: MessageUploadContinuity;
+  private readonly uploadContinuity: Readonly<
+    Record<ChatPlatform, MessageUploadContinuity>
+  >;
   private readonly promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
   private readonly toolStatusMessenger = new ToolStatusMessenger(
     this.threadRegistry,
@@ -168,8 +175,8 @@ export class ChatInterface extends MessageInterfacePlugin<
   });
   private readonly chatInputBuilder = new ChatInputBuilder({
     getUploadStore: (platform: string): RuntimeUploadStore | undefined =>
-      platform === "discord"
-        ? this.context?.uploads.scoped(createDiscordChatUploadStoreScope())
+      platform === "discord" || platform === "slack"
+        ? this.getUploadStore(platform)
         : undefined,
     getThreadIdParts,
     logger: this.logger,
@@ -190,8 +197,9 @@ export class ChatInterface extends MessageInterfacePlugin<
     });
     this.chatApp = new ChatSdkAppHost({
       discord: this.config.adapters.discord,
-      getUploadStore: (): RuntimeUploadStore | undefined =>
-        this.context?.uploads.scoped(createDiscordChatUploadStoreScope()),
+      slack: this.config.adapters.slack,
+      getUploadStore: (platform): RuntimeUploadStore | undefined =>
+        this.getUploadStore(platform),
       buildApp: (runtimeState): ChatSdkApp =>
         createChatSdkApp({
           userName: this.config.userName,
@@ -216,41 +224,10 @@ export class ChatInterface extends MessageInterfacePlugin<
         });
       },
     });
-    this.uploadContinuity = new MessageUploadContinuity({
-      sourceKind: "discord-chat-upload",
-      loadMessages: async (conversationId): Promise<readonly unknown[]> => {
-        return (
-          (await this.context?.conversations.getMessages(conversationId, {
-            limit: 50,
-          })) ?? []
-        );
-      },
-      restoreAttachment: async (uploadId): Promise<ChatAttachment> => {
-        const uploadStore = this.context?.uploads.scoped(
-          createDiscordChatUploadStoreScope(),
-        );
-        if (!uploadStore) throw new Error("Chat upload store unavailable");
-        const resolved = await uploadStore.read(uploadId);
-        return chatAttachmentFromStoredUpload(
-          resolved.record.filename,
-          resolved.record.mediaType,
-          resolved.content,
-          resolved.record.ref,
-        );
-      },
-      onLoadError: (error, conversationId): void => {
-        this.logger.debug("Failed to load prior chat uploads", {
-          error,
-          conversationId,
-        });
-      },
-      onRestoreError: (error, uploadId): void => {
-        this.logger.debug("Failed to restore prior chat upload", {
-          error,
-          uploadId,
-        });
-      },
-    });
+    this.uploadContinuity = {
+      discord: this.createUploadContinuity("discord"),
+      slack: this.createUploadContinuity("slack"),
+    };
   }
 
   protected override async onRegister(
@@ -287,7 +264,8 @@ export class ChatInterface extends MessageInterfacePlugin<
       stop: async (): Promise<void> => {
         await this.gatewayLoop.stop();
         this.threadRegistry.clear();
-        this.uploadContinuity.clear();
+        this.uploadContinuity.discord.clear();
+        this.uploadContinuity.slack.clear();
         this.toolStatusMessenger.clear();
         await this.chatApp.shutdown();
         this.chatAppRunning = false;
@@ -653,6 +631,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     if (!this.context) return;
     const platform = this.getPlatform(thread);
     if (!this.isEnabledPlatform(platform)) return;
+    if (platform !== "discord" && platform !== "slack") return;
 
     const platformConfig = this.getPlatformConfig(thread);
     if (!platformConfig) return;
@@ -711,7 +690,7 @@ export class ChatInterface extends MessageInterfacePlugin<
   }
 
   private async routeToAgent(
-    platform: string,
+    platform: ChatPlatform,
     thread: ChatThread,
     message: Message,
     context?: MessageContext,
@@ -735,13 +714,14 @@ export class ChatInterface extends MessageInterfacePlugin<
     );
     const sameTurnUploads = [...agentInput.attachments];
     await this.attachPriorUploads(
+      platform,
       conversationId,
       agentInput,
       userPermissionLevel,
     );
     await this.postUploadNotices(thread, agentInput.notices);
     if (!agentInput.message && agentInput.attachments.length === 0) return;
-    this.rememberUploadAttachments(conversationId, sameTurnUploads);
+    this.rememberUploadAttachments(platform, conversationId, sameTurnUploads);
 
     await this.runAgentTurn({
       thread,
@@ -1243,12 +1223,69 @@ export class ChatInterface extends MessageInterfacePlugin<
     );
   }
 
+  private createUploadContinuity(
+    platform: ChatPlatform,
+  ): MessageUploadContinuity {
+    const sourceKind =
+      platform === "discord"
+        ? discordChatUploadRefKind
+        : slackChatUploadRefKind;
+    return new MessageUploadContinuity({
+      sourceKind,
+      loadMessages: async (conversationId): Promise<readonly unknown[]> => {
+        return (
+          (await this.context?.conversations.getMessages(conversationId, {
+            limit: 50,
+          })) ?? []
+        );
+      },
+      restoreAttachment: async (uploadId): Promise<ChatAttachment> => {
+        const uploadStore = this.getUploadStore(platform);
+        if (!uploadStore) throw new Error("Chat upload store unavailable");
+        const resolved = await uploadStore.read(uploadId);
+        return chatAttachmentFromStoredUpload(
+          resolved.record.filename,
+          resolved.record.mediaType,
+          resolved.content,
+          resolved.record.ref,
+        );
+      },
+      onLoadError: (error, conversationId): void => {
+        this.logger.debug("Failed to load prior chat uploads", {
+          error,
+          conversationId,
+          platform,
+        });
+      },
+      onRestoreError: (error, uploadId): void => {
+        this.logger.debug("Failed to restore prior chat upload", {
+          error,
+          uploadId,
+          platform,
+        });
+      },
+    });
+  }
+
+  private getUploadStore(
+    platform: ChatPlatform,
+  ): RuntimeUploadStore | undefined {
+    const scope =
+      platform === "discord"
+        ? createDiscordChatUploadStoreScope()
+        : createSlackChatUploadStoreScope();
+    return this.context?.uploads.scoped(scope);
+  }
+
   private async attachPriorUploads(
+    platform: ChatPlatform,
     conversationId: string,
     agentInput: AgentInput,
     userLevel: string,
   ): Promise<void> {
-    agentInput.attachments = await this.uploadContinuity.selectPriorUploads({
+    agentInput.attachments = await this.uploadContinuity[
+      platform
+    ].selectPriorUploads({
       conversationId,
       currentAttachments: agentInput.attachments,
       canRestore: userLevel === "anchor" || userLevel === "trusted",
@@ -1256,10 +1293,11 @@ export class ChatInterface extends MessageInterfacePlugin<
   }
 
   private rememberUploadAttachments(
+    platform: ChatPlatform,
     conversationId: string,
     attachments: ChatAttachment[],
   ): void {
-    this.uploadContinuity.remember(conversationId, attachments);
+    this.uploadContinuity[platform].remember(conversationId, attachments);
   }
 
   private getPlatform(thread: ChatThread): string {
