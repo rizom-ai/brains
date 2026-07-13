@@ -155,6 +155,17 @@ describe("JobQueueWorker", () => {
       await worker.stop();
       expect(worker.isWorkerRunning()).toBe(false);
     });
+
+    it("should create a fresh fiber scope when restarted", async () => {
+      await worker.start();
+      await worker.stop();
+      await worker.start();
+
+      expect(worker.isWorkerRunning()).toBe(true);
+
+      await worker.stop();
+      expect(worker.isWorkerRunning()).toBe(false);
+    });
   });
 
   describe("Configuration", () => {
@@ -184,6 +195,8 @@ describe("JobQueueWorker", () => {
 
       expect(autoWorker.isWorkerRunning()).toBe(true);
       await autoWorker.stop();
+      await Bun.sleep(5);
+      expect(autoWorker.isWorkerRunning()).toBe(false);
     });
   });
 

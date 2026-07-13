@@ -6,7 +6,8 @@
     "@brains/mcp-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "effect": "^3.21.4"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
