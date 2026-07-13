@@ -295,12 +295,14 @@ export class Shell implements IShell {
   public async generateObject<T>(
     prompt: string,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ): Promise<{ object: T }> {
     this.requireInitialized("Shell generateObject");
     const { object } = await this.services.aiService.generateObject(
       "You are a helpful assistant. Respond with the requested structured data.",
       prompt,
       schema,
+      signal,
     );
     return { object };
   }

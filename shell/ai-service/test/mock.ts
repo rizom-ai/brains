@@ -2,6 +2,7 @@ import type {
   IAIService,
   AIModelConfig,
   AIModelConfigUpdate,
+  ImageGenerationOptions,
   ImageGenerationResult,
   JudgeInput,
   AIGenerationSchema,
@@ -17,6 +18,7 @@ export function createMockAIService(): IAIService {
     generateText: async (
       _systemPrompt: string,
       userPrompt: string,
+      _signal?: AbortSignal,
     ): Promise<{
       text: string;
       usage: {
@@ -38,6 +40,7 @@ export function createMockAIService(): IAIService {
       _systemPrompt: string,
       userPrompt: string,
       schema: AIGenerationSchema<T>,
+      _signal?: AbortSignal,
     ): Promise<{
       object: T;
       usage: {
@@ -124,6 +127,7 @@ export function createMockAIService(): IAIService {
         "Mock judge",
         [input.instruction, input.material].join("\n\n"),
         input.schema,
+        input.signal,
       );
       return { verdict: object, usage };
     },
@@ -145,7 +149,10 @@ export function createMockAIService(): IAIService {
       return "mock-language-model" as unknown as LanguageModel;
     },
 
-    generateImage: async (): Promise<ImageGenerationResult> => {
+    generateImage: async (
+      _prompt: string,
+      _options?: ImageGenerationOptions,
+    ): Promise<ImageGenerationResult> => {
       const base64 =
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
       return {

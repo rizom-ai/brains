@@ -34,12 +34,15 @@ export interface JudgeInput<T> {
   instruction: string;
   material: string;
   schema: AIGenerationSchema<T>;
+  /** Cancel the underlying provider request. */
+  signal?: AbortSignal;
 }
 
 export interface IAIService {
   generateText(
     systemPrompt: string,
     userPrompt: string,
+    signal?: AbortSignal,
   ): Promise<{
     text: string;
     usage: {
@@ -53,6 +56,7 @@ export interface IAIService {
     systemPrompt: string,
     userPrompt: string,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ): Promise<{
     object: T;
     usage: {
@@ -102,6 +106,8 @@ export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 export interface ImageGenerationOptions {
   /** Aspect ratio for the generated image (default: "16:9") */
   aspectRatio?: AspectRatio;
+  /** Cancel the underlying provider request. */
+  signal?: AbortSignal;
 }
 
 /**

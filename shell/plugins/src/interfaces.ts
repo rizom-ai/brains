@@ -325,6 +325,7 @@ export interface IShell {
   generateObject<T>(
     prompt: string,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ): Promise<{ object: T }>;
   judge<T>(input: JudgeInput<T>): Promise<{
     verdict: T;

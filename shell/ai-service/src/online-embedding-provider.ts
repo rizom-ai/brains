@@ -58,12 +58,17 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     this.openai = createOpenAI({ apiKey: config.apiKey });
   }
 
-  async generateEmbedding(text: string): Promise<EmbeddingResult> {
+  async generateEmbedding(
+    text: string,
+    signal?: AbortSignal,
+  ): Promise<EmbeddingResult> {
+    signal?.throwIfAborted();
     this.logger.debug(`Generating embedding for text (${text.length} chars)`);
 
     const { embedding, usage } = await embed({
       model: this.openai.embedding(this.model),
       value: text,
+      ...(signal ? { abortSignal: signal } : {}),
       providerOptions: {
         openai: { dimensions: this.dimensions },
       },
@@ -75,7 +80,11 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     };
   }
 
-  async generateEmbeddings(texts: string[]): Promise<BatchEmbeddingResult> {
+  async generateEmbeddings(
+    texts: string[],
+    signal?: AbortSignal,
+  ): Promise<BatchEmbeddingResult> {
+    signal?.throwIfAborted();
     if (texts.length === 0) {
       return { embeddings: [], usage: { tokens: 0 } };
     }
@@ -85,6 +94,7 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     const { embeddings, usage } = await embedMany({
       model: this.openai.embedding(this.model),
       values: texts,
+      ...(signal ? { abortSignal: signal } : {}),
       providerOptions: {
         openai: { dimensions: this.dimensions },
       },
