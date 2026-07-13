@@ -22,6 +22,7 @@ import type { Logger } from "@brains/utils/logger";
 import { DaemonRegistry } from "../daemon-registry";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
+import type { ShellLifecycle } from "./shell-lifecycle";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
 import {
@@ -34,8 +35,9 @@ export function createShellServices(options: {
   config: ShellConfig;
   dependencies: ShellDependencies | undefined;
   initializerLogger: Logger;
+  lifecycle: ShellLifecycle;
 }): ShellServices {
-  const { config, dependencies, initializerLogger } = options;
+  const { config, dependencies, initializerLogger, lifecycle } = options;
   initializerLogger.debug("Initializing Shell services");
 
   const logger = createServiceLogger(config, dependencies?.logger);
@@ -77,6 +79,8 @@ export function createShellServices(options: {
       createDatabaseConfig(config.runtimeStateDatabase),
       logger,
     );
+  lifecycle.addSyncFinalizer(() => runtimeStateService.close());
+
   const mcpService =
     dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 
@@ -86,6 +90,7 @@ export function createShellServices(options: {
       createDatabaseConfig(config.jobQueueDatabase),
       logger,
     );
+  lifecycle.addSyncFinalizer(() => jobQueueService.close());
 
   const entityService = EntityService.getInstance({
     embeddingService,
@@ -96,6 +101,7 @@ export function createShellServices(options: {
     dbConfig: createDatabaseConfig(config.database),
     embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
   });
+  lifecycle.addSyncFinalizer(() => entityService.close());
 
   const conversationService =
     dependencies?.conversationService ??
@@ -104,6 +110,17 @@ export function createShellServices(options: {
       messageBus,
       createDatabaseConfig(config.conversationDatabase),
     );
+  lifecycle.addSyncFinalizer(() => conversationService.close());
+
+  lifecycle.addSyncFinalizer(() => {
+    for (const dispose of disposables.splice(0)) {
+      try {
+        dispose();
+      } catch (error) {
+        logger.warn("Failed to dispose shell subscription", error);
+      }
+    }
+  });
 
   const contentService =
     dependencies?.contentService ??

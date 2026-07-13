@@ -18,14 +18,25 @@ export class ShellLifecycle {
 
   /** Register cleanup in acquisition order; close runs it in reverse order. */
   public addFinalizer(finalizer: () => void | Promise<void>): void {
-    if (this.closed) {
-      throw new Error("Cannot register cleanup after shell shutdown");
-    }
+    this.assertOpen();
     Effect.runSync(
       Scope.addFinalizer(
         this.scope,
         Effect.promise(async () => {
           await finalizer();
+        }),
+      ),
+    );
+  }
+
+  /** Register synchronous acquisition cleanup that can roll back construction. */
+  public addSyncFinalizer(finalizer: () => void): void {
+    this.assertOpen();
+    Effect.runSync(
+      Scope.addFinalizer(
+        this.scope,
+        Effect.sync(() => {
+          finalizer();
         }),
       ),
     );
@@ -46,5 +57,18 @@ export class ShellLifecycle {
     if (this.closed) return;
     this.closed = true;
     await runEffectPromise(Scope.close(this.scope, exit));
+  }
+
+  /** Roll back synchronous service acquisition from a throwing constructor. */
+  public closeSync(exit: Exit.Exit<unknown, unknown>): void {
+    if (this.closed) return;
+    this.closed = true;
+    Effect.runSync(Scope.close(this.scope, exit));
+  }
+
+  private assertOpen(): void {
+    if (this.closed) {
+      throw new Error("Cannot register cleanup after shell shutdown");
+    }
   }
 }

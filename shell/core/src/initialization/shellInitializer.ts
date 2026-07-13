@@ -10,6 +10,7 @@ import { SHELL_ENTITY_TYPES } from "../constants";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import { createShellServices } from "./service-factory";
+import type { ShellLifecycle } from "./shell-lifecycle";
 import * as shellRegistration from "./shell-registration";
 import { resetCoreServiceSingletons } from "./service-singletons";
 
@@ -90,11 +91,15 @@ export class ShellInitializer {
     });
   }
 
-  public initializeServices(dependencies?: ShellDependencies): ShellServices {
+  public initializeServices(
+    lifecycle: ShellLifecycle,
+    dependencies?: ShellDependencies,
+  ): ShellServices {
     return createShellServices({
       config: this.config,
       dependencies,
       initializerLogger: this.logger,
+      lifecycle,
     });
   }
 

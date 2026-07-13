@@ -1,8 +1,24 @@
 import { describe, expect, it } from "bun:test";
-import { Effect } from "effect";
+import { Effect, Exit } from "effect";
 import { ShellLifecycle } from "../src/initialization/shell-lifecycle";
 
 describe("ShellLifecycle", () => {
+  it("rolls back synchronous acquisition in reverse order", () => {
+    const order: string[] = [];
+    const lifecycle = new ShellLifecycle();
+    lifecycle.addSyncFinalizer(() => {
+      order.push("first");
+    });
+    lifecycle.addSyncFinalizer(() => {
+      order.push("second");
+    });
+
+    lifecycle.closeSync(Exit.fail(new Error("construction failed")));
+    lifecycle.closeSync(Exit.void);
+
+    expect(order).toEqual(["second", "first"]);
+  });
+
   it("runs its finalizer only once", async () => {
     let finalizerCalls = 0;
     const lifecycle = new ShellLifecycle();

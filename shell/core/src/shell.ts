@@ -91,7 +91,7 @@ import {
   collectPluginApiRoutes,
   collectPluginWebRoutes,
 } from "./plugin-routes";
-import { registerShellServiceFinalizers } from "./shell-shutdown";
+import { registerShellRuntimeFinalizers } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
 import { ShellLifecycle } from "./initialization/shell-lifecycle";
@@ -139,40 +139,64 @@ export class Shell implements IShell {
 
   private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
     this.config = config;
-    const shellInitializer = ShellInitializer.getInstance(
-      dependencies?.logger ?? Logger.getInstance(),
-      this.config,
-    );
-
-    this.services = shellInitializer.initializeServices(dependencies);
     this.lifecycle = new ShellLifecycle();
-    registerShellServiceFinalizers(this.lifecycle, this.services);
-
-    this.jobs = createJobsNamespace(
-      this.services.batchJobManager,
-      this.services.jobQueueService,
-    );
-
-    this.insightsRegistry = createInsightsRegistry();
-    this.bootloader = new ShellBootloader(
+    const constructionLogger = dependencies?.logger ?? Logger.getInstance();
+    const shellInitializer = ShellInitializer.getInstance(
+      constructionLogger,
       this.config,
-      this.services,
-      this.lifecycle,
-      {
-        registerCoreDataSources: (): void =>
-          registerCoreDataSources(this.services, this.config),
-        registerSystemCapabilities: (): void =>
-          registerShellSystemCapabilities({
-            services: this.services,
-            jobs: this.jobs,
-            insights: this.insightsRegistry,
-            query: (prompt, context) => this.query(prompt, context),
-            getAppInfo: () => this.getAppInfo(),
-          }),
-      },
     );
 
-    shellInitializer.wireShell(this.services, this);
+    try {
+      this.services = shellInitializer.initializeServices(
+        this.lifecycle,
+        dependencies,
+      );
+
+      this.jobs = createJobsNamespace(
+        this.services.batchJobManager,
+        this.services.jobQueueService,
+      );
+
+      this.insightsRegistry = createInsightsRegistry();
+      this.bootloader = new ShellBootloader(
+        this.config,
+        this.services,
+        this.lifecycle,
+        {
+          registerCoreDataSources: (): void =>
+            registerCoreDataSources(this.services, this.config),
+          registerSystemCapabilities: (): void =>
+            registerShellSystemCapabilities({
+              services: this.services,
+              jobs: this.jobs,
+              insights: this.insightsRegistry,
+              query: (prompt, context) => this.query(prompt, context),
+              getAppInfo: () => this.getAppInfo(),
+            }),
+        },
+      );
+
+      shellInitializer.wireShell(this.services, this);
+      registerShellRuntimeFinalizers(this.lifecycle, this.services);
+    } catch (error) {
+      try {
+        this.lifecycle.closeSync(Exit.fail(error));
+      } catch (cleanupError) {
+        constructionLogger.error(
+          "Failed to roll back Shell service construction",
+          cleanupError,
+        );
+      }
+      try {
+        resetServiceSingletons();
+      } catch (resetError) {
+        constructionLogger.error(
+          "Failed to reset services after construction rollback",
+          resetError,
+        );
+      }
+      throw error;
+    }
   }
 
   // Lifecycle
