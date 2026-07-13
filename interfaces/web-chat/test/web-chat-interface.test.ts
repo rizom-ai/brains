@@ -245,7 +245,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(17);
+    expect(routes).toHaveLength(16);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -257,76 +257,71 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[2]).toMatchObject({
-      path: "/api/chat/bootstrap",
-      method: "GET",
-      public: true,
-    });
-    expect(routes[3]).toMatchObject({
       path: "/api/chat/actions",
       method: "POST",
       public: true,
     });
-    expect(routes[4]).toMatchObject({
+    expect(routes[3]).toMatchObject({
       path: "/api/chat/sessions",
       method: "GET",
       public: true,
     });
-    expect(routes[5]).toMatchObject({
+    expect(routes[4]).toMatchObject({
       path: "/api/chat/sessions",
       method: "DELETE",
       public: true,
     });
-    expect(routes[6]).toMatchObject({
+    expect(routes[5]).toMatchObject({
       path: "/api/chat/sessions",
       method: "PUT",
       public: true,
     });
-    expect(routes[7]).toMatchObject({
+    expect(routes[6]).toMatchObject({
       path: "/api/chat/sessions/archive",
       method: "PUT",
       public: true,
     });
-    expect(routes[8]).toMatchObject({
+    expect(routes[7]).toMatchObject({
       path: "/api/chat/messages",
       method: "GET",
       public: true,
     });
-    expect(routes[9]).toMatchObject({
+    expect(routes[8]).toMatchObject({
       path: "/api/chat/attachments/document",
       method: "GET",
       public: true,
     });
-    expect(routes[10]).toMatchObject({
+    expect(routes[9]).toMatchObject({
       path: "/api/chat/attachments/image",
       method: "GET",
       public: true,
     });
-    expect(routes[11]).toMatchObject({
+    expect(routes[10]).toMatchObject({
       path: "/api/chat/jobs/status",
       method: "GET",
       public: true,
     });
-    expect(routes[12]).toMatchObject({
+    expect(routes[11]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
     });
-    expect(routes[13]).toMatchObject({
+    expect(routes[12]).toMatchObject({
       path: "/api/chat/uploads",
       method: "POST",
       public: true,
     });
-    expect(routes[14]).toMatchObject({
+    expect(routes[13]).toMatchObject({
       path: "/api/chat/uploads",
       method: "GET",
       public: true,
     });
-    expect(routes[15]).toMatchObject({
+    expect(routes[14]).toMatchObject({
       path: "/api/agent/chat",
       method: "POST",
       public: true,
     });
-    expect(routes[16]).toMatchObject({
+    expect(routes[15]).toMatchObject({
       path: "/api/agent/chat/confirm",
       method: "POST",
       public: true,
@@ -610,8 +605,6 @@ describe("WebChatInterface", () => {
     expect(html).toContain('data-climate="instrument"');
     expect(html).not.toContain("data-theme");
     expect(html).not.toContain("var(--dashboard-");
-    expect(html).not.toContain("--chat-bg:");
-    expect(html).not.toContain("--chat-accent:");
     // The console strip: chat is the active surface; only registered
     // surfaces get doors (no dashboard or cms plugin in this harness).
     expect(html).toContain('class="console-strip"');
@@ -623,8 +616,10 @@ describe("WebChatInterface", () => {
     expect(html).toContain('class="session-chip"');
     expect(html).toContain("Sign out");
     expect(html).toContain('href="/logout?return_to=%2Fchat"');
-    // Climate preference is console-wide.
+    // Climate preference is console-wide, toggled from the strip.
     expect(html).toContain('localStorage.getItem("console.climate")');
+    expect(html).toContain('id="climateToggle"');
+    expect(html).toContain('class="climate-chip"');
     // The ⌘K jump palette ships with the shell.
     expect(html).toContain("/api/console/jump");
     expect(html).toContain(".web-chat-session-dialog-backdrop");
@@ -636,7 +631,10 @@ describe("WebChatInterface", () => {
     expect(html).toContain("opacity: 1;");
     expect(html).toContain("viewport-fit=cover");
     expect(html).toContain("min-height: 100dvh");
-    expect(html).toContain("--chat-secondary: var(--console-secondary)");
+    expect(html).not.toMatch(/--chat-[a-z-]+\s*:/);
+    expect(html).toContain(".web-chat-session-item { border-bottom:");
+    expect(html).toContain(".web-chat-mobile-new");
+    expect(html).toContain("clip-path: none");
   });
 
   it("does not reach out to fonts.googleapis.com from the chat page", async () => {
@@ -655,75 +653,16 @@ describe("WebChatInterface", () => {
     expect(html).not.toContain("<link");
   });
 
-  it("returns playbook lifecycle starters for operators", async () => {
+  it("registers no playbook bootstrap route", async () => {
+    // The guided-start card was removed: fresh conversations open on the
+    // empty state, and playbooks start through explicit commands instead.
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    harness.subscribe("playbooks:lifecycle-starters", async (message) => {
-      expect(message.payload).toEqual({
-        lifecycle: "onboarding",
-        interfaceType: "web-chat",
-        userPermissionLevel: "anchor",
-      });
-      return {
-        success: true,
-        data: {
-          starters: [
-            {
-              id: "onboarding",
-              title: "Set up Rover",
-              description: "Learn Rover by doing real setup work.",
-              playbookId: "rover-onboarding",
-              lifecycle: "onboarding",
-              starterPrompt: "Start the Rover onboarding playbook.",
-            },
-          ],
-        },
-      };
-    });
-    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
 
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/bootstrap"),
-    );
-
-    expect(response?.status).toBe(200);
-    expect(await response?.json()).toEqual({
-      starters: [
-        {
-          id: "onboarding",
-          title: "Set up Rover",
-          description: "Learn Rover by doing real setup work.",
-          playbookId: "rover-onboarding",
-          lifecycle: "onboarding",
-          starterPrompt: "Start the Rover onboarding playbook.",
-        },
-      ],
-    });
-  });
-
-  it("returns no playbook lifecycle starters when none are registered", async () => {
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/bootstrap"),
-    );
-
-    expect(response?.status).toBe(200);
-    expect(await response?.json()).toEqual({ starters: [] });
-  });
-
-  it("rejects playbook bootstrap requests from non-operators", async () => {
-    const plugin = new WebChatInterface();
-    await harness.installPlugin(plugin);
-    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/bootstrap"),
-    );
-
-    expect(response?.status).toBe(403);
+    const bootstrap = plugin
+      .getWebRoutes()
+      .find((route) => route.path === "/api/chat/bootstrap");
+    expect(bootstrap).toBeUndefined();
   });
 
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {

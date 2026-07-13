@@ -75,7 +75,11 @@ const agentMetadataSchema = z.object({
   a2aEndpoint: z.url().optional(),
 });
 
-const templateAgentSchema = z.object({
+/**
+ * Datasource-facing schema. URL/display fields are added by site-builder
+ * after content resolution, before the component is rendered.
+ */
+const enrichedAgentViewSchema = z.object({
   id: z.string(),
   entityType: z.literal(AGENT_ENTITY_TYPE),
   content: z.string(),
@@ -88,12 +92,12 @@ const templateAgentSchema = z.object({
   about: z.string(),
   skills: z.array(agentSkillSchema),
   notes: z.string(),
-  url: z.string(),
-  typeLabel: z.string(),
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
 });
 
 const agentListSchema = z.object({
-  agents: z.array(templateAgentSchema),
+  agents: z.array(enrichedAgentViewSchema),
   pageTitle: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().optional(),
@@ -117,18 +121,18 @@ export function getTemplates(): Record<string, Template> {
     }),
     [AGENT_DETAIL_TEMPLATE_NAME]: createTemplate<
       {
-        agent: z.output<typeof templateAgentSchema>;
-        prevAgent: z.output<typeof templateAgentSchema> | null;
-        nextAgent: z.output<typeof templateAgentSchema> | null;
+        agent: z.output<typeof enrichedAgentViewSchema>;
+        prevAgent: z.output<typeof enrichedAgentViewSchema> | null;
+        nextAgent: z.output<typeof enrichedAgentViewSchema> | null;
       },
       AgentDetailProps
     >({
       name: AGENT_DETAIL_TEMPLATE_NAME,
       description: "Individual agent profile template",
       schema: z.object({
-        agent: templateAgentSchema,
-        prevAgent: templateAgentSchema.nullable(),
-        nextAgent: templateAgentSchema.nullable(),
+        agent: enrichedAgentViewSchema,
+        prevAgent: enrichedAgentViewSchema.nullable(),
+        nextAgent: enrichedAgentViewSchema.nullable(),
       }),
       dataSourceId: AGENT_DATASOURCE_ID,
       requiredPermission: "public",

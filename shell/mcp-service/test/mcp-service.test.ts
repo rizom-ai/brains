@@ -11,6 +11,12 @@ import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 
 interface ProtocolToolHandlerExtra {
   _meta?: Record<string, unknown>;
+  authInfo?: {
+    token: string;
+    clientId: string;
+    scopes: string[];
+    extra?: Record<string, unknown>;
+  };
 }
 
 interface InspectableRegisteredTool {
@@ -253,6 +259,41 @@ describe("MCPService", () => {
         },
         sender: "MCPService",
       });
+    });
+
+    it("prefers the server-verified subject over client user metadata", async () => {
+      const tool: Tool = {
+        name: "verified_subject_tool",
+        description: "Verified subject tool",
+        inputSchema: {},
+        visibility: "anchor",
+        sideEffects: "none",
+        handler: async () => ({ success: true, data: "ok" }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerTool("metadata-plugin", tool);
+
+      await callProtocolTool(
+        mcpService.getMcpServer(),
+        "verified_subject_tool",
+        {},
+        {
+          _meta: { userId: "spoofed-user" },
+          authInfo: {
+            token: "token",
+            clientId: "client-1",
+            scopes: ["mcp"],
+            extra: { subject: "verified-operator" },
+          },
+        },
+      );
+
+      expect(mockMessageBus.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({ userId: "verified-operator" }),
+        }),
+      );
     });
 
     it("should pass compliant registered tool responses through unchanged", async () => {

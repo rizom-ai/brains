@@ -37,16 +37,58 @@ const createEntityPayloadSchema = z.object({
   body: z.string().optional(),
 });
 
-const assistPayloadSchema = z.object({
+const assistContextShape = {
   entityType: z.string(),
-  instruction: z.string().trim().min(1),
-  selection: z.string().min(1).max(8_000),
   body: z.string(),
   frontmatter: z.record(z.string(), z.unknown()),
-});
+};
+
+const assistPayloadSchema = z.union([
+  z.object({
+    ...assistContextShape,
+    variant: z.literal("rewrite").optional(),
+    instruction: z.string().trim().min(1),
+    selection: z.string().min(1).max(8_000),
+  }),
+  z.object({
+    ...assistContextShape,
+    variant: z.literal("summarise"),
+    targetField: z.string().trim().min(1),
+    body: z.string().min(1),
+  }),
+  z.object({
+    ...assistContextShape,
+    variant: z.literal("tag-suggest"),
+    targetField: z.string().trim().min(1),
+    body: z.string().min(1),
+  }),
+]);
 
 const assistResponseSchema = z.object({
   suggestion: z.string(),
+});
+
+const tagAssistResponseSchema = z.object({
+  suggestions: z.array(z.string().trim().min(1)).max(12),
+});
+
+const askAgentPayloadSchema = z.object({
+  selection: z.string().min(1).max(8_000),
+  instruction: z.string().trim().min(1).max(2_000),
+  agent: z.string().trim().min(1).max(253),
+});
+
+const a2aCallResultSchema = z.looseObject({
+  response: z.string(),
+});
+
+const a2aAgentListSchema = z.object({
+  agents: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+    }),
+  ),
 });
 
 const UPLOAD_FORM_FIELD = "file";
@@ -225,6 +267,26 @@ export function createEditorRoutes(
         const denied = await requireSession(request);
         if (denied) return denied;
         return handleAssist(getContext(), request);
+      },
+    },
+    {
+      path: apiPath("agents"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const denied = await requireSession(request);
+        if (denied) return denied;
+        return handleListAgents(getContext());
+      },
+    },
+    {
+      path: apiPath("ask-agent"),
+      method: "POST",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const denied = await requireSession(request);
+        if (denied) return denied;
+        return handleAskAgent(getContext(), request);
       },
     },
     {
@@ -577,11 +639,80 @@ async function handleAssist(
     );
   }
 
-  if (!context.entities.getEffectiveFrontmatterSchema(payload.entityType)) {
+  const frontmatterSchema = context.entities.getEffectiveFrontmatterSchema(
+    payload.entityType,
+  );
+  if (!frontmatterSchema) {
     return jsonResponse(
       { error: `Unknown entity type: ${payload.entityType}` },
       404,
     );
+  }
+
+  if (payload.variant === "summarise" || payload.variant === "tag-suggest") {
+    const fieldSchema = frontmatterSchema.shape[payload.targetField];
+    if (!fieldSchema) {
+      return jsonResponse(
+        { error: `Unknown frontmatter field: ${payload.targetField}` },
+        400,
+      );
+    }
+    const descriptor = zodFieldToCmsWidget(
+      payload.targetField,
+      fieldSchema as z.ZodTypeAny,
+    );
+    const compatible =
+      payload.variant === "summarise"
+        ? descriptor.widget === "string" || descriptor.widget === "text"
+        : descriptor.widget === "list" && descriptor.field?.widget === "string";
+    if (!compatible) {
+      return jsonResponse(
+        {
+          error: `Field ${payload.targetField} is incompatible with ${payload.variant}`,
+        },
+        400,
+      );
+    }
+
+    const contextLines = [
+      "You are editing CMS frontmatter from an existing markdown body.",
+      `Entity type: ${payload.entityType}`,
+      `Target field: ${payload.targetField}`,
+      `Existing frontmatter JSON: ${JSON.stringify(payload.frontmatter)}`,
+      "",
+      "Full markdown body:",
+      payload.body,
+    ];
+
+    if (payload.variant === "summarise") {
+      const { object } = await context.ai.generateObject(
+        [
+          "Summarise the body for the target frontmatter field.",
+          "Return only the field value in the suggestion field.",
+          ...contextLines,
+        ].join("\n"),
+        assistResponseSchema,
+      );
+      return jsonResponse({
+        variant: payload.variant,
+        targetField: payload.targetField,
+        suggestion: object.suggestion,
+      });
+    }
+
+    const { object } = await context.ai.generateObject(
+      [
+        "Suggest tags for the target frontmatter field.",
+        "Return concise tag strings in the suggestions field without duplicates.",
+        ...contextLines,
+      ].join("\n"),
+      tagAssistResponseSchema,
+    );
+    return jsonResponse({
+      variant: payload.variant,
+      targetField: payload.targetField,
+      suggestions: [...new Set(object.suggestions)],
+    });
   }
 
   const prompt = [
@@ -606,6 +737,67 @@ async function handleAssist(
     assistResponseSchema,
   );
   return jsonResponse({ suggestion: object.suggestion });
+}
+
+async function handleListAgents(
+  context: ServicePluginContext,
+): Promise<Response> {
+  const response = await context.messaging.send({
+    type: "a2a:call:agents",
+    payload: {},
+  });
+  if (!("success" in response) || !response.success) {
+    // No a2a interface (or no directory) means the client keeps the existing
+    // model-only assist bar.
+    return jsonResponse({ agents: [] });
+  }
+
+  const parsed = a2aAgentListSchema.safeParse(response.data);
+  return jsonResponse(parsed.success ? parsed.data : { agents: [] });
+}
+
+async function handleAskAgent(
+  context: ServicePluginContext,
+  request: Request,
+): Promise<Response> {
+  let payload: z.infer<typeof askAgentPayloadSchema>;
+  try {
+    payload = askAgentPayloadSchema.parse(await request.json());
+  } catch {
+    return jsonResponse(
+      { error: "Invalid agent ask payload or selection length" },
+      400,
+    );
+  }
+
+  const result = await context.messaging.send({
+    type: "a2a:call:request",
+    payload,
+  });
+  if (!("success" in result) || !result.success) {
+    const error =
+      "error" in result && typeof result.error === "string"
+        ? result.error
+        : "Agent call failed";
+    const unavailable = error.startsWith("No handler found");
+    return jsonResponse(
+      { error: unavailable ? "Agent asking is unavailable" : error },
+      unavailable ? 503 : 400,
+    );
+  }
+
+  if (result.data === undefined) {
+    return jsonResponse({ error: "Agent asking is unavailable" }, 503);
+  }
+  const parsed = a2aCallResultSchema.safeParse(result.data);
+  if (!parsed.success) {
+    return jsonResponse({ error: "Invalid response from agent" }, 502);
+  }
+
+  return jsonResponse({
+    agentId: payload.agent,
+    response: parsed.data.response,
+  });
 }
 
 /**

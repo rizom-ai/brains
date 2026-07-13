@@ -6,7 +6,7 @@ import { BlogPostTemplate, type BlogPostProps } from "../templates/blog-post";
 import { blogGenerationTemplate } from "../templates/generation-template";
 import { blogExcerptTemplate } from "../templates/excerpt-template";
 import { homepageTemplate } from "../templates/homepage";
-import { templateBlogPostSchema } from "../templates/template-blog-post-schema";
+import { enrichedBlogPostSchema } from "../schemas/blog-post";
 
 const paginationInfoSchema = z.object({
   currentPage: z.number(),
@@ -17,8 +17,13 @@ const paginationInfoSchema = z.object({
   hasPrevPage: z.boolean(),
 });
 
+/**
+ * Datasources return posts before site-builder adds route/display fields.
+ * Keep those enrichment fields optional here; createTemplate casts to the
+ * fully enriched component props after the site-builder enrichment pass.
+ */
 const postListSchema = z.object({
-  posts: z.array(templateBlogPostSchema),
+  posts: z.array(enrichedBlogPostSchema),
   pageTitle: z.string().optional(),
   pageLabel: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
@@ -41,20 +46,20 @@ export function getTemplates(): Record<string, Template> {
     ),
     "post-detail": createTemplate<
       {
-        post: z.output<typeof templateBlogPostSchema>;
-        prevPost: z.output<typeof templateBlogPostSchema> | null;
-        nextPost: z.output<typeof templateBlogPostSchema> | null;
-        seriesPosts: z.output<typeof templateBlogPostSchema>[] | null;
+        post: z.output<typeof enrichedBlogPostSchema>;
+        prevPost: z.output<typeof enrichedBlogPostSchema> | null;
+        nextPost: z.output<typeof enrichedBlogPostSchema> | null;
+        seriesPosts: z.output<typeof enrichedBlogPostSchema>[] | null;
       },
       BlogPostProps
     >({
       name: "post-detail",
       description: "Individual blog post template",
       schema: z.object({
-        post: templateBlogPostSchema,
-        prevPost: templateBlogPostSchema.nullable(),
-        nextPost: templateBlogPostSchema.nullable(),
-        seriesPosts: z.array(templateBlogPostSchema).nullable(),
+        post: enrichedBlogPostSchema,
+        prevPost: enrichedBlogPostSchema.nullable(),
+        nextPost: enrichedBlogPostSchema.nullable(),
+        seriesPosts: z.array(enrichedBlogPostSchema).nullable(),
       }),
       dataSourceId: "blog:entities",
       requiredPermission: "public",

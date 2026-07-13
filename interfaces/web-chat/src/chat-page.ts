@@ -8,6 +8,7 @@ import {
 } from "@brains/console-theme";
 import chatPageStyles from "./chat-page.css" with { type: "text" };
 import responsiveShellStyles from "./responsive-shell.css" with { type: "text" };
+import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 
 export const uiAssetPath: string = "/chat/assets/app.js";
 export const uiAssetFile: string = join(
@@ -35,5 +36,7 @@ export function renderChatPage(options: ChatPageOptions): string {
 
 ${chatPageStyles}
 
-${responsiveShellStyles}</style></head><body>${renderConsoleStripHtml(options)}<main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
+${responsiveShellStyles}
+
+${visualRefreshStyles}</style></head><body>${renderConsoleStripHtml(options)}<main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
 }

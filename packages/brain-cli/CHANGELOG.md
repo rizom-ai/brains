@@ -1,5 +1,39 @@
 # @rizom/brain
 
+## 0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
+## 0.2.0-alpha.156
+
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- [`643847f`](https://github.com/rizom-ai/brains/commit/643847fb9ae8298fdc501da9381129c528064c03) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Isolate MCP chat conversations by verified caller and return an opaque conversation handle for explicit follow-ups and confirmations. Authenticated HTTP transports now forward their verified subject into MCP tool context instead of allowing client metadata or a shared fallback identity to collapse unrelated sessions together.
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- [`a7f257b`](https://github.com/rizom-ai/brains/commit/a7f257bfbfd8947d63a0b6d9aefef698c799cdcc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix A2A request signing across local and deployed instances. Local callers no longer send signatures with unreachable loopback key URLs, while deployed receivers verify signatures against the public forwarded URL instead of their internal reverse-proxy URL.
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- [`c3c816d`](https://github.com/rizom-ai/brains/commit/c3c816d4cfa909aab95e4c520695d3a37fdac563) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use an OpenAI-compatible email regex in Buttondown tool input schemas so configured newsletter tools no longer invalidate every tool-bearing agent request under Zod 4.
+
+## 0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- [#55](https://github.com/rizom-ai/brains/pull/55) [`07f7f45`](https://github.com/rizom-ai/brains/commit/07f7f45f2671cfca411f1b2210bf895b47f9cf42) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix conventional `src/site.ts` overrides that structurally match a plugin-less site package so they merge with the brain model's base site and preserve its runtime plugin and templates.
+
 ## 0.2.0-alpha.150
 
 ## 0.2.0-alpha.149

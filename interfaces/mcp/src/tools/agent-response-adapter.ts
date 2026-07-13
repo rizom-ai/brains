@@ -88,6 +88,9 @@ export function agentResponseToToolResponse(
     success: true,
     data: {
       text: response.text,
+      ...(options.conversationId
+        ? { conversationId: options.conversationId }
+        : {}),
       ...(response.toolResults ? { toolResults: response.toolResults } : {}),
       ...(readYourWrites.length > 0 ? { readYourWrites } : {}),
     },

@@ -1,5 +1,112 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.159
+  - @brains/contracts@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/auth-service@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- [`0819819`](https://github.com/rizom-ai/brains/commit/08198194eee9619509430761ccc769c4f794f451) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Streamline the desktop chat composer to the mockup's attach / message / send pill. The boxed instrument card (MESSAGE kicker, ATTACH FILE pill, keyboard hint chips) is gone at every width; the pill that already shipped on tablet and phone now renders at desktop too, centered in the manuscript column over a full-width band.
+
+- [`895ccb8`](https://github.com/rizom-ai/brains/commit/895ccb866be59a64d63d687a45a3cea366d2d9fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the guided playbook starter card and its bootstrap endpoint. Fresh conversations open on the empty state again — the rhizome glyph with its draw animation — and playbooks start through explicit commands. Also fix the sessions drawer close button: it anchors to the drawer's real edge beside the new-session control instead of colliding with it, styled as a hairline circle.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.158
+  - @brains/contracts@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/auth-service@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
+### Patch Changes
+
+- [`f6dc969`](https://github.com/rizom-ai/brains/commit/f6dc96973a64c3f40694ae80fe4529a20d423e5d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bring Chat and CMS into the approved console visual language. Chat gains a compact conversation index and responsive composer while removing its parallel surface-token palette; CMS now applies the detailed editorial palette, IBM Plex Mono source treatment, grouped library metadata, manuscript typography, responsive Details/Write/Preview styling, authored image/date/toggle/tag widgets, conflict feedback, and a recoverable delete dialog. The shared font payload includes the CMS editorial mono face.
+
+- [`b13774a`](https://github.com/rizom-ai/brains/commit/b13774afda0ba85356ab07ee29cdd09b19071054) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator-review fixes across the console: the climate toggle moves into the shared strip on all three surfaces (replacing the dashboard masthead button and chat's local toggle), the session chip gains a neutral visitor variant and quiet phone treatment, sign-in controls adopt the console button language, and the CMS library groups brain machinery under a System rail section, hides publication chips for types without a publication lifecycle, and repairs the phone type pills and row meta alignment.
+
+- Updated dependencies [[`f6dc969`](https://github.com/rizom-ai/brains/commit/f6dc96973a64c3f40694ae80fe4529a20d423e5d), [`b13774a`](https://github.com/rizom-ai/brains/commit/b13774afda0ba85356ab07ee29cdd09b19071054)]:
+  - @brains/console-theme@0.2.0-alpha.157
+  - @brains/auth-service@0.2.0-alpha.157
+  - @brains/contracts@0.2.0-alpha.157
+  - @brains/utils@0.2.0-alpha.157
+  - @brains/plugins@0.2.0-alpha.157
+
+## 0.2.0-alpha.156
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.156
+  - @brains/contracts@0.2.0-alpha.156
+  - @brains/utils@0.2.0-alpha.156
+  - @brains/auth-service@0.2.0-alpha.156
+  - @brains/plugins@0.2.0-alpha.156
+
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/auth-service@0.2.0-alpha.155
+  - @brains/console-theme@0.2.0-alpha.155
+  - @brains/contracts@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.154
+  - @brains/contracts@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/auth-service@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.153
+  - @brains/contracts@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/auth-service@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.152
+  - @brains/contracts@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/auth-service@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.151
+  - @brains/contracts@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/auth-service@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+
 ## 0.2.0-alpha.150
 
 ### Patch Changes

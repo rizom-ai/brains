@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed integration plan. This refines the broader [Operator runtime database](./operator-runtime-db.md) direction for auth-specific state and supersedes the earlier JSON-first idea for canonical identity links unless the DB work is explicitly deferred again.
+Active on `feature/auth-runtime-db`. The branch has the database lifecycle, initial schema, user/identity stores, principal APIs, and first MCP/Discord integration, but is not merge-ready. Remaining blockers are the complete JSON-to-database storage cutover, transactional owner-role invariants, deny-by-default handling for revoked/inactive linked identities, ordered migrations, management/revocation APIs, and current-main validation. This plan refines the broader [Operator runtime database](./operator-runtime-db.md) boundary for auth-specific state.
 
 ## Goal
 

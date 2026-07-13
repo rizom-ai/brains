@@ -5,6 +5,7 @@ import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { createMockPost } from "./fixtures/blog-entities";
+import { getTemplates } from "../src/lib/register-templates";
 
 const singlePostSchema = z.object({
   post: z.any(),
@@ -392,6 +393,32 @@ describe("BlogDataSource", () => {
       expect(result.posts[0].id).toBe("post-2");
       expect(result.posts[1].id).toBe("post-3");
       expect(result.posts[2].id).toBe("post-1");
+    });
+
+    it("accepts datasource output before site URL enrichment", async () => {
+      const post = createMockPost(
+        "post-1",
+        "Published",
+        "published",
+        "published",
+        { publishedAt: "2025-01-01T10:00:00.000Z" },
+      );
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([post]);
+      spyOn(mockEntityService, "countEntities").mockResolvedValue(1);
+
+      const templateSchema = getTemplates()["post-list"]?.schema;
+      if (!templateSchema) throw new Error("post-list template not found");
+
+      const result = await datasource.fetch(
+        { entityType: "post", query: { page: 1, pageSize: 10 } },
+        templateSchema,
+        mockContext,
+      );
+
+      const parsed = postListSchema.parse(result);
+      expect(parsed.posts).toHaveLength(1);
+      expect(parsed.posts[0]?.url).toBeUndefined();
+      expect(parsed.posts[0]?.typeLabel).toBeUndefined();
     });
 
     it("should return posts in database-sorted order (publishedAt desc)", async () => {

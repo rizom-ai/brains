@@ -1,0 +1,672 @@
+/* CMS visual contract.
+   Detailed desktop styling follows docs/cms-editor-mockups.html. Responsive
+   composition remains in responsive.css and inherits this same material system. */
+
+.studio {
+  --console-mono: "IBM Plex Mono", ui-monospace, monospace;
+  background: var(--console-frame);
+}
+
+/* Surface-local context below the shared console strip. */
+.crumbbar {
+  height: 40px;
+  min-height: 40px;
+  padding-inline: 20px;
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, white 24%, transparent),
+      transparent
+    ),
+    var(--console-frame);
+}
+.crumb-mark {
+  color: var(--console-text-muted);
+}
+.crumb-mark b {
+  color: var(--console-text-dim);
+}
+.crumb {
+  color: var(--console-text-dim);
+}
+.crumb button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.crumb button:hover {
+  color: var(--console-accent-dim);
+}
+
+/* Library — quiet paper rail and dense editorial index. */
+.studio-body {
+  grid-template-columns: 232px minmax(0, 1fr);
+}
+.rail {
+  padding: 22px 0 26px;
+  background:
+    linear-gradient(
+      to right,
+      transparent 60%,
+      color-mix(in srgb, var(--console-text) 2.5%, transparent)
+    ),
+    var(--console-card-soft);
+}
+.rail-group {
+  padding-bottom: 18px;
+}
+.rail-title {
+  padding: 0 20px 8px;
+  color: var(--console-text-muted);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+.rail .type {
+  min-height: 0;
+  padding: 6px 20px;
+  color: var(--console-text-dim);
+}
+.rail .type:hover {
+  background: var(--console-card);
+}
+.rail .type.active {
+  border-left-color: var(--console-accent);
+  background: var(--console-card);
+  color: var(--console-text);
+}
+.rail .count {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+
+.listing {
+  width: auto;
+  margin: 0;
+  padding: 26px 30px 34px;
+}
+.listing-head {
+  position: static;
+  align-items: flex-end;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--console-text);
+}
+.listing-head::after {
+  display: none;
+}
+.listing-head h3 {
+  font-size: 34px;
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 60;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+.listing-head .meta {
+  padding-bottom: 5px;
+  color: var(--console-text-muted);
+  font-size: 11.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.listing-head .btn {
+  min-height: 0;
+  margin-bottom: 2px;
+  border-color: var(--console-text);
+  border-radius: 7px;
+  background: var(--console-text);
+  color: var(--console-frame);
+  font-family: var(--console-ui);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.row {
+  grid-template-columns: 44px minmax(0, 1fr) 130px 150px 120px;
+  min-height: 0;
+  padding: 15px 4px 14px;
+  border-bottom-color: var(--console-rule-strong);
+}
+.row:hover {
+  background: var(--console-card);
+}
+.row .idx {
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+.row .title {
+  color: var(--console-text);
+  font-size: 17.5px;
+  font-variation-settings:
+    "SOFT" 50,
+    "opsz" 30;
+  font-weight: 520;
+  letter-spacing: -0.005em;
+}
+.row:hover .title {
+  color: var(--console-accent-dim);
+}
+.row .title small {
+  color: var(--console-text-muted);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+.row .updated {
+  justify-self: auto;
+  color: var(--console-text-dim);
+  font-family: var(--console-ui);
+  font-size: 12.5px;
+  letter-spacing: 0;
+}
+.chip {
+  justify-self: start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.chip.published {
+  color: var(--console-ok);
+  background: var(--console-ok-soft);
+}
+.chip.draft {
+  color: var(--console-warn);
+  background: color-mix(in srgb, var(--console-warn) 13%, transparent);
+}
+.sync {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+.sync-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--console-ok);
+}
+.sync-dot.pending {
+  background: var(--console-warn);
+  animation: console-pulse 1.6s ease-in-out infinite;
+}
+
+/* Manuscript — frontmatter beside the literal source and reading proof. */
+.editor {
+  grid-template-columns: 330px minmax(0, 1fr);
+}
+.colophon {
+  padding: 26px 26px 60px;
+  background: var(--console-card-soft);
+}
+.form-title {
+  gap: 12px;
+  padding-bottom: 18px;
+  color: var(--console-text-muted);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+.form-title h2 {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+}
+.cms-form-mobile-label {
+  display: none;
+}
+.form-title > span {
+  color: var(--console-accent);
+  text-align: right;
+}
+.cms-mobile-save-status,
+.cms-mobile-more {
+  display: none;
+}
+.backlink {
+  display: none;
+}
+.field {
+  padding: 14px 0 16px;
+}
+.field-label {
+  color: var(--console-text-dim);
+}
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="datetime-local"],
+.field select,
+.field textarea {
+  min-height: 0;
+  border-color: var(--console-rule-strong);
+  border-radius: 6px;
+  background: var(--console-card);
+}
+.field input[type="datetime-local"] {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--console-rule-strong);
+  color: var(--console-text);
+  font: 12.5px var(--console-mono);
+  color-scheme: light;
+}
+[data-climate="instrument"] .field input[type="datetime-local"] {
+  color-scheme: dark;
+}
+.field textarea:disabled {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--console-text) 3%, var(--console-card));
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+.field input:user-invalid,
+.field select:user-invalid,
+.field textarea:user-invalid {
+  border-color: var(--console-err);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-err) 12%, transparent);
+}
+.field-inline input[type="checkbox"] {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  appearance: none;
+  flex: 0 0 auto;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 999px;
+  outline: none;
+  background: var(--console-rule);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+.field-inline input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--console-card);
+  box-shadow: 0 1px 3px color-mix(in srgb, black 28%, transparent);
+  transition: transform 150ms ease;
+}
+.field-inline input[type="checkbox"]:checked {
+  border-color: var(--console-ok);
+  background: var(--console-ok);
+}
+.field-inline input[type="checkbox"]:checked::after {
+  transform: translateX(16px);
+}
+.field-inline input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-ok) 18%, transparent);
+}
+.field-image .image-ref {
+  align-items: stretch;
+}
+.field-image .image-ref code {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+}
+.upload-zone {
+  display: grid;
+  justify-items: center;
+  padding: 22px 16px;
+  border: 1.5px dashed var(--console-text-muted);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--console-card) 75%, transparent);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+.upload-zone:hover,
+.upload-zone:focus-within {
+  border-color: var(--console-accent);
+  background: color-mix(in srgb, var(--console-accent) 4%, var(--console-card));
+}
+.upload-zone .upload-glyph {
+  color: var(--console-accent-dim);
+  font: 30px/1 var(--console-display);
+  font-variation-settings: "SOFT" 100;
+}
+.upload-zone strong {
+  margin-top: 8px;
+  color: var(--console-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+.upload-zone small {
+  margin-top: 3px;
+  color: var(--console-text-muted);
+  font: 9.5px var(--console-mono);
+}
+.upload-zone input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 5px 3px 10px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 999px;
+  background: var(--console-card);
+  color: var(--console-text-dim);
+  font-size: 12px;
+}
+.tag button {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font: 13px/1 var(--console-mono);
+}
+.tag button:hover,
+.tag button:focus-visible {
+  background: var(--console-accent-soft);
+  color: var(--console-accent-dim);
+  outline: none;
+}
+.tag-add {
+  border-style: dashed;
+  padding-left: 9px;
+}
+.field .tag-add input[type="text"] {
+  width: 58px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--console-text);
+  font-size: 12px;
+  box-shadow: none;
+}
+.field .tag-add input[type="text"]::placeholder {
+  color: var(--console-text-muted);
+}
+.field .tag-add input[type="text"]:focus {
+  width: 86px;
+}
+
+.manuscript {
+  background: var(--console-card);
+}
+.body-toolbar {
+  min-height: 0;
+  padding: 12px 26px;
+  background: transparent;
+}
+.seg {
+  border-radius: 7px;
+  background: var(--console-card);
+}
+.seg .mode {
+  min-height: 0;
+  padding: 6px 14px;
+  font-size: 11.5px;
+}
+.seg .mode-active {
+  background: var(--console-text);
+  color: var(--console-frame);
+}
+.doc-meta {
+  color: var(--console-text-muted);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+.assist-bar {
+  min-height: 0;
+  padding: 10px 26px;
+}
+.assist-bar[data-has-selection="false"] {
+  display: none;
+}
+.body-source .cm-content,
+.body-preview {
+  padding: 30px 34px;
+}
+.body-source .cm-scroller {
+  font-size: 13px;
+  line-height: 1.75;
+}
+.body-preview h1 {
+  font-size: 30px;
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 90;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+.body-preview p,
+.body-preview li {
+  font-size: 15px;
+  line-height: 1.72;
+}
+.body-preview blockquote {
+  margin-block: 18px;
+  padding-left: 18px;
+  font-size: 16.5px;
+}
+.pipeline {
+  min-height: 58px;
+  padding-inline: 20px;
+  border-top-width: 2px;
+}
+.save-btn {
+  min-height: 0;
+  padding: 9px 22px;
+  border-radius: 7px;
+  font-family: var(--console-ui);
+  font-size: 13.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Desktop manuscript drops the collection rail; the local crumb is its route back. */
+@media (min-width: 901px) {
+  .studio[data-view="editor"] .studio-body {
+    grid-template-columns: 1fr;
+  }
+  .studio[data-view="editor"] .rail {
+    display: none;
+  }
+  .editor {
+    grid-template-columns: 330px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .colophon {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .manuscript {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .pipeline {
+    grid-column: 2;
+    grid-row: 2;
+    gap: 0;
+  }
+}
+
+/* Validation, conflicts, destructive actions, and overlays use the same
+   editorial materials as the default manuscript instead of browser chrome. */
+.status-error {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  color: var(--console-err);
+}
+.pipeline > .status {
+  margin-left: 14px;
+}
+.status-error::before {
+  content: "×";
+  font-family: var(--console-mono);
+  font-weight: 500;
+}
+.pipeline {
+  position: relative;
+}
+.pipeline .conflict {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 12px);
+  width: min(430px, calc(100vw - 32px));
+  max-width: 430px;
+  margin-inline: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--console-warn) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--console-warn) 7%, var(--console-card));
+  box-shadow: 0 12px 30px color-mix(in srgb, black 12%, transparent);
+}
+.conflict h4 {
+  margin-bottom: 4px;
+  color: var(--console-text);
+  font: 560 16px/1.2 var(--console-display);
+  font-variation-settings: "SOFT" 40;
+}
+.conflict p {
+  margin-bottom: 10px;
+  color: var(--console-text-dim);
+  font-size: 12px;
+}
+.conflict .btn {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+.modal-scrim {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--console-text) 38%, transparent);
+  backdrop-filter: blur(2px);
+}
+.delete-modal {
+  width: min(100%, 430px);
+  padding: 28px 30px 24px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 9px;
+  background: var(--console-card);
+  box-shadow: 0 24px 70px color-mix(in srgb, black 22%, transparent);
+}
+.modal-mark {
+  color: var(--console-err);
+  font: 28px/1 var(--console-display);
+}
+.delete-modal h3 {
+  margin-top: 8px;
+  color: var(--console-text);
+  font: 580 23px/1.15 var(--console-display);
+  font-variation-settings:
+    "SOFT" 60,
+    "opsz" 40;
+}
+.delete-modal p {
+  margin-top: 11px;
+  color: var(--console-text-dim);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.delete-modal code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--console-rule);
+  color: var(--console-text);
+  font: 11px var(--console-mono);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.modal-actions .btn.danger {
+  border-color: var(--console-err);
+  background: var(--console-err);
+  color: var(--console-card);
+}
+.modal-actions .btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+/* Instrument is an authored equivalent, not a naive inversion of paper. */
+[data-climate="instrument"] .crumbbar {
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, white 3%, transparent),
+      transparent
+    ),
+    var(--console-frame);
+}
+[data-climate="instrument"] .pipeline {
+  border-top-color: var(--console-accent);
+  background: var(--console-card-soft);
+  color: var(--console-text);
+}
+[data-climate="instrument"] .pipeline .station {
+  color: var(--console-text-muted);
+}
+[data-climate="instrument"] .pipeline .station.done,
+[data-climate="instrument"] .pipeline .station.active {
+  color: var(--console-text);
+}
+[data-climate="instrument"] .pipeline .station .dot {
+  border-color: var(--console-text-muted);
+}
+[data-climate="instrument"] .pipeline .track {
+  background: var(--console-rule-strong);
+}
+[data-climate="instrument"] .pipeline .commit-ref {
+  color: var(--console-text-muted);
+}
+[data-climate="instrument"] .pipeline .commit-ref b {
+  color: var(--console-text);
+}
+[data-climate="instrument"] .cms-mobile-save-status,
+[data-climate="instrument"] .cms-mobile-more summary {
+  color: var(--console-text);
+}
+[data-climate="instrument"] .cms-mobile-more summary {
+  border-color: var(--console-rule-strong);
+}

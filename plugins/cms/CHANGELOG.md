@@ -1,5 +1,109 @@
 # @brains/cms
 
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- [`8b82059`](https://github.com/rizom-ai/brains/commit/8b82059646b1fd41113fb61ca56e0930a4ff60c5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Audit and pin the CMS secondary states. The conflict card's "Reload latest" button was invisible in paper climate (and barely legible in instrument) — a stale `.pipeline .reload` rule from its old home in the dark pipeline bar overrode the ghost button treatment; the rule is removed. The phone ••• disclosure now folds when Delete is chosen instead of hanging open behind the dialog scrim. The delete dialog and conflict card are pinned in visual baselines at desktop and phone widths, both climates.
+
+- [`630b6be`](https://github.com/rizom-ai/brains/commit/630b6be9a61b4ce74f9f99fb49939bfbf2e5f926) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give the save bar's status line breathing room from the pipeline readout — the validation error used to butt directly against the commit ref. The remaining secondary states (validation error line + invalid-field outline, in-flight upload) are now pinned in visual baselines, completing the secondary-state sweep.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/auth-service@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- [`c78f915`](https://github.com/rizom-ai/brains/commit/c78f9153f7e2ca8351d809178de1efb67f26a148) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cap the tablet editor grid rows so a tall colophon scrolls inside its rail instead of pushing the save bar off-viewport at 641-900px widths.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/auth-service@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
+### Patch Changes
+
+- [`f6dc969`](https://github.com/rizom-ai/brains/commit/f6dc96973a64c3f40694ae80fe4529a20d423e5d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bring Chat and CMS into the approved console visual language. Chat gains a compact conversation index and responsive composer while removing its parallel surface-token palette; CMS now applies the detailed editorial palette, IBM Plex Mono source treatment, grouped library metadata, manuscript typography, responsive Details/Write/Preview styling, authored image/date/toggle/tag widgets, conflict feedback, and a recoverable delete dialog. The shared font payload includes the CMS editorial mono face.
+
+- [`b13774a`](https://github.com/rizom-ai/brains/commit/b13774afda0ba85356ab07ee29cdd09b19071054) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator-review fixes across the console: the climate toggle moves into the shared strip on all three surfaces (replacing the dashboard masthead button and chat's local toggle), the session chip gains a neutral visitor variant and quiet phone treatment, sign-in controls adopt the console button language, and the CMS library groups brain machinery under a System rail section, hides publication chips for types without a publication lifecycle, and repairs the phone type pills and row meta alignment.
+
+- Updated dependencies [[`f6dc969`](https://github.com/rizom-ai/brains/commit/f6dc96973a64c3f40694ae80fe4529a20d423e5d), [`b13774a`](https://github.com/rizom-ai/brains/commit/b13774afda0ba85356ab07ee29cdd09b19071054)]:
+  - @brains/console-theme@0.2.0-alpha.157
+  - @brains/auth-service@0.2.0-alpha.157
+  - @brains/utils@0.2.0-alpha.157
+  - @brains/plugins@0.2.0-alpha.157
+
+## 0.2.0-alpha.156
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.156
+  - @brains/utils@0.2.0-alpha.156
+  - @brains/auth-service@0.2.0-alpha.156
+  - @brains/plugins@0.2.0-alpha.156
+
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- [`d2bc8fc`](https://github.com/rizom-ai/brains/commit/d2bc8fc4c6170046c780f3b8fd06860b0d5aa946) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add body-summary and tag-suggestion prompt variants to the CMS. Authors can review generated frontmatter values, apply them to the local colophon draft, and save through the existing validated entity pipeline.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/auth-service@0.2.0-alpha.155
+  - @brains/console-theme@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/auth-service@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/auth-service@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- [`b4ff7d6`](https://github.com/rizom-ai/brains/commit/b4ff7d6e3ed3cb20d2edd2858af9f3b95cb7de4b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let CMS operators ask one approved directory agent about selected markdown. The A2A interface now exposes its validated, signed outbound call path over the internal message bus, while the CMS adds an agent target picker and markdown answer panel. Ordinary answers remain dismiss-only; a dedicated rewrite mode can explicitly replace the selected draft text without changing the entity save path.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/auth-service@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/auth-service@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+
 ## 0.2.0-alpha.150
 
 ### Patch Changes

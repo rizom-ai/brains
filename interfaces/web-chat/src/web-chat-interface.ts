@@ -67,7 +67,6 @@ import {
 } from "./upload-handlers";
 
 const webChatInterfaceType = "web-chat";
-const playbooksLifecycleStartersChannel = "playbooks:lifecycle-starters";
 const chatActionRequestSchema = z
   .object({
     conversationId: z.string().min(1),
@@ -90,20 +89,6 @@ const remoteAgentConfirmRequestSchema = z
   })
   .strict();
 
-const chatBootstrapResponseSchema = z.object({
-  starters: z.array(
-    z
-      .object({
-        id: z.string().min(1),
-        title: z.string().min(1),
-        description: z.string().min(1).optional(),
-        playbookId: z.string().min(1),
-        lifecycle: z.string().min(1),
-        starterPrompt: z.string().min(1),
-      })
-      .strict(),
-  ),
-});
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
 type PermissionLevelResolver = (
   request: Request,
@@ -177,8 +162,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleRemoteAgentChatRequest(request),
         handleRemoteAgentConfirmRequest: (request): Promise<Response> =>
           this.handleRemoteAgentConfirmRequest(request),
-        handleBootstrapRequest: (request): Promise<Response> =>
-          this.handleBootstrapRequest(request),
         handleActionRequest: (request): Promise<Response> =>
           this.handleActionRequest(request),
         handleSessionsRequest: (request): Promise<Response> =>
@@ -320,43 +303,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
         headers: { "Content-Type": "text/html; charset=utf-8" },
       },
     );
-  }
-
-  private async handleBootstrapRequest(request: Request): Promise<Response> {
-    const permissionLevel = await this.resolvePermissionLevel(request);
-    if (permissionLevel !== "anchor") {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    const response = await this.getContext().messaging.send<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "anchor";
-      },
-      unknown
-    >({
-      type: playbooksLifecycleStartersChannel,
-      payload: {
-        lifecycle: "onboarding",
-        interfaceType: webChatInterfaceType,
-        userPermissionLevel: "anchor",
-      },
-    });
-
-    if ("noop" in response || !response.success || !response.data) {
-      return Response.json({ starters: [] });
-    }
-
-    const parsed = chatBootstrapResponseSchema.safeParse(response.data);
-    if (!parsed.success) {
-      this.logger.warn("Invalid playbook bootstrap response", {
-        issues: parsed.error.issues,
-      });
-      return Response.json({ starters: [] });
-    }
-
-    return Response.json(parsed.data);
   }
 
   private async handleActionRequest(request: Request): Promise<Response> {

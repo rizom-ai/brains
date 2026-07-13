@@ -1,5 +1,142 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.159
+  - @brains/content-formatters@0.2.0-alpha.159
+  - @brains/contracts@0.2.0-alpha.159
+  - @brains/media-page-composer@0.2.0-alpha.159
+  - @brains/media-renderer@0.2.0-alpha.159
+  - @brains/ui-library@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+  - @brains/templates@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.158
+  - @brains/content-formatters@0.2.0-alpha.158
+  - @brains/contracts@0.2.0-alpha.158
+  - @brains/media-page-composer@0.2.0-alpha.158
+  - @brains/media-renderer@0.2.0-alpha.158
+  - @brains/ui-library@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+  - @brains/templates@0.2.0-alpha.158
+
+## 0.2.0-alpha.157
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.157
+  - @brains/content-formatters@0.2.0-alpha.157
+  - @brains/contracts@0.2.0-alpha.157
+  - @brains/media-page-composer@0.2.0-alpha.157
+  - @brains/media-renderer@0.2.0-alpha.157
+  - @brains/ui-library@0.2.0-alpha.157
+  - @brains/utils@0.2.0-alpha.157
+  - @brains/plugins@0.2.0-alpha.157
+  - @brains/templates@0.2.0-alpha.157
+
+## 0.2.0-alpha.156
+
+### Patch Changes
+
+- [`7154894`](https://github.com/rizom-ai/brains/commit/7154894218f407bb09c6d53a37efc70f38a4c112) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow blog post, project, and agent templates to validate datasource output before site-builder adds URL and display-label enrichment. This restores generated list and detail pages for standalone site overrides.
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.156
+  - @brains/content-formatters@0.2.0-alpha.156
+  - @brains/contracts@0.2.0-alpha.156
+  - @brains/media-page-composer@0.2.0-alpha.156
+  - @brains/media-renderer@0.2.0-alpha.156
+  - @brains/ui-library@0.2.0-alpha.156
+  - @brains/utils@0.2.0-alpha.156
+  - @brains/plugins@0.2.0-alpha.156
+  - @brains/templates@0.2.0-alpha.156
+
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.155
+  - @brains/atproto-contracts@0.2.0-alpha.155
+  - @brains/media-page-composer@0.2.0-alpha.155
+  - @brains/content-formatters@0.2.0-alpha.155
+  - @brains/contracts@0.2.0-alpha.155
+  - @brains/media-renderer@0.2.0-alpha.155
+  - @brains/ui-library@0.2.0-alpha.155
+  - @brains/utils@0.2.0-alpha.155
+  - @brains/templates@0.2.0-alpha.155
+
+## 0.2.0-alpha.154
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.154
+  - @brains/content-formatters@0.2.0-alpha.154
+  - @brains/contracts@0.2.0-alpha.154
+  - @brains/media-page-composer@0.2.0-alpha.154
+  - @brains/media-renderer@0.2.0-alpha.154
+  - @brains/ui-library@0.2.0-alpha.154
+  - @brains/utils@0.2.0-alpha.154
+  - @brains/plugins@0.2.0-alpha.154
+  - @brains/templates@0.2.0-alpha.154
+
+## 0.2.0-alpha.153
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.153
+  - @brains/content-formatters@0.2.0-alpha.153
+  - @brains/contracts@0.2.0-alpha.153
+  - @brains/media-page-composer@0.2.0-alpha.153
+  - @brains/media-renderer@0.2.0-alpha.153
+  - @brains/ui-library@0.2.0-alpha.153
+  - @brains/utils@0.2.0-alpha.153
+  - @brains/plugins@0.2.0-alpha.153
+  - @brains/templates@0.2.0-alpha.153
+
+## 0.2.0-alpha.152
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.152
+  - @brains/content-formatters@0.2.0-alpha.152
+  - @brains/contracts@0.2.0-alpha.152
+  - @brains/media-page-composer@0.2.0-alpha.152
+  - @brains/media-renderer@0.2.0-alpha.152
+  - @brains/ui-library@0.2.0-alpha.152
+  - @brains/utils@0.2.0-alpha.152
+  - @brains/plugins@0.2.0-alpha.152
+  - @brains/templates@0.2.0-alpha.152
+
+## 0.2.0-alpha.151
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.151
+  - @brains/content-formatters@0.2.0-alpha.151
+  - @brains/contracts@0.2.0-alpha.151
+  - @brains/media-page-composer@0.2.0-alpha.151
+  - @brains/media-renderer@0.2.0-alpha.151
+  - @brains/ui-library@0.2.0-alpha.151
+  - @brains/utils@0.2.0-alpha.151
+  - @brains/plugins@0.2.0-alpha.151
+  - @brains/templates@0.2.0-alpha.151
+
 ## 0.2.0-alpha.150
 
 ### Patch Changes

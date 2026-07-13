@@ -1570,17 +1570,27 @@ describe("resolve with site package", () => {
     });
   });
 
-  test("should treat the conventional local site ref as overrides when the brain already defines a site", () => {
+  test("should merge a structurally complete plugin-less conventional site override with the brain site", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const site = createMockSitePackage("rizom-site", {
-      routes: [{ id: "home", path: "/", title: "Base Home" }],
-      entityDisplay: { post: { label: "Post" } },
+    const site = createMockSitePackage("professional-site", {
+      layouts: { default: "base-layout", article: "article-layout" },
+      routes: [
+        { id: "home", path: "/", title: "Base Home" },
+        { id: "archive", path: "/archive", title: "Archive" },
+      ],
+      entityDisplay: {
+        post: { label: "Post" },
+        note: { label: "Note" },
+      },
     });
 
+    // This has all fields required by SitePackage, including entityDisplay,
+    // but intentionally relies on the brain model's plugin and templates.
     registerPackage(CONVENTIONAL_SITE_PACKAGE_REF, {
       layouts: { default: "app-layout" },
       pluginConfig: { themeProfile: "product" },
       routes: [{ id: "home", path: "/", title: "App Home" }],
+      entityDisplay: { post: { label: "Essay" } },
     });
 
     const def = defineBrain({
@@ -1599,15 +1609,26 @@ describe("resolve with site package", () => {
       },
     );
 
-    const sitePlugin = config.plugins?.find((p) => p.id === "rizom-site");
+    const sitePlugin = config.plugins?.find(
+      (p) => p.id === "professional-site",
+    );
     expect(sitePlugin).toBeDefined();
     expect(getConfig(sitePlugin)["themeProfile"]).toBe("product");
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     const siteBuilderConfig = getConfig(siteBuilder);
+    expect(siteBuilderConfig["layouts"]).toEqual({
+      default: "app-layout",
+      article: "article-layout",
+    });
     expect(siteBuilderConfig["routes"]).toEqual([
       { id: "home", path: "/", title: "App Home" },
+      { id: "archive", path: "/archive", title: "Archive" },
     ]);
+    expect(siteBuilderConfig["entityDisplay"]).toEqual({
+      post: { label: "Essay" },
+      note: { label: "Note" },
+    });
   });
 
   test("should disable webserver preview when site-builder is not active", () => {

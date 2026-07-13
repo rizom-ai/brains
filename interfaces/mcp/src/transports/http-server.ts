@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
@@ -208,7 +209,9 @@ export class StreamableHTTPServer {
     return `Bearer ${serialized}`;
   }
 
-  private async authenticate(request: Request): Promise<Response | null> {
+  private async authenticate(
+    request: Request,
+  ): Promise<Response | AuthInfo | null> {
     const pathname = new URL(request.url).pathname;
 
     if (
@@ -245,7 +248,12 @@ export class StreamableHTTPServer {
       }
 
       this.logger.debug("Authentication successful");
-      return null;
+      return {
+        token,
+        clientId: "static-token-client",
+        scopes: this.authConfig.requiredScopes ?? [],
+        extra: { subject: "static-token-operator" },
+      };
     }
 
     try {
@@ -278,7 +286,12 @@ export class StreamableHTTPServer {
       }
 
       this.logger.debug("Authentication successful");
-      return null;
+      return {
+        token: authHeader.substring(7),
+        clientId: verified.subject,
+        scopes: verified.scope ?? [],
+        extra: { subject: verified.subject },
+      };
     } catch (error) {
       this.logger.warn("Authentication failed: Invalid token", error);
       return this.getAuthErrorResponse(
@@ -313,7 +326,10 @@ export class StreamableHTTPServer {
     }
   }
 
-  private async handleMcpRequest(request: Request): Promise<Response> {
+  private async handleMcpRequest(
+    request: Request,
+    authInfo: AuthInfo | undefined,
+  ): Promise<Response> {
     const sessionId = request.headers.get("mcp-session-id") ?? undefined;
 
     if (request.method === "GET") {
@@ -324,7 +340,7 @@ export class StreamableHTTPServer {
       this.touchSession(sessionId);
       this.logger.debug(`GET /mcp - SSE stream for session ${sessionId}`);
       return this.withCors(
-        await this.transports[sessionId].handleRequest(request),
+        await this.transports[sessionId].handleRequest(request, { authInfo }),
       );
     }
 
@@ -335,7 +351,7 @@ export class StreamableHTTPServer {
 
       this.logger.info(`DELETE /mcp - Terminating session ${sessionId}`);
       return this.withCors(
-        await this.transports[sessionId].handleRequest(request),
+        await this.transports[sessionId].handleRequest(request, { authInfo }),
       );
     }
 
@@ -419,7 +435,7 @@ export class StreamableHTTPServer {
       }
 
       return this.withCors(
-        await transport.handleRequest(request, { parsedBody }),
+        await transport.handleRequest(request, { parsedBody, authInfo }),
       );
     } catch (error) {
       this.logger.error("MCP transport error:", error);
@@ -440,10 +456,11 @@ export class StreamableHTTPServer {
     const url = new URL(request.url);
     this.logger.debug(`${request.method} ${url.pathname}`);
 
-    const authFailure = await this.authenticate(request);
-    if (authFailure) {
-      return authFailure;
+    const authentication = await this.authenticate(request);
+    if (authentication instanceof Response) {
+      return authentication;
     }
+    const authInfo = authentication ?? undefined;
 
     if (url.pathname === "/health") {
       return this.createJsonResponse({
@@ -461,7 +478,7 @@ export class StreamableHTTPServer {
     }
 
     if (url.pathname === "/mcp") {
-      return this.handleMcpRequest(request);
+      return this.handleMcpRequest(request, authInfo);
     }
 
     return this.createTextResponse("Not Found", 404);

@@ -59,10 +59,7 @@ import {
 } from "../../src/upload-policy";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
-// Console-wide climate preference — shared with the dashboard and CMS.
-const themeStorageKey = "console.climate";
 
-type ThemeMode = "paper" | "instrument";
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type SessionDialog =
   | { kind: "rename"; session: WebChatSession }
@@ -70,21 +67,6 @@ type SessionDialog =
   | { kind: "delete"; session: WebChatSession }
   | null;
 type UploadNotice = { tone: "success" | "error"; message: string } | null;
-
-function getInitialTheme(): ThemeMode {
-  if (typeof document === "undefined") return "instrument";
-  const attr = document.documentElement.getAttribute("data-climate");
-  return attr === "paper" ? "paper" : "instrument";
-}
-
-function applyTheme(theme: ThemeMode): void {
-  document.documentElement.setAttribute("data-climate", theme);
-  try {
-    localStorage.setItem(themeStorageKey, theme);
-  } catch {
-    /* localStorage unavailable — fall back to in-memory only */
-  }
-}
 
 function PromptAttachmentButton(): React.ReactElement {
   const attachments = usePromptInputAttachments();
@@ -154,19 +136,6 @@ const webChatSessionsResponseSchema = z.looseObject({
 });
 
 type WebChatSession = z.output<typeof webChatSessionSchema>;
-
-interface WebChatStarter {
-  id: string;
-  title: string;
-  description?: string;
-  playbookId: string;
-  lifecycle: string;
-  starterPrompt: string;
-}
-
-interface WebChatBootstrapResponse {
-  starters: WebChatStarter[];
-}
 
 function createConversationId(): string {
   return `web-${crypto.randomUUID()}`;
@@ -356,34 +325,6 @@ function describeFetchFailure(response: Response, fallback: string): string {
   return `${fallback} (${response.status})`;
 }
 
-function PlaybookStarterCard({
-  starter,
-  onStart,
-  disabled,
-}: {
-  starter: WebChatStarter;
-  onStart: (starter: WebChatStarter) => void;
-  disabled: boolean;
-}): React.ReactElement {
-  return (
-    <section className="web-chat-playbook-starter" aria-label={starter.title}>
-      <span className="web-chat-playbook-starter-kicker">guided start</span>
-      <h2>{starter.title}</h2>
-      <p>
-        {starter.description ??
-          "Start a guided playbook inside this chat. Rover will teach by doing real work with your brain."}
-      </p>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onStart(starter)}
-      >
-        Start setup
-      </button>
-    </section>
-  );
-}
-
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState(() =>
@@ -408,11 +349,8 @@ export function App(): React.ReactElement {
   const [sessionDialog, setSessionDialog] = useState<SessionDialog>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
-  const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
-  const [bootstrapStarter, setBootstrapStarter] =
-    useState<WebChatStarter | null>(null);
   const [liveStatusMessage, setLiveStatusMessage] = useState<string | null>(
     null,
   );
@@ -421,11 +359,6 @@ export function App(): React.ReactElement {
     setDrawerOpen(false);
   }
 
-  function toggleTheme(): void {
-    const next: ThemeMode = theme === "paper" ? "instrument" : "paper";
-    setTheme(next);
-    applyTheme(next);
-  }
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const transport = useMemo(
     () =>
@@ -557,21 +490,7 @@ export function App(): React.ReactElement {
   useEffect(() => {
     focusPromptTextarea(promptInputRef.current);
     void loadSessions();
-    void loadBootstrap();
   }, []);
-
-  async function loadBootstrap(): Promise<void> {
-    try {
-      const response = await fetch("/api/chat/bootstrap", {
-        credentials: "include",
-      });
-      if (!response.ok) return;
-      const body = (await response.json()) as WebChatBootstrapResponse;
-      setBootstrapStarter(body.starters[0] ?? null);
-    } catch {
-      setBootstrapStarter(null);
-    }
-  }
 
   async function loadSessions(
     options: { quiet?: boolean } = {},
@@ -784,10 +703,6 @@ export function App(): React.ReactElement {
       if (effect.uploadNotice) setUploadNotice(effect.uploadNotice);
       setHistoryError(effect.historyError);
     }
-  }
-
-  function startPlaybook(starter: WebChatStarter): void {
-    void submitMessage(starter.starterPrompt);
   }
 
   function resetToNewConversation(): void {
@@ -1149,6 +1064,10 @@ export function App(): React.ReactElement {
     );
   }
 
+  const activeSessionTitle = sessions.find(
+    (session) => session.id === conversationId,
+  )?.title;
+
   return (
     <div
       className="web-chat-shell"
@@ -1284,7 +1203,7 @@ export function App(): React.ReactElement {
 
       <aside className="web-chat-sessions" aria-label="Sessions">
         <header className="web-chat-sessions-header">
-          <h2>Sessions</h2>
+          <h2>Conversations</h2>
           <button
             className="web-chat-sessions-new"
             type="button"
@@ -1332,7 +1251,7 @@ export function App(): React.ReactElement {
           </button>
           <div>
             <span className="web-chat-header-eyebrow">
-              Anchor
+              Brain · Chat
               {messages.length > 0 ? (
                 <>
                   {" · "}
@@ -1343,54 +1262,34 @@ export function App(): React.ReactElement {
               ) : null}
             </span>
             <h1>
-              Brain <em>Chat</em>
+              {activeSessionTitle ?? (
+                <>
+                  New <em>conversation</em>
+                </>
+              )}
             </h1>
-            <p>A field log for talking with the rhizome.</p>
+            <p>
+              {activeSessionTitle
+                ? "Active conversation"
+                : "A field log for talking with the brain"}
+            </p>
           </div>
           <div className="web-chat-header-actions">
             <button
-              className="web-chat-icon-action"
+              className="web-chat-mobile-new"
               type="button"
-              onClick={toggleTheme}
-              aria-label={
-                theme === "paper"
-                  ? "Switch to instrument mode"
-                  : "Switch to paper mode"
-              }
-              title={
-                theme === "paper"
-                  ? "Switch to instrument mode"
-                  : "Switch to paper mode"
-              }
+              aria-label="New conversation"
+              onClick={startNewConversation}
             >
-              {theme === "paper" ? (
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M13 9.5A5 5 0 0 1 6.5 3a5 5 0 1 0 6.5 6.5Z"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  aria-hidden="true"
-                >
-                  <circle cx="8" cy="8" r="3" />
-                  <path
-                    d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              )}
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                aria-hidden="true"
+              >
+                <path d="M8 3v10M3 8h10" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
         </header>
@@ -1412,18 +1311,10 @@ export function App(): React.ReactElement {
         <Conversation>
           <ConversationContent>
             {messages.length === 0 ? (
-              bootstrapStarter ? (
-                <PlaybookStarterCard
-                  starter={bootstrapStarter}
-                  disabled={isBusyStatus(status)}
-                  onStart={startPlaybook}
-                />
-              ) : (
-                <ConversationEmptyState
-                  title="Begin a field note."
-                  description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
-                />
-              )
+              <ConversationEmptyState
+                title="Begin a field note."
+                description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
+              />
             ) : (
               messages.map((message) => (
                 <Message
@@ -1431,6 +1322,9 @@ export function App(): React.ReactElement {
                   from={message.role}
                   data-role={message.role}
                 >
+                  <div className="web-chat-message-header">
+                    {message.role === "user" ? "you" : "brain"}
+                  </div>
                   <MessageContent className="web-chat-message-bubble">
                     {renderMessageSections(message.parts)}
                   </MessageContent>
@@ -1483,6 +1377,7 @@ export function App(): React.ReactElement {
             id="web-chat-input"
             ref={promptInputRef}
             value={input}
+            aria-label="Message"
             placeholder="Plant a question…"
             onInput={(event) => setInput(event.currentTarget.value)}
           />
@@ -1490,10 +1385,6 @@ export function App(): React.ReactElement {
             <PromptInputTools>
               <PromptAttachmentButton />
             </PromptInputTools>
-            <span className="web-chat-prompt-hint">
-              <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd>{" "}
-              newline
-            </span>
             <PromptSubmitControl input={input} status={status} onStop={stop} />
           </PromptInputFooter>
         </PromptInput>

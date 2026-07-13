@@ -409,7 +409,33 @@ describe("renderDashboardPageHtml", () => {
     // Mockup strip chrome: brandmark, command palette hint, session chip.
     expect(html).toContain("Console");
     expect(html).toContain("<kbd>⌘K</kbd>");
+    // Operator session renders the plain chip (visitor modifier only exists
+    // in the sheet, not in the markup).
     expect(html).toContain('class="session-chip"');
+    expect(html).not.toContain('class="session-chip is-visitor"');
+  });
+
+  it("should render the visitor session chip as neutral, not operator-green", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+      operatorAccess: {
+        isOperator: false,
+        hiddenWidgetCount: 2,
+        loginUrl: "/login?return_to=%2F",
+        logoutUrl: "/logout?return_to=%2F",
+      },
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('class="session-chip is-visitor"');
+    expect(html).toContain("Sign in");
   });
 
   it("should omit surface links that are not registered", () => {
@@ -459,7 +485,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('localStorage.setItem("console.climate"');
   });
 
-  it("should render the mockup masthead with the climate toggle", () => {
+  it("should render the climate toggle in the strip, not the masthead", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -480,12 +506,19 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).not.toContain('class="scoreboard"');
     expect(html).not.toContain('class="masthead-action"');
-    // Climate toggle lives in the masthead (mockup), session exit in the strip.
+    // The toggle is console chrome shared by every surface; it sits in the
+    // strip between the command chip and the session chip.
+    const strip = html.slice(
+      html.indexOf('class="console-strip"'),
+      html.indexOf("</header>"),
+    );
+    expect(strip).toContain('id="climateToggle"');
+    expect(strip).toContain('class="climate-chip"');
     const masthead = html.slice(
       html.indexOf('class="masthead"'),
       html.indexOf('class="dashboard-tabs"'),
     );
-    expect(masthead).toContain('id="climateToggle"');
+    expect(masthead).not.toContain('id="climateToggle"');
     expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
   });
 
