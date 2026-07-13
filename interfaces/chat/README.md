@@ -54,35 +54,33 @@ plugins:
 
 ## Slack configuration
 
-Slack uses webhook mode and a single workspace in the first implementation slice. Create a Slack app with the scopes and events documented in [`docs/plans/slack-chat-sdk.md`](../../docs/plans/slack-chat-sdk.md), including `files:read` when uploads are enabled, then map its credentials explicitly:
+Slack supports a single workspace in either webhook or Socket Mode. Create a Slack app with the scopes and events documented in [`docs/plans/slack-chat-sdk.md`](../../docs/plans/slack-chat-sdk.md), including `files:read` when uploads are enabled.
 
-```ts
-[
-  "chat",
-  ChatInterface,
-  (env) => ({
-    adapters: {
-      slack:
-        env["SLACK_BOT_TOKEN"] && env["SLACK_SIGNING_SECRET"]
-          ? {
-              botToken: env["SLACK_BOT_TOKEN"],
-              signingSecret: env["SLACK_SIGNING_SECRET"],
-              requireMention: true,
-              allowDMs: true,
-            }
-          : undefined,
-    },
-  }),
-];
-```
-
-Equivalent `brain.yaml` configuration:
+For local testing, enable **Socket Mode**, create an app-level `xapp-...` token with `connections:write`, and configure:
 
 ```yaml
 plugins:
   chat:
     adapters:
       slack:
+        mode: socket
+        botToken: ${SLACK_BOT_TOKEN}
+        appToken: ${SLACK_APP_TOKEN}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+```
+
+Socket Mode processes events directly and does not require a signing secret, public URL, or webhook tunnel.
+
+For a publicly reachable webhook deployment, configure:
+
+```yaml
+plugins:
+  chat:
+    adapters:
+      slack:
+        mode: webhook
         botToken: ${SLACK_BOT_TOKEN}
         signingSecret: ${SLACK_SIGNING_SECRET}
         requireMention: true
@@ -90,13 +88,13 @@ plugins:
         allowedChannels: []
 ```
 
-Point Slack event subscriptions (and interactivity, if enabled later) at:
+Point Slack event subscriptions at:
 
 ```text
 POST /api/webhooks/chat/slack
 ```
 
-Subscribe to `app_mention`, `message.channels`, `message.groups`, `message.im`, and `message.mpim`. The route verifies Slack signatures and rejects stale or invalid requests.
+Subscribe to `app_mention`, `message.channels`, `message.groups`, `message.im`, and `message.mpim`. Webhook Mode verifies Slack signatures and rejects stale or invalid requests. In Socket Mode, enable the same events but leave their Request URL unset.
 
 Permission rules remain platform-scoped and can coexist:
 
@@ -141,7 +139,8 @@ Generated image/PDF artifact cards are posted as native Discord files for truste
 Slack's initial slice covers:
 
 - Slack-only, Discord-only, combined, and unconfigured adapter wiring;
-- webhook delegation and unconfigured-route rejection;
+- webhook verification/delegation and unconfigured-route rejection;
+- abortable Socket Mode lifecycle, webhook suppression, and coexistence with the Discord gateway;
 - app mentions, DMs, allowed-channel policy, permission attribution, and subscribed-thread follow-ups;
 - isolated durable Discord and Slack subscription namespaces;
 - self/bot filtering through the shared routing policy;

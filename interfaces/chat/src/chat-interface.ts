@@ -64,6 +64,7 @@ import {
 import { ArtifactDeliveryResolver } from "./artifact-delivery";
 import { ApprovalCardTracker } from "./approval-card-tracker";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
+import { SlackSocketLoop } from "./slack-socket-loop";
 import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
@@ -182,6 +183,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     logger: this.logger,
   });
   private readonly gatewayLoop: DiscordGatewayLoop;
+  private readonly slackSocketLoop: SlackSocketLoop;
   private readonly chatApp: ChatSdkAppHost;
   private discordSubscriptions: ChatThreadSubscriptionStore | undefined;
   private slackSubscriptions: ChatThreadSubscriptionStore | undefined;
@@ -195,6 +197,11 @@ export class ChatInterface extends MessageInterfacePlugin<
       gatewayRestartDelayMs: this.config.gatewayRestartDelayMs,
       logger: this.logger,
     });
+    this.slackSocketLoop = new SlackSocketLoop({
+      listenerRunMs: this.config.gatewayRunMs,
+      restartDelayMs: this.config.gatewayRestartDelayMs,
+      logger: this.logger,
+    });
     this.chatApp = new ChatSdkAppHost({
       discord: this.config.adapters.discord,
       slack: this.config.adapters.slack,
@@ -206,6 +213,7 @@ export class ChatInterface extends MessageInterfacePlugin<
           discord: this.config.adapters.discord,
           slack: this.config.adapters.slack,
           gatewayLoop: this.gatewayLoop,
+          slackSocketLoop: this.slackSocketLoop,
           runtimeState,
         }),
     });
@@ -253,6 +261,7 @@ export class ChatInterface extends MessageInterfacePlugin<
 
   protected override createDaemon(): Daemon | undefined {
     const discordEnabled = Boolean(this.config.adapters.discord);
+    const slackSocketEnabled = this.config.adapters.slack?.mode === "socket";
     if (!discordEnabled && !this.config.adapters.slack) return undefined;
 
     return {
@@ -260,9 +269,11 @@ export class ChatInterface extends MessageInterfacePlugin<
         await this.chatApp.initialize();
         this.chatAppRunning = true;
         if (discordEnabled) this.gatewayLoop.start();
+        if (slackSocketEnabled) this.slackSocketLoop.start();
       },
       stop: async (): Promise<void> => {
         await this.gatewayLoop.stop();
+        await this.slackSocketLoop.stop();
         this.threadRegistry.clear();
         this.uploadContinuity.discord.clear();
         this.uploadContinuity.slack.clear();
@@ -273,7 +284,8 @@ export class ChatInterface extends MessageInterfacePlugin<
       healthCheck: async (): Promise<DaemonHealth> => {
         const healthy =
           this.chatAppRunning &&
-          (!discordEnabled || this.gatewayLoop.isRunning());
+          (!discordEnabled || this.gatewayLoop.isRunning()) &&
+          (!slackSocketEnabled || this.slackSocketLoop.isRunning());
         return {
           status: healthy ? "healthy" : "error",
           message: healthy ? "Chat SDK app running" : "Chat SDK app stopped",

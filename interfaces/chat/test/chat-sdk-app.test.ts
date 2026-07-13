@@ -27,6 +27,7 @@ const DISCORD_CONFIG: DiscordChatAdapterConfig = {
 
 const SLACK_CONFIG: SlackChatAdapterConfig = {
   botToken: "slack-token",
+  mode: "webhook",
   signingSecret: "slack-signing-secret",
   allowedChannels: [],
   blockedUrlDomains: [],
@@ -184,6 +185,22 @@ describe("ChatSdkAppHost", () => {
     );
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("slack webhook ok");
+  });
+
+  it("returns 404 from the Slack webhook in Socket Mode", async () => {
+    const { discordApp } = makeApp({
+      slack: {
+        ...SLACK_CONFIG,
+        mode: "socket",
+        signingSecret: undefined,
+        appToken: "xapp-test",
+      },
+    });
+    const response = await slackWebhookRoute(discordApp).handler(
+      new Request("https://brain.test/slack-hook"),
+    );
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("Slack chat webhook not configured");
   });
 
   it("returns 404 when the app has no Slack webhook", async () => {

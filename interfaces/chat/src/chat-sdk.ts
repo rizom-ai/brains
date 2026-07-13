@@ -19,9 +19,18 @@ interface CreateChatSdkAppOptions {
   userName: string;
   discord: DiscordChatAdapterConfig | undefined;
   slack: SlackChatAdapterConfig | undefined;
-  /** The Discord adapter, once built, is handed to the gateway loop to poll. */
+  /** Long-lived adapters are handed to their daemon-owned listener loops. */
   gatewayLoop: { setAdapter(adapter: DiscordChatAdapter): void };
+  slackSocketLoop: { setAdapter(adapter: SlackChatAdapter): void };
   runtimeState: IRuntimeStateNamespace;
+}
+
+function requireConfigValue(
+  value: string | undefined,
+  message: string,
+): string {
+  if (!value) throw new Error(message);
+  return value;
 }
 
 /** Build one Chat SDK app for all configured chat adapters. */
@@ -38,14 +47,31 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
   if (discordAdapter) options.gatewayLoop.setAdapter(discordAdapter);
 
   const slackAdapter = slack
-    ? createSlackAdapter({
-        botToken: slack.botToken,
-        signingSecret: slack.signingSecret,
-      })
+    ? createSlackAdapter(
+        slack.mode === "socket"
+          ? {
+              botToken: slack.botToken,
+              mode: "socket",
+              appToken: requireConfigValue(
+                slack.appToken,
+                "Slack app token is required in socket mode",
+              ),
+            }
+          : {
+              botToken: slack.botToken,
+              signingSecret: requireConfigValue(
+                slack.signingSecret,
+                "Slack signing secret is required in webhook mode",
+              ),
+            },
+      )
     : undefined;
   // Chat SDK 4.33's SlackAdapter declares botUserId optional while its Adapter
   // contract declares it required. Runtime initialization resolves the value.
   const compatibleSlackAdapter = slackAdapter as SlackChatAdapter | undefined;
+  if (compatibleSlackAdapter && slack?.mode === "socket") {
+    options.slackSocketLoop.setAdapter(compatibleSlackAdapter);
+  }
 
   const adapters = {
     ...(discordAdapter ? { discord: discordAdapter } : {}),

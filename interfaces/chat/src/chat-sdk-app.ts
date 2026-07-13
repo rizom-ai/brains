@@ -126,7 +126,10 @@ export class ChatSdkAppHost {
         method: "POST",
         public: true,
         handler: async (request: Request): Promise<Response> => {
-          if (!this.app?.webhooks?.slack) {
+          if (
+            this.deps.slack?.mode !== "webhook" ||
+            !this.app?.webhooks?.slack
+          ) {
             return new Response("Slack chat webhook not configured", {
               status: 404,
             });

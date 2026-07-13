@@ -63,10 +63,26 @@ interface DiscordAdapterFactoryConfig {
 
 interface SlackAdapterFactoryConfig {
   botToken: string;
-  signingSecret: string;
+  mode?: "socket";
+  signingSecret?: string;
+  appToken?: string;
+}
+
+interface MockSlackAdapter {
+  name: "slack";
+  handleWebhook: Mock<() => Promise<Response>>;
+  startSocketModeListener: Mock<
+    (
+      options: GatewayListenerOptions,
+      durationMs?: number,
+      abortSignal?: AbortSignal,
+      webhookUrl?: string,
+    ) => Promise<Response>
+  >;
 }
 
 let lastDiscordAdapter: MockDiscordAdapter | undefined;
+let lastSlackAdapter: MockSlackAdapter | undefined;
 
 const createDiscordAdapterMock = mock(
   (_config: DiscordAdapterFactoryConfig) => {
@@ -89,10 +105,21 @@ const createDiscordAdapterMock = mock(
   },
 );
 
-const createSlackAdapterMock = mock((_config: SlackAdapterFactoryConfig) => ({
-  name: "slack" as const,
-  handleWebhook: mock(() => Promise.resolve(new Response("slack ok"))),
-}));
+const createSlackAdapterMock = mock((_config: SlackAdapterFactoryConfig) => {
+  lastSlackAdapter = {
+    name: "slack",
+    handleWebhook: mock(() => Promise.resolve(new Response("slack ok"))),
+    startSocketModeListener: mock(
+      (
+        _options: GatewayListenerOptions,
+        _durationMs?: number,
+        _abortSignal?: AbortSignal,
+        _webhookUrl?: string,
+      ) => Promise.resolve(new Response("socket ok")),
+    ),
+  };
+  return lastSlackAdapter;
+});
 
 const createMemoryStateMock = mock(() => ({
   connect: mock(() => Promise.resolve()),
@@ -529,6 +556,7 @@ const baseDiscordConfig: DiscordChatAdapterConfig = {
 
 const baseSlackConfig: SlackChatAdapterConfig = {
   botToken: "slack-token",
+  mode: "webhook",
   signingSecret: "slack-signing-secret",
   allowedChannels: [],
   blockedUrlDomains: [],
@@ -536,6 +564,13 @@ const baseSlackConfig: SlackChatAdapterConfig = {
   allowDMs: true,
   showTypingIndicator: true,
   captureUrls: false,
+};
+
+const socketSlackConfig: SlackChatAdapterConfig = {
+  ...baseSlackConfig,
+  mode: "socket",
+  signingSecret: undefined,
+  appToken: "xapp-test",
 };
 
 function expectDiscordConfirmationContext(
@@ -573,6 +608,7 @@ describe("ChatInterface", () => {
     createDiscordAdapterMock.mockClear();
     lastDiscordAdapter = undefined;
     createSlackAdapterMock.mockClear();
+    lastSlackAdapter = undefined;
     createMemoryStateMock.mockClear();
     originalFetch = globalThis.fetch;
     globalThis.fetch = createFetchStub(originalFetch, (_input, _init) =>
@@ -655,6 +691,60 @@ describe("ChatInterface", () => {
     expect(
       harness.getMockShell().getDaemonRegistry().getByPlugin("chat"),
     ).toHaveLength(1);
+  });
+
+  it("runs Slack Socket Mode without exposing a webhook", async () => {
+    const plugin = new ChatInterface({
+      adapters: { slack: socketSlackConfig },
+      gatewayRunMs: 50,
+      gatewayRestartDelayMs: 0,
+    });
+    await harness.installPlugin(plugin);
+    const registry = harness.getMockShell().getDaemonRegistry();
+    const route = plugin
+      .getWebRoutes()
+      .find((candidate) => candidate.path === "/api/webhooks/chat/slack");
+
+    expect(createSlackAdapterMock).toHaveBeenCalledWith({
+      botToken: "slack-token",
+      mode: "socket",
+      appToken: "xapp-test",
+    });
+    const webhook = await route?.handler(
+      new Request("https://brain.test/api/webhooks/chat/slack", {
+        method: "POST",
+      }),
+    );
+    expect(webhook?.status).toBe(404);
+
+    await registry.startPlugin("chat");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await registry.stopPlugin("chat");
+
+    expect(lastSlackAdapter?.startSocketModeListener).toHaveBeenCalled();
+    expect(
+      lastSlackAdapter?.startSocketModeListener.mock.calls[0]?.[2]?.aborted,
+    ).toBe(true);
+  });
+
+  it("runs Discord gateway and Slack Socket Mode together", async () => {
+    const plugin = new ChatInterface({
+      adapters: {
+        discord: baseDiscordConfig,
+        slack: socketSlackConfig,
+      },
+      gatewayRunMs: 50,
+      gatewayRestartDelayMs: 0,
+    });
+    await harness.installPlugin(plugin);
+    const registry = harness.getMockShell().getDaemonRegistry();
+
+    await registry.startPlugin("chat");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await registry.stopPlugin("chat");
+
+    expect(lastDiscordAdapter?.startGatewayListener).toHaveBeenCalled();
+    expect(lastSlackAdapter?.startSocketModeListener).toHaveBeenCalled();
   });
 
   it("does not create a chat adapter or daemon when none is configured", async () => {

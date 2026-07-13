@@ -56,7 +56,9 @@ interface DiscordChatAdapterConfigInput extends UrlCaptureConfigInput {
 
 export interface SlackChatAdapterConfig extends UrlCaptureConfig {
   botToken: string;
-  signingSecret: string;
+  mode: "webhook" | "socket";
+  signingSecret?: string | undefined;
+  appToken?: string | undefined;
   allowedChannels: string[];
   requireMention: boolean;
   allowDMs: boolean;
@@ -65,7 +67,9 @@ export interface SlackChatAdapterConfig extends UrlCaptureConfig {
 
 interface SlackChatAdapterConfigInput extends UrlCaptureConfigInput {
   botToken: string;
-  signingSecret: string;
+  mode?: "webhook" | "socket" | undefined;
+  signingSecret?: string | undefined;
+  appToken?: string | undefined;
   allowedChannels?: string[] | undefined;
   requireMention?: boolean | undefined;
   allowDMs?: boolean | undefined;
@@ -115,16 +119,39 @@ const discordAdapterConfigSchema: z.ZodType<
 const slackAdapterConfigSchema: z.ZodType<
   SlackChatAdapterConfig,
   SlackChatAdapterConfigInput
-> = z.object({
-  botToken: z.string().min(1).describe("Slack bot token"),
-  signingSecret: z.string().min(1).describe("Slack signing secret"),
-  allowedChannels: z.array(z.string()).default([]),
-  requireMention: z.boolean().default(true),
-  allowDMs: z.boolean().default(true),
-  showTypingIndicator: z.boolean().default(true),
-  captureUrls: z.boolean().default(false),
-  blockedUrlDomains: z.array(z.string()).default(blockedUrlDomainsDefault),
-});
+> = z
+  .object({
+    botToken: z.string().min(1).describe("Slack bot token"),
+    mode: z.enum(["webhook", "socket"]).default("webhook"),
+    signingSecret: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Slack signing secret"),
+    appToken: z.string().min(1).optional().describe("Slack app-level token"),
+    allowedChannels: z.array(z.string()).default([]),
+    requireMention: z.boolean().default(true),
+    allowDMs: z.boolean().default(true),
+    showTypingIndicator: z.boolean().default(true),
+    captureUrls: z.boolean().default(false),
+    blockedUrlDomains: z.array(z.string()).default(blockedUrlDomainsDefault),
+  })
+  .superRefine((config, context) => {
+    if (config.mode === "webhook" && !config.signingSecret) {
+      context.addIssue({
+        code: "custom",
+        message: "Slack signing secret is required in webhook mode",
+        path: ["signingSecret"],
+      });
+    }
+    if (config.mode === "socket" && !config.appToken) {
+      context.addIssue({
+        code: "custom",
+        message: "Slack app token is required in socket mode",
+        path: ["appToken"],
+      });
+    }
+  });
 
 export const chatConfigSchema: z.ZodType<ChatConfig, ChatConfigInput> =
   z.object({

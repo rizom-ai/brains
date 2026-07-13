@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for live trial. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Adapter wiring, routing, platform-isolated subscription persistence, text-based confirmations, progress fallbacks, and permission-gated uploads are implemented; live validation remains.
+Ready for live trial. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Webhook and Socket Mode wiring, routing, platform-isolated subscription persistence, text-based confirmations, progress fallbacks, and permission-gated uploads are implemented; live validation remains.
 
 Keep this as a separate Slack plan, independent of the Discord parity/replacement work.
 
@@ -15,8 +15,8 @@ Slack is a new platform adapter in `interfaces/chat`, not a reason to reopen bro
 Initial target:
 
 - single-workspace Slack app support;
-- webhook mode first;
-- optional socket mode later, only if deployment needs it;
+- webhook mode for publicly reachable deployments;
+- Socket Mode for local and direct-process deployments without a public webhook;
 - Slack permission namespace uses `slack:*`;
 - runtime state persists only Slack thread subscriptions, matching the Discord subscription-only policy;
 - locks, queues, caches, OAuth installs, and other operational state remain transient unless a later slice explicitly needs durable state.
@@ -32,10 +32,11 @@ Chat SDK has a published Slack adapter:
 - single-workspace env/config:
   - `SLACK_BOT_TOKEN`
   - `SLACK_SIGNING_SECRET`
-- socket mode config, if needed later:
+- Socket Mode config:
   - `mode: "socket"`
-  - `SLACK_APP_TOKEN`
-  - optional `SLACK_SOCKET_FORWARDING_SECRET`
+  - `SLACK_APP_TOKEN` with `connections:write`
+  - no signing secret or webhook URL is required for direct processing;
+  - optional `SLACK_SOCKET_FORWARDING_SECRET` applies only to serverless forwarding mode, which remains out of scope;
 - multi-workspace OAuth exists in the adapter, but is out of scope for the first slice.
 
 Slack app scopes from the adapter docs likely needed for parity smoke tests:
@@ -72,7 +73,7 @@ Slices 1–3 address these constraints with a small platform-host generalization
 ### 1. Generalize the Chat SDK host and add Slack wiring
 
 - Add `@chat-adapter/slack` at the same compatible version range used by the other Chat SDK packages.
-- Extend `chatConfigSchema.adapters` with single-workspace Slack credentials and routing options: bot token, signing secret, allowed channels, mention policy, and DM policy.
+- Extend `chatConfigSchema.adapters` with single-workspace Slack credentials and routing options: bot token, webhook signing secret or Socket Mode app token, allowed channels, mention policy, and DM policy.
 - Generalize the internal Discord-only app construction/types just enough to host Discord and Slack adapters together. Keep the Discord gateway loop and component REST client platform-specific.
 - Treat `slack` as a first-class `ChatPlatform`; update adapter/webhook maps and platform ownership checks without weakening interface ownership filtering.
 - Create a Slack adapter only when configured.
@@ -155,7 +156,7 @@ Acceptance criteria:
 
 ### 6. Live Slack trial
 
-Run a real Slack app trial after automated tests pass. Automated tests now cover valid and invalid Slack request signatures; the remaining checks require real workspace credentials and a publicly reachable webhook.
+Run a real Slack app trial after automated tests pass. Automated tests cover valid and invalid Slack request signatures plus abortable Socket Mode lifecycle. Use Socket Mode for the first local trial so only real workspace credentials are required; a publicly reachable webhook is optional.
 
 Smoke checks:
 
@@ -174,7 +175,7 @@ Smoke checks:
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.
-- Slack Socket Mode unless webhook deployment is not viable.
+- Serverless Socket Mode forwarding or a hosted socket gateway.
 - Slack Block Kit-native approval buttons.
 - Hosted shared Slack gateway.
 - Reworking Discord parity or Rover migration decisions.

@@ -26,7 +26,14 @@ export interface DiscordChatAdapter {
   ): Promise<Response>;
 }
 
-export type SlackChatAdapter = Adapter;
+export interface SlackChatAdapter extends Adapter {
+  startSocketModeListener(
+    options: GatewayListenerOptions,
+    durationMs?: number,
+    abortSignal?: AbortSignal,
+    webhookUrl?: string,
+  ): Promise<Response>;
+}
 
 export interface ChatAdapterMap {
   discord?: DiscordChatAdapter;
