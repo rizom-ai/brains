@@ -79,9 +79,11 @@ Foundation`) above a per-face contextual nav; each room keeps its live nav and i
    `brain-model-unification`, the consolidated brain composes rover's `default` preset
    (which already carries blog, series, decks, site-builder, analytics — the
    `core + site + team` shape) with
-   `add: [atproto-registry, products, rizom-ecosystem, newsletter]`: the registry serves
-   the canonical `ai.rizom.brain.*` lexicons (must not lapse), products/ecosystem carry
-   ranger-ai's product entities, newsletter backs the `/foundation` follow band.
+   `add: [atproto-registry, products, rizom-ecosystem, newsletter, site-content]`: the
+   registry serves the canonical `ai.rizom.brain.*` lexicons (must not lapse),
+   products/ecosystem carry ranger-ai's product entities, newsletter backs the
+   `/foundation` follow band, and site-content registers the entity type the page
+   sections render from (without it the site builds empty).
    `content-pipeline` and `social-media` stay out — no live cadence exists to carry
    (settled in Phase 0; publishing itself comes with the rover base).
 4. **Content repos merge into a NEW repo, `rizom-ai/rizom-content`** (decided
@@ -244,10 +246,14 @@ packages — entity plugins own their list rendering; the site configures presen
   packages with the new site); merge to main; publish `@rizom/site-rizom-ai`.
 - Move rover-pilot `users/new.yaml` off the old products-era pin. It currently holds
   `@rizom/site-rizom-ai@0.2.0-alpha.148`, theme `@brains/theme-rizom`, and
-  `addOverride: [atproto-registry, site-content]` — all three drift from our
-  composition and must move: bump to the freshly published version, switch the theme to
-  `@brains/theme-rizom-ai`, and carry the real `add:` set
-  (`web-chat`, `atproto-registry`, `products`, `rizom-ecosystem`, `newsletter`). For
+  `addOverride: [atproto-registry, site-content]` — bump to the freshly published
+  version, switch the theme to `@brains/theme-rizom-ai`, and carry the real `add:` set
+  (`web-chat`, `atproto-registry`, `products`, `rizom-ecosystem`, `newsletter`,
+  `site-content`). **`site-content` is load-bearing**: it registers the `site-content`
+  entity type, without which directory-sync cannot import
+  `site-content/<page>/<section>.md` and every page section renders empty (verified
+  against a local render, 2026-07-13 — the rizom-ai test-app is the reference
+  composition). For
   content, override the pilot's generic per-handle default (`rizom-ai/rover-new-content`)
   and point the staging sync at the merged `rizom-ai/rizom-content` (Decision 4) — the
   whole reason to stage is to validate the folded corpus before the production cutover.
