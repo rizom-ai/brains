@@ -2,15 +2,23 @@ import type { Plugin } from "@brains/plugins";
 import {
   createSiteContentTemplates,
   extendSite,
+  sectionGroupToTemplates,
   sitePackageSchema as baseSitePackageSchema,
   themeCssSchema,
   type SitePackage as BaseSitePackage,
   type SitePackageOverrides as BaseSitePackageOverrides,
 } from "@brains/site-composition";
+import type { SiteSectionGroup } from "@rizom/site";
 import { z } from "@brains/utils/zod";
 
-export { createSiteContentTemplates, extendSite, themeCssSchema };
+export {
+  createSiteContentTemplates,
+  extendSite,
+  sectionGroupToTemplates,
+  themeCssSchema,
+};
 export type { SiteContentDefinition } from "@brains/site-composition";
+export type { SiteSectionGroup };
 
 export type SitePackage<TPluginConfig = Record<string, unknown>> =
   BaseSitePackage<TPluginConfig, Plugin>;

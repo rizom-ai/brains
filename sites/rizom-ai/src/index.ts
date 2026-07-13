@@ -1,3 +1,5 @@
 export { rizomAiSite, rizomAiSite as default } from "./site";
 export { aiRoutes } from "./routes";
-export { default as aiSiteContent } from "./site-content";
+export { homeSections } from "./home";
+export { workSections } from "./work";
+export { foundationSections } from "./foundation";

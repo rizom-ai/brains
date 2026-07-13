@@ -31,11 +31,13 @@ import {
 import {
   createSiteContentTemplates,
   extendSite,
+  sectionGroupToTemplates,
   sitePackageSchema,
   themeCssSchema,
   type ConventionalSiteOverrides,
   type SiteContentDefinition,
   type SitePackage,
+  type SiteSectionGroup,
 } from "./site-package";
 import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
@@ -264,6 +266,13 @@ function normalizeSiteContent(
   return Array.isArray(content) ? content : [content];
 }
 
+function normalizeSiteSections(
+  sections: SitePackage["sections"],
+): SiteSectionGroup[] {
+  if (!sections) return [];
+  return Array.isArray(sections) ? sections : [sections];
+}
+
 class DeclarativeSitePlugin implements Plugin {
   readonly id = "site-package";
   readonly version = "0.1.0";
@@ -284,6 +293,10 @@ class DeclarativeSitePlugin implements Plugin {
         createSiteContentTemplates(definition),
         definition.namespace,
       );
+    }
+
+    for (const group of normalizeSiteSections(this.site.sections)) {
+      shell.registerTemplates(sectionGroupToTemplates(group), group.namespace);
     }
 
     if (this.site.headScripts?.length) {

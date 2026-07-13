@@ -4,11 +4,15 @@
 
 In progress on `work/rizom-consolidated-site`.
 
-The worktree already contains the consolidated home, `/work`, `/foundation`, `/writing`,
-and `/network` shape; a Rover-based composition with the required capabilities; the
-merged `rizom-ai/rizom-content` repository; and a port of `@rizom/site-rizom-ai` onto the
-public `@rizom/site` model. That code is not on `main` and the currently deployed
-`new.rizom.ai` canary proves only the hosted package path, not this consolidated result.
+The branch carries the finished site work (2026-07-13): the consolidated home, `/work`,
+`/foundation`, `/writing`, and `/network` authored **schema-first** via the new
+`@rizom/site-sections` package (one zod schema per section; no field DSL); the final
+copy authored into `rizom-ai/rizom-content` as `site-content/<page>/<section>.md`
+through the schema-derived formatter; the composition verified against a local render
+(all 21 sections render — which surfaced that `site-content` is a required capability);
+the products-era theme-profile canvas dropped; and changesets staged for the whole
+release train. That code is not on `main` and the currently deployed `new.rizom.ai`
+canary proves only the hosted package path, not this consolidated result.
 
 This plan tracks only the remaining merge, staging, cutover, and retirement work. Delete
 it when one production Rizom deployment remains.
@@ -24,7 +28,10 @@ Protocol registry and collective memory, then retire the redundant deployments.
 - **One site:** `rizom.ai`, with `/work` and `/foundation` rooms, one `/writing` index,
   `/network`, and `/docs` linking to `docs.rizom.ai`.
 - **One brain:** Rover default plus `web-chat`, `atproto-registry`, `products`,
-  `rizom-ecosystem`, and `newsletter` until capability bundles replace preset language.
+  `rizom-ecosystem`, `newsletter`, and `site-content` until capability bundles replace
+  preset language. `site-content` is load-bearing: it registers the entity type the page
+  sections render from — without it the site builds with empty sections (verified
+  against a local render, 2026-07-13).
 - **One content repo:** `rizom-ai/rizom-content`, already merged from the three source
   repos with history and collision handling.
 - **One runtime lineage:** migrate the foundation brain's conversation/team-memory state;
@@ -38,13 +45,18 @@ Protocol registry and collective memory, then retire the redundant deployments.
 
 ### 1. Finish the published site package
 
-- Complete the schema-first section/content work in the active worktree.
-- Author the final consolidated copy into `rizom-content` rather than shipping fallback
-  copy as the source of truth.
-- Rebase/merge current `main` and resolve package-boundary drift without reintroducing
+- ✅ Complete the schema-first section/content work in the active worktree (2026-07-13).
+- ✅ Author the final consolidated copy into `rizom-content` (`site-content/*` generated
+  through the schema-derived formatter, round-trip verified).
+- ✅ Rebase/merge current `main` and resolve package-boundary drift without reintroducing
   private runtime imports into the public site package.
-- Run package tests, rendered-site checks, typecheck, lint, and the full commit hooks.
-- Merge and publish the resulting `@rizom/site-rizom-ai` release.
+- ✅ Run package tests, rendered-site checks, typecheck, lint, and the full commit hooks
+  (local render verified: all sections on all faces, `/writing` + `/network` lists, only
+  `boot.js` in the head).
+- Merge and publish the resulting `@rizom/site-rizom-ai` release (changesets staged on
+  the branch; the release train also carries `@rizom/site-sections`, `@rizom/site`,
+  `@rizom/site-rizom`, and `@rizom/brain` — the deployed runtime needs the section
+  registration).
 
 ### 2. Stage the actual consolidated brain
 
@@ -52,8 +64,9 @@ Update rover-pilot `new` desired state to use:
 
 - the newly published consolidated site package;
 - `rizom-ai/rizom-content`;
-- the intended Rizom theme;
-- `web-chat`, `atproto-registry`, `products`, `rizom-ecosystem`, and `newsletter`.
+- `@brains/theme-rizom-ai`;
+- `web-chat`, `atproto-registry`, `products`, `rizom-ecosystem`, `newsletter`, and
+  `site-content`.
 
 Build the exact hash-tagged image, deploy to `new.rizom.ai`, trigger the preview rebuild
 through the running app, and review the consolidated home/rooms/indexes against the

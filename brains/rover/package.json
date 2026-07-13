@@ -30,6 +30,7 @@
     "@brains/obsidian-vault": "workspace:*",
     "@brains/playbooks": "workspace:*",
     "@brains/portfolio": "workspace:*",
+    "@brains/products": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/rizom-ecosystem": "workspace:*",
     "@brains/rover-onboarding": "workspace:*",
@@ -48,7 +49,9 @@
   },
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",
+    "@brains/theme-rizom-ai": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@rizom/site-rizom-ai": "workspace:*",
     "typescript": "^7.0.2"
   },
   "files": [
@@ -72,6 +75,7 @@
     "start:core": "bun run build:ui && cd test-apps/core && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:default": "bun run build:ui && cd test-apps/default && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:full": "bun run build:ui && cd test-apps/full && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
+    "start:rizom-ai": "bun run build:ui && cd test-apps/rizom-ai && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

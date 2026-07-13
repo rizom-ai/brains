@@ -11,7 +11,9 @@
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@rizom/site-sections": "workspace:*",
     "eslint": "^10.5.0",
+    "preact": "^10.27.2",
     "typescript": "^7.0.2"
   },
   "exports": {

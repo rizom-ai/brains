@@ -1,0 +1,41 @@
+brain: rover
+preset: default
+
+# The consolidated rizom.ai composition (docs/plans/rizom-consolidation.md
+# Phase 2, decision 3): rover's default preset — which already carries
+# blog/series/decks/site-builder — plus the registry (canonical
+# ai.rizom.brain.* lexicons), ranger-ai's product entities, and the
+# newsletter behind the /foundation follow band.
+add:
+  - web-chat
+  - atproto-registry
+  - products
+  - rizom-ecosystem
+  - newsletter
+  # Registers the site-content entity type — without it, directory-sync
+  # cannot import site-content/<page>/<section>.md and every section
+  # resolves empty.
+  - site-content
+
+# Local test app: anchor tools (build-site etc.) available over the MCP
+# http transport.
+permissions:
+  rules:
+    - pattern: "mcp:http"
+      level: anchor
+
+site:
+  package: "@rizom/site-rizom-ai"
+  theme: "@brains/theme-rizom-ai"
+
+plugins:
+  mcp:
+    mode: debug
+  directory-sync:
+    seedContentPath: /home/yeehaa/Documents/rizom-content
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/rover-test-content
+      gitUrl: file:///tmp/rover-rizom-ai-test-content.git
+      bootstrapFromSeed: true

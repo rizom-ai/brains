@@ -165,6 +165,27 @@ export interface SiteContentDefinition {
   sections: Record<string, SiteContentSectionDefinition>;
 }
 
+/**
+ * A schema-first content section, carried opaquely so this base SDK stays
+ * zod-free (and free of a dependency cycle with `@rizom/site-sections`). The
+ * `schema` is a zod schema the brain-side builder introspects; authoring is
+ * done via `@rizom/site-sections`'s `defineSection`, whose typed result is
+ * structurally assignable to this.
+ */
+export interface SiteSectionDefinition {
+  schema: unknown;
+  component: ComponentType<unknown>;
+  title: string;
+  description: string;
+  requiredPermission?: UserPermissionLevel;
+  fullscreen?: boolean;
+}
+
+export interface SiteSectionGroup {
+  namespace: string;
+  sections: Record<string, SiteSectionDefinition>;
+}
+
 export interface SiteMetadataCTA {
   heading: string;
   buttonText: string;
@@ -214,8 +235,10 @@ export interface SiteDefinition {
   layouts: Record<string, unknown>;
   /** Hand-written route definitions (home, about, etc.). */
   routes: RouteDefinitionInput[];
-  /** Optional content definitions owned by this package. */
+  /** Optional content definitions owned by this package (field-DSL authored). */
   content?: SiteContentDefinition | SiteContentDefinition[];
+  /** Optional schema-first section groups (authored via @rizom/site-sections). */
+  sections?: SiteSectionGroup | SiteSectionGroup[];
   /** Optional additive CSS owned by the site package. */
   themeOverride?: string;
   /** Global head scripts to inject into every rendered page. */
