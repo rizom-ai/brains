@@ -24,7 +24,8 @@ describe("Rover ChatInterface opt-in", () => {
     expect(brainYaml).toContain("mode: socket");
     expect(brainYaml).toContain("botToken: ${SLACK_BOT_TOKEN}");
     expect(brainYaml).toContain("appToken: ${SLACK_APP_TOKEN}");
-    expect(brainYaml).toContain('pattern: "slack:${SLACK_TEST_USER_ID}"');
+    expect(brainYaml).toContain('pattern: "slack:U0BGKJ4MA5B"');
+    expect(brainYaml).toContain('pattern: "slack:*"');
     expect(packageJson.scripts?.["start:slack"]).toContain(
       "@brains/chat slack:preflight",
     );

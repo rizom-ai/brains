@@ -8,7 +8,7 @@ remove:
 
 permissions:
   rules:
-    - pattern: "slack:${SLACK_TEST_USER_ID}"
+    - pattern: "slack:U0BGKJ4MA5B"
       level: anchor
     - pattern: "slack:*"
       level: public

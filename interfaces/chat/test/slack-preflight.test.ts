@@ -25,13 +25,12 @@ describe("runSlackPreflight", () => {
         {
           SLACK_APP_TOKEN: "",
           SLACK_BOT_TOKEN: "",
-          SLACK_TEST_USER_ID: "",
         },
         fetchMock,
       ),
     );
     expect(error.message).toBe(
-      "Missing required Slack test environment variables: SLACK_BOT_TOKEN, SLACK_APP_TOKEN, SLACK_TEST_USER_ID",
+      "Missing required Slack test environment variables: SLACK_BOT_TOKEN, SLACK_APP_TOKEN",
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -65,7 +64,6 @@ describe("runSlackPreflight", () => {
       {
         SLACK_APP_TOKEN: "xapp-secret",
         SLACK_BOT_TOKEN: "xoxb-secret",
-        SLACK_TEST_USER_ID: "U_TEST",
       },
       fetchMock,
     );
@@ -75,7 +73,6 @@ describe("runSlackPreflight", () => {
       botUserName: "brain-bot",
       teamId: "T123",
       teamName: "Test Workspace",
-      testUserId: "U_TEST",
     });
     expect(JSON.stringify(result)).not.toContain("xoxb-secret");
     expect(JSON.stringify(result)).not.toContain("xapp-secret");
@@ -109,7 +106,6 @@ describe("runSlackPreflight", () => {
         {
           SLACK_APP_TOKEN: "xapp-secret",
           SLACK_BOT_TOKEN: "xoxb-secret",
-          SLACK_TEST_USER_ID: "U_TEST",
         },
         fetchMock,
       ),
@@ -129,7 +125,6 @@ describe("runSlackPreflight", () => {
         {
           SLACK_APP_TOKEN: "xapp-secret",
           SLACK_BOT_TOKEN: "xoxb-secret",
-          SLACK_TEST_USER_ID: "U_TEST",
         },
         fetchMock,
       ),

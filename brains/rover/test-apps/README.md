@@ -45,7 +45,7 @@ Only set these when you need the corresponding integration:
 
 - `MCP_AUTH_TOKEN` — deprecated static fallback for MCP HTTP auth. Prefer the built-in OAuth/passkey provider; when `auth-service` is enabled, `/mcp` accepts brain-issued OAuth bearer tokens without this env var.
 - `DISCORD_BOT_TOKEN` — enable the Discord interface
-- `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, and `SLACK_TEST_USER_ID` — required by `start:slack`; the app token needs `connections:write`
+- `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` — required by `start:slack`; the app token needs `connections:write`
 - `LINKEDIN_ACCESS_TOKEN`
 - `BUTTONDOWN_API_KEY`
 - `UNSPLASH_ACCESS_KEY`

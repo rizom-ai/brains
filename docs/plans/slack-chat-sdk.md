@@ -169,7 +169,7 @@ Make the first live trial reproducible without editing an existing Rover test ap
 Acceptance criteria:
 
 - A developer can provision/update the app from the committed manifest using Slack's app-manifest workflow after authenticating to a workspace.
-- `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_TEST_USER_ID`, `AI_API_KEY`, and other required model credentials can be supplied through the shell or an ignored local env file.
+- `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `AI_API_KEY`, and other required model credentials can be supplied through the shell or an ignored local env file; non-secret Slack permission policy stays in `brain.yaml`.
 - One command starts the dedicated Rover Slack test app without modifying another tracked test config.
 - Preflight verifies credentials and app identity without exposing secrets.
 - Missing credentials fail before Rover startup with actionable messages.

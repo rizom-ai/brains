@@ -16,7 +16,6 @@ const slackAuthResponseSchema = slackResponseSchema.extend({
 export interface SlackPreflightEnvironment {
   SLACK_APP_TOKEN?: string | undefined;
   SLACK_BOT_TOKEN?: string | undefined;
-  SLACK_TEST_USER_ID?: string | undefined;
 }
 
 export interface SlackPreflightResult {
@@ -24,7 +23,6 @@ export interface SlackPreflightResult {
   botUserName: string;
   teamId: string;
   teamName: string;
-  testUserId: string;
 }
 
 type FetchImplementation = (
@@ -38,11 +36,9 @@ export async function runSlackPreflight(
 ): Promise<SlackPreflightResult> {
   const botToken = environment.SLACK_BOT_TOKEN?.trim() ?? "";
   const appToken = environment.SLACK_APP_TOKEN?.trim() ?? "";
-  const testUserId = environment.SLACK_TEST_USER_ID?.trim() ?? "";
   const missing = [
     !botToken ? "SLACK_BOT_TOKEN" : undefined,
     !appToken ? "SLACK_APP_TOKEN" : undefined,
-    !testUserId ? "SLACK_TEST_USER_ID" : undefined,
   ].filter((name): name is string => Boolean(name));
   if (missing.length > 0) {
     throw new Error(
@@ -55,11 +51,6 @@ export async function runSlackPreflight(
   if (!appToken.startsWith("xapp-")) {
     throw new Error(
       "SLACK_APP_TOKEN must be an app token beginning with xapp-",
-    );
-  }
-  if (!/^[UW]/.test(testUserId)) {
-    throw new Error(
-      "SLACK_TEST_USER_ID must be a Slack member id beginning with U or W",
     );
   }
 
@@ -84,7 +75,7 @@ export async function runSlackPreflight(
     types: "public_channel,private_channel,im,mpim",
   });
   await assertApiProbe(fetchImplementation, "users.info", botToken, {
-    user: testUserId,
+    user: auth.user_id,
   });
 
   return {
@@ -92,7 +83,6 @@ export async function runSlackPreflight(
     botUserName: auth.user,
     teamId: auth.team_id,
     teamName: auth.team,
-    testUserId,
   };
 }
 
