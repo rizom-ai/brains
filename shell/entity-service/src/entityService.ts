@@ -53,6 +53,22 @@ import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error("Operation aborted"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) onAbort();
+  });
+}
+
 /**
  * Options for creating an EntityService instance
  */
@@ -301,6 +317,7 @@ export class EntityService implements IEntityService {
     const deadline = Date.now() + options.timeoutMs;
 
     for (;;) {
+      options.signal?.throwIfAborted();
       const status = await this.getIndexReadinessStatus();
       if (status.ready) {
         this.indexReady = true;
@@ -311,7 +328,7 @@ export class EntityService implements IEntityService {
         return status;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      await delay(intervalMs, options.signal);
     }
   }
 

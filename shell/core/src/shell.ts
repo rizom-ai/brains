@@ -94,6 +94,8 @@ import {
 import { shutdownShellServices } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
+import { ShellLifecycle } from "./initialization/shell-lifecycle";
+import { Exit } from "effect";
 
 export type { ShellDependencies };
 
@@ -101,6 +103,7 @@ export class Shell implements IShell {
   private config: ShellConfig;
   private static instance: Shell | null = null;
   private readonly services: ShellServices;
+  private readonly lifecycle: ShellLifecycle;
   private readonly bootloader: ShellBootloader;
   private initialized = false;
   private readonly insightsRegistry: IInsightsRegistry;
@@ -142,6 +145,9 @@ export class Shell implements IShell {
     );
 
     this.services = shellInitializer.initializeServices(dependencies);
+    this.lifecycle = new ShellLifecycle(() =>
+      shutdownShellServices(this.services),
+    );
 
     this.jobs = createJobsNamespace(
       this.services.batchJobManager,
@@ -149,18 +155,23 @@ export class Shell implements IShell {
     );
 
     this.insightsRegistry = createInsightsRegistry();
-    this.bootloader = new ShellBootloader(this.config, this.services, {
-      registerCoreDataSources: (): void =>
-        registerCoreDataSources(this.services, this.config),
-      registerSystemCapabilities: (): void =>
-        registerShellSystemCapabilities({
-          services: this.services,
-          jobs: this.jobs,
-          insights: this.insightsRegistry,
-          query: (prompt, context) => this.query(prompt, context),
-          getAppInfo: () => this.getAppInfo(),
-        }),
-    });
+    this.bootloader = new ShellBootloader(
+      this.config,
+      this.services,
+      this.lifecycle,
+      {
+        registerCoreDataSources: (): void =>
+          registerCoreDataSources(this.services, this.config),
+        registerSystemCapabilities: (): void =>
+          registerShellSystemCapabilities({
+            services: this.services,
+            jobs: this.jobs,
+            insights: this.insightsRegistry,
+            query: (prompt, context) => this.query(prompt, context),
+            getAppInfo: () => this.getAppInfo(),
+          }),
+      },
+    );
 
     shellInitializer.wireShell(this.services, this);
   }
@@ -187,6 +198,14 @@ export class Shell implements IShell {
       this.initialized = true;
     } catch (error) {
       this.services.logger.error("Failed to initialize Shell", error);
+      try {
+        await this.lifecycle.close(Exit.fail(error));
+      } catch (cleanupError) {
+        this.services.logger.error(
+          "Failed to clean up Shell after initialization failure",
+          cleanupError,
+        );
+      }
       throw error;
     }
   }
@@ -207,7 +226,7 @@ export class Shell implements IShell {
 
   public async shutdown(): Promise<void> {
     this.services.logger.debug("Shutting down Shell");
-    await shutdownShellServices(this.services);
+    await this.lifecycle.close();
     this.initialized = false;
     this.services.logger.debug("Shell shutdown complete");
   }

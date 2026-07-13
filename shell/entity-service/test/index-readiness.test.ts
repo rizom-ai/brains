@@ -97,6 +97,31 @@ describe("EntityService index readiness", () => {
     expect(ctx.entityService.isIndexReady()).toBe(false);
   });
 
+  test("awaitIndexReady stops polling when aborted", async () => {
+    await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        {
+          title: "Cancelled Readiness",
+          content: "This entity keeps the index unready",
+          tags: [],
+        },
+        "cancelled-readiness-note",
+      ),
+    });
+
+    const controller = new AbortController();
+    const readiness = ctx.entityService.awaitIndexReady({
+      timeoutMs: 60_000,
+      intervalMs: 60_000,
+      signal: controller.signal,
+    });
+
+    await Bun.sleep(5);
+    controller.abort(new Error("shell stopped"));
+
+    expect(readiness).rejects.toThrow("shell stopped");
+  });
+
   test("awaitIndexReady treats terminal embedding failures as ready-degraded", async () => {
     const result = await ctx.entityService.createEntity({
       entity: createNoteInput(

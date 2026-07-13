@@ -141,7 +141,10 @@ describe("Shell register-only mode", () => {
     expect(shell.isInitialized()).toBe(true);
   });
 
-  it("should fail initialization when a required daemon cannot start", async () => {
+  it("should roll back resources when a required daemon cannot start", async () => {
+    const startupError = new Error("Port 8080 is already in use");
+    let daemonStopped = false;
+
     class RequiredDaemonInterface extends InterfacePlugin<
       Record<string, never>,
       Record<string, never>
@@ -162,9 +165,11 @@ describe("Shell register-only mode", () => {
       protected override createDaemon(): Daemon | undefined {
         return {
           start: async (): Promise<void> => {
-            throw new Error("Port 8080 is already in use");
+            throw startupError;
           },
-          stop: async (): Promise<void> => {},
+          stop: async (): Promise<void> => {
+            daemonStopped = true;
+          },
         };
       }
     }
@@ -173,8 +178,28 @@ describe("Shell register-only mode", () => {
     config.plugins = [new RequiredDaemonInterface()];
     shell = Shell.createFresh(config, deps);
 
-    expect(shell.initialize()).rejects.toThrow("Port 8080 is already in use");
+    let receivedError: unknown;
+    try {
+      await shell.initialize();
+    } catch (error) {
+      receivedError = error;
+    }
+
+    expect(receivedError).toBe(startupError);
     expect(shell.isInitialized()).toBe(false);
+    expect(daemonStopped).toBe(true);
+    let queryError: unknown;
+    try {
+      await shell.getJobQueueService().getStats();
+    } catch (error) {
+      queryError = error;
+    }
+    const fullQueryError =
+      String(queryError) +
+      (queryError instanceof Error && queryError.cause
+        ? String(queryError.cause)
+        : "");
+    expect(fullQueryError).toContain("CLIENT_CLOSED");
   });
 
   it("should not start daemons in register-only mode", async () => {

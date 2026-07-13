@@ -2,6 +2,8 @@ import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
 import { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
+import type { ShellLifecycle } from "./shell-lifecycle";
+import { Effect } from "effect";
 
 const INDEX_READINESS_TIMEOUT_MS = 30_000;
 const INDEX_READINESS_RETRY_MS = 5_000;
@@ -38,14 +40,17 @@ export interface ShellBootloaderHooks {
 export class ShellBootloader {
   private readonly config: ShellConfig;
   private readonly services: ShellServices;
+  private readonly lifecycle: ShellLifecycle;
   private readonly hooks: ShellBootloaderHooks;
   constructor(
     config: ShellConfig,
     services: ShellServices,
+    lifecycle: ShellLifecycle,
     hooks: ShellBootloaderHooks,
   ) {
     this.config = config;
     this.services = services;
+    this.lifecycle = lifecycle;
     this.hooks = hooks;
   }
 
@@ -115,7 +120,7 @@ export class ShellBootloader {
     }
 
     await this.startRuntimeServices();
-    this.startIndexReadinessMonitor();
+    await this.startIndexReadinessMonitor();
 
     this.services.logger.debug("Shell boot complete");
   }
@@ -165,48 +170,56 @@ export class ShellBootloader {
     this.services.batchJobManager.start();
   }
 
-  private startIndexReadinessMonitor(): void {
-    void this.runIndexReadinessMonitor();
+  private async startIndexReadinessMonitor(): Promise<void> {
+    await this.lifecycle.fork(this.runIndexReadinessMonitor());
   }
 
-  private async runIndexReadinessMonitor(): Promise<void> {
-    for (;;) {
-      try {
-        const status = await this.services.entityService.awaitIndexReady({
-          timeoutMs: INDEX_READINESS_TIMEOUT_MS,
-        });
+  private runIndexReadinessMonitor(): Effect.Effect<void> {
+    const { entityService, logger } = this.services;
 
-        if (status.ready) {
-          if (status.degraded) {
-            this.services.logger.warn(
-              "Semantic index ready with degraded embeddings",
-              status,
-            );
-          } else {
-            this.services.logger.debug("Semantic index ready", status);
-          }
-          return;
-        }
+    return Effect.gen(function* () {
+      for (;;) {
+        const ready = yield* Effect.tryPromise({
+          try: (signal) =>
+            entityService.awaitIndexReady({
+              timeoutMs: INDEX_READINESS_TIMEOUT_MS,
+              signal,
+            }),
+          catch: (error) => error,
+        }).pipe(
+          Effect.match({
+            onFailure: (error) => {
+              logger.warn(
+                "Semantic index readiness monitor failed; retrying",
+                error,
+              );
+              return false;
+            },
+            onSuccess: (status) => {
+              if (!status.ready) {
+                logger.warn(
+                  "Semantic index not ready yet; retrying readiness monitor",
+                  status,
+                );
+                return false;
+              }
 
-        this.services.logger.warn(
-          "Semantic index not ready yet; retrying readiness monitor",
-          status,
+              if (status.degraded) {
+                logger.warn(
+                  "Semantic index ready with degraded embeddings",
+                  status,
+                );
+              } else {
+                logger.debug("Semantic index ready", status);
+              }
+              return true;
+            },
+          }),
         );
-      } catch (error) {
-        this.services.logger.warn(
-          "Semantic index readiness monitor failed; retrying",
-          error,
-        );
+
+        if (ready) return;
+        yield* Effect.sleep(INDEX_READINESS_RETRY_MS);
       }
-
-      await this.delayIndexReadinessRetry();
-    }
-  }
-
-  private async delayIndexReadinessRetry(): Promise<void> {
-    await new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, INDEX_READINESS_RETRY_MS);
-      timer.unref();
     });
   }
 }
