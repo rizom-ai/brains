@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
+import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import type { AuthRuntimeDB } from "./runtime-db";
+import type {
+  StoredPasskeyCredential,
+  StoredWebAuthnChallenge,
+} from "./passkey-store";
 import { passkeyCredentials, webauthnChallenges } from "./runtime-schema";
+import type { AuthRuntimeDatabase } from "./runtime-db";
 
 export type WebAuthnChallengeKind = "registration" | "authentication";
 
@@ -26,9 +32,11 @@ export interface AddPasskeyInput {
   userId: string;
   publicKey: string;
   counter: number;
-  transports?: string[];
+  transports?: AuthenticatorTransportFuture[];
   credentialDeviceType?: string;
   credentialBackedUp: boolean;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 export interface StoredPasskey {
@@ -36,11 +44,106 @@ export interface StoredPasskey {
   userId: string;
   publicKey: string;
   counter: number;
-  transports?: string[];
+  transports?: AuthenticatorTransportFuture[];
   credentialDeviceType?: string;
   credentialBackedUp: boolean;
   createdAt: number;
   updatedAt: number;
+  revokedAt?: number;
+}
+
+const CHALLENGE_TTL_MS = 10 * 60 * 1000;
+const AUTHENTICATION_CHALLENGE_SUBJECT = "passkey-authentication";
+
+export class RuntimePasskeyStore {
+  private readonly database: AuthRuntimeDatabase;
+
+  constructor(database: AuthRuntimeDatabase) {
+    this.database = database;
+  }
+
+  async hasCredentials(): Promise<boolean> {
+    return (await this.store().listPasskeys()).length > 0;
+  }
+
+  async listCredentials(): Promise<StoredPasskeyCredential[]> {
+    return (await this.store().listPasskeys()).map(toLegacyPasskeyShape);
+  }
+
+  async getCredential(
+    id: string,
+  ): Promise<StoredPasskeyCredential | undefined> {
+    const credential = await this.store().getPasskey(id);
+    return credential ? toLegacyPasskeyShape(credential) : undefined;
+  }
+
+  async addCredential(credential: StoredPasskeyCredential): Promise<void> {
+    await this.store().addPasskey({
+      id: credential.id,
+      userId: credential.subject,
+      publicKey: credential.public_key,
+      counter: credential.counter,
+      ...(credential.transports ? { transports: credential.transports } : {}),
+      credentialDeviceType: credential.credential_device_type,
+      credentialBackedUp: credential.credential_backed_up,
+      createdAt: timestampToMilliseconds(credential.created_at),
+      updatedAt: timestampToMilliseconds(credential.updated_at),
+    });
+  }
+
+  updateCredentialCounter(id: string, counter: number): Promise<void> {
+    return this.store().updatePasskeyCounter(id, counter);
+  }
+
+  async saveRegistrationChallenge(
+    challenge: string,
+    subject: string,
+  ): Promise<void> {
+    await this.store().saveChallenge({
+      challenge,
+      kind: "registration",
+      userId: subject,
+      expiresAt: Date.now() + CHALLENGE_TTL_MS,
+    });
+  }
+
+  async consumeRegistrationChallenge(
+    challenge: string,
+  ): Promise<StoredWebAuthnChallenge | undefined> {
+    const stored = await this.store().consumeChallenge(
+      challenge,
+      "registration",
+    );
+    return stored ? toLegacyChallengeShape(challenge, stored) : undefined;
+  }
+
+  async saveAuthenticationChallenge(challenge: string): Promise<void> {
+    await this.store().saveChallenge({
+      challenge,
+      kind: "authentication",
+      expiresAt: Date.now() + CHALLENGE_TTL_MS,
+    });
+  }
+
+  async consumeAuthenticationChallenge(
+    challenge: string,
+  ): Promise<StoredWebAuthnChallenge | undefined> {
+    const stored = await this.store().consumeChallenge(
+      challenge,
+      "authentication",
+    );
+    return stored
+      ? toLegacyChallengeShape(
+          challenge,
+          stored,
+          AUTHENTICATION_CHALLENGE_SUBJECT,
+        )
+      : undefined;
+  }
+
+  private store(): AuthCredentialStore {
+    return new AuthCredentialStore(this.database.db);
+  }
 }
 
 export class AuthCredentialStore {
@@ -62,8 +165,8 @@ export class AuthCredentialStore {
         : null,
       credentialDeviceType: input.credentialDeviceType ?? null,
       credentialBackedUp: input.credentialBackedUp,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: input.createdAt ?? now,
+      updatedAt: input.updatedAt ?? input.createdAt ?? now,
       revokedAt: null,
     });
     const stored = await this.getPasskey(input.id);
@@ -74,15 +177,15 @@ export class AuthCredentialStore {
   }
 
   async getPasskey(id: string): Promise<StoredPasskey | undefined> {
+    const credential = await this.getPasskeyRecord(id);
+    return credential?.revokedAt === undefined ? credential : undefined;
+  }
+
+  async getPasskeyRecord(id: string): Promise<StoredPasskey | undefined> {
     const [row] = await this.db
       .select()
       .from(passkeyCredentials)
-      .where(
-        and(
-          eq(passkeyCredentials.id, id),
-          isNull(passkeyCredentials.revokedAt),
-        ),
-      )
+      .where(eq(passkeyCredentials.id, id))
       .limit(1);
     return row ? passkeyFromRow(row) : undefined;
   }
@@ -174,6 +277,40 @@ export class AuthCredentialStore {
   }
 }
 
+function toLegacyPasskeyShape(
+  credential: StoredPasskey,
+): StoredPasskeyCredential {
+  return {
+    id: credential.id,
+    public_key: credential.publicKey,
+    counter: credential.counter,
+    ...(credential.transports ? { transports: credential.transports } : {}),
+    subject: credential.userId,
+    user_name: "",
+    credential_device_type: credential.credentialDeviceType ?? "unknown",
+    credential_backed_up: credential.credentialBackedUp,
+    created_at: Math.floor(credential.createdAt / 1000),
+    updated_at: Math.floor(credential.updatedAt / 1000),
+  };
+}
+
+function toLegacyChallengeShape(
+  challenge: string,
+  stored: StoredAuthChallenge,
+  fallbackSubject = "",
+): StoredWebAuthnChallenge {
+  return {
+    challenge,
+    subject: stored.userId ?? fallbackSubject,
+    created_at: Math.floor(stored.createdAt / 1000),
+    expires_at: Math.floor(stored.expiresAt / 1000),
+  };
+}
+
+function timestampToMilliseconds(timestamp: number): number {
+  return timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
+}
+
 function passkeyFromRow(
   row: typeof passkeyCredentials.$inferSelect,
 ): StoredPasskey {
@@ -191,14 +328,16 @@ function passkeyFromRow(
     credentialBackedUp: row.credentialBackedUp,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    ...(row.revokedAt ? { revokedAt: row.revokedAt } : {}),
   };
 }
 
-function parseTransports(value: string): string[] {
+function parseTransports(value: string): AuthenticatorTransportFuture[] {
   const parsed: unknown = JSON.parse(value);
   return Array.isArray(parsed)
     ? parsed.filter(
-        (transport): transport is string => typeof transport === "string",
+        (transport): transport is AuthenticatorTransportFuture =>
+          typeof transport === "string",
       )
     : [];
 }

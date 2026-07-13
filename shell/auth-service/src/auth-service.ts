@@ -2,11 +2,13 @@ import type { Logger } from "@brains/utils/logger";
 import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
 import { AuthorizationCodeStore } from "./auth-code-store";
 import { OAuthClientStore } from "./client-store";
+import { AuthCredentialStore } from "./credential-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import {
   PasskeyService,
   type PasskeyRegistrationUser,
 } from "./passkey-service";
+import { PasskeyStore } from "./passkey-store";
 import {
   A2APeerTrustStore,
   type A2APeerTrustRecord,
@@ -105,6 +107,8 @@ export class AuthService {
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
   private auditStore: AuthAuditStore | undefined;
+  private credentialStore: AuthCredentialStore | undefined;
+  private initialization: Promise<void> | undefined;
   private firstAnchorInitialization: Promise<AuthUser> | undefined;
   private readonly keyStore: AuthKeyStore;
   private readonly a2aKeyStore: A2AKeyStore;
@@ -113,6 +117,7 @@ export class AuthService {
   private readonly sessionStore: OperatorSessionStore;
   private readonly refreshTokenStore: RefreshTokenStore;
   private readonly peerTrustStore: A2APeerTrustStore;
+  private readonly legacyPasskeyStore: PasskeyStore;
   private readonly passkeyService: PasskeyService;
   private readonly setupFlow: SetupFlow;
   private readonly oauthEndpoints: OAuthEndpoints;
@@ -150,8 +155,12 @@ export class AuthService {
     this.peerTrustStore = new A2APeerTrustStore({
       storageDir: options.storageDir,
     });
+    this.legacyPasskeyStore = new PasskeyStore({
+      storageDir: options.storageDir,
+    });
     this.passkeyService = new PasskeyService({
       storageDir: options.storageDir,
+      runtimeDatabase: this.runtimeDatabase,
       ...(options.logger ? { logger: options.logger } : {}),
     });
     this.setupFlow = new SetupFlow({
@@ -188,6 +197,23 @@ export class AuthService {
   }
 
   async initialize(): Promise<void> {
+    if (this.initialization) {
+      return this.initialization;
+    }
+
+    const initialization = this.initializeInternal();
+    this.initialization = initialization;
+    try {
+      await initialization;
+    } catch (error) {
+      if (this.initialization === initialization) {
+        this.initialization = undefined;
+      }
+      throw error;
+    }
+  }
+
+  private async initializeInternal(): Promise<void> {
     await this.ensureUserStoreStarted();
     await this.migrateLegacyPasskeys();
     await this.migrateLegacySessions();
@@ -216,6 +242,8 @@ export class AuthService {
   async close(): Promise<void> {
     this.userStore = undefined;
     this.auditStore = undefined;
+    this.credentialStore = undefined;
+    this.initialization = undefined;
     this.firstAnchorInitialization = undefined;
     await this.runtimeDatabase.stop();
   }
@@ -227,29 +255,72 @@ export class AuthService {
     await this.runtimeDatabase.start();
     this.userStore = new AuthUserStore(this.runtimeDatabase.db);
     this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
+    this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
   }
 
   private async migrateLegacyPasskeys(): Promise<void> {
-    const credentials = await this.passkeyService.listCredentials();
-    if (
-      !credentials.some(
-        (credential) =>
-          credential.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT,
-      )
-    ) {
-      return;
+    const credentials = await this.legacyPasskeyStore.listCredentials();
+    let migrated = 0;
+    let anchorUser: AuthUser | undefined;
+
+    for (const credential of credentials) {
+      const user =
+        credential.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
+          ? (anchorUser ??= await this.ensureFirstAnchorUser())
+          : await this.getUserStore().getUser(credential.subject);
+      if (!user) {
+        throw new Error(
+          `Cannot migrate passkey ${credential.id}: auth user ${credential.subject} was not found`,
+        );
+      }
+
+      const stored = await this.getCredentialStore().getPasskeyRecord(
+        credential.id,
+      );
+      if (stored && stored.userId !== user.id) {
+        throw new Error(
+          `Cannot migrate passkey ${credential.id}: credential belongs to another auth user`,
+        );
+      }
+
+      if (!stored) {
+        await this.getCredentialStore().addPasskey({
+          id: credential.id,
+          userId: user.id,
+          publicKey: credential.public_key,
+          counter: credential.counter,
+          ...(credential.transports
+            ? { transports: credential.transports }
+            : {}),
+          credentialDeviceType: credential.credential_device_type,
+          credentialBackedUp: credential.credential_backed_up,
+          createdAt: legacyTimestampToMilliseconds(credential.created_at),
+          updatedAt: legacyTimestampToMilliseconds(credential.updated_at),
+        });
+        await this.getAuditStore().append({
+          action: "auth.passkey.migrated",
+          targetType: "passkey",
+          targetId: credential.id,
+          metadata: { userId: user.id },
+        });
+        migrated += 1;
+      } else if (stored.revokedAt !== undefined) {
+        continue;
+      }
+
+      await this.getUserStore().ensureIdentity({
+        userId: user.id,
+        type: "passkey",
+        subject: credential.id,
+        label: "Passkey credential",
+        verifiedAt: legacyTimestampToMilliseconds(credential.created_at),
+      });
     }
 
-    const user = await this.ensureFirstAnchorUser();
-    const migrated = await this.passkeyService.rebindCredentialSubject(
-      MIGRATION_SINGLE_OPERATOR_SUBJECT,
-      user.id,
-      user.displayName,
-    );
     if (migrated > 0) {
       this.logger?.info("Migrated legacy operator passkey credentials", {
         migrated,
-        userId: user.id,
+        ...(anchorUser ? { userId: anchorUser.id } : {}),
       });
     }
   }
@@ -300,6 +371,13 @@ export class AuthService {
     return this.auditStore;
   }
 
+  private getCredentialStore(): AuthCredentialStore {
+    if (!this.credentialStore) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.credentialStore;
+  }
+
   private async ensureFirstAnchorUser(): Promise<AuthUser> {
     if (this.firstAnchorInitialization) {
       return this.firstAnchorInitialization;
@@ -330,6 +408,28 @@ export class AuthService {
 
   async hasPasskeyCredentials(): Promise<boolean> {
     return this.passkeyService.hasCredentials();
+  }
+
+  async revokePasskey(credentialId: string): Promise<void> {
+    await this.ensureUserStoreStarted();
+    const credential = await this.getCredentialStore().getPasskey(credentialId);
+    if (!credential) {
+      throw new Error(`Passkey credential not found: ${credentialId}`);
+    }
+
+    await this.getCredentialStore().revokePasskey(credentialId);
+    await this.getUserStore().detachIdentityBySubject({
+      userId: credential.userId,
+      type: "passkey",
+      subject: credentialId,
+    });
+    await this.revokeUserSessionsAndRefreshTokens(credential.userId);
+    await this.getAuditStore().append({
+      action: "auth.passkey.revoked",
+      targetType: "passkey",
+      targetId: credentialId,
+      metadata: { userId: credential.userId },
+    });
   }
 
   async getJwks(): Promise<JwksResponse> {
@@ -622,6 +722,8 @@ export class AuthService {
   }
 
   async handleRequest(request: Request): Promise<Response> {
+    await this.initialize();
+
     let requestIssuer: string;
     try {
       requestIssuer = this.resolveRequestIssuer(request);
@@ -754,6 +856,10 @@ export class AuthService {
       },
     });
   }
+}
+
+function legacyTimestampToMilliseconds(timestamp: number): number {
+  return timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
 }
 
 function principalFromUser(user: AuthUser): AuthPrincipal {

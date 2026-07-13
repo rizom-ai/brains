@@ -11,12 +11,14 @@ import {
 } from "@simplewebauthn/server";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+import { RuntimePasskeyStore } from "./credential-store";
 import {
   base64UrlToBytes,
   bytesToBase64Url,
   PasskeyStore,
   type StoredPasskeyCredential,
 } from "./passkey-store";
+import type { AuthRuntimeDatabase } from "./runtime-db";
 
 const DEFAULT_USER_NAME = "Operator";
 const AUTHENTICATION_CHALLENGE_SUBJECT = "passkey-authentication";
@@ -28,6 +30,7 @@ const clientDataSchema = z.looseObject({
 
 export interface PasskeyServiceOptions {
   storageDir: string;
+  runtimeDatabase?: AuthRuntimeDatabase;
   rpName?: string;
   logger?: Logger;
 }
@@ -54,12 +57,14 @@ export interface AuthenticationVerifyResult {
 }
 
 export class PasskeyService {
-  private readonly store: PasskeyStore;
+  private readonly store: PasskeyStore | RuntimePasskeyStore;
   private readonly rpName: string;
   private readonly logger: Logger | undefined;
 
   constructor(options: PasskeyServiceOptions) {
-    this.store = new PasskeyStore({ storageDir: options.storageDir });
+    this.store = options.runtimeDatabase
+      ? new RuntimePasskeyStore(options.runtimeDatabase)
+      : new PasskeyStore({ storageDir: options.storageDir });
     this.rpName = options.rpName ?? DEFAULT_RP_NAME;
     this.logger = options.logger;
   }
@@ -154,6 +159,11 @@ export class PasskeyService {
     toSubject: string,
     userName: string,
   ): Promise<number> {
+    if (!(this.store instanceof PasskeyStore)) {
+      throw new Error(
+        "Runtime passkey subjects are managed through auth users",
+      );
+    }
     return this.store.rebindCredentialSubject(fromSubject, toSubject, userName);
   }
 

@@ -194,6 +194,34 @@ export class AuthUserStore {
     return updated;
   }
 
+  async ensureIdentity(
+    input: AttachAuthIdentityInput,
+  ): Promise<{ identity: AuthIdentity; created: boolean }> {
+    await this.requireUser(input.userId);
+    const identityKeyHash = hashIdentityKey(normalizeIdentityKey(input));
+    const [existing] = await this.db
+      .select()
+      .from(authIdentities)
+      .where(
+        and(
+          eq(authIdentities.identityKeyHash, identityKeyHash),
+          isNull(authIdentities.revokedAt),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      if (existing.userId !== input.userId) {
+        throw new Error("Auth identity is already attached to another user");
+      }
+      return { identity: existing, created: false };
+    }
+
+    return {
+      identity: await this.attachIdentity(input),
+      created: true,
+    };
+  }
+
   async attachIdentity(input: AttachAuthIdentityInput): Promise<AuthIdentity> {
     await this.requireUser(input.userId);
 
@@ -212,6 +240,24 @@ export class AuthUserStore {
 
     await this.db.insert(authIdentities).values(identity);
     return identity;
+  }
+
+  async detachIdentityBySubject(
+    input: ResolveAuthIdentityInput & { userId: string },
+  ): Promise<AuthIdentity | undefined> {
+    const identityKeyHash = hashIdentityKey(normalizeIdentityKey(input));
+    const [identity] = await this.db
+      .select()
+      .from(authIdentities)
+      .where(
+        and(
+          eq(authIdentities.identityKeyHash, identityKeyHash),
+          eq(authIdentities.userId, input.userId),
+          isNull(authIdentities.revokedAt),
+        ),
+      )
+      .limit(1);
+    return identity ? this.detachIdentity(identity.id) : undefined;
   }
 
   async detachIdentity(identityId: string): Promise<AuthIdentity> {
