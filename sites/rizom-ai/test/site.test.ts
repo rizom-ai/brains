@@ -95,31 +95,39 @@ describe("@rizom/site-rizom-ai", () => {
     expect(head).not.toContain("canvas");
   });
 
-  test("exposes the home route sections — product story moved to /brain", () => {
+  test("opens the home page on the live agent proximity map", () => {
     const route = site.routes[0];
     const sectionIds = route?.sections?.map((section) => section.id);
 
-    // your-data + quickstart now live on /brain; the umbrella home keeps the
-    // network story, the mission band, and the faces.
+    // The map is the hero; the text hero is gone. Order follows the redesign:
+    // map → the dark (problem) → lights find each other (growth) → mission →
+    // faces → colophon.
     expect(sectionIds).toEqual([
-      "hero",
-      "growth",
+      "network",
       "problem",
+      "growth",
       "mission",
       "faces",
       "alive",
     ]);
+
+    // The opener is the agent-discovery datasource section; a dataQuery routes
+    // it through the datasource (live map data) while its authored copy is
+    // merged over via the content overlay.
+    const network = route?.sections?.[0];
+    expect(network?.template).toBe("agent-discovery:proximity-map");
+    expect(network?.dataQuery).toBeDefined();
   });
 
-  test("home sections reference the home content namespace by string", () => {
+  test("home body sections reference the home content namespace by string", () => {
     const templates = site.routes[0]?.sections?.map(
       (section) => section.template,
     );
 
     expect(templates).toEqual([
-      "home:hero",
-      "home:growth",
+      "agent-discovery:proximity-map",
       "home:problem",
+      "home:growth",
       "home:mission",
       "home:faces",
       "home:alive",

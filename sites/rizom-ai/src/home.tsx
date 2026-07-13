@@ -13,64 +13,18 @@ import {
   trioSchema,
   ctaSchema,
   delayClass,
-  HIGHLIGHT_CLS,
 } from "./shared";
 
 /**
- * The platform home page — today's rizom.ai tightened (hero → growth diagram
- * → problem → your-data → quickstart → mission band → faces → living-proof
- * colophon). Each section is authored from one zod schema (its component's
- * props are `z.infer` of that schema); copy is content-driven, stored as
- * markdown in site-content/home/<section>.md. Only the assembled section group
- * is exported — the schemas and components are module-local.
+ * The umbrella home page. The hero is the live agent proximity map (wired in
+ * routes.ts as agent-discovery:proximity-map); the sections here tell the
+ * story the map opens — the dark it fights (problem), how the network grows
+ * (growth), the mission band, the three faces, and the living-proof colophon.
+ * Each section is authored from one zod schema (its component's props are
+ * `z.infer` of that schema); copy is content-driven, stored as markdown in
+ * site-content/home/<section>.md. Only the assembled section group is
+ * exported — the schemas and components are module-local.
  */
-
-/* ============ hero ============ */
-
-const heroSchema = z.object({
-  kicker: z.string(),
-  headline: z.string(),
-  standfirst: z.string(),
-  primaryCta: ctaSchema,
-  secondaryCta: ctaSchema,
-});
-
-function HomeHeroSection({
-  kicker,
-  headline,
-  standfirst,
-  primaryCta,
-  secondaryCta,
-}: z.infer<typeof heroSchema>): JSX.Element {
-  return (
-    <Section
-      id="hero"
-      className="relative overflow-hidden pt-[84px] pb-[72px] md:pt-[110px]"
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-[15%] -inset-y-[35%] bg-[radial-gradient(760px_400px_at_16%_4%,var(--color-wash-a),transparent_64%),radial-gradient(560px_340px_at_92%_90%,var(--color-wash-b),transparent_70%)]"
-      />
-      <div className="relative">
-        <p className="animate-hero-rise font-label text-label-sm uppercase tracking-[0.22em] text-accent opacity-0">
-          {kicker}
-        </p>
-        <h1 className="mt-5 max-w-[10.5em] animate-hero-rise font-display text-[clamp(50px,6.4vw,96px)] font-[435] leading-[0.99] tracking-[-0.022em] text-theme opacity-0 [animation-delay:0.12s] [font-variation-settings:'SOFT'_92,'opsz'_130]">
-          {renderHighlightedText(headline, HIGHLIGHT_CLS)}
-        </h1>
-        <div className="mt-9 flex animate-hero-rise flex-col items-start gap-[22px] opacity-0 [animation-delay:0.26s] lg:flex-row lg:items-baseline lg:gap-[60px]">
-          <p className="max-w-[42ch] font-body text-[21px] leading-[1.7] text-theme-muted">
-            {renderHighlightedText(
-              standfirst,
-              "font-medium not-italic text-theme",
-            )}
-          </p>
-          <CtaRow primaryCta={primaryCta} secondaryCta={secondaryCta} />
-        </div>
-      </div>
-    </Section>
-  );
-}
 
 /* ============ growth diagram ============ */
 
@@ -209,15 +163,14 @@ const aliveSchema = z.object({
 /* ============ the home section group ============ */
 
 /**
- * The platform home page, in order. The namespace ("home") matches the route
- * id, so each section stores as site-content/home/<section>.md and its
- * template resolves as "home:<section>".
+ * The umbrella home page's authored sections. The namespace ("home") matches
+ * the route id, so each stores as site-content/home/<section>.md and resolves
+ * as "home:<section>". The hero is not here — it is the live agent proximity
+ * map (agent-discovery:proximity-map), whose authored copy lives at
+ * site-content/home/network.md and merges over the live data via the content
+ * overlay.
  */
 export const homeSections: SiteSectionGroup = sectionGroup("home", {
-  hero: defineSection(heroSchema, HomeHeroSection, {
-    title: "Hero",
-    description: "Platform homepage hero: kicker, headline, standfirst, CTAs",
-  }),
   growth: defineSection(growthSchema, HomeGrowthSection, {
     title: "Growth",
     description: "You → Team → Network growth diagram with caption and note",
