@@ -1567,9 +1567,6 @@ export function App(): ReactElement {
     <div className="studio" data-view={editing ? "editor" : "listing"}>
       <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
       <header className="crumbbar">
-        <span className="crumb-mark">
-          content <b>studio</b>
-        </span>
         <span className="crumb">
           {editing && !schema.isSingleton ? (
             <button type="button" onClick={backToList}>
@@ -1839,8 +1836,6 @@ export const styles = `
 
   /* ── crumb bar — surface-local wayfinding below the console strip ── */
   .crumbbar { display: flex; align-items: center; gap: 18px; padding: 0 20px; height: 40px; border-bottom: 1px solid var(--console-rule-strong); background: linear-gradient(to bottom, color-mix(in srgb, var(--console-text) 4%, transparent), transparent), var(--console-frame); }
-  .crumb-mark { font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--console-text-muted); white-space: nowrap; }
-  .crumb-mark b { color: var(--console-text-dim); font-weight: 500; }
   .crumb { font-size: 13px; color: var(--console-text-dim); }
   .crumb strong { color: var(--console-text); font-weight: 500; }
 
