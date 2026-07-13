@@ -34,10 +34,26 @@ export interface ProximityMapDistanceRange {
   max: number;
 }
 
+/**
+ * A second-order agent reported by a peer's directory. `viaIds` reference
+ * active nodes on the same map — the introducers whose roots reach it.
+ */
+export interface ProximityMapSighting {
+  id: string;
+  name: string;
+  viaIds: string[];
+  tags: string[];
+  /** Normalized cosine distance in the zero-to-one radial range. */
+  distance: number;
+  /** Semantic bearing in degrees, normalized to [0, 360). */
+  bearing: number;
+}
+
 export interface ProximityMapData {
   center: ProximityMapCenter;
   nodes: ProximityMapNode[];
   clusters: ProximityMapCluster[];
+  sightings: ProximityMapSighting[];
   distanceRange: ProximityMapDistanceRange;
   pendingCount: number;
 }
@@ -80,10 +96,21 @@ export const proximityMapDistanceRangeSchema: z.ZodType<ProximityMapDistanceRang
     max: z.number().min(0),
   });
 
+export const proximityMapSightingSchema: z.ZodType<ProximityMapSighting> =
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    viaIds: z.array(z.string()).min(1),
+    tags: z.array(z.string()),
+    distance: z.number().min(0).max(1),
+    bearing: z.number().min(0).lt(360),
+  });
+
 export const proximityMapDataSchema: z.ZodType<ProximityMapData> = z.object({
   center: proximityMapCenterSchema,
   nodes: z.array(proximityMapNodeSchema),
   clusters: z.array(proximityMapClusterSchema),
+  sightings: z.array(proximityMapSightingSchema),
   distanceRange: proximityMapDistanceRangeSchema,
   pendingCount: z.number().int().min(0),
 });

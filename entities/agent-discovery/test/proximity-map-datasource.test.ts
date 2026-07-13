@@ -53,7 +53,7 @@ describe("ProximityMapDataSource", () => {
       bearing: 0,
     });
     expect(projectSemanticSpace).toHaveBeenCalledWith({
-      types: ["agent"],
+      types: ["agent", "agent-sighting"],
       origin: {
         entityId: "brain-character",
         entityType: "brain-character",

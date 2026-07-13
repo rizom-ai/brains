@@ -13,7 +13,13 @@ import { AgentGenerationJobHandler } from "../handlers/agent-generation-handler"
 import { registerAgentNetworkDashboardWidget } from "../lib/agent-dashboard";
 import { registerAtprotoBrainCardHandlers } from "../lib/atproto-card-events";
 import { getAgentDiscoveryInstructions } from "../lib/agent-instructions";
-import { AGENT_DISCOVERY_PLUGIN_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
+import {
+  AGENT_DISCOVERY_PLUGIN_ID,
+  AGENT_ENTITY_TYPE,
+  SIGHTING_ENTITY_TYPE,
+} from "../lib/constants";
+import { SightingAdapter } from "../adapters/sighting-adapter";
+import { sightingEntitySchema } from "../schemas/sighting";
 import { getTemplates } from "../lib/register-templates";
 import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import packageJson from "../../package.json";
@@ -61,6 +67,14 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    // Sightings are second-order agents reported by peers' directories —
+    // owned by agent discovery, so the type registers here rather than
+    // through a plugin of its own.
+    context.entities.register(
+      SIGHTING_ENTITY_TYPE,
+      sightingEntitySchema,
+      new SightingAdapter(),
+    );
     registerAtprotoBrainCardHandlers(context);
     registerAgentNetworkDashboardWidget(context, this.id);
   }

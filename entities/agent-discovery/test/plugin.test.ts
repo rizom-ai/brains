@@ -624,6 +624,19 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("registers the agent-sighting entity type alongside agents", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+
+    await harness.installPlugin(plugin);
+
+    expect(harness.getEntityRegistry().hasEntityType("agent-sighting")).toBe(
+      true,
+    );
+
+    harness.reset();
+  });
+
   it("should register dashboard widgets on plugins ready", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();
