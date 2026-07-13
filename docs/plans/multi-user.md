@@ -12,7 +12,7 @@ The first version should stay small: coarse permission levels, explicit operator
 
 ## Source of truth
 
-This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, management tools/UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
+This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, operator management UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
 
 ## Current baseline
 
@@ -62,6 +62,10 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 9. **Operator-managed onboarding first; invitations later.**
    - Anchors create users and explicitly attach identities.
    - Email/self-signup/invite delivery is deferred until real workflows need it.
+10. **Auth-user administration is not agent-visible.**
+    - User, identity, role, status, and user-specific credential management stay outside the model tool surface.
+    - Use a dedicated authenticated dashboard/API or local CLI with explicit operator confirmation.
+    - This reduces prompt-injection and accidental privilege-management risk even for anchor sessions.
 
 ## Runtime user record
 
@@ -174,18 +178,9 @@ Avoid writing auth-sensitive identity bindings into content markdown.
 
 ## Management surface
 
-### Tools
+### Non-agent administration
 
-Add anchor-visible tools. These are the first runtime-user management surface; dashboard People UX can call the same service later.
-
-- `user_list`
-- `user_create`
-- `user_update_role`
-- `user_suspend`
-- `user_attach_identity`
-- `user_detach_identity`
-- `user_start_passkey_registration`
-- `user_revoke_passkey`
+Do not register user or user-specific credential administration as model-visible tools. Expose the typed `AuthService` operations through a dedicated authenticated admin API/dashboard and optional local CLI instead. Mutations should require explicit operator interaction and confirmation, preserve last-owner invariants, revoke affected grants, and append structured audit events. The existing first-owner bootstrap URL retrieval is a separate setup mechanism, not a general user-management surface.
 
 ### Dashboard / People UX
 
@@ -283,11 +278,11 @@ Validation:
 - anchor OAuth user can call anchor tools
 - static token behavior remains backward compatible
 
-### Phase 3 — Management tools, CLI, and minimal People UX
+### Phase 3 — Non-agent administration, CLI, and minimal People UX
 
-- Add anchor-only user tools.
-- Add CLI wrappers.
-- Add dashboard People panel if a browser UX is needed in the same slice; otherwise keep tools/CLI first.
+- Add a dedicated authenticated admin API/dashboard; do not register model-visible user-management tools.
+- Add local CLI wrappers where useful.
+- Add a minimal dashboard People panel for routine management.
 - Add attach/detach identity flows.
 - Add passkey registration for a specific user through an anchor-generated, short-lived setup URL.
 - Support multiple active anchors.
@@ -349,7 +344,7 @@ Only build if real operator workflows need it. This phase adds convenience on to
 2. Existing single-operator installs migrate safely.
 3. Permission resolution uses auth users before falling back to rules.
 4. MCP OAuth sessions receive per-user permissions.
-5. Operators can manage users through tools/CLI and optionally a minimal People panel.
+5. Operators can manage users through a dedicated authenticated admin surface or local CLI, never through model-visible tools.
 6. Multiple active anchors are supported, with last-active-anchor protection.
 7. Conversations/jobs can be attributed to users.
 8. Auth state remains outside `brain-data`.

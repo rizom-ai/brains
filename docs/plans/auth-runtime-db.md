@@ -2,7 +2,7 @@
 
 ## Status
 
-Active implementation plan. Phases 1–2 and parts of phases 3–4 have an implementation on `feature/auth-runtime-db`, now merged with the current `main` baseline. The branch is not merge-ready: storage remains split between SQLite and JSON, permission fallback needs a deny-by-default correction, and user-role invariants need transactional enforcement.
+Active implementation plan. Phases 1–4 are implemented on `feature/auth-runtime-db`; phase 5's non-agent management surface and phase 6 consumer attribution remain open. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
 
 ## Goal
 
@@ -30,27 +30,25 @@ On `main`, `shell/auth-service` provides the OAuth/passkey/JWT and A2A signing/t
 
 The mainline runtime subject is still `single-operator`. Canonical identity plumbing exists, but has no private store after the git-backed `canonical-identity-link` entity was removed.
 
-## Implementation checkpoint — 2026-07-12
+## Implementation checkpoint — 2026-07-13
 
 Implemented on `feature/auth-runtime-db`:
 
-- Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, initial schema, and idempotent bootstrap.
-- `auth_users` and `auth_identities` stores with hashed lookup keys, active-user resolution, first-anchor creation, and last-active-anchor checks.
-- First-passkey, legacy passkey, and legacy session subjects migrate from `single-operator` to `usr_<uuid>`; legacy refresh tokens are revoked.
-- OAuth signing-key import and persistence in the database while preserving mainline's separate Ed25519 A2A signing key.
-- Session, bearer, and linked-identity principal APIs.
-- Initial per-principal MCP session permissions and Discord identity lookup.
-- Database, user-store, principal, MCP, and Discord tests; merged-main migration coverage still needs to be restored.
+- Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, and four ordered, idempotent schema migrations.
+- Database-backed users, identities, passkeys, WebAuthn challenges, sessions, OAuth clients/codes/refresh tokens, setup tokens, OAuth and A2A signing keys, A2A peer trust, and structured audit events.
+- Idempotent JSON/JWK imports that preserve legacy files unchanged; unsafe `single-operator` refresh tokens are deliberately skipped.
+- Transactional first-anchor creation and last-active-anchor protection with concurrent mutation coverage.
+- Session, bearer, and linked-identity principal APIs with role/status revocation behavior.
+- Per-principal MCP session permissions, cross-user session protection, role-change invalidation, and deny-by-default inactive/revoked identity handling.
+- High-level user, role, status, identity, passkey-revocation, and audit APIs.
+- Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
 Still open before merge:
 
-1. **Finish the storage cutover.** Passkeys, WebAuthn challenges, OAuth clients/codes, sessions, refresh tokens, setup state, and A2A peer trust still execute against JSON stores even though most corresponding SQL tables exist. Replace the split source of truth with database-backed stores and explicit import checkpoints.
-2. **Make role invariants transactional.** First-anchor creation and last-active-anchor protection currently use check-then-write logic. Enforce them in transactions and add concurrent mutation tests.
-3. **Deny invalid linked identities before rule fallback.** Discord currently cannot distinguish “no binding” from “binding exists but is revoked or its user is suspended,” so the latter can fall back to configured permissions. Return an explicit resolution state and deny inactive/revoked bindings.
-4. **Adopt ordered migrations.** Replace the single `CREATE IF NOT EXISTS` bootstrap batch with versioned, ordered migrations that fail safely and can evolve the schema.
-5. **Complete management and revocation APIs.** Expose role/status/identity mutations through `AuthService`, revoke affected sessions and grants atomically, and append audit events.
-6. **Restore the package declaration contract.** The inferred Drizzle schema currently requires `isolatedDeclarations: false` after the TypeScript 7 mainline merge. Add explicit exported table types, following the other database packages, and restore `isolatedDeclarations: true` before merge.
-7. **Revalidate on current architecture.** Run auth, MCP, Discord, A2A, typecheck, and lint checks after the storage and permission corrections; the pre-merge branch checks are not sufficient evidence for release.
+1. **Add a non-agent management surface.** Expose user, identity, and user-specific passkey administration through an authenticated dashboard/API and optional local CLI, with explicit operator confirmation. Do not register these operations as model-visible tools.
+2. **Wire remaining consumers.** Connect canonical identity lookup and conversation/job/tool attribution to resolved auth principals.
+3. **Review audit coverage.** Ensure every management mutation records an actor where available and add useful authentication-failure events without logging secrets.
+4. **Revalidate across consumers.** Run auth, MCP, Discord, A2A, typecheck, and lint checks together after the remaining integration work.
 
 ## Consumers to satisfy
 
@@ -256,7 +254,7 @@ Migration should be repeatable and should not create duplicate users, credential
 
 ### Phase 1 — DB foundation and schema
 
-**Status: partially implemented.** Local lifecycle, schema bootstrap, permissions, and temp-DB tests exist. Ordered/versioned migrations remain open.
+**Status: implemented.** Local lifecycle, ordered migrations, permissions, explicit declaration-safe schema types, and temp-DB tests exist.
 
 - Add auth DB open/close lifecycle and migrations.
 - Add repositories and tests against a temp SQLite DB.
@@ -266,7 +264,7 @@ Validation: migrations are idempotent; file permissions are private; DB opens in
 
 ### Phase 2 — Users and passkeys
 
-**Status: partially implemented.** Users, identities, first-anchor setup, and legacy subject rebinding exist. Passkey credentials/challenges still use JSON, and anchor invariants need transactions.
+**Status: implemented.** Users, identities, first-anchor setup, passkey credentials/challenges, legacy subject rebinding, and transactional anchor invariants use the runtime database.
 
 - Add `auth_users`, `auth_identities`, passkey credential/challenge tables.
 - First setup creates an owner user.
@@ -278,7 +276,7 @@ Validation: fresh setup, login, and old passkey migration all produce `usr_<uuid
 
 ### Phase 3 — OAuth/session stores
 
-**Status: started.** OAuth signing keys use the DB and legacy refresh tokens are revoked; all other listed stores remain JSON-backed.
+**Status: implemented.** OAuth/session/setup/signing stores use the runtime database, with idempotent legacy imports and revocation checks.
 
 - Move clients, auth codes, sessions, refresh tokens, setup tokens, and signing keys into DB-backed stores.
 - Revoke old `single-operator` refresh tokens.
@@ -289,7 +287,7 @@ Validation: OAuth code flow, refresh rotation, logout, setup-token flow, and cli
 
 ### Phase 4 — Permission integration
 
-**Status: partially implemented.** Principal resolution and MCP/Discord integration exist, but inactive/revoked Discord bindings must deny instead of falling back.
+**Status: implemented.** Principal resolution and MCP/Discord integration deny invalid authenticated identities and enforce current per-user permissions.
 
 - Return `AuthPrincipal` from bearer/session verification.
 - Make HTTP MCP create per-session servers at the user's permission level.
@@ -301,8 +299,11 @@ Validation: trusted users cannot call anchor-only tools; suspended users are den
 
 ### Phase 5 — Management surface
 
-- Add anchor-only tools and optional CLI wrappers for user/identity/passkey management.
-- Add dashboard People panel only after tools/CLI are stable.
+**Status: service APIs implemented; operator surface open.** User, role, status, identity, and passkey-revocation APIs exist, but they are deliberately not model-visible.
+
+- Add an authenticated, operator-driven admin API/dashboard and optional local CLI wrappers for user/identity/passkey management.
+- Require explicit operator interaction and confirmation for role, status, identity, and credential mutations.
+- Do not expose auth-user records or management mutations as agent tools.
 - Add audit events for every management mutation.
 
 Validation: owners can create/promote/suspend users; trusted users cannot manage users; last owner cannot be demoted or suspended.

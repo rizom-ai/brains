@@ -451,6 +451,30 @@ describe("AuthService", () => {
     expect(typeof data.expiresAt).toBe("number");
   });
 
+  it("does not expose auth administration as model-visible tools", async () => {
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+    });
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir: await tempStorageDir(),
+        issuer: "https://brain.example.com",
+      }),
+    );
+
+    const toolNames = harness.getCapabilities().tools.map((tool) => tool.name);
+    expect(toolNames).not.toContain("auth-service_user_list");
+    expect(toolNames).not.toContain("auth-service_user_create");
+    expect(toolNames).not.toContain("auth-service_user_update_role");
+    expect(toolNames).not.toContain("auth-service_user_suspend");
+    expect(toolNames).not.toContain("auth-service_user_attach_identity");
+    expect(toolNames).not.toContain("auth-service_user_detach_identity");
+    expect(toolNames).not.toContain(
+      "auth-service_user_start_passkey_registration",
+    );
+    expect(toolNames).not.toContain("auth-service_user_revoke_passkey");
+  });
+
   it("requests a setup email notification when setup email is configured", async () => {
     const storageDir = await tempStorageDir();
     const harness = new PluginTestHarness<AuthServicePlugin>({
