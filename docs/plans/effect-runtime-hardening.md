@@ -2,7 +2,7 @@
 
 ## Status
 
-Active shell-runtime hardening plan. The baseline now includes transactional service and plugin acquisition, terminal per-plugin resource scopes, shell, app-signal, evaluation-app, and daemon scopes, startup rollback, settling startup concurrency barriers, scoped database readiness, bounded projection and evaluation work, fully owned job, cleanup, agent-turn, and message-progress fibers, end-to-end AI and evaluation HTTP cancellation boundaries, consolidated semantic-index polling, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
+Active shell-runtime hardening plan. The baseline now includes transactional service and plugin acquisition, terminal per-plugin resource scopes, shell, app-signal, evaluation-app, and daemon scopes, startup rollback, settling startup concurrency barriers, scoped database readiness, bounded projection and evaluation work, fully owned job, cleanup, agent-turn, and message-progress fibers, end-to-end AI and evaluation HTTP cancellation boundaries, consolidated semantic-index polling, Effect schedules, deterministic clock coverage, and a layer-owned job-service vertical slice. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
 
 This work does not change the roadmap priority of the stable release and identity/bundle/consolidation lanes.
 
@@ -28,16 +28,19 @@ Use Effect as the internal shell control plane for structured concurrency and re
    - File: `shell/auth-service/src/json-file-store.ts`
    - The Promise write chain is currently correct. Replace it with `Semaphore` or `Queue` only if auth gains a scoped service lifecycle that can drain or interrupt writes explicitly.
 
-## Layer adoption path
+## Layer adoption
 
-Do not wrap existing `getInstance()` calls in layers. With transactional shell acquisition in place, the first acceptable layer is a complete job-service vertical slice:
+The first layer-owned vertical slice is complete for job services:
 
-1. construct fresh queue, progress, batch, and worker instances;
-2. acquire the job database under a scope;
-3. preserve handler registration before worker startup;
-4. stop worker and cleanup fibers before closing the database;
-5. replace the corresponding singleton resets and shell finalizers; and
-6. provide alternate test layers without exposing Effect types publicly.
+1. queue, progress, batch, and worker instances are fresh by default;
+2. internal `Context.Tag` contracts and scoped layers own their lifetimes;
+3. handler registration still completes before worker startup;
+4. the runtime layer drains the worker and cleanup fibers before plugin teardown;
+5. the database layer remains available through plugin and dependent-service teardown;
+6. matching shell singleton resets and per-service finalizers are removed; and
+7. existing dependency injection supplies test implementations without exposing Effect types publicly.
+
+Continue to reject layers that only wrap an existing `getInstance()` call.
 
 ## Deliberate non-candidates
 
@@ -50,10 +53,9 @@ Do not wrap existing `getInstance()` calls in layers. With transactional shell a
 
 ## Delivery order
 
-1. Introduce the job-service layer slice.
-2. Revisit auth serialization only if it gains a scoped service lifecycle.
+1. Revisit auth serialization only if it gains a scoped service lifecycle.
 
-Each item should remain an independently reviewable commit.
+Any future item should remain an independently reviewable commit.
 
 ## Verification
 

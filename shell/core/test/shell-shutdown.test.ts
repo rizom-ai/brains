@@ -211,6 +211,7 @@ describe("Shell shutdown", () => {
     const order: string[] = [];
     let workerRunningDuringDaemonStop: boolean | undefined;
     let dbUsableDuringDaemonStop = false;
+    let jobDbUsableDuringDaemonStop = false;
 
     const daemonPlugin: Plugin = {
       id: "shutdown-order-plugin",
@@ -239,6 +240,8 @@ describe("Shell shutdown", () => {
                 .getEntityService()
                 .listEntities({ entityType: "note" });
               dbUsableDuringDaemonStop = true;
+              await shellInstance.getJobQueueService().getStats();
+              jobDbUsableDuringDaemonStop = true;
             },
           },
           "shutdown-order-plugin",
@@ -258,6 +261,7 @@ describe("Shell shutdown", () => {
     expect(order).toEqual(["daemon-started", "daemon-stopped"]);
     expect(workerRunningDuringDaemonStop).toBe(false);
     expect(dbUsableDuringDaemonStop).toBe(true);
+    expect(jobDbUsableDuringDaemonStop).toBe(true);
   });
 
   it("should allow a second shell to boot cleanly after first is shut down", async () => {

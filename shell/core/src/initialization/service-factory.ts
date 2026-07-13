@@ -3,7 +3,6 @@ import { ContentService as ContentServiceClass } from "@brains/content-service";
 import { ConversationService } from "@brains/conversation-service";
 import { DataSourceRegistry } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
-import { JobQueueService } from "@brains/job-queue";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -84,13 +83,20 @@ export function createShellServices(options: {
   const mcpService =
     dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 
-  const jobQueueService =
-    dependencies?.jobQueueService ??
-    JobQueueService.getInstance(
-      createDatabaseConfig(config.jobQueueDatabase),
-      logger,
-    );
-  lifecycle.addSyncFinalizer(() => jobQueueService.close());
+  const jobServices = initializeJobServices({
+    dependencies,
+    jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
+    messageBus,
+    logger,
+  });
+  const {
+    batchJobManager,
+    jobProgressMonitor,
+    jobQueueService,
+    jobQueueWorker,
+  } = jobServices;
+  lifecycle.addSyncFinalizer(() => jobServices.closeDatabase());
+  lifecycle.addSyncFinalizer(() => jobServices.rollbackRuntime());
 
   const entityService = EntityService.getInstance({
     embeddingService,
@@ -150,14 +156,6 @@ export function createShellServices(options: {
     disposables,
   });
 
-  const { batchJobManager, jobProgressMonitor, jobQueueWorker } =
-    initializeJobServices({
-      dependencies,
-      jobQueueService,
-      messageBus,
-      logger,
-    });
-
   return {
     logger,
     disposables,
@@ -178,6 +176,7 @@ export function createShellServices(options: {
     jobQueueWorker,
     batchJobManager,
     jobProgressMonitor,
+    jobServicesLifecycle: jobServices,
     permissionService,
     identityService,
     profileService,

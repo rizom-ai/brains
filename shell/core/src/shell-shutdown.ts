@@ -14,7 +14,5 @@ export function registerShellRuntimeFinalizers(
 
   lifecycle.addFinalizer(() => services.pluginManager.shutdownPlugins());
 
-  lifecycle.addFinalizer(() => services.jobQueueWorker.stop());
-  lifecycle.addFinalizer(() => services.jobProgressMonitor.stop());
-  lifecycle.addFinalizer(() => services.batchJobManager.stop());
+  lifecycle.addFinalizer(() => services.jobServicesLifecycle.closeRuntime());
 }

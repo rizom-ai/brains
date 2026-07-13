@@ -51,7 +51,7 @@ export class BatchJobManager {
   // independently of enqueue activity so the map stays bounded even when no
   // new batches are arriving.
   private cleanupFiber: Fiber.RuntimeFiber<void, never> | null = null;
-  private cleanupSupervisor: CleanupSupervisor;
+  private cleanupSupervisor: CleanupSupervisor | null = null;
   private readonly inFlightCleanups = new Set<Promise<number>>();
   private stopPromise: Promise<void> | null = null;
   private stopped = false;
@@ -89,14 +89,12 @@ export class BatchJobManager {
     this.jobQueue = jobQueue;
     this.logger = logger;
     this.clock = options?.clock;
-    this.cleanupSupervisor = this.createCleanupSupervisor();
   }
 
   /** Start the periodic cleanup fiber. Idempotent across repeated calls. */
   public start(intervalMs: number = CLEANUP_INTERVAL_MS): void {
     if (this.cleanupFiber) return;
     if (this.stopped) {
-      this.cleanupSupervisor = this.createCleanupSupervisor();
       this.stopPromise = null;
       this.stopped = false;
     }
@@ -120,6 +118,7 @@ export class BatchJobManager {
 
   private scheduleTerminalBatchCleanup(): void {
     if (this.stopped || this.stopPromise) return;
+    this.cleanupSupervisor ??= this.createCleanupSupervisor();
     const fiber = Effect.runFork(this.cleanupTerminalBatchMetadata());
     FiberSet.unsafeAdd(this.cleanupSupervisor.fibers, fiber);
   }
@@ -132,13 +131,17 @@ export class BatchJobManager {
       await Effect.runPromise(Fiber.interrupt(cleanupFiber));
     }
 
-    await Effect.runPromise(FiberSet.awaitEmpty(this.cleanupSupervisor.fibers));
+    const cleanupSupervisor = this.cleanupSupervisor;
+    if (cleanupSupervisor) {
+      await Effect.runPromise(FiberSet.awaitEmpty(cleanupSupervisor.fibers));
+    }
     while (this.inFlightCleanups.size > 0) {
       await Promise.allSettled(this.inFlightCleanups);
     }
-    await Effect.runPromise(
-      Scope.close(this.cleanupSupervisor.scope, Exit.void),
-    );
+    if (cleanupSupervisor) {
+      await Effect.runPromise(Scope.close(cleanupSupervisor.scope, Exit.void));
+      this.cleanupSupervisor = null;
+    }
   }
 
   private createCleanupSupervisor(): CleanupSupervisor {

@@ -13,12 +13,6 @@ import {
   AnchorProfileService,
   BrainCharacterService,
 } from "@brains/identity-service";
-import {
-  BatchJobManager,
-  JobProgressMonitor,
-  JobQueueService,
-  JobQueueWorker,
-} from "@brains/job-queue";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import { AttachmentRegistry, PluginManager } from "@brains/plugins";
@@ -43,10 +37,6 @@ export function resetCoreServiceSingletons(): void {
   AgentService.resetInstance();
   BrainCharacterService.resetInstance();
   AnchorProfileService.resetInstance();
-  JobQueueService.resetInstance();
-  BatchJobManager.resetInstance();
-  JobQueueWorker.resetInstance();
-  JobProgressMonitor.resetInstance();
   AttachmentRegistry.resetInstance();
   RuntimeStateService.resetInstance();
 }

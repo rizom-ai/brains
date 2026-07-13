@@ -40,17 +40,17 @@ This keeps Effect focused on runtime orchestration while preserving the stable a
 
 ### Layer adoption
 
-Effect `Layer` is intentionally deferred while shell services are still constructed through process-global `getInstance()` methods. Wrapping those calls in layers would hide singleton state rather than remove it, add a parallel dependency system, and risk changing registration and boot order.
+Effect `Layer` is adopted only for complete vertical slices. Wrapping process-global `getInstance()` calls in layers would hide singleton state, add a parallel dependency system, and risk changing registration and boot order.
 
-Adopt a layer only as part of a complete vertical slice that:
+The first layer-owned slice is the job-service stack. It constructs fresh queue, batch, progress, and worker instances behind internal `Context.Tag` contracts. Separate scoped runtime and database layers preserve shutdown order: workers and cleanup fibers stop before plugin teardown, while the queue database remains available until dependent shell resources have closed. Existing Promise interfaces and dependency-injected test implementations remain unchanged, and Effect types do not cross the public boundary.
 
-1. constructs fresh service instances without static singleton state;
-2. uses internal `Context.Tag` contracts without exposing Effect types publicly;
-3. owns acquisition and release through a scoped layer;
-4. replaces the corresponding reset and manual-finalizer machinery; and
-5. supports test implementations through alternate layers.
+Future layers must meet the same criteria:
 
-The job-service stack is the preferred first slice after handler registration, worker startup, and database acquisition can move together without changing their lifecycle order. Until then, explicit scopes and fibers remain the shell lifecycle mechanism.
+1. construct fresh service instances without static singleton state;
+2. use internal `Context.Tag` contracts without exposing Effect types publicly;
+3. own acquisition and release through scoped layers;
+4. replace the corresponding shell singleton resets and manual service finalizers; and
+5. support test implementations through the existing dependency boundary.
 
 ## Workspace structure
 
