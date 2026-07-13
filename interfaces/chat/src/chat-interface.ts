@@ -1476,6 +1476,24 @@ export class ChatInterface extends MessageInterfacePlugin<
             : this.getUploadStore(platform);
         if (!uploadStore) throw new Error("Chat upload store unavailable");
         const resolved = await uploadStore.read(uploadId);
+        if (sourceKind !== canonicalChatUploadRefKind) {
+          const canonicalStore = this.getCanonicalUploadStore();
+          if (!canonicalStore) throw new Error("Chat upload store unavailable");
+          const canonical = await canonicalStore.save({
+            filename: resolved.record.filename,
+            mediaType: resolved.record.mediaType,
+            content: resolved.content,
+            ...(resolved.record.metadata
+              ? { metadata: resolved.record.metadata }
+              : {}),
+          });
+          return chatAttachmentFromStoredUpload(
+            canonical.filename,
+            canonical.mediaType,
+            resolved.content,
+            canonical.ref,
+          );
+        }
         return chatAttachmentFromStoredUpload(
           resolved.record.filename,
           resolved.record.mediaType,

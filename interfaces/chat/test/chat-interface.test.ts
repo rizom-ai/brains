@@ -2387,6 +2387,7 @@ describe("ChatInterface", () => {
         filename: "stored-robot.png",
         mediaType: "image/png",
         data: image,
+        source: expect.objectContaining({ kind: "upload" }),
       }),
     ]);
   });
