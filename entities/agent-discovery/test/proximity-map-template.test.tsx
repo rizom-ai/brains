@@ -54,7 +54,9 @@ describe("AgentProximityMapTemplate", () => {
     expect(html).toContain('class="agent-proximity-site"');
     expect(html).toContain("The rhizome grows");
     expect(html).toContain("proximity-field--site");
-    expect(html).toContain('viewBox="40 0 680 520"');
+    // the site crop follows the map center so it stays valid if the
+    // dashboard composition shifts
+    expect(html).toContain('viewBox="180 0 680 520"');
     expect(html).toContain("research · 2");
     expect(html).toContain("archived traces");
     expect(html).toContain("pending semantic indexing");

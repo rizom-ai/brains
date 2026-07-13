@@ -1,5 +1,29 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- [`14120e9`](https://github.com/rizom-ai/brains/commit/14120e9c487f9fe19c974e320bbd49e70900e6ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give the proximity map the full card width and let it breathe: the chart column duplicated what the map already says (constellation labels, member names, hover-wake on the mists), so it is gone along with its styles and script handlers. The disc recenters for the wide field and the site crop follows the map center. The console soil is no longer a dark rectangle — it pools, dense at the disc and dissolving into the card with no geometric boundary, grain and outer content fading with it. And every eight seconds a ripple of light leaves the center; each bulb shimmers as the wavefront crosses its radius, so the arrival order is the proximity order — archived traces give no answer. Ripple, shimmer, and nutrient pulses all stop under prefers-reduced-motion.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/auth-service@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- [`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Polish the agent proximity map: templates can now declare `staticAssets` that site-builder emits for routes using them, so the map's interaction script ships as a real file instead of a CSP-hostile data: URI. The chart HUD gains a free-agents row with hover linkage, nutrient pulses ride approved threads (hidden under reduced motion), SVG defs are namespaced per surface, the tooltip is structured and injection-safe, node labels thin out past the label budget, and interactive elements drop the button role they could not honor.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/auth-service@0.2.0-alpha.165
+  - @brains/console-theme@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
 ## 0.2.0-alpha.164
 
 ### Patch Changes

@@ -1,5 +1,57 @@
 # @brains/ranger
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies [[`14120e9`](https://github.com/rizom-ai/brains/commit/14120e9c487f9fe19c974e320bbd49e70900e6ff)]:
+  - @brains/dashboard@0.2.0-alpha.166
+  - @brains/link@0.2.0-alpha.166
+  - @brains/note@0.2.0-alpha.166
+  - @brains/products@0.2.0-alpha.166
+  - @brains/prompt@0.2.0-alpha.166
+  - @brains/site-info@0.2.0-alpha.166
+  - @brains/social-media@0.2.0-alpha.166
+  - @brains/wishlist@0.2.0-alpha.166
+  - @brains/discord@0.2.0-alpha.166
+  - @brains/mcp@0.2.0-alpha.166
+  - @brains/webserver@0.2.0-alpha.166
+  - @brains/analytics@0.2.0-alpha.166
+  - @brains/atproto-registry@0.2.0-alpha.166
+  - @brains/cms@0.2.0-alpha.166
+  - @brains/directory-sync@0.2.0-alpha.166
+  - @brains/site-builder-plugin@0.2.0-alpha.166
+  - @brains/site-content@0.2.0-alpha.166
+  - @brains/theme-rizom@0.2.0-alpha.166
+  - @brains/app@0.2.0-alpha.166
+  - @rizom/site-rizom@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies [[`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33)]:
+  - @brains/site-builder-plugin@0.2.0-alpha.165
+  - @brains/dashboard@0.2.0-alpha.165
+  - @brains/app@0.2.0-alpha.165
+  - @rizom/site-rizom@0.2.0-alpha.165
+  - @brains/site-info@0.2.0-alpha.165
+  - @brains/site-content@0.2.0-alpha.165
+  - @brains/link@0.2.0-alpha.165
+  - @brains/note@0.2.0-alpha.165
+  - @brains/products@0.2.0-alpha.165
+  - @brains/discord@0.2.0-alpha.165
+  - @brains/mcp@0.2.0-alpha.165
+  - @brains/webserver@0.2.0-alpha.165
+  - @brains/prompt@0.2.0-alpha.165
+  - @brains/social-media@0.2.0-alpha.165
+  - @brains/wishlist@0.2.0-alpha.165
+  - @brains/analytics@0.2.0-alpha.165
+  - @brains/atproto-registry@0.2.0-alpha.165
+  - @brains/cms@0.2.0-alpha.165
+  - @brains/directory-sync@0.2.0-alpha.165
+  - @brains/theme-rizom@0.2.0-alpha.165
+
 ## 0.2.0-alpha.164
 
 ### Patch Changes

@@ -276,6 +276,11 @@ const SITE_STYLES = `
   82% { opacity: 0.3; }
   100% { opacity: 0; transform: translateY(-26px); }
 }
+@keyframes proximityRippleShimmer {
+  0%, 100% { filter: none; }
+  2.5% { filter: brightness(2) drop-shadow(0 0 7px color-mix(in srgb, var(--console-accent) 85%, transparent)); }
+  9% { filter: none; }
+}
 @media (max-width: 900px) {
   .agent-proximity-site__grid { grid-template-columns: 1fr; }
   .agent-proximity-site__heading { max-width: 17ch; }
@@ -294,8 +299,11 @@ const SITE_STYLES = `
   .agent-proximity-site .proximity-center-halo,
   .agent-proximity-site .proximity-bulb-glow,
   .agent-proximity-site .proximity-spore { animation: none; }
-  /* SMIL motion can't be paused from CSS — hide the pulse dots instead. */
-  .agent-proximity-site .proximity-pulse { display: none; }
+  /* SMIL motion can't be paused from CSS — hide the animated dots/rings. */
+  .agent-proximity-site .proximity-pulse,
+  .agent-proximity-site .proximity-ripple { display: none; }
+  /* the shimmer delay is inlined per node, so the override needs force */
+  .agent-proximity-site .proximity-agent { animation: none !important; }
 }
 `;
 

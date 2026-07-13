@@ -186,7 +186,6 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
-- [agent-proximity-map.md](./plans/agent-proximity-map.md) — **P2, not started**: radial embedding-distance map of discovered agents around the brain, with labeled semantic clusters; ships as a console dashboard widget and a public site template, plus the read-only `getEmbeddings` core API it needs.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; recurring alerts are blocked on a shared scheduler/heartbeat primitive and stay outside the entity package.
 
 ### 7. Keep the framework sustainable

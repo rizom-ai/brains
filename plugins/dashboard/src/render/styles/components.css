@@ -1264,17 +1264,28 @@ table.jobs {
   }
 }
 
-/* Agent semantic proximity — bioluminescent cartography. */
+/* Agent semantic proximity — bioluminescent cartography.
+   The soil is a soft pool: dense at the disc, dissolving into the card with
+   no geometric boundary. Mask center tracks the map center (CENTER_X 520 of
+   1000 → 52%). */
 .proximity-field {
   position: relative;
   min-height: 420px;
   overflow: hidden;
-  border-radius: 8px;
+  isolation: isolate;
+}
+.proximity-field::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background:
     radial-gradient(circle at 36% 50%, color-mix(in srgb, var(--console-accent) 5%, transparent), transparent 32%),
     radial-gradient(circle at 54% 44%, color-mix(in srgb, var(--console-secondary) 5%, transparent), transparent 34%),
     var(--console-bg-deep);
-  isolation: isolate;
+  -webkit-mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
+  mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
 }
 .proximity-field::after {
   content: "";
@@ -1284,6 +1295,9 @@ table.jobs {
   pointer-events: none;
   opacity: 0.035;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  /* grain lives only in the soil */
+  -webkit-mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
+  mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
 }
 .proximity-field > svg {
   position: relative;
@@ -1292,6 +1306,10 @@ table.jobs {
   width: 100%;
   height: auto;
   min-height: 420px;
+  /* content dissolves with the soil — outer labels and spores sit in the
+     penumbra rather than floating crisp on the card */
+  -webkit-mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
+  mask-image: radial-gradient(ellipse 64% 92% at 52% 50%, #000 52%, transparent 99%);
 }
 .proximity-hud { position: absolute; z-index: 3; }
 .proximity-hud-count {
@@ -1316,70 +1334,6 @@ table.jobs {
   font-size: 9px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-}
-.proximity-hud-chart {
-  top: 50%;
-  right: 3.5%;
-  width: clamp(150px, 19cqw, 200px);
-  transform: translateY(-50%);
-}
-.proximity-hud-title {
-  padding-bottom: 7px;
-  border-bottom: 1px solid var(--console-rule-strong);
-  color: var(--console-text-faint);
-  font-family: var(--console-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-.proximity-constellation-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 10px;
-  padding: 8px 2px;
-  border-bottom: 1px solid var(--console-rule);
-  cursor: pointer;
-  transition: opacity 180ms ease;
-}
-.proximity-constellation-row:focus-visible {
-  outline: 1px solid var(--console-secondary);
-  outline-offset: 3px;
-}
-.proximity-constellation-name {
-  display: block;
-  overflow: hidden;
-  color: var(--console-secondary);
-  font-family: var(--console-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.proximity-constellation-members {
-  display: block;
-  overflow: hidden;
-  color: var(--console-text-faint);
-  font-family: var(--console-mono);
-  font-size: 8px;
-  letter-spacing: 0.05em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.proximity-constellation-count {
-  color: var(--console-accent);
-  font-family: var(--console-mono);
-  font-size: 8.5px;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-.proximity-constellation-empty {
-  margin: 8px 2px 0;
-  color: var(--console-text-faint);
-  font-family: var(--console-mono);
-  font-size: 9px;
 }
 .proximity-hud-foot {
   right: 3.5%;
@@ -1530,8 +1484,12 @@ table.jobs {
   82% { opacity: 0.3; }
   100% { opacity: 0; transform: translateY(-26px); }
 }
+@keyframes proximityRippleShimmer {
+  0%, 100% { filter: none; }
+  2.5% { filter: brightness(2) drop-shadow(0 0 7px color-mix(in srgb, var(--console-accent) 85%, transparent)); }
+  9% { filter: none; }
+}
 @container dashboard-card (max-width: 700px) {
-  .proximity-hud-chart { display: none; }
   .proximity-field > svg { width: 126%; transform: translateX(-13%); }
   .proximity-legend { max-width: 70%; }
 }
@@ -1539,8 +1497,11 @@ table.jobs {
   .proximity-center-halo,
   .proximity-bulb-glow,
   .proximity-spore { animation: none; }
-  /* SMIL motion can't be paused from CSS — hide the pulse dots instead. */
-  .proximity-pulse { display: none; }
+  /* SMIL motion can't be paused from CSS — hide the animated dots/rings. */
+  .proximity-pulse,
+  .proximity-ripple { display: none; }
+  /* the shimmer delay is inlined per node, so the override needs force */
+  .proximity-agent { animation: none !important; }
 }
 
 .colophon {

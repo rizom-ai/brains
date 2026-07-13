@@ -2,8 +2,6 @@ export const proximityMapScript = `(function () {
   document.querySelectorAll("[data-proximity-map]").forEach(function (map) {
     var nodes = map.querySelectorAll("[data-proximity-node]");
     var clusters = map.querySelectorAll("[data-proximity-cluster-id]");
-    var constellations = map.querySelectorAll("[data-proximity-constellation]");
-    var freeAgentRows = map.querySelectorAll("[data-proximity-freeagents]");
     var tooltip = map.querySelector("[data-proximity-tooltip]");
 
     function reset() {
@@ -12,12 +10,6 @@ export const proximityMapScript = `(function () {
       });
       clusters.forEach(function (cluster) {
         cluster.style.opacity = "";
-      });
-      constellations.forEach(function (constellation) {
-        constellation.style.opacity = "";
-      });
-      freeAgentRows.forEach(function (row) {
-        row.style.opacity = "";
       });
       if (tooltip) {
         tooltip.hidden = true;
@@ -60,15 +52,6 @@ export const proximityMapScript = `(function () {
       tooltip.style.top = Math.max(12, top) + "px";
     }
 
-    function dimChartRows() {
-      constellations.forEach(function (constellation) {
-        constellation.style.opacity = "0.28";
-      });
-      freeAgentRows.forEach(function (row) {
-        row.style.opacity = "0.28";
-      });
-    }
-
     function focusCluster(clusterId) {
       nodes.forEach(function (candidate) {
         var sameCluster = candidate.getAttribute("data-proximity-node-cluster") === clusterId;
@@ -77,28 +60,6 @@ export const proximityMapScript = `(function () {
       clusters.forEach(function (cluster) {
         var active = cluster.getAttribute("data-proximity-cluster-id") === clusterId;
         cluster.style.opacity = active ? "1" : "0.14";
-      });
-      dimChartRows();
-      constellations.forEach(function (constellation) {
-        if (constellation.getAttribute("data-proximity-constellation") === clusterId) {
-          constellation.style.opacity = "1";
-        }
-      });
-    }
-
-    function focusFreeAgents() {
-      nodes.forEach(function (candidate) {
-        var solo =
-          !candidate.getAttribute("data-proximity-node-cluster") &&
-          candidate.getAttribute("data-proximity-status") !== "archived";
-        candidate.style.opacity = solo ? "1" : "0.2";
-      });
-      clusters.forEach(function (cluster) {
-        cluster.style.opacity = "0.14";
-      });
-      dimChartRows();
-      freeAgentRows.forEach(function (row) {
-        row.style.opacity = "1";
       });
     }
 
@@ -113,7 +74,6 @@ export const proximityMapScript = `(function () {
         clusters.forEach(function (cluster) {
           cluster.style.opacity = "0.14";
         });
-        dimChartRows();
       }
 
       var name = node.getAttribute("data-proximity-name") || "Agent";
@@ -129,11 +89,11 @@ export const proximityMapScript = `(function () {
       });
     }
 
-    function activateConstellation(target, clusterId) {
+    function activateCluster(cluster, clusterId) {
       focusCluster(clusterId);
-      var label = target.getAttribute("data-proximity-cluster-label") || "Constellation";
-      var members = target.getAttribute("data-proximity-cluster-members") || "0";
-      showTooltip(target, {
+      var label = cluster.getAttribute("data-proximity-cluster-label") || "Constellation";
+      var members = cluster.getAttribute("data-proximity-cluster-members") || "0";
+      showTooltip(cluster, {
         name: label,
         meta: "constellation · " + members + " agents",
       });
@@ -153,17 +113,7 @@ export const proximityMapScript = `(function () {
     clusters.forEach(function (cluster) {
       var clusterId = cluster.getAttribute("data-proximity-cluster-id");
       if (!clusterId) return;
-      bind(cluster, function () { activateConstellation(cluster, clusterId); });
-    });
-
-    constellations.forEach(function (constellation) {
-      var clusterId = constellation.getAttribute("data-proximity-constellation");
-      if (!clusterId) return;
-      bind(constellation, function () { activateConstellation(constellation, clusterId); });
-    });
-
-    freeAgentRows.forEach(function (row) {
-      bind(row, function () { focusFreeAgents(); });
+      bind(cluster, function () { activateCluster(cluster, clusterId); });
     });
   });
 })();`;

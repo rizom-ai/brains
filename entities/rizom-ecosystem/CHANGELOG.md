@@ -1,5 +1,23 @@
 # @brains/rizom-ecosystem
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/ui-library@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
 ## 0.2.0-alpha.164
 
 ### Patch Changes
