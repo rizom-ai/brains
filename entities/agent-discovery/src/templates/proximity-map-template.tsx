@@ -299,27 +299,41 @@ const SITE_STYLES = `
 }
 `;
 
+// Plugin defaults for the hero copy. A site overrides any of these by
+// authoring the section's markdown — the content-overlay merge splices the
+// authored fields onto the live map payload; absent fields fall back here.
+const DEFAULT_COPY = {
+  kicker: "Agent network",
+  headingLead: "The rhizome grows",
+  headingAccent: "beneath this brain",
+  lede: "Every agent this brain has met, mapped by how close its work runs to ours — distance measured in meaning, not geography. Threads thicken where practices touch; where several lights gather, a constellation forms.",
+  ctaLabel: "Meet the agents",
+  ctaHref: "/agents",
+} as const;
+
 export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
   const activeCount = data.nodes.filter(
     (node) => node.status !== "archived",
   ).length;
   const archivedCount = data.nodes.length - activeCount;
 
+  const kicker = data.kicker ?? DEFAULT_COPY.kicker;
+  const headingLead = data.headingLead ?? DEFAULT_COPY.headingLead;
+  const headingAccent = data.headingAccent ?? DEFAULT_COPY.headingAccent;
+  const lede = data.lede ?? DEFAULT_COPY.lede;
+  const ctaLabel = data.ctaLabel ?? DEFAULT_COPY.ctaLabel;
+  const ctaHref = data.ctaHref ?? DEFAULT_COPY.ctaHref;
+
   return (
     <section class="agent-proximity-site" aria-label="Agent proximity map">
       <style>{SITE_STYLES}</style>
       <div class="agent-proximity-site__grid">
         <div class="agent-proximity-site__copy">
-          <p class="agent-proximity-site__kicker">Agent network</p>
+          <p class="agent-proximity-site__kicker">{kicker}</p>
           <h2 class="agent-proximity-site__heading">
-            The rhizome grows <em>beneath this brain</em>
+            {headingLead} <em>{headingAccent}</em>
           </h2>
-          <p class="agent-proximity-site__lede">
-            Every agent this brain has met, mapped by how close its work runs to
-            ours — distance measured in meaning, not geography. Threads thicken
-            where practices touch; where several lights gather, a constellation
-            forms.
-          </p>
+          <p class="agent-proximity-site__lede">{lede}</p>
 
           <div class="agent-proximity-site__stats" aria-label="Network summary">
             <div>
@@ -342,8 +356,8 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
             </div>
           </div>
 
-          <a class="agent-proximity-site__cta" href="/agents">
-            Meet the agents
+          <a class="agent-proximity-site__cta" href={ctaHref}>
+            {ctaLabel}
           </a>
           {data.pendingCount > 0 && (
             <p class="agent-proximity-site__note">

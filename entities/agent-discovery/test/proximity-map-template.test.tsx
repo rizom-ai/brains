@@ -68,6 +68,66 @@ describe("AgentProximityMapTemplate", () => {
     );
   });
 
+  test("renders authored hero copy over the map when copy fields are present", () => {
+    const authored: ProximityMapData = {
+      ...data,
+      kicker: "The network, live",
+      headingLead: "This is what expertise looks like",
+      headingAccent: "when it's alive",
+      lede: "Independent minds, each with an agent grown from what they know.",
+      ctaLabel: "Meet the agents",
+      ctaHref: "/network",
+    };
+    const html = render(<AgentProximityMapTemplate {...authored} />);
+
+    expect(html).toContain("This is what expertise looks like");
+    expect(html).toContain("when it's alive");
+    expect(html).toContain("The network, live");
+    expect(html).toContain(
+      "Independent minds, each with an agent grown from what they know.",
+    );
+    expect(html).toContain('href="/network"');
+    expect(html).toContain(">Meet the agents<");
+    // The plugin default must be fully replaced, not appended.
+    expect(html).not.toContain("The rhizome grows");
+  });
+
+  test("falls back to the plugin default copy when none is authored", () => {
+    const html = render(<AgentProximityMapTemplate {...data} />);
+    expect(html).toContain("The rhizome grows");
+    expect(html).toContain('href="/agents"');
+  });
+
+  test("schema accepts optional authored copy fields (overlay-mergeable)", () => {
+    const template = getTemplates()["agent-proximity-map"];
+    if (!template) throw new Error("agent-proximity-map template not found");
+    expect(
+      template.schema.safeParse({ ...data, headingLead: "Custom" }).success,
+    ).toBe(true);
+  });
+
+  test("registers an overlayFormatter that round-trips authored copy markdown", () => {
+    const template = getTemplates()["agent-proximity-map"];
+    if (!template) throw new Error("agent-proximity-map template not found");
+    expect(template.overlayFormatter).toBeDefined();
+
+    const copy = {
+      kicker: "The network, live",
+      headingLead: "This is what expertise looks like",
+      headingAccent: "when it's alive",
+      lede: "Independent minds.",
+      ctaLabel: "Meet the agents",
+      ctaHref: "/network",
+    };
+    const markdown = template.overlayFormatter?.format(copy) ?? "";
+    // Authored as flat section-file headings, like every other content section.
+    expect(markdown).toContain("## Kicker");
+    expect(markdown).toContain("## Heading Lead");
+
+    const parsed = template.overlayFormatter?.parse(markdown);
+    expect(parsed).toMatchObject(copy);
+  });
+
   test("registers a public datasource template and a CSP-safe runtime script asset", () => {
     const template = getTemplates()["agent-proximity-map"];
     if (!template) throw new Error("agent-proximity-map template not found");
