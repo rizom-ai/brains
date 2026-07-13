@@ -2,7 +2,7 @@
 
 ## Status
 
-Active shell-runtime hardening plan. The baseline now includes shell and daemon scopes, startup rollback, supervised plugin phases, job and cleanup fibers, AI cancellation boundaries, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
+Active shell-runtime hardening plan. The baseline now includes shell and daemon scopes, startup rollback, supervised plugin phases, fully owned job and cleanup fibers, AI cancellation boundaries, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
 
 This work does not change the roadmap priority of the stable release and identity/bundle/consolidation lanes.
 
@@ -24,22 +24,17 @@ Use Effect as the internal shell control plane for structured concurrency and re
 
 ### P0 — correctness and ownership
 
-1. **Supervise enqueue-triggered batch cleanup**
-   - File: `shell/job-queue/src/batch-job-manager.ts`
-   - The periodic cleanup fiber is owned, but enqueue-triggered cleanup still uses detached `Effect.runFork` and may outlive manager shutdown or database closure.
-   - Attach all cleanup work to one manager-owned scope or `FiberSet`.
-
-2. **Close the identity readiness concurrency race**
+1. **Close the identity readiness concurrency race**
    - File: `shell/core/src/initialization/shellBootloader.ts`
    - `prepareReadyState()` uses fail-fast `Promise.all`; one rejected initializer can trigger rollback while siblings continue.
    - Use the established concurrent Effect barrier so every sibling settles and the first original failure is preserved.
 
-3. **Make shell service construction transactional**
+2. **Make shell service construction transactional**
    - Files: `shell/core/src/shell.ts`, `shell/core/src/initialization/service-factory.ts`, `shell/core/src/shell-shutdown.ts`
    - Services are currently constructed before the shell lifecycle exists. A constructor failure can leak database clients acquired earlier in the factory.
    - Create lifecycle ownership before acquisition and register release as each resource is acquired. This is the prerequisite for a genuine job-service `Layer` slice.
 
-4. **Give each plugin a resource scope**
+3. **Give each plugin a resource scope**
    - Files: `shell/plugins/src/base-plugin.ts`, context factories, `shell/plugins/src/manager/plugin-lifecycle.ts`
    - Messaging subscriptions and other registration-time resources are not uniformly retained for rollback or disable.
    - Own subscriptions, handlers, and background fibers per plugin; close the scope after failed registration, disable, and shell shutdown.
@@ -47,42 +42,42 @@ Use Effect as the internal shell control plane for structured concurrency and re
 
 ### P1 — cancellation and scheduling
 
-5. **Propagate cancellation through complete agent turns**
+4. **Propagate cancellation through complete agent turns**
    - Files: `shell/ai-service/src/agent-types.ts`, `turn-processor.ts`, `agent-service.ts`
    - Low-level provider calls accept signals, but primary `ToolLoopAgent.generate()` turns and serialized conversation operations do not.
    - Add an `AbortSignal` boundary and own active turns with scoped fibers without replacing XState.
 
-6. **Consolidate semantic-index polling**
+5. **Consolidate semantic-index polling**
    - Files: `shell/entity-service/src/entityService.ts`, `shell/core/src/initialization/shellBootloader.ts`
    - Polling currently exists both inside `awaitIndexReady()` and in the outer monitor retry loop.
    - Express timeout and retry cadence through one schedule and drive tests with `TestClock`.
 
-7. **Supervise delayed message-progress cleanup**
+6. **Supervise delayed message-progress cleanup**
    - File: `shell/plugins/src/message-interface/message-interface-plugin.ts`
    - Progress cleanup uses detached `setTimeout` callbacks.
    - Use a keyed fiber map so replacement and plugin shutdown interrupt pending cleanup.
 
-8. **Use true bounded projection concurrency**
+7. **Use true bounded projection concurrency**
    - File: `shell/plugins/src/entity/derived-entity-projection.ts`
    - Fixed `Promise.all` chunks under-utilize concurrency when one item is slow.
    - Use `Effect.forEach` with bounded concurrency while preserving input/error semantics.
 
-9. **Own database readiness work**
+8. **Own database readiness work**
    - Files: `shell/job-queue/src/job-queue-service.ts`, `shell/runtime-state/src/runtime-state-service.ts`
    - WAL setup runs as detached Promises and can race readiness or closure.
    - Include non-fatal WAL initialization in scoped service acquisition and await its settlement before ready state.
 
 ### P2 — application and tooling boundaries
 
-10. **Scope app signal handlers**
-    - File: `shell/app/src/app.ts`
-    - Model SIGINT/SIGTERM listener registration as an acquired resource and guarantee one shutdown fiber.
+9. **Scope app signal handlers**
+   - File: `shell/app/src/app.ts`
+   - Model SIGINT/SIGTERM listener registration as an acquired resource and guarantee one shutdown fiber.
 
-11. **Scope evaluation apps and HTTP calls**
+10. **Scope evaluation apps and HTTP calls**
     - Files: `shell/ai-evaluation/src/eval-db-builder.ts`, `evaluation-service.ts`, `remote-agent-service.ts`
     - Guarantee shell shutdown on every failure, replace manual worker pools with bounded Effect concurrency, and add HTTP timeout/cancellation.
 
-12. **Revisit auth serialization only with an auth lifecycle**
+11. **Revisit auth serialization only with an auth lifecycle**
     - File: `shell/auth-service/src/json-file-store.ts`
     - The Promise write chain is currently correct. Replace it with `Semaphore` or `Queue` only if auth gains a scoped service lifecycle that can drain or interrupt writes explicitly.
 
@@ -108,14 +103,13 @@ Do not wrap existing `getInstance()` calls in layers. The first acceptable layer
 
 ## Delivery order
 
-1. Supervise enqueue-triggered batch cleanup.
-2. Replace the identity readiness `Promise.all` with a settling Effect barrier.
-3. Add per-plugin scopes and registration rollback.
-4. Propagate agent-turn cancellation.
-5. Make shell service construction transactional.
-6. Introduce the job-service layer slice.
-7. Consolidate semantic-index schedules and clocks.
-8. Address app and evaluation lifecycle boundaries.
+1. Replace the identity readiness `Promise.all` with a settling Effect barrier.
+2. Add per-plugin scopes and registration rollback.
+3. Propagate agent-turn cancellation.
+4. Make shell service construction transactional.
+5. Introduce the job-service layer slice.
+6. Consolidate semantic-index schedules and clocks.
+7. Address app and evaluation lifecycle boundaries.
 
 Each item should remain an independently reviewable commit.
 

@@ -2,7 +2,7 @@ import type { IJobQueueService, JobContext, JobOptions } from "./types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import { JOB_STATUS } from "./schemas";
 import type { Logger } from "@brains/utils/logger";
-import { Effect, Fiber, Schedule } from "effect";
+import { Effect, Exit, Fiber, FiberSet, Schedule, Scope } from "effect";
 import type { Clock } from "effect";
 
 const TERMINAL_BATCH_RETENTION_MS = 24 * 60 * 60 * 1000;
@@ -11,6 +11,11 @@ const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 interface BatchJobManagerOptions {
   /** Internal clock boundary used for deterministic scheduling tests. */
   clock?: Clock.Clock;
+}
+
+interface CleanupSupervisor {
+  scope: Scope.CloseableScope;
+  fibers: FiberSet.FiberSet<void, never>;
 }
 
 /**
@@ -46,6 +51,10 @@ export class BatchJobManager {
   // independently of enqueue activity so the map stays bounded even when no
   // new batches are arriving.
   private cleanupFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private cleanupSupervisor: CleanupSupervisor;
+  private readonly inFlightCleanups = new Set<Promise<number>>();
+  private stopPromise: Promise<void> | null = null;
+  private stopped = false;
   private readonly clock: Clock.Clock | undefined;
 
   public static getInstance(
@@ -80,19 +89,23 @@ export class BatchJobManager {
     this.jobQueue = jobQueue;
     this.logger = logger;
     this.clock = options?.clock;
+    this.cleanupSupervisor = this.createCleanupSupervisor();
   }
 
   /** Start the periodic cleanup fiber. Idempotent across repeated calls. */
   public start(intervalMs: number = CLEANUP_INTERVAL_MS): void {
     if (this.cleanupFiber) return;
+    if (this.stopped) {
+      this.cleanupSupervisor = this.createCleanupSupervisor();
+      this.stopPromise = null;
+      this.stopped = false;
+    }
     this.cleanupFiber = Effect.runFork(this.runCleanupLoop(intervalMs));
   }
 
-  public stop(): void {
-    const cleanupFiber = this.cleanupFiber;
-    if (!cleanupFiber) return;
-    this.cleanupFiber = null;
-    Effect.runFork(Fiber.interrupt(cleanupFiber));
+  public stop(): Promise<void> {
+    this.stopPromise ??= this.stopCleanup();
+    return this.stopPromise;
   }
 
   private runCleanupLoop(intervalMs: number): Effect.Effect<void> {
@@ -106,12 +119,47 @@ export class BatchJobManager {
   }
 
   private scheduleTerminalBatchCleanup(): void {
-    Effect.runFork(this.cleanupTerminalBatchMetadata());
+    if (this.stopped || this.stopPromise) return;
+    const fiber = Effect.runFork(this.cleanupTerminalBatchMetadata());
+    FiberSet.unsafeAdd(this.cleanupSupervisor.fibers, fiber);
+  }
+
+  private async stopCleanup(): Promise<void> {
+    this.stopped = true;
+    const cleanupFiber = this.cleanupFiber;
+    this.cleanupFiber = null;
+    if (cleanupFiber) {
+      await Effect.runPromise(Fiber.interrupt(cleanupFiber));
+    }
+
+    await Effect.runPromise(FiberSet.awaitEmpty(this.cleanupSupervisor.fibers));
+    while (this.inFlightCleanups.size > 0) {
+      await Promise.allSettled(this.inFlightCleanups);
+    }
+    await Effect.runPromise(
+      Scope.close(this.cleanupSupervisor.scope, Exit.void),
+    );
+  }
+
+  private createCleanupSupervisor(): CleanupSupervisor {
+    const scope = Effect.runSync(Scope.make());
+    const fibers = Effect.runSync(
+      Scope.extend(FiberSet.make<void, never>(), scope),
+    );
+    return { scope, fibers };
   }
 
   private cleanupTerminalBatchMetadata(): Effect.Effect<void> {
     return Effect.tryPromise({
-      try: () => this.cleanup(TERMINAL_BATCH_RETENTION_MS),
+      try: () => {
+        const cleanup = this.cleanup(TERMINAL_BATCH_RETENTION_MS);
+        this.inFlightCleanups.add(cleanup);
+        void cleanup.then(
+          () => this.inFlightCleanups.delete(cleanup),
+          () => this.inFlightCleanups.delete(cleanup),
+        );
+        return cleanup;
+      },
       catch: (error) => error,
     }).pipe(
       Effect.asVoid,

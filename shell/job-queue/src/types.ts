@@ -271,8 +271,8 @@ export interface IBatchJobManager {
   /** Start periodic cleanup of terminal batch metadata. Idempotent. */
   start(intervalMs?: number): void;
 
-  /** Stop periodic cleanup. Safe to call without a prior `start`. */
-  stop(): void;
+  /** Stop periodic cleanup and drain in-flight metadata cleanup. */
+  stop(): void | Promise<void>;
 
   /** Register a batch for tracking */
   registerBatch(

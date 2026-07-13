@@ -61,6 +61,7 @@ describe("BatchJobManager", () => {
   });
 
   afterEach(async () => {
+    await batchManager.stop();
     JobQueueService.resetInstance();
     BatchJobManager.resetInstance();
     await cleanup();
@@ -530,23 +531,55 @@ describe("BatchJobManager", () => {
           yield* Effect.yieldNow();
           expect(cleanupCalls).toBe(1);
 
-          testManager.stop();
+          yield* Effect.promise(() => testManager.stop());
           yield* TestClock.adjust(5_000);
           yield* Effect.yieldNow();
           expect(cleanupCalls).toBe(1);
         } finally {
-          testManager.stop();
+          yield* Effect.promise(() => testManager.stop());
         }
       }).pipe(Effect.provide(TestContext.TestContext));
 
       await Effect.runPromise(program);
     });
 
-    it("should be idempotent for both start and stop", () => {
+    it("should drain enqueue-triggered cleanup before stopping", async () => {
+      let signalCleanupStarted: () => void = () => {};
+      const cleanupStarted = new Promise<void>((resolve) => {
+        signalCleanupStarted = resolve;
+      });
+      let releaseCleanup: () => void = () => {};
+      const cleanupGate = new Promise<void>((resolve) => {
+        releaseCleanup = resolve;
+      });
+      batchManager.cleanup = async (): Promise<number> => {
+        signalCleanupStarted();
+        await cleanupGate;
+        return 0;
+      };
+
+      await enqueueBatch([
+        { type: "embedding", data: { entityId: "entity-1" } },
+      ]);
+      await cleanupStarted;
+
+      let stopped = false;
+      const stopPromise = batchManager.stop().then(() => {
+        stopped = true;
+      });
+      await Promise.resolve();
+      expect(stopped).toBe(false);
+
+      releaseCleanup();
+      await stopPromise;
+      expect(stopped).toBe(true);
+    });
+
+    it("should be idempotent for both start and stop", async () => {
       batchManager.start(60_000);
       batchManager.start(60_000);
-      batchManager.stop();
-      batchManager.stop();
+      await batchManager.stop();
+      await batchManager.stop();
     });
   });
 });
