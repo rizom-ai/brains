@@ -3,7 +3,7 @@ import {
   agentEventActionSchema,
   parseAgentResponse,
 } from "@brains/contracts";
-import { getActiveAuthService } from "@brains/auth-service";
+import { getActiveAuthService, type AuthPrincipal } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
   type AgentResponse,
@@ -105,6 +105,9 @@ const chatBootstrapResponseSchema = z.object({
   ),
 });
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
+type OperatorPrincipalResolver = (
+  request: Request,
+) => Promise<AuthPrincipal | undefined>;
 type PermissionLevelResolver = (
   request: Request,
 ) => Promise<UserPermissionLevel>;
@@ -112,18 +115,15 @@ type PermissionLevelResolver = (
 export interface WebChatDeps {
   /** Override how an operator session is detected (used in tests). */
   resolveOperatorSession?: OperatorSessionResolver;
+  /** Override authenticated principal resolution (used in tests). */
+  resolveOperatorPrincipal?: OperatorPrincipalResolver;
   /** Override the resolved caller permission level (used in tests). */
   resolvePermissionLevel?: PermissionLevelResolver;
 }
 
-const defaultResolveOperatorSession: OperatorSessionResolver = async (
+const defaultResolveOperatorPrincipal: OperatorPrincipalResolver = async (
   request,
-) => {
-  const authService = getActiveAuthService();
-  if (!authService) return false;
-  const session = await authService.getOperatorSession(request);
-  return session !== undefined;
-};
+) => getActiveAuthService()?.resolveSession(request);
 
 export class WebChatInterface extends MessageInterfacePlugin<
   WebChatConfig,
@@ -132,13 +132,19 @@ export class WebChatInterface extends MessageInterfacePlugin<
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly resolveOperatorSession: OperatorSessionResolver;
+  private readonly resolveOperatorPrincipal: OperatorPrincipalResolver;
   private readonly resolveCallerPermissionLevel:
     PermissionLevelResolver | undefined;
 
   constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
+    this.resolveOperatorPrincipal =
+      deps.resolveOperatorPrincipal ?? defaultResolveOperatorPrincipal;
     this.resolveOperatorSession =
-      deps.resolveOperatorSession ?? defaultResolveOperatorSession;
+      deps.resolveOperatorSession ??
+      (async (request): Promise<boolean> =>
+        (await this.resolveOperatorPrincipal(request))?.permissionLevel ===
+        "anchor");
     this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
   }
 
@@ -504,7 +510,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
-    if (!(await this.resolveOperatorSession(request))) {
+    const principal = await this.resolveOperatorPrincipal(request);
+    const hasAnchorAccess = principal
+      ? principal.permissionLevel === "anchor"
+      : await this.resolveOperatorSession(request);
+    if (!hasAnchorAccess) {
       return new Response("Forbidden", { status: 403 });
     }
     const permissionLevel = "anchor";
@@ -572,6 +582,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
               conversationId,
               approvalResponses,
               permissionLevel,
+              ...(principal ? { principal } : {}),
               interfaceType: webChatInterfaceType,
             },
             streamDeps,
@@ -590,6 +601,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
             conversationId,
             message,
             permissionLevel,
+            ...(principal ? { principal } : {}),
             attachments,
             ...(messageId ? { messageId } : {}),
             interfaceType: webChatInterfaceType,
@@ -694,6 +706,10 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async resolvePermissionLevel(
     request: Request,
   ): Promise<"anchor" | "public"> {
+    const principal = await this.resolveOperatorPrincipal(request);
+    if (principal) {
+      return principal.permissionLevel === "anchor" ? "anchor" : "public";
+    }
     return (await this.resolveOperatorSession(request)) ? "anchor" : "public";
   }
 

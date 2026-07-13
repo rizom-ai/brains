@@ -118,6 +118,47 @@ describe("chat stream", () => {
     expect(streamedText).not.toContain("Reference these IDs directly");
   });
 
+  it("attributes authenticated runtime principals to web-chat actors", async () => {
+    const { writer } = createWriter();
+    const chat = mock(async () => ({
+      text: "Hello Mira",
+      toolResults: [],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }));
+    const deps = createDeps({ chat });
+
+    await handleStreamedChat(
+      {
+        writer: writer as never,
+        conversationId: "conversation-1",
+        message: "Hello",
+        permissionLevel: "anchor",
+        principal: {
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+          displayName: "Mira",
+        },
+        attachments: [],
+        interfaceType: "web-chat",
+      },
+      deps,
+    );
+
+    expect(chat).toHaveBeenCalledWith(
+      "Hello",
+      "conversation-1",
+      expect.objectContaining({
+        actor: {
+          actorId: "usr_mira",
+          canonicalId: "user:mira",
+          displayName: "Mira",
+          interfaceType: "web-chat",
+          role: "user",
+        },
+      }),
+    );
+  });
+
   it("does not stream attachment cards for permission-denied artifacts", async () => {
     const { writer, writes } = createWriter();
     const restrictedCard: StructuredChatCard = {

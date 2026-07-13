@@ -1,4 +1,5 @@
 import { AGENT_ACTION_REQUEST_CHANNEL } from "@brains/contracts";
+import type { AuthPrincipal } from "@brains/auth-service";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type {
   IAgentService,
@@ -499,6 +500,35 @@ describe("WebChatInterface", () => {
           message: "Evaluate this",
           conversationId: "remote-conversation",
         }),
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+    expect(await response?.text()).toBe("Forbidden");
+  });
+
+  it("does not elevate trusted operator sessions to anchor web-chat access", async () => {
+    const plugin = new WebChatInterface(
+      {},
+      {
+        resolveOperatorSession: async (): Promise<boolean> => true,
+        resolveOperatorPrincipal: async (): Promise<AuthPrincipal> => ({
+          userId: "usr_collaborator",
+          displayName: "Collaborator",
+          role: "trusted",
+          status: "active",
+          permissionLevel: "trusted",
+          canonicalId: "user:collaborator",
+        }),
+      },
+    );
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        body: "{}",
       }),
     );
 

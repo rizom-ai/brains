@@ -56,11 +56,18 @@ async function deniedArtifactCardIds(
   });
 }
 
+interface WebChatPrincipalAttribution {
+  userId: string;
+  canonicalId?: string;
+  displayName: string;
+}
+
 interface StreamedChatInput {
   writer: UIMessageStreamWriter<UIMessage>;
   conversationId: string;
   message: string;
   permissionLevel: "anchor" | "public";
+  principal?: WebChatPrincipalAttribution;
   attachments: ChatAttachment[];
   messageId?: string;
   interfaceType: string;
@@ -116,6 +123,7 @@ interface StreamedConfirmationsInput {
   conversationId: string;
   approvalResponses: ApprovalResponse[];
   permissionLevel: "anchor" | "public";
+  principal?: WebChatPrincipalAttribution;
   interfaceType: string;
 }
 
@@ -172,6 +180,7 @@ function buildWebChatContext(
     conversationId: string;
     interfaceType: string;
     permissionLevel: "anchor" | "public";
+    principal?: WebChatPrincipalAttribution;
     messageId?: string;
   },
   metadata: Record<string, unknown> = { trigger: "message" },
@@ -182,10 +191,15 @@ function buildWebChatContext(
     channelId: input.conversationId,
     channelName: "Web Chat",
     actor: buildMessageActorMetadata({
-      actorId: `${input.interfaceType}:${input.conversationId}:operator`,
+      actorId:
+        input.principal?.userId ??
+        `${input.interfaceType}:${input.conversationId}:operator`,
       interfaceType: input.interfaceType,
       role: "user",
-      displayName: "Web Chat operator",
+      ...(input.principal?.canonicalId
+        ? { canonicalId: input.principal.canonicalId }
+        : {}),
+      displayName: input.principal?.displayName ?? "Web Chat operator",
     }),
     source: buildMessageSourceMetadata({
       ...(input.messageId ? { messageId: input.messageId } : {}),

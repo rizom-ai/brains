@@ -46,7 +46,7 @@ Implemented on `feature/auth-runtime-db`:
 Still open before merge:
 
 1. **Add a non-agent management surface.** Expose user, identity, and user-specific passkey administration through an authenticated dashboard/API and optional local CLI, with explicit operator confirmation. Do not register these operations as model-visible tools.
-2. **Wire remaining consumers.** Discord and OAuth-authenticated MCP now carry linked canonical ids into conversation actors; connect the remaining canonical identity, web-chat, job, and non-MCP tool attribution paths to resolved auth principals.
+2. **Wire remaining consumers.** Discord, OAuth-authenticated MCP, and authenticated web chat now carry canonical ids into conversation actors; connect the remaining canonical identity, job, and non-MCP tool attribution paths to resolved auth principals.
 3. **Complete audit wiring.** Have the future admin surface supply the authenticated actor context, cover remaining privileged mutations, and add useful authentication-failure events without logging secrets.
 4. **Revalidate across consumers.** Run auth, MCP, Discord, A2A, typecheck, and lint checks together after the remaining integration work.
 
@@ -310,7 +310,7 @@ Validation: owners can create/promote/suspend users; trusted users cannot manage
 
 ### Phase 6 — Consumers
 
-**Status: partially implemented.** Linked Discord messages carry auth-backed canonical ids into active agent turns and passive conversation capture; OAuth-authenticated MCP propagates canonical id and display name through verified tool context into conversation actors.
+**Status: partially implemented.** Linked Discord messages carry auth-backed canonical ids into active agent turns and passive conversation capture; OAuth-authenticated MCP propagates canonical id and display name through verified tool context; authenticated web chat uses the resolved principal for role enforcement and conversation actors.
 
 - Wire `CanonicalIdentityService` to auth DB identity lookup.
 - Wire chat/hosted Discord routing to identity lookup where needed.
