@@ -1,5 +1,27 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- [`2fa8809`](https://github.com/rizom-ai/brains/commit/2fa8809b8218120230ce3094b65cc6286a9651a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The proximity map's site hero copy (kicker, heading, lede, CTA) is now
+  content-authored. The template renders optional copy fields with the previous
+  strings as defaults, and the section registers an overlayFormatter so a site
+  edits the copy as an ordinary markdown section while the map data stays live
+  (via the content-overlay merge). Brains that author nothing render exactly as
+  before.
+- Updated dependencies [[`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990)]:
+  - @brains/templates@0.2.0-alpha.167
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/dashboard@0.2.0-alpha.167
+  - @brains/auth-service@0.2.0-alpha.167
+  - @brains/atproto-contracts@0.2.0-alpha.167
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/http-signatures@0.2.0-alpha.167
+  - @brains/ui-library@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes

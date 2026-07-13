@@ -1,5 +1,19 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies [[`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990)]:
+  - @brains/templates@0.2.0-alpha.167
+  - @brains/mcp-service@0.2.0-alpha.167
+  - @brains/messaging-service@0.2.0-alpha.167
+  - @brains/conversation-service@0.2.0-alpha.167
+  - @brains/entity-service@0.2.0-alpha.167
+  - @brains/identity-service@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
 ## 0.2.0-alpha.166
 
 ### Patch Changes
