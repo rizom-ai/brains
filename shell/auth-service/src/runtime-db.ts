@@ -23,6 +23,7 @@ interface StartedDatabase {
 const INITIAL_MIGRATION_ID = 1;
 const OPTIONAL_CHALLENGE_USER_MIGRATION_ID = 2;
 const A2A_PEER_TRUST_MIGRATION_ID = 3;
+const SIGNING_KEY_PURPOSE_MIGRATION_ID = 4;
 
 export class AuthRuntimeDatabase {
   private readonly storageDir: string;
@@ -72,6 +73,7 @@ export class AuthRuntimeDatabase {
       await this.runMigrations();
       await this.runOptionalChallengeUserMigration();
       await this.runA2APeerTrustMigration();
+      await this.runSigningKeyPurposeMigration();
       await this.secureLocalDatabaseFile();
     } catch (error) {
       await this.stop();
@@ -108,6 +110,36 @@ export class AuthRuntimeDatabase {
       return;
     }
     await chmod(path, 0o600);
+  }
+
+  private async runSigningKeyPurposeMigration(): Promise<void> {
+    const existing = await this.client.execute({
+      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
+      args: [SIGNING_KEY_PURPOSE_MIGRATION_ID],
+    });
+    if (existing.rows.length > 0) {
+      return;
+    }
+
+    await this.client.batch(
+      [
+        `ALTER TABLE oauth_signing_keys
+          ADD COLUMN purpose TEXT NOT NULL DEFAULT 'oauth'
+          CHECK (purpose IN ('oauth', 'a2a'))`,
+        `CREATE UNIQUE INDEX idx_oauth_signing_keys_active_purpose
+          ON oauth_signing_keys(purpose) WHERE status = 'active'`,
+        {
+          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
+            VALUES (?, ?, ?)`,
+          args: [
+            SIGNING_KEY_PURPOSE_MIGRATION_ID,
+            "signing-key-purpose",
+            Date.now(),
+          ],
+        },
+      ],
+      "write",
+    );
   }
 
   private async runA2APeerTrustMigration(): Promise<void> {

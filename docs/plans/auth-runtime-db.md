@@ -141,7 +141,7 @@ Delivery model: the auth DB does not store user emails on `auth_users`. When a u
 - `oauth_clients`: client id, optional secret hash, registered metadata JSON, timestamps.
 - `oauth_auth_codes`: code hash, client id, user id, redirect URI, PKCE challenge, scope, expiry, consumed timestamp.
 - `oauth_refresh_tokens`: token hash, client id, user id, scope, expiry, revoked/replaced metadata.
-- `oauth_signing_keys`: key id, private JWK, active/retired status, timestamps.
+- `oauth_signing_keys`: key id, purpose (`oauth` or `a2a`), private JWK, active/retired status, timestamps. At most one active key per purpose.
 - `setup_tokens`: token hash/id, purpose, target user id, expiry, consumed timestamp, delivery dedupe metadata.
 
 ### A2A peer trust

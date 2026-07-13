@@ -121,8 +121,6 @@ describe("AuthService", () => {
 
     const authDatabaseStats = await stat(join(storageDir, "auth.db"));
     expect(authDatabaseStats.mode & 0o777).toBe(0o600);
-    const a2aKeyStats = await stat(join(storageDir, "a2a-signing-key.jwk"));
-    expect(a2aKeyStats.mode & 0o777).toBe(0o600);
   });
 
   it("returns an A2A signing key id rooted at the issuer JWKS", async () => {

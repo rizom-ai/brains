@@ -2,7 +2,7 @@ import { createHash, generateKeyPairSync } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import { oauthSigningKeys } from "./runtime-schema";
 import type {
@@ -194,7 +194,12 @@ export class AuthKeyStore {
     const [active] = await this.runtimeDatabase.db
       .select()
       .from(oauthSigningKeys)
-      .where(eq(oauthSigningKeys.status, "active"))
+      .where(
+        and(
+          eq(oauthSigningKeys.purpose, "oauth"),
+          eq(oauthSigningKeys.status, "active"),
+        ),
+      )
       .limit(1);
     if (active) {
       return this.parseStoredKey(active.privateJwk, active.kid);
@@ -204,6 +209,7 @@ export class AuthKeyStore {
       (await this.readExistingKey()) ?? (await generateOAuthPrivateJwk());
     await this.runtimeDatabase.db.insert(oauthSigningKeys).values({
       kid: key.kid,
+      purpose: "oauth",
       privateJwk: JSON.stringify(key),
       status: "active",
       createdAt: Date.now(),
@@ -254,6 +260,7 @@ export class AuthKeyStore {
 
 export class A2AKeyStore {
   private readonly keyFile: string;
+  private readonly runtimeDatabase: AuthRuntimeDatabase | undefined;
   private cachedKey: A2APrivateJwk | undefined;
   private loadPromise: Promise<A2APrivateJwk> | undefined;
 
@@ -262,6 +269,7 @@ export class A2AKeyStore {
       options.storageDir,
       options.keyFile ?? DEFAULT_A2A_KEY_FILE,
     );
+    this.runtimeDatabase = options.runtimeDatabase;
   }
 
   async getPrivateJwk(): Promise<A2APrivateJwk> {
@@ -278,6 +286,10 @@ export class A2AKeyStore {
   }
 
   private async loadOrCreateKey(): Promise<A2APrivateJwk> {
+    if (this.runtimeDatabase) {
+      return this.loadOrCreateDatabaseKey();
+    }
+
     const existing = await this.readExistingKey();
     if (existing) return existing;
 
@@ -286,8 +298,56 @@ export class A2AKeyStore {
     return generated;
   }
 
+  private async loadOrCreateDatabaseKey(): Promise<A2APrivateJwk> {
+    if (!this.runtimeDatabase) {
+      throw new Error("Auth runtime database is not configured");
+    }
+
+    await this.runtimeDatabase.start();
+    const [active] = await this.runtimeDatabase.db
+      .select()
+      .from(oauthSigningKeys)
+      .where(
+        and(
+          eq(oauthSigningKeys.purpose, "a2a"),
+          eq(oauthSigningKeys.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (active) {
+      return this.parseStoredKey(active.privateJwk, active.kid);
+    }
+
+    const key = (await this.readExistingKey()) ?? generateA2APrivateJwk();
+    await this.runtimeDatabase.db.insert(oauthSigningKeys).values({
+      kid: key.kid,
+      purpose: "a2a",
+      privateJwk: JSON.stringify(key),
+      status: "active",
+      createdAt: Date.now(),
+    });
+    return key;
+  }
+
   async getPublicJwk(): Promise<A2APublicJwk> {
     return publicFromA2APrivate(await this.getPrivateJwk());
+  }
+
+  private parseStoredKey(value: string, expectedKid: string): A2APrivateJwk {
+    const parsed = a2aPrivateJwkSchema.safeParse(JSON.parse(value));
+    if (!parsed.success) {
+      throw new Error(
+        `A2A signing key ${expectedKid} in auth database is not a private Ed25519 JWK`,
+      );
+    }
+
+    const normalized = normalizeA2APrivateJwk(parsed.data);
+    if (normalized.kid !== expectedKid) {
+      throw new Error(
+        `A2A signing key ${expectedKid} in auth database has mismatched kid ${normalized.kid}`,
+      );
+    }
+    return normalized;
   }
 
   private async readExistingKey(): Promise<A2APrivateJwk | undefined> {

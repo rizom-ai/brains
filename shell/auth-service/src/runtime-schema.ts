@@ -162,6 +162,7 @@ export const oauthRefreshTokens = sqliteTable(
 
 export const oauthSigningKeys = sqliteTable("oauth_signing_keys", {
   kid: text("kid").primaryKey(),
+  purpose: text("purpose", { enum: ["oauth", "a2a"] }).notNull(),
   privateJwk: text("private_jwk").notNull(),
   status: text("status", { enum: ["active", "retired"] }).notNull(),
   createdAt: integer("created_at").notNull(),

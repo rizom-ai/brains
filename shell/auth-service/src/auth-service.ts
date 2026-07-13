@@ -156,7 +156,10 @@ export class AuthService {
       storageDir: options.storageDir,
       runtimeDatabase: this.runtimeDatabase,
     });
-    this.a2aKeyStore = new A2AKeyStore({ storageDir: options.storageDir });
+    this.a2aKeyStore = new A2AKeyStore({
+      storageDir: options.storageDir,
+      runtimeDatabase: this.runtimeDatabase,
+    });
     this.legacyClientStore = new OAuthClientStore({
       storageDir: options.storageDir,
     });
