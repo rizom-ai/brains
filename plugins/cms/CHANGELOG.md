@@ -1,5 +1,19 @@
 # @brains/cms
 
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- [`8b82059`](https://github.com/rizom-ai/brains/commit/8b82059646b1fd41113fb61ca56e0930a4ff60c5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Audit and pin the CMS secondary states. The conflict card's "Reload latest" button was invisible in paper climate (and barely legible in instrument) — a stale `.pipeline .reload` rule from its old home in the dark pipeline bar overrode the ghost button treatment; the rule is removed. The phone ••• disclosure now folds when Delete is chosen instead of hanging open behind the dialog scrim. The delete dialog and conflict card are pinned in visual baselines at desktop and phone widths, both climates.
+
+- [`630b6be`](https://github.com/rizom-ai/brains/commit/630b6be9a61b4ce74f9f99fb49939bfbf2e5f926) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give the save bar's status line breathing room from the pipeline readout — the validation error used to butt directly against the commit ref. The remaining secondary states (validation error line + invalid-field outline, in-flight upload) are now pinned in visual baselines, completing the secondary-state sweep.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/auth-service@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ### Patch Changes
