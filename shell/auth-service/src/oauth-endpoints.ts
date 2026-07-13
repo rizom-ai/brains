@@ -5,7 +5,7 @@ import {
 } from "./auth-code-store";
 import {
   InvalidClientMetadataError,
-  type OAuthClientStore,
+  type OAuthClientPersistence,
 } from "./client-store";
 import {
   InvalidRefreshTokenError,
@@ -24,7 +24,6 @@ import {
   parseClientAuth,
   parseRequestBody,
   stringEntries,
-  validateClientForTokenRequest,
 } from "./http-responses";
 import { htmlResponse } from "./http-responses";
 import { renderAuthorizePage, unauthorizedHtmlResponse } from "./pages";
@@ -44,7 +43,7 @@ interface AuthorizationApprovalTokenState {
 }
 
 export interface OAuthEndpointsOptions {
-  clientStore: OAuthClientStore;
+  clientStore: OAuthClientPersistence;
   authCodeStore: AuthorizationCodeStore;
   refreshTokenStore: RefreshTokenStore;
   sessionStore: OperatorSessionPersistence;
@@ -57,7 +56,7 @@ export interface OAuthEndpointsOptions {
  * (authorization-code and refresh grants), and revocation.
  */
 export class OAuthEndpoints {
-  private readonly clientStore: OAuthClientStore;
+  private readonly clientStore: OAuthClientPersistence;
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly refreshTokenStore: RefreshTokenStore;
   private readonly sessionStore: OperatorSessionPersistence;
@@ -284,8 +283,10 @@ export class OAuthEndpoints {
       return oauthErrorResponse("invalid_request", "client_id is required");
     }
 
-    const client = await this.clientStore.getClient(clientId);
-    const clientError = validateClientForTokenRequest(client, clientAuth);
+    const clientError = await this.clientStore.validateClientCredentials(
+      clientId,
+      clientAuth.clientSecret,
+    );
     if (clientError) {
       return oauthErrorResponse("invalid_client", clientError);
     }
@@ -426,8 +427,10 @@ export class OAuthEndpoints {
     }
 
     if (clientId) {
-      const client = await this.clientStore.getClient(clientId);
-      const clientError = validateClientForTokenRequest(client, clientAuth);
+      const clientError = await this.clientStore.validateClientCredentials(
+        clientId,
+        clientAuth.clientSecret,
+      );
       if (clientError) {
         return oauthErrorResponse("invalid_client", clientError);
       }

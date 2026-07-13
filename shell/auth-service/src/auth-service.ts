@@ -1,7 +1,7 @@
 import type { Logger } from "@brains/utils/logger";
 import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
 import { AuthorizationCodeStore } from "./auth-code-store";
-import { OAuthClientStore } from "./client-store";
+import { OAuthClientStore, RuntimeOAuthClientStore } from "./client-store";
 import { AuthCredentialStore } from "./credential-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import {
@@ -113,7 +113,8 @@ export class AuthService {
   private firstAnchorInitialization: Promise<AuthUser> | undefined;
   private readonly keyStore: AuthKeyStore;
   private readonly a2aKeyStore: A2AKeyStore;
-  private readonly clientStore: OAuthClientStore;
+  private readonly legacyClientStore: OAuthClientStore;
+  private readonly clientStore: RuntimeOAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly legacySessionStore: OperatorSessionStore;
   private readonly sessionStore: RuntimeOperatorSessionStore;
@@ -144,7 +145,10 @@ export class AuthService {
       runtimeDatabase: this.runtimeDatabase,
     });
     this.a2aKeyStore = new A2AKeyStore({ storageDir: options.storageDir });
-    this.clientStore = new OAuthClientStore({ storageDir: options.storageDir });
+    this.legacyClientStore = new OAuthClientStore({
+      storageDir: options.storageDir,
+    });
+    this.clientStore = new RuntimeOAuthClientStore(this.runtimeDatabase);
     this.authCodeStore = new AuthorizationCodeStore({
       storageDir: options.storageDir,
     });
@@ -220,6 +224,7 @@ export class AuthService {
     await this.ensureUserStoreStarted();
     await this.migrateLegacyPasskeys();
     await this.migrateLegacySessions();
+    await this.migrateLegacyOAuthClients();
     await this.migrateLegacyRefreshTokens();
     await Promise.all([
       this.keyStore.getPrivateJwk(),
@@ -353,6 +358,19 @@ export class AuthService {
         migrated,
         ...(anchorUser ? { userId: anchorUser.id } : {}),
       });
+    }
+  }
+
+  private async migrateLegacyOAuthClients(): Promise<void> {
+    const clients = await this.legacyClientStore.listClients();
+    let migrated = 0;
+    for (const client of clients) {
+      if (await this.clientStore.importClient(client)) {
+        migrated += 1;
+      }
+    }
+    if (migrated > 0) {
+      this.logger?.info("Migrated legacy OAuth clients", { migrated });
     }
   }
 
@@ -514,12 +532,14 @@ export class AuthService {
   }
 
   async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
+    await this.initialize();
     return this.clientStore.registerClient(input);
   }
 
   async getRegisteredClient(
     clientId: string,
   ): Promise<RegisteredOAuthClient | undefined> {
+    await this.initialize();
     return this.clientStore.getClient(clientId);
   }
 

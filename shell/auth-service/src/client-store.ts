@@ -1,8 +1,11 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
 import { join } from "node:path";
+import type { AuthRuntimeDatabase } from "./runtime-db";
+import { oauthClients } from "./runtime-schema";
 import type { RegisteredOAuthClient } from "./types";
 
 const DEFAULT_CLIENT_STORE_FILE = "oauth-clients.json";
@@ -109,6 +112,15 @@ export interface OAuthClientStoreOptions {
   storeFile?: string;
 }
 
+export interface OAuthClientPersistence {
+  registerClient(input: unknown): Promise<RegisteredOAuthClient>;
+  getClient(clientId: string): Promise<RegisteredOAuthClient | undefined>;
+  validateClientCredentials(
+    clientId: string,
+    clientSecret?: string,
+  ): Promise<string | undefined>;
+}
+
 function createClientSecret(): string {
   return `ocs_${randomUUID().replaceAll("-", "")}`;
 }
@@ -127,7 +139,62 @@ function parsePersistedClient(value: unknown): RegisteredOAuthClient[] {
   return parsed.success ? [parsed.data] : [];
 }
 
-export class OAuthClientStore {
+export class RuntimeOAuthClientStore implements OAuthClientPersistence {
+  private readonly database: AuthRuntimeDatabase;
+
+  constructor(database: AuthRuntimeDatabase) {
+    this.database = database;
+  }
+
+  async importClient(client: RegisteredOAuthClient): Promise<boolean> {
+    const inserted = await this.database.db
+      .insert(oauthClients)
+      .values(clientToRow(client))
+      .onConflictDoNothing()
+      .returning({ clientId: oauthClients.clientId });
+    return inserted.length > 0;
+  }
+
+  async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
+    const client = createRegisteredClient(input);
+    await this.database.db.insert(oauthClients).values(clientToRow(client));
+    return client;
+  }
+
+  async getClient(
+    clientId: string,
+  ): Promise<RegisteredOAuthClient | undefined> {
+    const [row] = await this.database.db
+      .select({ metadataJson: oauthClients.metadataJson })
+      .from(oauthClients)
+      .where(eq(oauthClients.clientId, clientId))
+      .limit(1);
+    if (!row) return undefined;
+    return parseClientMetadata(row.metadataJson);
+  }
+
+  async validateClientCredentials(
+    clientId: string,
+    clientSecret?: string,
+  ): Promise<string | undefined> {
+    const [row] = await this.database.db
+      .select({ secretHash: oauthClients.secretHash })
+      .from(oauthClients)
+      .where(eq(oauthClients.clientId, clientId))
+      .limit(1);
+    if (!row) return "Unknown client_id";
+    if (!row.secretHash) return undefined;
+    if (
+      !clientSecret ||
+      !constantTimeEqual(row.secretHash, hashSecret(clientSecret))
+    ) {
+      return "Invalid client secret";
+    }
+    return undefined;
+  }
+}
+
+export class OAuthClientStore implements OAuthClientPersistence {
   private readonly store: JsonFileStore<ClientStoreFile>;
 
   constructor(options: OAuthClientStoreOptions) {
@@ -142,35 +209,7 @@ export class OAuthClientStore {
   }
 
   async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
-    const parsed = clientRegistrationRequestSchema.safeParse(input);
-    if (!parsed.success) {
-      throw new InvalidClientMetadataError(parsed.error.message);
-    }
-
-    const metadata = parsed.data;
-    const issuedAt = nowSeconds();
-    const clientId = `oc_${randomUUID()}`;
-    const isPublicClient = metadata.token_endpoint_auth_method === "none";
-
-    const client: RegisteredOAuthClient = {
-      client_id: clientId,
-      client_id_issued_at: issuedAt,
-      redirect_uris: metadata.redirect_uris,
-      token_endpoint_auth_method: metadata.token_endpoint_auth_method,
-      grant_types: metadata.grant_types,
-      response_types: metadata.response_types,
-      ...(metadata.scope ? { scope: metadata.scope } : {}),
-      ...(metadata.client_name ? { client_name: metadata.client_name } : {}),
-      ...(metadata.client_uri ? { client_uri: metadata.client_uri } : {}),
-      ...(metadata.logo_uri ? { logo_uri: metadata.logo_uri } : {}),
-      ...(metadata.contacts ? { contacts: metadata.contacts } : {}),
-      ...(!isPublicClient
-        ? {
-            client_secret: createClientSecret(),
-            client_secret_expires_at: 0,
-          }
-        : {}),
-    };
+    const client = createRegisteredClient(input);
 
     await this.store.enqueueWrite(async () => {
       const store = await this.store.read();
@@ -187,6 +226,88 @@ export class OAuthClientStore {
     const store = await this.store.read();
     return store.clients.find((client) => client.client_id === clientId);
   }
+
+  async listClients(): Promise<RegisteredOAuthClient[]> {
+    return (await this.store.read()).clients;
+  }
+
+  async validateClientCredentials(
+    clientId: string,
+    clientSecret?: string,
+  ): Promise<string | undefined> {
+    const client = await this.getClient(clientId);
+    if (!client) return "Unknown client_id";
+    if (client.client_secret && client.client_secret !== clientSecret) {
+      return "Invalid client secret";
+    }
+    return undefined;
+  }
+}
+
+function createRegisteredClient(input: unknown): RegisteredOAuthClient {
+  const parsed = clientRegistrationRequestSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new InvalidClientMetadataError(parsed.error.message);
+  }
+
+  const metadata = parsed.data;
+  const issuedAt = nowSeconds();
+  const clientId = `oc_${randomUUID()}`;
+  const isPublicClient = metadata.token_endpoint_auth_method === "none";
+  return {
+    client_id: clientId,
+    client_id_issued_at: issuedAt,
+    redirect_uris: metadata.redirect_uris,
+    token_endpoint_auth_method: metadata.token_endpoint_auth_method,
+    grant_types: metadata.grant_types,
+    response_types: metadata.response_types,
+    ...(metadata.scope ? { scope: metadata.scope } : {}),
+    ...(metadata.client_name ? { client_name: metadata.client_name } : {}),
+    ...(metadata.client_uri ? { client_uri: metadata.client_uri } : {}),
+    ...(metadata.logo_uri ? { logo_uri: metadata.logo_uri } : {}),
+    ...(metadata.contacts ? { contacts: metadata.contacts } : {}),
+    ...(!isPublicClient
+      ? {
+          client_secret: createClientSecret(),
+          client_secret_expires_at: 0,
+        }
+      : {}),
+  };
+}
+
+function clientToRow(
+  client: RegisteredOAuthClient,
+): typeof oauthClients.$inferInsert {
+  const { client_secret: secret, ...metadata } = client;
+  return {
+    clientId: client.client_id,
+    secretHash: secret ? hashSecret(secret) : null,
+    metadataJson: JSON.stringify(metadata),
+    createdAt: client.client_id_issued_at,
+    updatedAt: client.client_id_issued_at,
+  };
+}
+
+function parseClientMetadata(metadataJson: string): RegisteredOAuthClient {
+  const parsedJson: unknown = JSON.parse(metadataJson);
+  const parsed = persistedOAuthClientSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new Error("Stored OAuth client metadata is invalid");
+  }
+  return parsed.data;
+}
+
+function hashSecret(secret: string): string {
+  return createHash("sha256").update(secret).digest("base64url");
+}
+
+function constantTimeEqual(left: string, right: string): boolean {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    timingSafeEqual(leftBuffer, rightBuffer)
+  );
 }
 
 export class InvalidClientMetadataError extends Error {

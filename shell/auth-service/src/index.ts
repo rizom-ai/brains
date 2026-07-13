@@ -33,7 +33,11 @@ export type {
 } from "./peer-trust-store";
 export { AuthRuntimeDatabase } from "./runtime-db";
 export type { AuthRuntimeDatabaseOptions, AuthRuntimeDB } from "./runtime-db";
-export { InvalidClientMetadataError, OAuthClientStore } from "./client-store";
+export {
+  InvalidClientMetadataError,
+  OAuthClientStore,
+  RuntimeOAuthClientStore,
+} from "./client-store";
 export { AuthCredentialStore } from "./credential-store";
 export type {
   AddPasskeyInput,
@@ -44,6 +48,7 @@ export type {
 } from "./credential-store";
 export type {
   ClientRegistrationRequest,
+  OAuthClientPersistence,
   OAuthClientStoreOptions,
 } from "./client-store";
 export {

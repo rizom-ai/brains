@@ -1037,8 +1037,8 @@ describe("AuthService", () => {
     expect(client.client_id).toStartWith("oc_");
     expect(client.client_secret).toBeUndefined();
 
-    const clientStats = await stat(join(storageDir, "oauth-clients.json"));
-    expect(clientStats.mode & 0o777).toBe(0o600);
+    const databaseStats = await stat(join(storageDir, "auth.db"));
+    expect(databaseStats.mode & 0o777).toBe(0o600);
 
     const secondService = new AuthService({
       storageDir,
@@ -1052,10 +1052,9 @@ describe("AuthService", () => {
       client_name: "Claude Desktop",
     });
 
-    const store = JSON.parse(
-      await readFile(join(storageDir, "oauth-clients.json"), "utf8"),
-    ) as { clients: unknown[] };
-    expect(store.clients).toHaveLength(1);
+    expect(await secondService.getRegisteredClient(client.client_id)).toEqual(
+      persistedClient,
+    );
   });
 
   it("issues an authorization code and exchanges it for a bearer token", async () => {
