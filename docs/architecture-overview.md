@@ -38,6 +38,20 @@ The boundary is intentionally narrow:
 
 This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages.
 
+### Layer adoption
+
+Effect `Layer` is intentionally deferred while shell services are still constructed through process-global `getInstance()` methods. Wrapping those calls in layers would hide singleton state rather than remove it, add a parallel dependency system, and risk changing registration and boot order.
+
+Adopt a layer only as part of a complete vertical slice that:
+
+1. constructs fresh service instances without static singleton state;
+2. uses internal `Context.Tag` contracts without exposing Effect types publicly;
+3. owns acquisition and release through a scoped layer;
+4. replaces the corresponding reset and manual-finalizer machinery; and
+5. supports test implementations through alternate layers.
+
+The job-service stack is the preferred first slice after handler registration, worker startup, and database acquisition can move together without changing their lifecycle order. Until then, explicit scopes and fibers remain the shell lifecycle mechanism.
+
 ## Workspace structure
 
 The monorepo is organized into these main categories:
