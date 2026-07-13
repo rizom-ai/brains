@@ -1,5 +1,17 @@
 # @brains/cms
 
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- [`698697c`](https://github.com/rizom-ai/brains/commit/698697c01aa33e35f03a74cfc3a81675f74b4d60) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drop the "content studio" wordmark from the CMS crumbbar — it added noise without wayfinding value. The crumbbar now leads with the collection breadcrumb directly.
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/plugins@0.2.0-alpha.161
+  - @brains/auth-service@0.2.0-alpha.161
+  - @brains/console-theme@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+
 ## 0.2.0-alpha.160
 
 ### Patch Changes
