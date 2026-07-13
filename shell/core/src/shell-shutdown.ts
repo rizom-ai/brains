@@ -1,28 +1,38 @@
+import type { ShellLifecycle } from "./initialization/shell-lifecycle";
 import type { ShellServices } from "./types/shell-types";
 
-export async function shutdownShellServices(
+/**
+ * Register shell resources in acquisition order. Effect closes them in reverse,
+ * preserving the established shutdown contract while still running later
+ * finalizers when an earlier one fails.
+ */
+export function registerShellServiceFinalizers(
+  lifecycle: ShellLifecycle,
   services: ShellServices,
-): Promise<void> {
-  // Stop background services in reverse order of initialization
-  services.batchJobManager.stop();
-  services.jobProgressMonitor.stop();
-  await services.jobQueueWorker.stop();
+): void {
+  // Databases are acquired first and must outlive every runtime service.
+  lifecycle.addFinalizer(() => services.runtimeStateService.close());
+  lifecycle.addFinalizer(() => services.conversationService.close());
+  lifecycle.addFinalizer(() => services.jobQueueService.close());
+  lifecycle.addFinalizer(() => services.entityService.close());
 
-  for (const [pluginId] of services.pluginManager.getAllPlugins()) {
-    await services.pluginManager.disablePlugin(pluginId);
-  }
-
-  for (const dispose of services.disposables.splice(0)) {
-    try {
-      dispose();
-    } catch (error) {
-      services.logger.warn("Failed to dispose shell subscription", error);
+  lifecycle.addFinalizer(() => {
+    for (const dispose of services.disposables.splice(0)) {
+      try {
+        dispose();
+      } catch (error) {
+        services.logger.warn("Failed to dispose shell subscription", error);
+      }
     }
-  }
+  });
 
-  // Close all database connections
-  services.entityService.close();
-  services.jobQueueService.close();
-  services.conversationService.close();
-  services.runtimeStateService.close();
+  lifecycle.addFinalizer(async () => {
+    for (const [pluginId] of services.pluginManager.getAllPlugins()) {
+      await services.pluginManager.disablePlugin(pluginId);
+    }
+  });
+
+  lifecycle.addFinalizer(() => services.jobQueueWorker.stop());
+  lifecycle.addFinalizer(() => services.jobProgressMonitor.stop());
+  lifecycle.addFinalizer(() => services.batchJobManager.stop());
 }

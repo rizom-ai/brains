@@ -19,12 +19,21 @@ export class ShellLifecycle {
   private readonly scope: Scope.CloseableScope;
   private closed = false;
 
-  public constructor(finalizer: () => Promise<void>) {
+  public constructor() {
     this.scope = Effect.runSync(Scope.make());
+  }
+
+  /** Register cleanup in acquisition order; close runs it in reverse order. */
+  public addFinalizer(finalizer: () => void | Promise<void>): void {
+    if (this.closed) {
+      throw new Error("Cannot register cleanup after shell shutdown");
+    }
     Effect.runSync(
       Scope.addFinalizer(
         this.scope,
-        Effect.promise(() => finalizer()),
+        Effect.promise(async () => {
+          await finalizer();
+        }),
       ),
     );
   }

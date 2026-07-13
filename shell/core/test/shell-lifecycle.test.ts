@@ -5,7 +5,8 @@ import { ShellLifecycle } from "../src/initialization/shell-lifecycle";
 describe("ShellLifecycle", () => {
   it("runs its finalizer only once", async () => {
     let finalizerCalls = 0;
-    const lifecycle = new ShellLifecycle(async () => {
+    const lifecycle = new ShellLifecycle();
+    lifecycle.addFinalizer(() => {
       finalizerCalls++;
     });
 
@@ -21,7 +22,8 @@ describe("ShellLifecycle", () => {
     const started = new Promise<void>((resolve) => {
       notifyStarted = resolve;
     });
-    const lifecycle = new ShellLifecycle(async () => {
+    const lifecycle = new ShellLifecycle();
+    lifecycle.addFinalizer(() => {
       order.push("finalized");
     });
 
@@ -46,5 +48,30 @@ describe("ShellLifecycle", () => {
     await lifecycle.close();
 
     expect(order).toEqual(["interrupted", "finalized"]);
+  });
+
+  it("runs every finalizer in reverse order when one fails", async () => {
+    const order: string[] = [];
+    const lifecycle = new ShellLifecycle();
+    lifecycle.addFinalizer(() => {
+      order.push("first");
+    });
+    lifecycle.addFinalizer(() => {
+      order.push("second");
+      throw new Error("cleanup failed");
+    });
+    lifecycle.addFinalizer(() => {
+      order.push("third");
+    });
+
+    let closeError: unknown;
+    try {
+      await lifecycle.close();
+    } catch (error) {
+      closeError = error;
+    }
+
+    expect(closeError).toBeInstanceOf(Error);
+    expect(order).toEqual(["third", "second", "first"]);
   });
 });

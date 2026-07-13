@@ -161,6 +161,52 @@ describe("Shell shutdown", () => {
     expect(threw).toBe(true);
   });
 
+  it("should close databases when an earlier finalizer fails", async () => {
+    await runMigrations(testDir.dir);
+    const config = createTestConfig(testDir.dir);
+    const shutdownError = new Error("worker failed to stop");
+    const shell = Shell.createFresh(config, {
+      ...deps,
+      jobQueueWorker: {
+        start: async (): Promise<void> => {},
+        stop: async (): Promise<void> => {
+          throw shutdownError;
+        },
+        getStats: () => ({
+          processedJobs: 0,
+          failedJobs: 0,
+          activeJobs: 0,
+          uptime: 0,
+          isRunning: true,
+        }),
+        isWorkerRunning: () => true,
+      },
+    });
+    await shell.initialize();
+
+    let receivedError: unknown;
+    try {
+      await shell.shutdown();
+    } catch (error) {
+      receivedError = error;
+    }
+
+    expect(receivedError).toBe(shutdownError);
+
+    let queryError: unknown;
+    try {
+      await shell.getJobQueueService().getStats();
+    } catch (error) {
+      queryError = error;
+    }
+    const fullQueryError =
+      String(queryError) +
+      (queryError instanceof Error && queryError.cause
+        ? String(queryError.cause)
+        : "");
+    expect(fullQueryError).toContain("CLIENT_CLOSED");
+  });
+
   it("should stop background workers, then plugin daemons, before closing databases", async () => {
     const order: string[] = [];
     let workerRunningDuringDaemonStop: boolean | undefined;

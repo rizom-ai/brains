@@ -91,7 +91,7 @@ import {
   collectPluginApiRoutes,
   collectPluginWebRoutes,
 } from "./plugin-routes";
-import { shutdownShellServices } from "./shell-shutdown";
+import { registerShellServiceFinalizers } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
 import { ShellLifecycle } from "./initialization/shell-lifecycle";
@@ -145,9 +145,8 @@ export class Shell implements IShell {
     );
 
     this.services = shellInitializer.initializeServices(dependencies);
-    this.lifecycle = new ShellLifecycle(() =>
-      shutdownShellServices(this.services),
-    );
+    this.lifecycle = new ShellLifecycle();
+    registerShellServiceFinalizers(this.lifecycle, this.services);
 
     this.jobs = createJobsNamespace(
       this.services.batchJobManager,
