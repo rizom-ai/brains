@@ -73,24 +73,26 @@ export class ApprovalCardTracker {
   async resolve(
     conversationId: string,
     approvalId: string,
-    confirmed: boolean,
-  ): Promise<void> {
+    resolution: { title: string; detail: string },
+  ): Promise<boolean> {
     const key = this.key(conversationId, approvalId);
     const tracked = this.cards.get(key);
-    if (!tracked) return;
+    if (!tracked) return false;
     this.cards.delete(key);
-    const label = confirmed ? "confirmed" : "cancelled";
     await tracked.message.edit({
       card: this.deps.cardBuilder.buildResolvedApprovalCard(
         tracked.summary,
-        confirmed,
+        resolution,
       ),
-      fallbackText: `Approval ${label}: ${tracked.summary}`,
+      fallbackText: `${resolution.title}: ${tracked.summary}${
+        resolution.title === "Action failed" ? `\n${resolution.detail}` : ""
+      }`,
     });
     await this.deps.clearMessageComponents(
       tracked.threadId,
       tracked.message.id,
     );
+    return true;
   }
 
   private key(conversationId: string, approvalId: string): string {

@@ -299,6 +299,27 @@ Acceptance criteria:
 - Confirmed actions with files, queued artifacts, or remaining approvals retain the information needed to complete the workflow.
 - Existing Discord confirmation and tool-status behavior remains unchanged.
 
+### 14. Finish Slack output consolidation and make uploaded files savable
+
+Address the remaining noisy Slack render paths and the live **Save image** failure where a Chat upload reached the model with an interface-scoped ref that `system_create` could not preserve through the canonical upload pipeline.
+
+- Store agent-facing Chat attachments in the canonical `upload` runtime scope so read-only and save/import actions use the same live ref understood by AgentService and entity upload handlers.
+- Continue serving only platform-scoped refs from the Slack and Discord upload routes; accept legacy platform-scoped refs when restoring existing Chat conversation continuity.
+- Remove terminal `Tool completed` cards from Slack once the agent response is available; retain job progress and actionable tool failures.
+- Treat common generic approval phrases (`Confirmation required`, `Approval required`, and `Please confirm`) as card-only Slack output.
+- Resolve successful, declined, and failed Slack approvals in the tracked native card and suppress redundant confirmation/result/tool-approval messages when no files, denied artifacts, or remaining approvals need separate output.
+- Do not post a second artifact fallback when the same artifact was delivered as a native Slack file.
+- Preserve Discord rendering and Slack source/action cards, queued-job progress, multi-approval help, and permission checks.
+
+Acceptance criteria:
+
+- Clicking **Save image** supplies a live canonical upload ref that can pass confirmation and be promoted to an image entity without re-uploading.
+- Slack does not display a terminal `Tool completed: create` card beside the final save response.
+- Immediate native Slack files do not also produce an `Artifact: ...` message.
+- Simple successful, cancelled, and failed approvals use one resolved native card; untracked/restored approvals still emit a standalone outcome.
+- Generic approval-request text does not duplicate the native approval card.
+- Existing Discord behavior and platform upload-route isolation remain unchanged.
+
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.

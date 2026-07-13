@@ -5,6 +5,7 @@ import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
 import { chunkMessage } from "@brains/utils/chunk-message";
 import { z } from "@brains/utils/zod";
 import {
+  createCanonicalChatUploadStoreScope,
   createDiscordChatUploadStoreScope,
   createSlackChatUploadStoreScope,
 } from "../src/upload-store";
@@ -1624,7 +1625,7 @@ describe("ChatInterface", () => {
           kind: "text",
           filename: "secret.txt",
           content: "secret",
-          source: expect.objectContaining({ kind: "slack-chat-upload" }),
+          source: expect.objectContaining({ kind: "upload" }),
         }),
       ],
     });
@@ -1640,7 +1641,7 @@ describe("ChatInterface", () => {
     expect(agentService.chat.mock.calls[1]?.[2]?.attachments).toEqual([
       expect.objectContaining({
         filename: "secret.txt",
-        source: expect.objectContaining({ kind: "slack-chat-upload" }),
+        source: expect.objectContaining({ kind: "upload" }),
       }),
     ]);
   });
@@ -1711,7 +1712,7 @@ describe("ChatInterface", () => {
         content: "file body",
         sizeBytes: 9,
         source: {
-          kind: "discord-chat-upload",
+          kind: "upload",
           id: expect.stringMatching(/^upload-/),
         },
       },
@@ -1721,7 +1722,7 @@ describe("ChatInterface", () => {
     const uploadStore = harness
       .getMockShell()
       .getRuntimeUploadRegistry()
-      .scoped(createDiscordChatUploadStoreScope());
+      .scoped(createCanonicalChatUploadStoreScope());
     const record = await uploadStore.readRecord(source?.id ?? "");
     expect(record.metadata).toEqual({
       interfaceType: "discord",
@@ -1837,13 +1838,13 @@ describe("ChatInterface", () => {
         kind: "file",
         filename: "diagram.png",
         data: image,
-        source: expect.objectContaining({ kind: "slack-chat-upload" }),
+        source: expect.objectContaining({ kind: "upload" }),
       }),
       expect.objectContaining({
         kind: "file",
         filename: "brief.pdf",
         data: pdf,
-        source: expect.objectContaining({ kind: "slack-chat-upload" }),
+        source: expect.objectContaining({ kind: "upload" }),
       }),
     ]);
   });
@@ -1894,7 +1895,7 @@ describe("ChatInterface", () => {
         data: image,
         sizeBytes: image.byteLength,
         source: {
-          kind: "discord-chat-upload",
+          kind: "upload",
           id: expect.stringMatching(/^upload-/),
         },
       },
@@ -1905,7 +1906,7 @@ describe("ChatInterface", () => {
         data: pdf,
         sizeBytes: pdf.byteLength,
         source: {
-          kind: "discord-chat-upload",
+          kind: "upload",
           id: expect.stringMatching(/^upload-/),
         },
       },
@@ -1963,7 +1964,7 @@ describe("ChatInterface", () => {
         data: pdf,
         sizeBytes: pdf.byteLength,
         source: {
-          kind: "discord-chat-upload",
+          kind: "upload",
           id: expect.stringMatching(/^upload-/),
         },
       },
@@ -2539,9 +2540,7 @@ describe("ChatInterface", () => {
         userPermissionLevel: "public",
       }),
     );
-    expect(thread.post).toHaveBeenLastCalledWith(
-      "Approved · Action confirmed.",
-    );
+    expect(thread.post).toHaveBeenCalledTimes(1);
   });
 
   it("confirms Slack approvals from native card buttons and resolves the card", async () => {
@@ -2561,17 +2560,13 @@ describe("ChatInterface", () => {
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const approvalMessage = createSentMessage("slack-approval-message-1");
-    let postCount = 0;
     const thread = createThread({
       id: "slack:C123:1712345678.000100",
       channelId: "slack:C123",
       adapter: { name: "slack" },
-      post: mock((_message: MockPostMessage) => {
-        postCount += 1;
-        return Promise.resolve(
-          postCount === 2 ? approvalMessage : createSentMessage(),
-        );
-      }),
+      post: mock((_message: MockPostMessage) =>
+        Promise.resolve(approvalMessage),
+      ),
     });
 
     const actionEvent = {
@@ -2593,6 +2588,7 @@ describe("ChatInterface", () => {
     } as MockActionEvent;
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
+    expect(thread.post).toHaveBeenCalledTimes(1);
     await chat?.handlers.actions[0]?.handler(actionEvent);
 
     expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
@@ -2624,9 +2620,7 @@ describe("ChatInterface", () => {
         }),
       }),
     );
-    expect(thread.post).toHaveBeenLastCalledWith(
-      "Approved · Action confirmed.",
-    );
+    expect(thread.post).toHaveBeenCalledTimes(1);
 
     await chat?.handlers.actions[0]?.handler(actionEvent);
     expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
@@ -2847,6 +2841,144 @@ describe("ChatInterface", () => {
       }),
     );
     expect(thread.post).toHaveBeenCalledTimes(2);
+  });
+
+  it("consolidates cancelled Slack approvals into the resolved card", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Approval required.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_create",
+          summary: "Create note?",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockResolvedValueOnce({
+      text: "Action cancelled.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const approvalMessage = createSentMessage("slack-cancel-approval");
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+      post: mock((_message: MockPostMessage) =>
+        Promise.resolve(approvalMessage),
+      ),
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.actions[0]?.handler({
+      actionId: "approval.cancel",
+      adapter: { name: "slack" },
+      messageId: approvalMessage.id,
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    } as MockActionEvent);
+
+    expect(approvalMessage.edit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        card: expect.objectContaining({ title: "Approval declined" }),
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledTimes(1);
+  });
+
+  it("consolidates failed Slack approvals into the resolved card", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    const threadId = "slack:C123:1712345678.000100";
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm this action.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_create",
+          summary: "Create note?",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockImplementationOnce(
+      async (conversationId) => {
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:failed",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "slack",
+          channelId: threadId,
+          error: "Upload ref not found",
+        });
+        return {
+          text: "Failed: Create note",
+          usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+          cards: [
+            {
+              kind: "tool-approval" as const,
+              id: "approval-1",
+              toolName: "system_create",
+              summary: "Create note?",
+              state: "output-error" as const,
+              error: "Upload ref not found",
+            },
+          ],
+        };
+      },
+    );
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const approvalMessage = createSentMessage("slack-failed-approval");
+    const thread = createThread({
+      id: threadId,
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+      post: mock((_message: MockPostMessage) =>
+        Promise.resolve(approvalMessage),
+      ),
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.actions[0]?.handler({
+      actionId: "approval.confirm",
+      adapter: { name: "slack" },
+      messageId: approvalMessage.id,
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    } as MockActionEvent);
+
+    expect(approvalMessage.edit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        card: expect.objectContaining({ title: "Action failed" }),
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledTimes(1);
   });
 
   it("blocks Slack approval buttons when DMs are disabled", async () => {
@@ -4163,10 +4295,7 @@ describe("ChatInterface", () => {
         ],
       }),
     );
-    expect(thread.post).toHaveBeenNthCalledWith(
-      2,
-      "Artifact: Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nSize: 1.2 KB",
-    );
+    expect(thread.post).toHaveBeenCalledTimes(1);
   });
 
   it("posts native Discord files for trusted generated document artifacts", async () => {
@@ -4879,11 +5008,25 @@ describe("ChatInterface", () => {
             kind: "file",
             filename: "a-campus-that-remembers.pdf",
             data: pdf,
-            source: expect.objectContaining({ kind: "slack-chat-upload" }),
+            source: expect.objectContaining({ kind: "upload" }),
           }),
         ],
       }),
     );
+    const source =
+      agentService.chat.mock.calls[1]?.[2]?.attachments?.[0]?.source;
+    expect(source?.kind).toBe("upload");
+    if (!source) throw new Error("Expected canonical upload source");
+    const stored = await harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+      })
+      .read(source.id);
+    expect(stored.content).toEqual(pdf);
   });
 
   it("does not restore uploads for public Slack suggested actions", async () => {
@@ -5634,6 +5777,64 @@ describe("ChatInterface", () => {
         card: expect.objectContaining({ title: "Tool failed" }),
       }),
     );
+  });
+
+  it("removes completed Slack tool status when the final response arrives", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    const threadId = "slack:C123:1712345678.000100";
+    agentService.chat.mockImplementationOnce(
+      async (_message, conversationId) => {
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:invoking",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "slack",
+          channelId: threadId,
+        });
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:completed",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "slack",
+          channelId: threadId,
+        });
+        return {
+          text: "The upload is unavailable.",
+          usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+          toolResults: [
+            {
+              toolName: "system_create",
+              data: { success: false, error: "Upload ref not found" },
+            },
+          ],
+        };
+      },
+    );
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const statusMessage = createSentMessage("slack-create-status");
+    const responseMessage = createSentMessage("slack-create-response");
+    let postCount = 0;
+    const thread = createThread({
+      id: threadId,
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+      post: mock((_message: MockPostMessage) => {
+        postCount += 1;
+        return Promise.resolve(
+          postCount === 1 ? statusMessage : responseMessage,
+        );
+      }),
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(statusMessage.delete).toHaveBeenCalledTimes(1);
+    expect(statusMessage.edit).not.toHaveBeenCalledWith(
+      expect.objectContaining({ fallbackText: "Tool completed: create" }),
+    );
+    expect(thread.post).toHaveBeenLastCalledWith("The upload is unavailable.");
   });
 
   it("ignores non-Discord progress events even when a Discord thread is tracked", async () => {

@@ -6,8 +6,8 @@ import {
   buildMessageSourceMetadata,
   buildResponsePlan,
   formatArtifactDisplay,
+  formatConfirmationResult,
   getConfirmationResultTitle,
-  getResolvedApprovalCard,
   getToolStatusKey,
   formatPendingConfirmationHelp,
   PendingApprovalTracker,
@@ -82,6 +82,8 @@ import {
   type ChatThreadSubscriptionStore,
 } from "./subscription-state";
 import {
+  canonicalChatUploadRefKind,
+  createCanonicalChatUploadStoreScope,
   createDiscordChatUploadStoreScope,
   createSlackChatUploadStoreScope,
   discordChatUploadRefKind,
@@ -101,6 +103,8 @@ import packageJson from "../package.json";
 
 const URL_PATTERN = /https?:\/\/\S+/i;
 const ANY_MESSAGE_PATTERN = /[\s\S]+/;
+const GENERIC_APPROVAL_TEXT =
+  /^(?:(?:confirmation|approval) required|please confirm(?: this action)?)\.?$/i;
 /** Cap on retained prompt-action tokens; oldest never-clicked ones evict. */
 const MAX_PROMPT_ACTIONS = 1000;
 
@@ -192,7 +196,7 @@ export class ChatInterface extends MessageInterfacePlugin<
   private readonly chatInputBuilder = new ChatInputBuilder({
     getUploadStore: (platform: string): RuntimeUploadStore | undefined =>
       platform === "discord" || platform === "slack"
-        ? this.getUploadStore(platform)
+        ? this.getCanonicalUploadStore()
         : undefined,
     getThreadIdParts,
     logger: this.logger,
@@ -479,7 +483,8 @@ export class ChatInterface extends MessageInterfacePlugin<
       this.compactingSlackApprovalToolStatuses.has(getToolStatusKey(update));
     if (
       isCompactedApprovalStatus ||
-      (isActiveSlackConfirmation && update.state !== "failed")
+      isActiveSlackConfirmation ||
+      (isSlack && update.state === "completed")
     ) {
       await this.toolStatusMessenger.dismiss(update);
       return;
@@ -911,11 +916,19 @@ export class ChatInterface extends MessageInterfacePlugin<
       artifactDelivery.deliveredCardIds,
       artifactDelivery.deniedCardIds,
     );
+    let resolvedNativeApproval = false;
     if (input.confirmation) {
-      await this.approvalCards.resolve(
+      const display = formatConfirmationResult(
+        input.response,
+        input.confirmation.confirmed ? "approved" : "declined",
+      );
+      resolvedNativeApproval = await this.approvalCards.resolve(
         input.conversationId,
         input.confirmation.approvalId,
-        input.confirmation.confirmed,
+        {
+          title: getConfirmationResultTitle(display.variant),
+          detail: display.label,
+        },
       );
     }
     const approvals = plan.directives.find(
@@ -930,26 +943,28 @@ export class ChatInterface extends MessageInterfacePlugin<
       (directive) =>
         directive.kind === "artifact" && Boolean(directive.card.jobId),
     );
-    const resolvedApproval = getResolvedApprovalCard(input.response.cards);
+    const hasDeniedArtifact = plan.directives.some(
+      (directive) => directive.kind === "denied-artifact",
+    );
     const suppressGenericConfirmation =
       isSlack &&
       !input.confirmation &&
       Boolean(confirmations?.length) &&
-      input.response.text.trim() === "Confirmation required.";
+      GENERIC_APPROVAL_TEXT.test(input.response.text.trim());
     const suppressQueuedConfirmationResult =
       isSlack &&
       Boolean(input.confirmation) &&
       hasQueuedArtifact &&
       artifactDelivery.files.length === 0;
-    const suppressSuccessfulConfirmationResult =
+    const suppressResolvedNativeConfirmation =
       isSlack &&
-      input.confirmation?.confirmed === true &&
-      resolvedApproval?.state === "output-available" &&
+      resolvedNativeApproval &&
       !confirmations?.length &&
       !hasArtifact &&
+      !hasDeniedArtifact &&
       artifactDelivery.files.length === 0;
     const suppressConfirmationResult =
-      suppressQueuedConfirmationResult || suppressSuccessfulConfirmationResult;
+      suppressQueuedConfirmationResult || suppressResolvedNativeConfirmation;
     const suppressPrimaryMessage =
       suppressGenericConfirmation || suppressConfirmationResult;
 
@@ -969,7 +984,11 @@ export class ChatInterface extends MessageInterfacePlugin<
           message,
           files: artifactDelivery.files,
         });
-    const artifactMessageId = await this.sendArtifactCards(input.thread, plan);
+    const artifactMessageId = await this.sendArtifactCards(
+      input.thread,
+      plan,
+      isSlack ? artifactDelivery.deliveredCardIds : undefined,
+    );
     await this.sendSupplementalCards(
       input.thread,
       plan,
@@ -1297,10 +1316,12 @@ export class ChatInterface extends MessageInterfacePlugin<
   private async sendArtifactCards(
     thread: ChatThread,
     plan: ResponsePlan,
+    skipCardIds?: ReadonlySet<string>,
   ): Promise<string | undefined> {
     let lastMessageId: string | undefined;
     for (const directive of plan.directives) {
       if (directive.kind !== "artifact") continue;
+      if (skipCardIds?.has(directive.card.id)) continue;
       const display = formatArtifactDisplay(directive.card);
       if (!display) continue;
       const fallbackText = this.cardBuilder.formatArtifactFallback(display);
@@ -1431,12 +1452,13 @@ export class ChatInterface extends MessageInterfacePlugin<
   private createUploadContinuity(
     platform: ChatPlatform,
   ): MessageUploadContinuity {
-    const sourceKind =
-      platform === "discord"
-        ? discordChatUploadRefKind
-        : slackChatUploadRefKind;
     return new MessageUploadContinuity({
-      sourceKind,
+      sourceKind: canonicalChatUploadRefKind,
+      legacySourceKinds: [
+        platform === "discord"
+          ? discordChatUploadRefKind
+          : slackChatUploadRefKind,
+      ],
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
         return (
           (await this.context?.conversations.getMessages(conversationId, {
@@ -1444,8 +1466,14 @@ export class ChatInterface extends MessageInterfacePlugin<
           })) ?? []
         );
       },
-      restoreAttachment: async (uploadId): Promise<ChatAttachment> => {
-        const uploadStore = this.getUploadStore(platform);
+      restoreAttachment: async (
+        uploadId,
+        sourceKind,
+      ): Promise<ChatAttachment> => {
+        const uploadStore =
+          sourceKind === canonicalChatUploadRefKind
+            ? this.getCanonicalUploadStore()
+            : this.getUploadStore(platform);
         if (!uploadStore) throw new Error("Chat upload store unavailable");
         const resolved = await uploadStore.read(uploadId);
         return chatAttachmentFromStoredUpload(
@@ -1470,6 +1498,10 @@ export class ChatInterface extends MessageInterfacePlugin<
         });
       },
     });
+  }
+
+  private getCanonicalUploadStore(): RuntimeUploadStore | undefined {
+    return this.context?.uploads.scoped(createCanonicalChatUploadStoreScope());
   }
 
   private getUploadStore(

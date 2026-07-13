@@ -292,18 +292,16 @@ export class ChatCardBuilder {
     return { type: "card", title: "Approval required", children };
   }
 
-  buildResolvedApprovalCard(summary: string, confirmed: boolean): CardElement {
+  buildResolvedApprovalCard(
+    summary: string,
+    resolution: { title: string; detail: string },
+  ): CardElement {
     return {
       type: "card",
-      title: confirmed ? "Approval confirmed" : "Approval cancelled",
+      title: resolution.title,
       children: [
         { type: "text", content: summary },
-        {
-          type: "text",
-          content: confirmed
-            ? "This action was confirmed."
-            : "This action was cancelled.",
-        },
+        { type: "text", content: resolution.detail },
       ],
     };
   }
