@@ -144,6 +144,10 @@ Delivery model: the auth DB does not store user emails on `auth_users`. When a u
 - `oauth_signing_keys`: key id, private JWK, active/retired status, timestamps.
 - `setup_tokens`: token hash/id, purpose, target user id, expiry, consumed timestamp, delivery dedupe metadata.
 
+### A2A peer trust
+
+- `a2a_peer_trust`: normalized peer domain, pinned key fingerprint, granted inbound level (`public` or `trusted`), and timestamps. Anchor-level peer grants are forbidden.
+
 ### Audit
 
 ```ts

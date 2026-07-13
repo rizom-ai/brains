@@ -208,6 +208,16 @@ export const authAuditEvents = sqliteTable(
   }),
 );
 
+export const a2aPeerTrust = sqliteTable("a2a_peer_trust", {
+  domain: text("domain").primaryKey(),
+  keyFingerprint: text("key_fingerprint").notNull(),
+  grantedLevel: text("granted_level", {
+    enum: ["public", "trusted"],
+  }).notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 export const authSchemaMigrations = sqliteTable("auth_schema_migrations", {
   id: integer("id").primaryKey(),
   name: text("name").notNull(),
@@ -215,6 +225,7 @@ export const authSchemaMigrations = sqliteTable("auth_schema_migrations", {
 });
 
 export const authRuntimeSchema = {
+  a2aPeerTrust,
   authAuditEvents,
   authIdentities,
   authSchemaMigrations,

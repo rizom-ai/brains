@@ -35,6 +35,7 @@ describe("AuthRuntimeDatabase", () => {
     try {
       expect(database.url).toBe(`file:${join(storageDir, "auth.db")}`);
       expect(await tableNames(database)).toEqual([
+        "a2a_peer_trust",
         "auth_audit_events",
         "auth_identities",
         "auth_schema_migrations",
@@ -74,7 +75,7 @@ describe("AuthRuntimeDatabase", () => {
         sql: "SELECT id FROM auth_schema_migrations ORDER BY id",
         args: [],
       });
-      expect(migrations.rows.map((row) => row["id"])).toEqual([1, 2]);
+      expect(migrations.rows.map((row) => row["id"])).toEqual([1, 2, 3]);
       expect(await tableNames(second)).toContain("auth_users");
     } finally {
       await second.stop();

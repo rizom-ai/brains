@@ -22,6 +22,7 @@ interface StartedDatabase {
 
 const INITIAL_MIGRATION_ID = 1;
 const OPTIONAL_CHALLENGE_USER_MIGRATION_ID = 2;
+const A2A_PEER_TRUST_MIGRATION_ID = 3;
 
 export class AuthRuntimeDatabase {
   private readonly storageDir: string;
@@ -70,6 +71,7 @@ export class AuthRuntimeDatabase {
       await this.configureConnection();
       await this.runMigrations();
       await this.runOptionalChallengeUserMigration();
+      await this.runA2APeerTrustMigration();
       await this.secureLocalDatabaseFile();
     } catch (error) {
       await this.stop();
@@ -106,6 +108,34 @@ export class AuthRuntimeDatabase {
       return;
     }
     await chmod(path, 0o600);
+  }
+
+  private async runA2APeerTrustMigration(): Promise<void> {
+    const existing = await this.client.execute({
+      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
+      args: [A2A_PEER_TRUST_MIGRATION_ID],
+    });
+    if (existing.rows.length > 0) {
+      return;
+    }
+
+    await this.client.batch(
+      [
+        `CREATE TABLE IF NOT EXISTS a2a_peer_trust (
+          domain TEXT PRIMARY KEY,
+          key_fingerprint TEXT NOT NULL,
+          granted_level TEXT NOT NULL CHECK (granted_level IN ('public', 'trusted')),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )`,
+        {
+          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
+            VALUES (?, ?, ?)`,
+          args: [A2A_PEER_TRUST_MIGRATION_ID, "a2a-peer-trust", Date.now()],
+        },
+      ],
+      "write",
+    );
   }
 
   private async runOptionalChallengeUserMigration(): Promise<void> {

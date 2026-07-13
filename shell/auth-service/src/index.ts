@@ -30,8 +30,12 @@ export type {
 } from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
-export { A2APeerTrustStore } from "./peer-trust-store";
+export {
+  A2APeerTrustStore,
+  RuntimeA2APeerTrustStore,
+} from "./peer-trust-store";
 export type {
+  A2APeerTrustPersistence,
   A2APeerTrustRecord,
   A2APeerTrustStoreOptions,
   GrantA2APeerTrustInput,

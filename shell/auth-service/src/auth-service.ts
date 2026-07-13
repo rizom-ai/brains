@@ -14,6 +14,7 @@ import {
 import { PasskeyStore } from "./passkey-store";
 import {
   A2APeerTrustStore,
+  RuntimeA2APeerTrustStore,
   type A2APeerTrustRecord,
   type GrantA2APeerTrustInput,
 } from "./peer-trust-store";
@@ -127,7 +128,8 @@ export class AuthService {
   private readonly sessionStore: RuntimeOperatorSessionStore;
   private readonly legacyRefreshTokenStore: RefreshTokenStore;
   private readonly refreshTokenStore: RuntimeRefreshTokenStore;
-  private readonly peerTrustStore: A2APeerTrustStore;
+  private readonly legacyPeerTrustStore: A2APeerTrustStore;
+  private readonly peerTrustStore: RuntimeA2APeerTrustStore;
   private readonly legacyPasskeyStore: PasskeyStore;
   private readonly passkeyService: PasskeyService;
   private readonly legacySetupStateStore: SetupStateStore;
@@ -173,9 +175,10 @@ export class AuthService {
       storageDir: options.storageDir,
     });
     this.refreshTokenStore = new RuntimeRefreshTokenStore(this.runtimeDatabase);
-    this.peerTrustStore = new A2APeerTrustStore({
+    this.legacyPeerTrustStore = new A2APeerTrustStore({
       storageDir: options.storageDir,
     });
+    this.peerTrustStore = new RuntimeA2APeerTrustStore(this.runtimeDatabase);
     this.legacyPasskeyStore = new PasskeyStore({
       storageDir: options.storageDir,
     });
@@ -246,6 +249,7 @@ export class AuthService {
     await this.migrateLegacyAuthorizationCodes();
     await this.migrateLegacyRefreshTokens();
     await this.migrateLegacySetupState();
+    await this.migrateLegacyPeerTrust();
     await Promise.all([
       this.keyStore.getPrivateJwk(),
       this.a2aKeyStore.getPrivateJwk(),
@@ -419,6 +423,19 @@ export class AuthService {
     }
   }
 
+  private async migrateLegacyPeerTrust(): Promise<void> {
+    const peers = await this.legacyPeerTrustStore.listPeers();
+    let migrated = 0;
+    for (const peer of peers) {
+      if (await this.peerTrustStore.importPeer(peer)) {
+        migrated += 1;
+      }
+    }
+    if (migrated > 0) {
+      this.logger?.info("Migrated legacy A2A peer trust", { migrated });
+    }
+  }
+
   private async migrateLegacySetupState(): Promise<void> {
     const state = await this.legacySetupStateStore.getMigrationState();
     if (await this.setupStateStore.importState(state)) {
@@ -549,17 +566,22 @@ export class AuthService {
     };
   }
 
-  grantA2APeerTrust(
+  async grantA2APeerTrust(
     input: GrantA2APeerTrustInput,
   ): Promise<A2APeerTrustRecord> {
+    await this.initialize();
     return this.peerTrustStore.grant(input);
   }
 
-  getA2APeerTrust(domain: string): Promise<A2APeerTrustRecord | undefined> {
+  async getA2APeerTrust(
+    domain: string,
+  ): Promise<A2APeerTrustRecord | undefined> {
+    await this.initialize();
     return this.peerTrustStore.get(domain);
   }
 
-  revokeA2APeerTrust(domain: string): Promise<void> {
+  async revokeA2APeerTrust(domain: string): Promise<void> {
+    await this.initialize();
     return this.peerTrustStore.revoke(domain);
   }
 
