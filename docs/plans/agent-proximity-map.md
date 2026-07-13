@@ -2,13 +2,13 @@
 
 ## Status
 
-P2, not started. This does not preempt the P0 release candidate or P1 identity/model/Rizom lanes. Mockup at [agent-proximity-map-mockup.html](./agent-proximity-map-mockup.html) (open in a browser); delete it together with this plan when the feature ships.
+P2, in progress. The interactive console map is implemented; the website element remains. This does not preempt the P0 release candidate or P1 identity/model/Rizom lanes. Mockup at [agent-proximity-map-mockup.html](./agent-proximity-map-mockup.html) (open in a browser); delete it together with this plan when the feature ships.
 
 ## Context
 
-The agent-discovery entity plugin renders agents as lists (dashboard "Agent Network" widget, `agent-list`/`agent-detail` site templates). None of these show _how the network relates to the brain semantically_. Every agent and the brain's own identity (`brain-character`) already get embeddings stored in the embedding DB (`embeddings` table, `F32_BLOB`, attached to the entity DB as `emb`) — but nothing reads raw vectors today; they only power search.
+The agent-discovery entity plugin has historically rendered agents as lists (dashboard "Agent Network" widget, `agent-list`/`agent-detail` site templates). The console now also projects agent and `brain-character` embeddings into an interactive radial proximity map through the private semantic index; the remaining work makes that map available as a website element.
 
-This plan adds a **proximity map**: a radial visualization with the brain at the center and every discovered agent placed by embedding distance, with semantic clusters circled and labeled. It ships as both a console dashboard widget and a site template ("website element"), rendered by one shared Preact SVG component.
+This plan adds a **proximity map**: a radial visualization with the brain at the center and every saved agent placed by embedding distance, with semantic clusters circled and labeled. It ships as both a console dashboard widget and a site template ("website element"), rendered by one shared Preact SVG component.
 
 ## Design
 
@@ -17,32 +17,35 @@ This plan adds a **proximity map**: a radial visualization with the brain at the
 - **Radial layout, not a 2D scatter (UMAP/t-SNE).** "Proximity to me" is the core semantic; a radial layout makes the one number that matters — distance to the brain — exactly readable as radius. A full 2D embedding projection makes _no_ axis readable and needs a heavy dependency.
   - _Radius_ = cosine distance between agent embedding and the `brain-character` embedding, normalized.
   - _Bearing_ = angle from the first two principal components of the agent embedding matrix (PCA via Gram-matrix power iteration — N agents, so the N×N Gram matrix is cheap regardless of the 1536-dim vectors). Similar agents therefore share a heading, which makes clusters visually contiguous.
-- **No new dependencies.** The math (cosine distance, power-iteration PCA, single-link clustering) is ~150 lines of pure TS in the entity package, fully unit-testable and deterministic — site builds must not jitter between runs. No d3/umap-js; SVG is server-rendered by Preact like every other template, with a vanilla client script for hover/highlight (the repo has no hydration framework by design).
-- **Clustering in embedding space, not layout space.** Single-link agglomerative clustering with a fixed cosine-distance threshold (start at 0.4; constant in one place), minimum cluster size 2. Cluster hulls are drawn as circles around member _positions_; labels come from the members' most frequent skill tags (falling back to "cluster of N"). Deterministic, no LLM call at render time.
-- **Embedding access is a new read-only core API, not raw SQL in the plugin.** Plugins see `IEntityService` (a `Pick` of `ICoreEntityService`); datasources get the same interface. We add one method and expose it through the pick list — no plugin ever touches the embedding DB directly.
-- **Center fallback.** If `brain-character` has no embedding yet, center on the centroid of agent embeddings and say so in the UI ("identity not indexed yet"). Agents without embeddings are excluded from the map and surfaced as a count ("N pending indexing") rather than mis-placed.
+- **No new dependencies.** Entity-service owns cosine distance and power-iteration PCA; agent-discovery owns single-link clustering and labels. Both are pure TypeScript, fully unit-testable, and deterministic — site builds must not jitter between runs. No d3/umap-js; SVG is server-rendered by Preact like every other template, with a vanilla client script for hover/highlight (the repo has no hydration framework by design).
+- **Clustering in embedding space, not layout space.** The semantic projection returns neighbor relationships computed from cosine distance in the original embedding space. Agent-discovery finds connected components at a fixed threshold (0.25, tuned against the live Rover network; constant in one place), minimum cluster size 2. Cluster hulls are drawn around member _positions_; labels come from the members' most frequent skill tags (falling back to "unknown · N"). Tagged constellations sort first; unknown constellations sort last. Deterministic, no LLM call at render time.
+- **Raw embeddings stay private to entity-service.** Plugins use the provider-independent `context.semantic.project()` namespace. The public contract returns entity references, origin distances, PCA coordinates, and optional neighbor relationships — never vectors, dimensions, or embedding-provider details.
+- **Center fallback.** If `brain-character` has no visible embedding yet, semantic projection uses the centroid of agent embeddings and the UI says so ("identity not indexed yet"). Agents without embeddings are excluded from the map and surfaced as a count ("N pending indexing") rather than mis-placed.
+- **Lifecycle remains visible.** Approved agents glow, discovered agents use review-state outlines, and archived agents decay to the faintest dashed trail and remnant point. Archived agents remain as history but are excluded from constellations, the constellation index, active reach counts, and skill aggregation.
 
-### New core API
+### New semantic API
 
 ```ts
-// shell/entity-service (ICoreEntityService + EntitySearch impl)
-getEmbeddings(request: {
-  types?: string[];                    // filter by entity type
-  visibilityScope?: ContentVisibility; // fail-closed: undefined → public only (same as search)
-}): Promise<Array<{ entityId: string; entityType: string; embedding: Float32Array }>>
+context.semantic.project({
+  types: ["agent"],
+  origin: { entityId: "brain-character", entityType: "brain-character" },
+  maxNeighborDistance: 0.25,
+  visibilityScope, // fail-closed: undefined → public only
+});
+// → { origin, points[{entityId, entityType, coordinates, distanceToOrigin}], neighbors, distanceRange }
 ```
 
-Implemented in `EntitySearch` (it already owns the attached-`emb` join used by `search`/`searchWithDistances`): join `entities` ↔ `emb.embeddings`, apply the same visibility conditions, decode the blob to `Float32Array`. Exposed to plugins by adding `"getEmbeddings"` to `PublicEntityServiceMethods` in `shell/plugins/src/public/types.ts`.
+Internally, `EntitySearch.projectSemanticSpace()` joins visible entities to the attached embedding database, decodes vectors, computes cosine distances and deterministic two-component PCA, then discards the vectors. `createBasePluginContext()` exposes only the narrow `semantic.project()` facade; raw embedding access is not part of the plugin-facing `IEntityService`.
 
 ### Data flow
 
 ```
 agent entities + brain-character ──(async embedding jobs, already shipped)──▶ emb.embeddings
                                                                                    │
-lib/proximity-map-data.ts: buildProximityMapData(entityService)                    │
-  listEntities(agent) + getEmbeddings({types: [agent, brain-character]}) ◀─────────┘
-  → lib/proximity-map.ts: distances, PCA bearings, clusters, tag labels
-  → ProximityMapData { center, nodes[{id,name,kind,status,tags,distance,bearing}], clusters[{label,memberIds}], pendingCount }
+lib/proximity-map-data.ts: buildProximityMapData(entityService, semantic)           │
+  listEntities(agent) + semantic.project({types: [agent], origin: brain-character}) ◀┘
+  → lib/proximity-map.ts: radius normalization, constellations, tag labels
+  → ProximityMapData { center, nodes[{id,name,kind,status,tags,distance,bearing}], clusters[{label,memberIds,links}], distanceRange, pendingCount }
         │                                        │
         ▼                                        ▼
 dashboard widget (agent-dashboard.ts)      ProximityMapDataSource → agent-proximity-map template
@@ -53,51 +56,26 @@ Pixel positions are computed by the component from `distance`/`bearing`, so the 
 
 ### Files
 
-- `shell/entity-service`: `src/entity-search.ts`, `src/entityService.ts`, `src/types.ts` (+ `test/get-embeddings.test.ts`)
-- `shell/plugins`: `src/public/types.ts` (pick-list addition)
+- `shell/entity-service`: `src/entity-search.ts`, `src/entityService.ts`, `src/semantic-space.ts`, `src/types.ts` (+ `test/project-semantic-space.test.ts`)
+- `shell/plugins`: `src/base/context.ts`, `src/public/types.ts` (+ `test/semantic-context.test.ts`)
 - `entities/agent-discovery`:
-  - `src/lib/proximity-map.ts` — pure math (distances, PCA bearings, clustering, labels)
+  - `src/lib/proximity-map.ts` — radius normalization, clustering, and labels
   - `src/lib/proximity-map-schema.ts` — zod schema for `ProximityMapData`
-  - `src/lib/proximity-map-data.ts` — `buildProximityMapData(entityService)`
+  - `src/lib/proximity-map-data.ts` — `buildProximityMapData(entityService, semantic)`
   - `src/widgets/proximity-map.tsx` + `proximity-map-script.ts` — shared SVG component, widget wrapper, hover script
   - `src/datasources/proximity-map-datasource.ts` — datasource for the site template
   - `src/lib/agent-dashboard.ts`, `src/lib/register-templates.ts`, `src/plugins/agent-plugin.ts`, `src/lib/constants.ts` — wiring
   - mirrored tests under `test/`
 
-## Phases
+## Remaining phases
 
-Thin vertical slices; each phase lands tests with its implementation and leaves the tree shippable.
-
-### Phase 1 — walking skeleton: distance-only map in the console
-
-Tests first at every step.
-
-1. `getEmbeddings` in entity-service (integration tests on the real test DB: returns typed vectors, type filter, fail-closed visibility) + expose through the plugins pick list.
-2. `lib/proximity-map.ts` v1: cosine distance + radius normalization; bearings by golden-angle sequence over distance rank (deterministic placeholder, no PCA yet).
-3. `buildProximityMapData` + zod schema (mock entityService tests: happy path, missing center → centroid fallback, agents without embeddings → `pendingCount`).
-4. Shared SVG component (render tests via `preact-render-to-string`: rings, center, nodes, empty state) registered as a second dashboard widget ("Agent Proximity", digest: agents/clusters/pending).
-
-**Ships:** a real, honest distance map in the console.
-
-### Phase 2 — semantic bearings
-
-PCA over agent embeddings (Gram matrix + power iteration with deflation, fixed seed vector) → `bearing = atan2(pc2, pc1)`. Unit tests with synthetic vector families asserting: similar vectors get nearby bearings, dissimilar ones don't, output is deterministic, degenerate cases (0, 1, 2 agents; identical vectors) don't NaN.
-
-**Ships:** direction on the map now means something; visual grouping emerges.
-
-### Phase 3 — clusters and interactivity
-
-Single-link threshold clustering in embedding space (min size 2), hull circles + tag-derived labels in the component, hover tooltip/highlight client script (mirrors `agent-network-widget-script.ts` conventions: data attributes + vanilla listeners). Tests: clustering unit tests (threshold behavior, label derivation from skill tags, tie-breaking determinism), component render test for hulls/labels.
-
-**Ships:** the "mark/circle/label clusters" half of the feature, in the console.
-
-### Phase 4 — website element
+### Phase 1 — website element
 
 `ProximityMapDataSource` (id in `constants.ts`, fetch → `buildProximityMapData`) + `agent-proximity-map` template (`requiredPermission: "public"`, shared component, tooltip script via `runtimeScripts`). Wire into `agent-plugin.ts` `getDataSources`/`getTemplates`. Tests: datasource fetch against schema, template render test. The template is then available to any site composition; no site is rewired in this plan.
 
 **Ships:** the map as a composable site section.
 
-### Phase 5 — beyond first order (parked)
+### Phase 2 — beyond first order (parked)
 
 Parked until the peer-graph substrate exists; the calls are recorded here so they don't get re-litigated. The layout already generalizes: anything we can fetch a card for we can embed and place — order is a data-availability problem, not a layout problem. Two data paths, in preference order:
 
@@ -115,5 +93,5 @@ The mockup already sketches this: two dim sightings, one routed through `kai.bra
 
 ## Validation
 
-- `bun test` in `shell/entity-service` and `entities/agent-discovery`; lint via `bun scripts/lint.mjs --force --filter …`; typecheck.
+- `bun test` in `shell/entity-service`, `shell/plugins`, and `entities/agent-discovery`; lint via `bun scripts/lint.mjs --force --filter …`; typecheck.
 - Manual: console dashboard shows the widget with live agents; site build renders the template; map is byte-identical across two consecutive builds (determinism).

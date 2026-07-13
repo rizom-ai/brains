@@ -80,6 +80,7 @@ export const AgentDetailTemplate = ({
   const { frontmatter, about, skills, notes } = agent;
   const domain = extractDomain(frontmatter.url);
   const isApproved = frontmatter.status === "approved";
+  const isArchived = frontmatter.status === "archived";
 
   return (
     <>
@@ -134,11 +135,12 @@ export const AgentDetailTemplate = ({
           {!isApproved && (
             <div className="mb-8 rounded-xl border border-theme bg-theme-subtle px-5 py-4">
               <div className="text-sm font-semibold text-heading mb-1">
-                Saved for review
+                {isArchived ? "Archived contact" : "Saved for review"}
               </div>
               <p className="text-sm text-theme-muted">
-                This brain is discovered but not approved yet, so it cannot be
-                called until you approve it.
+                {isArchived
+                  ? "This brain is retained as history and cannot be called unless it is approved again."
+                  : "This brain is discovered but not approved yet, so it cannot be called until you approve it."}
               </p>
             </div>
           )}
@@ -214,7 +216,9 @@ export const AgentDetailTemplate = ({
                     value={
                       frontmatter.status === "approved"
                         ? "Approved"
-                        : "Discovered"
+                        : frontmatter.status === "archived"
+                          ? "Archived"
+                          : "Discovered"
                     }
                     valueClassName={
                       frontmatter.status === "approved"

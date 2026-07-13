@@ -10,11 +10,13 @@ import { AGENT_ENTITY_TYPE } from "../lib/constants";
 type AgentGenerationStatusSchema = z.ZodEnum<{
   discovered: "discovered";
   approved: "approved";
+  archived: "archived";
 }>;
 
 const agentGenerationStatusSchema: AgentGenerationStatusSchema = z.enum([
   "discovered",
   "approved",
+  "archived",
 ]);
 
 /**

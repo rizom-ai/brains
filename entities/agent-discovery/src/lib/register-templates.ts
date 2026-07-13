@@ -40,7 +40,7 @@ const agentSkillSchema = z.object({
   tags: z.array(z.string()),
 });
 
-const agentStatusSchema = z.enum(["discovered", "approved"]);
+const agentStatusSchema = z.enum(["discovered", "approved", "archived"]);
 
 const agentKindSchema = z.enum(["professional", "team", "collective"]);
 
