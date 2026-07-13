@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-content",
-  "version": "0.2.0-alpha.164",
+  "version": "0.2.0-alpha.165",
   "description": "Site content entity and generation orchestration",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
