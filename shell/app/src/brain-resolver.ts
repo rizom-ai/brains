@@ -736,7 +736,7 @@ function validatePublishPolicy(
   }
 }
 
-/** Matches scoped npm package names like @brains/theme-default (no colons, no dots) */
+/** Matches scoped npm package names like @rizom/theme-default (no colons, no dots) */
 const SCOPED_PACKAGE_PATTERN = /^@[\w-]+\/[\w-]+$/;
 
 /**

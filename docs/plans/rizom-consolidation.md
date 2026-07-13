@@ -64,7 +64,7 @@ Update rover-pilot `new` desired state to use:
 
 - the newly published consolidated site package;
 - `rizom-ai/rizom-content`;
-- `@brains/theme-rizom-ai`;
+- `@rizom/theme-rizom-ai`;
 - `web-chat`, `atproto-registry`, `products`, `rizom-ecosystem`, `newsletter`, and
   `site-content`.
 

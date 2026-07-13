@@ -41,17 +41,17 @@
     "@brains/site-info": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/stock-photo": "workspace:*",
-    "@brains/theme-default": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/web-chat": "workspace:*",
     "@brains/webserver": "workspace:*",
-    "@brains/wishlist": "workspace:*"
+    "@brains/wishlist": "workspace:*",
+    "@rizom/theme-default": "workspace:*"
   },
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",
-    "@brains/theme-rizom-ai": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@rizom/site-rizom-ai": "workspace:*",
+    "@rizom/theme-rizom-ai": "workspace:*",
     "typescript": "^7.0.2"
   },
   "files": [

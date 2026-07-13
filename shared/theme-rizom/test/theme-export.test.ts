@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import defaultThemeCSS from "@brains/theme-default";
+import defaultThemeCSS from "@rizom/theme-default";
 import themeCSS, { themeCSSOnly } from "../src/index";
 
 describe("theme-rizom export", () => {

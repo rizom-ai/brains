@@ -26,7 +26,7 @@ permissions:
 
 site:
   package: "@rizom/site-rizom-ai"
-  theme: "@brains/theme-rizom-ai"
+  theme: "@rizom/theme-rizom-ai"
 
 plugins:
   mcp:

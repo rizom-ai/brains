@@ -47,7 +47,7 @@ import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
 import { roverProfilePlugin } from "./profile-extension";
 import defaultSite from "@brains/site-default";
-import defaultTheme from "@brains/theme-default";
+import defaultTheme from "@rizom/theme-default";
 import { join } from "path";
 import packageJson from "../package.json" with { type: "json" };
 

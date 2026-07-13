@@ -147,17 +147,17 @@
         "@brains/site-info": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/stock-photo": "workspace:*",
-        "@brains/theme-default": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/web-chat": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
+        "@rizom/theme-default": "workspace:*",
       },
       "devDependencies": {
         "@brains/ai-evaluation": "workspace:*",
-        "@brains/theme-rizom-ai": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@rizom/site-rizom-ai": "workspace:*",
+        "@rizom/theme-rizom-ai": "workspace:*",
         "typescript": "^7.0.2",
       },
     },
@@ -716,10 +716,10 @@
         "@brains/site-default": "workspace:*",
         "@brains/site-personal": "workspace:*",
         "@brains/site-professional": "workspace:*",
-        "@brains/theme-default": "workspace:*",
         "@brains/theme-rizom": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@rizom/theme-default": "workspace:*",
         "@types/bun": "^1.3.14",
         "rolldown": "^1.0.0",
         "rolldown-plugin-dts": "^0.27.4",
@@ -1391,9 +1391,10 @@
       },
     },
     "shared/theme-default": {
-      "name": "@brains/theme-default",
+      "name": "@rizom/theme-default",
       "version": "0.2.0-alpha.159",
       "devDependencies": {
+        "@brains/build-tools": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
@@ -1404,7 +1405,7 @@
       "name": "@brains/theme-rizom",
       "version": "0.2.0-alpha.159",
       "dependencies": {
-        "@brains/theme-default": "workspace:*",
+        "@rizom/theme-default": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1414,12 +1415,13 @@
       },
     },
     "shared/theme-rizom-ai": {
-      "name": "@brains/theme-rizom-ai",
-      "version": "0.2.0-alpha.141",
+      "name": "@rizom/theme-rizom-ai",
+      "version": "0.2.0-alpha.159",
       "dependencies": {
-        "@brains/theme-default": "workspace:*",
+        "@rizom/theme-default": "0.2.0-alpha.159",
       },
       "devDependencies": {
+        "@brains/build-tools": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
@@ -2127,11 +2129,7 @@
 
     "@brains/theme-base": ["@brains/theme-base@workspace:shared/theme-base"],
 
-    "@brains/theme-default": ["@brains/theme-default@workspace:shared/theme-default"],
-
     "@brains/theme-rizom": ["@brains/theme-rizom@workspace:shared/theme-rizom"],
-
-    "@brains/theme-rizom-ai": ["@brains/theme-rizom-ai@workspace:shared/theme-rizom-ai"],
 
     "@brains/topics": ["@brains/topics@workspace:entities/topics"],
 
@@ -2680,6 +2678,10 @@
     "@rizom/site-rizom-work": ["@rizom/site-rizom-work@workspace:sites/rizom-work"],
 
     "@rizom/site-sections": ["@rizom/site-sections@workspace:packages/site-sections"],
+
+    "@rizom/theme-default": ["@rizom/theme-default@workspace:shared/theme-default"],
+
+    "@rizom/theme-rizom-ai": ["@rizom/theme-rizom-ai@workspace:shared/theme-rizom-ai"],
 
     "@rizom/ui": ["@rizom/ui@workspace:shared/rizom-ui"],
 
