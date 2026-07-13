@@ -11,6 +11,12 @@ import {
 import type { FileUpload } from "chat";
 
 const CHAT_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
+const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
+  "pending",
+  "generating",
+  "failed",
+  "error",
+]);
 
 interface ArtifactDeliveryDeps {
   getContext: () => InterfacePluginContext | undefined;
@@ -93,6 +99,13 @@ export class ArtifactDeliveryResolver {
     if (access.status === "denied") return { denied: true };
     if (access.status !== "visible") return {};
     const entity = access.entity;
+    const entityStatus = entity.metadata["status"];
+    if (
+      typeof entityStatus === "string" &&
+      NON_DELIVERABLE_ARTIFACT_STATUSES.has(entityStatus)
+    ) {
+      return {};
+    }
     if (typeof entity.content !== "string") return {};
     if (!canReceiveNativeArtifactFile(userLevel)) return {};
 

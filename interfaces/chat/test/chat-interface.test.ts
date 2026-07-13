@@ -5269,8 +5269,8 @@ describe("ChatInterface", () => {
       {
         id: "async-slack-image",
         entityType: "image",
-        content: "",
-        metadata: { filename: "async-slack-image.png" },
+        content: `data:image/png;base64,${Buffer.from("pending-placeholder").toString("base64")}`,
+        metadata: { filename: "async-slack-image.png", status: "pending" },
         visibility: "shared",
       },
     ]);
@@ -5312,6 +5312,13 @@ describe("ChatInterface", () => {
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
+    expect(
+      thread.post.mock.calls.some(
+        ([post]) => typeof post === "object" && "files" in post,
+      ),
+    ).toBe(false);
+    thread.post.mockClear();
+
     harness.addEntities([
       {
         id: "async-slack-image",
@@ -5339,6 +5346,7 @@ describe("ChatInterface", () => {
       markdown: "Generated artifact ready: async-slack-image.png",
       files: [
         expect.objectContaining({
+          data: expect.any(ArrayBuffer),
           filename: "async-slack-image.png",
           mimeType: "image/png",
         }),
