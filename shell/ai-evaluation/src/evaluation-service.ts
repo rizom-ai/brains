@@ -24,6 +24,7 @@ import { PluginLLMJudge } from "./plugin-llm-judge";
 import { YAMLLoader } from "./loaders/yaml-loader";
 import { PluginRunner } from "./plugin-runner";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
+import { Cause, Effect, Exit } from "effect";
 
 const DEFAULT_MAX_PARALLEL = 3;
 const DEFAULT_INDEX_READINESS_TIMEOUT_MS = 60_000;
@@ -396,24 +397,19 @@ export class EvaluationService implements IEvaluationService {
       1,
       options.maxParallel ?? DEFAULT_MAX_PARALLEL,
     );
-    const workerCount = Math.min(maxParallel, testCases.length);
-    const results = new Array<EvaluationResult>(testCases.length);
-    let nextIndex = 0;
-
-    const workers = Array.from({ length: workerCount }, async () => {
-      while (nextIndex < testCases.length) {
-        const currentIndex = nextIndex;
-        nextIndex += 1;
-
-        const testCase = testCases[currentIndex];
-        if (!testCase) continue;
-
-        results[currentIndex] = await runTest(testCase);
-      }
-    });
-
-    await Promise.all(workers);
-    return results;
+    const exit = await Effect.runPromiseExit(
+      Effect.forEach(
+        testCases,
+        (testCase) =>
+          Effect.tryPromise({
+            try: () => runTest(testCase),
+            catch: (error) => error,
+          }),
+        { concurrency: maxParallel },
+      ),
+    );
+    if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+    return exit.value;
   }
 
   /**

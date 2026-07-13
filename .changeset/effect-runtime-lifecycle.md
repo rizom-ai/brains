@@ -1,5 +1,6 @@
 ---
 "@brains/app": patch
+"@brains/ai-evaluation": patch
 "@brains/core": patch
 "@brains/ai-service": patch
 "@brains/entity-service": patch

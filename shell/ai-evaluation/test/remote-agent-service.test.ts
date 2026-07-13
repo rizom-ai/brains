@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+import { Effect, TestClock, TestContext } from "effect";
+import type { Clock } from "effect";
 
 import { RemoteAgentService } from "../src/remote-agent-service";
 
@@ -85,6 +87,77 @@ describe("RemoteAgentService", () => {
       response.pendingConfirmations?.map((confirmation) => confirmation.id),
     ).toEqual(["approval:update", "approval:delete"]);
     expect(response.cards?.[0]?.id).toBe("approval:update");
+  });
+
+  it("should preserve caller abort reasons", async () => {
+    const fetchMock = mock(
+      (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(init.signal?.reason),
+            { once: true },
+          );
+        }),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const service = new RemoteAgentService({ baseUrl: "http://brain.test" });
+    const controller = new AbortController();
+    const request = service.chat(
+      "hello",
+      "conversation-1",
+      {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+      },
+      controller.signal,
+    );
+    const abortReason = new Error("evaluation cancelled");
+
+    controller.abort(abortReason);
+
+    expect(await request.catch((error: unknown) => error)).toBe(abortReason);
+  });
+
+  it("should time out stalled requests with the Effect clock", async () => {
+    const fetchMock = mock(
+      (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(init.signal?.reason),
+            { once: true },
+          );
+        }),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const ServiceWithClock = RemoteAgentService as unknown as new (
+          config: { baseUrl: string; timeoutMs: number },
+          runtimeOptions: { clock: Clock.Clock },
+        ) => RemoteAgentService;
+        const service = new ServiceWithClock(
+          { baseUrl: "http://brain.test", timeoutMs: 100 },
+          { clock },
+        );
+        const request = service
+          .chat("hello", "conversation-1")
+          .catch((error: unknown) => error);
+
+        yield* Effect.yieldNow();
+        yield* TestClock.adjust(99);
+        yield* TestClock.adjust(1);
+        const error = yield* Effect.promise(() => request);
+
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBe(
+          "Remote agent request timed out after 100ms",
+        );
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
   });
 
   it("should ignore legacy singular pending confirmations from remote responses", async () => {
