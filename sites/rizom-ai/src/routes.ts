@@ -32,10 +32,9 @@ export const aiRoutes: RouteDefinitionInput[] = [
     ],
   },
   {
-    // The product's own room: the platform story that used to run down the
-    // homepage now lives here. Phase 1 carries the two pure-product sections
-    // over unchanged (your-data, quickstart); the four-chapter product
-    // narrative lands in a later phase.
+    // The product's own room: the brain's life with its owner in four
+    // chapters — capture, ask, see it run, connect — each illustrated by a
+    // real interface screen, then the data principles and the quickstart.
     id: "brain",
     path: "/brain",
     title: "Rizom Brain",
@@ -43,8 +42,14 @@ export const aiRoutes: RouteDefinitionInput[] = [
     layout: "default",
     navigation: { show: false },
     sections: [
+      { id: "hero", template: "brain:hero" },
+      { id: "capture", template: "brain:capture" },
+      { id: "ask", template: "brain:ask" },
+      { id: "run", template: "brain:run" },
+      { id: "connect", template: "brain:connect" },
       { id: "your-data", template: "brain:your-data" },
       { id: "quickstart", template: "brain:quickstart" },
+      { id: "close", template: "brain:close" },
     ],
   },
   {

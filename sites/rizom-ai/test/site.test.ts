@@ -27,18 +27,30 @@ describe("@rizom/site-rizom-ai", () => {
     ]);
   });
 
-  test("exposes the /brain room — the product's own page", () => {
+  test("exposes the /brain room — the product's four-chapter page", () => {
     const brain = site.routes.find((route) => route.id === "brain");
     expect(brain?.path).toBe("/brain");
-    // The two pure-product sections move off the umbrella home page into the
-    // room that owns the product story.
+    // The brain's life with its owner: capture → ask → see it run → connect,
+    // then the data principles, the quickstart, and the closing band.
     expect(brain?.sections?.map((s) => s.id)).toEqual([
+      "hero",
+      "capture",
+      "ask",
+      "run",
+      "connect",
       "your-data",
       "quickstart",
+      "close",
     ]);
     expect(brain?.sections?.map((s) => s.template)).toEqual([
+      "brain:hero",
+      "brain:capture",
+      "brain:ask",
+      "brain:run",
+      "brain:connect",
       "brain:your-data",
       "brain:quickstart",
+      "brain:close",
     ]);
   });
 
