@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   InvalidGrantError,
-  type AuthorizationCodeStore,
+  type AuthorizationCodePersistence,
 } from "./auth-code-store";
 import {
   InvalidClientMetadataError,
@@ -44,7 +44,7 @@ interface AuthorizationApprovalTokenState {
 
 export interface OAuthEndpointsOptions {
   clientStore: OAuthClientPersistence;
-  authCodeStore: AuthorizationCodeStore;
+  authCodeStore: AuthorizationCodePersistence;
   refreshTokenStore: RefreshTokenStore;
   sessionStore: OperatorSessionPersistence;
   keyStore: AuthKeyStore;
@@ -57,7 +57,7 @@ export interface OAuthEndpointsOptions {
  */
 export class OAuthEndpoints {
   private readonly clientStore: OAuthClientPersistence;
-  private readonly authCodeStore: AuthorizationCodeStore;
+  private readonly authCodeStore: AuthorizationCodePersistence;
   private readonly refreshTokenStore: RefreshTokenStore;
   private readonly sessionStore: OperatorSessionPersistence;
   private readonly keyStore: AuthKeyStore;

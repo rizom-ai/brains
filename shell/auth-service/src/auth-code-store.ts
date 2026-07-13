@@ -1,9 +1,12 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
 import { join } from "node:path";
+import { and, eq, isNull } from "drizzle-orm";
 import { redirectUriMatches } from "./redirect-uri";
+import type { AuthRuntimeDatabase } from "./runtime-db";
+import { oauthAuthCodes } from "./runtime-schema";
 
 const DEFAULT_AUTH_CODE_STORE_FILE = "oauth-auth-codes.json";
 const AUTH_CODE_TTL_SECONDS = 10 * 60;
@@ -43,6 +46,15 @@ export interface ConsumeAuthorizationCodeInput {
 export interface AuthorizationCodeStoreOptions {
   storageDir: string;
   storeFile?: string;
+}
+
+export interface AuthorizationCodePersistence {
+  createCode(
+    input: CreateAuthorizationCodeInput,
+  ): Promise<AuthorizationCodeRecord>;
+  consumeCode(
+    input: ConsumeAuthorizationCodeInput,
+  ): Promise<AuthorizationCodeRecord>;
 }
 
 const authorizationCodeRecordSchema = z
@@ -99,7 +111,107 @@ async function pkceS256(verifier: string): Promise<string> {
   return Buffer.from(digest).toString("base64url");
 }
 
-export class AuthorizationCodeStore {
+export class RuntimeAuthorizationCodeStore implements AuthorizationCodePersistence {
+  private readonly database: AuthRuntimeDatabase;
+
+  constructor(database: AuthRuntimeDatabase) {
+    this.database = database;
+  }
+
+  async importCode(
+    record: AuthorizationCodeRecord,
+    userId: string,
+  ): Promise<boolean> {
+    if (record.consumed_at !== undefined || record.expires_at <= nowSeconds()) {
+      return false;
+    }
+    const inserted = await this.database.db
+      .insert(oauthAuthCodes)
+      .values(codeToRow(record, userId))
+      .onConflictDoNothing()
+      .returning({ codeHash: oauthAuthCodes.codeHash });
+    return inserted.length > 0;
+  }
+
+  async createCode(
+    input: CreateAuthorizationCodeInput,
+  ): Promise<AuthorizationCodeRecord> {
+    const issuedAt = nowSeconds();
+    const record: AuthorizationCodeRecord = {
+      code: `ocd_${randomUUID()}`,
+      client_id: input.clientId,
+      redirect_uri: input.redirectUri,
+      code_challenge: input.codeChallenge,
+      code_challenge_method: "S256",
+      ...(input.scope ? { scope: input.scope } : {}),
+      subject: input.subject,
+      created_at: issuedAt,
+      expires_at: issuedAt + AUTH_CODE_TTL_SECONDS,
+    };
+    await this.database.db
+      .insert(oauthAuthCodes)
+      .values(codeToRow(record, input.subject));
+    return record;
+  }
+
+  async consumeCode(
+    input: ConsumeAuthorizationCodeInput,
+  ): Promise<AuthorizationCodeRecord> {
+    const codeHash = hashCode(input.code);
+    const [row] = await this.database.db
+      .select()
+      .from(oauthAuthCodes)
+      .where(eq(oauthAuthCodes.codeHash, codeHash))
+      .limit(1);
+    if (!row) {
+      throw new InvalidGrantError("Authorization code not found");
+    }
+    const now = nowSeconds();
+    if (row.consumedAt !== null) {
+      throw new InvalidGrantError("Authorization code already consumed");
+    }
+    if (row.expiresAt <= now) {
+      throw new InvalidGrantError("Authorization code expired");
+    }
+    if (row.clientId !== input.clientId) {
+      throw new InvalidGrantError("Authorization code client mismatch");
+    }
+    if (!redirectUriMatches(row.redirectUri, input.redirectUri)) {
+      throw new InvalidGrantError("Authorization code redirect URI mismatch");
+    }
+    if (row.pkceChallenge !== (await pkceS256(input.codeVerifier))) {
+      throw new InvalidGrantError("PKCE verification failed");
+    }
+
+    const consumed = await this.database.db
+      .update(oauthAuthCodes)
+      .set({ consumedAt: now })
+      .where(
+        and(
+          eq(oauthAuthCodes.codeHash, codeHash),
+          isNull(oauthAuthCodes.consumedAt),
+        ),
+      )
+      .returning({ codeHash: oauthAuthCodes.codeHash });
+    if (consumed.length === 0) {
+      throw new InvalidGrantError("Authorization code already consumed");
+    }
+    return {
+      code: input.code,
+      client_id: row.clientId,
+      redirect_uri: row.redirectUri,
+      code_challenge: row.pkceChallenge,
+      code_challenge_method: "S256",
+      ...(row.scope ? { scope: row.scope } : {}),
+      subject: row.userId,
+      created_at: row.createdAt,
+      expires_at: row.expiresAt,
+      consumed_at: now,
+    };
+  }
+}
+
+export class AuthorizationCodeStore implements AuthorizationCodePersistence {
   private readonly store: JsonFileStore<AuthCodeStoreFile>;
 
   constructor(options: AuthorizationCodeStoreOptions) {
@@ -137,6 +249,10 @@ export class AuthorizationCodeStore {
     });
 
     return record;
+  }
+
+  async listCodes(): Promise<AuthorizationCodeRecord[]> {
+    return (await this.store.read()).codes;
   }
 
   async consumeCode(
@@ -183,6 +299,27 @@ export class AuthorizationCodeStore {
     }
     return consumed;
   }
+}
+
+function codeToRow(
+  record: AuthorizationCodeRecord,
+  userId: string,
+): typeof oauthAuthCodes.$inferInsert {
+  return {
+    codeHash: hashCode(record.code),
+    clientId: record.client_id,
+    userId,
+    redirectUri: record.redirect_uri,
+    pkceChallenge: record.code_challenge,
+    scope: record.scope ?? "",
+    expiresAt: record.expires_at,
+    consumedAt: record.consumed_at ?? null,
+    createdAt: record.created_at,
+  };
+}
+
+function hashCode(code: string): string {
+  return createHash("sha256").update(code).digest("base64url");
 }
 
 export class InvalidGrantError extends Error {

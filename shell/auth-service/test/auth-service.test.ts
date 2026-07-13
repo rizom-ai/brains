@@ -1531,11 +1531,12 @@ describe("AuthService", () => {
       redirect_uris: ["http://127.0.0.1:6274/oauth/callback"],
     });
     const challenge = await pkceChallenge("correct-verifier");
+    const session = await service.createOperatorSession();
     const code = await service["authCodeStore"].createCode({
       clientId: client.client_id,
       redirectUri: "http://127.0.0.1:6274/oauth/callback",
       codeChallenge: challenge,
-      subject: "single-operator",
+      subject: session.subject,
     });
 
     const response = await service.handleRequest(

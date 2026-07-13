@@ -1,7 +1,12 @@
 export { AuthAuditStore } from "./audit-store";
 export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
-export { AuthorizationCodeStore, InvalidGrantError } from "./auth-code-store";
+export {
+  AuthorizationCodeStore,
+  InvalidGrantError,
+  RuntimeAuthorizationCodeStore,
+} from "./auth-code-store";
 export type {
+  AuthorizationCodePersistence,
   AuthorizationCodeRecord,
   AuthorizationCodeStoreOptions,
   ConsumeAuthorizationCodeInput,

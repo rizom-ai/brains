@@ -1,6 +1,9 @@
 import type { Logger } from "@brains/utils/logger";
 import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
-import { AuthorizationCodeStore } from "./auth-code-store";
+import {
+  AuthorizationCodeStore,
+  RuntimeAuthorizationCodeStore,
+} from "./auth-code-store";
 import { OAuthClientStore, RuntimeOAuthClientStore } from "./client-store";
 import { AuthCredentialStore } from "./credential-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
@@ -115,7 +118,8 @@ export class AuthService {
   private readonly a2aKeyStore: A2AKeyStore;
   private readonly legacyClientStore: OAuthClientStore;
   private readonly clientStore: RuntimeOAuthClientStore;
-  private readonly authCodeStore: AuthorizationCodeStore;
+  private readonly legacyAuthCodeStore: AuthorizationCodeStore;
+  private readonly authCodeStore: RuntimeAuthorizationCodeStore;
   private readonly legacySessionStore: OperatorSessionStore;
   private readonly sessionStore: RuntimeOperatorSessionStore;
   private readonly refreshTokenStore: RefreshTokenStore;
@@ -149,9 +153,12 @@ export class AuthService {
       storageDir: options.storageDir,
     });
     this.clientStore = new RuntimeOAuthClientStore(this.runtimeDatabase);
-    this.authCodeStore = new AuthorizationCodeStore({
+    this.legacyAuthCodeStore = new AuthorizationCodeStore({
       storageDir: options.storageDir,
     });
+    this.authCodeStore = new RuntimeAuthorizationCodeStore(
+      this.runtimeDatabase,
+    );
     this.legacySessionStore = new OperatorSessionStore({
       storageDir: options.storageDir,
     });
@@ -225,6 +232,7 @@ export class AuthService {
     await this.migrateLegacyPasskeys();
     await this.migrateLegacySessions();
     await this.migrateLegacyOAuthClients();
+    await this.migrateLegacyAuthorizationCodes();
     await this.migrateLegacyRefreshTokens();
     await Promise.all([
       this.keyStore.getPrivateJwk(),
@@ -371,6 +379,31 @@ export class AuthService {
     }
     if (migrated > 0) {
       this.logger?.info("Migrated legacy OAuth clients", { migrated });
+    }
+  }
+
+  private async migrateLegacyAuthorizationCodes(): Promise<void> {
+    const codes = await this.legacyAuthCodeStore.listCodes();
+    let migrated = 0;
+    let anchorUser: AuthUser | undefined;
+    for (const code of codes) {
+      const user =
+        code.subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
+          ? (anchorUser ??= await this.ensureFirstAnchorUser())
+          : await this.getUserStore().getUser(code.subject);
+      if (!user) {
+        throw new Error(
+          `Cannot migrate authorization code: auth user ${code.subject} was not found`,
+        );
+      }
+      if (await this.authCodeStore.importCode(code, user.id)) {
+        migrated += 1;
+      }
+    }
+    if (migrated > 0) {
+      this.logger?.info("Migrated legacy OAuth authorization codes", {
+        migrated,
+      });
     }
   }
 
