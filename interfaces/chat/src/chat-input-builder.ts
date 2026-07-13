@@ -52,7 +52,7 @@ export class ChatInputBuilder {
     userLevel: string,
   ): Promise<AgentInput> {
     const agentInput: AgentInput = {
-      message: message.text.trim(),
+      message: normalizeIncomingMessageText(platform, message),
       attachments: [],
       notices: [],
     };
@@ -172,6 +172,19 @@ export function chatAttachmentFromStoredUpload(
     source,
     isUploadableTextFile(filename, mediaType),
   );
+}
+
+function normalizeIncomingMessageText(
+  platform: string,
+  message: Message,
+): string {
+  const text = message.text.trim();
+  if (platform !== "slack" || !message.isMention) return text;
+
+  // The Slack adapter leaves the bot's own unresolved @U… mention in plain
+  // text so Chat SDK can detect app mentions. Do not pass that routing marker
+  // through to the agent as user intent.
+  return text.replace(/(^|\s)@[UW][A-Z0-9]+\b\s*/g, "$1").trim();
 }
 
 function toChatAttachment(

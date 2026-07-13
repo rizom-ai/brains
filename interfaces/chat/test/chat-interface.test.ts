@@ -814,13 +814,15 @@ describe("ChatInterface", () => {
       channelId: "slack:C123",
       adapter: { name: "slack" },
     });
-    const message = createMessage();
+    const message = createMessage({
+      text: "@U0BGU5CM9QW what can you do for me?",
+    });
 
     await chat?.handlers.mentions[0]?.(thread, message);
 
     expect(thread.startTyping).toHaveBeenCalledTimes(1);
     expect(agentService.chat).toHaveBeenCalledWith(
-      "Hello bot",
+      "what can you do for me?",
       "slack-slack:C123:1712345678.000100",
       expect.objectContaining({
         interfaceType: "slack",
