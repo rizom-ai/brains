@@ -6,6 +6,8 @@ const slackResponseSchema = z.looseObject({
   needed: z.string().optional(),
 });
 
+const REQUIRED_HEADER_SCOPES = ["files:write"] as const;
+
 const slackAuthResponseSchema = slackResponseSchema.extend({
   team: z.string().optional(),
   team_id: z.string().optional(),
@@ -54,10 +56,14 @@ export async function runSlackPreflight(
     );
   }
 
-  const auth = slackAuthResponseSchema.parse(
-    await callSlackApi(fetchImplementation, "auth.test", botToken),
+  const authCall = await callSlackApiWithMetadata(
+    fetchImplementation,
+    "auth.test",
+    botToken,
   );
+  const auth = slackAuthResponseSchema.parse(authCall.body);
   assertSlackOk("auth.test", auth);
+  assertRequiredHeaderScopes(authCall.grantedScopes);
   if (!auth.team_id || !auth.team || !auth.user_id || !auth.user) {
     throw new Error("Slack auth.test returned incomplete app identity data");
   }
@@ -104,6 +110,21 @@ async function callSlackApi(
   token: string,
   parameters?: Record<string, string>,
 ): Promise<unknown> {
+  const result = await callSlackApiWithMetadata(
+    fetchImplementation,
+    method,
+    token,
+    parameters,
+  );
+  return result.body;
+}
+
+async function callSlackApiWithMetadata(
+  fetchImplementation: FetchImplementation,
+  method: string,
+  token: string,
+  parameters?: Record<string, string>,
+): Promise<{ body: unknown; grantedScopes?: Set<string> }> {
   const response = await fetchImplementation(
     `https://slack.com/api/${method}`,
     {
@@ -118,7 +139,33 @@ async function callSlackApi(
   if (!response.ok) {
     throw new Error(`Slack ${method} failed with HTTP ${response.status}`);
   }
-  return response.json();
+  const scopeHeader = response.headers.get("x-oauth-scopes");
+  return {
+    body: await response.json(),
+    ...(scopeHeader
+      ? {
+          grantedScopes: new Set(
+            scopeHeader
+              .split(",")
+              .map((scope) => scope.trim())
+              .filter(Boolean),
+          ),
+        }
+      : {}),
+  };
+}
+
+function assertRequiredHeaderScopes(
+  grantedScopes: ReadonlySet<string> | undefined,
+): void {
+  if (!grantedScopes) return;
+  const missing = REQUIRED_HEADER_SCOPES.filter(
+    (scope) => !grantedScopes.has(scope),
+  );
+  if (missing.length === 0) return;
+  throw new Error(
+    `Slack bot token is missing required scopes: ${missing.join(", ")}`,
+  );
 }
 
 function assertSlackOk(

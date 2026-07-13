@@ -18,6 +18,7 @@ import {
   type MessageInterfaceOutput,
   type ResponsePlan,
   type RuntimeUploadStore,
+  type StructuredChatCard,
   type ToolActivityEvent,
   type ToolStatusUpdate,
   type UserPermissionLevel,
@@ -106,6 +107,12 @@ interface DiscordCardOutput {
   fallbackText?: string;
 }
 
+interface PendingJobArtifactDelivery {
+  card: Extract<StructuredChatCard, { kind: "attachment" }>;
+  channelId: string;
+  userPermissionLevel: UserPermissionLevel;
+}
+
 const chatCardElementSchema = z.looseObject({
   type: z.literal("card"),
   children: z.array(z.looseObject({ type: z.string() })),
@@ -133,6 +140,10 @@ export class ChatInterface extends MessageInterfacePlugin<
     Record<ChatPlatform, MessageUploadContinuity>
   >;
   private readonly promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
+  private readonly pendingJobArtifacts = new Map<
+    string,
+    PendingJobArtifactDelivery[]
+  >();
   private readonly toolStatusMessenger = new ToolStatusMessenger(
     this.threadRegistry,
   );
@@ -277,6 +288,7 @@ export class ChatInterface extends MessageInterfacePlugin<
         this.threadRegistry.clear();
         this.uploadContinuity.discord.clear();
         this.uploadContinuity.slack.clear();
+        this.pendingJobArtifacts.clear();
         this.toolStatusMessenger.clear();
         await this.chatApp.shutdown();
         this.chatAppRunning = false;
@@ -417,20 +429,22 @@ export class ChatInterface extends MessageInterfacePlugin<
     context: JobContext,
   ): Promise<void> {
     const interfaceType = event.metadata.interfaceType;
+    let routedEvent = event;
+    let routedContext = context;
     if (interfaceType && interfaceType !== this.id) {
       if (!this.isEnabledPlatform(interfaceType)) return;
-      const routedEvent: JobProgressEvent = {
+      routedEvent = {
         ...event,
         metadata: {
           ...event.metadata,
           interfaceType: this.id,
         },
       };
-      await super.handleProgressEvent(routedEvent, routedEvent.metadata);
-      return;
+      routedContext = routedEvent.metadata;
     }
 
-    await super.handleProgressEvent(event, context);
+    await super.handleProgressEvent(routedEvent, routedContext);
+    await this.deliverCompletedJobArtifacts(routedEvent);
   }
 
   protected override async handleToolActivityEvent(
@@ -828,6 +842,13 @@ export class ChatInterface extends MessageInterfacePlugin<
     const plan = buildResponsePlan(input.response, {
       deniedCardIds: artifactDelivery.deniedCardIds,
     });
+    this.rememberPendingJobArtifacts(
+      plan,
+      input.channelId,
+      input.userPermissionLevel,
+      artifactDelivery.deliveredCardIds,
+      artifactDelivery.deniedCardIds,
+    );
     if (input.confirmation) {
       await this.approvalCards.resolve(
         input.conversationId,
@@ -848,7 +869,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       thread: input.thread,
       channelId: input.channelId,
       message,
-      files: isSlack ? [] : artifactDelivery.files,
+      files: artifactDelivery.files,
     });
     const artifactMessageId = await this.sendArtifactCards(input.thread, plan);
     await this.sendSupplementalCards(input.thread, plan);
@@ -875,6 +896,66 @@ export class ChatInterface extends MessageInterfacePlugin<
           progressMessageId,
           input.channelId,
         );
+      }
+    }
+  }
+
+  private rememberPendingJobArtifacts(
+    plan: ResponsePlan,
+    channelId: string,
+    userPermissionLevel: UserPermissionLevel,
+    deliveredCardIds: ReadonlySet<string>,
+    deniedCardIds: ReadonlySet<string>,
+  ): void {
+    for (const directive of plan.directives) {
+      if (directive.kind !== "artifact" || !directive.card.jobId) continue;
+      if (
+        deliveredCardIds.has(directive.card.id) ||
+        deniedCardIds.has(directive.card.id)
+      ) {
+        continue;
+      }
+      const pending = this.pendingJobArtifacts.get(directive.card.jobId) ?? [];
+      this.pendingJobArtifacts.set(directive.card.jobId, [
+        ...pending.filter((entry) => entry.card.id !== directive.card.id),
+        { card: directive.card, channelId, userPermissionLevel },
+      ]);
+    }
+  }
+
+  private async deliverCompletedJobArtifacts(
+    event: JobProgressEvent,
+  ): Promise<void> {
+    if (event.status === "failed") {
+      this.pendingJobArtifacts.delete(event.id);
+      return;
+    }
+    if (event.status !== "completed") return;
+
+    const pending = this.pendingJobArtifacts.get(event.id);
+    if (!pending) return;
+    this.pendingJobArtifacts.delete(event.id);
+
+    for (const delivery of pending) {
+      const thread = this.threadRegistry.get(delivery.channelId);
+      if (!thread) continue;
+      try {
+        const resolved = await this.artifactDelivery.resolve(
+          [delivery.card],
+          delivery.userPermissionLevel,
+        );
+        if (resolved.files.length === 0) continue;
+        const sent = await thread.post({
+          markdown: `Generated artifact ready: ${resolved.files.map((file) => file.filename).join(", ")}`,
+          files: resolved.files,
+        });
+        this.threadRegistry.trackMessage(delivery.channelId, sent);
+      } catch (error: unknown) {
+        this.logger.error("Failed to deliver completed chat artifact", {
+          error,
+          jobId: event.id,
+          cardId: delivery.card.id,
+        });
       }
     }
   }

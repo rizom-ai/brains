@@ -3878,7 +3878,21 @@ describe("ChatInterface", () => {
     );
   });
 
-  it("posts Slack artifact summaries as text-only fallbacks", async () => {
+  it("posts native Slack files for trusted generated artifacts", async () => {
+    harness.addEntities([
+      {
+        id: "deck-slack-native",
+        entityType: "document",
+        content: `data:application/pdf;base64,${Buffer.from("%PDF-1.4 slack").toString("base64")}`,
+        metadata: { filename: "deck-carousel.pdf" },
+        visibility: "shared",
+      },
+    ]);
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "slack:*", level: "trusted" }],
+      }),
+    );
     agentService.chat.mockResolvedValueOnce({
       text: "Generated the deck.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
@@ -3890,9 +3904,13 @@ describe("ChatInterface", () => {
           description: "Ready to review.",
           attachment: {
             mediaType: "application/pdf",
-            url: "https://brain.test/api/chat/attachments/document?id=deck-1",
+            url: "/api/chat/attachments/document?id=deck-slack-native",
             filename: "deck-carousel.pdf",
             sizeBytes: 1234,
+            source: {
+              entityType: "document",
+              entityId: "deck-slack-native",
+            },
           },
         },
       ],
@@ -3908,7 +3926,18 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated the deck.");
+    expect(thread.post).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        markdown: "Generated the deck.",
+        files: [
+          expect.objectContaining({
+            filename: "deck-carousel.pdf",
+            mimeType: "application/pdf",
+          }),
+        ],
+      }),
+    );
     expect(thread.post).toHaveBeenNthCalledWith(
       2,
       "Artifact: Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nSize: 1.2 KB",
@@ -5233,6 +5262,88 @@ describe("ChatInterface", () => {
     expect(sentMessage.edit).toHaveBeenCalledWith(
       "Job processing: content operations: Site 2/4 (50%)\nBuilding routes",
     );
+  });
+
+  it("uploads tracked Slack image artifacts when async jobs complete", async () => {
+    harness.addEntities([
+      {
+        id: "async-slack-image",
+        entityType: "image",
+        content: "",
+        metadata: { filename: "async-slack-image.png" },
+        visibility: "shared",
+      },
+    ]);
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "slack:*", level: "trusted" }],
+      }),
+    );
+    agentService.chat.mockResolvedValueOnce({
+      text: "Queued image generation.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "async-image-card",
+          jobId: "job-slack-image",
+          title: "Async Slack image",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=async-slack-image",
+            filename: "async-slack-image.png",
+            source: {
+              entityType: "image",
+              entityId: "async-slack-image",
+            },
+          },
+        },
+      ],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    harness.addEntities([
+      {
+        id: "async-slack-image",
+        entityType: "image",
+        content: `data:image/png;base64,${Buffer.from("completed-image").toString("base64")}`,
+        metadata: { filename: "async-slack-image.png" },
+        visibility: "shared",
+      },
+    ]);
+    await harness.sendMessage("job-progress", {
+      id: "job-slack-image",
+      type: "job",
+      status: "completed",
+      message: "Image ready",
+      metadata: {
+        rootJobId: "job-slack-image",
+        operationType: "data_processing",
+        operationTarget: "Image",
+        interfaceType: "slack",
+        channelId: thread.id,
+      },
+    });
+
+    expect(thread.post).toHaveBeenCalledWith({
+      markdown: "Generated artifact ready: async-slack-image.png",
+      files: [
+        expect.objectContaining({
+          filename: "async-slack-image.png",
+          mimeType: "image/png",
+        }),
+      ],
+    });
   });
 
   it("edits tracked Discord agent responses for async job progress", async () => {

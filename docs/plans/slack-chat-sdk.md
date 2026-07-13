@@ -146,7 +146,7 @@ Acceptance criteria:
 - Keep Discord component actions isolated; defer Slack Block Kit approval buttons until the text parity path is stable.
 - Reuse message editing for progress/status where the Slack adapter supports edits, with the existing safe fallback when it does not.
 - Reuse generated artifact summary and visibility-suppression policy.
-- Native Slack artifact upload can be a later enhancement after basic link fallback is safe.
+- Start with safe link fallback, then add native Slack artifact upload after the live trial validates permission handling.
 
 Acceptance criteria:
 
@@ -210,6 +210,25 @@ Acceptance criteria:
 - Resolved and stale buttons cannot replay the action.
 - Text confirmation fallback and multiple-approval id flows continue to pass.
 - The updated manifest can be reapplied to the live test app and the interaction works over Socket Mode.
+
+### 9. Deliver generated artifacts natively in Slack
+
+Close the artifact-delivery gap exposed when a live image generation job completed without showing its output.
+
+- Add `files:write` to the Slack manifest and use Chat SDK's Slack file upload path.
+- Reuse the existing entity visibility and trusted/anchor permission checks before reading artifact bytes.
+- Deliver already-materialized image, PDF, and text artifacts as native Slack files.
+- Retain queued artifact cards by job id and retry native resolution when the tracked job completes.
+- Clear failed/completed delivery state and avoid duplicate uploads on repeated terminal events.
+- Keep safe text fallback when an artifact is unavailable, oversized, or outside the caller's visibility scope.
+
+Acceptance criteria:
+
+- A trusted or anchor Slack user receives a generated image as a native Slack file.
+- A queued image is uploaded after its completion event materializes the image entity.
+- Public or out-of-scope users never receive native artifact bytes.
+- Existing Discord native delivery and Slack text fallbacks continue to work.
+- The updated manifest is reinstalled and a live self-portrait generation displays its image.
 
 ## Non-goals for first Slack slice
 

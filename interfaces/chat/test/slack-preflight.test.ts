@@ -1,8 +1,8 @@
 import { describe, expect, it, mock } from "bun:test";
 import { runSlackPreflight } from "../src/slack-preflight";
 
-function response(body: unknown): Response {
-  return Response.json(body);
+function response(body: unknown, headers?: HeadersInit): Response {
+  return Response.json(body, headers ? { headers } : undefined);
 }
 
 async function getRejection(task: Promise<unknown>): Promise<Error> {
@@ -40,13 +40,16 @@ describe("runSlackPreflight", () => {
       const url = String(input);
       if (url.endsWith("/auth.test")) {
         return Promise.resolve(
-          response({
-            ok: true,
-            team: "Test Workspace",
-            team_id: "T123",
-            user: "brain-bot",
-            user_id: "U_BOT",
-          }),
+          response(
+            {
+              ok: true,
+              team: "Test Workspace",
+              team_id: "T123",
+              user: "brain-bot",
+              user_id: "U_BOT",
+            },
+            { "x-oauth-scopes": "files:read,files:write,users:read" },
+          ),
         );
       }
       if (url.endsWith("/apps.connections.open")) {
@@ -79,18 +82,55 @@ describe("runSlackPreflight", () => {
     expect(JSON.stringify(result)).not.toContain("link-secret");
   });
 
+  it("reports a missing files:write grant from Slack response metadata", async () => {
+    const fetchMock = mock((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/auth.test")) {
+        return Promise.resolve(
+          response(
+            {
+              ok: true,
+              team: "Test Workspace",
+              team_id: "T123",
+              user: "brain-bot",
+              user_id: "U_BOT",
+            },
+            { "x-oauth-scopes": "files:read,users:read" },
+          ),
+        );
+      }
+      return Promise.resolve(response({ ok: true }));
+    });
+
+    const error = await getRejection(
+      runSlackPreflight(
+        {
+          SLACK_APP_TOKEN: "xapp-secret",
+          SLACK_BOT_TOKEN: "xoxb-secret",
+        },
+        fetchMock,
+      ),
+    );
+    expect(error.message).toBe(
+      "Slack bot token is missing required scopes: files:write",
+    );
+  });
+
   it("reports missing scopes from capability probes", async () => {
     const fetchMock = mock((input: string | URL | Request) => {
       const url = String(input);
       if (url.endsWith("/auth.test")) {
         return Promise.resolve(
-          response({
-            ok: true,
-            team: "Test Workspace",
-            team_id: "T123",
-            user: "brain-bot",
-            user_id: "U_BOT",
-          }),
+          response(
+            {
+              ok: true,
+              team: "Test Workspace",
+              team_id: "T123",
+              user: "brain-bot",
+              user_id: "U_BOT",
+            },
+            { "x-oauth-scopes": "files:read,files:write,users:read" },
+          ),
         );
       }
       if (url.endsWith("/files.list")) {
