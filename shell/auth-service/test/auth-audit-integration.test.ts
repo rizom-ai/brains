@@ -19,6 +19,19 @@ afterEach(async () => {
 });
 
 describe("AuthService audit integration", () => {
+  it("audits setup-token generation", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+
+    await service.initialize();
+
+    expect(
+      (await service.listAuditEvents()).map((event) => event.action),
+    ).toContain("auth.setup_token.generated");
+  });
+
   it("audits automatic first-owner creation", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),

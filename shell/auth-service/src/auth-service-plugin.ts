@@ -339,7 +339,7 @@ export class AuthServicePlugin extends ServicePlugin<
     const service = this.getService();
     if (await service.hasPasskeyCredentials()) return;
 
-    const setup = await service.getOperatorSetupRequired();
+    const setup = await service.getOperatorSetupRequiredForDelivery();
     if (!setup) return;
 
     const setupEmail = resolveSetupEmail(this.config.setupEmail, setup);

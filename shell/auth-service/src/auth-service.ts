@@ -31,7 +31,7 @@ import {
   RefreshTokenStore,
   RuntimeRefreshTokenStore,
 } from "./refresh-token-store";
-import { SetupStateStore } from "./setup-state-store";
+import { RuntimeSetupStateStore, SetupStateStore } from "./setup-state-store";
 import {
   clearOperatorSessionCookie,
   OperatorSessionStore,
@@ -130,6 +130,8 @@ export class AuthService {
   private readonly peerTrustStore: A2APeerTrustStore;
   private readonly legacyPasskeyStore: PasskeyStore;
   private readonly passkeyService: PasskeyService;
+  private readonly legacySetupStateStore: SetupStateStore;
+  private readonly setupStateStore: RuntimeSetupStateStore;
   private readonly setupFlow: SetupFlow;
   private readonly oauthEndpoints: OAuthEndpoints;
   private readonly webauthnEndpoints: WebAuthnEndpoints;
@@ -182,8 +184,12 @@ export class AuthService {
       runtimeDatabase: this.runtimeDatabase,
       ...(options.logger ? { logger: options.logger } : {}),
     });
+    this.legacySetupStateStore = new SetupStateStore({
+      storageDir: options.storageDir,
+    });
+    this.setupStateStore = new RuntimeSetupStateStore(this.runtimeDatabase);
     this.setupFlow = new SetupFlow({
-      setupStateStore: new SetupStateStore({ storageDir: options.storageDir }),
+      setupStateStore: this.setupStateStore,
       passkeyService: this.passkeyService,
       setupTokenTtlSeconds:
         options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS,
@@ -239,6 +245,7 @@ export class AuthService {
     await this.migrateLegacyOAuthClients();
     await this.migrateLegacyAuthorizationCodes();
     await this.migrateLegacyRefreshTokens();
+    await this.migrateLegacySetupState();
     await Promise.all([
       this.keyStore.getPrivateJwk(),
       this.a2aKeyStore.getPrivateJwk(),
@@ -409,6 +416,13 @@ export class AuthService {
       this.logger?.info("Migrated legacy OAuth authorization codes", {
         migrated,
       });
+    }
+  }
+
+  private async migrateLegacySetupState(): Promise<void> {
+    const state = await this.legacySetupStateStore.getMigrationState();
+    if (await this.setupStateStore.importState(state)) {
+      this.logger?.info("Migrated legacy passkey setup state");
     }
   }
 
@@ -781,6 +795,14 @@ export class AuthService {
   }
 
   async getOperatorSetupRequired(
+    issuer: string = this.issuer,
+  ): Promise<OperatorSetupRequired | undefined> {
+    return this.setupFlow.getOperatorSetupRequired(issuer, {
+      rotateHidden: true,
+    });
+  }
+
+  async getOperatorSetupRequiredForDelivery(
     issuer: string = this.issuer,
   ): Promise<OperatorSetupRequired | undefined> {
     return this.setupFlow.getOperatorSetupRequired(issuer);

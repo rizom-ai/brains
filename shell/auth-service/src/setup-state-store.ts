@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import { JsonFileStore } from "./json-file-store";
 import { z } from "@brains/utils/zod";
 import { join } from "node:path";
+import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
+import { AuthAuditStore } from "./audit-store";
+import type { AuthRuntimeDatabase } from "./runtime-db";
+import { setupTokens } from "./runtime-schema";
 
 const DEFAULT_SETUP_STATE_FILE = "oauth-setup-state.json";
 
@@ -10,14 +14,14 @@ export interface StoredSetupToken {
   expiresAt: number;
 }
 
-interface StoredSetupDelivery {
+export interface StoredSetupDelivery {
   setupTokenId: string;
   recipientHash: string;
   deliveredAt: number;
   deliveryId?: string;
 }
 
-interface SetupStateFile {
+export interface SetupStateFile {
   setupToken?: StoredSetupToken;
   deliveries: StoredSetupDelivery[];
 }
@@ -29,6 +33,21 @@ export interface SetupStateStoreOptions {
 
 export interface RecordSetupDeliveryOptions {
   deliveryId?: string;
+}
+
+export interface SetupStatePersistence {
+  getValidSetupToken(nowSeconds: number): Promise<StoredSetupToken | undefined>;
+  hasActiveSetupToken(nowSeconds: number): Promise<boolean>;
+  hasActiveSetupDelivery(nowSeconds: number): Promise<boolean>;
+  hasValidSetupToken(token: string, nowSeconds: number): Promise<boolean>;
+  saveSetupToken(setupToken: StoredSetupToken): Promise<void>;
+  clearSetupState(): Promise<void>;
+  hasDelivery(setupTokenIdValue: string, recipient: string): Promise<boolean>;
+  recordDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+    options?: RecordSetupDeliveryOptions,
+  ): Promise<void>;
 }
 
 export function setupTokenId(token: string): string {
@@ -87,7 +106,180 @@ function parseStoredSetupDelivery(value: unknown): StoredSetupDelivery[] {
   return parsed.success ? [parsed.data] : [];
 }
 
-export class SetupStateStore {
+const PASSKEY_SETUP_PURPOSE = "passkey_setup";
+
+export class RuntimeSetupStateStore implements SetupStatePersistence {
+  private readonly database: AuthRuntimeDatabase;
+  private revealableToken: StoredSetupToken | undefined;
+
+  constructor(database: AuthRuntimeDatabase) {
+    this.database = database;
+  }
+
+  async importState(state: SetupStateFile): Promise<boolean> {
+    if (!state.setupToken) return false;
+    const inserted = await this.database.db
+      .insert(setupTokens)
+      .values({
+        tokenHash: setupTokenId(state.setupToken.token),
+        purpose: PASSKEY_SETUP_PURPOSE,
+        targetUserId: null,
+        expiresAt: state.setupToken.expiresAt,
+        consumedAt: null,
+        deliveryKeyHash:
+          state.deliveries.find(
+            (delivery) =>
+              delivery.setupTokenId ===
+              setupTokenId(state.setupToken?.token ?? ""),
+          )?.recipientHash ?? null,
+        createdAt: Math.floor(Date.now() / 1000),
+      })
+      .onConflictDoNothing()
+      .returning({ tokenHash: setupTokens.tokenHash });
+    if (inserted.length > 0) {
+      this.revealableToken = state.setupToken;
+      return true;
+    }
+    return false;
+  }
+
+  async getValidSetupToken(
+    nowSecondsValue: number,
+  ): Promise<StoredSetupToken | undefined> {
+    const token = this.revealableToken;
+    if (!token) return undefined;
+    if (
+      token.expiresAt <= nowSecondsValue ||
+      !(await this.hasValidSetupToken(token.token, nowSecondsValue))
+    ) {
+      this.revealableToken = undefined;
+      return undefined;
+    }
+    return token;
+  }
+
+  async hasActiveSetupToken(nowSecondsValue: number): Promise<boolean> {
+    const [row] = await this.database.db
+      .select({ tokenHash: setupTokens.tokenHash })
+      .from(setupTokens)
+      .where(
+        and(
+          eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+          isNull(setupTokens.consumedAt),
+          gt(setupTokens.expiresAt, nowSecondsValue),
+        ),
+      )
+      .limit(1);
+    return Boolean(row);
+  }
+
+  async hasActiveSetupDelivery(nowSecondsValue: number): Promise<boolean> {
+    const [row] = await this.database.db
+      .select({ tokenHash: setupTokens.tokenHash })
+      .from(setupTokens)
+      .where(
+        and(
+          eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+          isNull(setupTokens.consumedAt),
+          gt(setupTokens.expiresAt, nowSecondsValue),
+          isNotNull(setupTokens.deliveryKeyHash),
+        ),
+      )
+      .limit(1);
+    return Boolean(row);
+  }
+
+  async hasValidSetupToken(
+    token: string,
+    nowSecondsValue: number,
+  ): Promise<boolean> {
+    const [row] = await this.database.db
+      .select({ tokenHash: setupTokens.tokenHash })
+      .from(setupTokens)
+      .where(
+        and(
+          eq(setupTokens.tokenHash, setupTokenId(token)),
+          eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+          isNull(setupTokens.consumedAt),
+          gt(setupTokens.expiresAt, nowSecondsValue),
+        ),
+      )
+      .limit(1);
+    return Boolean(row);
+  }
+
+  async saveSetupToken(setupToken: StoredSetupToken): Promise<void> {
+    await this.database.db.transaction(async (tx) => {
+      await tx
+        .update(setupTokens)
+        .set({ consumedAt: Math.floor(Date.now() / 1000) })
+        .where(
+          and(
+            eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+            isNull(setupTokens.consumedAt),
+          ),
+        );
+      await tx.insert(setupTokens).values({
+        tokenHash: setupTokenId(setupToken.token),
+        purpose: PASSKEY_SETUP_PURPOSE,
+        targetUserId: null,
+        expiresAt: setupToken.expiresAt,
+        consumedAt: null,
+        deliveryKeyHash: null,
+        createdAt: Math.floor(Date.now() / 1000),
+      });
+    });
+    this.revealableToken = setupToken;
+    await new AuthAuditStore(this.database.db).append({
+      action: "auth.setup_token.generated",
+      targetType: "setup_token",
+      targetId: setupTokenId(setupToken.token),
+      metadata: { expiresAt: setupToken.expiresAt },
+    });
+  }
+
+  async clearSetupState(): Promise<void> {
+    this.revealableToken = undefined;
+    await this.database.db
+      .update(setupTokens)
+      .set({ consumedAt: Math.floor(Date.now() / 1000) })
+      .where(
+        and(
+          eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+          isNull(setupTokens.consumedAt),
+        ),
+      );
+  }
+
+  async hasDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+  ): Promise<boolean> {
+    const [row] = await this.database.db
+      .select({ tokenHash: setupTokens.tokenHash })
+      .from(setupTokens)
+      .where(
+        and(
+          eq(setupTokens.tokenHash, setupTokenIdValue),
+          eq(setupTokens.deliveryKeyHash, recipientHash(recipient)),
+        ),
+      )
+      .limit(1);
+    return Boolean(row);
+  }
+
+  async recordDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+  ): Promise<void> {
+    await this.database.db
+      .update(setupTokens)
+      .set({ deliveryKeyHash: recipientHash(recipient) })
+      .where(eq(setupTokens.tokenHash, setupTokenIdValue));
+  }
+}
+
+export class SetupStateStore implements SetupStatePersistence {
   private readonly store: JsonFileStore<SetupStateFile>;
   private loaded: SetupStateFile | undefined;
 
@@ -105,6 +297,10 @@ export class SetupStateStore {
     });
   }
 
+  async getMigrationState(): Promise<SetupStateFile> {
+    return this.ensureLoaded();
+  }
+
   async getValidSetupToken(
     nowSeconds: number,
   ): Promise<StoredSetupToken | undefined> {
@@ -117,6 +313,28 @@ export class SetupStateStore {
       return undefined;
     }
     return state.setupToken;
+  }
+
+  async hasActiveSetupToken(nowSeconds: number): Promise<boolean> {
+    return Boolean(await this.getValidSetupToken(nowSeconds));
+  }
+
+  async hasActiveSetupDelivery(nowSeconds: number): Promise<boolean> {
+    const state = await this.ensureLoaded();
+    const token = await this.getValidSetupToken(nowSeconds);
+    return Boolean(
+      token &&
+      state.deliveries.some(
+        (delivery) => delivery.setupTokenId === setupTokenId(token.token),
+      ),
+    );
+  }
+
+  async hasValidSetupToken(
+    token: string,
+    nowSeconds: number,
+  ): Promise<boolean> {
+    return (await this.getValidSetupToken(nowSeconds))?.token === token;
   }
 
   async saveSetupToken(setupToken: StoredSetupToken): Promise<void> {

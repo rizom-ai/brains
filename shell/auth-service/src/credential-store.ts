@@ -7,6 +7,8 @@ import type {
   StoredWebAuthnChallenge,
 } from "./passkey-store";
 import { passkeyCredentials, webauthnChallenges } from "./runtime-schema";
+import { AuthUserStore } from "./user-store";
+import { AuthAuditStore } from "./audit-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 
 export type WebAuthnChallengeKind = "registration" | "authentication";
@@ -88,6 +90,19 @@ export class RuntimePasskeyStore {
       credentialBackedUp: credential.credential_backed_up,
       createdAt: timestampToMilliseconds(credential.created_at),
       updatedAt: timestampToMilliseconds(credential.updated_at),
+    });
+    await new AuthUserStore(this.database.db).ensureIdentity({
+      userId: credential.subject,
+      type: "passkey",
+      subject: credential.id,
+      label: "Passkey credential",
+      verifiedAt: timestampToMilliseconds(credential.created_at),
+    });
+    await new AuthAuditStore(this.database.db).append({
+      action: "auth.passkey.registered",
+      targetType: "passkey",
+      targetId: credential.id,
+      metadata: { userId: credential.subject },
     });
   }
 

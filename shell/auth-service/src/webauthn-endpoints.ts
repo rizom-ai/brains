@@ -44,7 +44,7 @@ export class WebAuthnEndpoints {
         "Passkey setup already completed",
       );
     }
-    if (!this.setupFlow.hasValidSetupToken(request)) {
+    if (!(await this.setupFlow.hasValidSetupToken(request))) {
       return oauthErrorResponse("access_denied", "Invalid setup token");
     }
 
@@ -62,7 +62,7 @@ export class WebAuthnEndpoints {
         "Passkey setup already completed",
       );
     }
-    if (!this.setupFlow.hasValidSetupToken(request)) {
+    if (!(await this.setupFlow.hasValidSetupToken(request))) {
       return oauthErrorResponse("access_denied", "Invalid setup token");
     }
 

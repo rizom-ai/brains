@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PasskeyService } from "./passkey-service";
-import { setupTokenId, type SetupStateStore } from "./setup-state-store";
+import { setupTokenId, type SetupStatePersistence } from "./setup-state-store";
 import { absoluteUrl } from "./issuer";
 import { htmlResponse } from "./http-responses";
 import { renderSetupPage } from "./pages";
@@ -19,7 +19,7 @@ export interface OperatorSetupRequired {
 }
 
 export interface SetupFlowOptions {
-  setupStateStore: SetupStateStore;
+  setupStateStore: SetupStatePersistence;
   passkeyService: PasskeyService;
   setupTokenTtlSeconds?: number;
 }
@@ -29,7 +29,7 @@ export interface SetupFlowOptions {
  * setup page it gates, and the record of setup email deliveries.
  */
 export class SetupFlow {
-  private readonly setupStateStore: SetupStateStore;
+  private readonly setupStateStore: SetupStatePersistence;
   private readonly passkeyService: PasskeyService;
   private readonly setupTokenTtlSeconds: number;
   private setupToken: SetupTokenState | undefined;
@@ -41,7 +41,7 @@ export class SetupFlow {
       options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
   }
 
-  async ensureSetupToken(): Promise<SetupTokenState> {
+  async ensureSetupToken(): Promise<SetupTokenState | undefined> {
     const currentSetupToken = this.getValidSetupToken();
     if (currentSetupToken) return currentSetupToken;
 
@@ -51,6 +51,12 @@ export class SetupFlow {
     if (storedSetupToken) {
       this.setupToken = storedSetupToken;
       return storedSetupToken;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    if (await this.setupStateStore.hasActiveSetupToken(now)) {
+      return (await this.setupStateStore.hasActiveSetupDelivery(now))
+        ? undefined
+        : this.createSetupToken();
     }
 
     return this.createSetupToken();
@@ -74,13 +80,15 @@ export class SetupFlow {
     return this.setupToken;
   }
 
-  hasValidSetupToken(request: Request): boolean {
-    const setupToken = this.getValidSetupToken();
-    if (!setupToken) return false;
+  async hasValidSetupToken(request: Request): Promise<boolean> {
     const url = new URL(request.url);
     const suppliedToken =
       url.searchParams.get("setup_token") ?? url.searchParams.get("token");
-    return suppliedToken === setupToken.token;
+    if (!suppliedToken) return false;
+    return this.setupStateStore.hasValidSetupToken(
+      suppliedToken,
+      Math.floor(Date.now() / 1000),
+    );
   }
 
   /** Consume the setup token once registration completes. */
@@ -100,9 +108,13 @@ export class SetupFlow {
 
   async getOperatorSetupRequired(
     issuer: string,
+    options: { rotateHidden?: boolean } = {},
   ): Promise<OperatorSetupRequired | undefined> {
     if (await this.passkeyService.hasCredentials()) return undefined;
-    const setupToken = this.getValidSetupToken();
+    let setupToken = this.getValidSetupToken();
+    if (!setupToken && options.rotateHidden) {
+      setupToken = await this.createSetupToken();
+    }
     if (!setupToken) return undefined;
     return {
       setupUrl: absoluteUrl(
@@ -118,7 +130,7 @@ export class SetupFlow {
     if (await this.passkeyService.hasCredentials()) {
       return new Response("Setup already completed", { status: 404 });
     }
-    if (!this.hasValidSetupToken(request)) {
+    if (!(await this.hasValidSetupToken(request))) {
       return new Response("Not Found", { status: 404 });
     }
 

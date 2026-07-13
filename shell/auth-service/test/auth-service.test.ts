@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { createClient } from "@libsql/client";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -697,7 +698,7 @@ describe("AuthService", () => {
     const secondSetup = setupRequiredToolDataSchema.parse(secondResponse.data);
 
     expect(secondNotifications).toHaveLength(0);
-    expect(secondSetup.setupUrl).toBe(firstSetup.setupUrl);
+    expect(secondSetup.setupUrl).not.toBe(firstSetup.setupUrl);
   });
 
   it("persists hashed setup-token id and recipient — not raw values — at 0o600", async () => {
@@ -720,35 +721,30 @@ describe("AuthService", () => {
     );
     await readyAuthPlugin(harness);
 
-    const storeFile = join(storageDir, "oauth-setup-state.json");
+    const storeFile = join(storageDir, "auth.db");
     const fileStats = await stat(storeFile);
     expect(fileStats.mode & 0o777).toBe(0o600);
 
-    const raw = await readFile(storeFile, "utf8");
-    expect(raw).not.toContain("user@example.com");
-
-    const parsed = z
-      .object({
-        setupToken: z.object({
-          token: z.string(),
-          expiresAt: z.number(),
-        }),
-        deliveries: z.array(
-          z.object({
-            setupTokenId: z.string(),
-            recipientHash: z.string(),
-            deliveredAt: z.number(),
-            deliveryId: z.string().optional(),
-          }),
-        ),
-      })
-      .parse(JSON.parse(raw));
-
-    expect(parsed.deliveries).toHaveLength(1);
-    const delivery = parsed.deliveries[0];
-    expect(delivery?.recipientHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(delivery?.setupTokenId).toMatch(/^[0-9a-f]{64}$/);
-    expect(delivery?.setupTokenId).not.toBe(parsed.setupToken.token);
+    const setupResponse = await harness.executeTool(
+      "auth-service_get_passkey_setup_url",
+      {},
+    );
+    expectSuccess(setupResponse);
+    const setup = setupRequiredToolDataSchema.parse(setupResponse.data);
+    const rawToken = new URL(setup.setupUrl).searchParams.get("token") ?? "";
+    const database = createClient({ url: `file:${storeFile}` });
+    try {
+      const rows = await database.execute(
+        "SELECT token_hash, delivery_key_hash FROM setup_tokens WHERE consumed_at IS NULL",
+      );
+      expect(rows.rows).toHaveLength(1);
+      expect(rows.rows[0]?.["token_hash"]).toMatch(/^[0-9a-f]{64}$/);
+      expect(rows.rows[0]?.["token_hash"]).not.toBe(rawToken);
+      expect(rows.rows[0]?.["delivery_key_hash"]).toMatch(/^[0-9a-f]{64}$/);
+      expect(rows.rows[0]?.["delivery_key_hash"]).not.toBe("user@example.com");
+    } finally {
+      database.close();
+    }
   });
 
   it("retries setup email after a failed delivery because no delivery is recorded", async () => {
