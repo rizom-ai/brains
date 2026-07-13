@@ -1264,6 +1264,249 @@ table.jobs {
   }
 }
 
+/* Agent semantic proximity — bioluminescent cartography. */
+.proximity-field {
+  position: relative;
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 36% 50%, color-mix(in srgb, var(--console-accent) 5%, transparent), transparent 32%),
+    radial-gradient(circle at 54% 44%, color-mix(in srgb, var(--console-secondary) 5%, transparent), transparent 34%),
+    var(--console-bg-deep);
+  isolation: isolate;
+}
+.proximity-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+.proximity-field > svg {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 420px;
+}
+.proximity-hud { position: absolute; z-index: 3; }
+.proximity-hud-count {
+  top: 8%;
+  left: 4%;
+  pointer-events: none;
+}
+.proximity-count-number {
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: clamp(52px, 8cqw, 88px);
+  font-variation-settings: "opsz" 144, "SOFT" 20, "wght" 330;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.82;
+  letter-spacing: -0.045em;
+  text-shadow: 0 0 34px color-mix(in srgb, var(--console-accent) 25%, transparent);
+}
+.proximity-count-label {
+  margin-top: 12px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.proximity-hud-chart {
+  top: 50%;
+  right: 3.5%;
+  width: clamp(150px, 19cqw, 200px);
+  transform: translateY(-50%);
+}
+.proximity-hud-title {
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--console-rule-strong);
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.proximity-constellation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--console-rule);
+  cursor: pointer;
+  transition: opacity 180ms ease;
+}
+.proximity-constellation-row:focus-visible {
+  outline: 1px solid var(--console-secondary);
+  outline-offset: 3px;
+}
+.proximity-constellation-name {
+  display: block;
+  overflow: hidden;
+  color: var(--console-secondary);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.proximity-constellation-members {
+  display: block;
+  overflow: hidden;
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.proximity-constellation-count {
+  color: var(--console-accent);
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.proximity-constellation-empty {
+  margin: 8px 2px 0;
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 9px;
+}
+.proximity-hud-foot {
+  right: 3.5%;
+  bottom: 5%;
+  left: 4%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  pointer-events: none;
+}
+.proximity-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 18px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.proximity-legend span::first-letter { color: var(--console-accent); }
+.proximity-pending-note {
+  max-width: 28ch;
+  margin: 0;
+  color: var(--console-text-muted);
+  font-size: 10.5px;
+  font-style: italic;
+  text-align: right;
+}
+.proximity-pending-note b {
+  color: var(--console-warn);
+  font-style: normal;
+  font-weight: 500;
+}
+.proximity-node-label {
+  fill: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+}
+.proximity-agent[data-proximity-status="archived"] .proximity-node-label {
+  opacity: 0.22;
+}
+.proximity-agent[data-proximity-status="archived"] > path {
+  opacity: 0.16;
+}
+.proximity-you-label {
+  fill: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+.proximity-strata-label {
+  fill: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+.proximity-cluster-label {
+  fill: var(--console-secondary);
+  stroke: var(--console-bg-deep);
+  stroke-width: 4px;
+  paint-order: stroke;
+  font-family: var(--console-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.proximity-agent,
+.proximity-cluster-weave,
+.proximity-cluster-mist {
+  cursor: pointer;
+  transition: opacity 180ms ease;
+}
+.proximity-center-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: proximityBreathe 5.2s ease-in-out infinite;
+}
+.proximity-bulb-glow { animation: proximityFlicker 4.6s ease-in-out infinite; }
+.proximity-spore { animation: proximitySpore 11s linear infinite; }
+.proximity-tooltip {
+  position: absolute;
+  z-index: 6;
+  max-width: 260px;
+  padding: 9px 12px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.72);
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.proximity-empty { min-height: 180px; padding: 28px 4px; }
+@keyframes proximityBreathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.95; transform: scale(1.18); }
+}
+@keyframes proximityFlicker {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+@keyframes proximitySpore {
+  0% { opacity: 0; transform: translateY(14px); }
+  18% { opacity: 0.42; }
+  82% { opacity: 0.3; }
+  100% { opacity: 0; transform: translateY(-26px); }
+}
+@container dashboard-card (max-width: 700px) {
+  .proximity-hud-chart { display: none; }
+  .proximity-field > svg { width: 126%; transform: translateX(-13%); }
+  .proximity-legend { max-width: 70%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .proximity-center-halo,
+  .proximity-bulb-glow,
+  .proximity-spore { animation: none; }
+}
+
 .colophon {
   margin-top: 56px;
   padding-top: 18px;

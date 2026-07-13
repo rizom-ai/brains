@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
 import { Head, Pagination } from "@brains/ui-library";
-import type { TemplateAgent, AgentSkill } from "../schemas/agent";
+import type { TemplateAgent, AgentSkill, AgentStatus } from "../schemas/agent";
 import { AgentAvatar, KindBadge, extractDomain } from "./shared";
 
 export interface AgentListProps {
@@ -9,7 +9,7 @@ export interface AgentListProps {
   pageTitle?: string;
   pagination?: PaginationInfo | null;
   baseUrl?: string;
-  selectedStatus: "all" | "discovered" | "approved";
+  selectedStatus: "all" | AgentStatus;
 }
 
 const SkillPills = ({
@@ -40,7 +40,7 @@ function formatDiscoveryDate(dateStr: string): string {
 
 function getFilteredPageUrl(
   baseUrl: string,
-  status: "discovered" | "approved",
+  status: AgentStatus,
   page: number,
 ): string {
   const params = new URLSearchParams({ status });
@@ -56,12 +56,13 @@ function getFilteredPageUrl(
 const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
   const { frontmatter, about, skills, url } = agent;
   const isApproved = frontmatter.status === "approved";
+  const isArchived = frontmatter.status === "archived";
 
   return (
     <a
       href={url}
       className={`flex items-start gap-5 p-6 rounded-xl border border-theme bg-theme-subtle hover:shadow-lg transition-shadow ${
-        isApproved ? "" : "opacity-70"
+        isApproved ? "" : isArchived ? "opacity-40" : "opacity-70"
       }`}
     >
       <AgentAvatar name={frontmatter.name} className="w-12 h-12 text-lg" />
@@ -97,7 +98,9 @@ const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
         <span className="text-[11px] text-theme-muted opacity-60">
           {isApproved
             ? `Discovered ${formatDiscoveryDate(frontmatter.discoveredAt)}`
-            : "Discovered · approve before calling"}
+            : isArchived
+              ? "Archived · cannot be called"
+              : "Discovered · approve before calling"}
         </span>
       </div>
     </a>
@@ -122,8 +125,12 @@ export const AgentListTemplate = ({
   const discoveredAgents = agents.filter(
     (agent) => agent.frontmatter.status === "discovered",
   );
+  const archivedAgents = agents.filter(
+    (agent) => agent.frontmatter.status === "archived",
+  );
   const approvedCount = approvedAgents.length;
   const discoveredCount = discoveredAgents.length;
+  const archivedCount = archivedAgents.length;
   const description = `Your network of ${totalCount} ${totalCount === 1 ? "brain" : "brains"} and their anchors`;
 
   return (
@@ -144,6 +151,9 @@ export const AgentListTemplate = ({
               </span>
               <span className="px-3 py-1 rounded-full bg-theme-subtle text-theme-muted">
                 {discoveredCount} discovered
+              </span>
+              <span className="px-3 py-1 rounded-full bg-theme-subtle text-theme-muted opacity-60">
+                {archivedCount} archived
               </span>
             </div>
             <div className="flex flex-wrap gap-2 text-sm">
@@ -176,6 +186,16 @@ export const AgentListTemplate = ({
                 }`}
               >
                 Discovered
+              </a>
+              <a
+                href={`${baseUrl}?status=archived`}
+                className={`px-3 py-1 rounded-full border transition-colors ${
+                  selectedStatus === "archived"
+                    ? "border-theme text-heading bg-theme-subtle"
+                    : "border-theme text-theme-muted hover:text-heading"
+                }`}
+              >
+                Archived
               </a>
             </div>
           </div>
@@ -221,13 +241,38 @@ export const AgentListTemplate = ({
             </section>
           )}
 
+          {selectedStatus === "all" && archivedAgents.length > 0 && (
+            <section className="mt-10 opacity-60">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-heading">
+                    Archived brains
+                  </h2>
+                  <p className="text-sm text-theme-muted">
+                    Retained as history and unavailable for calling.
+                  </p>
+                </div>
+                <span className="text-sm text-theme-muted">
+                  {archivedAgents.length}
+                </span>
+              </div>
+              <div className="flex flex-col gap-4">
+                {archivedAgents.map((agent) => (
+                  <AgentCard key={agent.id} agent={agent} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {selectedStatus !== "all" && agents.length > 0 && (
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-heading">
                   {selectedStatus === "approved"
                     ? "Approved brains"
-                    : "Discovered brains"}
+                    : selectedStatus === "archived"
+                      ? "Archived brains"
+                      : "Discovered brains"}
                 </h2>
                 <span className="text-sm text-theme-muted">
                   {agents.length}

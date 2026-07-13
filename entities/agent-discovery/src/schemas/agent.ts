@@ -22,17 +22,18 @@ export type AgentSkill = z.output<typeof agentSkillSchema>;
 type AgentStatusSchema = z.ZodEnum<{
   discovered: "discovered";
   approved: "approved";
+  archived: "archived";
 }>;
 
 export const agentStatusSchema: AgentStatusSchema = z
-  .enum(["discovered", "approved"])
-  .describe("Discovered for review or approved for calling");
+  .enum(["discovered", "approved", "archived"])
+  .describe("Discovered for review, approved for calling, or archived");
 
 export type AgentStatus = z.infer<typeof agentStatusSchema>;
 
 const agentStatusParserSchema: AgentStatusSchema = z
-  .enum(["discovered", "approved"])
-  .describe("Discovered for review or approved for calling");
+  .enum(["discovered", "approved", "archived"])
+  .describe("Discovered for review, approved for calling, or archived");
 
 type AgentKindSchema = z.ZodEnum<{
   professional: "professional";

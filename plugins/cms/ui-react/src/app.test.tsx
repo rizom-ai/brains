@@ -81,6 +81,14 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
   });
 
+  it("carries no content-studio wordmark in the crumbbar", () => {
+    // The label added noise without wayfinding value; the crumbbar leads
+    // with the collection breadcrumb directly.
+    expect(styles).not.toContain("crumb-mark");
+    expect(visualRefreshStyles).not.toContain("crumb-mark");
+    expect(responsiveStyles).not.toContain("crumb-mark");
+  });
+
   it("separates the save bar's status line from the pipeline readout", () => {
     // Without a margin the error line butts against the commit ref:
     // "last write 3bfa1e6× title: …".

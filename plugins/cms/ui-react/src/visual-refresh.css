@@ -20,12 +20,6 @@
     ),
     var(--console-frame);
 }
-.crumb-mark {
-  color: var(--console-text-muted);
-}
-.crumb-mark b {
-  color: var(--console-text-dim);
-}
 .crumb {
   color: var(--console-text-dim);
 }

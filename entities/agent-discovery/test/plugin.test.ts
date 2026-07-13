@@ -650,6 +650,13 @@ describe("AgentDiscoveryPlugin", () => {
         hasComponent: true,
         hasClientScript: true,
       },
+      {
+        id: "agent-proximity",
+        group: "network",
+        rendererName: "AgentProximityWidget",
+        hasComponent: true,
+        hasClientScript: true,
+      },
     ]);
 
     harness.reset();

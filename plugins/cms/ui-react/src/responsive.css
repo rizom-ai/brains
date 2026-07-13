@@ -6,9 +6,6 @@
 }
 
 @media (max-width: 900px) {
-  .crumb-mark {
-    display: none;
-  }
   .studio-body {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
@@ -200,9 +197,6 @@
     min-height: 44px;
     height: auto;
     padding: 7px 12px;
-  }
-  .crumb-mark {
-    display: none;
   }
   .crumb {
     min-width: 0;

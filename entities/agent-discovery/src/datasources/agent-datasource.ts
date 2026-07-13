@@ -28,11 +28,13 @@ interface AgentDetailData {
 type AgentStatusQuerySchema = z.ZodEnum<{
   discovered: "discovered";
   approved: "approved";
+  archived: "archived";
 }>;
 
 const agentStatusQuerySchema: AgentStatusQuerySchema = z.enum([
   "discovered",
   "approved",
+  "archived",
 ]);
 
 type AgentQuerySchema = z.ZodObject<{

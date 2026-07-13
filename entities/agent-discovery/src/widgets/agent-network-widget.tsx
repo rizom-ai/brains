@@ -31,6 +31,7 @@ function AgentListItem({ item }: { item: AgentNetworkAgentRow }): JSX.Element {
         {item.status === "discovered" && (
           <span class="pill pill--warn">review</span>
         )}
+        {item.status === "archived" && <span class="pill">archived</span>}
       </div>
     </li>
   );
