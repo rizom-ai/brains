@@ -43,7 +43,7 @@ function toMessageAttachmentMetadata(
  * canonical identity resolver when one is configured. Empty inputs produce
  * empty metadata so callers can skip persisting a metadata field entirely.
  */
-export function buildMessageMetadata(params: {
+export async function buildMessageMetadata(params: {
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
   attachments?: ChatAttachment[];
@@ -51,7 +51,7 @@ export function buildMessageMetadata(params: {
   entityMemoryRefs?: EntityMemoryRef[];
   agentContactCandidates?: AgentContactCandidate[];
   canonicalIdentityResolver?: CanonicalIdentityResolver;
-}): AgentMessageMetadata {
+}): Promise<AgentMessageMetadata> {
   const {
     actor,
     source,
@@ -62,7 +62,7 @@ export function buildMessageMetadata(params: {
     canonicalIdentityResolver,
   } = params;
   const enrichedActor = actor
-    ? (canonicalIdentityResolver?.enrichActor(actor) ?? actor)
+    ? ((await canonicalIdentityResolver?.enrichActor(actor)) ?? actor)
     : null;
   return {
     ...(enrichedActor ? { actor: enrichedActor } : {}),

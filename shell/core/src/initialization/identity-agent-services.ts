@@ -9,6 +9,8 @@ import {
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
+  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveResponseSchema,
   parseAgentContextItems,
   type AgentContextRequest,
 } from "@brains/contracts";
@@ -182,7 +184,25 @@ export function initializeIdentityAndAgentServices(
     config.profile,
   );
 
-  const canonicalIdentityService = CanonicalIdentityService.getInstance(logger);
+  const canonicalIdentityService = CanonicalIdentityService.getInstance(
+    logger,
+    async (actorId) => {
+      const response = await messageBus.send({
+        type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+        sender: "shell:canonical-identity-service",
+        payload: { actorId },
+      });
+      if ("noop" in response || !response.success) return null;
+      const parsed = authPrincipalResolveResponseSchema.safeParse(
+        response.data,
+      );
+      if (!parsed.success || !parsed.data.principal?.canonicalId) return null;
+      return {
+        canonicalId: parsed.data.principal.canonicalId,
+        displayName: parsed.data.principal.displayName,
+      };
+    },
+  );
 
   const agentFactory = createBrainAgentFactory({
     model: aiService.getModel(),

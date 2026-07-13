@@ -14,7 +14,7 @@ describe("CanonicalIdentityService", () => {
     expect(service.resolveActor("discord:123")).toBeNull();
   });
 
-  it("leaves unlinked user actors unchanged", () => {
+  it("leaves unlinked user actors unchanged", async () => {
     const service = CanonicalIdentityService.createFresh(logger);
     const actor = {
       actorId: "discord:123",
@@ -23,6 +23,27 @@ describe("CanonicalIdentityService", () => {
       displayName: "Mira",
     };
 
-    expect(service.enrichActor(actor)).toEqual(actor);
+    expect(await service.enrichActor(actor)).toEqual(actor);
+  });
+
+  it("enriches actors through an injected private identity resolver", async () => {
+    const service = CanonicalIdentityService.createFresh(
+      logger,
+      async (actorId) =>
+        actorId === "discord:123"
+          ? { canonicalId: "user:mira", displayName: "Mira" }
+          : null,
+    );
+    const actor = {
+      actorId: "discord:123",
+      interfaceType: "discord",
+      role: "user" as const,
+      displayName: "Mira on Discord",
+    };
+
+    expect(await service.enrichActor(actor)).toEqual({
+      ...actor,
+      canonicalId: "user:mira",
+    });
   });
 });

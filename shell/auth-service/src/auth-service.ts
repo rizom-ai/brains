@@ -770,6 +770,19 @@ export class AuthService {
     return this.getAuditStore().list();
   }
 
+  async resolveActorPrincipal(
+    actorId: string,
+  ): Promise<AuthPrincipal | undefined> {
+    await this.ensureUserStoreStarted();
+    if (actorId.startsWith("usr_")) {
+      const user = await this.getUserStore().getUser(actorId);
+      return user?.status === "active" ? principalFromUser(user) : undefined;
+    }
+
+    const identityInput = identityInputFromActorId(actorId);
+    return identityInput ? this.resolveIdentity(identityInput) : undefined;
+  }
+
   async resolveIdentity(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthPrincipal | undefined> {
@@ -1028,6 +1041,26 @@ export class AuthService {
         "Cache-Control": "no-store",
       },
     });
+  }
+}
+
+function identityInputFromActorId(
+  actorId: string,
+): ResolveAuthIdentityInput | undefined {
+  const separator = actorId.indexOf(":");
+  if (separator <= 0 || separator === actorId.length - 1) return undefined;
+  const type = actorId.slice(0, separator);
+  const subject = actorId.slice(separator + 1);
+  switch (type) {
+    case "passkey":
+    case "discord":
+    case "mcp":
+    case "email":
+    case "did":
+    case "a2a":
+      return { type, subject };
+    default:
+      return undefined;
   }
 }
 

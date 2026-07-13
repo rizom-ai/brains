@@ -7,6 +7,7 @@ import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { NOTIFICATIONS_SEND } from "@brains/notifications";
+import { AUTH_PRINCIPAL_RESOLVE_CHANNEL } from "@brains/contracts";
 import {
   AuthService,
   PasskeyStore,
@@ -473,6 +474,49 @@ describe("AuthService", () => {
       "auth-service_user_start_passkey_registration",
     );
     expect(toolNames).not.toContain("auth-service_user_revoke_passkey");
+  });
+
+  it("resolves private canonical identities through the internal runtime channel", async () => {
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+    });
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir: await tempStorageDir(),
+        issuer: "https://brain.example.com",
+      }),
+    );
+    const service = harness.getPlugin().getService();
+    const user = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+    });
+    await service.attachIdentity({
+      userId: user.userId,
+      type: "discord",
+      subject: "123",
+      verifiedAt: Date.now(),
+    });
+
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+        sender: "test",
+        payload: { actorId: "discord:123" },
+      });
+
+    expect(response).toEqual({
+      success: true,
+      data: {
+        principal: {
+          userId: user.userId,
+          canonicalId: user.canonicalId,
+          displayName: "Mira",
+        },
+      },
+    });
   });
 
   it("requests a setup email notification when setup email is configured", async () => {

@@ -1,5 +1,9 @@
 import { join } from "node:path";
 import {
+  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveRequestSchema,
+} from "@brains/contracts";
+import {
   NOTIFICATIONS_SEND,
   sendNotificationResultSchema,
 } from "@brains/notifications";
@@ -99,6 +103,7 @@ export class AuthServicePlugin extends ServicePlugin<
   AuthServiceConfigInput
 > {
   private service: AuthService | undefined;
+  private unsubscribePrincipalResolver: (() => void) | undefined;
 
   constructor(config: AuthServiceConfigInput = {}) {
     super("auth-service", packageJson, config, authServiceConfigSchema);
@@ -126,6 +131,35 @@ export class AuthServicePlugin extends ServicePlugin<
     });
     await this.service.initialize();
     activeAuthService = this.service;
+
+    this.unsubscribePrincipalResolver = context.messaging.subscribe(
+      AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+      async (message) => {
+        const parsed = authPrincipalResolveRequestSchema.safeParse(
+          message.payload,
+        );
+        if (!parsed.success) {
+          return { success: false, error: "Invalid auth principal request" };
+        }
+        const principal = await this.getService().resolveActorPrincipal(
+          parsed.data.actorId,
+        );
+        return {
+          success: true,
+          data: {
+            principal: principal
+              ? {
+                  userId: principal.userId,
+                  ...(principal.canonicalId
+                    ? { canonicalId: principal.canonicalId }
+                    : {}),
+                  displayName: principal.displayName,
+                }
+              : null,
+          },
+        };
+      },
+    );
   }
 
   protected override async onReady(
@@ -135,6 +169,8 @@ export class AuthServicePlugin extends ServicePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.unsubscribePrincipalResolver?.();
+    this.unsubscribePrincipalResolver = undefined;
     if (activeAuthService === this.service) {
       activeAuthService = undefined;
     }

@@ -321,6 +321,39 @@ describe("AuthService principals", () => {
     ).toEqual({ state: "denied" });
   });
 
+  it("resolves canonical actors without exposing raw identity subjects", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const collaborator = await service.createUser({
+      displayName: "Discord Collaborator",
+      role: "trusted",
+    });
+    await service.attachIdentity({
+      userId: collaborator.userId,
+      type: "discord",
+      subject: "1442828818493735015",
+      verifiedAt: Date.now(),
+    });
+
+    expect(
+      await service.resolveActorPrincipal(collaborator.userId),
+    ).toMatchObject({
+      userId: collaborator.userId,
+      canonicalId: collaborator.canonicalId,
+    });
+    expect(
+      await service.resolveActorPrincipal("discord:1442828818493735015"),
+    ).toMatchObject({
+      userId: collaborator.userId,
+      canonicalId: collaborator.canonicalId,
+    });
+    expect(
+      await service.resolveActorPrincipal("discord:unknown"),
+    ).toBeUndefined();
+  });
+
   it("resolves verified identities to active auth principals", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),

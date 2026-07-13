@@ -13,16 +13,18 @@ const actor: ConversationMessageActor = {
 };
 
 describe("buildMessageMetadata", () => {
-  test("returns empty metadata when nothing is provided", () => {
-    expect(buildMessageMetadata({ actor: null, source: null })).toEqual({});
+  test("returns empty metadata when nothing is provided", async () => {
+    expect(await buildMessageMetadata({ actor: null, source: null })).toEqual(
+      {},
+    );
   });
 
-  test("enriches the actor through the canonical identity resolver", () => {
-    const metadata = buildMessageMetadata({
+  test("enriches the actor through the canonical identity resolver", async () => {
+    const metadata = await buildMessageMetadata({
       actor,
       source: null,
       canonicalIdentityResolver: {
-        enrichActor: (input: ConversationMessageActor) => ({
+        enrichActor: async (input: ConversationMessageActor) => ({
           ...input,
           canonicalId: "canonical-1",
         }),
@@ -35,8 +37,8 @@ describe("buildMessageMetadata", () => {
     });
   });
 
-  test("keeps the raw actor without a resolver and maps attachment metadata", () => {
-    const metadata = buildMessageMetadata({
+  test("keeps the raw actor without a resolver and maps attachment metadata", async () => {
+    const metadata = await buildMessageMetadata({
       actor,
       source: { channelId: "chan-1", channelName: "general" },
       attachments: [

@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.156",
   "description": "Embedded OAuth/OIDC auth service for brain operator authentication",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",

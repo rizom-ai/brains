@@ -16,6 +16,15 @@ export interface CanonicalIdentityResolution extends CanonicalIdentityLink {
   matchedActor: CanonicalIdentityActor;
 }
 
+export interface CanonicalIdentityLookup {
+  canonicalId: string;
+  displayName?: string;
+}
+
+export type CanonicalIdentityResolver = (
+  actorId: string,
+) => Promise<CanonicalIdentityLookup | null>;
+
 export interface ICanonicalIdentityService {
   refreshCache(): Promise<void>;
   getLinks(): CanonicalIdentityLink[];
@@ -25,30 +34,46 @@ export interface ICanonicalIdentityService {
    * the actor unchanged when enrichment doesn't apply (already canonical, no
    * matching link, or non-user role).
    */
-  enrichActor(actor: ConversationMessageActor): ConversationMessageActor;
+  enrichActor(
+    actor: ConversationMessageActor,
+  ): Promise<ConversationMessageActor>;
 }
 
 export class CanonicalIdentityService implements ICanonicalIdentityService {
   private static instance: CanonicalIdentityService | null = null;
   private readonly logger: Logger;
+  private resolver: CanonicalIdentityResolver | undefined;
   private links: CanonicalIdentityLink[] = [];
   private actorIndex = new Map<string, CanonicalIdentityResolution>();
 
-  public static getInstance(logger: Logger): CanonicalIdentityService {
-    CanonicalIdentityService.instance ??= new CanonicalIdentityService(logger);
+  public static getInstance(
+    logger: Logger,
+    resolver?: CanonicalIdentityResolver,
+  ): CanonicalIdentityService {
+    CanonicalIdentityService.instance ??= new CanonicalIdentityService(
+      logger,
+      resolver,
+    );
+    if (resolver) {
+      CanonicalIdentityService.instance.resolver = resolver;
+    }
     return CanonicalIdentityService.instance;
   }
 
-  public static createFresh(logger: Logger): CanonicalIdentityService {
-    return new CanonicalIdentityService(logger);
+  public static createFresh(
+    logger: Logger,
+    resolver?: CanonicalIdentityResolver,
+  ): CanonicalIdentityService {
+    return new CanonicalIdentityService(logger, resolver);
   }
 
   public static resetInstance(): void {
     CanonicalIdentityService.instance = null;
   }
 
-  private constructor(logger: Logger) {
+  private constructor(logger: Logger, resolver?: CanonicalIdentityResolver) {
     this.logger = logger.child("CanonicalIdentityService");
+    this.resolver = resolver;
   }
 
   public async refreshCache(): Promise<void> {
@@ -68,12 +93,17 @@ export class CanonicalIdentityService implements ICanonicalIdentityService {
     return this.actorIndex.get(actorId) ?? null;
   }
 
-  public enrichActor(
+  public async enrichActor(
     actor: ConversationMessageActor,
-  ): ConversationMessageActor {
+  ): Promise<ConversationMessageActor> {
     if (actor.canonicalId || actor.role !== "user") return actor;
-    const resolution = this.resolveActor(actor.actorId);
-    if (!resolution) return actor;
-    return { ...actor, canonicalId: resolution.canonicalId };
+    const cachedResolution = this.resolveActor(actor.actorId);
+    if (cachedResolution) {
+      return { ...actor, canonicalId: cachedResolution.canonicalId };
+    }
+    const resolution = await this.resolver?.(actor.actorId);
+    return resolution
+      ? { ...actor, canonicalId: resolution.canonicalId }
+      : actor;
   }
 }

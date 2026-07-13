@@ -114,7 +114,7 @@ export class TurnProcessor {
         conversationId,
         role: "user",
         content: message,
-        ...this.messageMetadata({ actor, source, attachments }),
+        ...(await this.messageMetadata({ actor, source, attachments })),
       });
 
       const responseText = buildAttachmentOnlyResponse(attachments);
@@ -124,11 +124,11 @@ export class TurnProcessor {
         conversationId,
         role: "assistant",
         content: responseText,
-        ...this.messageMetadata({
+        ...(await this.messageMetadata({
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
           cards: responseCards,
-        }),
+        })),
       });
 
       return {
@@ -201,11 +201,11 @@ export class TurnProcessor {
       conversationId,
       role: "user",
       content: effectiveMessage,
-      ...this.messageMetadata({
+      ...(await this.messageMetadata({
         actor,
         source,
         attachments: effectiveAttachments,
-      }),
+      })),
     });
 
     // Call agent
@@ -261,13 +261,13 @@ export class TurnProcessor {
         conversationId,
         role: "assistant",
         content: responseText,
-        ...this.messageMetadata({
+        ...(await this.messageMetadata({
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
           cards: responseCards,
           entityMemoryRefs,
           agentContactCandidates,
-        }),
+        })),
       });
     }
 
@@ -362,12 +362,12 @@ export class TurnProcessor {
       conversationId,
       role: "assistant",
       content: responseText,
-      ...this.messageMetadata({
+      ...(await this.messageMetadata({
         actor: this.getAssistantActor(),
         source: this.buildAssistantSource(channelId, channelName),
         cards,
         entityMemoryRefs,
-      }),
+      })),
     });
 
     return {
@@ -469,16 +469,16 @@ export class TurnProcessor {
     };
   }
 
-  private messageMetadata(params: {
+  private async messageMetadata(params: {
     actor: ConversationMessageActor | null;
     source: ConversationMessageSource | null;
     attachments?: ChatAttachment[];
     cards?: StructuredChatCard[];
     entityMemoryRefs?: EntityMemoryRef[];
     agentContactCandidates?: AgentContactCandidate[];
-  }): { metadata: Record<string, unknown> } | Record<string, never> {
+  }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
     return withMessageMetadata(
-      buildMessageMetadata({
+      await buildMessageMetadata({
         ...params,
         ...(this.deps.canonicalIdentityResolver
           ? { canonicalIdentityResolver: this.deps.canonicalIdentityResolver }

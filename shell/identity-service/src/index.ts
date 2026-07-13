@@ -38,6 +38,8 @@ export {
   CanonicalIdentityService,
   type CanonicalIdentityActor,
   type CanonicalIdentityLink,
+  type CanonicalIdentityLookup,
   type CanonicalIdentityResolution,
+  type CanonicalIdentityResolver,
   type ICanonicalIdentityService,
 } from "./canonical-identity-service";

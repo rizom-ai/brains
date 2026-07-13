@@ -1383,7 +1383,9 @@ describe("AgentService", () => {
 
     it("enriches user actor metadata with explicit canonical identity links", async () => {
       const enrichActor = mock(
-        (actor: ConversationMessageActor): ConversationMessageActor =>
+        async (
+          actor: ConversationMessageActor,
+        ): Promise<ConversationMessageActor> =>
           actor.actorId === "discord:user-789"
             ? { ...actor, canonicalId: "person:mira" }
             : actor,
@@ -1429,7 +1431,9 @@ describe("AgentService", () => {
 
     it("preserves the actor returned by enrichActor when no enrichment applies", async () => {
       const enrichActor = mock(
-        (actor: ConversationMessageActor): ConversationMessageActor => actor,
+        async (
+          actor: ConversationMessageActor,
+        ): Promise<ConversationMessageActor> => actor,
       );
       const service = AgentService.createFresh(
         mockMCPService,
@@ -1466,7 +1470,9 @@ describe("AgentService", () => {
 
     it("leaves unlinked actors without canonical ids", async () => {
       const enrichActor = mock(
-        (actor: ConversationMessageActor): ConversationMessageActor => actor,
+        async (
+          actor: ConversationMessageActor,
+        ): Promise<ConversationMessageActor> => actor,
       );
       const service = AgentService.createFresh(
         mockMCPService,

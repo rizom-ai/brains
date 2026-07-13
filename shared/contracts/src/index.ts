@@ -49,6 +49,15 @@ export {
   type AgentContextItem,
   type AgentContextResponse,
 } from "./agent-context";
+export {
+  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalAttributionSchema,
+  authPrincipalResolveRequestSchema,
+  authPrincipalResolveResponseSchema,
+  type AuthPrincipalAttribution,
+  type AuthPrincipalResolveRequest,
+  type AuthPrincipalResolveResponse,
+} from "./auth-principal";
 export { dbConfigSchema, type DbConfig } from "./db-config";
 export {
   generationResultSchema,
