@@ -2,17 +2,17 @@
 
 ## Status
 
-Active implementation plan. Phases 1–4 are implemented on `feature/auth-runtime-db`; optional invitation delivery and operator UI/CLI polish remain. Runtime auth now uses real users, role-aware sessions, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent owner administration API. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Active implementation plan. Phases 1–4 are implemented on `feature/auth-runtime-db`; the required dashboard People UX, role-aware dashboard access, and legacy auth-session terminology migration remain. Invitation delivery is optional. Runtime auth now uses real users, role-aware sessions, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent anchor administration API. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
-Add a real user model so a brain can support multiple people across OAuth/passkeys, MCP, Discord, A2A, and future interfaces without breaking the current single-owner/self-hosted path.
+Add a real user model so a brain can support multiple people across OAuth/passkeys, MCP, Discord, A2A, and future interfaces without breaking the current single-anchor/self-hosted path.
 
-The first version should stay small: coarse permission levels, explicit operator-managed users, no SaaS account system, and no route-wide dashboard/CMS lock-down. Shared-space trust for Relay/team spaces and central entity action policy enforcement have both landed.
+The first version should stay small: coarse permission levels, explicit anchor-managed users, no SaaS account system, and no route-wide dashboard/CMS lock-down. Shared-space trust for Relay/team spaces and central entity action policy enforcement have both landed.
 
 ## Source of truth
 
-This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, operator management UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
+This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, anchor management UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md). How this human-subject track relates to brain-subject identity (A2A signing, ATProto DIDs) is positioned in [Identity & trust architecture](./identity-and-trust.md); the `a2a`/`did` identity types below are the reserved hook for that doc's cross-subject linking follow-on.
 
 ## Current baseline
 
@@ -22,8 +22,8 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
 - Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
-- A same-origin owner-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
-- A dashboard People UI or local CLI can be layered over that API later.
+- A same-origin anchor-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
+- A usable dashboard People UI is still required; a local CLI remains optional.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -33,14 +33,14 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
    - They are not synced/exported with `brain-data`.
    - Optional public/person profile content can link to a user id later, but it is not the source of auth truth.
 2. **Keep coarse permission levels for v1.**
-   - `anchor` = owner/admin/operator authority.
-   - `trusted` = collaborator authority for safe write workflows.
+   - `anchor` = highest human authority for administration and restricted workflows.
+   - `trusted` = trusted-user authority for safe collaborative write workflows.
    - `public` = unauthenticated or minimal access.
    - Full RBAC is explicitly out of scope for the first multi-user slice.
 3. **User lookup precedes rule fallback.**
    - If an interface caller maps to an auth user, use that user role.
    - If no user matches, fall back to existing `brain.yaml` permission rules.
-   - Existing single-owner configs continue working unchanged.
+   - Existing single-anchor configs continue working unchanged.
 4. **Real user ids replace `single-operator` as the canonical subject.**
    - Fresh setups use `usr_<uuid>` as the passkey/session/OAuth subject.
    - Existing `single-operator` installs migrate lazily to a real user id.
@@ -51,20 +51,31 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 6. **Multiple anchors are allowed, but the last active anchor is protected.**
    - Anchors can promote other users to `anchor`.
    - The system must reject demoting, suspending, or deleting the last active anchor.
-   - User-facing copy should call anchors **Owners**, but not imply there can only be one owner.
+   - User-facing copy must use **Anchor**, never Owner or Operator, for this role.
 7. **Per-request/session permissions must replace global HTTP MCP anchor.**
    - OAuth-authenticated MCP should use the token subject's user role.
    - Static `MCP_AUTH_TOKEN` can continue to grant anchor as a deprecated fallback.
 8. **Do not reshuffle existing tool visibility in the plumbing phase.**
    - Multi-user v1 makes roles enforceable.
    - A later tool-permission audit decides which existing anchor tools can safely become trusted.
-9. **Operator-managed onboarding first; invitations later.**
+9. **Anchor-managed onboarding first; invitations later.**
    - Anchors create users and explicitly attach identities.
    - Email/self-signup/invite delivery is deferred until real workflows need it.
 10. **Auth-user administration is not agent-visible.**
     - User, identity, role, status, and user-specific credential management stay outside the model tool surface.
-    - Use a dedicated authenticated dashboard/API or local CLI with explicit operator confirmation.
+    - Use a dedicated authenticated dashboard/API or local CLI with explicit anchor confirmation.
     - This reduces prompt-injection and accidental privilege-management risk even for anchor sessions.
+
+## Terminology contract
+
+- **Anchor**, **Trusted**, and **Public** are the only human permission-role names in code contracts and user-facing copy.
+- **Operator is not a role.** Existing names such as `operator_sessions`, `OperatorSessionStore`, `getOperatorSession`, `brains_operator_session`, and “Operator access” are legacy single-user terminology and must be migrated to authenticated/browser-session naming.
+- Rename the persisted session table to `auth_sessions` in an ordered auth DB migration. Preserve existing sessions during the rename.
+- Introduce `AuthSession`/`BrowserSession` service names and keep temporary aliases only where compatibility requires them.
+- Move the cookie to `brains_auth_session`; accept the legacy cookie during a bounded compatibility window and clear both names on logout.
+- Rename first-setup types and copy from “operator setup” to “first anchor setup” or generic “passkey setup.”
+- `single-operator` remains only as a historical migration subject and must not appear in newly created state or user-facing copy.
+- The separate “Operator runtime database” plan may retain its infrastructure meaning; it does not define a human auth role.
 
 ## Runtime user record
 
@@ -118,7 +129,7 @@ Add `shell/auth-service` user-store support rather than a separate content entit
 - `AuthService`
   - creates/reuses first anchor user during setup
   - passkey registration stores credential with `subject = user.id`
-  - passkey login creates operator session with `subject = user.id`
+  - passkey login creates an authenticated browser session with `subject = user.id`
   - OAuth access-token `sub` becomes user id
   - exposes `resolveUserForRequest()` / `resolveBearerUser()` helpers
 
@@ -147,9 +158,10 @@ Current HTTP MCP sets the whole transport to `anchor` when auth is configured. M
 ### Dashboard visibility
 
 - Widget visibility already uses the same levels as tools (`public` / `trusted` / `anchor`) — verified 2026-07-07; no `operator` alias exists in the schema or is needed.
-- Dashboard login/logout continue using operator sessions, but sessions now carry a real user id and role, and the session→`anchor` mapping becomes role-based.
-- Signed-in masthead should display the user's name and role label, e.g. `Alex · Owner · sign out`.
-- Use user-facing role labels in UI: `anchor` → **Owner**, `trusted` → **Collaborator**, `public` → **Public**.
+- Dashboard login/logout use authenticated browser sessions carrying a real user id and role; no session is elevated merely because it exists.
+- Signed-in masthead must display the user's name and canonical role label, e.g. `Alex · Anchor · Sign out`.
+- Use role labels consistently in UI: `anchor` → **Anchor**, `trusted` → **Trusted**, `public` → **Public**.
+- Remove user-facing “Operator access” and “Operator” session labels.
 
 ### Conversations, jobs, and audit attribution
 
@@ -179,7 +191,7 @@ Avoid writing auth-sensitive identity bindings into content markdown.
 
 ### Non-agent administration
 
-Do not register user or user-specific credential administration as model-visible tools. The runtime exposes `GET /auth/admin/users` and `POST /auth/admin/mutations` to active owner sessions. Mutations require same-origin JSON plus an action-matching `confirmation` value, preserve last-owner invariants, revoke affected grants, and append actor-attributed audit events. Responses redact identity lookup hashes, raw identity subjects, and passkey public keys. The existing first-owner bootstrap URL retrieval is a separate setup mechanism, not a general user-management surface.
+Do not register user or user-specific credential administration as model-visible tools. The runtime exposes `GET /auth/admin/users` and `POST /auth/admin/mutations` to active anchor sessions. Mutations require same-origin JSON plus an action-matching `confirmation` value, preserve last-anchor invariants, revoke affected grants, and append actor-attributed audit events. Responses redact identity lookup hashes, raw identity subjects, and passkey public keys. The existing first-anchor bootstrap URL retrieval is a separate setup mechanism, not a general user-management surface.
 
 Supported mutation actions are `createUser`, `updateUserRole`, `updateUserStatus`, `attachIdentity`, `detachIdentity`, `startPasskeyRegistration`, `revokePasskey`, and `revokeUserSessions`.
 
@@ -187,9 +199,9 @@ Supported mutation actions are `createUser`, `updateUserRole`, `updateUserStatus
 
 Keep first UX small and explicit:
 
-- Fresh setup asks for a display name, defaulting to `Operator`.
+- Fresh setup asks for a display name; any temporary fallback must not use `Operator` as a role-like name.
 - Masthead shows `Name · Role · sign out`.
-- An anchor-only People panel can list users, create collaborators, change role, suspend users, and generate passkey setup links.
+- An anchor-only People panel can list users, create trusted users, change role, suspend users, and generate passkey setup links.
 - Do not build public signup, email delivery, or route-wide CMS/dashboard lock-down in v1.
 
 ### CLI
@@ -206,13 +218,13 @@ brain user:attach-identity usr_... --type discord --subject 123456789
 
 Keep `brain auth reset-passkeys --yes` as the break-glass reset for all passkeys and active OAuth state. It remains local/destructive and is not a replacement for normal multi-anchor recovery.
 
-### Operator-managed onboarding
+### Anchor-managed onboarding
 
-For v1, onboarding is explicit and operator managed:
+For v1, onboarding is explicit and anchor managed:
 
-1. An owner creates a user through the admin API.
-2. The owner attaches one or more known identities.
-3. For passkeys, the owner requests a short-lived registration URL for that specific user.
+1. An anchor creates a user through the admin API.
+2. The anchor attaches one or more known identities.
+3. For passkeys, the anchor requests a short-lived registration URL for that specific user.
 4. The user opens the URL and registers a passkey; the credential binds to that user id.
 
 There is no public registration, email invitation, or self-signup in the first slice.
@@ -224,7 +236,7 @@ There is no public registration, email invitation, or self-signup in the first s
 1. No passkeys and no users.
 2. First `/setup` creates `usr_<uuid>` with role `anchor`.
 3. Passkey credential stores `subject = usr_<uuid>`.
-4. Operator sessions and OAuth tokens use `sub = usr_<uuid>`.
+4. Authenticated browser sessions and OAuth tokens use `sub = usr_<uuid>`.
 
 ### Existing installs with `single-operator`
 
@@ -238,20 +250,19 @@ On startup or first successful login:
 
 ## Phased implementation
 
-### Phase 1 — Real owner user and `single-operator` migration
+### Phase 1 — Real anchor user and `single-operator` migration
 
 **Status: implemented.**
 
-This is the safest first slice: real users without collaborator management yet.
+This is the safest first slice: real users without trusted-user management yet.
 
 - Add the auth runtime DB foundation / `AuthUserStore` from [Auth runtime database](./auth-runtime-db.md) and tests.
 - Create first active `anchor` user during setup.
-- Let setup collect an optional display name; default to `Operator`.
+- Let setup collect an optional display name; use `Anchor` only as a temporary fallback.
 - Bind new passkey credentials to `usr_<uuid>` instead of `single-operator`.
 - Login sessions and OAuth tokens use user-id `sub`.
 - Lazily migrate old `single-operator` passkey credentials/sessions to the first anchor user.
 - Revoke old `single-operator` refresh tokens during migration.
-- Dashboard masthead displays user name + role label.
 
 Validation:
 
@@ -285,11 +296,11 @@ Validation:
 
 ### Phase 3 — Non-agent administration API
 
-**Status: implemented through the authenticated admin API; dashboard/CLI clients are optional follow-up.**
+**Status: backend implemented; the required dashboard client is phase 5 and CLI wrappers remain optional.**
 
-- Add a same-origin, owner-session admin API; do not register model-visible user-management tools.
+- Add a same-origin, anchor-session admin API; do not register model-visible user-management tools.
 - Require explicit action confirmation for every mutation.
-- Keep local CLI wrappers and a dashboard People panel as optional clients over the API.
+- Keep local CLI wrappers optional and implement the required dashboard People panel in phase 5.
 - Add attach/detach identity flows.
 - Add passkey registration for a specific user through an anchor-generated, short-lived setup URL.
 - Support multiple active anchors.
@@ -317,9 +328,27 @@ Validation:
 - Discord conversations map to user id when identity is linked
 - jobs created by tools carry requested-by user metadata
 
-### Phase 5 — Optional invitations/onboarding
+### Phase 5 — Dashboard People UX and terminology migration
 
-Only build if real operator workflows need it. This phase adds convenience on top of the v1 operator-managed foundation:
+**Status: required and open.**
+
+- Add an anchor-only People tab at `/dashboard#people` over the existing admin API.
+- Support user listing/creation, role and status changes, identity attach/detach, passkey setup/revocation, and user-session revocation with explicit confirmations.
+- Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-anchor elevation.
+- Show `Name · Anchor|Trusted|Public · Sign out` in the masthead.
+- Rename legacy operator session/store/cookie/setup identifiers according to the terminology contract, with DB and cookie compatibility migration.
+- Update tests, docs, and UI copy so Operator and Owner are never presented as roles.
+
+Validation:
+
+- trusted and public sessions never receive anchor dashboard visibility
+- only anchors can see or use People management
+- existing browser sessions survive the table/code/cookie terminology migration
+- dashboard and setup/login copy use Anchor/Trusted/Public consistently
+
+### Phase 6 — Optional invitations/onboarding
+
+Only build if real anchor workflows need it. This phase adds convenience on top of the v1 anchor-managed foundation:
 
 - invite token
 - pending user status
@@ -353,7 +382,8 @@ Only build if real operator workflows need it. This phase adds convenience on to
 2. Existing single-operator installs migrate safely.
 3. Permission resolution uses auth users before falling back to rules.
 4. MCP OAuth sessions receive per-user permissions.
-5. Operators can manage users through a dedicated authenticated admin surface or local CLI, never through model-visible tools.
+5. Anchors can manage users through a dedicated authenticated admin surface, never through model-visible tools.
 6. Multiple active anchors are supported, with last-active-anchor protection.
 7. Conversations/jobs can be attributed to users.
 8. Auth state remains outside `brain-data`.
+9. Dashboard permissions use the authenticated user's actual role, People management is anchor-only, and legacy Operator/Owner role terminology is removed with compatibility-safe session migration.

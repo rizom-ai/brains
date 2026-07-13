@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete on `feature/auth-runtime-db`. Phases 1–6 and cross-consumer validation are implemented; optional dashboard/CLI clients can follow over the authenticated admin API. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
+Core auth runtime implementation is complete on `feature/auth-runtime-db`: phases 1–6 and cross-consumer validation are implemented. A required phase 7 remains to migrate legacy Operator session/store/cookie/setup names and complete the role-aware People dashboard. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
 
 ## Goal
 
@@ -43,23 +43,24 @@ Implemented on `feature/auth-runtime-db`:
 - High-level user, role, status, identity, passkey-revocation, and audit APIs with optional authenticated-actor attribution for management mutations.
 - Async `CanonicalIdentityService` enrichment through an internal auth-principal channel, resolving hashed private bindings without exposing raw identity subjects.
 - Canonical user attribution propagated through conversations, agent-invoked and confirmed tool contexts, tool lifecycle events, and tool-enqueued job metadata, including non-MCP chat paths.
-- Same-origin, session-authenticated owner API for user, role, status, identity, passkey, user-session, and user-specific passkey-registration administration; every mutation requires an explicit action confirmation and remains absent from model tools.
+- Same-origin, session-authenticated anchor API for user, role, status, identity, passkey, user-session, and user-specific passkey-registration administration; every mutation requires an explicit action confirmation and remains absent from model tools.
 - Actor-attributed management and A2A trust auditing plus secret-free WebAuthn failure events.
 - Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
-Optional follow-up:
+Required before the multi-user product is complete:
 
-1. **Operator UX clients.** Add a People dashboard over the authenticated admin API or local CLI wrappers if required; neither is needed for the runtime/API contract.
+1. **People dashboard.** Add an anchor-only `/dashboard#people` client over the authenticated admin API and show the signed-in principal's actual role.
+2. **Terminology migration.** Rename legacy Operator session/store/cookie/setup identifiers to authenticated/browser-session and first-anchor/passkey-setup names without invalidating existing sessions.
 
-Cross-consumer validation completed across auth service, MCP interface/service, Discord, A2A, agent discovery, affected typechecks, and lint.
+A local CLI and invitation delivery remain optional. Cross-consumer validation completed across auth service, MCP interface/service, Discord, A2A, agent discovery, affected typechecks, and lint.
 
 ## Consumers to satisfy
 
-- **Multi-user auth**: real `usr_<uuid>` subjects, roles, active/suspended status, multiple owners, last-owner protection.
+- **Multi-user auth**: real `usr_<uuid>` subjects, roles, active/suspended status, multiple anchors, last-anchor protection.
 - **MCP OAuth**: per-session permissions from the authenticated user instead of global anchor authority.
 - **Chat / hosted Discord**: explicit `discord:<id>` to user lookup for routing and attribution, without storing those bindings in content.
 - **Conversation memory**: optional canonical identity enrichment from private runtime identity bindings.
-- **CMS passkey login**: a valid operator session to gate release of the shared content PAT (see `plugins/cms/src/plugin.ts`, where the GitHub OAuth and passkey-gated PAT login methods already consume `auth-service`). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
+- **CMS passkey login**: a valid authenticated browser session to gate release of the shared content PAT (see `plugins/cms/src/plugin.ts`, where the GitHub OAuth and passkey-gated PAT login methods already consume `auth-service`). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
 - **A2A peer trust**: the peer-trust records (domain, pinned key fingerprint, granted inbound level) that directory approval writes per [a2a-request-signing.md](./a2a-request-signing.md) decision 6 — trust grants must live on this runtime plane, never in git-synced content.
 - **Future dashboard People UX / CLI**: user, role, passkey, and identity management.
 
@@ -73,11 +74,11 @@ Cross-consumer validation completed across auth service, MCP interface/service, 
    - Users, roles, identities, passkeys, sessions, OAuth grants, refresh tokens, setup tokens, and auth audit live here.
    - Content entities may reference safe public/person labels later, but never become the source of auth truth.
 3. **`usr_<uuid>` replaces `single-operator`.**
-   - Fresh setup creates the first active owner user.
+   - Fresh setup creates the first active anchor user.
    - Existing stores migrate lazily and revoke old `single-operator` refresh tokens.
 4. **Identity binding is explicit.**
    - No display-name matching or inferred cross-platform linking.
-   - Operators attach identities such as Discord ids, emails, OAuth subjects, DIDs, or MCP subjects.
+   - Anchors attach identities such as Discord ids, emails, OAuth subjects, DIDs, or MCP subjects.
 5. **Avoid raw account ids where lookup hashes are enough.**
    - Store a normalized identity key hash for lookup.
    - Store type/issuer/label metadata for management UI.
@@ -98,7 +99,7 @@ interface AuthUserRow {
   display_name: string;
   role: "anchor" | "trusted" | "public";
   status: "active" | "invited" | "suspended";
-  canonical_id?: string; // generated `user:<id-suffix>` by default; operator-renameable later
+  canonical_id?: string; // generated `user:<id-suffix>` by default; administratively renameable later
   created_at: number;
   updated_at: number;
 }
@@ -132,13 +133,13 @@ Normalized lookup keys:
 
 Active identities should be unique by `identity_key_hash`.
 
-Delivery model: the auth DB does not store user emails on `auth_users`. When a user verifies an email identity (or other addressable channel), the raw deliverable address lands on the corresponding `auth_identities` row as `delivery_subject`. Operator-supplied setup emails continue to use existing config + recipient-hash dedupe (`shell/auth-service/src/setup-state-store.ts`) and are not affected. CMS commit attribution keeps using the configured `directory-sync` `git.authorEmail` (`Brain <brain@localhost>` by default); per-user attribution, if needed later, goes in commit trailers, not the author line.
+Delivery model: the auth DB does not store user emails on `auth_users`. When a user verifies an email identity (or other addressable channel), the raw deliverable address lands on the corresponding `auth_identities` row as `delivery_subject`. Configured setup emails continue to use existing config + recipient-hash dedupe (`shell/auth-service/src/setup-state-store.ts`) and are not affected. CMS commit attribution keeps using the configured `directory-sync` `git.authorEmail` (`Brain <brain@localhost>` by default); per-user attribution, if needed later, goes in commit trailers, not the author line.
 
 ### Credentials and grants
 
 - `passkey_credentials`: credential id, user id, public key, counter, transports JSON, device type, backup state, timestamps.
 - `webauthn_challenges`: challenge hash, optional user id, kind, expiry, consumed timestamp. Registration challenges bind a user; discoverable-credential authentication challenges do not know the user until verification.
-- `operator_sessions`: session token hash, user id, expiry, revoked timestamp.
+- `operator_sessions` (legacy name; migrate to `auth_sessions` in phase 7): session token hash, user id, expiry, revoked timestamp.
 - `oauth_clients`: client id, optional secret hash, registered metadata JSON, timestamps.
 - `oauth_auth_codes`: code hash, client id, user id, redirect URI, PKCE challenge, scope, expiry, consumed timestamp.
 - `oauth_refresh_tokens`: token hash, client id, user id, scope, expiry, revoked/replaced metadata.
@@ -245,7 +246,7 @@ Run an idempotent migration on auth-service startup:
 1. Create/open `auth.db` and record migration version.
 2. Import the current JWK signing key.
 3. Import OAuth clients.
-4. If passkeys or sessions use `single-operator` and no users exist, create the first active owner user.
+4. If passkeys or sessions use `single-operator` and no users exist, create the first active anchor user.
 5. Import passkeys, rebinding `single-operator` to that user id.
 6. Import active sessions and auth codes where safe.
 7. Import refresh tokens except `single-operator` tokens; revoke/skip those and force one-time re-auth.
@@ -270,7 +271,7 @@ Validation: migrations are idempotent; file permissions are private; DB opens in
 **Status: implemented.** Users, identities, first-anchor setup, passkey credentials/challenges, legacy subject rebinding, and transactional anchor invariants use the runtime database.
 
 - Add `auth_users`, `auth_identities`, passkey credential/challenge tables.
-- First setup creates an owner user.
+- First setup creates an anchor user.
 - New passkeys bind to user ids.
 - Migrate `single-operator` passkeys.
 - Add last-active-anchor protection.
@@ -302,14 +303,14 @@ Validation: trusted users cannot call anchor-only tools; suspended users are den
 
 ### Phase 5 — Management surface
 
-**Status: implemented.** User, role, status, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin owner-session API and remain deliberately absent from model tools.
+**Status: backend implemented; People client remains in phase 7.** User, role, status, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin anchor-session API and remain deliberately absent from model tools.
 
-- Add an authenticated, operator-driven admin API/dashboard and optional local CLI wrappers for user/identity/passkey management.
-- Require explicit operator interaction and confirmation for role, status, identity, and credential mutations.
+- Add an authenticated, anchor-driven admin API/dashboard and optional local CLI wrappers for user/identity/passkey management.
+- Require explicit anchor interaction and confirmation for role, status, identity, and credential mutations.
 - Do not expose auth-user records or management mutations as agent tools.
 - Add audit events for every management mutation.
 
-Validation: owners can create/promote/suspend users; trusted users cannot manage users; last owner cannot be demoted or suspended.
+Validation: anchors can create/promote/suspend users; trusted users cannot manage users; the last anchor cannot be demoted or suspended.
 
 ### Phase 6 — Consumers
 
@@ -320,6 +321,20 @@ Validation: owners can create/promote/suspend users; trusted users cannot manage
 - Add conversation/job/tool attribution from `AuthPrincipal`.
 
 Validation: linked Discord user maps to a brain user; conversation metadata can include user/canonical attribution without content-stored account bindings.
+
+### Phase 7 — Auth-session terminology and People dashboard
+
+**Status: required and open.**
+
+- Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
+- Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; retain temporary aliases only where compatibility requires them.
+- Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.
+- Rename `OperatorSetupRequired` and user-facing operator setup/login copy to first-anchor setup or generic passkey/authenticated-session language.
+- Keep `single-operator` only as an immutable historical migration alias.
+- Make dashboard permission resolution use `resolveSession()` and the principal's actual role instead of treating any session as anchor.
+- Add the anchor-only People tab and canonical `Anchor`/`Trusted`/`Public` masthead labels required by the multi-user plan.
+
+Validation: existing sessions survive migration; trusted sessions stay trusted in the dashboard; only anchors can use People administration; no user-facing role copy says Owner or Operator.
 
 ## Security notes
 
@@ -334,8 +349,8 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 ## Resolved decisions
 
 1. **DB stack**: libSQL + Drizzle, following `shell/entity-service` and `shell/job-queue`. No `bun:sqlite`, no second stack.
-2. **User emails**: not stored on `auth_users`. Deliverable addresses live on `auth_identities.delivery_subject` for verified email (and other delivery-capable) identities. Operator setup emails keep the existing recipient-hash pattern; CMS commits keep the existing `directory-sync` author config.
-3. **`canonical_id`**: generated `user:<id-suffix>` on user creation. Operator-renameable later when a People management surface lands; field is a nullable string so rename is a column update with no migration.
+2. **User emails**: not stored on `auth_users`. Deliverable addresses live on `auth_identities.delivery_subject` for verified email (and other delivery-capable) identities. Configured setup emails keep the existing recipient-hash pattern; CMS commits keep the existing `directory-sync` author config.
+3. **`canonical_id`**: generated `user:<id-suffix>` on user creation. Administratively renameable later when a People management surface lands; field is a nullable string so rename is a column update with no migration.
 4. **OAuth clients**: migrate in the same phase as grants (Phase 3). Avoids a JSON/SQL hybrid with weak referential integrity.
 5. **Backup/restore**: no auth-specific policy. Auth DB lives under the runtime data dir and is covered by whatever already backs it up.
 
