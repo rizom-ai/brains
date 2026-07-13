@@ -1510,6 +1510,7 @@
         "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
+        "effect": "^3.21.4",
       },
       "devDependencies": {
         "@types/bun": "^1.3.14",

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active shell-runtime hardening plan. The baseline now includes transactional service and plugin acquisition, terminal per-plugin resource scopes, shell and daemon scopes, startup rollback, settling startup concurrency barriers, scoped database readiness, bounded projection work, fully owned job, cleanup, agent-turn, and message-progress fibers, end-to-end AI cancellation boundaries, consolidated semantic-index polling, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
+Active shell-runtime hardening plan. The baseline now includes transactional service and plugin acquisition, terminal per-plugin resource scopes, shell, app-signal, and daemon scopes, startup rollback, settling startup concurrency barriers, scoped database readiness, bounded projection work, fully owned job, cleanup, agent-turn, and message-progress fibers, end-to-end AI cancellation boundaries, consolidated semantic-index polling, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
 
 This work does not change the roadmap priority of the stable release and identity/bundle/consolidation lanes.
 
@@ -24,15 +24,11 @@ Use Effect as the internal shell control plane for structured concurrency and re
 
 ### P2 — application and tooling boundaries
 
-1. **Scope app signal handlers**
-   - File: `shell/app/src/app.ts`
-   - Model SIGINT/SIGTERM listener registration as an acquired resource and guarantee one shutdown fiber.
-
-2. **Scope evaluation apps and HTTP calls**
+1. **Scope evaluation apps and HTTP calls**
    - Files: `shell/ai-evaluation/src/eval-db-builder.ts`, `evaluation-service.ts`, `remote-agent-service.ts`
    - Guarantee shell shutdown on every failure, replace manual worker pools with bounded Effect concurrency, and add HTTP timeout/cancellation.
 
-3. **Revisit auth serialization only with an auth lifecycle**
+2. **Revisit auth serialization only with an auth lifecycle**
    - File: `shell/auth-service/src/json-file-store.ts`
    - The Promise write chain is currently correct. Replace it with `Semaphore` or `Queue` only if auth gains a scoped service lifecycle that can drain or interrupt writes explicitly.
 
