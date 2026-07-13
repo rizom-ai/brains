@@ -18,6 +18,8 @@ export interface ToolContext {
   // Progress reporting
   progressToken?: string | number;
   sendProgress?: (notification: ProgressNotification) => Promise<void>;
+  /** Cancellation for the active request; handlers may opt in. */
+  signal?: AbortSignal;
 
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")

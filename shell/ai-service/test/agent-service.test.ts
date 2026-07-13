@@ -30,8 +30,11 @@ let mockAgentGenerateResult: BrainAgentResult = {
 
 // Mock the agent's generate function
 const mockGenerate = mock(
-  async (_params: { messages: ModelMessage[]; options: BrainCallOptions }) =>
-    mockAgentGenerateResult,
+  async (_params: {
+    messages: ModelMessage[];
+    options: BrainCallOptions;
+    abortSignal?: AbortSignal;
+  }) => mockAgentGenerateResult,
 );
 
 // Mock agent factory - returns a mock agent with generate
@@ -167,6 +170,7 @@ describe("AgentService", () => {
       async (_params: {
         messages: ModelMessage[];
         options: BrainCallOptions;
+        abortSignal?: AbortSignal;
       }) => mockAgentGenerateResult,
     );
     mockGenerate.mockClear();
@@ -322,6 +326,104 @@ describe("AgentService", () => {
       expect(firstResponse.text).toBe("response-1");
       expect(secondResponse.text).toBe("response-2");
       expect(mockGenerate).toHaveBeenCalledTimes(2);
+    });
+
+    it("cancels an active turn with the original abort reason", async () => {
+      let modelSignal: AbortSignal | undefined;
+      mockGenerate.mockImplementation(
+        async (params: {
+          messages: ModelMessage[];
+          options: BrainCallOptions;
+          abortSignal?: AbortSignal;
+        }) => {
+          modelSignal = params.abortSignal;
+          return new Promise<BrainAgentResult>((_resolve, reject) => {
+            params.abortSignal?.addEventListener(
+              "abort",
+              () => reject(params.abortSignal?.reason),
+              { once: true },
+            );
+          });
+        },
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const controller = new AbortController();
+      const abortReason = new Error("caller disconnected");
+      const turn = service.chat(
+        "hello",
+        "test-conversation",
+        undefined,
+        controller.signal,
+      );
+      while (!modelSignal) {
+        await delay(1);
+      }
+
+      controller.abort(abortReason);
+
+      let receivedError: unknown;
+      try {
+        await turn;
+      } catch (error) {
+        receivedError = error;
+      }
+      expect(receivedError).toBe(abortReason);
+      expect(modelSignal.aborted).toBe(true);
+      await service.shutdown();
+    });
+
+    it("removes a cancelled queued turn without releasing serialization early", async () => {
+      let releaseFirst!: () => void;
+      const firstTurnGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      mockGenerate.mockImplementation(async () => {
+        await firstTurnGate;
+        return mockAgentGenerateResult;
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const first = service.chat("first", "test-conversation");
+      while (mockGenerate.mock.calls.length === 0) {
+        await delay(1);
+      }
+      const controller = new AbortController();
+      const abortReason = new Error("queued request cancelled");
+      const second = service.chat(
+        "second",
+        "test-conversation",
+        undefined,
+        controller.signal,
+      );
+
+      controller.abort(abortReason);
+      let receivedError: unknown;
+      try {
+        await second;
+      } catch (error) {
+        receivedError = error;
+      }
+      expect(receivedError).toBe(abortReason);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+
+      releaseFirst();
+      await first;
+      await delay(1);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      await service.shutdown();
     });
 
     it("rejects messages beyond the bounded per-conversation queue", async () => {

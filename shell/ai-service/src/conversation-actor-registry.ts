@@ -16,6 +16,30 @@ import type { Clock } from "effect";
 
 const DEFAULT_MAX_OPERATIONS_PER_CONVERSATION = 10;
 
+function raceWithSignal<T>(
+  promise: Promise<T>,
+  signal: AbortSignal,
+): Promise<T> {
+  if (signal.aborted) return Promise.reject(signal.reason);
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => {
+      reject(signal.reason);
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    void promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
 interface EvictionSupervisor {
   scope: Scope.CloseableScope;
   fibers: FiberMap.FiberMap<string, void, never>;
@@ -90,6 +114,7 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
   public enqueue<T>(
     conversationId: string,
     operation: () => Promise<T>,
+    signal?: AbortSignal,
   ): Promise<T> {
     const count = this.operationCounts.get(conversationId) ?? 0;
     if (count >= this.maxOperations) {
@@ -104,7 +129,12 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
 
     const generation = this.evictionGeneration;
     const previous = this.operations.get(conversationId) ?? Promise.resolve();
-    const run = previous.catch(() => undefined).then(operation);
+    const run = previous
+      .catch(() => undefined)
+      .then(() => {
+        signal?.throwIfAborted();
+        return operation();
+      });
     const tracked = run.catch(() => undefined).then(() => undefined);
 
     this.operations.set(conversationId, tracked);
@@ -124,7 +154,7 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
       this.scheduleEviction(conversationId);
     });
 
-    return run;
+    return signal ? raceWithSignal(run, signal) : run;
   }
 
   /** (Re)arm the supervised idle-eviction fiber for a conversation. */

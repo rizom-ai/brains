@@ -10,6 +10,8 @@ export function registerShellRuntimeFinalizers(
   lifecycle: ShellLifecycle,
   services: ShellServices,
 ): void {
+  lifecycle.addFinalizer(() => services.agentService.shutdown?.());
+
   lifecycle.addFinalizer(async () => {
     for (const [pluginId] of services.pluginManager.getAllPlugins()) {
       await services.pluginManager.disablePlugin(pluginId);

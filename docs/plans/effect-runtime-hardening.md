@@ -2,7 +2,7 @@
 
 ## Status
 
-Active shell-runtime hardening plan. The baseline now includes transactional service acquisition, shell and daemon scopes, startup rollback, settling startup concurrency barriers, fully owned job and cleanup fibers, AI cancellation boundaries, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
+Active shell-runtime hardening plan. The baseline now includes transactional service acquisition, shell and daemon scopes, startup rollback, settling startup concurrency barriers, fully owned job, cleanup, and agent-turn fibers, end-to-end AI cancellation boundaries, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
 
 This work does not change the roadmap priority of the stable release and identity/bundle/consolidation lanes.
 
@@ -32,42 +32,37 @@ Use Effect as the internal shell control plane for structured concurrency and re
 
 ### P1 — cancellation and scheduling
 
-2. **Propagate cancellation through complete agent turns**
-   - Files: `shell/ai-service/src/agent-types.ts`, `turn-processor.ts`, `agent-service.ts`
-   - Low-level provider calls accept signals, but primary `ToolLoopAgent.generate()` turns and serialized conversation operations do not.
-   - Add an `AbortSignal` boundary and own active turns with scoped fibers without replacing XState.
-
-3. **Consolidate semantic-index polling**
+2. **Consolidate semantic-index polling**
    - Files: `shell/entity-service/src/entityService.ts`, `shell/core/src/initialization/shellBootloader.ts`
    - Polling currently exists both inside `awaitIndexReady()` and in the outer monitor retry loop.
    - Express timeout and retry cadence through one schedule and drive tests with `TestClock`.
 
-4. **Supervise delayed message-progress cleanup**
+3. **Supervise delayed message-progress cleanup**
    - File: `shell/plugins/src/message-interface/message-interface-plugin.ts`
    - Progress cleanup uses detached `setTimeout` callbacks.
    - Use a keyed fiber map so replacement and plugin shutdown interrupt pending cleanup.
 
-5. **Use true bounded projection concurrency**
+4. **Use true bounded projection concurrency**
    - File: `shell/plugins/src/entity/derived-entity-projection.ts`
    - Fixed `Promise.all` chunks under-utilize concurrency when one item is slow.
    - Use `Effect.forEach` with bounded concurrency while preserving input/error semantics.
 
-6. **Own database readiness work**
+5. **Own database readiness work**
    - Files: `shell/job-queue/src/job-queue-service.ts`, `shell/runtime-state/src/runtime-state-service.ts`
    - WAL setup runs as detached Promises and can race readiness or closure.
    - Include non-fatal WAL initialization in scoped service acquisition and await its settlement before ready state.
 
 ### P2 — application and tooling boundaries
 
-7. **Scope app signal handlers**
+6. **Scope app signal handlers**
    - File: `shell/app/src/app.ts`
    - Model SIGINT/SIGTERM listener registration as an acquired resource and guarantee one shutdown fiber.
 
-8. **Scope evaluation apps and HTTP calls**
+7. **Scope evaluation apps and HTTP calls**
    - Files: `shell/ai-evaluation/src/eval-db-builder.ts`, `evaluation-service.ts`, `remote-agent-service.ts`
    - Guarantee shell shutdown on every failure, replace manual worker pools with bounded Effect concurrency, and add HTTP timeout/cancellation.
 
-9. **Revisit auth serialization only with an auth lifecycle**
+8. **Revisit auth serialization only with an auth lifecycle**
    - File: `shell/auth-service/src/json-file-store.ts`
    - The Promise write chain is currently correct. Replace it with `Semaphore` or `Queue` only if auth gains a scoped service lifecycle that can drain or interrupt writes explicitly.
 
@@ -94,10 +89,9 @@ Do not wrap existing `getInstance()` calls in layers. With transactional shell a
 ## Delivery order
 
 1. Add per-plugin scopes and registration rollback.
-2. Propagate agent-turn cancellation.
-3. Introduce the job-service layer slice.
-4. Consolidate semantic-index schedules and clocks.
-5. Address app and evaluation lifecycle boundaries.
+2. Introduce the job-service layer slice.
+3. Consolidate semantic-index schedules and clocks.
+4. Address app and evaluation lifecycle boundaries.
 
 Each item should remain an independently reviewable commit.
 
