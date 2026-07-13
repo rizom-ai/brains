@@ -3,6 +3,7 @@ import type { ShellConfig } from "../config";
 import { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
+import { runConcurrentPhase } from "../effect-runtime";
 import { Effect } from "effect";
 
 const INDEX_READINESS_TIMEOUT_MS = 30_000;
@@ -147,10 +148,11 @@ export class ShellBootloader {
   }
 
   private async prepareReadyState(): Promise<void> {
-    await Promise.all([
-      this.services.identityService.initialize(),
-      this.services.profileService.initialize(),
-      this.services.canonicalIdentityService.refreshCache(),
+    await runConcurrentPhase([
+      (): Promise<void> => this.services.identityService.initialize(),
+      (): Promise<void> => this.services.profileService.initialize(),
+      (): Promise<void> =>
+        this.services.canonicalIdentityService.refreshCache(),
     ]);
     this.services.logger.debug("Identity services initialized");
 
