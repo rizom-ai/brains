@@ -3625,6 +3625,43 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("posts Slack artifact summaries as text-only fallbacks", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the deck.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Deck carousel",
+          description: "Ready to review.",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "https://brain.test/api/chat/attachments/document?id=deck-1",
+            filename: "deck-carousel.pdf",
+            sizeBytes: 1234,
+          },
+        },
+      ],
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated the deck.");
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      "Artifact: Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nSize: 1.2 KB",
+    );
+  });
+
   it("posts native Discord files for trusted generated document artifacts", async () => {
     harness.addEntities([
       {

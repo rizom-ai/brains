@@ -76,11 +76,27 @@ Slack uses webhook mode and a single workspace in the first implementation slice
 ];
 ```
 
-Point Slack event subscriptions and interactivity at:
+Equivalent `brain.yaml` configuration:
+
+```yaml
+plugins:
+  chat:
+    adapters:
+      slack:
+        botToken: ${SLACK_BOT_TOKEN}
+        signingSecret: ${SLACK_SIGNING_SECRET}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+```
+
+Point Slack event subscriptions (and interactivity, if enabled later) at:
 
 ```text
 POST /api/webhooks/chat/slack
 ```
+
+Subscribe to `app_mention`, `message.channels`, `message.groups`, `message.im`, and `message.mpim`. The route verifies Slack signatures and rejects stale or invalid requests.
 
 Permission rules remain platform-scoped and can coexist:
 

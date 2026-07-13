@@ -155,7 +155,7 @@ Acceptance criteria:
 
 ### 6. Live Slack trial
 
-Run a real Slack app trial after automated tests pass.
+Run a real Slack app trial after automated tests pass. Automated tests now cover valid and invalid Slack request signatures; the remaining checks require real workspace credentials and a publicly reachable webhook.
 
 Smoke checks:
 
