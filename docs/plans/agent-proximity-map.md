@@ -2,7 +2,7 @@
 
 ## Status
 
-P2, in progress. The interactive console map is implemented; the website element remains. This does not preempt the P0 release candidate or P1 identity/model/Rizom lanes. Mockup at [agent-proximity-map-mockup.html](./agent-proximity-map-mockup.html) (open in a browser); delete it together with this plan when the feature ships.
+P2, implemented in `work/agent-proximity-website`; merge and release remain. The interactive console map shipped in `0.2.0-alpha.161`, and the composable website element is implemented and validated in the worktree. This does not preempt the P0 release candidate or P1 identity/model/Rizom lanes. Mockup at [agent-proximity-map-mockup.html](./agent-proximity-map-mockup.html) (open in a browser); delete it together with this plan after the website element ships.
 
 ## Context
 
@@ -67,11 +67,11 @@ Pixel positions are computed by the component from `distance`/`bearing`, so the 
   - `src/lib/agent-dashboard.ts`, `src/lib/register-templates.ts`, `src/plugins/agent-plugin.ts`, `src/lib/constants.ts` — wiring
   - mirrored tests under `test/`
 
-## Remaining phases
+## Phases
 
-### Phase 1 — website element
+### Phase 1 — website element — implemented
 
-`ProximityMapDataSource` (id in `constants.ts`, fetch → `buildProximityMapData`) + `agent-proximity-map` template (`requiredPermission: "public"`, shared component, tooltip script via `runtimeScripts`). Wire into `agent-plugin.ts` `getDataSources`/`getTemplates`. Tests: datasource fetch against schema, template render test. The template is then available to any site composition; no site is rewired in this plan.
+`ProximityMapDataSource` (id in `constants.ts`, fetch → `buildProximityMapData`) + `agent-proximity-map` template (`requiredPermission: "public"`, shared component, tooltip script via `runtimeScripts`) are wired through `agent-plugin.ts`. The shared SVG now has a paper site climate with editorial copy, live network statistics, responsive layout, archived traces, and the existing agent-directory CTA. Datasource, deterministic rendering, template registration, runtime-script interaction, responsive visual output, tests, typecheck, and lint are validated. The template is available to any site composition; no site is rewired in this plan.
 
 **Ships:** the map as a composable site section.
 

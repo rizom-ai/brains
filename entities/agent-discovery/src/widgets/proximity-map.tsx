@@ -311,8 +311,10 @@ function EmptyProximityMap({ data }: { data: ProximityMapData }): JSX.Element {
 
 export function ProximityMap({
   data,
+  surface = "dashboard",
 }: {
   data: ProximityMapData;
+  surface?: "dashboard" | "site";
 }): JSX.Element {
   if (data.nodes.length === 0) return <EmptyProximityMap data={data} />;
 
@@ -331,9 +333,14 @@ export function ProximityMap({
   const nodesById = new Map(data.nodes.map((node) => [node.id, node]));
 
   return (
-    <div class="proximity-field" data-proximity-map>
+    <div
+      class={`proximity-field proximity-field--${surface}`}
+      data-proximity-map
+    >
       <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        viewBox={
+          surface === "site" ? `40 0 680 ${HEIGHT}` : `0 0 ${WIDTH} ${HEIGHT}`
+        }
         width="100%"
         height="auto"
         role="img"
@@ -597,68 +604,72 @@ export function ProximityMap({
         })}
       </svg>
 
-      <div class="proximity-hud proximity-hud-count" aria-hidden="true">
-        <div class="proximity-count-number">{activeNodes.length}</div>
-        <div class="proximity-count-label">agents in reach</div>
-      </div>
+      {surface === "dashboard" && (
+        <>
+          <div class="proximity-hud proximity-hud-count" aria-hidden="true">
+            <div class="proximity-count-number">{activeNodes.length}</div>
+            <div class="proximity-count-label">agents in reach</div>
+          </div>
 
-      <div
-        class="proximity-hud proximity-hud-chart"
-        aria-label="Semantic constellations"
-      >
-        <div class="proximity-hud-title">Constellations</div>
-        {data.clusters.length > 0 ? (
-          data.clusters.map((cluster, index) => (
-            <div
-              class="proximity-constellation-row"
-              key={`${cluster.label}:${index}`}
-              data-proximity-constellation={`cluster-${index}`}
-              data-proximity-cluster-label={cluster.label}
-              data-proximity-cluster-members={cluster.memberIds.length}
-              role="button"
-              tabIndex={0}
-            >
-              <span>
-                <span class="proximity-constellation-name">
-                  {cluster.label}
-                </span>
-                <span class="proximity-constellation-members">
-                  {cluster.memberIds
-                    .flatMap((id) => {
-                      const node = nodesById.get(id);
-                      return node ? [node.name] : [];
-                    })
-                    .join(" · ")}
-                </span>
-              </span>
-              <span class="proximity-constellation-count">
-                {cluster.memberIds.length} agents
-              </span>
+          <div
+            class="proximity-hud proximity-hud-chart"
+            aria-label="Semantic constellations"
+          >
+            <div class="proximity-hud-title">Constellations</div>
+            {data.clusters.length > 0 ? (
+              data.clusters.map((cluster, index) => (
+                <div
+                  class="proximity-constellation-row"
+                  key={`${cluster.label}:${index}`}
+                  data-proximity-constellation={`cluster-${index}`}
+                  data-proximity-cluster-label={cluster.label}
+                  data-proximity-cluster-members={cluster.memberIds.length}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span>
+                    <span class="proximity-constellation-name">
+                      {cluster.label}
+                    </span>
+                    <span class="proximity-constellation-members">
+                      {cluster.memberIds
+                        .flatMap((id) => {
+                          const node = nodesById.get(id);
+                          return node ? [node.name] : [];
+                        })
+                        .join(" · ")}
+                    </span>
+                  </span>
+                  <span class="proximity-constellation-count">
+                    {cluster.memberIds.length} agents
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p class="proximity-constellation-empty">No constellations yet</p>
+            )}
+          </div>
+
+          <div class="proximity-hud proximity-hud-foot">
+            <div class="proximity-legend" aria-label="Agent kinds">
+              <span>● professional</span>
+              <span>∴ team</span>
+              <span>◌ collective</span>
+              <span>· archived trace</span>
             </div>
-          ))
-        ) : (
-          <p class="proximity-constellation-empty">No constellations yet</p>
-        )}
-      </div>
-
-      <div class="proximity-hud proximity-hud-foot">
-        <div class="proximity-legend" aria-label="Agent kinds">
-          <span>● professional</span>
-          <span>∴ team</span>
-          <span>◌ collective</span>
-          <span>· archived trace</span>
-        </div>
-        {data.pendingCount > 0 && (
-          <p class="proximity-pending-note">
-            <b>{data.pendingCount}</b> pending indexing
-          </p>
-        )}
-        {data.center.kind === "centroid" && (
-          <p class="proximity-pending-note">
-            <b>Identity not indexed</b> · centroid fallback
-          </p>
-        )}
-      </div>
+            {data.pendingCount > 0 && (
+              <p class="proximity-pending-note">
+                <b>{data.pendingCount}</b> pending indexing
+              </p>
+            )}
+            {data.center.kind === "centroid" && (
+              <p class="proximity-pending-note">
+                <b>Identity not indexed</b> · centroid fallback
+              </p>
+            )}
+          </div>
+        </>
+      )}
 
       <div class="proximity-tooltip" data-proximity-tooltip hidden />
     </div>

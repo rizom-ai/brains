@@ -610,6 +610,20 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("registers agent directory and proximity-map datasources", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+
+    await harness.installPlugin(plugin);
+
+    expect(Array.from(harness.getDataSources().keys()).sort()).toEqual([
+      "agent-discovery:entities",
+      "agent-discovery:proximity-map",
+    ]);
+
+    harness.reset();
+  });
+
   it("should register dashboard widgets on plugins ready", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();

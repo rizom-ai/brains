@@ -8,6 +8,7 @@ import type {
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AgentDataSource } from "../datasources/agent-datasource";
+import { ProximityMapDataSource } from "../datasources/proximity-map-datasource";
 import { AgentGenerationJobHandler } from "../handlers/agent-generation-handler";
 import { registerAgentNetworkDashboardWidget } from "../lib/agent-dashboard";
 import { registerAtprotoBrainCardHandlers } from "../lib/atproto-card-events";
@@ -51,7 +52,10 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   }
 
   protected override getDataSources(): DataSource[] {
-    return [new AgentDataSource(this.logger.child("AgentDataSource"))];
+    return [
+      new AgentDataSource(this.logger.child("AgentDataSource")),
+      new ProximityMapDataSource(),
+    ];
   }
 
   protected override async onRegister(
