@@ -90,7 +90,7 @@ import {
   getThreadIdParts,
   isAllowedChannel,
   isBotCreatedDiscordThread,
-  shouldHandleDiscordAction,
+  shouldHandleChatAction,
   shouldRouteChatMessage,
 } from "./discord-routing";
 import { clearDiscordMessageComponents } from "./discord-message-components";
@@ -538,10 +538,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     if (!this.isEnabledPlatform(platform) || platform !== "discord") return;
 
     const thread = event.thread;
-    if (
-      !shouldHandleDiscordAction(thread, platform, this.config.adapters.discord)
-    )
-      return;
+    if (!shouldHandleChatAction(thread, this.config.adapters.discord)) return;
 
     const action = this.promptActions.get(event.value);
     if (action?.threadId !== thread.id) {
@@ -598,31 +595,30 @@ export class ChatInterface extends MessageInterfacePlugin<
   private async handleApprovalAction(event: ActionEvent): Promise<void> {
     if (!this.context || !event.thread || !event.value) return;
     const platform = event.adapter.name;
-    if (!this.isEnabledPlatform(platform) || platform !== "discord") return;
+    if (!this.isEnabledPlatform(platform)) return;
+    if (platform !== "discord" && platform !== "slack") return;
 
-    const conversationId = this.getConversationId(platform, event.thread.id);
+    const thread = event.thread;
+    if (!shouldHandleChatAction(thread, this.getPlatformConfig(thread))) return;
+
+    const conversationId = this.getConversationId(platform, thread.id);
     const approvalIds = await this.getPendingApprovalIds(conversationId);
     if (!approvalIds.has(event.value)) {
-      await event.thread.post(
+      await thread.post(
         this.formatNoticePayload("That approval is no longer pending."),
       );
       return;
     }
 
-    const thread = event.thread;
-    if (
-      !shouldHandleDiscordAction(thread, platform, this.config.adapters.discord)
-    )
-      return;
-
-    const ids = getThreadIdParts(thread.id);
     const userPermissionLevel = this.context.permissions.getUserLevel(
       platform,
       event.user.userId,
-      {
-        channelId: ids.channelId ?? thread.channelId,
-        isBot: Boolean(event.user.isBot),
-      },
+      getPermissionContext(thread, {
+        author: {
+          isMe: event.user.isMe,
+          isBot: event.user.isBot,
+        },
+      }),
     );
 
     await this.confirmApproval({
@@ -859,16 +855,15 @@ export class ChatInterface extends MessageInterfacePlugin<
     const approvals = plan.directives.find(
       (directive) => directive.kind === "approvals",
     );
-    if (isSlack) {
-      const approvalHelp = formatPendingConfirmationHelp(
-        approvals?.confirmations,
-      );
+    const confirmations = approvals?.confirmations;
+    if (isSlack && confirmations && confirmations.length > 1) {
+      const approvalHelp = formatPendingConfirmationHelp(confirmations);
       if (approvalHelp) await input.thread.post(approvalHelp);
     } else {
       await this.approvalCards.trackPendingConfirmations(
         input.thread,
         input.conversationId,
-        approvals?.confirmations,
+        confirmations,
       );
     }
 

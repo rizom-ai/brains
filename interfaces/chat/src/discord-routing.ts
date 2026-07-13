@@ -108,12 +108,10 @@ export function shouldRouteChatMessage(
 export const shouldRouteDiscordMessage: typeof shouldRouteChatMessage =
   shouldRouteChatMessage;
 
-export function shouldHandleDiscordAction(
+export function shouldHandleChatAction(
   thread: RoutedThread,
-  platform: string,
   config: RoutingPolicyConfig | undefined,
 ): boolean {
-  if (platform !== "discord") return true;
   if (!config) return false;
   if (thread.isDM && !config.allowDMs) return false;
   return isAllowedChannel(thread, config);

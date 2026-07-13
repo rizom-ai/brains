@@ -192,13 +192,31 @@ Smoke checks:
 - generated artifact fallback policy;
 - webhook verification.
 
+### 8. Add native Slack confirmation cards
+
+Close the interaction gap exposed by the live trial while retaining text replies as an accessibility and recovery path.
+
+- Enable Slack interactivity in the app manifest for Socket Mode delivery.
+- Render single pending confirmations as Slack Block Kit cards using the existing confirm/cancel action ids and approval-id values.
+- Route Slack actions through the same pending-state, conversation, channel, and permission checks used by Discord.
+- Edit resolved cards to remove active controls and show confirmed/cancelled state.
+- Keep `yes`, `no`, and explicit approval-id replies working, including multi-approval and stale-action notices.
+- Keep the scope limited to confirmation cards; Slack-native artifact and suggested-action cards remain separate follow-up work.
+
+Acceptance criteria:
+
+- A single Slack confirmation displays working Confirm and Cancel buttons.
+- Button actions cannot resolve an approval from another conversation or bypass configured DM/channel permissions.
+- Resolved and stale buttons cannot replay the action.
+- Text confirmation fallback and multiple-approval id flows continue to pass.
+- The updated manifest can be reapplied to the live test app and the interaction works over Socket Mode.
+
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.
 - Serverless Socket Mode forwarding or a hosted socket gateway.
 - Automating Slack workspace consent, bypassing app-install approval, or storing operator/test-user credentials.
 - A required test-user token for the normal local trial path.
-- Slack Block Kit-native approval buttons.
 - Hosted shared Slack gateway.
 - Reworking Discord parity or Rover migration decisions.
 - Durable Chat SDK locks/queues/cache/list or OAuth installation state.

@@ -2460,7 +2460,7 @@ describe("ChatInterface", () => {
     );
   });
 
-  it("uses text-only approval flows in Slack", async () => {
+  it("posts native Slack approval cards while retaining text replies", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
@@ -2487,7 +2487,28 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenNthCalledWith(1, "Please confirm.");
     expect(thread.post).toHaveBeenNthCalledWith(
       2,
-      "Approval required: Delete thing\nReply yes to confirm or no/cancel to abort.",
+      expect.objectContaining({
+        fallbackText:
+          "Approval required: Delete thing\nReply yes to confirm or no/cancel to abort.",
+        card: expect.objectContaining({
+          title: "Approval required",
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              type: "actions",
+              children: expect.arrayContaining([
+                expect.objectContaining({
+                  id: "approval.confirm",
+                  value: "approval-1",
+                }),
+                expect.objectContaining({
+                  id: "approval.cancel",
+                  value: "approval-1",
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      }),
     );
 
     await chat?.handlers.subscribedMessages[0]?.(
@@ -2508,6 +2529,146 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenLastCalledWith(
       "Approved · Action confirmed.",
     );
+  });
+
+  it("confirms Slack approvals from native card buttons and resolves the card", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const approvalMessage = createSentMessage("slack-approval-message-1");
+    let postCount = 0;
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+      post: mock((_message: MockPostMessage) => {
+        postCount += 1;
+        return Promise.resolve(
+          postCount === 2 ? approvalMessage : createSentMessage(),
+        );
+      }),
+    });
+
+    const actionEvent = {
+      actionId: "approval.confirm",
+      adapter: { name: "slack" },
+      messageId: "slack-approval-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    } as MockActionEvent;
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.actions[0]?.handler(actionEvent);
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      `slack-${thread.id}`,
+      true,
+      "approval-1",
+      expect.objectContaining({
+        channelId: thread.id,
+        interfaceType: "slack",
+        userPermissionLevel: "public",
+        actor: expect.objectContaining({ actorId: "slack:user-789" }),
+        source: expect.objectContaining({
+          messageId: "slack-approval-message-1",
+          metadata: expect.objectContaining({
+            actionId: "approval.confirm",
+            actionValue: "approval-1",
+          }),
+        }),
+      }),
+    );
+    expect(approvalMessage.edit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Approval confirmed: Delete thing",
+        card: expect.objectContaining({
+          title: "Approval confirmed",
+          children: expect.not.arrayContaining([
+            expect.objectContaining({ type: "actions" }),
+          ]),
+        }),
+      }),
+    );
+    expect(thread.post).toHaveBeenLastCalledWith(
+      "Approved · Action confirmed.",
+    );
+
+    await chat?.handlers.actions[0]?.handler(actionEvent);
+    expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        fallbackText: "That approval is no longer pending.",
+      }),
+    );
+  });
+
+  it("blocks Slack approval buttons when DMs are disabled", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
+    });
+    const plugin = new ChatInterface({
+      adapters: { slack: { ...baseSlackConfig, allowDMs: false } },
+    });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:D123:1712345678.000100",
+      channelId: "slack:D123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.isDM = true;
+    await chat?.handlers.actions[0]?.handler({
+      actionId: "approval.confirm",
+      adapter: { name: "slack" },
+      messageId: "slack-approval-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    } as MockActionEvent);
+
+    expect(agentService.confirmPendingAction).not.toHaveBeenCalled();
   });
 
   it("requires explicit ids for multiple Slack approvals", async () => {

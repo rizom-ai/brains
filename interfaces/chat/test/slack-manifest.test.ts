@@ -7,6 +7,7 @@ describe("Slack app manifest", () => {
     const manifest = await Bun.file(manifestPath).text();
 
     expect(manifest).toContain("socket_mode_enabled: true");
+    expect(manifest).toContain("interactivity:\n    is_enabled: true");
     for (const scope of [
       "app_mentions:read",
       "channels:history",

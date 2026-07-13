@@ -70,7 +70,7 @@ cd brains/rover
 bun start:slack
 ```
 
-The preflight calls `auth.test`, validates Socket Mode, and probes file, conversation, and user access without printing tokens or socket URLs. Workspace authorization, app installation, and app-token creation remain one-time Slack-approved steps.
+The preflight calls `auth.test`, validates Socket Mode, and probes file, conversation, and user access without printing tokens or socket URLs. Workspace authorization, app installation, and app-token creation remain one-time Slack-approved steps. Reapply the manifest after updates so Socket Mode interactivity remains enabled for native confirmation cards.
 
 The dedicated test app configuration is:
 
