@@ -7,16 +7,23 @@ import type { IDaemonRegistry } from "./daemon-types";
 import type { PluginInfo } from "./types";
 import { PluginStatus, PluginEvent } from "./types";
 import { PluginError } from "../errors";
+import { Exit } from "effect";
+import {
+  createPluginScopedShell,
+  PluginResourceScope,
+} from "./plugin-resource-scope";
 
 /**
- * Handles plugin lifecycle operations (initialization, enable/disable)
- * Extracted from PluginManager for single responsibility
+ * Handles plugin initialization and terminal resource teardown.
+ * Extracted from PluginManager for single responsibility.
  */
 export class PluginLifecycle {
   private plugins: Map<string, PluginInfo>;
   private events: EventEmitter;
   private daemonRegistry: IDaemonRegistry;
   private logger: Logger;
+  private readonly resourceScopes = new Map<string, PluginResourceScope>();
+  private readonly releasedPluginIds = new Set<string>();
 
   constructor(
     plugins: Map<string, PluginInfo>,
@@ -47,41 +54,38 @@ export class PluginLifecycle {
     }
 
     const plugin = pluginInfo.plugin;
+    const resources = new PluginResourceScope();
+    resources.addFinalizer(() =>
+      shell.unregisterPluginCapabilities?.(pluginId),
+    );
+    resources.addFinalizer(() =>
+      shell.getJobQueueService().unregisterPluginHandlers(pluginId),
+    );
+    this.resourceScopes.set(pluginId, resources);
+    this.releasedPluginIds.delete(pluginId);
 
     this.logger.debug(`Initializing plugin: ${pluginId}`);
 
-    // Emit before initialize event
-    this.events.emit(PluginEvent.BEFORE_INITIALIZE, pluginId, plugin);
-
     try {
-      // Register the plugin and get capabilities
-      const capabilities = await plugin.register(shell, registrationContext);
+      this.events.emit(PluginEvent.BEFORE_INITIALIZE, pluginId, plugin);
+      const capabilities = await plugin.register(
+        createPluginScopedShell(shell, resources),
+        registrationContext,
+      );
 
-      // Update plugin status
       pluginInfo.status = PluginStatus.INITIALIZED;
       this.logger.debug(`Initialized plugin: ${pluginId}`);
 
       // Daemons start in a later shell phase after all plugins have registered
       // and ready hooks have run.
-
-      // Emit initialized event
       this.events.emit(PluginEvent.INITIALIZED, pluginId, plugin);
 
       return capabilities;
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
       this.logger.error(
-        `Error initializing plugin ${pluginId}: ${errorMessage}`,
+        `Error initializing plugin ${pluginId}: ${getErrorMessage(error)}`,
       );
-
-      // Update plugin status
-      pluginInfo.status = PluginStatus.ERROR;
-      pluginInfo.error = toError(error);
-
-      // Emit error event
-      this.events.emit(PluginEvent.ERROR, pluginId, error);
-
-      // Re-throw for dependency resolution
+      await this.failPluginInitialization(pluginId, error);
       throw error;
     }
   }
@@ -109,7 +113,14 @@ export class PluginLifecycle {
       const readyError = toError(error);
       pluginInfo.status = PluginStatus.ERROR;
       pluginInfo.error = readyError;
-      this.events.emit(PluginEvent.ERROR, pluginId, readyError);
+      try {
+        this.events.emit(PluginEvent.ERROR, pluginId, readyError);
+      } catch (eventError) {
+        this.logger.error(
+          `Plugin error listener failed for ${pluginId}`,
+          eventError,
+        );
+      }
       throw readyError;
     }
   }
@@ -136,80 +147,93 @@ export class PluginLifecycle {
     }
   }
 
-  /**
-   * Disable a plugin
-   * This only marks the plugin as disabled but doesn't unregister it
-   */
+  /** Mark a failed registration phase and release everything acquired so far. */
+  public async failPluginInitialization(
+    id: string,
+    error: unknown,
+  ): Promise<void> {
+    const pluginInfo = this.plugins.get(id);
+    if (!pluginInfo) return;
+
+    const shouldEmit = pluginInfo.status !== PluginStatus.ERROR;
+    const failure = toError(error);
+    pluginInfo.status = PluginStatus.ERROR;
+    pluginInfo.error = failure;
+    await this.releasePluginResources(id, Exit.fail(error));
+
+    if (shouldEmit) {
+      try {
+        this.events.emit(PluginEvent.ERROR, id, failure);
+      } catch (eventError) {
+        this.logger.error(`Plugin error listener failed for ${id}`, eventError);
+      }
+    }
+  }
+
+  /** Terminally release one plugin. Plugin instances are not re-enabled. */
   public async disablePlugin(id: string): Promise<void> {
     const pluginInfo = this.plugins.get(id);
     if (!pluginInfo) {
       this.logger.warn(`Cannot disable plugin ${id}: not registered`);
       return;
     }
+    if (pluginInfo.status === PluginStatus.DISABLED) return;
 
     this.logger.debug(`Disabling plugin: ${id}`);
+    const failed = pluginInfo.status === PluginStatus.ERROR;
+    await this.releasePluginResources(id, Exit.void);
 
-    // Stop any daemons registered by this plugin
+    if (!failed) {
+      pluginInfo.status = PluginStatus.DISABLED;
+      this.events.emit(PluginEvent.DISABLED, id, pluginInfo.plugin);
+    }
+    this.logger.debug(`Disabled plugin: ${id}`);
+  }
+
+  private async releasePluginResources(
+    id: string,
+    exit: Exit.Exit<unknown, unknown>,
+  ): Promise<void> {
+    if (this.releasedPluginIds.has(id)) return;
+    this.releasedPluginIds.add(id);
+    const pluginInfo = this.plugins.get(id);
+    if (!pluginInfo) return;
+
     try {
       await this.daemonRegistry.stopPlugin(id);
       this.logger.debug(`Stopped daemons for plugin: ${id}`);
     } catch (error) {
       this.logger.error(`Failed to stop daemons for plugin: ${id}`, error);
-      // Continue with plugin disable even if daemon stop fails
     }
 
-    // Call plugin shutdown hook if defined
     if (pluginInfo.plugin.shutdown) {
       try {
         await pluginInfo.plugin.shutdown();
         this.logger.debug(`Shutdown completed for plugin: ${id}`);
       } catch (error) {
         this.logger.error(`Plugin shutdown failed for ${id}:`, error);
-        // Continue with disable even if shutdown fails
       }
     }
 
-    // Update status
-    pluginInfo.status = PluginStatus.DISABLED;
-
-    // Emit disabled event
-    this.events.emit(PluginEvent.DISABLED, id, pluginInfo.plugin);
-
-    this.logger.debug(`Disabled plugin: ${id}`);
-  }
-
-  /**
-   * Enable a disabled plugin
-   */
-  public async enablePlugin(id: string): Promise<void> {
-    const pluginInfo = this.plugins.get(id);
-    if (!pluginInfo) {
-      this.logger.warn(`Cannot enable plugin ${id}: not registered`);
-      return;
+    for (const daemon of this.daemonRegistry.getByPlugin(id)) {
+      try {
+        await this.daemonRegistry.unregister(daemon.name);
+      } catch (error) {
+        this.logger.error(
+          `Failed to unregister daemon ${daemon.name} for plugin ${id}`,
+          error,
+        );
+      }
     }
 
-    if (pluginInfo.status !== PluginStatus.DISABLED) {
-      this.logger.warn(`Cannot enable plugin ${id}: not disabled`);
-      return;
+    const resources = this.resourceScopes.get(id);
+    this.resourceScopes.delete(id);
+    if (resources) {
+      try {
+        await resources.close(exit);
+      } catch (error) {
+        this.logger.error(`Failed to close resources for plugin ${id}`, error);
+      }
     }
-
-    this.logger.debug(`Enabling plugin: ${id}`);
-
-    // Update status back to initialized
-    pluginInfo.status = PluginStatus.INITIALIZED;
-
-    // Start any daemons registered by this plugin
-    try {
-      await this.daemonRegistry.startPlugin(id);
-      this.logger.debug(`Started daemons for plugin: ${id}`);
-    } catch (error) {
-      this.logger.error(`Failed to start daemons for plugin: ${id}`, error);
-      // Continue with plugin enable even if daemon start fails
-    }
-
-    // Emit enabled event
-    this.events.emit(PluginEvent.ENABLED, id, pluginInfo.plugin);
-
-    this.logger.debug(`Enabled plugin: ${id}`);
   }
 }

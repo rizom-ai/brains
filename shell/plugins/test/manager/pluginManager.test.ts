@@ -211,6 +211,7 @@ describe("PluginManager", (): void => {
       notifyReadyStarted = resolve;
     });
 
+    let failingPluginReleased = false;
     class SlowReadyPlugin extends TestPlugin {
       override async ready(): Promise<void> {
         notifyReadyStarted();
@@ -218,8 +219,13 @@ describe("PluginManager", (): void => {
         this.readyCalled = true;
       }
     }
+    class FailingReadyPlugin extends TestPlugin {
+      async shutdown(): Promise<void> {
+        failingPluginReleased = true;
+      }
+    }
 
-    const failingPlugin = new TestPlugin({
+    const failingPlugin = new FailingReadyPlugin({
       id: "failing-ready",
       version: "1.0.0",
       readyError: true,
@@ -247,6 +253,7 @@ describe("PluginManager", (): void => {
     await readyStarted;
     await Promise.resolve();
     expect(phaseSettled).toBe(false);
+    expect(failingPluginReleased).toBe(false);
 
     releaseReady();
     let readyError: unknown;
@@ -258,6 +265,7 @@ describe("PluginManager", (): void => {
 
     expect(readyError).toBeInstanceOf(Error);
     expect(slowPlugin.readyCalled).toBe(true);
+    expect(failingPluginReleased).toBe(true);
   });
 
   test("plugin dependencies are respected during initialization", async (): Promise<void> => {
@@ -432,21 +440,14 @@ describe("PluginManager", (): void => {
     expect(daemonStarts).toEqual(["started"]);
   });
 
-  test("plugin disable and enable functionality", async (): Promise<void> => {
-    // Create test plugin
+  test("plugin disable is terminal", async (): Promise<void> => {
     const plugin = new TestPlugin({
       id: "test-plugin",
       version: "1.0.0",
     });
-
-    // Track events
     const disableHandler = mock();
-    const enableHandler = mock();
-
     pluginManager.on(PluginEvent.DISABLED, disableHandler);
-    pluginManager.on(PluginEvent.ENABLED, enableHandler);
 
-    // Register and initialize plugin
     pluginManager.registerPlugin(plugin);
     await pluginManager.initializePlugins();
 
@@ -455,7 +456,7 @@ describe("PluginManager", (): void => {
     );
     expect(pluginManager.isPluginInitialized("test-plugin")).toBe(true);
 
-    // Disable plugin
+    await pluginManager.disablePlugin("test-plugin");
     await pluginManager.disablePlugin("test-plugin");
 
     expect(pluginManager.getPluginStatus("test-plugin")).toBe(
@@ -463,15 +464,32 @@ describe("PluginManager", (): void => {
     );
     expect(pluginManager.isPluginInitialized("test-plugin")).toBe(false);
     expect(disableHandler).toHaveBeenCalledTimes(1);
+  });
 
-    // Enable plugin
-    await pluginManager.enablePlugin("test-plugin");
+  test("plugin shutdown runs in reverse dependency order", async () => {
+    const shutdownOrder: string[] = [];
+    class OrderedShutdownPlugin extends TestPlugin {
+      async shutdown(): Promise<void> {
+        shutdownOrder.push(this.id);
+      }
+    }
+    const pluginA = new OrderedShutdownPlugin({
+      id: "plugin-a",
+      version: "1.0.0",
+    });
+    const pluginB = new OrderedShutdownPlugin({
+      id: "plugin-b",
+      version: "1.0.0",
+      dependencies: ["plugin-a"],
+    });
 
-    expect(pluginManager.getPluginStatus("test-plugin")).toBe(
-      PluginStatus.INITIALIZED,
-    );
-    expect(pluginManager.isPluginInitialized("test-plugin")).toBe(true);
-    expect(enableHandler).toHaveBeenCalledTimes(1);
+    pluginManager.registerPlugin(pluginB);
+    pluginManager.registerPlugin(pluginA);
+    await pluginManager.initializePlugins();
+
+    await pluginManager.shutdownPlugins();
+
+    expect(shutdownOrder).toEqual(["plugin-b", "plugin-a"]);
   });
 
   test("plugin registration can handle async operations", async () => {

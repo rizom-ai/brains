@@ -24,7 +24,7 @@ brain model + brain.yaml instance config = running brain
 
 ## Effect runtime boundary
 
-The shell uses Effect for internal control-plane concerns where ownership and structured concurrency matter: transactional startup rollback, resource finalization, daemon lifecycle, background monitors, worker and agent-turn fibers, cancellation, and concurrent lifecycle barriers.
+The shell uses Effect for internal control-plane concerns where ownership and structured concurrency matter: transactional shell and plugin startup rollback, scoped resource finalization, daemon lifecycle, background monitors, worker and agent-turn fibers, cancellation, and concurrent lifecycle barriers.
 
 The boundary is intentionally narrow:
 

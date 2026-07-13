@@ -322,6 +322,9 @@ export interface IMCPService extends IMCPTransport {
    */
   registerInstructions(pluginId: string, instructions: string): void;
 
+  /** Remove every tool, resource, prompt, and instruction owned by a plugin. */
+  unregisterPlugin?(pluginId: string): void;
+
   /**
    * Get all registered plugin instructions
    */

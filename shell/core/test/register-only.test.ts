@@ -128,6 +128,46 @@ describe("Shell register-only mode", () => {
     expect(pluginsRegisteredFired).toBe(false);
   });
 
+  it("should terminally remove plugin capabilities on disable", async () => {
+    const testPlugin: Plugin = {
+      id: "terminal-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Terminal lifecycle test plugin",
+      packageName: "@test/terminal-plugin",
+      register: async () => ({
+        tools: [
+          {
+            name: "terminal_tool",
+            description: "Removed during terminal teardown",
+            inputSchema: {},
+            handler: async () => ({ success: true, data: {} }),
+          },
+        ],
+        resources: [],
+      }),
+    };
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [testPlugin];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize({ mode: "register-only" });
+    expect(
+      shell
+        .getMCPService()
+        .listTools()
+        .some(({ tool }) => tool.name === "terminal_tool"),
+    ).toBe(true);
+
+    await shell.getPluginManager().disablePlugin("terminal-plugin");
+
+    expect(
+      shell
+        .getMCPService()
+        .listTools()
+        .some(({ tool }) => tool.name === "terminal_tool"),
+    ).toBe(false);
+  });
+
   it("should not start background job worker in register-only mode", async () => {
     const config = createTestConfig(testDir.dir);
     shell = Shell.createFresh(config, deps);

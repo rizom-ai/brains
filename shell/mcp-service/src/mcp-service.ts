@@ -269,6 +269,34 @@ export class MCPService implements IMCPService {
     this.logger.debug(`Registered instructions from plugin: ${pluginId}`);
   }
 
+  public unregisterPlugin(pluginId: string): void {
+    for (const [name, entry] of this.registeredTools) {
+      if (entry.pluginId === pluginId) this.registeredTools.delete(name);
+    }
+    for (const [uri, entry] of this.registeredResources) {
+      if (entry.pluginId === pluginId) this.registeredResources.delete(uri);
+    }
+    for (let index = this.registeredTemplates.length - 1; index >= 0; index--) {
+      if (this.registeredTemplates[index]?.pluginId === pluginId) {
+        this.registeredTemplates.splice(index, 1);
+      }
+    }
+    for (let index = this.registeredPrompts.length - 1; index >= 0; index--) {
+      if (this.registeredPrompts[index]?.pluginId === pluginId) {
+        this.registeredPrompts.splice(index, 1);
+      }
+    }
+    this.pluginInstructions.delete(pluginId);
+
+    this.mcpServer = createMcpServerInstance();
+    this.registerEntriesOnServer(
+      this.mcpServer,
+      this.permissionLevel,
+      this.protocolMode,
+    );
+    this.logger.debug(`Unregistered MCP capabilities from plugin: ${pluginId}`);
+  }
+
   public getInstructions(): string[] {
     return Array.from(this.pluginInstructions.values());
   }

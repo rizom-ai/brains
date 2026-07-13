@@ -462,6 +462,30 @@ export class Shell implements IShell {
     }
   }
 
+  public unregisterPluginCapabilities(pluginId: string): void {
+    this.services.mcpService.unregisterPlugin?.(pluginId);
+    this.services.jobQueueService.unregisterPluginHandlers(pluginId);
+    this.endpointRegistry.unregister(pluginId);
+    this.interactionRegistry.unregister(pluginId);
+
+    for (const name of this.services.templateRegistry.getNames()) {
+      if (name.startsWith(`${pluginId}:`)) {
+        this.services.templateRegistry.unregister(name);
+      }
+    }
+
+    const evalRegistry = this.config.evalHandlerRegistry;
+    if (evalRegistry) {
+      for (const handler of evalRegistry.list()) {
+        if (handler.pluginId === pluginId) {
+          evalRegistry.unregister(pluginId, handler.handlerId);
+        }
+      }
+    }
+
+    this.services.agentService.invalidateAgent();
+  }
+
   // Plugin, daemon, and endpoint registration
 
   public getPluginPackageName(pluginId: string): string | undefined {

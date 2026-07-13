@@ -467,6 +467,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       entityAdapters.set(type, adapter as unknown as EntityAdapter<BaseEntity>);
       entityTypeConfigs.set(type, config ?? {});
     },
+    unregisterEntityType: (type): void => {
+      entityTypes.delete(type);
+      entityAdapters.delete(type);
+      entityTypeConfigs.delete(type);
+      createInterceptors.delete(type);
+    },
     getSchema: (): never => {
       throw new Error("Not implemented");
     },
@@ -588,6 +594,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const insightsRegistry: IInsightsRegistry = {
     register: (type: string, handler: InsightHandler) => {
       insightHandlers.set(type, handler);
+    },
+    unregister: (type: string) => {
+      insightHandlers.delete(type);
     },
     getTypes: () => Array.from(insightHandlers.keys()),
     get: async (type: string, es, visibilityScope) => {

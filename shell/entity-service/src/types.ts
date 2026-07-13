@@ -842,6 +842,9 @@ export interface EntityRegistry {
     config?: EntityTypeConfig,
   ): void;
 
+  /** Remove an entity type after failed plugin registration or shell teardown. */
+  unregisterEntityType(type: string): void;
+
   getSchema(type: string): UnknownEntitySchema;
 
   getAdapter<

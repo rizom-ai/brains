@@ -12,11 +12,7 @@ export function registerShellRuntimeFinalizers(
 ): void {
   lifecycle.addFinalizer(() => services.agentService.shutdown?.());
 
-  lifecycle.addFinalizer(async () => {
-    for (const [pluginId] of services.pluginManager.getAllPlugins()) {
-      await services.pluginManager.disablePlugin(pluginId);
-    }
-  });
+  lifecycle.addFinalizer(() => services.pluginManager.shutdownPlugins());
 
   lifecycle.addFinalizer(() => services.jobQueueWorker.stop());
   lifecycle.addFinalizer(() => services.jobProgressMonitor.stop());
