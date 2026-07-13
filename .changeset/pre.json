@@ -113,7 +113,9 @@
     "@rizom/site-rizom-foundation": "0.2.0-alpha.136",
     "@rizom/site-rizom-work": "0.2.0-alpha.134",
     "@brains/sveltia-cms": "0.2.0-alpha.141",
-    "@brains/console-theme": "0.2.0-alpha.143"
+    "@brains/console-theme": "0.2.0-alpha.143",
+    "@rizom/site-sections": "0.2.0-alpha.159",
+    "@brains/theme-rizom-ai": "0.2.0-alpha.141"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -246,6 +248,7 @@
     "relay-setup-email-delivery",
     "relay-web-chat",
     "remove-playbook-starter",
+    "rizom-ai-consolidated-site",
     "rizom-ai-site-package",
     "rizom-brain-first-alpha",
     "rizom-docs-site-package",
@@ -277,6 +280,7 @@
     "rover-setup-email-scaffold",
     "rover-site-content-opt-in",
     "runtime-node-env-production",
+    "schema-first-site-sections",
     "setup-email-onboarding-copy",
     "setup-email-ready-lifecycle",
     "setup-token-ttl",

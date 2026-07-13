@@ -1,6 +1,6 @@
 {
   "name": "@brains/templates",
-  "version": "0.2.0-alpha.159",
+  "version": "0.2.0-alpha.160",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/utils": "workspace:*",

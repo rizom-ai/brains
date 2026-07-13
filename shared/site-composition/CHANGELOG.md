@@ -1,5 +1,15 @@
 # @brains/site-composition
 
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies [[`7a1d3a0`](https://github.com/rizom-ai/brains/commit/7a1d3a0417afba050565948dc3f1e7aadc4eff89)]:
+  - @rizom/site@0.2.0-alpha.160
+  - @brains/content-formatters@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+  - @brains/templates@0.2.0-alpha.160
+
 ## 0.2.0-alpha.159
 
 ### Patch Changes

@@ -1,5 +1,65 @@
 # @brains/rover
 
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- [`7a1d3a0`](https://github.com/rizom-ai/brains/commit/7a1d3a0417afba050565948dc3f1e7aadc4eff89) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The consolidated rizom.ai site (rev-5): one site serving the platform home plus
+  the `/work` and `/foundation` rooms, with `/writing` (essays + talks) and
+  `/network` (agent directory) rendered by the blog/decks/agent-discovery
+  plugins' own list templates. Two-tier chrome (faces strip over per-face nav),
+  mycelium rail, You→Team→Network growth diagram, and a four-column footer on
+  every face. All sections are authored schema-first via `@rizom/site-sections`;
+  copy ships as `site-content/<page>/<section>.md` entities. The consolidated
+  rover composition adds `site-content` (it registers the entity type the page
+  sections render from) alongside web-chat, atproto-registry, products,
+  rizom-ecosystem, and newsletter.
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.160
+  - @brains/site-builder-plugin@0.2.0-alpha.160
+  - @brains/site-content@0.2.0-alpha.160
+  - @brains/app@0.2.0-alpha.160
+  - @brains/decks@0.2.0-alpha.160
+  - @brains/blog@0.2.0-alpha.160
+  - @brains/link@0.2.0-alpha.160
+  - @brains/note@0.2.0-alpha.160
+  - @brains/portfolio@0.2.0-alpha.160
+  - @brains/products@0.2.0-alpha.160
+  - @brains/chat@0.2.0-alpha.160
+  - @brains/discord@0.2.0-alpha.160
+  - @brains/agent-discovery@0.2.0-alpha.160
+  - @brains/assessment@0.2.0-alpha.160
+  - @brains/doc@0.2.0-alpha.160
+  - @brains/document-plugin@0.2.0-alpha.160
+  - @brains/image-plugin@0.2.0-alpha.160
+  - @brains/prompt@0.2.0-alpha.160
+  - @brains/rizom-ecosystem@0.2.0-alpha.160
+  - @brains/series@0.2.0-alpha.160
+  - @brains/social-media@0.2.0-alpha.160
+  - @brains/topics@0.2.0-alpha.160
+  - @brains/wishlist@0.2.0-alpha.160
+  - @brains/a2a@0.2.0-alpha.160
+  - @brains/mcp@0.2.0-alpha.160
+  - @brains/web-chat@0.2.0-alpha.160
+  - @brains/webserver@0.2.0-alpha.160
+  - @brains/analytics@0.2.0-alpha.160
+  - @brains/atproto@0.2.0-alpha.160
+  - @brains/atproto-registry@0.2.0-alpha.160
+  - @brains/cms@0.2.0-alpha.160
+  - @brains/content-pipeline@0.2.0-alpha.160
+  - @brains/dashboard@0.2.0-alpha.160
+  - @brains/directory-sync@0.2.0-alpha.160
+  - @brains/email-resend@0.2.0-alpha.160
+  - @brains/newsletter@0.2.0-alpha.160
+  - @brains/notifications@0.2.0-alpha.160
+  - @brains/obsidian-vault@0.2.0-alpha.160
+  - @brains/playbooks@0.2.0-alpha.160
+  - @brains/rover-onboarding@0.2.0-alpha.160
+  - @brains/stock-photo@0.2.0-alpha.160
+  - @brains/auth-service@0.2.0-alpha.160
+  - @brains/site-default@0.2.0-alpha.160
+  - @brains/theme-default@0.2.0-alpha.160
+
 ## 0.2.0-alpha.159
 
 ### Patch Changes

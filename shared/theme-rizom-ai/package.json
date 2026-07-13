@@ -1,6 +1,6 @@
 {
   "name": "@brains/theme-rizom-ai",
-  "version": "0.2.0-alpha.141",
+  "version": "0.2.0-alpha.160",
   "description": "Consolidated rizom.ai theme — rev-5 design system: deep indigo ground, brass/ruby/moss room accents, warm off-white light mode, Fraunces + IBM Plex.",
   "dependencies": {
     "@brains/theme-default": "workspace:*"
