@@ -15,6 +15,7 @@
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "ai": "^6.0.206",
+    "effect": "^3.21.4",
     "xstate": "^5.32.1"
   },
   "devDependencies": {

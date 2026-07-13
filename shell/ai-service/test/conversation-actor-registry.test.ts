@@ -254,5 +254,22 @@ describe("ConversationActorRegistry", () => {
       const fresh = registry.acquire("conv-a");
       expect(fresh.stopped).toBe(false);
     });
+
+    it("does not let pre-dispose operations evict replacement actors", async () => {
+      const { registry } = createRegistry({ idleTtlMs: 5 });
+      const gate = deferred<void>();
+
+      registry.acquire("conv-a");
+      const pending = registry.enqueue("conv-a", () => gate.promise);
+      registry.dispose();
+
+      const replacement = registry.acquire("conv-a");
+      gate.resolve();
+      await pending;
+      await delay(25);
+
+      expect(replacement.stopped).toBe(false);
+      expect(registry.peek("conv-a")).toBe(replacement);
+    });
   });
 });

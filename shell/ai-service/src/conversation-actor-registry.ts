@@ -11,9 +11,14 @@
  * machine wiring stays in AgentService.
  */
 
+import { Effect, Exit, Fiber, FiberMap, Option, Scope } from "effect";
+
 const DEFAULT_MAX_OPERATIONS_PER_CONVERSATION = 10;
 
-type EvictionTimer = ReturnType<typeof setTimeout>;
+interface EvictionSupervisor {
+  scope: Scope.CloseableScope;
+  fibers: FiberMap.FiberMap<string, void, never>;
+}
 
 export interface ConversationActorRegistryOptions<TActor> {
   /** Create (and start) a fresh actor for a conversation. */
@@ -35,7 +40,9 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
   private readonly actors = new Map<string, TActor>();
   private readonly operations = new Map<string, Promise<void>>();
   private readonly operationCounts = new Map<string, number>();
-  private readonly evictionTimers = new Map<string, EvictionTimer>();
+  private readonly evictionRevisions = new Map<string, number>();
+  private evictionGeneration = 0;
+  private evictionSupervisor: EvictionSupervisor;
 
   constructor(options: ConversationActorRegistryOptions<TActor>) {
     this.createActor = options.createActor;
@@ -44,11 +51,12 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
     this.maxOperations =
       options.maxOperationsPerConversation ??
       DEFAULT_MAX_OPERATIONS_PER_CONVERSATION;
+    this.evictionSupervisor = this.createEvictionSupervisor();
   }
 
   /** Get the conversation's actor, creating it if needed. */
   public acquire(conversationId: string): TActor {
-    this.clearEvictionTimer(conversationId);
+    this.cancelEviction(conversationId);
 
     let actor = this.actors.get(conversationId);
     if (!actor) {
@@ -82,12 +90,14 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
 
     this.operationCounts.set(conversationId, count + 1);
 
+    const generation = this.evictionGeneration;
     const previous = this.operations.get(conversationId) ?? Promise.resolve();
     const run = previous.catch(() => undefined).then(operation);
     const tracked = run.catch(() => undefined).then(() => undefined);
 
     this.operations.set(conversationId, tracked);
     void tracked.then(() => {
+      if (generation !== this.evictionGeneration) return;
       const remaining = (this.operationCounts.get(conversationId) ?? 1) - 1;
       if (remaining <= 0) {
         this.operationCounts.delete(conversationId);
@@ -105,50 +115,71 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
     return run;
   }
 
-  /** (Re)arm the idle-eviction timer for a conversation. */
+  /** (Re)arm the supervised idle-eviction fiber for a conversation. */
   public scheduleEviction(conversationId: string): void {
-    this.clearEvictionTimer(conversationId);
+    const revision = this.cancelEviction(conversationId);
     if (this.idleTtlMs <= 0) return;
 
-    const timer = setTimeout(() => {
-      this.evictionTimers.delete(conversationId);
-      const actor = this.actors.get(conversationId);
-      if (!actor) return;
-      if ((this.operationCounts.get(conversationId) ?? 0) > 0) {
-        return;
-      }
-      if (!this.isEvictable(actor)) return;
+    const generation = this.evictionGeneration;
+    const eviction = Effect.sleep(this.idleTtlMs).pipe(
+      Effect.andThen(
+        Effect.sync(() => {
+          if (generation !== this.evictionGeneration) return;
+          if (this.evictionRevisions.get(conversationId) !== revision) return;
 
-      actor.stop();
-      this.actors.delete(conversationId);
-    }, this.idleTtlMs);
+          this.evictionRevisions.delete(conversationId);
+          const actor = this.actors.get(conversationId);
+          if (!actor) return;
+          if ((this.operationCounts.get(conversationId) ?? 0) > 0) {
+            return;
+          }
+          if (!this.isEvictable(actor)) return;
 
-    const unref = Reflect.get(timer, "unref");
-    if (typeof unref === "function") {
-      Reflect.apply(unref, timer, []);
-    }
+          actor.stop();
+          this.actors.delete(conversationId);
+        }),
+      ),
+    );
 
-    this.evictionTimers.set(conversationId, timer);
+    const fiber = Effect.runFork(eviction);
+    FiberMap.unsafeSet(this.evictionSupervisor.fibers, conversationId, fiber);
   }
 
   /** Stop every actor and drop all registry state. */
   public dispose(): void {
+    this.evictionGeneration++;
+    const previousSupervisor = this.evictionSupervisor;
+    this.evictionSupervisor = this.createEvictionSupervisor();
+    Effect.runFork(Scope.close(previousSupervisor.scope, Exit.void));
+
     for (const actor of this.actors.values()) {
       actor.stop();
-    }
-    for (const timer of this.evictionTimers.values()) {
-      clearTimeout(timer);
     }
     this.actors.clear();
     this.operations.clear();
     this.operationCounts.clear();
-    this.evictionTimers.clear();
+    this.evictionRevisions.clear();
   }
 
-  private clearEvictionTimer(conversationId: string): void {
-    const timer = this.evictionTimers.get(conversationId);
-    if (!timer) return;
-    clearTimeout(timer);
-    this.evictionTimers.delete(conversationId);
+  private cancelEviction(conversationId: string): number {
+    const revision = (this.evictionRevisions.get(conversationId) ?? 0) + 1;
+    this.evictionRevisions.set(conversationId, revision);
+
+    const fiber = FiberMap.unsafeGet(
+      this.evictionSupervisor.fibers,
+      conversationId,
+    );
+    if (Option.isSome(fiber)) {
+      Effect.runSync(Fiber.interruptFork(fiber.value));
+    }
+    return revision;
+  }
+
+  private createEvictionSupervisor(): EvictionSupervisor {
+    const scope = Effect.runSync(Scope.make());
+    const fibers = Effect.runSync(
+      Scope.extend(FiberMap.make<string, void, never>(), scope),
+    );
+    return { scope, fibers };
   }
 }
