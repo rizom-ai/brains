@@ -531,6 +531,9 @@
   gap: 7px;
   color: var(--console-err);
 }
+.pipeline > .status {
+  margin-left: 14px;
+}
 .status-error::before {
   content: "×";
   font-family: var(--console-mono);
