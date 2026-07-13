@@ -184,6 +184,18 @@ export function registerToolOnServer(
           : undefined) ??
         extra._meta?.["userId"] ??
         "mcp-user";
+      const verifiedCanonicalId = extra.authInfo?.extra?.["canonicalId"];
+      const canonicalId =
+        typeof verifiedCanonicalId === "string" &&
+        verifiedCanonicalId.length > 0
+          ? verifiedCanonicalId
+          : undefined;
+      const verifiedDisplayName = extra.authInfo?.extra?.["displayName"];
+      const displayName =
+        typeof verifiedDisplayName === "string" &&
+        verifiedDisplayName.length > 0
+          ? verifiedDisplayName
+          : undefined;
       const conversationId = extra._meta?.["conversationId"];
       const channelId = extra._meta?.["channelId"];
       const channelName = extra._meta?.["channelName"];
@@ -211,6 +223,8 @@ export function registerToolOnServer(
             hasProgress: progressToken !== undefined,
             interfaceType,
             userId,
+            ...(canonicalId ? { canonicalId } : {}),
+            ...(displayName ? { displayName } : {}),
             conversationId,
             channelId,
             channelName,

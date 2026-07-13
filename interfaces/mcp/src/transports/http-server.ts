@@ -13,6 +13,8 @@ export interface VerifiedBearerToken {
   subject: string;
   scope?: string[];
   permissionLevel?: ToolVisibility;
+  canonicalId?: string;
+  displayName?: string;
 }
 
 export interface AuthConfig {
@@ -303,6 +305,8 @@ export class StreamableHTTPServer {
         extra: {
           subject: verified.subject,
           permissionLevel: verified.permissionLevel,
+          canonicalId: verified.canonicalId,
+          displayName: verified.displayName,
         },
       };
     } catch (error) {

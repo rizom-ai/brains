@@ -55,6 +55,8 @@ describe("MCP tools", () => {
       {
         interfaceType: "mcp",
         userId: "operator-1",
+        canonicalId: "user:operator-1",
+        displayName: "Mira",
         conversationId: "session-conversation",
         channelId: "session-1",
         channelName: "MCP Session",
@@ -81,6 +83,8 @@ describe("MCP tools", () => {
           actorId: "operator-1",
           interfaceType: "mcp",
           role: "user",
+          canonicalId: "user:operator-1",
+          displayName: "Mira",
         },
       },
     );

@@ -70,6 +70,12 @@ function getChatContext(
       actorId: toolContext.userId,
       interfaceType: "mcp",
       role: "user",
+      ...(toolContext.canonicalId
+        ? { canonicalId: toolContext.canonicalId }
+        : {}),
+      ...(toolContext.displayName
+        ? { displayName: toolContext.displayName }
+        : {}),
     },
   };
 }

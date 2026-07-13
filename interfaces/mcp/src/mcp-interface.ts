@@ -126,6 +126,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
                     subject: string;
                     scope?: string[];
                     permissionLevel?: "anchor" | "trusted" | "public";
+                    canonicalId?: string;
+                    displayName?: string;
                   }
                 | undefined
               > => {
@@ -137,6 +139,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
                   subject: verified.subject,
                   scope: verified.scope,
                   permissionLevel: principal.permissionLevel,
+                  ...(principal.canonicalId
+                    ? { canonicalId: principal.canonicalId }
+                    : {}),
+                  displayName: principal.displayName,
                 };
               },
             }

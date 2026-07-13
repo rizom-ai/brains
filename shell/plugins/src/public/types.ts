@@ -74,6 +74,8 @@ export interface ToolContext {
   }) => Promise<void>;
   interfaceType?: string;
   userId?: string;
+  canonicalId?: string;
+  displayName?: string;
   conversationId?: string;
   channelId?: string;
   channelName?: string;

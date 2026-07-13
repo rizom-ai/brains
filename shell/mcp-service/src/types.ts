@@ -22,6 +22,8 @@ export interface ToolContext {
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
   userId: string; // User who invoked the tool
+  canonicalId?: string; // Canonical runtime identity when resolved
+  displayName?: string; // Authenticated user's display name when resolved
   conversationId?: string; // Durable conversation/session id for conversation-scoped tools when available
   channelId?: string; // Transport channel/room context (for Matrix, etc.)
   channelName?: string; // Human-readable channel name (for display)
@@ -35,6 +37,8 @@ export interface ToolContext {
 export interface ToolContextRouting {
   interfaceType: string;
   userId: string;
+  canonicalId?: string | undefined;
+  displayName?: string | undefined;
   conversationId?: string | undefined;
   channelId?: string | undefined;
   channelName?: string | undefined;
@@ -46,6 +50,8 @@ export interface ToolContextRouting {
 interface ToolContextRoutingSchemaShape extends ZodRawShape {
   interfaceType: z.ZodString;
   userId: z.ZodString;
+  canonicalId: z.ZodOptional<z.ZodString>;
+  displayName: z.ZodOptional<z.ZodString>;
   conversationId: z.ZodOptional<z.ZodString>;
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
@@ -68,6 +74,8 @@ export const ToolContextRoutingSchema: z.ZodObject<ToolContextRoutingSchemaShape
   z.object({
     interfaceType: z.string(),
     userId: z.string(),
+    canonicalId: z.string().optional(),
+    displayName: z.string().optional(),
     conversationId: z.string().optional(),
     channelId: z.string().optional(),
     channelName: z.string().optional(),

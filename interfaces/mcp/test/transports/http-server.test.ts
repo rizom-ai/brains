@@ -850,11 +850,15 @@ describe("StreamableHTTPServer", () => {
       let port: number;
       let verifyBearerToken: ReturnType<typeof mock>;
       let capturedSubject: unknown;
+      let capturedCanonicalId: unknown;
+      let capturedDisplayName: unknown;
 
       beforeEach(async () => {
         verifyBearerToken = mock(async (_request: Request) => ({
           subject: "single-operator",
           scope: ["openid", "mcp"],
+          canonicalId: "user:operator",
+          displayName: "Mira",
         }));
         server = new StreamableHTTPServer({
           port: 0,
@@ -873,6 +877,8 @@ describe("StreamableHTTPServer", () => {
         });
         mcpServer.tool("capture_subject", {}, async (_params, extra) => {
           capturedSubject = extra.authInfo?.extra?.["subject"];
+          capturedCanonicalId = extra.authInfo?.extra?.["canonicalId"];
+          capturedDisplayName = extra.authInfo?.extra?.["displayName"];
           return { content: [{ type: "text", text: "ok" }] };
         });
         server.connectMCPServer(mcpServer);
@@ -911,6 +917,8 @@ describe("StreamableHTTPServer", () => {
 
         expect(response.status).toBe(200);
         expect(capturedSubject).toBe("single-operator");
+        expect(capturedCanonicalId).toBe("user:operator");
+        expect(capturedDisplayName).toBe("Mira");
       });
 
       test("should reject invalid OAuth bearer tokens", async () => {

@@ -284,14 +284,22 @@ describe("MCPService", () => {
             token: "token",
             clientId: "client-1",
             scopes: ["mcp"],
-            extra: { subject: "verified-operator" },
+            extra: {
+              subject: "verified-operator",
+              canonicalId: "user:verified-operator",
+              displayName: "Mira",
+            },
           },
         },
       );
 
       expect(mockMessageBus.send).toHaveBeenCalledWith(
         expect.objectContaining({
-          payload: expect.objectContaining({ userId: "verified-operator" }),
+          payload: expect.objectContaining({
+            userId: "verified-operator",
+            canonicalId: "user:verified-operator",
+            displayName: "Mira",
+          }),
         }),
       );
     });
