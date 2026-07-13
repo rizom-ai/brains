@@ -2,7 +2,7 @@
 
 ## Status
 
-Live Slack trial in progress. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Webhook and Socket Mode wiring, routing, platform-isolated subscription persistence, native confirmations and suggested actions, progress fallbacks, permission-gated uploads, generated-artifact delivery, and the programmatic local-trial harness are implemented. Core routing, upload, confirmation, progress, artifact, and suggested-action flows have been validated live; the remaining edge-case smoke checks are listed in Slice 7.
+Live Slack trial completed on 2026-07-13. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Webhook and Socket Mode wiring, routing, platform-isolated subscription persistence, native confirmations and suggested actions, progress fallbacks, permission-gated uploads, generated-artifact delivery, DM capability, and the programmatic local-trial harness are implemented and validated. Remaining cases that require a second non-anchor Slack user or deterministic simultaneous model tool calls are covered by automated permission and multi-approval tests.
 
 Keep this as a separate Slack plan, independent of the Discord parity/replacement work.
 
@@ -349,6 +349,22 @@ Acceptance criteria:
 - Socket Mode receives and routes the DM when `allowDMs: true`.
 - Installations missing `im:write` fail preflight clearly.
 - Existing channel, thread, and DM-policy tests remain unchanged.
+
+## Final live-trial results
+
+Validated in **The Fourth** workspace on 2026-07-13:
+
+- app mentions, subscribed thread follow-ups, and unmentioned follow-ups after restart;
+- writable App Home DMs with `im:write`, plus the `allowDMs: false` policy gate;
+- channel allowlist blocking with unrestricted channels restored afterward;
+- image and PDF upload ingestion, description/summary actions, and save actions;
+- canonical upload preservation and legacy upload migration across restart;
+- native suggested-action rendering, unique action IDs, stale-token rejection, and replay rejection;
+- confirmation success, cancellation, and failure using one edited native approval card;
+- compact output without duplicate action labels, terminal tool cards, resolved tool fallbacks, or native-file artifact fallbacks;
+- queued artifact progress and native generated-file delivery.
+
+A live request for two simultaneous note creations was serialized by the model into one tool call, so the multi-approval live case was inconclusive rather than failed. Automated tests cover explicit approval IDs, bad IDs, independent resolution, stale state, and remaining-approval guidance. Public-user upload and artifact boundaries also remain automated because the provisioned live tester is intentionally the sole `anchor` and `slack:*` remains `public`.
 
 ## Non-goals for first Slack slice
 
