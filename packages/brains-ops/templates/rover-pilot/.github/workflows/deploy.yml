@@ -315,6 +315,12 @@ jobs:
 
       - name: Commit generated config
         run: |
+          # A newly added user's generated directory is untracked, and
+          # `git diff` cannot see untracked files — without intent-to-add
+          # the new config is silently dropped here and every later deploy
+          # skips that user (their files never appear in a commit range).
+          git add --intent-to-add -- users views
+
           if git diff --quiet -- users views; then
             exit 0
           fi
