@@ -283,6 +283,22 @@ Live result, 2026-07-13:
 - Clicked **Describe image**; the action turn received the prior image and described it successfully.
 - Confirmed the unique Slack action-id fix eliminated the prior `invalid_blocks` response for multi-button suggested-action cards.
 
+### 13. Consolidate successful Slack approval output
+
+Remove the remaining duplicate lifecycle messages exposed by the live **Save image** action. A simple successful approval currently leaves the resolved approval card alongside a tool-completion card, a separate confirmation-result message, and a resolved `tool-approval` fallback.
+
+- Use the native approval card as the single Slack lifecycle message for a simple successful confirmed action.
+- Remove transient Slack tool-status messages when the response enters or resolves an approval lifecycle; keep tool failures and unrelated tool progress visible.
+- Suppress the separate successful confirmation-result message and resolved `tool-approval` fallback when they add no artifact, error, denial, or remaining-approval information.
+- Preserve Discord behavior, Slack failure/decline messages, artifact delivery, queued-job progress, and multi-approval guidance.
+
+Acceptance criteria:
+
+- A successful Slack **Create note?** flow displays one approval card that is edited to its resolved state, without separate `Create completed` or `Status: output-available` messages.
+- Failed or declined actions still show their outcome.
+- Confirmed actions with files, queued artifacts, or remaining approvals retain the information needed to complete the workflow.
+- Existing Discord confirmation and tool-status behavior remains unchanged.
+
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.

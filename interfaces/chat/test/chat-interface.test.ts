@@ -316,6 +316,7 @@ type ChatInterfaceWithToolActivity = ChatInterfaceInstance & {
 
 interface MockSentMessage {
   id: string;
+  delete: Mock<() => Promise<void>>;
   edit: Mock<(newContent: unknown) => Promise<MockSentMessage>>;
 }
 
@@ -487,6 +488,7 @@ function createAgentService(): MockAgentService {
 function createSentMessage(id = "sent-123"): MockSentMessage {
   const sentMessage: MockSentMessage = {
     id,
+    delete: mock(() => Promise.resolve()),
     edit: mock((_newContent: unknown) => Promise.resolve(sentMessage)),
   };
   return sentMessage;
@@ -2731,6 +2733,120 @@ describe("ChatInterface", () => {
       2,
       "Artifact: queued-slack-image.png\nImage generation has been queued.\nFile: queued-slack-image.png\nType: image/png",
     );
+  });
+
+  it("consolidates successful Slack approvals into the resolved card", async () => {
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    const threadId = "slack:C123:1712345678.000100";
+    agentService.chat.mockImplementationOnce(
+      async (_message, conversationId) => {
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:invoking",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "slack",
+          channelId: threadId,
+        });
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:completed",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "slack",
+          channelId: threadId,
+        });
+        return {
+          text: "Confirmation required.",
+          usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+          pendingConfirmations: [
+            {
+              id: "approval-1",
+              toolName: "system_create",
+              summary: "Create note?",
+              args: {},
+            },
+          ],
+        };
+      },
+    );
+    agentService.confirmPendingAction.mockImplementationOnce(
+      async (conversationId) => {
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:invoking",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "slack",
+          channelId: threadId,
+        });
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:completed",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "slack",
+          channelId: threadId,
+        });
+        return {
+          text: "Completed: Create note",
+          usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+          cards: [
+            {
+              kind: "tool-approval" as const,
+              id: "approval-1",
+              toolName: "system_create",
+              summary: "Create note?",
+              state: "output-available" as const,
+              output: { success: true },
+            },
+          ],
+        };
+      },
+    );
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const sentMessages: MockSentMessage[] = [];
+    const thread = createThread({
+      id: threadId,
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+      post: mock((_message: MockPostMessage) => {
+        const sent = createSentMessage(
+          `slack-message-${sentMessages.length + 1}`,
+        );
+        sentMessages.push(sent);
+        return Promise.resolve(sent);
+      }),
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(sentMessages[0]?.delete).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenCalledTimes(2);
+    const approvalMessage = sentMessages[1];
+
+    await chat?.handlers.actions[0]?.handler({
+      actionId: "approval.confirm",
+      adapter: { name: "slack" },
+      messageId: approvalMessage?.id ?? "",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    } as MockActionEvent);
+
+    expect(approvalMessage?.edit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Approval confirmed: Create note?",
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledTimes(2);
   });
 
   it("blocks Slack approval buttons when DMs are disabled", async () => {

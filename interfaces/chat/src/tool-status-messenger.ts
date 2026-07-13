@@ -39,6 +39,14 @@ export class ToolStatusMessenger {
     await this.update(key, update);
   }
 
+  async dismiss(update: ToolStatusUpdate): Promise<void> {
+    const key = getToolStatusKey(update);
+    const tracked = this.messages.get(key);
+    if (!tracked) return;
+    this.messages.delete(key);
+    await tracked.message.delete();
+  }
+
   private async send(key: string, update: ToolStatusUpdate): Promise<void> {
     const channelId = update.channelId;
     if (!channelId) return;

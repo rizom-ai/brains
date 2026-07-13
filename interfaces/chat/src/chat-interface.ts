@@ -7,6 +7,8 @@ import {
   buildResponsePlan,
   formatArtifactDisplay,
   getConfirmationResultTitle,
+  getResolvedApprovalCard,
+  getToolStatusKey,
   formatPendingConfirmationHelp,
   PendingApprovalTracker,
   MessageUploadContinuity,
@@ -147,6 +149,8 @@ export class ChatInterface extends MessageInterfacePlugin<
   private readonly toolStatusMessenger = new ToolStatusMessenger(
     this.threadRegistry,
   );
+  private readonly compactingSlackApprovalToolStatuses = new Set<string>();
+  private readonly activeSlackConfirmationConversations = new Set<string>();
   private readonly cardBuilder = new ChatCardBuilder({
     getDisplayBaseUrl: (): string | undefined =>
       this.getPreferredDisplayBaseUrl(),
@@ -466,7 +470,48 @@ export class ChatInterface extends MessageInterfacePlugin<
     update: ToolStatusUpdate,
   ): Promise<void> {
     if (update.interfaceType !== this.id || !update.channelId) return;
+    const isSlack = parseChatPlatform(update.channelId) === "slack";
+    const isActiveSlackConfirmation =
+      isSlack &&
+      this.activeSlackConfirmationConversations.has(update.conversationId);
+    const isCompactedApprovalStatus =
+      isSlack &&
+      this.compactingSlackApprovalToolStatuses.has(getToolStatusKey(update));
+    if (
+      isCompactedApprovalStatus ||
+      (isActiveSlackConfirmation && update.state !== "failed")
+    ) {
+      await this.toolStatusMessenger.dismiss(update);
+      return;
+    }
     await this.toolStatusMessenger.handle(update);
+  }
+
+  protected override async handleAgentResponseToolStatuses(
+    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+    conversationId: string,
+  ): Promise<void> {
+    const toolNames = new Set([
+      ...(response.pendingConfirmations ?? []).map(
+        (confirmation) => confirmation.toolName,
+      ),
+      ...(response.cards ?? [])
+        .filter((card) => card.kind === "tool-approval")
+        .map((card) => card.toolName),
+    ]);
+    const compactedKeys = conversationId.startsWith("slack-")
+      ? [...toolNames].map((toolName) => `${conversationId}:${toolName}`)
+      : [];
+    for (const key of compactedKeys) {
+      this.compactingSlackApprovalToolStatuses.add(key);
+    }
+    try {
+      await super.handleAgentResponseToolStatuses(response, conversationId);
+    } finally {
+      for (const key of compactedKeys) {
+        this.compactingSlackApprovalToolStatuses.delete(key);
+      }
+    }
   }
 
   private isEnabledPlatform(interfaceType: string): boolean {
@@ -878,10 +923,14 @@ export class ChatInterface extends MessageInterfacePlugin<
     );
     const confirmations = approvals?.confirmations;
     const isSlack = this.getPlatform(input.thread) === "slack";
+    const hasArtifact = plan.directives.some(
+      (directive) => directive.kind === "artifact",
+    );
     const hasQueuedArtifact = plan.directives.some(
       (directive) =>
         directive.kind === "artifact" && Boolean(directive.card.jobId),
     );
+    const resolvedApproval = getResolvedApprovalCard(input.response.cards);
     const suppressGenericConfirmation =
       isSlack &&
       !input.confirmation &&
@@ -892,8 +941,17 @@ export class ChatInterface extends MessageInterfacePlugin<
       Boolean(input.confirmation) &&
       hasQueuedArtifact &&
       artifactDelivery.files.length === 0;
+    const suppressSuccessfulConfirmationResult =
+      isSlack &&
+      input.confirmation?.confirmed === true &&
+      resolvedApproval?.state === "output-available" &&
+      !confirmations?.length &&
+      !hasArtifact &&
+      artifactDelivery.files.length === 0;
+    const suppressConfirmationResult =
+      suppressQueuedConfirmationResult || suppressSuccessfulConfirmationResult;
     const suppressPrimaryMessage =
-      suppressGenericConfirmation || suppressQueuedConfirmationResult;
+      suppressGenericConfirmation || suppressConfirmationResult;
 
     const message = input.confirmation
       ? this.formatConfirmationResponsePayload(
@@ -915,7 +973,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     await this.sendSupplementalCards(
       input.thread,
       plan,
-      suppressQueuedConfirmationResult,
+      suppressConfirmationResult,
     );
     if (isSlack && confirmations && confirmations.length > 1) {
       const approvalHelp = formatPendingConfirmationHelp(confirmations);
@@ -1071,32 +1129,42 @@ export class ChatInterface extends MessageInterfacePlugin<
     metadata?: Record<string, unknown>;
   }): Promise<void> {
     const platform = this.getPlatform(input.thread);
-    const response = await this.context?.agent.confirmPendingAction(
-      input.conversationId,
-      input.confirmed,
-      input.approvalId,
-      {
-        userPermissionLevel: input.userPermissionLevel,
-        interfaceType: platform,
-        channelId: input.thread.id,
-        channelName: getChannelName(input.thread),
-        ...input.metadata,
-      },
-    );
-    this.removePendingApproval(input.conversationId, input.approvalId);
-    if (!response) return;
+    const compactSlackConfirmation = platform === "slack";
+    if (compactSlackConfirmation) {
+      this.activeSlackConfirmationConversations.add(input.conversationId);
+    }
+    try {
+      const response = await this.context?.agent.confirmPendingAction(
+        input.conversationId,
+        input.confirmed,
+        input.approvalId,
+        {
+          userPermissionLevel: input.userPermissionLevel,
+          interfaceType: platform,
+          channelId: input.thread.id,
+          channelName: getChannelName(input.thread),
+          ...input.metadata,
+        },
+      );
+      this.removePendingApproval(input.conversationId, input.approvalId);
+      if (!response) return;
 
-    await this.renderAgentResponse({
-      thread: input.thread,
-      channelId: input.thread.id,
-      conversationId: input.conversationId,
-      response,
-      userPermissionLevel: input.userPermissionLevel,
-      confirmation: {
-        approvalId: input.approvalId,
-        confirmed: input.confirmed,
-      },
-    });
+      await this.renderAgentResponse({
+        thread: input.thread,
+        channelId: input.thread.id,
+        conversationId: input.conversationId,
+        response,
+        userPermissionLevel: input.userPermissionLevel,
+        confirmation: {
+          approvalId: input.approvalId,
+          confirmed: input.confirmed,
+        },
+      });
+    } finally {
+      if (compactSlackConfirmation) {
+        this.activeSlackConfirmationConversations.delete(input.conversationId);
+      }
+    }
   }
 
   private formatNoticePayload(
