@@ -111,15 +111,13 @@ describe("EntityService index readiness", () => {
 
     const controller = new AbortController();
     const readiness = ctx.entityService.awaitIndexReady({
-      timeoutMs: 60_000,
       intervalMs: 60_000,
       signal: controller.signal,
     });
+    const abortReason = new Error("shell stopped");
+    controller.abort(abortReason);
 
-    await Bun.sleep(5);
-    controller.abort(new Error("shell stopped"));
-
-    expect(readiness).rejects.toThrow("shell stopped");
+    expect(await readiness.catch((error: unknown) => error)).toBe(abortReason);
   });
 
   test("awaitIndexReady treats terminal embedding failures as ready-degraded", async () => {

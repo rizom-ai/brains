@@ -772,7 +772,8 @@ export interface EmbeddingIndexStats {
 }
 
 export interface IndexReadinessOptions {
-  timeoutMs: number;
+  /** Stop polling after this duration. Omit for an owning runtime monitor. */
+  timeoutMs?: number;
   intervalMs?: number;
   /** Cancels readiness polling when the owning runtime shuts down. */
   signal?: AbortSignal;

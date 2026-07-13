@@ -6,8 +6,7 @@ import type { ShellLifecycle } from "./shell-lifecycle";
 import { runConcurrentPhase } from "../effect-runtime";
 import { Effect } from "effect";
 
-const INDEX_READINESS_TIMEOUT_MS = 30_000;
-const INDEX_READINESS_RETRY_MS = 5_000;
+const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
 /**
  * Boot mode variants. Mutually exclusive — encoded as a single field so callers
@@ -179,49 +178,31 @@ export class ShellBootloader {
   private runIndexReadinessMonitor(): Effect.Effect<void> {
     const { entityService, logger } = this.services;
 
-    return Effect.gen(function* () {
-      for (;;) {
-        const ready = yield* Effect.tryPromise({
-          try: (signal) =>
-            entityService.awaitIndexReady({
-              timeoutMs: INDEX_READINESS_TIMEOUT_MS,
-              signal,
-            }),
-          catch: (error) => error,
-        }).pipe(
-          Effect.match({
-            onFailure: (error) => {
-              logger.warn(
-                "Semantic index readiness monitor failed; retrying",
-                error,
-              );
-              return false;
-            },
-            onSuccess: (status) => {
-              if (!status.ready) {
-                logger.warn(
-                  "Semantic index not ready yet; retrying readiness monitor",
-                  status,
-                );
-                return false;
-              }
-
-              if (status.degraded) {
-                logger.warn(
-                  "Semantic index ready with degraded embeddings",
-                  status,
-                );
-              } else {
-                logger.debug("Semantic index ready", status);
-              }
-              return true;
-            },
-          }),
-        );
-
-        if (ready) return;
-        yield* Effect.sleep(INDEX_READINESS_RETRY_MS);
-      }
-    });
+    return Effect.tryPromise({
+      try: (signal) =>
+        entityService.awaitIndexReady({
+          intervalMs: INDEX_READINESS_POLL_INTERVAL_MS,
+          signal,
+        }),
+      catch: (error) => error,
+    }).pipe(
+      Effect.tap((status) =>
+        Effect.sync(() => {
+          if (status.degraded) {
+            logger.warn(
+              "Semantic index ready with degraded embeddings",
+              status,
+            );
+          } else {
+            logger.debug("Semantic index ready", status);
+          }
+        }),
+      ),
+      Effect.catchAll((error) =>
+        Effect.sync(() => {
+          logger.warn("Semantic index readiness monitor stopped", error);
+        }),
+      ),
+    );
   }
 }

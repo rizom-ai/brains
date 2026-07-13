@@ -52,22 +52,8 @@ import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
-
-function delay(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const onAbort = (): void => {
-      clearTimeout(timer);
-      reject(signal?.reason ?? new Error("Operation aborted"));
-    };
-    const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-
-    signal?.addEventListener("abort", onAbort, { once: true });
-    if (signal?.aborted) onAbort();
-  });
-}
+import { Cause, Effect, Exit } from "effect";
+import { makeIndexReadinessPollingEffect } from "./index-readiness";
 
 /**
  * Options for creating an EntityService instance
@@ -313,23 +299,47 @@ export class EntityService implements IEntityService {
   public async awaitIndexReady(
     options: IndexReadinessOptions,
   ): Promise<IndexReadinessStatus> {
-    const intervalMs = options.intervalMs ?? 250;
-    const deadline = Date.now() + options.timeoutMs;
+    let probeFailed = false;
+    const probe = Effect.tryPromise({
+      try: () => this.getIndexReadinessStatus(),
+      catch: (error) => error,
+    }).pipe(
+      Effect.tapError((error) =>
+        Effect.sync(() => {
+          if (!probeFailed) {
+            this.logger.warn(
+              "Semantic index readiness check failed; retrying",
+              {
+                error,
+              },
+            );
+            probeFailed = true;
+          }
+        }),
+      ),
+      Effect.tap(() =>
+        Effect.sync(() => {
+          probeFailed = false;
+        }),
+      ),
+    );
+    const polling = makeIndexReadinessPollingEffect(probe, {
+      intervalMs: options.intervalMs ?? 250,
+      ...(options.timeoutMs !== undefined && {
+        timeoutMs: options.timeoutMs,
+      }),
+    });
+    const exit = await Effect.runPromiseExit(polling, {
+      ...(options.signal && { signal: options.signal }),
+    });
 
-    for (;;) {
-      options.signal?.throwIfAborted();
-      const status = await this.getIndexReadinessStatus();
-      if (status.ready) {
-        this.indexReady = true;
-        return status;
-      }
-
-      if (Date.now() >= deadline) {
-        return status;
-      }
-
-      await delay(intervalMs, options.signal);
+    if (Exit.isFailure(exit)) {
+      if (options.signal?.aborted) throw options.signal.reason;
+      throw Cause.squash(exit.cause);
     }
+
+    if (exit.value.ready) this.indexReady = true;
+    return exit.value;
   }
 
   private async getIndexReadinessStatus(): Promise<IndexReadinessStatus> {

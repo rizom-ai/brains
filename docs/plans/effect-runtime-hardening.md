@@ -2,7 +2,7 @@
 
 ## Status
 
-Active shell-runtime hardening plan. The baseline now includes transactional service and plugin acquisition, terminal per-plugin resource scopes, shell and daemon scopes, startup rollback, settling startup concurrency barriers, fully owned job, cleanup, and agent-turn fibers, end-to-end AI cancellation boundaries, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
+Active shell-runtime hardening plan. The baseline now includes transactional service and plugin acquisition, terminal per-plugin resource scopes, shell and daemon scopes, startup rollback, settling startup concurrency barriers, fully owned job, cleanup, and agent-turn fibers, end-to-end AI cancellation boundaries, consolidated semantic-index polling, Effect schedules, and deterministic clock coverage. This plan tracks only the remaining opportunities that provide concrete lifecycle, cancellation, or concurrency benefits.
 
 This work does not change the roadmap priority of the stable release and identity/bundle/consolidation lanes.
 
@@ -24,37 +24,32 @@ Use Effect as the internal shell control plane for structured concurrency and re
 
 ### P1 — cancellation and scheduling
 
-1. **Consolidate semantic-index polling**
-   - Files: `shell/entity-service/src/entityService.ts`, `shell/core/src/initialization/shellBootloader.ts`
-   - Polling currently exists both inside `awaitIndexReady()` and in the outer monitor retry loop.
-   - Express timeout and retry cadence through one schedule and drive tests with `TestClock`.
-
-2. **Supervise delayed message-progress cleanup**
+1. **Supervise delayed message-progress cleanup**
    - File: `shell/plugins/src/message-interface/message-interface-plugin.ts`
    - Progress cleanup uses detached `setTimeout` callbacks.
    - Use a keyed fiber map so replacement and plugin shutdown interrupt pending cleanup.
 
-3. **Use true bounded projection concurrency**
+2. **Use true bounded projection concurrency**
    - File: `shell/plugins/src/entity/derived-entity-projection.ts`
    - Fixed `Promise.all` chunks under-utilize concurrency when one item is slow.
    - Use `Effect.forEach` with bounded concurrency while preserving input/error semantics.
 
-4. **Own database readiness work**
+3. **Own database readiness work**
    - Files: `shell/job-queue/src/job-queue-service.ts`, `shell/runtime-state/src/runtime-state-service.ts`
    - WAL setup runs as detached Promises and can race readiness or closure.
    - Include non-fatal WAL initialization in scoped service acquisition and await its settlement before ready state.
 
 ### P2 — application and tooling boundaries
 
-5. **Scope app signal handlers**
+4. **Scope app signal handlers**
    - File: `shell/app/src/app.ts`
    - Model SIGINT/SIGTERM listener registration as an acquired resource and guarantee one shutdown fiber.
 
-6. **Scope evaluation apps and HTTP calls**
+5. **Scope evaluation apps and HTTP calls**
    - Files: `shell/ai-evaluation/src/eval-db-builder.ts`, `evaluation-service.ts`, `remote-agent-service.ts`
    - Guarantee shell shutdown on every failure, replace manual worker pools with bounded Effect concurrency, and add HTTP timeout/cancellation.
 
-7. **Revisit auth serialization only with an auth lifecycle**
+6. **Revisit auth serialization only with an auth lifecycle**
    - File: `shell/auth-service/src/json-file-store.ts`
    - The Promise write chain is currently correct. Replace it with `Semaphore` or `Queue` only if auth gains a scoped service lifecycle that can drain or interrupt writes explicitly.
 
@@ -81,7 +76,7 @@ Do not wrap existing `getInstance()` calls in layers. With transactional shell a
 ## Delivery order
 
 1. Introduce the job-service layer slice.
-2. Consolidate semantic-index schedules and clocks.
+2. Finish the remaining P1 lifecycle and concurrency items.
 3. Address app and evaluation lifecycle boundaries.
 
 Each item should remain an independently reviewable commit.
