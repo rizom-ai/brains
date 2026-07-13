@@ -856,6 +856,28 @@ export class ChatInterface extends MessageInterfacePlugin<
         input.confirmation.confirmed,
       );
     }
+    const approvals = plan.directives.find(
+      (directive) => directive.kind === "approvals",
+    );
+    const confirmations = approvals?.confirmations;
+    const isSlack = this.getPlatform(input.thread) === "slack";
+    const hasQueuedArtifact = plan.directives.some(
+      (directive) =>
+        directive.kind === "artifact" && Boolean(directive.card.jobId),
+    );
+    const suppressGenericConfirmation =
+      isSlack &&
+      !input.confirmation &&
+      Boolean(confirmations?.length) &&
+      input.response.text.trim() === "Confirmation required.";
+    const suppressQueuedConfirmationResult =
+      isSlack &&
+      Boolean(input.confirmation) &&
+      hasQueuedArtifact &&
+      artifactDelivery.files.length === 0;
+    const suppressPrimaryMessage =
+      suppressGenericConfirmation || suppressQueuedConfirmationResult;
+
     const message = input.confirmation
       ? this.formatConfirmationResponsePayload(
           input.response,
@@ -864,19 +886,20 @@ export class ChatInterface extends MessageInterfacePlugin<
           artifactDelivery.deniedCardIds,
         )
       : this.formatAgentResponseText(plan, artifactDelivery.deniedCardIds);
-    const isSlack = this.getPlatform(input.thread) === "slack";
-    const messageId = await this.sendAgentResponseWithFiles({
-      thread: input.thread,
-      channelId: input.channelId,
-      message,
-      files: artifactDelivery.files,
-    });
+    const messageId = suppressPrimaryMessage
+      ? undefined
+      : await this.sendAgentResponseWithFiles({
+          thread: input.thread,
+          channelId: input.channelId,
+          message,
+          files: artifactDelivery.files,
+        });
     const artifactMessageId = await this.sendArtifactCards(input.thread, plan);
-    await this.sendSupplementalCards(input.thread, plan);
-    const approvals = plan.directives.find(
-      (directive) => directive.kind === "approvals",
+    await this.sendSupplementalCards(
+      input.thread,
+      plan,
+      suppressQueuedConfirmationResult,
     );
-    const confirmations = approvals?.confirmations;
     if (isSlack && confirmations && confirmations.length > 1) {
       const approvalHelp = formatPendingConfirmationHelp(confirmations);
       if (approvalHelp) await input.thread.post(approvalHelp);
@@ -945,10 +968,14 @@ export class ChatInterface extends MessageInterfacePlugin<
           delivery.userPermissionLevel,
         );
         if (resolved.files.length === 0) continue;
-        const sent = await thread.post({
-          markdown: `Generated artifact ready: ${resolved.files.map((file) => file.filename).join(", ")}`,
-          files: resolved.files,
-        });
+        const sent = await thread.post(
+          this.getPlatform(thread) === "slack"
+            ? { raw: "", files: resolved.files }
+            : {
+                markdown: `Generated artifact ready: ${resolved.files.map((file) => file.filename).join(", ")}`,
+                files: resolved.files,
+              },
+        );
         this.threadRegistry.trackMessage(delivery.channelId, sent);
       } catch (error: unknown) {
         this.logger.error("Failed to deliver completed chat artifact", {
@@ -1209,9 +1236,13 @@ export class ChatInterface extends MessageInterfacePlugin<
   private async sendSupplementalCards(
     thread: ChatThread,
     plan: ResponsePlan,
+    suppressToolApproval = false,
   ): Promise<void> {
     for (const directive of plan.directives) {
       if (directive.kind !== "supplemental") continue;
+      if (suppressToolApproval && directive.card.kind === "tool-approval") {
+        continue;
+      }
       const built = this.cardBuilder.buildSupplementalCard(
         thread.id,
         directive.card,

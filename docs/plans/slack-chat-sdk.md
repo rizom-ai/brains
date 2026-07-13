@@ -230,6 +230,21 @@ Acceptance criteria:
 - Existing Discord native delivery and Slack text fallbacks continue to work.
 - The updated manifest is reinstalled and a live self-portrait generation displays its image.
 
+### 10. Consolidate Slack interaction output
+
+Reduce duplicate lifecycle messages exposed by the live confirmation and image-generation trial without weakening text fallbacks.
+
+- Suppress the generic `Confirmation required.` text when a native Slack confirmation card already communicates that state.
+- For confirmed queued artifacts, use the resolved approval card plus the tracked artifact progress message instead of posting a second confirmation-result message and output-status card.
+- Upload completed Slack files without an extra `Generated artifact ready` text message.
+- Preserve meaningful non-generic agent text, multi-approval help, failures, and text-only confirmation fallback.
+
+Acceptance criteria:
+
+- A generated image flow shows one approval card, one progress message updated to completion, and the native file.
+- No separate `Confirmation required.`, `Status: output-available`, or `Generated artifact ready` message appears in that flow.
+- Non-artifact confirmations and Discord output retain their existing behavior.
+
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.

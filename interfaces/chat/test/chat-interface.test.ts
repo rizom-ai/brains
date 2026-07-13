@@ -2460,9 +2460,9 @@ describe("ChatInterface", () => {
     );
   });
 
-  it("posts native Slack approval cards while retaining text replies", async () => {
+  it("posts native Slack approval cards without generic confirmation chatter", async () => {
     agentService.chat.mockResolvedValueOnce({
-      text: "Please confirm.",
+      text: "Confirmation required.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
       pendingConfirmations: [
         {
@@ -2484,9 +2484,9 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenNthCalledWith(1, "Please confirm.");
+    expect(thread.post).toHaveBeenCalledTimes(1);
     expect(thread.post).toHaveBeenNthCalledWith(
-      2,
+      1,
       expect.objectContaining({
         fallbackText:
           "Approval required: Delete thing\nReply yes to confirm or no/cancel to abort.",
@@ -2621,6 +2621,104 @@ describe("ChatInterface", () => {
       expect.objectContaining({
         fallbackText: "That approval is no longer pending.",
       }),
+    );
+  });
+
+  it("consolidates confirmed queued Slack artifacts into the card and progress message", async () => {
+    harness.addEntities([
+      {
+        id: "queued-slack-image",
+        entityType: "image",
+        content: `data:image/png;base64,${Buffer.from("pending-placeholder").toString("base64")}`,
+        metadata: { status: "pending" },
+        visibility: "shared",
+      },
+    ]);
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "slack:*", level: "trusted" }],
+      }),
+    );
+    agentService.chat.mockResolvedValueOnce({
+      text: "Confirmation required.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_generate",
+          summary: "Generate image?",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockResolvedValueOnce({
+      text: "Completed: Generate image",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval-1",
+          toolName: "system_generate",
+          summary: "Generate image?",
+          state: "output-available",
+          output: { success: true },
+        },
+        {
+          kind: "attachment",
+          id: "queued-image-card",
+          jobId: "queued-image-job",
+          title: "queued-slack-image.png",
+          description: "Image generation has been queued.",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=queued-slack-image",
+            filename: "queued-slack-image.png",
+            source: {
+              entityType: "image",
+              entityId: "queued-slack-image",
+            },
+          },
+        },
+      ],
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.actions[0]?.handler({
+      actionId: "approval.confirm",
+      adapter: { name: "slack" },
+      messageId: "slack-approval-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    } as MockActionEvent);
+
+    expect(thread.post).toHaveBeenCalledTimes(2);
+    expect(thread.post).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        card: expect.objectContaining({ title: "Approval required" }),
+      }),
+    );
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      "Artifact: queued-slack-image.png\nImage generation has been queued.\nFile: queued-slack-image.png\nType: image/png",
     );
   });
 
@@ -5343,7 +5441,7 @@ describe("ChatInterface", () => {
     });
 
     expect(thread.post).toHaveBeenCalledWith({
-      markdown: "Generated artifact ready: async-slack-image.png",
+      raw: "",
       files: [
         expect.objectContaining({
           data: expect.any(ArrayBuffer),
