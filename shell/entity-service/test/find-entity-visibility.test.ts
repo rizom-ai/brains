@@ -47,6 +47,12 @@ function createCapturedService(): CapturedService {
     ): Promise<SearchResult<T>[]> {
       return [];
     },
+    projectSemanticSpace: async () => ({
+      origin: { kind: "centroid" },
+      points: [],
+      neighbors: [],
+      distanceRange: { min: 0, max: 0 },
+    }),
     getEntityTypes: () => [],
     hasEntityType: () => true,
     countEntities: async () => 0,

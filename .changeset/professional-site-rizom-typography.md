@@ -1,5 +1,5 @@
 ---
-"@brains/theme-default": patch
+"@rizom/theme-default": patch
 "@brains/theme-base": patch
 "@brains/theme-rizom": patch
 "@brains/ui-library": patch

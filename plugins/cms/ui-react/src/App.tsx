@@ -1567,9 +1567,6 @@ export function App(): ReactElement {
     <div className="studio" data-view={editing ? "editor" : "listing"}>
       <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
       <header className="crumbbar">
-        <span className="crumb-mark">
-          content <b>studio</b>
-        </span>
         <span className="crumb">
           {editing && !schema.isSingleton ? (
             <button type="button" onClick={backToList}>
@@ -1791,7 +1788,17 @@ export function App(): ReactElement {
                   </button>
                   <details className="cms-mobile-more">
                     <summary aria-label="More document actions">•••</summary>
-                    <button type="button" onClick={() => setDeleteOpen(true)}>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        // Fold the disclosure so it isn't left hanging open
+                        // behind the confirmation dialog's scrim.
+                        event.currentTarget
+                          .closest("details")
+                          ?.removeAttribute("open");
+                        setDeleteOpen(true);
+                      }}
+                    >
                       Delete entry
                     </button>
                   </details>
@@ -1822,15 +1829,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-const styles = `
+export const styles = `
   .studio { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .boot-status { padding: 48px; }
   .spacer { flex: 1; }
 
   /* ── crumb bar — surface-local wayfinding below the console strip ── */
   .crumbbar { display: flex; align-items: center; gap: 18px; padding: 0 20px; height: 40px; border-bottom: 1px solid var(--console-rule-strong); background: linear-gradient(to bottom, color-mix(in srgb, var(--console-text) 4%, transparent), transparent), var(--console-frame); }
-  .crumb-mark { font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--console-text-muted); white-space: nowrap; }
-  .crumb-mark b { color: var(--console-text-dim); font-weight: 500; }
   .crumb { font-size: 13px; color: var(--console-text-dim); }
   .crumb strong { color: var(--console-text); font-weight: 500; }
 
@@ -1967,8 +1972,6 @@ const styles = `
   .pipeline .status { font-family: var(--console-mono); font-size: 11.5px; }
   .pipeline .status-ok { color: color-mix(in srgb, var(--console-ok) 75%, var(--console-frame)); }
   .pipeline .status-error { color: color-mix(in srgb, var(--console-err) 70%, var(--console-frame)); }
-  .pipeline .reload { font-family: var(--console-ui); font-size: 12px; border: 1px solid color-mix(in srgb, var(--console-bg) 40%, transparent); background: none; color: var(--console-frame); border-radius: 5px; padding: 3px 10px; cursor: pointer; margin-left: 6px; }
-  .pipeline .reload:hover { border-color: var(--console-frame); }
 
   /* ── instrument strip: entity db → exported to file → committed ── */
   .stations-wrap { display: flex; align-items: center; min-width: 0; }

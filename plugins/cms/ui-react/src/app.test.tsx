@@ -23,6 +23,7 @@ import {
   MODEL_ASSIST_TARGET,
   PipelineStations,
   SaveStateNotice,
+  styles,
   typeHasPublicationField,
   TypeSwitcher,
 } from "./App";
@@ -78,6 +79,30 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain('.studio[data-view="editor"]');
     expect(responsiveStyles).toContain(".cms-mobile-save-status");
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
+  });
+
+  it("carries no content-studio wordmark in the crumbbar", () => {
+    // The label added noise without wayfinding value; the crumbbar leads
+    // with the collection breadcrumb directly.
+    expect(styles).not.toContain("crumb-mark");
+    expect(visualRefreshStyles).not.toContain("crumb-mark");
+    expect(responsiveStyles).not.toContain("crumb-mark");
+  });
+
+  it("separates the save bar's status line from the pipeline readout", () => {
+    // Without a margin the error line butts against the commit ref:
+    // "last write 3bfa1e6× title: …".
+    expect(visualRefreshStyles).toMatch(
+      /\.pipeline > \.status \{[^}]*margin-left/,
+    );
+  });
+
+  it("lets the conflict card's reload button keep its ghost treatment", () => {
+    // `.pipeline .reload` once styled the button for the dark pipeline
+    // bar (frame-on-frame). The button now lives in the floating conflict
+    // card, where that rule made it invisible in paper climate — it must
+    // fall through to `.btn.ghost`.
+    expect(styles).not.toContain(".pipeline .reload");
   });
 
   it("centers the pill type switcher and keeps row meta on the title line", () => {

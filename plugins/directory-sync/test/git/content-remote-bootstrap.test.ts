@@ -144,6 +144,31 @@ describe("bootstrapContentRemoteFromSeed", () => {
     }
   });
 
+  it("seeds from a directory that is itself a git repo (ignores .git)", async () => {
+    const root = mkdtempSync(join(tmpdir(), "directory-sync-bootstrap-"));
+    try {
+      const seedPath = createSeed(root, "doc/getting-started.md");
+      // Make the seed dir a git clone with its own origin, like a local
+      // checkout of a content repo — its .git must not leak into the seed.
+      git(seedPath, ["init", "--initial-branch=main"]);
+      git(seedPath, ["remote", "add", "origin", "https://example.com/x.git"]);
+      const remotePath = join(root, "content.git");
+
+      await bootstrapContentRemoteFromSeed({
+        gitUrl: `file://${remotePath}`,
+        seedContentPath: seedPath,
+        bootstrapFromSeed: true,
+        logger: createSilentLogger(),
+      });
+
+      const files = listRemoteFiles(remotePath);
+      expect(files).toContain("doc/getting-started.md");
+      expect(files.some((file) => file.startsWith(".git/"))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("leaves non-file remotes alone", async () => {
     const root = mkdtempSync(join(tmpdir(), "directory-sync-bootstrap-"));
     try {

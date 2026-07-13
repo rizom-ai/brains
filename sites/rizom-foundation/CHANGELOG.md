@@ -1,5 +1,77 @@
 # @rizom/site-rizom-foundation
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.166
+  - @rizom/site-rizom@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.165
+  - @rizom/site@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.164
+  - @rizom/site-rizom@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.163
+  - @rizom/site-rizom@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.162
+  - @rizom/site-rizom@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.161
+  - @rizom/site@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies [[`7a1d3a0`](https://github.com/rizom-ai/brains/commit/7a1d3a0417afba050565948dc3f1e7aadc4eff89)]:
+  - @rizom/site@0.2.0-alpha.160
+  - @rizom/site-rizom@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.159
+  - @rizom/site-rizom@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.158
+  - @rizom/site-rizom@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes

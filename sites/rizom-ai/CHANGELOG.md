@@ -1,5 +1,94 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.166
+  - @rizom/site-sections@0.2.0-alpha.166
+  - @rizom/site-rizom@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.165
+  - @rizom/site@0.2.0-alpha.165
+  - @rizom/site-sections@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.164
+  - @rizom/site-sections@0.2.0-alpha.164
+  - @rizom/site-rizom@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.163
+  - @rizom/site-sections@0.2.0-alpha.163
+  - @rizom/site-rizom@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.162
+  - @rizom/site-sections@0.2.0-alpha.162
+  - @rizom/site-rizom@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.161
+  - @rizom/site@0.2.0-alpha.161
+  - @rizom/site-sections@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- [`7a1d3a0`](https://github.com/rizom-ai/brains/commit/7a1d3a0417afba050565948dc3f1e7aadc4eff89) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The consolidated rizom.ai site (rev-5): one site serving the platform home plus
+  the `/work` and `/foundation` rooms, with `/writing` (essays + talks) and
+  `/network` (agent directory) rendered by the blog/decks/agent-discovery
+  plugins' own list templates. Two-tier chrome (faces strip over per-face nav),
+  mycelium rail, You→Team→Network growth diagram, and a four-column footer on
+  every face. All sections are authored schema-first via `@rizom/site-sections`;
+  copy ships as `site-content/<page>/<section>.md` entities. The consolidated
+  rover composition adds `site-content` (it registers the entity type the page
+  sections render from) alongside web-chat, atproto-registry, products,
+  rizom-ecosystem, and newsletter.
+- Updated dependencies [[`7a1d3a0`](https://github.com/rizom-ai/brains/commit/7a1d3a0417afba050565948dc3f1e7aadc4eff89)]:
+  - @rizom/site-sections@0.2.0-alpha.160
+  - @rizom/site@0.2.0-alpha.160
+  - @rizom/site-rizom@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.159
+  - @rizom/site-rizom@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.158
+  - @rizom/site-rizom@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes

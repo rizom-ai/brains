@@ -28,6 +28,12 @@ function createMockEntityService(): EntityService {
     getEntityRaw: async () => null,
     listEntities: async () => [],
     search: async () => [],
+    projectSemanticSpace: async () => ({
+      origin: { kind: "centroid" },
+      points: [],
+      neighbors: [],
+      distanceRange: { min: 0, max: 0 },
+    }),
     getEntityTypes: () => [],
     hasEntityType: () => false,
     countEntities: async () => 0,

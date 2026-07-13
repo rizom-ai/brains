@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.157",
+  "version": "0.2.0-alpha.166",
   "dependencies": {
     "@brains/a2a": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
@@ -30,6 +30,7 @@
     "@brains/obsidian-vault": "workspace:*",
     "@brains/playbooks": "workspace:*",
     "@brains/portfolio": "workspace:*",
+    "@brains/products": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/rizom-ecosystem": "workspace:*",
     "@brains/rover-onboarding": "workspace:*",
@@ -40,15 +41,17 @@
     "@brains/site-info": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/stock-photo": "workspace:*",
-    "@brains/theme-default": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/web-chat": "workspace:*",
     "@brains/webserver": "workspace:*",
-    "@brains/wishlist": "workspace:*"
+    "@brains/wishlist": "workspace:*",
+    "@rizom/theme-default": "workspace:*"
   },
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@rizom/site-rizom-ai": "workspace:*",
+    "@rizom/theme-rizom-ai": "workspace:*",
     "typescript": "^7.0.2"
   },
   "files": [
@@ -72,6 +75,7 @@
     "start:core": "bun run build:ui && cd test-apps/core && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:default": "bun run build:ui && cd test-apps/default && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:full": "bun run build:ui && cd test-apps/full && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
+    "start:rizom-ai": "bun run build:ui && cd test-apps/rizom-ai && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:slack": "bun run --filter @brains/chat slack:preflight && bun run build:ui && cd test-apps/slack && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "test": "bun test",
     "typecheck": "tsc --noEmit"

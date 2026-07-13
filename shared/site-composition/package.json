@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-composition",
-  "version": "0.2.0-alpha.157",
+  "version": "0.2.0-alpha.166",
   "description": "Shared site composition contract and merge helpers",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
@@ -11,7 +11,9 @@
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@rizom/site-sections": "workspace:*",
     "eslint": "^10.5.0",
+    "preact": "^10.27.2",
     "typescript": "^7.0.2"
   },
   "exports": {

@@ -1,5 +1,122 @@
 # @brains/blog
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.166
+  - @brains/contracts@0.2.0-alpha.166
+  - @brains/media-page-composer@0.2.0-alpha.166
+  - @brains/media-renderer@0.2.0-alpha.166
+  - @brains/ui-library@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/media-page-composer@0.2.0-alpha.165
+  - @brains/atproto-contracts@0.2.0-alpha.165
+  - @brains/contracts@0.2.0-alpha.165
+  - @brains/media-renderer@0.2.0-alpha.165
+  - @brains/ui-library@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.164
+  - @brains/contracts@0.2.0-alpha.164
+  - @brains/media-page-composer@0.2.0-alpha.164
+  - @brains/media-renderer@0.2.0-alpha.164
+  - @brains/ui-library@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/plugins@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.163
+  - @brains/contracts@0.2.0-alpha.163
+  - @brains/media-page-composer@0.2.0-alpha.163
+  - @brains/media-renderer@0.2.0-alpha.163
+  - @brains/ui-library@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/plugins@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.162
+  - @brains/contracts@0.2.0-alpha.162
+  - @brains/media-page-composer@0.2.0-alpha.162
+  - @brains/media-renderer@0.2.0-alpha.162
+  - @brains/ui-library@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/plugins@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/plugins@0.2.0-alpha.161
+  - @brains/atproto-contracts@0.2.0-alpha.161
+  - @brains/media-page-composer@0.2.0-alpha.161
+  - @brains/contracts@0.2.0-alpha.161
+  - @brains/media-renderer@0.2.0-alpha.161
+  - @brains/ui-library@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.160
+  - @brains/media-page-composer@0.2.0-alpha.160
+  - @brains/atproto-contracts@0.2.0-alpha.160
+  - @brains/contracts@0.2.0-alpha.160
+  - @brains/media-renderer@0.2.0-alpha.160
+  - @brains/ui-library@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.159
+  - @brains/contracts@0.2.0-alpha.159
+  - @brains/media-page-composer@0.2.0-alpha.159
+  - @brains/media-renderer@0.2.0-alpha.159
+  - @brains/ui-library@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.158
+  - @brains/contracts@0.2.0-alpha.158
+  - @brains/media-page-composer@0.2.0-alpha.158
+  - @brains/media-renderer@0.2.0-alpha.158
+  - @brains/ui-library@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes

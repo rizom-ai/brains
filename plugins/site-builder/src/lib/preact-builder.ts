@@ -18,6 +18,7 @@ import type { ComponentChildren } from "preact";
 import { dirname, join } from "path";
 import { promises as fs } from "fs";
 import {
+  collectRouteAssets,
   collectRouteScripts,
   createHTMLShell,
   HeadCollector,
@@ -87,10 +88,15 @@ export class PreactBuilder implements StaticSiteBuilder {
     reportProgress("Copying static assets");
     await this.copyStaticAssets();
 
-    // Write inline static assets supplied by the SitePackage (canvas
-    // scripts, fonts, etc.) — keyed by output path, values are file
-    // contents as strings.
-    await this.writeInlineStaticAssets(context.staticAssets);
+    // Write inline static assets: files declared by templates in use on the
+    // built routes (e.g. the file behind a runtimeScripts src), merged with
+    // assets supplied by the SitePackage (canvas scripts, fonts, etc.) —
+    // keyed by output path, values are file contents as strings. On a path
+    // collision the SitePackage wins.
+    await this.writeInlineStaticAssets({
+      ...collectRouteAssets(context.routes, context),
+      ...context.staticAssets,
+    });
 
     reportProgress("Preact build complete");
   }

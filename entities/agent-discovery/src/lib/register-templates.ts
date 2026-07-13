@@ -9,11 +9,16 @@ import {
   AgentDetailTemplate,
   type AgentDetailProps,
 } from "../templates/agent-detail";
+import { AgentProximityMapTemplate } from "../templates/proximity-map-template";
+import { proximityMapDataSchema } from "./proximity-map-schema";
+import { proximityMapScript } from "../widgets/proximity-map-script";
 import {
   AGENT_DATASOURCE_ID,
   AGENT_DETAIL_TEMPLATE_NAME,
   AGENT_ENTITY_TYPE,
   AGENT_LIST_TEMPLATE_NAME,
+  AGENT_PROXIMITY_DATASOURCE_ID,
+  AGENT_PROXIMITY_TEMPLATE_NAME,
 } from "./constants";
 
 const contentVisibilitySchema = z
@@ -40,7 +45,7 @@ const agentSkillSchema = z.object({
   tags: z.array(z.string()),
 });
 
-const agentStatusSchema = z.enum(["discovered", "approved"]);
+const agentStatusSchema = z.enum(["discovered", "approved", "archived"]);
 
 const agentKindSchema = z.enum(["professional", "team", "collective"]);
 
@@ -104,8 +109,24 @@ const agentListSchema = z.object({
   selectedStatus: z.union([z.literal("all"), agentStatusSchema]),
 });
 
+// Served as a real file (emitted via template staticAssets) rather than a
+// data: URI — data: script srcs are blocked by any script-src CSP.
+const PROXIMITY_SCRIPT_SRC = "/scripts/agent-proximity-map.js";
+
 export function getTemplates(): Record<string, Template> {
   return {
+    [AGENT_PROXIMITY_TEMPLATE_NAME]: createTemplate({
+      name: AGENT_PROXIMITY_TEMPLATE_NAME,
+      description: "Semantic agent proximity map site section",
+      schema: proximityMapDataSchema,
+      dataSourceId: AGENT_PROXIMITY_DATASOURCE_ID,
+      requiredPermission: "public",
+      runtimeScripts: [{ src: PROXIMITY_SCRIPT_SRC, defer: true }],
+      staticAssets: { [PROXIMITY_SCRIPT_SRC]: proximityMapScript },
+      layout: {
+        component: AgentProximityMapTemplate,
+      },
+    }),
     [AGENT_LIST_TEMPLATE_NAME]: createTemplate<
       z.output<typeof agentListSchema>,
       AgentListProps

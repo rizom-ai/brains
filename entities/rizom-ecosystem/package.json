@@ -1,6 +1,6 @@
 {
   "name": "@brains/rizom-ecosystem",
-  "version": "0.2.0-alpha.157",
+  "version": "0.2.0-alpha.166",
   "description": "Entity-backed Rizom ecosystem section",
   "dependencies": {
     "@brains/plugins": "workspace:*",

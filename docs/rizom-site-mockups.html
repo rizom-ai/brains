@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>rizom.ai — Consolidated Site Mockup · rev 5</title>
+<title>rizom.ai — Consolidated Site Mockup · rev 8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400;1,450&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
@@ -330,33 +330,189 @@
   .footer-note .col { max-width: 48ch; }
   .footer-note b { color: var(--w45); font-weight: 500; }
 
+  /* ============ network map (home centerpiece) ============ */
+  .net-grid { display: grid; grid-template-columns: minmax(0,5fr) minmax(0,7fr); gap: 52px; align-items: center; margin-top: 22px; max-width: 1100px; }
+  .net-grid h4 { margin-top: 12px; }
+  .net-stats { display: flex; gap: 38px; margin-top: 28px; }
+  .net-stat b { display: block; font-family: var(--display); font-variation-settings: "SOFT" 30, "opsz" 100; font-weight: 420; font-size: 32px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .net-stat span { display: block; font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--w28); margin-top: 7px; }
+  .net-map { position: relative; }
+  .net-map svg { display: block; width: 100%; height: auto; }
+  .net-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 26px; margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--rule-soft); font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--w28); max-width: 1100px; }
+  .net-legend .lg { display: flex; align-items: center; gap: 8px; }
+  .net-legend .lg svg { display: block; }
+  .net-legend .pending { margin-left: auto; font-family: var(--display); font-style: italic; font-size: 12.5px; letter-spacing: 0; text-transform: none; }
+  .net-legend .pending b { color: var(--brass); font-weight: 500; font-style: normal; }
+  .px-halo { transform-origin: center; transform-box: fill-box; animation: pxbreathe 5.2s ease-in-out infinite; }
+  @keyframes pxbreathe { 0%,100% { opacity: .55; transform: scale(1); } 50% { opacity: .95; transform: scale(1.18); } }
+  .px-flicker { animation: pxflicker 4.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes pxflicker { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .px-halo, .px-flicker { animation: none; } }
+
+  /* ============ interface mocks (/brain) — fixed instrument climate, like screenshots ============ */
+  .ifc-stage { position: relative; margin-top: 30px; max-width: 1080px; }
+  .ifc-frame { background: #0a0819; border: 1px solid rgba(241,234,221,.13); border-radius: 10px; overflow: hidden; box-shadow: 0 34px 80px -26px rgba(0,0,0,.85); color: #f1eadd; font-size: 13px; line-height: 1.5; }
+  .ifc-console { width: 74%; }
+  .ifc-chat { position: absolute; right: 0; top: 96px; width: 40%; z-index: 2; box-shadow: 0 44px 90px -22px rgba(0,0,0,.95); }
+  .ifc-bar { display: flex; align-items: center; gap: 7px; padding: 9px 14px; border-bottom: 1px solid rgba(241,234,221,.09); background: rgba(241,234,221,.03); }
+  .ifc-bar i { width: 8px; height: 8px; border-radius: 50%; background: rgba(241,234,221,.13); }
+  .ifc-bar span { margin-left: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; color: rgba(241,234,221,.35); }
+  .ifc-strip { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid rgba(241,234,221,.12); font-family: var(--mono); font-size: 10.5px; }
+  .ifc-strip .mark { display: inline-flex; align-items: center; gap: 8px; letter-spacing: .14em; text-transform: uppercase; color: rgba(241,234,221,.6); }
+  .ifc-strip .mark::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #ff8b3d; }
+  .ifc-strip .snav { display: flex; gap: 4px; font-family: var(--ui); font-size: 12px; }
+  .ifc-strip .snav span { padding: 4px 10px; border-radius: 6px; color: rgba(241,234,221,.4); }
+  .ifc-strip .snav span.on { color: #f1eadd; background: rgba(241,234,221,.08); }
+  .ifc-strip .anchor { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(104,204,139,.13); color: #68cc8b; font-size: 10px; }
+  .ifc-strip .anchor::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #68cc8b; }
+  .ifc-tabs { display: flex; gap: 2px; padding: 8px 16px 0; border-bottom: 1px solid rgba(241,234,221,.12); font-family: var(--mono); font-size: 10.5px; }
+  .ifc-tabs span { padding: 6px 12px 8px; color: rgba(241,234,221,.38); border-bottom: 2px solid transparent; transform: translateY(1px); }
+  .ifc-tabs span.on { color: #f1eadd; border-bottom-color: #ff8b3d; }
+  .ifc-canvas { padding: 14px 16px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ifc-card { background: #14112b; border: 1px solid rgba(241,234,221,.12); border-radius: 8px; padding: 10px 12px 12px; min-width: 0; }
+  .ifc-card.wide { grid-column: 1 / -1; padding-bottom: 0; }
+  .ifc-card .ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-family: var(--mono); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: rgba(241,234,221,.4); margin-bottom: 8px; }
+  .ifc-card .ct small { letter-spacing: .04em; text-transform: none; color: rgba(241,234,221,.22); }
+  .ifc-soil { position: relative; margin: 0 -12px; border-radius: 0 0 8px 8px; background: radial-gradient(ellipse at 36% 50%, rgba(107,47,160,.09), transparent 58%), #05040f; box-shadow: inset 0 2px 22px rgba(0,0,0,.8); overflow: hidden; }
+  .ifc-soil svg { display: block; width: 100%; height: auto; }
+  .ifc-soil .count { position: absolute; top: 10%; left: 5%; pointer-events: none; }
+  .ifc-soil .count b { display: block; font-family: var(--display); font-variation-settings: "opsz" 144, "SOFT" 20; font-weight: 330; font-size: 40px; line-height: .85; letter-spacing: -.04em; text-shadow: 0 0 26px rgba(255,163,102,.25); }
+  .ifc-soil .count span { display: block; margin-top: 7px; font-family: var(--mono); font-size: 8px; letter-spacing: .22em; text-transform: uppercase; color: rgba(241,234,221,.4); }
+  .ifc-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid rgba(241,234,221,.07); font-size: 12px; }
+  .ifc-row:first-of-type { border-top: none; }
+  .ifc-row b { display: block; font-weight: 500; color: rgba(241,234,221,.85); }
+  .ifc-row small { display: block; font-size: 11px; color: rgba(241,234,221,.4); }
+  .ifc-row .pill { align-self: center; font-family: var(--mono); font-size: 8.5px; letter-spacing: .1em; padding: 2px 8px; border-radius: 100px; border: 1px solid rgba(241,234,221,.16); color: rgba(241,234,221,.4); white-space: nowrap; }
+  .ifc-row .pill.ok { color: #68cc8b; border-color: rgba(104,204,139,.35); }
+  .ifc-row .pill.warn { color: #f5c158; border-color: rgba(245,193,88,.35); }
+  .ifc-chat .body { padding: 16px 16px 14px; }
+  .ifc-eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: rgba(241,234,221,.35); }
+  .ifc-chat h6 { font-family: var(--display); font-variation-settings: "SOFT" 80, "opsz" 72; font-weight: 520; font-size: 21px; margin-top: 4px; }
+  .ifc-chat h6 em { font-style: italic; color: #ff8b3d; font-weight: 450; }
+  .ifc-msgs { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .ifc-msg { max-width: 88%; padding: 9px 13px; border-radius: 10px; font-size: 12.5px; }
+  .ifc-msg .who { display: block; font-family: var(--mono); font-size: 8.5px; letter-spacing: .18em; text-transform: uppercase; color: rgba(241,234,221,.35); margin-bottom: 4px; }
+  .ifc-msg.you { align-self: flex-end; background: rgba(255,139,61,.13); border: 1px solid rgba(255,139,61,.25); }
+  .ifc-msg.brain { align-self: flex-start; background: rgba(241,234,221,.05); border: 1px solid rgba(241,234,221,.1); }
+  .ifc-msg .src { display: inline-block; margin-top: 6px; font-family: var(--mono); font-size: 9px; color: rgba(255,163,102,.75); }
+  .ifc-status { margin-top: 12px; font-family: var(--display); font-style: italic; font-size: 12.5px; color: rgba(241,234,221,.4); }
+  .ifc-status i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #ff8b3d; margin-right: 7px; vertical-align: 2px; animation: pxflicker 2.2s ease-in-out infinite; }
+  .ifc-prompt { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 12px; border: 1px solid rgba(241,234,221,.16); border-radius: 9px; background: rgba(241,234,221,.03); font-size: 12.5px; color: rgba(241,234,221,.35); }
+  .ifc-prompt b { margin-left: auto; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: #ff8b3d; color: #0a0819; font-weight: 600; }
+  .ifc-caps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--rule-soft); max-width: 1080px; }
+  .ifc-cap { font-size: 13px; color: var(--w45); }
+  .ifc-cap b { display: block; font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--brass); margin-bottom: 6px; }
+
+  /* ============ rev 7: map-first hero ============ */
+  .hero-net { position: relative; padding: 64px var(--pad-x) 30px var(--pad-rail); overflow: hidden; }
+  .hero-net::before { content: ""; position: absolute; inset: -30% -12%; background: radial-gradient(720px 420px at 16% 8%, var(--wash-a), transparent 62%), radial-gradient(640px 400px at 86% 60%, var(--wash-b), transparent 70%); pointer-events: none; }
+  .hero-net > * { position: relative; }
+  .hn-grid { display: grid; grid-template-columns: minmax(0, 10fr) minmax(0, 9fr); gap: 40px; align-items: center; }
+  .hero-net h3 { font-family: var(--display); font-variation-settings: "SOFT" 92, "opsz" 130; font-weight: 435; font-size: clamp(40px, 5.2vw, 74px); line-height: 1.0; letter-spacing: -.022em; margin-top: 18px; max-width: 10.5em; }
+  .hero-net h3 em { font-style: italic; color: var(--brass-soft); font-weight: 395; }
+  .standfirst-p { margin-top: 22px; max-width: 46ch; font-size: 17px; color: var(--w70); }
+  .standfirst-p b { color: var(--white); font-weight: 500; }
+  .hero-net .actions { margin-top: 30px; }
+  .hn-map svg { display: block; width: 100%; height: auto; }
+  .hn-foot { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px 32px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--rule-soft); }
+  .hn-foot .lg { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--w28); }
+  .hn-foot .lg:first-of-type { margin-left: auto; }
+  .hn-foot .pending { font-family: var(--display); font-style: italic; font-size: 12.5px; color: var(--w28); }
+  .hn-foot .pending b { color: var(--brass); font-weight: 500; font-style: normal; }
+  .kg { display: block; margin-bottom: 6px; }
+
+  /* ============ rev 7: /brain product screens ============ */
+  .prod-chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 40px; }
+  .prod-chips span { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; padding: 6px 13px; border: 1px solid var(--rule); border-radius: 100px; color: var(--w45); }
+  .scr-frame { margin-top: 28px; max-width: 1120px; }
+  .dash-canvas { padding: 14px 16px 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .krow { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 5.5px 0; border-top: 1px solid rgba(241,234,221,.06); font-size: 11.5px; }
+  .krow:first-child { border-top: none; }
+  .krow dt { font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; color: rgba(241,234,221,.38); white-space: nowrap; }
+  .krow dd { color: rgba(241,234,221,.8); text-align: right; }
+  .krow .ok, .krow.ok, dd.ok { color: #68cc8b; }
+  .dim-arrow { color: rgba(255,163,102,.7); font-size: 10px; }
+  .ifc-card .big { font-family: var(--display); font-variation-settings: "opsz" 144, "SOFT" 20; font-weight: 330; font-size: 38px; line-height: .9; letter-spacing: -.03em; text-shadow: 0 0 26px rgba(255,163,102,.18); }
+  .ifc-card .biglabel { margin-top: 7px; font-family: var(--mono); font-size: 8.5px; letter-spacing: .2em; text-transform: uppercase; color: rgba(241,234,221,.4); }
+  .vals { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .vals i { font-style: normal; font-family: var(--mono); font-size: 9px; padding: 2px 9px; border: 1px solid rgba(241,234,221,.16); border-radius: 100px; color: rgba(241,234,221,.6); }
+  .chatgrid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 24px; margin-top: 28px; max-width: 1080px; align-items: start; }
+  .intg { display: flex; flex-direction: column; gap: 14px; }
+  .dsc { padding: 12px 14px; display: flex; flex-direction: column; gap: 11px; }
+  .dsc-row { display: flex; gap: 10px; font-size: 12px; }
+  .dsc-av { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-size: 10px; color: #f1eadd; }
+  .dsc-name { font-weight: 600; font-size: 12px; }
+  .dsc-bot { font-style: normal; font-family: var(--mono); font-size: 8px; background: #5865f2; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: 1px; }
+  .dsc-text { color: rgba(241,234,221,.72); margin-top: 2px; font-size: 12px; }
+  .dsc-text u { text-decoration-color: rgba(255,163,102,.6); }
+  .mcp { background: #f4eee1; color: #33291c; border-color: rgba(51,41,28,.22); }
+  .mcp .ifc-bar { border-color: rgba(51,41,28,.12); background: rgba(51,41,28,.04); }
+  .mcp .ifc-bar i { background: rgba(51,41,28,.16); }
+  .mcp .ifc-bar span { color: rgba(51,41,28,.5); }
+  .mcp .body2 { padding: 12px 14px 13px; font-size: 12.5px; line-height: 1.55; }
+  .mcp .tool { font-family: var(--mono); font-size: 10px; background: rgba(51,41,28,.05); border: 1px solid rgba(51,41,28,.14); border-radius: 7px; padding: 7px 10px; margin: 9px 0; color: #5c4a2e; }
+  .mcp .tool b { color: #a8551e; font-weight: 600; }
+  .term-mock { padding: 12px 14px; font-family: var(--mono); font-size: 11.5px; line-height: 1.85; color: rgba(241,234,221,.72); }
+  .term-mock .ps { color: #ff8b3d; }
+  .term-mock .who { color: #8c82c8; }
+  .studio-grid { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 44px; margin-top: 26px; align-items: center; max-width: 1140px; }
+  .cms-appbar { display: flex; align-items: center; gap: 14px; padding: 9px 14px; border-bottom: 1px solid rgba(241,234,221,.1); }
+  .cms-appbar .crumbs { font-family: var(--mono); font-size: 10px; color: rgba(241,234,221,.4); }
+  .cms-appbar .crumbs b { color: rgba(241,234,221,.85); font-weight: 500; }
+  .cms-appbar .pub { margin-left: auto; font-size: 11.5px; font-weight: 600; background: #ff8b3d; color: #0a0819; padding: 4px 13px; border-radius: 5px; }
+  .cms-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr); }
+  .cms-list { border-right: 1px solid rgba(241,234,221,.09); padding: 8px 0; }
+  .cms-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 7px 14px; font-size: 11.5px; color: rgba(241,234,221,.65); border-left: 2px solid transparent; }
+  .cms-item.on { background: rgba(255,139,61,.08); border-left-color: #ff8b3d; color: #f1eadd; }
+  .cms-kind { font-family: var(--mono); font-size: 8.5px; color: rgba(241,234,221,.32); }
+  .cms-md { padding: 13px 18px 15px; font-family: var(--mono); font-size: 11px; line-height: 1.85; color: rgba(241,234,221,.7); }
+  .cms-md .mh { color: #ffa366; }
+  .cms-md .mfm { color: rgba(140,130,200,.85); }
+  .cms-md .msy { color: rgba(241,234,221,.28); }
+  .cms-md .mem { font-style: italic; color: #f1eadd; }
+  .cms-foot { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid rgba(241,234,221,.09); font-family: var(--mono); font-size: 9.5px; color: rgba(241,234,221,.35); }
+  .cms-foot .fate { margin-left: auto; display: flex; gap: 6px; }
+  .cms-foot .fate span { padding: 2.5px 10px; border: 1px solid rgba(241,234,221,.16); border-radius: 100px; font-size: 8.5px; letter-spacing: .08em; }
+  .cms-foot .fate .on { background: #ff8b3d; color: #0a0819; border-color: #ff8b3d; }
+
   @media (max-width: 1020px) {
     :root { --pad-x: 26px; --pad-rail: 26px; }
+    .hn-grid, .chatgrid, .studio-grid { grid-template-columns: 1fr; }
+    .dash-canvas { grid-template-columns: 1fr; }
+    .dash-canvas .ifc-card { grid-column: auto !important; }
+    .hn-foot .lg:first-of-type { margin-left: 0; }
     .mycelium { display: none; }
     .trio, .support-row, .exhibit-grid, .personas, .quickstart { grid-template-columns: 1fr; }
     .hero .standfirst { flex-direction: column; gap: 22px; }
     .index-row { grid-template-columns: 44px 1fr; }
     .faces .face { grid-template-columns: 1fr; gap: 6px; }
     .footer { grid-template-columns: 1fr 1fr; }
+    .net-grid { grid-template-columns: 1fr; gap: 30px; }
+    .net-legend .pending { margin-left: 0; width: 100%; }
+    .ifc-console { width: 100%; }
+    .ifc-chat { position: static; width: 100%; margin-top: 18px; }
+    .ifc-caps { grid-template-columns: 1fr; margin-top: 26px; }
   }
 </style>
 </head>
 <body>
 
 <header class="mock-header">
-  <div class="kicker">rizom.ai — consolidated site · rev 5 · full visual &amp; content pass</div>
-  <h1>One organism above ground and below: a journal you read, fed by a <em>network you can see growing</em>.</h1>
-  <p class="lede">This pass adds the missing real content (the two personas, three client
-  testimonials, the team roster, the actual three-command quickstart, the mission stanza)
-  and commits harder to the brand book visually: a living mycelium that seeps while you
-  read, a growth diagram as the product's centerpiece, atmospheric washes, one orchestrated
-  hero entrance, scroll reveals, and a real footer. Toggle light mode — it's a first-class
-  theme, not an afterthought.</p>
+  <div class="kicker">rizom.ai — consolidated site · rev 8 · the map tells the story, the screens illustrate it</div>
+  <h1>Home tells Rizom's story <em>through</em> the map; /brain tells the brain's story with screens as illustration.</h1>
+  <p class="lede">Rev 8 fixes the narratives. Home no longer explains the visualization —
+  it tells Rizom through it: this is expertise alive, here's the dark it fights (your best
+  thinking never ships), it starts with one light (yours), lights find each other (you →
+  team → network), the mission, the faces. /brain is no longer a screen catalog — it's the
+  brain's life with you in four chapters: capture (the studio), ask (chat and its
+  integrations), see it run (the dashboard), connect (back to the map). The screens
+  illustrate the chapters, not the other way round.</p>
 </header>
 
 <div class="sitemap">
   <pre><b>rizom.ai</b>
-├── <b>/</b>              <i>the platform · “the tools”</i> — hero · growth · problem · your-data · quickstart · mission · faces
+├── <b>/</b>              the organism — <i>the map as hero</i> · the dark · one light · lights find each other · mission · faces
+├── <b>/brain</b>         <i>the platform · “the tools”</i> — capture · ask · see it run · connect · principles · quickstart
 ├── <b>/work</b>          <span class="rb">the practice · “the service”</span> — diagnostic · workshop · personas · proof · people   <span class="dim">← 301 rizom.work/*</span>
 ├── <b>/foundation</b>    <span class="ms">the research · “the source”</span> — manifesto · essays · gatherings · support        <span class="dim">← 301 rizom.foundation/*</span>
 ├── <b>/writing</b>       one index for everything published — series: <span class="ms">essays</span> · platform notes · practice findings
@@ -365,19 +521,21 @@
 </div>
 
 <nav class="mock-nav">
-  <a href="#s1"><span>01</span>Home</a>
-  <a href="#s2"><span>02</span>/work</a>
-  <a href="#s3"><span>03</span>/foundation</a>
+  <a href="#home"><span>01</span>Home</a>
+  <a href="#brain"><span>02</span>/brain</a>
+  <a href="#work"><span>03</span>/work</a>
+  <a href="#foundation"><span>04</span>/foundation</a>
   <button id="themeToggle">Light mode</button>
 </nav>
 
 <!-- ==================== 01 HOME ==================== -->
-<section class="screen" id="s1">
+<section class="screen" id="home">
   <div class="screen-label">
     <span class="num">01</span>
-    <h2>Home — the platform</h2>
-    <span class="note">Staggered hero entrance; the growth diagram replaces the three-column
-    list; real quickstart; the live mission copy becomes the band before the faces.</span>
+    <h2>Home — the organism</h2>
+    <span class="note">The map opens the story and the copy tells Rizom through it — the
+    dark (why), one light (you), lights finding each other (growth), mission, faces. No
+    section explains the artifact.</span>
   </div>
   <div class="frame">
     <svg class="mycelium" viewBox="0 0 210 2400" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
@@ -395,37 +553,88 @@
 
     <div class="facestrip">
       <span class="fs-org">rizom</span>
-      <a class="on" href="#s1">Platform</a>
-      <a href="#s2">Work</a>
-      <a href="#s3">Foundation</a>
+      <a href="#brain">Brain</a>
+      <a href="#work">Work</a>
+      <a href="#foundation">Foundation</a>
       <span class="fs-right">one practice · three faces</span>
     </div>
     <nav class="sitenav">
-      <a class="wordmark" href="#s1">rizom<i>.</i></a>
+      <a class="wordmark" href="#home">rizom<i>.</i></a>
       <div class="links">
-        <a href="#s1">Docs <sup>↗</sup></a>
-        <a href="#s1">Writing</a>
-        <a href="#s1">Network</a>
+        <a href="#brain">Brain</a>
+        <a href="#home">Writing</a>
+        <a href="#home">Network</a>
+        <a href="#home">Docs <sup>↗</sup></a>
       </div>
       <div class="spacer"></div>
-      <a class="cta-mini" href="#s1">Get Started</a>
+      <a class="cta-mini" href="#brain">Get Started</a>
     </nav>
 
-    <div class="hero">
-      <div class="h-kicker hload">Open source · self-hosted · your knowledge</div>
-      <h3 class="hload h2">Build the agent that <em>represents you</em></h3>
-      <div class="standfirst hload h3">
-        <p>Your knowledge becomes an AI agent. Your agent joins a network. The network finds
-        the right expert for every problem, <b>matched by what people actually know</b>.</p>
-        <div class="actions">
-          <a class="cta" href="#s1">Get Your Brain →</a>
-          <a class="quiet" href="#s1">Talk to this brain</a>
+    <div class="hero-net">
+      <div class="hn-grid">
+        <div>
+          <div class="h-kicker hload">The network, live — every light is a working agent</div>
+          <h3 class="hload h2">This is what expertise looks like <em>when it's alive</em></h3>
+          <p class="standfirst-p hload h3">Independent minds — researchers, builders,
+          operators — each with an agent grown from what they actually know, finding each
+          other by meaning. Rizom exists to grow this network: <b>the tools, the practice,
+          and the research behind it.</b></p>
+          <div class="actions hload h3">
+            <a class="cta" href="#brain">Get Your Brain →</a>
+            <a class="quiet" href="#home">Meet the agents</a>
+          </div>
+        </div>
+        <div class="hn-map hload h2" id="homeMap"></div>
+      </div>
+      <div class="hn-foot hload h4">
+        <div class="net-stat"><b>12</b><span>agents</span></div>
+        <div class="net-stat"><b>2</b><span>constellations</span></div>
+        <div class="net-stat"><b>2</b><span>sightings</span></div>
+        <span class="lg"><svg width="16" height="14"><circle cx="8" cy="7" r="2.6" style="fill:var(--brass)"/></svg>professional</span>
+        <span class="lg"><svg width="16" height="14"><circle cx="5.5" cy="9" r="1.8" style="fill:var(--brass)"/><circle cx="10.5" cy="9" r="1.8" style="fill:var(--brass)"/><circle cx="8" cy="4.6" r="1.8" style="fill:var(--brass)"/></svg>team</span>
+        <span class="lg"><svg width="16" height="14"><circle cx="8" cy="3.4" r="1.4" style="fill:var(--brass)"/><circle cx="12" cy="6.4" r="1.4" style="fill:var(--brass)"/><circle cx="10.5" cy="11" r="1.4" style="fill:var(--brass)"/><circle cx="5.5" cy="11" r="1.4" style="fill:var(--brass)"/><circle cx="4" cy="6.4" r="1.4" style="fill:var(--brass)"/></svg>collective</span>
+        <span class="pending"><b>1 agent</b> still germinating — appears once indexed</span>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">The dark around the lights <small>— what happens to expertise without a network</small></span>
+      <div class="trio">
+        <div class="trio-item rv">
+          <span class="t-no">01</span>
+          <b>Your best thinking never ships</b>
+          <p>Notes, drafts, and ideas scattered everywhere. Turning them into something the
+          world can see takes so long that most of it dies in your head.</p>
+        </div>
+        <div class="trio-item rv d1">
+          <span class="t-no">02</span>
+          <b>Your team forgets what it knows</b>
+          <p>People leave, context disappears, and hard-won expertise gets buried in chat
+          threads no one will ever search.</p>
+        </div>
+        <div class="trio-item rv d2">
+          <span class="t-no">03</span>
+          <b>The right people never find each other</b>
+          <p>Collaborators matched by job titles and résumés, not by what they actually
+          know. The perfect expert might be one connection away.</p>
         </div>
       </div>
     </div>
 
     <div class="sect">
-      <span class="cap rv">One brain, three layers <small>— each one makes the others smarter</small></span>
+      <span class="cap rv">It starts with one light <small>— yours</small></span>
+      <h4 class="rv d1">Your knowledge, <em>switched on</em></h4>
+      <p class="intro rv d2">A brain turns your notes, essays, and judgment into an agent
+      that answers, publishes, and represents you — open source, on your own server, in
+      your own voice. That's the product.</p>
+      <div class="actions rv d3" style="margin-top: 24px">
+        <a class="cta" href="#brain">Meet the brain →</a>
+        <a class="quiet" href="#brain">Three commands to start</a>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv">Lights find each other <small>— you → team → network · each layer makes the others smarter</small></span>
       <div class="growth rv d1">
         <svg viewBox="0 0 980 290" role="img" aria-label="One brain growing into a team, then a network">
           <defs>
@@ -520,27 +729,306 @@
       outlasts any individual; the network matches work to minds by substance, not titles.</div>
     </div>
 
+    <div class="band">
+      <blockquote class="rv">AI is not taking your job. It's exposing how much of your talent
+      you've been wasting. When machines handle the busywork, what remains is the deeply
+      human. <em>The future of work is play.</em></blockquote>
+      <p class="b-sub rv d1">Brains are the foundation. But the vision is bigger:
+      infrastructure for a world where talent flows to opportunity, professionals own what
+      they create, and distributed teams outperform traditional organizations.</p>
+      <div class="actions rv d2">
+        <a class="cta" href="#brain">Start Building →</a>
+        <a class="quiet" href="#home">View on GitHub</a>
+      </div>
+    </div>
+
+    <div class="sect faces">
+      <span class="cap rv">One practice, three faces</span>
+      <a class="face f-plat rv" href="#brain" style="margin-top: 10px">
+        <span class="f-k">The tools</span>
+        <h5>Open-source AI agents built from your own knowledge — <em>get your brain</em></h5>
+        <span class="go">/brain →</span>
+      </a>
+      <a class="face f-work rv d1" href="#work">
+        <span class="f-k">The service</span>
+        <h5>Workshops and consulting that apply the methodology in live engagements — <em>one session, one map</em></h5>
+        <span class="go">/work →</span>
+      </a>
+      <a class="face f-fnd rv d2" href="#foundation">
+        <span class="f-k">The source</span>
+        <h5>The non-profit that holds the IP and stewards the methodology independently — <em>essays &amp; gatherings</em></h5>
+        <span class="go">/foundation →</span>
+      </a>
+    </div>
+
+    <div class="sect alive-line">
+      <span class="a-claim rv"><b>This site is a brain</b> — running the platform it describes.</span>
+      <a class="rv d1" href="#home">talk to it</a>
+      <a class="rv d1" href="#home">/.well-known/agent-card</a>
+      <a class="rv d2" href="#home">ai.rizom.brain.* lexicons</a>
+    </div>
+
+    <footer class="footer">
+      <div class="f-brand">
+        <a class="wordmark" href="#home">rizom<i>.</i></a>
+        <p>The living ecosystem where independent experts thrive together.</p>
+      </div>
+      <div class="f-col">
+        <div class="f-h">The brain</div>
+        <a href="#brain">Get started</a>
+        <a href="#brain">Documentation ↗</a>
+        <a href="#brain">GitHub ↗</a>
+        <a href="#home">Network</a>
+      </div>
+      <div class="f-col">
+        <div class="f-h">The practice</div>
+        <a href="#work">The workshop</a>
+        <a href="#work">Team Type quiz</a>
+        <a href="#work">Contact</a>
+      </div>
+      <div class="f-col">
+        <div class="f-h">The foundation</div>
+        <a href="#foundation">Manifesto</a>
+        <a href="#home">Writing</a>
+        <a href="#home">Events</a>
+        <a href="#foundation">Support</a>
+      </div>
+      <div class="f-legal">
+        <span>© 2026 Stichting Rizom · Amsterdam</span>
+        <span>Apache-2.0</span>
+        <span class="spacer"></span>
+        <span>rizom.work &amp; rizom.foundation now live here — old links redirect</span>
+      </div>
+    </footer>
+  </div>
+</section>
+
+<!-- ==================== 02 BRAIN ==================== -->
+<section class="screen" id="brain">
+  <div class="screen-label">
+    <span class="num">02</span>
+    <h2>/brain — the platform room</h2>
+    <span class="note">The brain's life with you, four chapters: capture (studio), ask
+    (chat + Discord, Claude/MCP, terminal), see it run (dashboard), connect (the map).
+    Screens illustrate; the story leads. Principles and quickstart close.</span>
+  </div>
+  <div class="frame" style="--accent: var(--brass)">
+    <svg class="mycelium" viewBox="0 0 210 2400" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+      <path class="root" d="M96,0 C74,180 120,320 98,500 C76,680 122,820 100,1040 C80,1230 116,1380 100,1580 C88,1760 112,1900 98,2100 C90,2250 104,2330 98,2400" />
+      <path class="twig" d="M98,500 C140,530 165,515 196,540" />
+      <path class="twig" d="M100,1040 C56,1080 44,1140 26,1160" />
+      <path class="twig" d="M100,1580 C146,1610 158,1665 190,1680" />
+      <path class="twig" d="M98,2100 C58,2140 50,2190 32,2205" />
+      <path class="twig" d="M86,250 C52,272 46,310 28,320" />
+      <circle cx="98" cy="500" r="4" stroke="#d4af37" />
+      <circle cx="100" cy="1040" r="4" stroke="#d4af37" style="animation-delay:.9s" />
+      <circle cx="100" cy="1580" r="4" stroke="#d4af37" style="animation-delay:1.7s" />
+      <circle cx="98" cy="2100" r="4" stroke="#d4af37" style="animation-delay:2.4s" />
+    </svg>
+
+    <div class="facestrip">
+      <span class="fs-org">rizom</span>
+      <a class="on" href="#brain">Brain</a>
+      <a href="#work">Work</a>
+      <a href="#foundation">Foundation</a>
+      <span class="fs-right">one practice · three faces</span>
+    </div>
+    <nav class="sitenav">
+      <a class="wordmark" href="#brain">rizom<i>.</i><small>brain</small></a>
+      <div class="links">
+        <a href="#brain">Docs <sup>↗</sup></a>
+        <a href="#brain">GitHub <sup>↗</sup></a>
+        <a href="#home">Network</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="cta-mini" href="#brain">Get Started</a>
+    </nav>
+
+    <div class="room-head">
+      <span class="cap"><b>The product</b><small>open source · self-hosted · Apache-2.0</small></span>
+      <h3>Build the agent that <em>represents you</em></h3>
+      <p class="standfirst">You already wrote the answers — in notes, drafts, and
+      half-finished essays. A brain turns that corpus into an agent that answers for you,
+      publishes in your voice, and takes your seat in the network. Its life with you, in
+      four chapters — with the actual screens.</p>
+      <div class="actions" style="margin: 26px 0 6px">
+        <a class="cta" href="#brain">Get Your Brain →</a>
+        <a class="quiet" href="#brain">View on GitHub</a>
+      </div>
+      <div class="prod-chips">
+        <span>bun add -g @rizom/brain</span>
+        <span>runs on your server</span>
+        <span>model-agnostic</span>
+        <span>markdown corpus</span>
+      </div>
+    </div>
+
     <div class="sect">
-      <span class="cap rv">Why it has to exist</span>
-      <div class="trio">
-        <div class="trio-item rv">
-          <span class="t-no">01</span>
-          <b>Your best thinking never ships</b>
-          <p>Notes, drafts, and ideas scattered everywhere. Turning them into something the
-          world can see takes so long that most of it dies in your head.</p>
+      <span class="cap rv"><b>01 · Capture</b><small>— your corpus is the fuel; markdown is the format</small></span>
+      <div class="studio-grid">
+        <div class="rv d1">
+          <h4>Start with what's already <em>on your disk</em></h4>
+          <p class="intro">Notes, essays, decisions, links — markdown files with
+          frontmatter. Drop them in a folder or point the brain at your git repo and it
+          reads, indexes, and embeds the lot. From then on, every save — in the studio or
+          in your own editor — is a commit it learns from.</p>
+          <ul class="checks" style="margin-top:18px; max-width: 40ch">
+            <li>Plain files — readable without the brain running</li>
+            <li>Draft → review → publish, tracked per entity</li>
+            <li>Your editor or the studio, both first-class</li>
+          </ul>
         </div>
-        <div class="trio-item rv d1">
-          <span class="t-no">02</span>
-          <b>Your team forgets what it knows</b>
-          <p>People leave, context disappears, and hard-won expertise gets buried in chat
-          threads no one will ever search.</p>
+        <div class="ifc-frame rv d2">
+          <div class="ifc-bar"><i></i><i></i><i></i><span>mira.studio/studio</span></div>
+          <div class="cms-appbar"><span class="crumbs">library / essays / <b>distributed-teams.md</b></span><span class="pub">Publish</span></div>
+          <div class="cms-cols">
+            <div class="cms-list">
+              <div class="cms-item"><span>coordination-unit.md</span><span class="cms-kind">essay</span></div>
+              <div class="cms-item on"><span>distributed-teams.md</span><span class="cms-kind">essay</span></div>
+              <div class="cms-item"><span>calculator-launch.md</span><span class="cms-kind">post</span></div>
+              <div class="cms-item"><span>tms-reading-list.md</span><span class="cms-kind">note</span></div>
+            </div>
+            <div class="cms-md">
+              <span class="mfm">---<br />title: Distributed teams outperform<br />series: essays · status: draft<br />---</span><br />
+              <span class="mh"># Distributed teams outperform</span><br />
+              Teams don't fail because people are<br />
+              <span class="msy">**</span>untalented<span class="msy">**</span>. They fail because nobody<br />
+              mapped <span class="mem">who knows what</span> — and AI just<br />
+              automates the confusion.<br />
+            </div>
+          </div>
+          <div class="cms-foot"><span>committed a41f2c9 → rizom-ai/mira-content</span><span class="fate"><span>draft</span><span class="on">review</span><span>publish</span></span></div>
         </div>
-        <div class="trio-item rv d2">
-          <span class="t-no">03</span>
-          <b>The right people never find each other</b>
-          <p>Collaborators matched by job titles and résumés, not by what they actually
-          know. The perfect expert might be one connection away.</p>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv"><b>02 · Ask</b><small>— it answers with receipts, wherever you already talk</small></span>
+      <h4 class="rv">The first assistant that <em>actually knows you</em></h4>
+      <p class="intro rv d1">Ask what you decided, drafted, or half-remember. It answers
+      from your corpus — with sources — and writes new drafts back into it. On your site,
+      in your community's Discord, inside Claude over MCP, or in the terminal: one brain
+      behind all of them.</p>
+      <div class="chatgrid">
+        <div class="ifc-frame rv d1">
+          <div class="ifc-bar"><i></i><i></i><i></i><span>mira.studio/chat</span></div>
+          <div class="body">
+            <span class="ifc-eyebrow">connected · anchor session</span>
+            <h6>Talk to <em>your brain</em></h6>
+            <div class="ifc-msgs">
+              <div class="ifc-msg you"><span class="who">you</span>What did we decide about the pricing page last month?</div>
+              <div class="ifc-msg brain"><span class="who">mira</span>Three decisions, all in your March notes: keep the single tier, publish the calculator, park enterprise until Q3.<span class="src">→ 3 sources</span></div>
+              <div class="ifc-msg you"><span class="who">you</span>Draft a changelog entry for the calculator.</div>
+              <div class="ifc-msg brain"><span class="who">mira</span>Drafted in your voice and saved as <b style="font-family:var(--mono);font-size:11px;font-weight:400">posts/calculator-launch.md</b> — status: draft. Want it queued for review?</div>
+            </div>
+            <div class="ifc-status"><i></i>the rhizome is listening</div>
+            <div class="ifc-prompt">Ask anything you've ever written down…<b>↑</b></div>
+          </div>
         </div>
+        <div class="intg">
+          <div class="ifc-frame rv d1">
+            <div class="ifc-bar"><i></i><i></i><i></i><span>Discord — #ask-mira</span></div>
+            <div class="dsc">
+              <div class="dsc-row"><span class="dsc-av" style="background:#3d4a8a">T</span><div><span class="dsc-name">Tomás</span><div class="dsc-text">@mira what did the pilot retro conclude?</div></div></div>
+              <div class="dsc-row"><span class="dsc-av" style="background:#7a4a12">M</span><div><span class="dsc-name">mira<i class="dsc-bot">BOT</i></span><div class="dsc-text">Two blockers: onboarding docs and the missing staging env. Full notes → <u>retro-2026-06</u>.</div></div></div>
+            </div>
+          </div>
+          <div class="ifc-frame mcp rv d2">
+            <div class="ifc-bar"><i></i><i></i><i></i><span>Claude — connected via MCP</span></div>
+            <div class="body2">
+              Let me check Mira's brain for that.
+              <div class="tool">▸ <b>mira · system_search</b>&nbsp;&nbsp;"pilot retro blockers"&nbsp;&nbsp;→ 6 entities</div>
+              From the June retro notes: the pilot stalled on onboarding docs — Mira flagged the same pattern in two client engagements.
+            </div>
+          </div>
+          <div class="ifc-frame rv d3">
+            <div class="ifc-bar"><i></i><i></i><i></i><span>terminal — brain chat</span></div>
+            <div class="term-mock">
+              <span class="ps">$</span> brain chat<br />
+              <span class="who">mira ›</span> corpus loaded — 2,847 entities<br />
+              <span class="who">you  ›</span> oldest open decision?<br />
+              <span class="who">mira ›</span> "Pricing tiers" — open since March (decisions/pricing.md)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv"><b>03 · See it run</b><small>— your server, your model, nothing hidden</small></span>
+      <h4 class="rv">Self-hosted means <em>legible</em></h4>
+      <p class="intro rv d1">The dashboard shows exactly what your brain knows and how it's
+      running: the corpus by type, the model behind it (swap it anytime), uptime, and the
+      machine faces it exposes — MCP, A2A, ATProto, RSS. One binary, your infrastructure.</p>
+      <div class="ifc-frame scr-frame rv d1">
+        <div class="ifc-bar"><i></i><i></i><i></i><span>mira.studio/dashboard</span></div>
+        <div class="ifc-strip">
+          <span class="mark">mira · console</span>
+          <div class="snav"><span class="on">Dashboard</span><span>Chat</span><span>Library</span></div>
+          <span class="anchor">anchor</span>
+        </div>
+        <div class="ifc-tabs"><span class="on">overview</span><span>content</span><span>network</span><span>system</span></div>
+        <div class="dash-canvas">
+          <div class="ifc-card">
+            <div class="ct"><span>Identity</span></div>
+            <dl>
+              <div class="krow"><dt>Role</dt><dd>Research partner — media theory &amp; praxis</dd></div>
+              <div class="krow"><dt>Purpose</dt><dd>Turn a working library into a public practice</dd></div>
+            </dl>
+            <div class="vals"><i>open source</i><i>rigor</i><i>reciprocity</i></div>
+          </div>
+          <div class="ifc-card">
+            <div class="ct"><span>Entities</span><small>corpus · by volume</small></div>
+            <div class="big">2,847</div>
+            <div class="biglabel">indexed entities</div>
+            <dl style="margin-top:8px">
+              <div class="krow"><dt>notes</dt><dd>1,204</dd></div>
+              <div class="krow"><dt>links</dt><dd>486</dd></div>
+              <div class="krow"><dt>posts</dt><dd>412</dd></div>
+              <div class="krow"><dt>essays</dt><dd>118</dd></div>
+            </dl>
+          </div>
+          <div class="ifc-card">
+            <div class="ct"><span>Runtime</span><small>core</small></div>
+            <dl>
+              <div class="krow"><dt>Version</dt><dd>0.2.0</dd></div>
+              <div class="krow"><dt>Model</dt><dd>anthropic · sonnet</dd></div>
+              <div class="krow"><dt>Uptime</dt><dd>41d 6h</dd></div>
+              <div class="krow"><dt>Embeddings</dt><dd class="ok">✓ current</dd></div>
+              <div class="krow"><dt>Daemons</dt><dd>4 running</dd></div>
+            </dl>
+          </div>
+          <div class="ifc-card" style="grid-column: span 2">
+            <div class="ct"><span>Endpoints</span><small>machine faces of the same brain</small></div>
+            <dl>
+              <div class="krow"><dt>MCP</dt><dd>mira.studio/mcp <span class="dim-arrow">↗</span></dd></div>
+              <div class="krow"><dt>A2A</dt><dd>/.well-known/agent-card <span class="dim-arrow">↗</span></dd></div>
+              <div class="krow"><dt>ATProto</dt><dd>@mira.studio — essays as records <span class="dim-arrow">↗</span></dd></div>
+              <div class="krow"><dt>RSS</dt><dd>/rss.xml <span class="dim-arrow">↗</span></dd></div>
+            </dl>
+          </div>
+          <div class="ifc-card">
+            <div class="ct"><span>Ways to connect</span></div>
+            <dl>
+              <div class="krow"><dt>Chat</dt><dd>mira.studio/chat</dd></div>
+              <div class="krow"><dt>Discord</dt><dd>#ask-mira</dd></div>
+              <div class="krow"><dt>Terminal</dt><dd>brain chat</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+      <p class="l-note rv d2">Widgets register from plugins, tabs derive from widget groups —
+      <b>install a capability and its instruments appear here by themselves.</b></p>
+    </div>
+
+    <div class="sect">
+      <span class="cap rv"><b>04 · Connect</b><small>— the part you saw on the homepage</small></span>
+      <h4 class="rv">Then it takes your seat <em>in the network</em></h4>
+      <p class="intro rv d1">Publish an agent card and your brain becomes a light on the
+      map: discoverable by peers, vouched into teams, matched to work by what you actually
+      know — not by your job title. The map on the front page is this network, live.</p>
+      <div class="actions rv d2" style="margin-top: 24px">
+        <a class="quiet" href="#home">See the live map →</a>
       </div>
     </div>
 
@@ -589,83 +1077,23 @@
     </div>
 
     <div class="band">
-      <blockquote class="rv">AI is not taking your job. It's exposing how much of your talent
-      you've been wasting. When machines handle the busywork, what remains is the deeply
-      human. <em>The future of work is play.</em></blockquote>
-      <p class="b-sub rv d1">Brains are the foundation. But the vision is bigger:
-      infrastructure for a world where talent flows to opportunity, professionals own what
-      they create, and distributed teams outperform traditional organizations.</p>
+      <blockquote class="rv">Own the intelligence <em>you already have</em>.</blockquote>
+      <p class="b-sub rv d1">Markdown files on your server, published in your voice, wired
+      into a network that runs on meaning. Apache-2.0 — yours in every sense that matters.</p>
       <div class="actions rv d2">
-        <a class="cta" href="#s1">Start Building →</a>
-        <a class="quiet" href="#s1">View on GitHub</a>
+        <a class="cta" href="#brain">Get Your Brain →</a>
+        <a class="quiet" href="#brain">View on GitHub</a>
       </div>
     </div>
 
-    <div class="sect faces">
-      <span class="cap rv">One practice, three faces</span>
-      <a class="face f-plat rv" href="#s1" style="margin-top: 10px">
-        <span class="f-k">The tools</span>
-        <h5>Open-source AI agents built from your own knowledge — <em>you are here</em></h5>
-        <span class="go">rizom.ai</span>
-      </a>
-      <a class="face f-work rv d1" href="#s2">
-        <span class="f-k">The service</span>
-        <h5>Workshops and consulting that apply the methodology in live engagements — <em>one session, one map</em></h5>
-        <span class="go">/work →</span>
-      </a>
-      <a class="face f-fnd rv d2" href="#s3">
-        <span class="f-k">The source</span>
-        <h5>The non-profit that holds the IP and stewards the methodology independently — <em>essays &amp; gatherings</em></h5>
-        <span class="go">/foundation →</span>
-      </a>
-    </div>
-
-    <div class="sect alive-line">
-      <span class="a-claim rv"><b>This site is a brain</b> — running the platform it describes.</span>
-      <a class="rv d1" href="#s1">talk to it</a>
-      <a class="rv d1" href="#s1">/.well-known/agent-card</a>
-      <a class="rv d2" href="#s1">ai.rizom.brain.* lexicons</a>
-    </div>
-
-    <footer class="footer">
-      <div class="f-brand">
-        <a class="wordmark" href="#s1">rizom<i>.</i></a>
-        <p>The living ecosystem where independent experts thrive together.</p>
-      </div>
-      <div class="f-col">
-        <div class="f-h">The platform</div>
-        <a href="#s1">Get started</a>
-        <a href="#s1">Documentation ↗</a>
-        <a href="#s1">GitHub ↗</a>
-        <a href="#s1">Network</a>
-      </div>
-      <div class="f-col">
-        <div class="f-h">The practice</div>
-        <a href="#s2">The workshop</a>
-        <a href="#s2">Team Type quiz</a>
-        <a href="#s2">Contact</a>
-      </div>
-      <div class="f-col">
-        <div class="f-h">The foundation</div>
-        <a href="#s3">Manifesto</a>
-        <a href="#s1">Writing</a>
-        <a href="#s1">Events</a>
-        <a href="#s3">Support</a>
-      </div>
-      <div class="f-legal">
-        <span>© 2026 Stichting Rizom · Amsterdam</span>
-        <span>Apache-2.0</span>
-        <span class="spacer"></span>
-        <span>rizom.work &amp; rizom.foundation now live here — old links redirect</span>
-      </div>
-    </footer>
+    <div class="siteband"><span>part of <b>rizom.ai</b> — the tools face of the practice</span><span class="spacer"></span><span>Apache-2.0 · © 2026 Rizom Collective</span></div>
   </div>
 </section>
 
-<!-- ==================== 02 WORK ==================== -->
-<section class="screen" id="s2">
+<!-- ==================== 03 WORK ==================== -->
+<section class="screen" id="work">
   <div class="screen-label">
-    <span class="num">02</span>
+    <span class="num">03</span>
     <h2>/work — the practice, now complete</h2>
     <span class="note">Adds the real personas, the three client testimonials, the team
     roster, and the closing quiz CTA — all verbatim from the live site.</span>
@@ -673,19 +1101,19 @@
   <div class="frame" style="--accent: var(--ruby-soft)">
     <div class="facestrip">
       <span class="fs-org">rizom</span>
-      <a href="#s1">Platform</a>
-      <a class="on" href="#s2">Work</a>
-      <a href="#s3">Foundation</a>
+      <a href="#brain">Brain</a>
+      <a class="on" href="#work">Work</a>
+      <a href="#foundation">Foundation</a>
       <span class="fs-right">one practice · three faces</span>
     </div>
     <nav class="sitenav">
-      <a class="wordmark" href="#s2">rizom<i>.</i><small>work</small></a>
+      <a class="wordmark" href="#work">rizom<i>.</i><small>work</small></a>
       <div class="links">
-        <a href="#s2">Workshop</a>
-        <a href="#s2">Contact</a>
+        <a href="#work">Workshop</a>
+        <a href="#work">Contact</a>
       </div>
       <div class="spacer"></div>
-      <a class="cta-mini" href="#s2">Take the quiz</a>
+      <a class="cta-mini" href="#work">Take the quiz</a>
     </nav>
 
     <div class="room-head">
@@ -696,8 +1124,8 @@
           <p class="standfirst">TMS-based consulting that helps teams coordinate better, so
           your people and your AI tools can actually do their best work.</p>
           <div class="actions" style="margin: 26px 0 40px">
-            <a class="cta" href="#s2">Take the Team Type quiz →</a>
-            <a class="quiet" href="#s2">Book a discovery call</a>
+            <a class="cta" href="#work">Take the Team Type quiz →</a>
+            <a class="quiet" href="#work">Book a discovery call</a>
           </div>
         </div>
         <div class="diag rv d1">
@@ -727,7 +1155,7 @@
               <li><span class="no">[03]</span><span>Install coordination layer before further AI pilots</span></li>
             </ul>
           </div>
-          <a class="d-run" href="#s2">Run the diagnostic →</a>
+          <a class="d-run" href="#work">Run the diagnostic →</a>
         </div>
       </div>
     </div>
@@ -841,8 +1269,8 @@
     <div class="band">
       <blockquote class="rv">Ready to find out what <em>type of team</em> you are?</blockquote>
       <div class="actions rv d1" style="margin-top: 28px">
-        <a class="cta" href="#s2">Take the Team Type quiz →</a>
-        <a class="quiet" href="#s2">Book a 30-minute call</a>
+        <a class="cta" href="#work">Take the Team Type quiz →</a>
+        <a class="quiet" href="#work">Book a 30-minute call</a>
       </div>
     </div>
 
@@ -850,10 +1278,10 @@
   </div>
 </section>
 
-<!-- ==================== 03 FOUNDATION ==================== -->
-<section class="screen" id="s3">
+<!-- ==================== 04 FOUNDATION ==================== -->
+<section class="screen" id="foundation">
   <div class="screen-label">
-    <span class="num">03</span>
+    <span class="num">04</span>
     <h2>/foundation — the research room</h2>
     <span class="note">The journal identity: Vol. 01 masthead, essays as the featured
     series, the pull-quote band, the city chapters, funding, and a closing follow line.</span>
@@ -861,20 +1289,20 @@
   <div class="frame" style="--accent: var(--moss)">
     <div class="facestrip">
       <span class="fs-org">rizom</span>
-      <a href="#s1">Platform</a>
-      <a href="#s2">Work</a>
-      <a class="on" href="#s3">Foundation</a>
+      <a href="#brain">Brain</a>
+      <a href="#work">Work</a>
+      <a class="on" href="#foundation">Foundation</a>
       <span class="fs-right">one practice · three faces</span>
     </div>
     <nav class="sitenav">
-      <a class="wordmark" href="#s3">rizom<i>.</i><small>foundation</small></a>
+      <a class="wordmark" href="#foundation">rizom<i>.</i><small>foundation</small></a>
       <div class="links">
-        <a href="#s3">Research</a>
-        <a href="#s3">Events</a>
-        <a href="#s3">Ecosystem</a>
+        <a href="#foundation">Research</a>
+        <a href="#foundation">Events</a>
+        <a href="#foundation">Ecosystem</a>
       </div>
       <div class="spacer"></div>
-      <a class="cta-mini" href="#s3">Read Manifesto</a>
+      <a class="cta-mini" href="#foundation">Read Manifesto</a>
     </nav>
 
     <div class="room-head">
@@ -885,29 +1313,29 @@
       work and technology together: essays, city-by-city gatherings, and stewardship of the
       open AI infrastructure this community runs on.</p>
       <div class="actions" style="margin: 26px 0 44px">
-        <a class="cta" href="#s3">Join our Discord →</a>
-        <a class="quiet" href="#s3">Find an event near you</a>
+        <a class="cta" href="#foundation">Join our Discord →</a>
+        <a class="quiet" href="#foundation">Find an event near you</a>
       </div>
     </div>
 
     <div class="sect">
       <span class="cap rv">The research <small>— a working bibliography; new entries land roughly monthly · all of it at /writing</small></span>
       <div style="margin-top: 8px">
-        <a class="index-row rv" href="#s3">
+        <a class="index-row rv" href="#foundation">
           <span class="i-no">01</span>
           <span class="i-k">Future of Work is Play</span>
           <div><h6>The future of work is play</h6>
           <p>When machines handle the busywork, what remains is the deeply human.</p></div>
           <span class="go">→</span>
         </a>
-        <a class="index-row rv d1" href="#s3">
+        <a class="index-row rv d1" href="#foundation">
           <span class="i-no">02</span>
           <span class="i-k">Urging New Institutions</span>
           <div><h6>Social contracts, not constitutions</h6>
           <p>The documents we venerate aren't what's actually holding institutions together.</p></div>
           <span class="go">→</span>
         </a>
-        <a class="index-row rv d2" href="#s3">
+        <a class="index-row rv d2" href="#foundation">
           <span class="i-no">03</span>
           <span class="i-k">Urging New Institutions</span>
           <div><h6>Coordination is the unit of intelligence</h6>
@@ -975,9 +1403,9 @@
 
     <div class="sect alive-line">
       <span class="a-claim rv">Follow the research —</span>
-      <a class="rv d1" href="#s3">newsletter · every essay, nothing else</a>
-      <a class="rv d1" href="#s3">@rizom.ai on atproto · essays as records</a>
-      <a class="rv d2" href="#s3">rss</a>
+      <a class="rv d1" href="#foundation">newsletter · every essay, nothing else</a>
+      <a class="rv d1" href="#foundation">@rizom.ai on atproto · essays as records</a>
+      <a class="rv d2" href="#foundation">rss</a>
     </div>
 
     <div class="siteband"><span>previously <b>rizom.foundation</b> — you were redirected here</span><span class="spacer"></span><span>Stichting Rizom · Amsterdam · Rotterdam · Berlin</span></div>
@@ -985,19 +1413,17 @@
 </section>
 
 <footer class="footer-note">
-  <div class="col"><b>Content now complete:</b> the two real personas, three real
-  testimonials with attributions, the real team roster, the actual three-command
-  quickstart with its four checkmarks, the live mission stanza ("AI is not taking your
-  job…the future of work is play"), and the live ecosystem role names — the tools / the
-  service / the source — as the faces vocabulary.</div>
-  <div class="col"><b>Visual pass:</b> orchestrated hero entrance; scroll reveals
-  (reduced-motion safe); the mycelium seeps while you read; the You→Team→Network growth
-  diagram replaces the three-column list as the product centerpiece; atmospheric washes on
-  hero and bands; folio numerals; underline-grow link hovers; a real four-column footer
-  with the Stichting legal line.</div>
-  <div class="col"><b>Still deliberate:</b> rooms keep their own nameplates (rizom.work,
-  rizom.foundation) and their live navs; home stays brass-only; the diagnostic panel is
-  untouched from the live site apart from palette.</div>
+  <div class="col"><b>Home's arc</b> is Rizom's story told in the map's vocabulary — alive
+  expertise, the dark around it, one light coming on, lights finding each other — so the
+  same visual language carries from hero to growth diagram without a single "legend"
+  section. The mission band and faces land as consequences, not appendices.</div>
+  <div class="col"><b>/brain's arc</b> is the product's life with the owner: capture → ask
+  → see it run → connect. Every screen is real anatomy (dashboard plugin cards, web-chat,
+  interfaces/discord, MCP, chat-repl, the CMS flow) but none of them is the point — each
+  illustrates its chapter, and chapter 04 hands back to the homepage map.</div>
+  <div class="col"><b>Still deliberate:</b> product frames stay in the fixed dark
+  instrument palette in both site themes — screenshots, not site chrome. The MCP card is
+  cream on purpose: Claude is someone else's house. Work and foundation untouched.</div>
 </footer>
 
 <script>
@@ -1011,6 +1437,202 @@
     es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
   },{ rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
   document.querySelectorAll(".rv").forEach(function(el){ io.observe(el); });
+})();
+</script>
+
+<script>
+// ---- agent proximity map — the console component, re-rendered here in both climates.
+// Mirrors docs/plans/agent-proximity-map-mockup.html; seeded, so byte-identical per render.
+(function(){
+  var NODES = [
+    { id: "kai.brain",   name: "Kai",   kind: "professional", status: "approved",   distance: 0.28, bearing: 35 },
+    { id: "mira.studio", name: "Mira",  kind: "professional", status: "approved",   distance: 0.34, bearing: 52 },
+    { id: "sage.co",     name: "Sage",  kind: "collective",   status: "approved",   distance: 0.31, bearing: 20 },
+    { id: "nova.works",  name: "Nova",  kind: "professional", status: "discovered", distance: 0.38, bearing: 40 },
+    { id: "north.ops",   name: "North", kind: "team",         status: "approved",   distance: 0.42, bearing: 212 },
+    { id: "forge.dev",   name: "Forge", kind: "team",         status: "approved",   distance: 0.48, bearing: 228 },
+    { id: "atlas.net",   name: "Atlas", kind: "team",         status: "discovered", distance: 0.39, bearing: 194 },
+    { id: "lumen.art",   name: "Lumen", kind: "professional", status: "approved",   distance: 0.26, bearing: 138 },
+    { id: "echo.club",   name: "Echo",  kind: "collective",   status: "approved",   distance: 0.45, bearing: 98 },
+    { id: "drift.fi",    name: "Drift", kind: "professional", status: "discovered", distance: 0.58, bearing: 322 },
+    { id: "quill.law",   name: "Quill", kind: "professional", status: "approved",   distance: 0.61, bearing: 166 },
+    { id: "pixel.zone",  name: "Pixel", kind: "collective",   status: "discovered", distance: 0.52, bearing: 74 }
+  ];
+  var CLUSTERS = [
+    { label: "research", memberIds: ["kai.brain", "mira.studio", "sage.co", "nova.works"] },
+    { label: "operations", memberIds: ["north.ops", "forge.dev", "atlas.net"] }
+  ];
+  var SIGHTINGS = [
+    { name: "Vale",  kind: "professional", via: ["kai.brain"],              distance: 0.35, bearing: 64 },
+    { name: "Cairn", kind: "team",         via: ["north.ops", "forge.dev"], distance: 0.55, bearing: 221 }
+  ];
+  var MAXD = 0.7, STRATA = [0.2, 0.4, 0.6], NS = "http://www.w3.org/2000/svg";
+
+  function mulberry32(seed){ var a = seed >>> 0; return function(){
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function el(p, tag, attrs, text){ var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text) n.textContent = text; p.appendChild(n); return n; }
+  function polar(cx, cy, r, deg){ var rad = deg * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) }; }
+  function bez(p0, c1, c2, p1, t){ var u = 1 - t; return {
+    x: u*u*u*p0.x + 3*u*u*t*c1.x + 3*u*t*t*c2.x + t*t*t*p1.x,
+    y: u*u*u*p0.y + 3*u*u*t*c1.y + 3*u*t*t*c2.y + t*t*t*p1.y }; }
+
+  function render(mount, pal, o){
+    mount.innerHTML = "";
+    var rng = mulberry32(o.seed || 133);
+    var W = o.w, H = o.h, c = o.cx || W / 2, cy0 = o.cy || H / 2;
+    var maxR = Math.min(c, cy0, W - c, H - cy0) - o.pad;
+    var rOf = function(d){ return d / MAXD * maxR; };
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Proximity map of the agent network");
+    var defs = el(svg, "defs", {});
+    var blur = el(defs, "filter", { id: o.id + "-blur", x: "-60%", y: "-60%", width: "220%", height: "220%" });
+    el(blur, "feGaussianBlur", { stdDeviation: "2.6" });
+    var mist = el(defs, "radialGradient", { id: o.id + "-mist" });
+    el(mist, "stop", { offset: "0%", "stop-color": "#6b2fa0", "stop-opacity": pal.mistOp[0] });
+    el(mist, "stop", { offset: "70%", "stop-color": "#6b2fa0", "stop-opacity": pal.mistOp[1] });
+    el(mist, "stop", { offset: "100%", "stop-color": "#6b2fa0", "stop-opacity": "0" });
+
+    for (var s = 0; s < STRATA.length; s++) {
+      el(svg, "circle", { cx: c, cy: cy0, r: rOf(STRATA[s]), fill: "none", stroke: pal.strata, "stroke-width": 1 });
+      if (o.labels) el(svg, "text", { x: c + 4, y: cy0 - rOf(STRATA[s]) - 4, fill: pal.faint,
+        style: "font-family:var(--mono);font-size:8px;letter-spacing:.08em" }, STRATA[s].toFixed(1));
+    }
+
+    var pos = {};
+    NODES.forEach(function(n){ pos[n.id] = polar(c, cy0, rOf(n.distance), n.bearing); });
+    var inCluster = {};
+    CLUSTERS.forEach(function(cl){ cl.memberIds.forEach(function(id){ inCluster[id] = true; }); });
+
+    // constellations: mist beneath + member-to-member weave
+    CLUSTERS.forEach(function(cl){
+      var pts = cl.memberIds.map(function(id){ return pos[id]; });
+      var cx = 0, cy = 0;
+      pts.forEach(function(p){ cx += p.x; cy += p.y; });
+      cx /= pts.length; cy /= pts.length;
+      var r = Math.max.apply(null, pts.map(function(p){ return Math.hypot(p.x - cx, p.y - cy); })) + 24;
+      el(svg, "circle", { cx: cx, cy: cy, r: r, fill: "url(#" + o.id + "-mist)" });
+      for (var i = 0; i < pts.length; i++) for (var j = i + 1; j < pts.length; j++) {
+        var a = pts[i], b = pts[j];
+        var mx = (a.x + b.x) / 2 + (rng() - 0.5) * 30, my = (a.y + b.y) / 2 + (rng() - 0.5) * 30;
+        var d = "M " + a.x + " " + a.y + " Q " + mx + " " + my + ", " + b.x + " " + b.y;
+        el(svg, "path", { d: d, fill: "none", stroke: pal.purple, "stroke-opacity": 0.26, "stroke-width": 2.4, filter: "url(#" + o.id + "-blur)" });
+        el(svg, "path", { d: d, fill: "none", stroke: pal.purple, "stroke-opacity": 0.5, "stroke-width": 1 });
+      }
+      if (o.labels) el(svg, "text", { x: cx, y: cy - r - 5, "text-anchor": "middle", fill: pal.purple,
+        style: "font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.24em;text-transform:uppercase" },
+        cl.label + " · " + cl.memberIds.length);
+    });
+
+    // mycelial threads from the center, forking rootlets along the way
+    var center = { x: c, y: cy0 };
+    NODES.forEach(function(n){
+      var p = pos[n.id];
+      var g = el(svg, "g", {});
+      var dx = p.x - c, dy = p.y - cy0, len = Math.hypot(dx, dy);
+      var px = -dy / len, py = dx / len;
+      var bow1 = (rng() - 0.5) * len * 0.42, bow2 = (rng() - 0.5) * len * 0.3;
+      var c1 = { x: c + dx * 0.34 + px * bow1, y: cy0 + dy * 0.34 + py * bow1 };
+      var c2 = { x: c + dx * 0.7 + px * bow2, y: cy0 + dy * 0.7 + py * bow2 };
+      var d = "M " + c + " " + cy0 + " C " + c1.x + " " + c1.y + ", " + c2.x + " " + c2.y + ", " + p.x + " " + p.y;
+      var dashed = n.status === "discovered", op = dashed ? 0.16 : 0.3;
+      el(g, "path", { d: d, fill: "none", stroke: pal.amber, "stroke-opacity": op * 0.5, "stroke-width": 3.2, filter: "url(#" + o.id + "-blur)" });
+      var mid = bez(center, c1, c2, p, 0.5), q1 = bez(center, c1, c2, p, 0.25), q3 = bez(center, c1, c2, p, 0.75);
+      var dash = dashed ? { "stroke-dasharray": "3 5", "stroke-linecap": "round" } : {};
+      el(g, "path", Object.assign({ d: "M " + c + " " + cy0 + " Q " + q1.x + " " + q1.y + ", " + mid.x + " " + mid.y,
+        fill: "none", stroke: pal.amber, "stroke-opacity": op, "stroke-width": 1.3 }, dash));
+      el(g, "path", Object.assign({ d: "M " + mid.x + " " + mid.y + " Q " + q3.x + " " + q3.y + ", " + p.x + " " + p.y,
+        fill: "none", stroke: pal.amber, "stroke-opacity": op * 0.75, "stroke-width": 0.8 }, dash));
+      var forks = 1 + Math.floor(rng() * 2);
+      for (var f = 0; f < forks; f++) {
+        var t = 0.35 + rng() * 0.4, fp = bez(center, c1, c2, p, t);
+        var fa = Math.atan2(dy, dx) + (rng() - 0.5) * 2.2, fl = 10 + rng() * 22;
+        var fe = { x: fp.x + Math.cos(fa) * fl, y: fp.y + Math.sin(fa) * fl };
+        var fc = { x: fp.x + Math.cos(fa + (rng() - 0.5)) * fl * 0.5, y: fp.y + Math.sin(fa + (rng() - 0.5)) * fl * 0.5 };
+        el(g, "path", { d: "M " + fp.x + " " + fp.y + " Q " + fc.x + " " + fc.y + ", " + fe.x + " " + fe.y,
+          fill: "none", stroke: pal.amber, "stroke-opacity": op * 0.4, "stroke-width": 0.6 });
+      }
+      n._p = p; n._g = g;
+    });
+
+    // second-order sightings: threads grow from the introducing peer, never the center
+    SIGHTINGS.forEach(function(sg){
+      var p = polar(c, cy0, rOf(sg.distance), sg.bearing);
+      var g = el(svg, "g", {});
+      sg.via.forEach(function(viaId){
+        var vp = pos[viaId];
+        var dx = p.x - vp.x, dy = p.y - vp.y, len = Math.hypot(dx, dy) || 1;
+        var px = -dy / len, py = dx / len, bow = (rng() - 0.5) * len * 0.5;
+        var m = { x: vp.x + dx * 0.5 + px * bow, y: vp.y + dy * 0.5 + py * bow };
+        var d = "M " + vp.x + " " + vp.y + " Q " + m.x + " " + m.y + ", " + p.x + " " + p.y;
+        el(g, "path", { d: d, fill: "none", stroke: pal.amber, "stroke-opacity": 0.09, "stroke-width": 2.2, filter: "url(#" + o.id + "-blur)" });
+        el(g, "path", { d: d, fill: "none", stroke: pal.amber, "stroke-opacity": 0.2, "stroke-width": 0.8 });
+      });
+      sg._p = p; sg._g = g;
+    });
+
+    // the brain: densest concentration of light
+    el(svg, "circle", { class: "px-halo", cx: c, cy: cy0, r: 24, fill: pal.amber, opacity: 0.1, filter: "url(#" + o.id + "-blur)" });
+    el(svg, "circle", { cx: c, cy: cy0, r: 10, fill: pal.amber, opacity: 0.28, filter: "url(#" + o.id + "-blur)" });
+    el(svg, "circle", { cx: c, cy: cy0, r: 4.4, fill: pal.amber });
+    el(svg, "circle", { cx: c, cy: cy0, r: 1.9, fill: pal.hot });
+    if (o.labels) el(svg, "text", { x: c, y: cy0 + 28, "text-anchor": "middle", fill: pal.dim,
+      style: "font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase" }, "you");
+
+    function bulb(g, x, y, r, mode){
+      if (mode === "lit") {
+        el(g, "circle", { class: "px-flicker", cx: x, cy: y, r: r * 3.2, fill: pal.amber, opacity: 0.13, filter: "url(#" + o.id + "-blur)" });
+        el(g, "circle", { cx: x, cy: y, r: r, fill: pal.amber });
+        el(g, "circle", { cx: x, cy: y, r: r * 0.42, fill: pal.hot, opacity: 0.9 });
+      } else if (mode === "dim") {
+        el(g, "circle", { cx: x, cy: y, r: r * 2.6, fill: pal.amber, opacity: 0.07, filter: "url(#" + o.id + "-blur)" });
+        el(g, "circle", { cx: x, cy: y, r: r, fill: pal.amber, opacity: 0.5 });
+      } else {
+        el(g, "circle", { cx: x, cy: y, r: r + 0.8, fill: "none", stroke: pal.warn, "stroke-width": 1.1,
+          "stroke-dasharray": "2.4 2", "stroke-opacity": 0.8 });
+      }
+    }
+    function scaleGlyph(g, p, kind, mode, sizeMul){
+      var m = sizeMul || 1;
+      if (kind === "professional") bulb(g, p.x, p.y, 3.2 * m, mode);
+      else if (kind === "team") [90, 210, 330].forEach(function(a){
+        var q = polar(0, 0, 4.4 * m, a); bulb(g, p.x + q.x, p.y + q.y, 2 * m, mode); });
+      else [90, 162, 234, 306, 18].forEach(function(a){
+        var q = polar(0, 0, 6.2 * m, a); bulb(g, p.x + q.x, p.y + q.y, 1.6 * m, mode); });
+    }
+    NODES.forEach(function(n){
+      if (inCluster[n.id]) el(n._g, "circle", { cx: n._p.x, cy: n._p.y, r: 14, fill: "#6b2fa0",
+        opacity: pal.memberHalo, filter: "url(#" + o.id + "-blur)" });
+      scaleGlyph(n._g, n._p, n.kind, n.status === "approved" ? "lit" : "pending", o.glyphMul);
+      if (o.labels) el(n._g, "text", { x: n._p.x + (n._p.x > c ? 10 : -10), y: n._p.y + 3,
+        "text-anchor": n._p.x > c ? "start" : "end", fill: pal.dim,
+        style: "font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:lowercase" }, n.name.toLowerCase());
+    });
+    SIGHTINGS.forEach(function(sg){ scaleGlyph(sg._g, sg._p, sg.kind, "dim", o.glyphMul); });
+    mount.appendChild(svg);
+  }
+
+  function sitePal(){
+    var light = document.documentElement.getAttribute("data-theme") === "light";
+    return light
+      ? { amber: "#a8821c", hot: "#3d2f08", purple: "#6b2fa0", warn: "#b8503f",
+          strata: "rgba(35,33,58,.1)", dim: "rgba(35,33,58,.5)", faint: "rgba(35,33,58,.26)",
+          mistOp: [".13", ".05"], memberHalo: 0.1 }
+      : { amber: "#d4af37", hot: "#faf3dd", purple: "#8c82c8", warn: "#e07a6a",
+          strata: "rgba(250,248,243,.06)", dim: "rgba(250,248,243,.44)", faint: "rgba(250,248,243,.18)",
+          mistOp: [".3", ".12"], memberHalo: 0.2 };
+  }
+  var home = document.getElementById("homeMap");
+  function drawHome(){ render(home, sitePal(), { id: "hm", seed: 133, w: 620, h: 560, pad: 54, labels: true }); }
+  drawHome();
+  document.getElementById("themeToggle").addEventListener("click", drawHome);
 })();
 </script>
 </body>

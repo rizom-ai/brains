@@ -568,6 +568,51 @@ export interface SearchWithDistancesRequest {
   query: string;
 }
 
+export interface SemanticEntityReference {
+  entityId: string;
+  entityType: string;
+}
+
+export interface ProjectSemanticSpaceRequest {
+  /** Entity types to include as projected points. Empty or omitted includes all types. */
+  types?: string[];
+  /** Optional entity used as the semantic origin. Missing origins fall back to the point centroid. */
+  origin?: SemanticEntityReference;
+  /** Include pairwise neighbors at or below this cosine distance. */
+  maxNeighborDistance?: number;
+  /** Undefined fails closed to public-only visibility. */
+  visibilityScope?: ContentVisibility;
+}
+
+export interface SemanticSpacePoint extends SemanticEntityReference {
+  /** Coordinates on the first two principal components of the semantic space. */
+  coordinates: [number, number];
+  /** Cosine distance from the requested origin or the fallback centroid. */
+  distanceToOrigin: number;
+}
+
+export interface SemanticSpaceNeighbor {
+  source: SemanticEntityReference;
+  target: SemanticEntityReference;
+  distance: number;
+}
+
+export type SemanticSpaceOrigin =
+  ({ kind: "entity" } & SemanticEntityReference) | { kind: "centroid" };
+
+export interface SemanticSpaceDistanceRange {
+  min: number;
+  max: number;
+}
+
+export interface SemanticSpaceProjection {
+  origin: SemanticSpaceOrigin;
+  points: SemanticSpacePoint[];
+  neighbors: SemanticSpaceNeighbor[];
+  /** Observed origin-distance extent for projection-independent scaling. */
+  distanceRange: SemanticSpaceDistanceRange;
+}
+
 /**
  * Context passed to all DataSource operations
  * Contains internal state that should not be mixed with user query parameters
@@ -671,6 +716,11 @@ export interface ICoreEntityService {
   search<T extends BaseEntity = BaseEntity>(
     request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]>;
+
+  /** Project visible entities into a provider-independent semantic space. */
+  projectSemanticSpace(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection>;
 
   // Entity type information
   getEntityTypes(): string[];

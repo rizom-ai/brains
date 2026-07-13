@@ -1,5 +1,95 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.166
+  - @brains/site-engine@0.2.0-alpha.166
+  - @brains/ui-library@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies [[`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33)]:
+  - @brains/site-engine@0.2.0-alpha.165
+  - @brains/media-renderer@0.2.0-alpha.165
+  - @brains/ui-library@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.164
+  - @brains/site-engine@0.2.0-alpha.164
+  - @brains/ui-library@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.163
+  - @brains/site-engine@0.2.0-alpha.163
+  - @brains/ui-library@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.162
+  - @brains/site-engine@0.2.0-alpha.162
+  - @brains/ui-library@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-engine@0.2.0-alpha.161
+  - @brains/media-renderer@0.2.0-alpha.161
+  - @brains/ui-library@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-engine@0.2.0-alpha.160
+  - @brains/media-renderer@0.2.0-alpha.160
+  - @brains/ui-library@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.159
+  - @brains/site-engine@0.2.0-alpha.159
+  - @brains/ui-library@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.158
+  - @brains/site-engine@0.2.0-alpha.158
+  - @brains/ui-library@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes

@@ -64,10 +64,26 @@ export {
 
 export { AgentAdapter } from "./adapters/agent-adapter";
 export { AgentDataSource } from "./datasources/agent-datasource";
+export { ProximityMapDataSource } from "./datasources/proximity-map-datasource";
+export { AgentProximityMapTemplate } from "./templates/proximity-map-template";
 export {
   AgentNetworkWidget,
   agentNetworkWidgetScript,
 } from "./widgets/agent-network-widget";
+export {
+  AgentProximityWidget,
+  ProximityMap,
+  proximityMapScript,
+} from "./widgets/proximity-map";
+export {
+  proximityMapDataSchema,
+  type ProximityMapCenter,
+  type ProximityMapCluster,
+  type ProximityMapClusterLink,
+  type ProximityMapData,
+  type ProximityMapDistanceRange,
+  type ProximityMapNode,
+} from "./lib/proximity-map-schema";
 
 export {
   normalizeTag,

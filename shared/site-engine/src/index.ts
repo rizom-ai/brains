@@ -39,7 +39,7 @@ export type {
   StaticSiteBuilderFactory,
   StaticSiteBuilderOptions,
 } from "./static-build-contracts";
-export { collectRouteScripts } from "./route-scripts";
+export { collectRouteAssets, collectRouteScripts } from "./route-scripts";
 export type {
   RouteScriptContext,
   RouteScriptTemplate,

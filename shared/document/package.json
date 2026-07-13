@@ -1,6 +1,6 @@
 {
   "name": "@brains/document",
-  "version": "0.2.0-alpha.157",
+  "version": "0.2.0-alpha.166",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*",

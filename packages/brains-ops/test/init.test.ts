@@ -275,6 +275,10 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("Finalize generated config");
     expect(deployWorkflow).toContain("actions/download-artifact@v4");
     expect(deployWorkflow).toContain("pattern: generated-*-config");
+    // A new user's generated config is untracked; without intent-to-add
+    // every `git diff` below is blind to it and the finalize step silently
+    // drops the directory, so later deploys skip the user forever.
+    expect(deployWorkflow).toContain("git add --intent-to-add -- users views");
     expect(deployWorkflow).toContain("merge-multiple: true");
     expect(deployWorkflow).toContain("bun install");
     expect(deployWorkflow).toContain(
@@ -448,6 +452,11 @@ describe("initPilotRepo", () => {
     expect(reconcileWorkflow).not.toContain("repository: rizom-ai/brains");
     expect(reconcileWorkflow).toContain(
       'git fetch origin "${{ github.ref_name }}"',
+    );
+    // Same untracked-blindness guard as the deploy finalize step: a brand
+    // new users/<handle>/ directory must be visible to the diff dance.
+    expect(reconcileWorkflow).toContain(
+      "git add --intent-to-add -- views users",
     );
     expect(reconcileWorkflow).toContain(
       'git reset --hard "origin/${{ github.ref_name }}"',

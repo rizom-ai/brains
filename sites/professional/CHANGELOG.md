@@ -1,5 +1,140 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.166
+  - @brains/decks@0.2.0-alpha.166
+  - @brains/site-info@0.2.0-alpha.166
+  - @brains/site-composition@0.2.0-alpha.166
+  - @brains/site-engine@0.2.0-alpha.166
+  - @brains/ui-library@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+  - @brains/templates@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies [[`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33)]:
+  - @brains/templates@0.2.0-alpha.165
+  - @brains/site-engine@0.2.0-alpha.165
+  - @brains/site-composition@0.2.0-alpha.165
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/site-info@0.2.0-alpha.165
+  - @brains/blog@0.2.0-alpha.165
+  - @brains/decks@0.2.0-alpha.165
+  - @brains/ui-library@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.164
+  - @brains/decks@0.2.0-alpha.164
+  - @brains/site-info@0.2.0-alpha.164
+  - @brains/site-composition@0.2.0-alpha.164
+  - @brains/site-engine@0.2.0-alpha.164
+  - @brains/ui-library@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/plugins@0.2.0-alpha.164
+  - @brains/templates@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.163
+  - @brains/decks@0.2.0-alpha.163
+  - @brains/site-info@0.2.0-alpha.163
+  - @brains/site-composition@0.2.0-alpha.163
+  - @brains/site-engine@0.2.0-alpha.163
+  - @brains/ui-library@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/plugins@0.2.0-alpha.163
+  - @brains/templates@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.162
+  - @brains/decks@0.2.0-alpha.162
+  - @brains/site-info@0.2.0-alpha.162
+  - @brains/site-composition@0.2.0-alpha.162
+  - @brains/site-engine@0.2.0-alpha.162
+  - @brains/ui-library@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/plugins@0.2.0-alpha.162
+  - @brains/templates@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/plugins@0.2.0-alpha.161
+  - @brains/site-info@0.2.0-alpha.161
+  - @brains/site-engine@0.2.0-alpha.161
+  - @brains/blog@0.2.0-alpha.161
+  - @brains/decks@0.2.0-alpha.161
+  - @brains/site-composition@0.2.0-alpha.161
+  - @brains/ui-library@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+  - @brains/templates@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.160
+  - @brains/site-info@0.2.0-alpha.160
+  - @brains/site-engine@0.2.0-alpha.160
+  - @brains/plugins@0.2.0-alpha.160
+  - @brains/decks@0.2.0-alpha.160
+  - @brains/blog@0.2.0-alpha.160
+  - @brains/ui-library@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+  - @brains/templates@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.159
+  - @brains/decks@0.2.0-alpha.159
+  - @brains/site-info@0.2.0-alpha.159
+  - @brains/site-composition@0.2.0-alpha.159
+  - @brains/site-engine@0.2.0-alpha.159
+  - @brains/ui-library@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+  - @brains/templates@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.158
+  - @brains/decks@0.2.0-alpha.158
+  - @brains/site-info@0.2.0-alpha.158
+  - @brains/site-composition@0.2.0-alpha.158
+  - @brains/site-engine@0.2.0-alpha.158
+  - @brains/ui-library@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+  - @brains/templates@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes

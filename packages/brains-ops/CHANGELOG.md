@@ -1,5 +1,27 @@
 # @brains/ops
 
+## 0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- [`78ff7f2`](https://github.com/rizom-ai/brains/commit/78ff7f294dadd6e4b830ea0f5a262b0c4ec4b9d1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix new users being skipped by every deploy after onboarding. The reconcile and deploy workflows committed generated output via `git diff`, which is blind to untracked files — so a newly added user's generated `users/<handle>/` directory was silently dropped and never appeared in any commit range the deploy handle-resolver inspects. Both workflow templates now stage generated paths with `git add --intent-to-add` before the diff dance.
+
+## 0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ## 0.2.0-alpha.156

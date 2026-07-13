@@ -54,7 +54,8 @@ const entities = [
   {
     id: "responsive-console",
     entityType: "posts",
-    frontmatter: { title: "A console that travels well" },
+    // Published entity so the library pins both publication chip states.
+    frontmatter: { title: "A console that travels well", published: true },
     updated: "2026-07-10T10:32:00.000Z",
   },
   {
@@ -78,6 +79,18 @@ const entities = [
 ];
 const entity = {
   ...entities[1],
+  // The full colophon the mockups author: slug, select, tags, toggle,
+  // schedule, and cover image — every widget the editor renders.
+  frontmatter: {
+    title: "Notes from the rhizome",
+    slug: "field-notes",
+    summary: "",
+    series: "Trust & Identity",
+    topics: ["console", "responsive"],
+    published: false,
+    publishedAt: "2026-07-14T09:00:00.000Z",
+    coverImageId: "image/verdigris-board",
+  },
   body: "# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width.",
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
@@ -87,6 +100,11 @@ const sessions = [
     id: "responsive",
     title: "Responsive console audit",
     lastActiveAt: "2026-07-10T12:04:00.000Z",
+  },
+  {
+    id: "cards",
+    title: "Verdigris export review",
+    lastActiveAt: "2026-07-10T11:15:00.000Z",
   },
   {
     id: "release",
@@ -105,6 +123,18 @@ const messages = [
     role: "user",
     content:
       "Can you check the responsive console foundation before the next release?",
+    // Pins the user upload chip in the top-anchored conversation, where it
+    // stays visible at every viewport.
+    attachments: [
+      {
+        kind: "text",
+        filename: "verdigris-field-notes.md",
+        mediaType: "text/markdown",
+        sizeBytes: 4182,
+        createdAt: "2026-07-10T11:58:00.000Z",
+        source: { kind: "upload", id: "upload-verdigris" },
+      },
+    ],
   },
   {
     id: "m2",
@@ -118,6 +148,84 @@ const messages = [
     role: "assistant",
     content:
       "The CMS preserves its warm editorial climate. Desktop separates colophon from manuscript; tablet and phone retain Details, Write, and Preview.",
+  },
+];
+// A second, short session pinning the dynamic message states the mockups
+// specify: user upload chip, retrieved-source citations, suggested actions,
+// and an exported attachment card. Cards render as <details>; the capture
+// opens them. Short enough that the whole exchange fits at 1440×1000.
+const cardMessages = [
+  {
+    id: "m5",
+    role: "user",
+    content: "Pull the verdigris research together for the trust series.",
+  },
+  {
+    id: "m6",
+    role: "assistant",
+    content:
+      "Queued for the trust series. Two notes ground the draft, and the excerpt board below is exported for review.",
+    cards: [
+      {
+        kind: "sources",
+        id: "card-sources",
+        title: "Grounding notes",
+        sources: [
+          {
+            id: "src-1",
+            title: "Verdigris pigments in early print",
+            source: "entity",
+            entityType: "note",
+            entityId: "verdigris-pigments",
+            excerpt:
+              "The copper acetate greens survive best in dry margins; the trust series should lead with the 1503 plates.",
+            provenance: { score: 0.92 },
+          },
+          {
+            id: "src-2",
+            title: "Domain as identity",
+            source: "entity",
+            entityType: "post",
+            entityId: "domain-as-identity",
+          },
+        ],
+      },
+      {
+        kind: "actions",
+        id: "card-actions",
+        title: "Next moves",
+        defaultOpen: true,
+        actions: [
+          {
+            type: "prompt",
+            id: "act-1",
+            label: "Draft the series opener",
+            prompt: "Draft the trust series opener from the verdigris notes.",
+            description: "Uses both grounding notes",
+          },
+          {
+            type: "event",
+            id: "act-2",
+            label: "Queue for export",
+            event: "publishing:queue",
+          },
+        ],
+      },
+      {
+        kind: "attachment",
+        id: "card-attachment",
+        title: "Verdigris excerpt board",
+        description: "Exported preview for the trust series review.",
+        attachment: {
+          mediaType: "image/png",
+          url: "/fixture/verdigris.png",
+          previewUrl: "/fixture/verdigris.png",
+          filename: "verdigris-board.png",
+          sizeBytes: 48213,
+          source: { entityType: "note", entityId: "verdigris-pigments" },
+        },
+      },
+    ],
   },
 ];
 
@@ -264,7 +372,7 @@ async function checkLayout(
     );
   }
 
-  if (surface === "chat") {
+  if (surface.startsWith("chat")) {
     const mobileTrigger = await page
       .locator(".web-chat-mobile-trigger")
       .evaluate((node) => getComputedStyle(node).display);
@@ -274,7 +382,7 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewport.height + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
-  if (surface === "cms-editor") {
+  if (surface.startsWith("cms-") && surface !== "cms-library") {
     const modes = await page
       .locator(".cms-mobile-modes")
       .evaluate((node) => getComputedStyle(node).display);
@@ -333,10 +441,27 @@ await Promise.all([readFile(cmsAsset), readFile(chatAsset)]).catch(() => {
   );
 });
 
+// Deterministic preview image for the attachment card: a flat verdigris
+// board rendered once at startup.
+const fixtureImage = await sharp({
+  create: {
+    width: 480,
+    height: 270,
+    channels: 3,
+    background: { r: 61, g: 107, b: 92 },
+  },
+})
+  .png()
+  .toBuffer();
+
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname === "/fixture/verdigris.png")
+      return new Response(fixtureImage, {
+        headers: { "content-type": "image/png" },
+      });
     if (url.pathname === "/dashboard")
       return new Response(
         climateHtml(renderDashboardPageHtml(dashboardInput()), request),
@@ -358,8 +483,17 @@ const server = Bun.serve({
         headers: { "content-type": "text/javascript" },
       });
     if (url.pathname === "/api/chat/sessions") return json({ sessions });
-    if (url.pathname === "/api/chat/messages") return json({ messages });
-    if (url.pathname === "/api/chat/bootstrap") return json({ starters: [] });
+    if (url.pathname === "/api/chat/uploads")
+      return new Response("# Verdigris field notes\n", {
+        headers: { "content-type": "text/markdown" },
+      });
+    if (url.pathname === "/api/chat/messages") {
+      const id = url.searchParams.get("id");
+      return json({
+        messages:
+          id === "cards" ? cardMessages : id === "empty" ? [] : messages,
+      });
+    }
     if (url.pathname === "/cms")
       return new Response(
         climateHtml(
@@ -385,14 +519,82 @@ const server = Bun.serve({
         hasBody: true,
         fields: [
           { name: "title", label: "Title", widget: "string", required: true },
+          { name: "slug", label: "Slug", widget: "string", required: false },
           {
             name: "summary",
             label: "Summary",
             widget: "text",
             required: false,
           },
+          {
+            name: "series",
+            label: "Series",
+            widget: "select",
+            required: false,
+            options: ["Trust & Identity", "Field Notes", "Infrastructure"],
+          },
+          {
+            name: "topics",
+            label: "Topics",
+            widget: "list",
+            required: false,
+            field: { name: "topics", label: "Topics", widget: "string" },
+          },
+          {
+            name: "published",
+            label: "Published",
+            widget: "boolean",
+            required: false,
+          },
+          {
+            name: "publishedAt",
+            label: "Publish date",
+            widget: "datetime",
+            required: false,
+          },
+          {
+            name: "coverImageId",
+            label: "Cover image",
+            widget: "image",
+            required: false,
+          },
         ],
       });
+    if (url.pathname === "/cms/api/entities" && request.method === "PUT") {
+      // Saves only happen in the secondary-state scenarios: an emptied
+      // title pins the validation error line (cms-invalid), any other
+      // save pins the reconcile card (cms-conflict).
+      const body = (await request.json()) as {
+        frontmatter?: { title?: string };
+      };
+      if (body.frontmatter?.title?.includes("!!"))
+        return Response.json(
+          {
+            error: "Validation failed",
+            issues: [
+              { path: ["title"], message: "Title may not contain '!!'." },
+            ],
+          },
+          { status: 400 },
+        );
+      return Response.json(
+        {
+          error:
+            "The entry changed after you opened it — directory sync imported a newer version of this manuscript.",
+        },
+        { status: 409 },
+      );
+    }
+    if (url.pathname === "/cms/api/upload")
+      // Slow enough that the cms-upload capture always lands while the
+      // widget shows "Uploading…", but finite — a never-resolving request
+      // can wedge browser teardown at the end of the run.
+      return new Promise<Response>((resolve) =>
+        setTimeout(
+          () => resolve(json({ entityId: "image/verdigris-board" })),
+          30_000,
+        ),
+      );
     if (url.pathname === "/cms/api/entities" && url.searchParams.has("id"))
       return json({ entity });
     if (url.pathname === "/cms/api/entities") return json({ entities });
@@ -426,40 +628,189 @@ try {
       for (const surface of [
         "dashboard",
         "chat",
+        "chat-cards",
+        "chat-empty",
+        "chat-drawer",
         "cms-library",
         "cms-editor",
+        "cms-delete",
+        "cms-conflict",
+        "cms-invalid",
+        "cms-upload",
       ] as const) {
+        // The sessions drawer only exists at phone widths.
+        if (surface === "chat-drawer" && viewport.width > 760) continue;
+        // Secondary editor states are pinned at desktop and phone; tablet
+        // adds no distinct composition for these overlays and lines.
+        const isCmsSecondary =
+          surface === "cms-delete" ||
+          surface === "cms-conflict" ||
+          surface === "cms-invalid" ||
+          surface === "cms-upload";
+        if (isCmsSecondary && viewport.width === 768) continue;
+        console.error(
+          `→ ${surface} ${viewport.width}x${viewport.height} ${climate}`,
+        );
+        const isChat = surface.startsWith("chat");
+        const conversationId =
+          surface === "chat-cards"
+            ? "cards"
+            : surface === "chat-empty"
+              ? "empty"
+              : "responsive";
         const page = await browser.newPage({
           viewport,
           locale: "en-GB",
           deviceScaleFactor: 1,
         });
-        await page.addInitScript((now): void => {
-          Date.now = (): number => now;
-          localStorage.setItem(
-            "console.climate",
-            new URL(location.href).searchParams.get("climate") ?? "instrument",
-          );
-          localStorage.setItem("brain:web-chat:conversation-id", "responsive");
-        }, FIXED_NOW);
+        await page.addInitScript(
+          ({ now, conversation }): void => {
+            Date.now = (): number => now;
+            localStorage.setItem(
+              "console.climate",
+              new URL(location.href).searchParams.get("climate") ??
+                "instrument",
+            );
+            localStorage.setItem(
+              "brain:web-chat:conversation-id",
+              conversation,
+            );
+          },
+          { now: FIXED_NOW, conversation: conversationId },
+        );
+        const isCmsEditor = surface === "cms-editor" || isCmsSecondary;
         const route =
-          surface === "dashboard"
-            ? "/dashboard"
-            : surface === "chat"
-              ? "/chat"
-              : "/cms";
-        const hash =
-          surface === "cms-editor"
-            ? "#/posts/field-notes"
-            : surface === "chat"
-              ? "#s/responsive"
-              : "";
+          surface === "dashboard" ? "/dashboard" : isChat ? "/chat" : "/cms";
+        const hash = isCmsEditor
+          ? "#/posts/field-notes"
+          : isChat
+            ? `#s/${conversationId}`
+            : "";
         await page.goto(
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
           { waitUntil: "networkidle" },
         );
-        if (surface === "chat") {
+        if (surface === "chat" || surface === "chat-drawer") {
           await page.getByText("And the CMS?").waitFor();
+        }
+        if (surface === "chat-empty") {
+          await page.getByText("Begin a field note.").waitFor();
+        }
+        if (surface === "chat-drawer") {
+          await page.locator(".web-chat-mobile-trigger").click();
+          // The drawer slides in over 0.3s; wait for the transform to land.
+          await page.locator(".web-chat-sessions").evaluate(
+            (node) =>
+              new Promise<void>((resolve) => {
+                const check = (): void => {
+                  const { left } = node.getBoundingClientRect();
+                  if (Math.abs(left) < 0.5) resolve();
+                  else requestAnimationFrame(check);
+                };
+                check();
+              }),
+          );
+        }
+        if (surface === "chat-cards") {
+          await page.getByText("Queued for the trust series.").waitFor();
+          // Cards ship collapsed; the baselines pin their expanded bodies.
+          await page.evaluate(() => {
+            for (const details of Array.from(
+              document.querySelectorAll("details"),
+            )) {
+              details.open = true;
+            }
+          });
+          await page.evaluate(() =>
+            Promise.all(
+              Array.from(document.images)
+                .filter((image) => !image.complete)
+                .map(
+                  (image) =>
+                    new Promise((resolve) => {
+                      image.addEventListener("load", resolve, { once: true });
+                      image.addEventListener("error", resolve, { once: true });
+                    }),
+                ),
+            ),
+          );
+          // Fonts must settle before pinning scroll — a late swap reflows
+          // the thread and shifts the captured scroll position.
+          await page.evaluate(() => document.fonts.ready);
+          // Pin the end of the exchange: scroll every scrollable ancestor
+          // of the final message to its bottom, and repeat until the
+          // positions survive a frame — the thread's stick-to-bottom
+          // spring keeps animating past the first pin.
+          const pinConversationEnd = (): number[] => {
+            const marker = Array.from(document.querySelectorAll("p"))
+              .reverse()
+              .find((node) =>
+                node.textContent?.includes("Queued for the trust series"),
+              );
+            const tops: number[] = [];
+            let node: HTMLElement | null = marker ?? null;
+            while (node) {
+              if (node.scrollHeight > node.clientHeight + 4) {
+                node.scrollTop = node.scrollHeight;
+                tops.push(node.scrollTop);
+              }
+              node = node.parentElement;
+            }
+            return tops;
+          };
+          let previousTops = "";
+          for (let attempt = 0; attempt < 10; attempt += 1) {
+            const tops = JSON.stringify(
+              await page.evaluate(pinConversationEnd),
+            );
+            await page.waitForTimeout(150);
+            const settled = JSON.stringify(
+              await page.evaluate(pinConversationEnd),
+            );
+            if (settled === tops && settled === previousTops) break;
+            previousTops = settled;
+          }
+        }
+        if (surface === "cms-delete") {
+          // Open the delete confirmation. Phone tucks the control behind
+          // the ••• disclosure; wider widths show it in the pipeline bar.
+          if (viewport.width <= 640) {
+            await page.locator(".cms-mobile-more summary").click();
+            await page.getByRole("button", { name: "Delete entry" }).click();
+          } else {
+            await page.locator(".pipeline .btn.danger").click();
+          }
+          await page.locator(".delete-modal").waitFor();
+        }
+        if (surface === "cms-conflict") {
+          // Save with an unchanged title: the fixture answers 409, raising
+          // the reconcile card above the save bar.
+          await page.locator(".save-btn").click();
+          await page.locator(".conflict").waitFor();
+        }
+        if (surface === "cms-invalid") {
+          // Two validation aspects in one frame: a server-rejected save
+          // (the fixture 400s on "!!") pins the pipeline error line, then
+          // an emptied required title pins the :user-invalid outline.
+          await page.getByLabel("Title").fill("Notes from the rhizome!!");
+          await page.locator(".save-btn").click();
+          await page.locator(".status-error").waitFor();
+          await page.getByLabel("Title").fill("");
+          await page.getByLabel("Title").blur();
+          await page.waitForFunction(() =>
+            document.querySelector(".field input:user-invalid"),
+          );
+        }
+        if (surface === "cms-upload") {
+          // Start a cover-image upload the fixture never completes, so the
+          // widget's in-flight state stays up for the capture.
+          await page.locator('.upload-zone input[type="file"]').setInputFiles({
+            name: "verdigris-board.png",
+            mimeType: "image/png",
+            buffer: fixtureImage,
+          });
+          await page.getByText("Uploading…").waitFor();
+          await page.getByText("Uploading…").scrollIntoViewIfNeeded();
         }
         await page.evaluate(() => document.fonts.ready);
         await checkLayout(page, surface, viewport.width);
@@ -470,7 +821,10 @@ try {
         const name = `${surface}-${viewport.width}x${viewport.height}-${climate}.png`;
         const baselinePath = path.join(BASELINE_DIR, name);
         if (UPDATE) {
-          await writeFile(baselinePath, image);
+          // Only rewrite baselines that actually changed — wholesale
+          // rewrites churn every pinned file with re-encode noise.
+          const ratio = await comparePng(image, baselinePath).catch(() => 1);
+          if (ratio > 0.002) await writeFile(baselinePath, image);
         } else {
           try {
             const ratio = await comparePng(image, baselinePath);

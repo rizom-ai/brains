@@ -15,4 +15,6 @@ export interface SiteViewTemplate {
   };
   fullscreen?: boolean;
   runtimeScripts?: SiteRuntimeScript[];
+  /** Files behind runtimeScripts srcs, keyed by output-relative path. */
+  staticAssets?: Record<string, string>;
 }

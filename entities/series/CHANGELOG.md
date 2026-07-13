@@ -1,5 +1,122 @@
 # @brains/series
 
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.166
+  - @brains/content-formatters@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/entity-service@0.2.0-alpha.166
+  - @brains/job-queue@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+  - @brains/templates@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies [[`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33)]:
+  - @brains/templates@0.2.0-alpha.165
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/job-queue@0.2.0-alpha.165
+  - @brains/entity-service@0.2.0-alpha.165
+  - @brains/atproto-contracts@0.2.0-alpha.165
+  - @brains/content-formatters@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.164
+  - @brains/content-formatters@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/entity-service@0.2.0-alpha.164
+  - @brains/job-queue@0.2.0-alpha.164
+  - @brains/plugins@0.2.0-alpha.164
+  - @brains/templates@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.163
+  - @brains/content-formatters@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/entity-service@0.2.0-alpha.163
+  - @brains/job-queue@0.2.0-alpha.163
+  - @brains/plugins@0.2.0-alpha.163
+  - @brains/templates@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.162
+  - @brains/content-formatters@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/entity-service@0.2.0-alpha.162
+  - @brains/job-queue@0.2.0-alpha.162
+  - @brains/plugins@0.2.0-alpha.162
+  - @brains/templates@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/entity-service@0.2.0-alpha.161
+  - @brains/plugins@0.2.0-alpha.161
+  - @brains/atproto-contracts@0.2.0-alpha.161
+  - @brains/content-formatters@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+  - @brains/job-queue@0.2.0-alpha.161
+  - @brains/templates@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.160
+  - @brains/atproto-contracts@0.2.0-alpha.160
+  - @brains/content-formatters@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+  - @brains/entity-service@0.2.0-alpha.160
+  - @brains/job-queue@0.2.0-alpha.160
+  - @brains/templates@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.159
+  - @brains/content-formatters@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/entity-service@0.2.0-alpha.159
+  - @brains/job-queue@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+  - @brains/templates@0.2.0-alpha.159
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.158
+  - @brains/content-formatters@0.2.0-alpha.158
+  - @brains/utils@0.2.0-alpha.158
+  - @brains/entity-service@0.2.0-alpha.158
+  - @brains/job-queue@0.2.0-alpha.158
+  - @brains/plugins@0.2.0-alpha.158
+  - @brains/templates@0.2.0-alpha.158
+
 ## 0.2.0-alpha.157
 
 ### Patch Changes
