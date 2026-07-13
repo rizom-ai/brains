@@ -1,5 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { ConversationActorRegistry } from "../src/conversation-actor-registry";
+import {
+  ConversationActorRegistry,
+  type ConversationActorRegistryOptions,
+} from "../src/conversation-actor-registry";
+import { Effect, TestClock, TestContext } from "effect";
+import type { Clock } from "effect";
 
 interface FakeActor {
   id: number;
@@ -11,12 +16,13 @@ interface FakeActor {
 function createRegistry(options?: {
   idleTtlMs?: number;
   maxOperationsPerConversation?: number;
+  clock?: Clock.Clock;
 }): {
   registry: ConversationActorRegistry<FakeActor>;
   created: FakeActor[];
 } {
   const created: FakeActor[] = [];
-  const registry = new ConversationActorRegistry<FakeActor>({
+  const registryOptions: ConversationActorRegistryOptions<FakeActor> = {
     createActor: (): FakeActor => {
       const actor: FakeActor = {
         id: created.length,
@@ -36,7 +42,16 @@ function createRegistry(options?: {
           maxOperationsPerConversation: options.maxOperationsPerConversation,
         }
       : {}),
-  });
+  };
+
+  // Keep the clock seam out of the package's public Promise API.
+  const RegistryWithClock = ConversationActorRegistry as unknown as new (
+    registryOptions: ConversationActorRegistryOptions<FakeActor>,
+    runtimeOptions?: { clock: Clock.Clock },
+  ) => ConversationActorRegistry<FakeActor>;
+  const registry = options?.clock
+    ? new RegistryWithClock(registryOptions, { clock: options.clock })
+    : new ConversationActorRegistry<FakeActor>(registryOptions);
   return { registry, created };
 }
 
@@ -56,6 +71,23 @@ function deferred<T>(): {
 
 const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+function withRegistryTestClock(
+  idleTtlMs: number,
+  run: (registry: ConversationActorRegistry<FakeActor>) => Effect.Effect<void>,
+): Promise<void> {
+  return Effect.runPromise(
+    Effect.gen(function* () {
+      const clock = yield* TestClock.testClock();
+      const { registry } = createRegistry({ idleTtlMs, clock });
+      yield* Effect.acquireUseRelease(
+        Effect.succeed(registry),
+        run,
+        (ownedRegistry) => Effect.sync(() => ownedRegistry.dispose()),
+      );
+    }).pipe(Effect.provide(TestContext.TestContext)),
+  );
+}
 
 describe("ConversationActorRegistry", () => {
   describe("acquire and peek", () => {
@@ -173,66 +205,84 @@ describe("ConversationActorRegistry", () => {
 
   describe("eviction", () => {
     it("stops and removes an idle actor after the TTL", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const actor = registry.acquire("conv-a");
+          yield* Effect.promise(() =>
+            registry.enqueue("conv-a", async () => "done"),
+          );
+          yield* Effect.yieldNow();
 
-      const actor = registry.acquire("conv-a");
-      await registry.enqueue("conv-a", async () => "done");
-
-      await delay(25);
-      expect(actor.stopped).toBe(true);
-      expect(registry.peek("conv-a")).toBeUndefined();
+          yield* TestClock.adjust(5);
+          expect(actor.stopped).toBe(true);
+          expect(registry.peek("conv-a")).toBeUndefined();
+        }),
+      );
     });
 
     it("does not evict while operations are pending", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
-      const gate = deferred<void>();
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const gate = deferred<void>();
+          const actor = registry.acquire("conv-a");
+          const pending = registry.enqueue("conv-a", () => gate.promise);
+          registry.scheduleEviction("conv-a");
+          yield* Effect.yieldNow();
 
-      const actor = registry.acquire("conv-a");
-      const pending = registry.enqueue("conv-a", () => gate.promise);
-      registry.scheduleEviction("conv-a");
+          yield* TestClock.adjust(5);
+          expect(actor.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(actor);
 
-      await delay(25);
-      expect(actor.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(actor);
-
-      gate.resolve();
-      await pending;
+          gate.resolve();
+          yield* Effect.promise(() => pending);
+        }),
+      );
     });
 
     it("does not evict actors reported non-evictable", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const actor = registry.acquire("conv-a");
+          actor.idle = false;
+          registry.scheduleEviction("conv-a");
+          yield* Effect.yieldNow();
 
-      const actor = registry.acquire("conv-a");
-      actor.idle = false;
-      registry.scheduleEviction("conv-a");
-
-      await delay(25);
-      expect(actor.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(actor);
+          yield* TestClock.adjust(5);
+          expect(actor.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(actor);
+        }),
+      );
     });
 
     it("cancels a pending eviction when the actor is reacquired", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const actor = registry.acquire("conv-a");
+          registry.scheduleEviction("conv-a");
+          registry.acquire("conv-a");
+          yield* Effect.yieldNow();
 
-      const actor = registry.acquire("conv-a");
-      registry.scheduleEviction("conv-a");
-      registry.acquire("conv-a");
-
-      await delay(25);
-      expect(actor.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(actor);
+          yield* TestClock.adjust(5);
+          expect(actor.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(actor);
+        }),
+      );
     });
 
     it("never schedules eviction when the TTL is disabled", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 0 });
+      await withRegistryTestClock(0, (registry) =>
+        Effect.gen(function* () {
+          const actor = registry.acquire("conv-a");
+          yield* Effect.promise(() =>
+            registry.enqueue("conv-a", async () => "done"),
+          );
+          registry.scheduleEviction("conv-a");
+          yield* TestClock.adjust(5);
 
-      const actor = registry.acquire("conv-a");
-      await registry.enqueue("conv-a", async () => "done");
-      registry.scheduleEviction("conv-a");
-
-      await delay(25);
-      expect(actor.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(actor);
+          expect(actor.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(actor);
+        }),
+      );
     });
   });
 
@@ -256,20 +306,23 @@ describe("ConversationActorRegistry", () => {
     });
 
     it("does not let pre-dispose operations evict replacement actors", async () => {
-      const { registry } = createRegistry({ idleTtlMs: 5 });
-      const gate = deferred<void>();
+      await withRegistryTestClock(5, (registry) =>
+        Effect.gen(function* () {
+          const gate = deferred<void>();
+          registry.acquire("conv-a");
+          const pending = registry.enqueue("conv-a", () => gate.promise);
+          registry.dispose();
 
-      registry.acquire("conv-a");
-      const pending = registry.enqueue("conv-a", () => gate.promise);
-      registry.dispose();
+          const replacement = registry.acquire("conv-a");
+          gate.resolve();
+          yield* Effect.promise(() => pending);
+          yield* Effect.yieldNow();
+          yield* TestClock.adjust(5);
 
-      const replacement = registry.acquire("conv-a");
-      gate.resolve();
-      await pending;
-      await delay(25);
-
-      expect(replacement.stopped).toBe(false);
-      expect(registry.peek("conv-a")).toBe(replacement);
+          expect(replacement.stopped).toBe(false);
+          expect(registry.peek("conv-a")).toBe(replacement);
+        }),
+      );
     });
   });
 });

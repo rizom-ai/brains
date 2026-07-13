@@ -12,12 +12,18 @@
  */
 
 import { Effect, Exit, Fiber, FiberMap, Option, Scope } from "effect";
+import type { Clock } from "effect";
 
 const DEFAULT_MAX_OPERATIONS_PER_CONVERSATION = 10;
 
 interface EvictionSupervisor {
   scope: Scope.CloseableScope;
   fibers: FiberMap.FiberMap<string, void, never>;
+}
+
+interface ConversationActorRegistryRuntimeOptions {
+  /** Internal clock boundary used for deterministic eviction tests. */
+  clock?: Clock.Clock;
 }
 
 export interface ConversationActorRegistryOptions<TActor> {
@@ -43,14 +49,20 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
   private readonly evictionRevisions = new Map<string, number>();
   private evictionGeneration = 0;
   private evictionSupervisor: EvictionSupervisor;
+  private readonly clock: Clock.Clock | undefined;
 
-  constructor(options: ConversationActorRegistryOptions<TActor>) {
+  constructor(options: ConversationActorRegistryOptions<TActor>);
+  constructor(
+    options: ConversationActorRegistryOptions<TActor>,
+    runtimeOptions?: ConversationActorRegistryRuntimeOptions,
+  ) {
     this.createActor = options.createActor;
     this.isEvictable = options.isEvictable;
     this.idleTtlMs = options.idleTtlMs;
     this.maxOperations =
       options.maxOperationsPerConversation ??
       DEFAULT_MAX_OPERATIONS_PER_CONVERSATION;
+    this.clock = runtimeOptions?.clock;
     this.evictionSupervisor = this.createEvictionSupervisor();
   }
 
@@ -121,7 +133,7 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
     if (this.idleTtlMs <= 0) return;
 
     const generation = this.evictionGeneration;
-    const eviction = Effect.sleep(this.idleTtlMs).pipe(
+    const timedEviction = Effect.sleep(this.idleTtlMs).pipe(
       Effect.andThen(
         Effect.sync(() => {
           if (generation !== this.evictionGeneration) return;
@@ -140,6 +152,9 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
         }),
       ),
     );
+    const eviction = this.clock
+      ? Effect.withClock(timedEviction, this.clock)
+      : timedEviction;
 
     const fiber = Effect.runFork(eviction);
     FiberMap.unsafeSet(this.evictionSupervisor.fibers, conversationId, fiber);
