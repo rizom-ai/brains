@@ -636,6 +636,14 @@ describe("webauthn endpoints", () => {
       error: "access_denied",
       error_description: "Passkey authentication failed",
     });
+    const failureEvent = (await service.listAuditEvents()).find(
+      (event) => event.action === "auth.passkey.authentication_failed",
+    );
+    expect(failureEvent).toMatchObject({
+      action: "auth.passkey.authentication_failed",
+    });
+    expect(failureEvent?.actorUserId).toBeUndefined();
+    expect(failureEvent?.metadata).toBeUndefined();
   });
 });
 

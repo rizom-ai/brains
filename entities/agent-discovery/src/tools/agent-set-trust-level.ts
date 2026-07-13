@@ -108,7 +108,7 @@ export function createAgentSetTrustLevelTool(
     inputSchema: agentSetTrustLevelInputSchema.shape,
     visibility: "anchor",
     sideEffects: "external",
-    handler: async (rawInput): Promise<ToolResponse> => {
+    handler: async (rawInput, toolContext): Promise<ToolResponse> => {
       const parsed = agentSetTrustLevelInputSchema.safeParse(rawInput);
       if (!parsed.success) {
         return {
@@ -163,11 +163,16 @@ export function createAgentSetTrustLevelTool(
               error: "Missing key fingerprint for trusted A2A grant.",
             };
           }
-          const grant = await authService.grantA2APeerTrust({
-            domain: resolved.domain,
-            keyFingerprint: input.keyFingerprint,
-            grantedLevel: "trusted",
-          });
+          const grant = await authService.grantA2APeerTrust(
+            {
+              domain: resolved.domain,
+              keyFingerprint: input.keyFingerprint,
+              grantedLevel: "trusted",
+            },
+            toolContext.userId.startsWith("usr_")
+              ? { actorUserId: toolContext.userId }
+              : {},
+          );
           return {
             success: true,
             data: {
@@ -178,7 +183,12 @@ export function createAgentSetTrustLevelTool(
           };
         }
 
-        await authService.revokeA2APeerTrust(resolved.domain);
+        await authService.revokeA2APeerTrust(
+          resolved.domain,
+          toolContext.userId.startsWith("usr_")
+            ? { actorUserId: toolContext.userId }
+            : {},
+        );
         return {
           success: true,
           data: {

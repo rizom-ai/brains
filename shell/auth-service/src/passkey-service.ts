@@ -103,6 +103,7 @@ export class PasskeyService {
   async verifyRegistrationResponse(
     response: RegistrationResponseJSON,
     context: WebAuthnRequestContext,
+    expectedSubject?: string,
   ): Promise<RegistrationVerifyResult> {
     const challenge = response.response.clientDataJSON
       ? getChallengeFromClientData(response.response.clientDataJSON)
@@ -113,7 +114,11 @@ export class PasskeyService {
 
     const storedChallenge =
       await this.store.consumeRegistrationChallenge(challenge);
-    if (!storedChallenge) {
+    if (
+      !storedChallenge ||
+      (expectedSubject !== undefined &&
+        storedChallenge.subject !== expectedSubject)
+    ) {
       return { verified: false };
     }
 

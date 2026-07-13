@@ -247,6 +247,15 @@ export class AuthUserStore {
     return identity;
   }
 
+  async listIdentities(userId: string): Promise<AuthIdentity[]> {
+    await this.requireUser(userId);
+    return this.db
+      .select()
+      .from(authIdentities)
+      .where(eq(authIdentities.userId, userId))
+      .orderBy(authIdentities.createdAt);
+  }
+
   async detachIdentityBySubject(
     input: ResolveAuthIdentityInput & { userId: string },
   ): Promise<AuthIdentity | undefined> {

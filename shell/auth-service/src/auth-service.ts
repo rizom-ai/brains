@@ -1,11 +1,16 @@
 import type { Logger } from "@brains/utils/logger";
+import {
+  handleAuthAdminRequest,
+  type AuthIdentitySummary,
+  type AuthPasskeySummary,
+} from "./admin-endpoints";
 import { AuthAuditStore, type AuthAuditEvent } from "./audit-store";
 import {
   AuthorizationCodeStore,
   RuntimeAuthorizationCodeStore,
 } from "./auth-code-store";
 import { OAuthClientStore, RuntimeOAuthClientStore } from "./client-store";
-import { AuthCredentialStore } from "./credential-store";
+import { AuthCredentialStore, type StoredPasskey } from "./credential-store";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import {
   PasskeyService,
@@ -97,6 +102,11 @@ export type AuthIdentityAccessResolution =
 export interface AuthMutationContext {
   /** Authenticated user performing the mutation, for audit attribution. */
   actorUserId?: string;
+}
+
+export interface UserPasskeyRegistration {
+  setupUrl: string;
+  expiresAt: number;
 }
 
 export interface A2ASigningKey {
@@ -221,8 +231,18 @@ export class AuthService {
       passkeyService: this.passkeyService,
       sessionStore: this.sessionStore,
       setupFlow: this.setupFlow,
-      registrationUserProvider: async (): Promise<PasskeyRegistrationUser> => {
-        const user = await this.ensureFirstAnchorUser();
+      recordAuditEvent: async (event): Promise<void> => {
+        await this.getAuditStore().append(event);
+      },
+      registrationUserProvider: async (
+        userId?: string,
+      ): Promise<PasskeyRegistrationUser> => {
+        const user = userId
+          ? await this.getUserStore().getUser(userId)
+          : await this.ensureFirstAnchorUser();
+        if (user?.status !== "active") {
+          throw new Error("Passkey registration user is not active");
+        }
         return {
           subject: user.id,
           userName: user.displayName,
@@ -585,9 +605,10 @@ export class AuthService {
 
   async grantA2APeerTrust(
     input: GrantA2APeerTrustInput,
+    context: AuthMutationContext = {},
   ): Promise<A2APeerTrustRecord> {
     await this.initialize();
-    return this.peerTrustStore.grant(input);
+    return this.peerTrustStore.grant(input, context);
   }
 
   async getA2APeerTrust(
@@ -597,9 +618,12 @@ export class AuthService {
     return this.peerTrustStore.get(domain);
   }
 
-  async revokeA2APeerTrust(domain: string): Promise<void> {
+  async revokeA2APeerTrust(
+    domain: string,
+    context: AuthMutationContext = {},
+  ): Promise<void> {
     await this.initialize();
-    return this.peerTrustStore.revoke(domain);
+    return this.peerTrustStore.revoke(domain, context);
   }
 
   getAuthorizationServerMetadata(
@@ -673,6 +697,20 @@ export class AuthService {
     return (await this.getUserStore().listUsers()).map(principalFromUser);
   }
 
+  async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
+    await this.ensureUserStoreStarted();
+    return (await this.getUserStore().listIdentities(userId)).map(
+      identitySummary,
+    );
+  }
+
+  async listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]> {
+    await this.ensureUserStoreStarted();
+    return (await this.getCredentialStore().listPasskeys(userId)).map(
+      passkeySummary,
+    );
+  }
+
   async updateUserRole(
     userId: string,
     role: AuthUserRole,
@@ -724,11 +762,21 @@ export class AuthService {
 
   async revokeUserSessionsAndRefreshTokens(
     userId: string,
+    context: AuthMutationContext = {},
   ): Promise<{ sessions: number; refreshTokens: number }> {
     const [sessions, refreshTokens] = await Promise.all([
       this.sessionStore.revokeSessionsForSubject(userId),
       this.refreshTokenStore.revokeTokensForSubject(userId),
     ]);
+    if (context.actorUserId) {
+      await this.getAuditStore().append({
+        ...auditActor(context),
+        action: "auth.user.grants_revoked",
+        targetType: "user",
+        targetId: userId,
+        metadata: { sessions, refreshTokens },
+      });
+    }
     return { sessions, refreshTokens };
   }
 
@@ -874,6 +922,29 @@ export class AuthService {
     return this.setupFlow.getSetupUrl(issuer);
   }
 
+  async startPasskeyRegistrationForUser(
+    userId: string,
+    context: AuthMutationContext = {},
+  ): Promise<UserPasskeyRegistration> {
+    await this.ensureUserStoreStarted();
+    const user = await this.getUserStore().getUser(userId);
+    if (user?.status !== "active") {
+      throw new Error(`Active auth user not found: ${userId}`);
+    }
+    const setup = await this.setupFlow.createUserPasskeySetup(
+      userId,
+      this.issuer,
+    );
+    await this.getAuditStore().append({
+      ...auditActor(context),
+      action: "auth.passkey.registration_started",
+      targetType: "user",
+      targetId: userId,
+      metadata: { expiresAt: setup.expiresAt },
+    });
+    return { setupUrl: setup.setupUrl, expiresAt: setup.expiresAt };
+  }
+
   async getOperatorSetupRequired(
     issuer: string = this.issuer,
   ): Promise<OperatorSetupRequired | undefined> {
@@ -920,6 +991,10 @@ export class AuthService {
       return new Response("Untrusted OAuth issuer", { status: 400 });
     }
     const path = new URL(request.url).pathname;
+
+    if (path === "/auth/admin/users" || path === "/auth/admin/mutations") {
+      return this.handleAdminRequest(request);
+    }
 
     if (request.method === "OPTIONS" && isCorsMachineEndpoint(path)) {
       return corsPreflightResponse();
@@ -1007,6 +1082,31 @@ export class AuthService {
     return this.handleRequest(request);
   }
 
+  private handleAdminRequest(request: Request): Promise<Response> {
+    return handleAuthAdminRequest(request, {
+      resolveSession: (adminRequest) => this.resolveSession(adminRequest),
+      listUsers: () => this.listUsers(),
+      listUserIdentities: (userId) => this.listUserIdentities(userId),
+      listUserPasskeys: (userId) => this.listUserPasskeys(userId),
+      createUser: (input, actorUserId) =>
+        this.createUser(input, { actorUserId }),
+      updateUserRole: (userId, role, actorUserId) =>
+        this.updateUserRole(userId, role, { actorUserId }),
+      updateUserStatus: (userId, status, actorUserId) =>
+        this.updateUserStatus(userId, status, { actorUserId }),
+      attachIdentity: async (input, actorUserId) =>
+        identitySummary(await this.attachIdentity(input, { actorUserId })),
+      detachIdentity: async (identityId, actorUserId) =>
+        identitySummary(await this.detachIdentity(identityId, { actorUserId })),
+      revokePasskey: (credentialId, actorUserId) =>
+        this.revokePasskey(credentialId, { actorUserId }),
+      startPasskeyRegistration: (userId, actorUserId) =>
+        this.startPasskeyRegistrationForUser(userId, { actorUserId }),
+      revokeUserSessionsAndRefreshTokens: (userId, actorUserId) =>
+        this.revokeUserSessionsAndRefreshTokens(userId, { actorUserId }),
+    });
+  }
+
   private resolveRequestIssuer(request: Request): string {
     const requestIssuer = issuerFromRequest(request, this.issuer);
     if (
@@ -1072,6 +1172,35 @@ function auditActor(context: AuthMutationContext): {
 
 function legacyTimestampToMilliseconds(timestamp: number): number {
   return timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
+}
+
+function identitySummary(identity: AuthIdentity): AuthIdentitySummary {
+  return {
+    id: identity.id,
+    userId: identity.userId,
+    type: identity.type,
+    ...(identity.issuer ? { issuer: identity.issuer } : {}),
+    ...(identity.label ? { label: identity.label } : {}),
+    ...(identity.verifiedAt !== null
+      ? { verifiedAt: identity.verifiedAt }
+      : {}),
+    ...(identity.revokedAt !== null ? { revokedAt: identity.revokedAt } : {}),
+    createdAt: identity.createdAt,
+  };
+}
+
+function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {
+  return {
+    id: passkey.id,
+    userId: passkey.userId,
+    ...(passkey.transports ? { transports: passkey.transports } : {}),
+    ...(passkey.credentialDeviceType
+      ? { credentialDeviceType: passkey.credentialDeviceType }
+      : {}),
+    credentialBackedUp: passkey.credentialBackedUp,
+    createdAt: passkey.createdAt,
+    updatedAt: passkey.updatedAt,
+  };
 }
 
 function principalFromUser(user: AuthUser): AuthPrincipal {

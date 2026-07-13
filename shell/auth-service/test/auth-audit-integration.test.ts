@@ -91,6 +91,43 @@ describe("AuthService audit integration", () => {
     ).toBe(true);
   });
 
+  it("audits A2A peer-trust mutations with the authenticated actor", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const owner = await service.createUser({
+      displayName: "Owner",
+      role: "anchor",
+    });
+    const context = { actorUserId: owner.userId };
+
+    await service.grantA2APeerTrust(
+      {
+        domain: "peer.example.com",
+        keyFingerprint: "fingerprint-1",
+        grantedLevel: "trusted",
+      },
+      context,
+    );
+    await service.revokeA2APeerTrust("peer.example.com", context);
+
+    expect(await service.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorUserId: owner.userId,
+          action: "auth.a2a_peer_trust.granted",
+          targetId: "peer.example.com",
+        }),
+        expect.objectContaining({
+          actorUserId: owner.userId,
+          action: "auth.a2a_peer_trust.revoked",
+          targetId: "peer.example.com",
+        }),
+      ]),
+    );
+  });
+
   it("audits user and identity mutations", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),

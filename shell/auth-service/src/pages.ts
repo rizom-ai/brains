@@ -15,7 +15,7 @@ export function renderSetupPage(setupToken: string): string {
   <body>
     <main class="card">
       <h1>Set up your brain passkey</h1>
-      <p>Register a passkey to become the operator for this brain.</p>
+      <p>Register your passkey for this brain.</p>
       <button type="button" id="register">Register passkey</button>
       <p id="status" role="status"></p>
     </main>

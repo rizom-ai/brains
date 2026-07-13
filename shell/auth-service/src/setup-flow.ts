@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { PasskeyService } from "./passkey-service";
-import { setupTokenId, type SetupStatePersistence } from "./setup-state-store";
+import {
+  setupTokenId,
+  type TargetedSetupStatePersistence,
+} from "./setup-state-store";
 import { absoluteUrl } from "./issuer";
 import { htmlResponse } from "./http-responses";
 import { renderSetupPage } from "./pages";
@@ -19,7 +22,7 @@ export interface OperatorSetupRequired {
 }
 
 export interface SetupFlowOptions {
-  setupStateStore: SetupStatePersistence;
+  setupStateStore: TargetedSetupStatePersistence;
   passkeyService: PasskeyService;
   setupTokenTtlSeconds?: number;
 }
@@ -29,7 +32,7 @@ export interface SetupFlowOptions {
  * setup page it gates, and the record of setup email deliveries.
  */
 export class SetupFlow {
-  private readonly setupStateStore: SetupStatePersistence;
+  private readonly setupStateStore: TargetedSetupStatePersistence;
   private readonly passkeyService: PasskeyService;
   private readonly setupTokenTtlSeconds: number;
   private setupToken: SetupTokenState | undefined;
@@ -80,18 +83,33 @@ export class SetupFlow {
     return this.setupToken;
   }
 
-  async hasValidSetupToken(request: Request): Promise<boolean> {
+  async resolveSetupToken(
+    request: Request,
+  ): Promise<{ token: string; targetUserId: string | null } | undefined> {
     const url = new URL(request.url);
-    const suppliedToken =
+    const token =
       url.searchParams.get("setup_token") ?? url.searchParams.get("token");
-    if (!suppliedToken) return false;
-    return this.setupStateStore.hasValidSetupToken(
-      suppliedToken,
+    if (!token) return undefined;
+    const target = await this.setupStateStore.getSetupTokenTarget(
+      token,
       Math.floor(Date.now() / 1000),
     );
+    return target ? { token, targetUserId: target.targetUserId } : undefined;
   }
 
-  /** Consume the setup token once registration completes. */
+  async hasValidSetupToken(request: Request): Promise<boolean> {
+    return Boolean(await this.resolveSetupToken(request));
+  }
+
+  /** Consume the supplied setup token once registration completes. */
+  async consumeSetupToken(token: string): Promise<void> {
+    if (this.setupToken?.token === token) {
+      this.setupToken = undefined;
+    }
+    await this.setupStateStore.consumeSetupToken(token);
+  }
+
+  /** Clear first-owner setup state after legacy bootstrap completes. */
   async clearSetupState(): Promise<void> {
     this.setupToken = undefined;
     await this.setupStateStore.clearSetupState();
@@ -126,16 +144,38 @@ export class SetupFlow {
     };
   }
 
+  async createUserPasskeySetup(
+    userId: string,
+    issuer: string,
+  ): Promise<OperatorSetupRequired> {
+    const setupToken = {
+      token: `setup_${randomUUID()}`,
+      expiresAt: Math.floor(Date.now() / 1000) + this.setupTokenTtlSeconds,
+    };
+    await this.setupStateStore.saveTargetedSetupToken(setupToken, userId);
+    return {
+      setupUrl: absoluteUrl(
+        issuer,
+        `/setup?token=${encodeURIComponent(setupToken.token)}`,
+      ),
+      expiresAt: setupToken.expiresAt,
+      setupTokenId: setupTokenId(setupToken.token),
+    };
+  }
+
   async handleSetupPage(request: Request): Promise<Response> {
-    if (await this.passkeyService.hasCredentials()) {
+    const setup = await this.resolveSetupToken(request);
+    if (
+      (await this.passkeyService.hasCredentials()) &&
+      setup?.targetUserId == null
+    ) {
       return new Response("Setup already completed", { status: 404 });
     }
-    if (!(await this.hasValidSetupToken(request))) {
+    if (!setup) {
       return new Response("Not Found", { status: 404 });
     }
 
-    const token = new URL(request.url).searchParams.get("token") ?? "";
-    return htmlResponse(renderSetupPage(token));
+    return htmlResponse(renderSetupPage(setup.token));
   }
 
   async hasSetupEmailDelivery(

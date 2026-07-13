@@ -295,9 +295,16 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(confirmation.preview).toContain(keyFingerprint(remoteA2AKey));
 
+    const activeAuth = getActiveAuthService();
+    if (!activeAuth) throw new Error("Expected active auth service");
+    const owner = await activeAuth.createUser({
+      displayName: "Owner",
+      role: "anchor",
+    });
     const result = await harness.executeTool(
       "agent_set_trust_level",
       confirmation.args as Record<string, unknown>,
+      { userId: owner.userId },
     );
 
     expectSuccess(result);
@@ -306,8 +313,6 @@ describe("AgentDiscoveryPlugin", () => {
       level: "trusted",
       keyFingerprint: keyFingerprint(remoteA2AKey),
     });
-    const activeAuth = getActiveAuthService();
-    if (!activeAuth) throw new Error("Expected active auth service");
     expect(await activeAuth.getA2APeerTrust("trust.example")).toMatchObject({
       domain: "trust.example",
       grantedLevel: "trusted",
@@ -316,6 +321,15 @@ describe("AgentDiscoveryPlugin", () => {
     expect(fetchMock.calls).toEqual([
       "https://trust.example/.well-known/jwks.json",
     ]);
+    expect(await activeAuth.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorUserId: owner.userId,
+          action: "auth.a2a_peer_trust.granted",
+          targetId: "trust.example",
+        }),
+      ]),
+    );
 
     if (authPlugin.shutdown) await authPlugin.shutdown();
     harness.reset();

@@ -50,6 +50,18 @@ export interface SetupStatePersistence {
   ): Promise<void>;
 }
 
+export interface TargetedSetupStatePersistence extends SetupStatePersistence {
+  saveTargetedSetupToken(
+    setupToken: StoredSetupToken,
+    targetUserId: string,
+  ): Promise<void>;
+  getSetupTokenTarget(
+    token: string,
+    nowSeconds: number,
+  ): Promise<{ targetUserId: string | null } | undefined>;
+  consumeSetupToken(token: string): Promise<void>;
+}
+
 export function setupTokenId(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -108,7 +120,7 @@ function parseStoredSetupDelivery(value: unknown): StoredSetupDelivery[] {
 
 const PASSKEY_SETUP_PURPOSE = "passkey_setup";
 
-export class RuntimeSetupStateStore implements SetupStatePersistence {
+export class RuntimeSetupStateStore implements TargetedSetupStatePersistence {
   private readonly database: AuthRuntimeDatabase;
   private revealableToken: StoredSetupToken | undefined;
 
@@ -165,6 +177,7 @@ export class RuntimeSetupStateStore implements SetupStatePersistence {
       .where(
         and(
           eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+          isNull(setupTokens.targetUserId),
           isNull(setupTokens.consumedAt),
           gt(setupTokens.expiresAt, nowSecondsValue),
         ),
@@ -180,6 +193,7 @@ export class RuntimeSetupStateStore implements SetupStatePersistence {
       .where(
         and(
           eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+          isNull(setupTokens.targetUserId),
           isNull(setupTokens.consumedAt),
           gt(setupTokens.expiresAt, nowSecondsValue),
           isNotNull(setupTokens.deliveryKeyHash),
@@ -216,6 +230,7 @@ export class RuntimeSetupStateStore implements SetupStatePersistence {
         .where(
           and(
             eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+            isNull(setupTokens.targetUserId),
             isNull(setupTokens.consumedAt),
           ),
         );
@@ -238,6 +253,52 @@ export class RuntimeSetupStateStore implements SetupStatePersistence {
     });
   }
 
+  async saveTargetedSetupToken(
+    setupToken: StoredSetupToken,
+    targetUserId: string,
+  ): Promise<void> {
+    await this.database.db.insert(setupTokens).values({
+      tokenHash: setupTokenId(setupToken.token),
+      purpose: PASSKEY_SETUP_PURPOSE,
+      targetUserId,
+      expiresAt: setupToken.expiresAt,
+      consumedAt: null,
+      deliveryKeyHash: null,
+      createdAt: Math.floor(Date.now() / 1000),
+    });
+  }
+
+  async getSetupTokenTarget(
+    token: string,
+    nowSecondsValue: number,
+  ): Promise<{ targetUserId: string | null } | undefined> {
+    const [row] = await this.database.db
+      .select({ targetUserId: setupTokens.targetUserId })
+      .from(setupTokens)
+      .where(
+        and(
+          eq(setupTokens.tokenHash, setupTokenId(token)),
+          eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+          isNull(setupTokens.consumedAt),
+          gt(setupTokens.expiresAt, nowSecondsValue),
+        ),
+      )
+      .limit(1);
+    return row;
+  }
+
+  async consumeSetupToken(token: string): Promise<void> {
+    await this.database.db
+      .update(setupTokens)
+      .set({ consumedAt: Math.floor(Date.now() / 1000) })
+      .where(
+        and(
+          eq(setupTokens.tokenHash, setupTokenId(token)),
+          isNull(setupTokens.consumedAt),
+        ),
+      );
+  }
+
   async clearSetupState(): Promise<void> {
     this.revealableToken = undefined;
     await this.database.db
@@ -246,6 +307,7 @@ export class RuntimeSetupStateStore implements SetupStatePersistence {
       .where(
         and(
           eq(setupTokens.purpose, PASSKEY_SETUP_PURPOSE),
+          isNull(setupTokens.targetUserId),
           isNull(setupTokens.consumedAt),
         ),
       );

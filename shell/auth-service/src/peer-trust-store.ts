@@ -38,6 +38,10 @@ export interface GrantA2APeerTrustInput {
   grantedLevel: "public" | "trusted" | "anchor";
 }
 
+export interface PeerTrustMutationContext {
+  actorUserId?: string;
+}
+
 export interface A2APeerTrustStoreOptions {
   storageDir: string;
   fileName?: string;
@@ -45,8 +49,11 @@ export interface A2APeerTrustStoreOptions {
 
 export interface A2APeerTrustPersistence {
   get(domain: string): Promise<A2APeerTrustRecord | undefined>;
-  grant(input: GrantA2APeerTrustInput): Promise<A2APeerTrustRecord>;
-  revoke(domain: string): Promise<void>;
+  grant(
+    input: GrantA2APeerTrustInput,
+    context?: PeerTrustMutationContext,
+  ): Promise<A2APeerTrustRecord>;
+  revoke(domain: string, context?: PeerTrustMutationContext): Promise<void>;
 }
 
 export class RuntimeA2APeerTrustStore implements A2APeerTrustPersistence {
@@ -87,7 +94,10 @@ export class RuntimeA2APeerTrustStore implements A2APeerTrustPersistence {
       : undefined;
   }
 
-  async grant(input: GrantA2APeerTrustInput): Promise<A2APeerTrustRecord> {
+  async grant(
+    input: GrantA2APeerTrustInput,
+    context: PeerTrustMutationContext = {},
+  ): Promise<A2APeerTrustRecord> {
     if (input.grantedLevel === "anchor") {
       throw new Error("A2A peer trust grants must be trusted or public");
     }
@@ -115,6 +125,7 @@ export class RuntimeA2APeerTrustStore implements A2APeerTrustPersistence {
         },
       });
     await new AuthAuditStore(this.database.db).append({
+      ...(context.actorUserId ? { actorUserId: context.actorUserId } : {}),
       action: "auth.a2a_peer_trust.granted",
       targetType: "a2a_peer",
       targetId: record.domain,
@@ -126,7 +137,10 @@ export class RuntimeA2APeerTrustStore implements A2APeerTrustPersistence {
     return record;
   }
 
-  async revoke(domain: string): Promise<void> {
+  async revoke(
+    domain: string,
+    context: PeerTrustMutationContext = {},
+  ): Promise<void> {
     const normalizedDomain = normalizePeerDomain(domain);
     const deleted = await this.database.db
       .delete(a2aPeerTrust)
@@ -134,6 +148,7 @@ export class RuntimeA2APeerTrustStore implements A2APeerTrustPersistence {
       .returning({ domain: a2aPeerTrust.domain });
     if (deleted.length > 0) {
       await new AuthAuditStore(this.database.db).append({
+        ...(context.actorUserId ? { actorUserId: context.actorUserId } : {}),
         action: "auth.a2a_peer_trust.revoked",
         targetType: "a2a_peer",
         targetId: normalizedDomain,

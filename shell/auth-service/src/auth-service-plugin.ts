@@ -334,6 +334,18 @@ export class AuthServicePlugin extends ServicePlugin<
         handler,
       },
       {
+        path: "/auth/admin/users",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/auth/admin/mutations",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
         path: "/webauthn/register/options",
         method: "POST",
         public: true,

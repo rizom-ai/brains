@@ -2,7 +2,7 @@
 
 ## Status
 
-Active implementation plan. Phases 1–4 and 6 are implemented on `feature/auth-runtime-db`; phase 5's non-agent management surface remains open. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
+Implementation complete on `feature/auth-runtime-db`. Phases 1–6 and cross-consumer validation are implemented; optional dashboard/CLI clients can follow over the authenticated admin API. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
 
 ## Goal
 
@@ -43,13 +43,15 @@ Implemented on `feature/auth-runtime-db`:
 - High-level user, role, status, identity, passkey-revocation, and audit APIs with optional authenticated-actor attribution for management mutations.
 - Async `CanonicalIdentityService` enrichment through an internal auth-principal channel, resolving hashed private bindings without exposing raw identity subjects.
 - Canonical user attribution propagated through conversations, agent-invoked and confirmed tool contexts, tool lifecycle events, and tool-enqueued job metadata, including non-MCP chat paths.
+- Same-origin, session-authenticated owner API for user, role, status, identity, passkey, user-session, and user-specific passkey-registration administration; every mutation requires an explicit action confirmation and remains absent from model tools.
+- Actor-attributed management and A2A trust auditing plus secret-free WebAuthn failure events.
 - Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
-Still open before merge:
+Optional follow-up:
 
-1. **Add a non-agent management surface.** Expose user, identity, and user-specific passkey administration through an authenticated dashboard/API and optional local CLI, with explicit operator confirmation. Do not register these operations as model-visible tools.
-2. **Complete audit wiring.** Have the future admin surface supply the authenticated actor context, cover remaining privileged mutations, and add useful authentication-failure events without logging secrets.
-3. **Revalidate across consumers.** Run auth, MCP, Discord, A2A, typecheck, and lint checks together after the remaining integration work.
+1. **Operator UX clients.** Add a People dashboard over the authenticated admin API or local CLI wrappers if required; neither is needed for the runtime/API contract.
+
+Cross-consumer validation completed across auth service, MCP interface/service, Discord, A2A, agent discovery, affected typechecks, and lint.
 
 ## Consumers to satisfy
 
@@ -300,7 +302,7 @@ Validation: trusted users cannot call anchor-only tools; suspended users are den
 
 ### Phase 5 — Management surface
 
-**Status: service APIs implemented; operator surface open.** User, role, status, identity, and passkey-revocation APIs exist, but they are deliberately not model-visible.
+**Status: implemented.** User, role, status, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin owner-session API and remain deliberately absent from model tools.
 
 - Add an authenticated, operator-driven admin API/dashboard and optional local CLI wrappers for user/identity/passkey management.
 - Require explicit operator interaction and confirmation for role, status, identity, and credential mutations.

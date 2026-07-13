@@ -16,7 +16,15 @@ export interface WebAuthnEndpointsOptions {
   passkeyService: PasskeyService;
   sessionStore: OperatorSessionPersistence;
   setupFlow: SetupFlow;
-  registrationUserProvider: () => Promise<PasskeyRegistrationUser>;
+  registrationUserProvider: (
+    userId?: string,
+  ) => Promise<PasskeyRegistrationUser>;
+  recordAuditEvent?: (event: {
+    action: string;
+    targetType?: string;
+    targetId?: string;
+    metadata?: Record<string, unknown>;
+  }) => Promise<void>;
 }
 
 /**
@@ -28,53 +36,86 @@ export class WebAuthnEndpoints {
   private readonly passkeyService: PasskeyService;
   private readonly sessionStore: OperatorSessionPersistence;
   private readonly setupFlow: SetupFlow;
-  private readonly registrationUserProvider: () => Promise<PasskeyRegistrationUser>;
+  private readonly registrationUserProvider: (
+    userId?: string,
+  ) => Promise<PasskeyRegistrationUser>;
+  private readonly recordAuditEvent:
+    | ((event: {
+        action: string;
+        targetType?: string;
+        targetId?: string;
+        metadata?: Record<string, unknown>;
+      }) => Promise<void>)
+    | undefined;
 
   constructor(options: WebAuthnEndpointsOptions) {
     this.passkeyService = options.passkeyService;
     this.sessionStore = options.sessionStore;
     this.setupFlow = options.setupFlow;
     this.registrationUserProvider = options.registrationUserProvider;
+    this.recordAuditEvent = options.recordAuditEvent;
   }
 
   async handleRegistrationOptions(request: Request): Promise<Response> {
-    if (await this.passkeyService.hasCredentials()) {
+    const setup = await this.setupFlow.resolveSetupToken(request);
+    if (
+      (await this.passkeyService.hasCredentials()) &&
+      setup?.targetUserId == null
+    ) {
       return oauthErrorResponse(
         "access_denied",
         "Passkey setup already completed",
       );
     }
-    if (!(await this.setupFlow.hasValidSetupToken(request))) {
+    if (!setup) {
       return oauthErrorResponse("access_denied", "Invalid setup token");
     }
 
-    const options = await this.passkeyService.generateRegistrationOptions(
-      webAuthnRequestContext(request),
-      await this.registrationUserProvider(),
-    );
-    return jsonResponse(options);
+    try {
+      const options = await this.passkeyService.generateRegistrationOptions(
+        webAuthnRequestContext(request),
+        await this.registrationUserProvider(setup.targetUserId ?? undefined),
+      );
+      return jsonResponse(options);
+    } catch {
+      return oauthErrorResponse(
+        "access_denied",
+        "Passkey registration user is unavailable",
+      );
+    }
   }
 
   async handleRegistrationVerify(request: Request): Promise<Response> {
-    if (await this.passkeyService.hasCredentials()) {
+    const setup = await this.setupFlow.resolveSetupToken(request);
+    if (
+      (await this.passkeyService.hasCredentials()) &&
+      setup?.targetUserId == null
+    ) {
       return oauthErrorResponse(
         "access_denied",
         "Passkey setup already completed",
       );
     }
-    if (!(await this.setupFlow.hasValidSetupToken(request))) {
+    if (!setup) {
       return oauthErrorResponse("access_denied", "Invalid setup token");
     }
 
     const result = await this.passkeyService.verifyRegistrationResponse(
       (await request.json()) as RegistrationResponseJSON,
       webAuthnRequestContext(request),
+      setup.targetUserId ?? undefined,
     );
     if (!result.verified) {
+      await this.recordAuditEvent?.({
+        action: "auth.passkey.registration_failed",
+        ...(setup.targetUserId
+          ? { targetType: "user", targetId: setup.targetUserId }
+          : {}),
+      });
       return oauthErrorResponse("access_denied", "Passkey registration failed");
     }
 
-    await this.setupFlow.clearSetupState();
+    await this.setupFlow.consumeSetupToken(setup.token);
     const session = await this.sessionStore.createSession(
       result.subject ?? "single-operator",
       { secure: isSecureRequest(request) },
@@ -101,6 +142,9 @@ export class WebAuthnEndpoints {
       webAuthnRequestContext(request),
     );
     if (!result.verified) {
+      await this.recordAuditEvent?.({
+        action: "auth.passkey.authentication_failed",
+      });
       return oauthErrorResponse(
         "access_denied",
         "Passkey authentication failed",

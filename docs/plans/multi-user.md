@@ -2,7 +2,7 @@
 
 ## Status
 
-Active implementation plan. Phases 1, 2, and 4 are implemented on `feature/auth-runtime-db`; phase 3's service APIs exist, but the required non-agent management surface remains open. Runtime auth now uses real users, role-aware sessions, per-principal MCP permissions, and canonical conversation/tool/job attribution. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Active implementation plan. Phases 1–4 are implemented on `feature/auth-runtime-db`; optional invitation delivery and operator UI/CLI polish remain. Runtime auth now uses real users, role-aware sessions, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent owner administration API. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -22,7 +22,8 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
 - Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
-- Typed auth administration APIs exist, but no dedicated authenticated People UI/API or local CLI has landed yet; administration remains intentionally absent from model tools.
+- A same-origin owner-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
+- A dashboard People UI or local CLI can be layered over that API later.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -178,7 +179,9 @@ Avoid writing auth-sensitive identity bindings into content markdown.
 
 ### Non-agent administration
 
-Do not register user or user-specific credential administration as model-visible tools. Expose the typed `AuthService` operations through a dedicated authenticated admin API/dashboard and optional local CLI instead. Mutations should require explicit operator interaction and confirmation, preserve last-owner invariants, revoke affected grants, and append structured audit events. The existing first-owner bootstrap URL retrieval is a separate setup mechanism, not a general user-management surface.
+Do not register user or user-specific credential administration as model-visible tools. The runtime exposes `GET /auth/admin/users` and `POST /auth/admin/mutations` to active owner sessions. Mutations require same-origin JSON plus an action-matching `confirmation` value, preserve last-owner invariants, revoke affected grants, and append actor-attributed audit events. Responses redact identity lookup hashes, raw identity subjects, and passkey public keys. The existing first-owner bootstrap URL retrieval is a separate setup mechanism, not a general user-management surface.
+
+Supported mutation actions are `createUser`, `updateUserRole`, `updateUserStatus`, `attachIdentity`, `detachIdentity`, `startPasskeyRegistration`, `revokePasskey`, and `revokeUserSessions`.
 
 ### Dashboard / People UX
 
@@ -207,9 +210,9 @@ Keep `brain auth reset-passkeys --yes` as the break-glass reset for all passkeys
 
 For v1, onboarding is explicit and operator managed:
 
-1. Anchor creates a user (`brain user:create ...`).
-2. Anchor attaches one or more known identities (`brain user:attach-identity ...`).
-3. For passkeys, anchor generates a short-lived registration URL for that specific user (`brain user:start-passkey-registration usr_...`).
+1. An owner creates a user through the admin API.
+2. The owner attaches one or more known identities.
+3. For passkeys, the owner requests a short-lived registration URL for that specific user.
 4. The user opens the URL and registers a passkey; the credential binds to that user id.
 
 There is no public registration, email invitation, or self-signup in the first slice.
@@ -280,13 +283,13 @@ Validation:
 - anchor OAuth user can call anchor tools
 - static token behavior remains backward compatible
 
-### Phase 3 — Non-agent administration, CLI, and minimal People UX
+### Phase 3 — Non-agent administration API
 
-**Status: service APIs implemented; operator surface open.**
+**Status: implemented through the authenticated admin API; dashboard/CLI clients are optional follow-up.**
 
-- Add a dedicated authenticated admin API/dashboard; do not register model-visible user-management tools.
-- Add local CLI wrappers where useful.
-- Add a minimal dashboard People panel for routine management.
+- Add a same-origin, owner-session admin API; do not register model-visible user-management tools.
+- Require explicit action confirmation for every mutation.
+- Keep local CLI wrappers and a dashboard People panel as optional clients over the API.
 - Add attach/detach identity flows.
 - Add passkey registration for a specific user through an anchor-generated, short-lived setup URL.
 - Support multiple active anchors.
