@@ -6,6 +6,11 @@
 and no shared client-state library. This plan standardizes how state is classified and
 managed without forcing the three surfaces into one browser store or one application.
 
+The optional publishing UI described in
+[`cms-publishing-workspace.md`](./cms-publishing-workspace.md) follows this state model but
+keeps domain ownership in `@brains/content-pipeline`. When content-pipeline is absent, the
+CMS has no publishing workspace state or requests to manage.
+
 ## Problem
 
 The operator surfaces use different state patterns:
@@ -70,6 +75,8 @@ cmsKeys.entities(entityType);
 cmsKeys.entity(entityType, entityId);
 cmsKeys.syncStatus();
 cmsKeys.agentTargets();
+cmsKeys.workspaces();
+cmsKeys.workspace(workspaceId);
 ```
 
 Suggested web-chat keys:
