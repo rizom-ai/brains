@@ -9,6 +9,7 @@ describe("message attribution metadata", () => {
     expect(
       buildMessageActorMetadata({
         actorId: "discord:user-123",
+        userId: "usr_mira",
         interfaceType: "discord",
         displayName: "Mira Ops",
         username: "mira",
@@ -16,6 +17,7 @@ describe("message attribution metadata", () => {
       }),
     ).toEqual({
       actorId: "discord:user-123",
+      userId: "usr_mira",
       interfaceType: "discord",
       role: "user",
       displayName: "Mira Ops",

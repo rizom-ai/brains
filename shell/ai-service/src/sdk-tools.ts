@@ -9,6 +9,9 @@ export interface ToolContextInfo {
   channelId?: string | undefined;
   channelName?: string | undefined;
   interfaceType: string;
+  userId?: string | undefined;
+  canonicalId?: string | undefined;
+  displayName?: string | undefined;
   userPermissionLevel?: UserPermissionLevel;
   enableCreateUpload?: boolean | undefined;
   enableCreateTransform?: boolean | undefined;
@@ -167,7 +170,13 @@ export function convertToSDKTools(
       async (args: unknown, options?: { toolCallId?: string | undefined }) => {
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
-          userId: "agent-user",
+          userId: contextInfo.userId ?? "agent-user",
+          ...(contextInfo.canonicalId
+            ? { canonicalId: contextInfo.canonicalId }
+            : {}),
+          ...(contextInfo.displayName
+            ? { displayName: contextInfo.displayName }
+            : {}),
           conversationId: contextInfo.conversationId,
           ...(contextInfo.channelId && { channelId: contextInfo.channelId }),
           ...(options?.toolCallId && { toolCallId: options.toolCallId }),

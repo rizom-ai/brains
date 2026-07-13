@@ -469,6 +469,44 @@ describe("convertToSDKTools", () => {
       }),
     );
   });
+
+  it("passes authenticated actor attribution to agent-invoked tools", async () => {
+    const handler = mock(async () => ({ success: true as const }));
+    const tool: Tool = {
+      name: "attributed_tool",
+      description: "Attributed tool",
+      inputSchema: {},
+      visibility: "trusted",
+      handler,
+    };
+    const sdkTools = convertToSDKTools(
+      [tool],
+      {
+        conversationId: "conversation-1",
+        interfaceType: "discord",
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+        displayName: "Mira",
+        userPermissionLevel: "trusted",
+      },
+      { emit: mock(() => {}) },
+    );
+    const sdkTool = sdkTools["attributed_tool"];
+    if (!sdkTool?.execute) throw new Error("Expected tool to execute");
+
+    await sdkTool.execute({}, { toolCallId: "call-1", messages: [] });
+
+    expect(handler).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        interfaceType: "discord",
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+        displayName: "Mira",
+        userPermissionLevel: "trusted",
+      }),
+    );
+  });
 });
 
 describe("toModelVisibleInputSchema", () => {

@@ -13,6 +13,7 @@ export function buildBrainCallOptions(params: {
   channelId: string | undefined;
   channelName: string;
   interfaceType: string;
+  actor?: ChatContext["actor"];
   agentContextInstructions?: string;
   hasPriorResponseCandidate?: boolean;
 }): BrainCallOptions {
@@ -22,6 +23,17 @@ export function buildBrainCallOptions(params: {
     ...(params.channelId ? { channelId: params.channelId } : {}),
     channelName: params.channelName,
     interfaceType: params.interfaceType,
+    ...(params.actor
+      ? {
+          userId: params.actor.userId ?? params.actor.actorId,
+          ...(params.actor.canonicalId
+            ? { canonicalId: params.actor.canonicalId }
+            : {}),
+          ...(params.actor.displayName
+            ? { displayName: params.actor.displayName }
+            : {}),
+        }
+      : {}),
     ...(params.hasAccessibleUploads
       ? {
           enableCreateUpload: true,

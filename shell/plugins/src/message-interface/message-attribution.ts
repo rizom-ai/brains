@@ -6,6 +6,7 @@ import type {
 export interface MessageActorInput {
   interfaceType: string;
   actorId: string;
+  userId?: string;
   role?: "user" | "assistant";
   canonicalId?: string;
   displayName?: string;
@@ -26,6 +27,7 @@ export function buildMessageActorMetadata(
 ): ConversationMessageActor {
   return {
     actorId: input.actorId,
+    ...(input.userId ? { userId: input.userId } : {}),
     interfaceType: input.interfaceType,
     role: input.role ?? "user",
     ...(input.canonicalId ? { canonicalId: input.canonicalId } : {}),

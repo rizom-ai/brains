@@ -198,6 +198,7 @@ export function initializeIdentityAndAgentServices(
       );
       if (!parsed.success || !parsed.data.principal?.canonicalId) return null;
       return {
+        userId: parsed.data.principal.userId,
         canonicalId: parsed.data.principal.canonicalId,
         displayName: parsed.data.principal.displayName,
       };

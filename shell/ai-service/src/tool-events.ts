@@ -16,6 +16,9 @@ export interface ToolContextInfo {
   channelId?: string | undefined;
   channelName?: string | undefined;
   interfaceType: string;
+  userId?: string | undefined;
+  canonicalId?: string | undefined;
+  displayName?: string | undefined;
 }
 
 /**
@@ -84,6 +87,13 @@ export function createToolExecuteWrapper(
         args,
         conversationId: contextInfo.conversationId,
         interfaceType: contextInfo.interfaceType,
+        ...(contextInfo.userId !== undefined && { userId: contextInfo.userId }),
+        ...(contextInfo.canonicalId !== undefined && {
+          canonicalId: contextInfo.canonicalId,
+        }),
+        ...(contextInfo.displayName !== undefined && {
+          displayName: contextInfo.displayName,
+        }),
         ...(contextInfo.channelId !== undefined && {
           channelId: contextInfo.channelId,
         }),
@@ -109,6 +119,15 @@ export function createToolExecuteWrapper(
           toolName,
           conversationId: contextInfo.conversationId,
           interfaceType: contextInfo.interfaceType,
+          ...(contextInfo.userId !== undefined && {
+            userId: contextInfo.userId,
+          }),
+          ...(contextInfo.canonicalId !== undefined && {
+            canonicalId: contextInfo.canonicalId,
+          }),
+          ...(contextInfo.displayName !== undefined && {
+            displayName: contextInfo.displayName,
+          }),
           ...(contextInfo.channelId !== undefined && {
             channelId: contextInfo.channelId,
           }),
@@ -131,6 +150,15 @@ export function createToolExecuteWrapper(
           error: getErrorMessage(error),
           conversationId: contextInfo.conversationId,
           interfaceType: contextInfo.interfaceType,
+          ...(contextInfo.userId !== undefined && {
+            userId: contextInfo.userId,
+          }),
+          ...(contextInfo.canonicalId !== undefined && {
+            canonicalId: contextInfo.canonicalId,
+          }),
+          ...(contextInfo.displayName !== undefined && {
+            displayName: contextInfo.displayName,
+          }),
           ...(contextInfo.channelId !== undefined && {
             channelId: contextInfo.channelId,
           }),

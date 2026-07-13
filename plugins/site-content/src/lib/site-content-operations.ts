@@ -46,6 +46,11 @@ export class SiteContentOperations {
         operationType: metadata.operationType ?? "content_operations",
         progressToken: metadata.progressToken,
         pluginId: metadata.pluginId ?? "site-content",
+        interfaceType: metadata.interfaceType,
+        conversationId: metadata.conversationId,
+        channelId: metadata.channelId,
+        requestedByUserId: metadata.requestedByUserId,
+        requestedByInterface: metadata.requestedByInterface,
       },
     };
   }

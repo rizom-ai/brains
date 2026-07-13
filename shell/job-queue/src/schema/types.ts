@@ -15,6 +15,8 @@ export interface JobContextInput {
   interfaceType?: string | undefined;
   conversationId?: string | undefined;
   channelId?: string | undefined;
+  requestedByUserId?: string | undefined;
+  requestedByInterface?: string | undefined;
   silent?: boolean | undefined;
 }
 
@@ -53,6 +55,8 @@ export const JobContextInputSchema: z.ZodType<JobContextInput, unknown> =
     interfaceType: z.string().optional(), // Which interface triggered the job (e.g., "matrix", "cli")
     conversationId: z.string().optional(), // Durable conversation/session to route progress messages to
     channelId: z.string().optional(), // Transport channel/room to route progress messages to
+    requestedByUserId: z.string().optional(),
+    requestedByInterface: z.string().optional(),
     // Suppress all progress/completion events for this job (e.g. background
     // embedding jobs that would otherwise spam every subscriber)
     silent: z.boolean().optional(),
@@ -70,6 +74,8 @@ export const JobContextSchema: z.ZodType<JobContext, unknown> = z.object({
   interfaceType: z.string().optional(),
   conversationId: z.string().optional(),
   channelId: z.string().optional(),
+  requestedByUserId: z.string().optional(),
+  requestedByInterface: z.string().optional(),
   silent: z.boolean().optional(),
   rootJobId: z.string(), // Added by job queue service when job is created
 });

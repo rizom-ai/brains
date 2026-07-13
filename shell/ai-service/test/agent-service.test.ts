@@ -1387,7 +1387,11 @@ describe("AgentService", () => {
           actor: ConversationMessageActor,
         ): Promise<ConversationMessageActor> =>
           actor.actorId === "discord:user-789"
-            ? { ...actor, canonicalId: "person:mira" }
+            ? {
+                ...actor,
+                userId: "usr_mira",
+                canonicalId: "person:mira",
+              }
             : actor,
       );
       const service = AgentService.createFresh(
@@ -1421,9 +1425,19 @@ describe("AgentService", () => {
           metadata: expect.objectContaining({
             actor: expect.objectContaining({
               actorId: "discord:user-789",
+              userId: "usr_mira",
               canonicalId: "person:mira",
               displayName: "Mira Ops",
             }),
+          }),
+        }),
+      );
+      expect(mockGenerate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({
+            userId: "usr_mira",
+            canonicalId: "person:mira",
+            displayName: "Mira Ops",
           }),
         }),
       );
@@ -3592,6 +3606,14 @@ describe("AgentService", () => {
         interfaceType: "matrix",
         channelId: "!room:example.org",
         channelName: "Ops",
+        actor: {
+          actorId: "matrix:@mira:example.org",
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+          interfaceType: "matrix",
+          role: "user",
+          displayName: "Mira",
+        },
       });
       await service.confirmPendingAction(
         "test-conversation",
@@ -3602,6 +3624,14 @@ describe("AgentService", () => {
           interfaceType: "matrix",
           channelId: "!room:example.org",
           channelName: "Ops",
+          actor: {
+            actorId: "matrix:@mira:example.org",
+            userId: "usr_mira",
+            canonicalId: "user:mira",
+            interfaceType: "matrix",
+            role: "user",
+            displayName: "Mira",
+          },
         },
       );
 
@@ -3614,6 +3644,9 @@ describe("AgentService", () => {
           interfaceType: "matrix",
           channelId: "!room:example.org",
           channelName: "Ops",
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+          displayName: "Mira",
           userPermissionLevel: "trusted",
         }),
       );

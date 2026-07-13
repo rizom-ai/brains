@@ -31,7 +31,11 @@ describe("CanonicalIdentityService", () => {
       logger,
       async (actorId) =>
         actorId === "discord:123"
-          ? { canonicalId: "user:mira", displayName: "Mira" }
+          ? {
+              userId: "usr_mira",
+              canonicalId: "user:mira",
+              displayName: "Mira",
+            }
           : null,
     );
     const actor = {
@@ -43,7 +47,9 @@ describe("CanonicalIdentityService", () => {
 
     expect(await service.enrichActor(actor)).toEqual({
       ...actor,
+      userId: "usr_mira",
       canonicalId: "user:mira",
+      displayName: "Mira",
     });
   });
 });

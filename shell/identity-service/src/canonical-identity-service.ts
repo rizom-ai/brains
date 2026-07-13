@@ -17,6 +17,7 @@ export interface CanonicalIdentityResolution extends CanonicalIdentityLink {
 }
 
 export interface CanonicalIdentityLookup {
+  userId: string;
   canonicalId: string;
   displayName?: string;
 }
@@ -96,14 +97,23 @@ export class CanonicalIdentityService implements ICanonicalIdentityService {
   public async enrichActor(
     actor: ConversationMessageActor,
   ): Promise<ConversationMessageActor> {
-    if (actor.canonicalId || actor.role !== "user") return actor;
+    if ((actor.userId && actor.canonicalId) || actor.role !== "user") {
+      return actor;
+    }
     const cachedResolution = this.resolveActor(actor.actorId);
     if (cachedResolution) {
       return { ...actor, canonicalId: cachedResolution.canonicalId };
     }
     const resolution = await this.resolver?.(actor.actorId);
     return resolution
-      ? { ...actor, canonicalId: resolution.canonicalId }
+      ? {
+          ...actor,
+          userId: resolution.userId,
+          canonicalId: actor.canonicalId ?? resolution.canonicalId,
+          ...(resolution.displayName
+            ? { displayName: resolution.displayName }
+            : {}),
+        }
       : actor;
   }
 }

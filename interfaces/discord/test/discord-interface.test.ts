@@ -362,7 +362,11 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           interfaceType: "discord",
           userPermissionLevel: "trusted",
-          actor: expect.objectContaining({ canonicalId: "user:mira" }),
+          actor: expect.objectContaining({
+            userId: "usr_mira",
+            canonicalId: "user:mira",
+            displayName: "Mira",
+          }),
         }),
       );
     });
@@ -665,7 +669,11 @@ describe("DiscordInterface", () => {
       expect(conversationService.addMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
-            actor: expect.objectContaining({ canonicalId: "user:mira" }),
+            actor: expect.objectContaining({
+              userId: "usr_mira",
+              canonicalId: "user:mira",
+              displayName: "Mira",
+            }),
           }),
         }),
       );

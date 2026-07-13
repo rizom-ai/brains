@@ -53,6 +53,7 @@ export interface StartConversationRequest {
 
 export const conversationMessageActorSchema: z.ZodObject<{
   actorId: z.ZodString;
+  userId: z.ZodOptional<z.ZodString>;
   canonicalId: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
   role: typeof messageRoleSchema;
@@ -61,6 +62,7 @@ export const conversationMessageActorSchema: z.ZodObject<{
   isBot: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
   actorId: z.string(),
+  userId: z.string().optional(),
   canonicalId: z.string().optional(),
   interfaceType: z.string(),
   role: messageRoleSchema,

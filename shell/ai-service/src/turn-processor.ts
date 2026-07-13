@@ -93,6 +93,7 @@ export class TurnProcessor {
       source,
       attachments,
     } = input;
+    const attributedActor = await this.enrichActor(actor);
 
     // Ensure conversation exists. Conversation-service currently requires a
     // channelId for storage compatibility; do not reuse this fallback for tool
@@ -114,7 +115,12 @@ export class TurnProcessor {
         conversationId,
         role: "user",
         content: message,
-        ...(await this.messageMetadata({ actor, source, attachments })),
+        ...(await this.messageMetadata({
+          actor: attributedActor,
+          source,
+          attachments,
+          actorAlreadyEnriched: true,
+        })),
       });
 
       const responseText = buildAttachmentOnlyResponse(attachments);
@@ -202,9 +208,10 @@ export class TurnProcessor {
       role: "user",
       content: effectiveMessage,
       ...(await this.messageMetadata({
-        actor,
+        actor: attributedActor,
         source,
         attachments: effectiveAttachments,
+        actorAlreadyEnriched: true,
       })),
     });
 
@@ -221,6 +228,7 @@ export class TurnProcessor {
       channelId,
       channelName,
       interfaceType,
+      ...(attributedActor ? { actor: attributedActor } : {}),
       hasPriorResponseCandidate:
         uploadContinuity.priorResponseRef !== undefined,
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
@@ -303,7 +311,9 @@ export class TurnProcessor {
       channelId,
       channelName,
       userPermissionLevel,
+      actor,
     } = input;
+    const attributedActor = await this.enrichActor(actor);
 
     const tools =
       this.deps.mcpService.listToolsForPermissionLevel(userPermissionLevel);
@@ -320,7 +330,14 @@ export class TurnProcessor {
 
     const context: ToolContext = {
       interfaceType,
-      userId: "agent-user",
+      userId:
+        attributedActor?.userId ?? attributedActor?.actorId ?? "agent-user",
+      ...(attributedActor?.canonicalId
+        ? { canonicalId: attributedActor.canonicalId }
+        : {}),
+      ...(attributedActor?.displayName
+        ? { displayName: attributedActor.displayName }
+        : {}),
       conversationId,
       ...(channelId ? { channelId } : {}),
       channelName,
@@ -476,15 +493,24 @@ export class TurnProcessor {
     cards?: StructuredChatCard[];
     entityMemoryRefs?: EntityMemoryRef[];
     agentContactCandidates?: AgentContactCandidate[];
+    actorAlreadyEnriched?: boolean;
   }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
+    const { actorAlreadyEnriched = false, ...metadataParams } = params;
     return withMessageMetadata(
       await buildMessageMetadata({
-        ...params,
-        ...(this.deps.canonicalIdentityResolver
+        ...metadataParams,
+        ...(!actorAlreadyEnriched && this.deps.canonicalIdentityResolver
           ? { canonicalIdentityResolver: this.deps.canonicalIdentityResolver }
           : {}),
       }),
     );
+  }
+
+  private async enrichActor(
+    actor: ConversationMessageActor | null,
+  ): Promise<ConversationMessageActor | null> {
+    if (!actor || !this.deps.canonicalIdentityResolver) return actor;
+    return this.deps.canonicalIdentityResolver.enrichActor(actor);
   }
 
   private getAssistantActor(): ConversationMessageActor {

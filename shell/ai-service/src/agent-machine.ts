@@ -112,6 +112,7 @@ export interface ExecuteActionInput {
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
+  actor: ConversationMessageActor | null;
 }
 
 export const emptyUsage = {
@@ -423,6 +424,7 @@ export const agentMachine: AgentMachine = setup({
             channelId: context.channelId,
             channelName: context.channelName,
             userPermissionLevel: context.userPermissionLevel,
+            actor: context.actor,
           };
         },
         onDone: [

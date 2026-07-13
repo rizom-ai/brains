@@ -114,6 +114,9 @@ describe("tool invocation events", () => {
         channelId: "!abc:matrix.org",
         channelName: "General Chat",
         interfaceType: "matrix",
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+        displayName: "Mira",
       };
 
       const wrapper = createToolExecuteWrapper(
@@ -132,12 +135,18 @@ describe("tool invocation events", () => {
           channelId: string;
           channelName: string;
           interfaceType: string;
+          userId: string;
+          canonicalId: string;
+          displayName: string;
         };
 
         expect(payload.conversationId).toBe("matrix-room-123");
         expect(payload.channelId).toBe("!abc:matrix.org");
         expect(payload.channelName).toBe("General Chat");
         expect(payload.interfaceType).toBe("matrix");
+        expect(payload.userId).toBe("usr_mira");
+        expect(payload.canonicalId).toBe("user:mira");
+        expect(payload.displayName).toBe("Mira");
       }
     });
   });

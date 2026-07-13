@@ -92,7 +92,10 @@ export function createEnqueueJobFn(
         // Merge routing context from ToolContext when provided
         ...(toolContext && {
           interfaceType: toolContext.interfaceType,
+          conversationId: toolContext.conversationId,
           channelId: toolContext.channelId,
+          requestedByUserId: toolContext.userId,
+          requestedByInterface: toolContext.interfaceType,
         }),
         ...optionsMetadata,
       },

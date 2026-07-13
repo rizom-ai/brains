@@ -48,6 +48,27 @@ describe("buildBrainCallOptions", () => {
     expect(options.hasPriorResponseCandidate).toBe(true);
   });
 
+  test("passes authenticated actor attribution through", () => {
+    const options = buildBrainCallOptions({
+      ...base,
+      hasAccessibleUploads: false,
+      actor: {
+        actorId: "discord:123",
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+        interfaceType: "discord",
+        role: "user",
+        displayName: "Mira",
+      },
+    });
+
+    expect(options).toMatchObject({
+      userId: "usr_mira",
+      canonicalId: "user:mira",
+      displayName: "Mira",
+    });
+  });
+
   test("passes agent context instructions through when present", () => {
     const options = buildBrainCallOptions({
       ...base,

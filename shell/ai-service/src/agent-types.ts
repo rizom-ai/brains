@@ -48,6 +48,9 @@ const brainCallOptionsSchemaInternal: z.ZodObject<{
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
+  userId: z.ZodOptional<z.ZodString>;
+  canonicalId: z.ZodOptional<z.ZodString>;
+  displayName: z.ZodOptional<z.ZodString>;
   agentContextInstructions: z.ZodOptional<z.ZodString>;
   disableTools: z.ZodOptional<z.ZodBoolean>;
   enableCreateUpload: z.ZodOptional<z.ZodBoolean>;
@@ -59,6 +62,9 @@ const brainCallOptionsSchemaInternal: z.ZodObject<{
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
+  userId: z.string().optional(),
+  canonicalId: z.string().optional(),
+  displayName: z.string().optional(),
   agentContextInstructions: z.string().optional(),
   disableTools: z.boolean().optional(),
   enableCreateUpload: z.boolean().optional(),

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed, refined against the current implemented baseline. The OAuth/passkey foundation exists today, but it is still single-operator at runtime: passkeys, operator sessions, and OAuth tokens use `single-operator`, and OAuth-authenticated MCP currently receives global `anchor` authority. This plan is the product/runtime behavior layer: replace `single-operator` as the canonical subject with real runtime auth users, then add roles, per-session permissions, and management UX while keeping existing permission-rule fallback compatible. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Active implementation plan. Phases 1, 2, and 4 are implemented on `feature/auth-runtime-db`; phase 3's service APIs exist, but the required non-agent management surface remains open. Runtime auth now uses real users, role-aware sessions, per-principal MCP permissions, and canonical conversation/tool/job attribution. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -16,16 +16,14 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 
 ## Current baseline
 
-- Permission levels already exist: `public`, `trusted`, `anchor`.
-- Permission resolution is currently rule based through `PermissionService` and interface-local ids such as `discord:<id>` or `mcp:http`.
-- The embedded auth service, passkey setup/login, operator sessions, OAuth client registration, bearer-token verification, and MCP OAuth flow already exist.
-- Brain OAuth currently issues tokens for a single subject: `single-operator`.
-- Passkey registration/authentication defaults to `single-operator` and display name `Operator`.
-- HTTP MCP currently treats authenticated requests as `anchor` globally instead of resolving per-user/session permissions.
-- Passkeys, sessions, OAuth clients, signing keys, auth codes, and refresh tokens live in runtime auth storage (`./data/auth`) and must **not** move under `brain-data`.
-- Dashboard widget visibility already uses the standard permission levels (`UserPermissionLevelSchema`, `plugins/dashboard/src/widget-schema.ts`); an operator session maps to `anchor`, everyone else to `public` (`plugin.ts:190`). The signed-in UI is still generic (masthead shows a console header plus `Sign out`, no user name or role).
-- Conversation/message/job storage already has metadata hooks, but user attribution is not wired to auth users yet.
-- `@rizom/ops` has fleet/user deployment tooling; that is operator/fleet multi-user, not this runtime auth-user model.
+- Permission levels are `public`, `trusted`, and `anchor`; active auth users are authoritative before legacy rule fallback.
+- Passkeys, sessions, OAuth grants, signing keys, identity bindings, peer trust, and audit events live in private `auth.db` runtime storage outside `brain-data`.
+- Fresh setup and migrated installations use durable `usr_<uuid>` subjects; legacy files remain immutable migration backups.
+- HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
+- Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations.
+- Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
+- Typed auth administration APIs exist, but no dedicated authenticated People UI/API or local CLI has landed yet; administration remains intentionally absent from model tools.
+- `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
 
@@ -239,6 +237,8 @@ On startup or first successful login:
 
 ### Phase 1 — Real owner user and `single-operator` migration
 
+**Status: implemented.**
+
 This is the safest first slice: real users without collaborator management yet.
 
 - Add the auth runtime DB foundation / `AuthUserStore` from [Auth runtime database](./auth-runtime-db.md) and tests.
@@ -260,6 +260,8 @@ Validation:
 
 ### Phase 2 — Roles, active-user checks, and MCP per-session permissions
 
+**Status: implemented.**
+
 - Add role/status checks to auth sessions and bearer verification.
 - Add identity lookup API on auth service.
 - Resolve active user role before permission-rule fallback.
@@ -280,6 +282,8 @@ Validation:
 
 ### Phase 3 — Non-agent administration, CLI, and minimal People UX
 
+**Status: service APIs implemented; operator surface open.**
+
 - Add a dedicated authenticated admin API/dashboard; do not register model-visible user-management tools.
 - Add local CLI wrappers where useful.
 - Add a minimal dashboard People panel for routine management.
@@ -297,6 +301,8 @@ Validation:
 - identity attach enables login/permission mapping
 
 ### Phase 4 — Attribution
+
+**Status: implemented.**
 
 - Extend `ToolContext`, conversation metadata, message metadata, and job metadata with actor fields.
 - Update interfaces to pass actor where known.

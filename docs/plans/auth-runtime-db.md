@@ -2,7 +2,7 @@
 
 ## Status
 
-Active implementation plan. Phases 1–4 are implemented on `feature/auth-runtime-db`; phase 5's non-agent management surface and phase 6 consumer attribution remain open. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
+Active implementation plan. Phases 1–4 and 6 are implemented on `feature/auth-runtime-db`; phase 5's non-agent management surface remains open. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
 
 ## Goal
 
@@ -42,14 +42,14 @@ Implemented on `feature/auth-runtime-db`:
 - Per-principal MCP session permissions, cross-user session protection, role-change invalidation, and explicit `resolved`/`denied`/`unbound` identity handling so inactive or revoked bindings cannot fall through to static rules.
 - High-level user, role, status, identity, passkey-revocation, and audit APIs with optional authenticated-actor attribution for management mutations.
 - Async `CanonicalIdentityService` enrichment through an internal auth-principal channel, resolving hashed private bindings without exposing raw identity subjects.
+- Canonical user attribution propagated through conversations, agent-invoked and confirmed tool contexts, tool lifecycle events, and tool-enqueued job metadata, including non-MCP chat paths.
 - Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
 Still open before merge:
 
 1. **Add a non-agent management surface.** Expose user, identity, and user-specific passkey administration through an authenticated dashboard/API and optional local CLI, with explicit operator confirmation. Do not register these operations as model-visible tools.
-2. **Wire remaining consumers.** Canonical identity enrichment and the Discord, OAuth-authenticated MCP, and authenticated web-chat actor paths now use auth principals; connect remaining job and non-MCP tool attribution paths.
-3. **Complete audit wiring.** Have the future admin surface supply the authenticated actor context, cover remaining privileged mutations, and add useful authentication-failure events without logging secrets.
-4. **Revalidate across consumers.** Run auth, MCP, Discord, A2A, typecheck, and lint checks together after the remaining integration work.
+2. **Complete audit wiring.** Have the future admin surface supply the authenticated actor context, cover remaining privileged mutations, and add useful authentication-failure events without logging secrets.
+3. **Revalidate across consumers.** Run auth, MCP, Discord, A2A, typecheck, and lint checks together after the remaining integration work.
 
 ## Consumers to satisfy
 
@@ -311,7 +311,7 @@ Validation: owners can create/promote/suspend users; trusted users cannot manage
 
 ### Phase 6 — Consumers
 
-**Status: partially implemented.** `CanonicalIdentityService` resolves actors asynchronously through the private auth service; linked Discord messages carry canonical ids into active and passive conversations; OAuth-authenticated MCP propagates canonical id and display name through verified tool context; authenticated web chat uses the resolved principal for role enforcement and conversation actors.
+**Status: implemented.** `CanonicalIdentityService` resolves actors asynchronously through the private auth service; linked Discord messages carry canonical user attribution into active and passive conversations; OAuth-authenticated MCP and authenticated web chat propagate verified principals; agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain the authenticated requester.
 
 - Keep `CanonicalIdentityService` wired to auth DB identity lookup without storing raw provider subjects outside auth storage.
 - Wire chat/hosted Discord routing to identity lookup where needed.

@@ -1059,10 +1059,12 @@ export class DiscordInterface extends MessageInterfacePlugin<
         actorId: `discord:${message.author.id}`,
         interfaceType: "discord",
         role: "user",
+        ...(options.principal ? { userId: options.principal.userId } : {}),
         ...(options.principal?.canonicalId
           ? { canonicalId: options.principal.canonicalId }
           : {}),
-        displayName: this.getAuthorDisplayName(message),
+        displayName:
+          options.principal?.displayName ?? this.getAuthorDisplayName(message),
         username: message.author.username,
         isBot: Boolean(message.author.bot),
       },

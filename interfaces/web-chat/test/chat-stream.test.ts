@@ -150,6 +150,7 @@ describe("chat stream", () => {
       expect.objectContaining({
         actor: {
           actorId: "usr_mira",
+          userId: "usr_mira",
           canonicalId: "user:mira",
           displayName: "Mira",
           interfaceType: "web-chat",

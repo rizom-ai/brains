@@ -36,6 +36,8 @@ export function createSiteContentTools(
           operationType: "content_operations",
           interfaceType: context.interfaceType,
           channelId: context.channelId,
+          requestedByUserId: context.userId,
+          requestedByInterface: context.interfaceType,
         };
 
         const result = await siteContentService.generateContent(

@@ -196,6 +196,7 @@ function buildWebChatContext(
         `${input.interfaceType}:${input.conversationId}:operator`,
       interfaceType: input.interfaceType,
       role: "user",
+      ...(input.principal ? { userId: input.principal.userId } : {}),
       ...(input.principal?.canonicalId
         ? { canonicalId: input.principal.canonicalId }
         : {}),
