@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for one-time Slack provisioning and a live trial. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Webhook and Socket Mode wiring, routing, platform-isolated subscription persistence, text-based confirmations, progress fallbacks, permission-gated uploads, and the programmatic local-trial harness are implemented; live validation remains.
+Live Slack trial in progress. Reviewed against the current `interfaces/chat` implementation and published Slack adapter documentation on 2026-07-12. Webhook and Socket Mode wiring, routing, platform-isolated subscription persistence, native confirmations and suggested actions, progress fallbacks, permission-gated uploads, generated-artifact delivery, and the programmatic local-trial harness are implemented. Core routing, upload, confirmation, progress, artifact, and suggested-action flows have been validated live; the remaining edge-case smoke checks are listed in Slice 7.
 
 Keep this as a separate Slack plan, independent of the Discord parity/replacement work.
 
@@ -276,6 +276,12 @@ Acceptance criteria:
 - Public prompt-button actions do not receive prior upload bytes.
 - Suggested actions without prior uploads continue to work.
 - Existing Slack and Discord action routing remains unchanged.
+
+Live result, 2026-07-13:
+
+- Uploaded `wild-robot.png` in Slack and received the native **Try next** card.
+- Clicked **Describe image**; the action turn received the prior image and described it successfully.
+- Confirmed the unique Slack action-id fix eliminated the prior `invalid_blocks` response for multi-button suggested-action cards.
 
 ## Non-goals for first Slack slice
 
