@@ -48,7 +48,9 @@ describe("runSlackPreflight", () => {
               user: "brain-bot",
               user_id: "U_BOT",
             },
-            { "x-oauth-scopes": "files:read,files:write,users:read" },
+            {
+              "x-oauth-scopes": "files:read,files:write,im:write,users:read",
+            },
           ),
         );
       }
@@ -95,7 +97,7 @@ describe("runSlackPreflight", () => {
               user: "brain-bot",
               user_id: "U_BOT",
             },
-            { "x-oauth-scopes": "files:read,users:read" },
+            { "x-oauth-scopes": "files:read,im:write,users:read" },
           ),
         );
       }
@@ -116,7 +118,7 @@ describe("runSlackPreflight", () => {
     );
   });
 
-  it("reports missing scopes from capability probes", async () => {
+  it("reports a missing im:write grant from Slack response metadata", async () => {
     const fetchMock = mock((input: string | URL | Request) => {
       const url = String(input);
       if (url.endsWith("/auth.test")) {
@@ -130,6 +132,42 @@ describe("runSlackPreflight", () => {
               user_id: "U_BOT",
             },
             { "x-oauth-scopes": "files:read,files:write,users:read" },
+          ),
+        );
+      }
+      return Promise.resolve(response({ ok: true }));
+    });
+
+    const error = await getRejection(
+      runSlackPreflight(
+        {
+          SLACK_APP_TOKEN: "xapp-secret",
+          SLACK_BOT_TOKEN: "xoxb-secret",
+        },
+        fetchMock,
+      ),
+    );
+    expect(error.message).toBe(
+      "Slack bot token is missing required scopes: im:write",
+    );
+  });
+
+  it("reports missing scopes from capability probes", async () => {
+    const fetchMock = mock((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/auth.test")) {
+        return Promise.resolve(
+          response(
+            {
+              ok: true,
+              team: "Test Workspace",
+              team_id: "T123",
+              user: "brain-bot",
+              user_id: "U_BOT",
+            },
+            {
+              "x-oauth-scopes": "files:read,files:write,im:write,users:read",
+            },
           ),
         );
       }

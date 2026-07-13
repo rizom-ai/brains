@@ -6,7 +6,7 @@ const slackResponseSchema = z.looseObject({
   needed: z.string().optional(),
 });
 
-const REQUIRED_HEADER_SCOPES = ["files:write"] as const;
+const REQUIRED_HEADER_SCOPES = ["files:write", "im:write"] as const;
 
 const slackAuthResponseSchema = slackResponseSchema.extend({
   team: z.string().optional(),

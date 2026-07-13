@@ -3,6 +3,10 @@ display_information:
   description: Local Socket Mode app for testing @brains/chat
 
 features:
+  app_home:
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
   bot_user:
     display_name: Brains Chat Test
     always_online: true
@@ -20,6 +24,7 @@ oauth_config:
       - groups:read
       - im:history
       - im:read
+      - im:write
       - mpim:history
       - mpim:read
       - reactions:read

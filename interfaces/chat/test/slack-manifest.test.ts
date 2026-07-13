@@ -8,6 +8,9 @@ describe("Slack app manifest", () => {
 
     expect(manifest).toContain("socket_mode_enabled: true");
     expect(manifest).toContain("interactivity:\n    is_enabled: true");
+    expect(manifest).toContain("app_home:");
+    expect(manifest).toContain("messages_tab_enabled: true");
+    expect(manifest).toContain("messages_tab_read_only_enabled: false");
     for (const scope of [
       "app_mentions:read",
       "channels:history",
@@ -19,6 +22,7 @@ describe("Slack app manifest", () => {
       "groups:read",
       "im:history",
       "im:read",
+      "im:write",
       "mpim:history",
       "mpim:read",
       "users:read",

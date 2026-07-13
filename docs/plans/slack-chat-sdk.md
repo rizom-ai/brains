@@ -334,6 +334,22 @@ Acceptance criteria:
 - Action tokens and routing remain unchanged.
 - Discord cards retain their existing descriptive text and buttons.
 
+### 16. Enable the Slack DM surface
+
+Fix the live DM smoke test failing because the app manifest does not enable a writable App Home Messages tab or request the DM-write capability.
+
+- Enable the App Home Messages tab and keep it writable.
+- Add the `im:write` bot scope alongside the existing DM read/history scopes.
+- Require `im:write` in preflight so stale installations fail before startup with an actionable scope error.
+- Keep `allowDMs` as the runtime policy gate; manifest capability must not override a disabled policy.
+
+Acceptance criteria:
+
+- A workspace user can open the app's Messages tab and send a DM.
+- Socket Mode receives and routes the DM when `allowDMs: true`.
+- Installations missing `im:write` fail preflight clearly.
+- Existing channel, thread, and DM-policy tests remain unchanged.
+
 ## Non-goals for first Slack slice
 
 - Multi-workspace OAuth installs.
