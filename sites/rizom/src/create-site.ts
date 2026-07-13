@@ -57,7 +57,15 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
 
 export interface CreateRizomSiteOptions {
   packageName: string;
-  themeProfile: RizomThemeProfile;
+  /**
+   * Optional profile-driven chrome: sets `data-theme-profile` on the document
+   * and loads the matching background canvas (product→tree, editorial→roots,
+   * studio→constellation). Omit for sites that draw their own motifs — the
+   * boot.js animation runtime always loads regardless. Only the retiring
+   * rizom-work/rizom-foundation variants still use profiles; the machinery
+   * goes with them at consolidation Phase 6.
+   */
+  themeProfile?: RizomThemeProfile;
   layout: unknown;
   routes: RouteDefinitionInput[];
   content?: SiteContentDefinition | SiteContentDefinition[];
@@ -101,7 +109,10 @@ function createRuntimePlugin(
   return (config?: Record<string, unknown>): RizomRuntimePlugin =>
     new RizomVariantPlugin(
       options.packageName,
-      { themeProfile: options.themeProfile, ...(config ?? {}) },
+      {
+        ...(options.themeProfile ? { themeProfile: options.themeProfile } : {}),
+        ...(config ?? {}),
+      },
       buildTemplateGroups(options),
       options.runtime?.dataSources,
     );

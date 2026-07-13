@@ -67,10 +67,15 @@ describe("@rizom/site-rizom-ai", () => {
     expect(site.entityDisplay["agent"]?.label).toBe("Agent");
   });
 
-  test("owns the product theme profile declaratively", () => {
-    expect(site.headScripts?.join("\n")).toContain(
-      'data-theme-profile", "product"',
-    );
+  test("ships boot.js but no theme-profile canvas", () => {
+    const head = site.headScripts?.join("\n") ?? "";
+    // boot.js drives the reveal/growth animations and must load.
+    expect(head).toContain("/boot.js");
+    // The rev-5 design draws its own motifs (mycelium rail, growth diagram);
+    // the profile-driven background canvas and data-theme-profile attribute
+    // are products-era machinery and must not ship.
+    expect(head).not.toContain("data-theme-profile");
+    expect(head).not.toContain("canvas");
   });
 
   test("exposes the home route sections in rev-5 order", () => {

@@ -8,7 +8,9 @@ import { aiRoutes } from "./routes";
 
 export const rizomAiSite: SiteDefinition = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
-  themeProfile: "product",
+  // No themeProfile: the rev-5 design draws its own motifs (mycelium rail,
+  // growth diagram) — no profile canvas, no data-theme-profile. The theme's
+  // room accents key off data-room, set by the layout.
   layout: AiLayout,
   routes: aiRoutes,
   // Every page is authored schema-first (see ./home, ./work, ./foundation).
