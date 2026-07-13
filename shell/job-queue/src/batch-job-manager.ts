@@ -2,10 +2,16 @@ import type { IJobQueueService, JobContext, JobOptions } from "./types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import { JOB_STATUS } from "./schemas";
 import type { Logger } from "@brains/utils/logger";
-import { Effect, Fiber } from "effect";
+import { Effect, Fiber, Schedule } from "effect";
+import type { Clock } from "effect";
 
 const TERMINAL_BATCH_RETENTION_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+
+interface BatchJobManagerOptions {
+  /** Internal clock boundary used for deterministic scheduling tests. */
+  clock?: Clock.Clock;
+}
 
 /**
  * Batch job manager for tracking groups of related jobs
@@ -40,6 +46,7 @@ export class BatchJobManager {
   // independently of enqueue activity so the map stays bounded even when no
   // new batches are arriving.
   private cleanupFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private readonly clock: Clock.Clock | undefined;
 
   public static getInstance(
     jobQueue: IJobQueueService,
@@ -56,13 +63,23 @@ export class BatchJobManager {
   public static createFresh(
     jobQueue: IJobQueueService,
     logger: Logger,
+  ): BatchJobManager;
+  public static createFresh(
+    jobQueue: IJobQueueService,
+    logger: Logger,
+    options?: BatchJobManagerOptions,
   ): BatchJobManager {
-    return new BatchJobManager(jobQueue, logger);
+    return new BatchJobManager(jobQueue, logger, options);
   }
 
-  private constructor(jobQueue: IJobQueueService, logger: Logger) {
+  private constructor(
+    jobQueue: IJobQueueService,
+    logger: Logger,
+    options?: BatchJobManagerOptions,
+  ) {
     this.jobQueue = jobQueue;
     this.logger = logger;
+    this.clock = options?.clock;
   }
 
   /** Start the periodic cleanup fiber. Idempotent across repeated calls. */
@@ -79,12 +96,13 @@ export class BatchJobManager {
   }
 
   private runCleanupLoop(intervalMs: number): Effect.Effect<void> {
-    return Effect.gen(this, function* () {
-      for (;;) {
-        yield* Effect.sleep(intervalMs);
-        yield* this.cleanupTerminalBatchMetadata();
-      }
-    });
+    const scheduledCleanup = this.cleanupTerminalBatchMetadata().pipe(
+      Effect.schedule(Schedule.spaced(intervalMs)),
+      Effect.asVoid,
+    );
+    return this.clock
+      ? Effect.withClock(scheduledCleanup, this.clock)
+      : scheduledCleanup;
   }
 
   private scheduleTerminalBatchCleanup(): void {
