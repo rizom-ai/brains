@@ -5,6 +5,8 @@
 **Proposed.** Move publication-pipeline operation into the CMS when
 `@brains/content-pipeline` is installed, while keeping the CMS fully functional when that
 plugin is absent. Reduce the Dashboard publication surface to a compact, read-only digest.
+The shared workspace boundary also supports the concrete second provider planned in
+[cms-site-workspace.md](./cms-site-workspace.md).
 
 ## Goal
 
@@ -67,21 +69,24 @@ interface CmsWorkspaceRegistration {
   pluginId: string;
   label: string;
   rendererName: string;
+  priority: number;
   dataProvider: (request: unknown) => Promise<unknown>;
   actionHandler?: (request: unknown, actor: CmsActor) => Promise<unknown>;
 }
 ```
 
-The exact contract remains narrow and Zod-validated, and it carries only what the single
-existing consumer needs. This is one optional publishing capability, not a speculative
-multi-workspace framework; the generic boundary exists only so CMS does not import or own
-content-pipeline behavior. `priority` ordering and a `visibility` level are deliberately
-omitted: with one workspace they are an ordering of one and an enum of one, and they are
-added in the same change that registers a second workspace. The contract must support:
+The exact contract remains narrow and Zod-validated. Publishing and Site are now two
+concrete providers, so the boundary supports multiple registrations without becoming a
+general browser-plugin system. The generic boundary exists so CMS does not import or own
+provider behavior. A visibility enum remains omitted until a real non-operator workspace
+exists. The contract must support:
 
 - a workspace identifier and CMS-owned renderer name;
+- deterministic `priority`, then `id` ordering independent of startup order;
+- duplicate-ID rejection rather than silent provider replacement;
 - server-side data and action handlers;
 - optional entity-type applicability for contextual editor actions;
+- serializable workspace descriptors for CMS navigation;
 - a registration response containing the resolved workspace URL, so callers do not
   hard-code `/cms` or a configured CMS route path.
 
@@ -97,14 +102,14 @@ and receives serializable data from registered providers.
 
 The CMS exposes authenticated generic routes:
 
+- `GET <cms-route>/api/workspaces` for ordered serializable descriptors;
 - `GET <cms-route>/api/workspaces/:id`;
 - `POST <cms-route>/api/workspaces/:id/actions`.
 
-A `GET <cms-route>/api/workspaces` list route is not needed while exactly one workspace
-can register; the CMS navigation renders from its local registry. Correspondingly, the
-state-management plan uses only `cmsKeys.workspace(workspaceId)`, enabled after
-registration, and has no workspace-list query. Add the route and list key together only
-when a second workspace exists.
+The CMS navigation renders from the descriptor list. State management uses
+`cmsKeys.workspaces` for registration descriptors and `cmsKeys.workspace(workspaceId)` for
+provider data. Both queries remain transport state; the server-side registry and provider
+snapshots own the domain state.
 
 Routes resolve a registered provider and call its server-side functions. They do not know
 about `QueueManager`, publish providers, or content-pipeline message names.
@@ -226,14 +231,16 @@ status; no surface computes its own conflicting pipeline counts.
 ### Phase 2 — Generic optional CMS workspace contract
 
 1. Add shared registration types through `@brains/plugins` and a CMS-local registry.
-2. Subscribe during CMS registration so later plugin ready hooks can register workspaces.
-3. Add authenticated generic data/action routes with Zod validation.
-4. Return the configured CMS workspace URL from successful registration.
-5. Test CMS startup and every existing editor route with no workspace registrations.
-6. Test absent-CMS registration as a non-fatal content-pipeline startup path.
+2. Support deterministic priority ordering and reject duplicate workspace IDs.
+3. Subscribe during CMS registration so later plugin ready hooks can register workspaces.
+4. Add authenticated generic list/data/action routes with Zod validation.
+5. Return the configured CMS workspace URL from successful registration.
+6. Test CMS startup and every existing editor route with no workspace registrations.
+7. Test zero, one, and two providers in both startup orders.
+8. Test absent-CMS registration as a non-fatal content-pipeline startup path.
 
-Gate: a CMS-only brain is behaviorally unchanged, and a test provider can register a
-workspace without CMS importing the provider package.
+Gate: a CMS-only brain is behaviorally unchanged, and Publishing plus a test Site provider
+can coexist without CMS importing either provider package.
 
 ### Phase 3 — Publishing workspace and entity actions
 
