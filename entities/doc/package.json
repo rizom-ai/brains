@@ -1,6 +1,6 @@
 {
   "name": "@brains/doc",
-  "version": "0.2.0-alpha.176",
+  "version": "0.2.0-alpha.177",
   "description": "Documentation entity type — markdown docs as first-class brain content",
   "dependencies": {
     "@brains/plugins": "workspace:*",

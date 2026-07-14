@@ -1,5 +1,18 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- [#58](https://github.com/rizom-ai/brains/pull/58) [`0d1a2e8`](https://github.com/rizom-ai/brains/commit/0d1a2e888d41026c358c10b7229ef72adacad784) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move saved-session metadata, conversation-history loading, and session mutations into package-local TanStack Query ownership with typed keys and exact request-count coverage. Reopened history is copied into the AI SDK, which remains the exclusive owner of active and streamed messages.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.177
+  - @brains/contracts@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/auth-service@0.2.0-alpha.177
+  - @brains/plugins@0.2.0-alpha.177
+
 ## 0.2.0-alpha.176
 
 ### Patch Changes

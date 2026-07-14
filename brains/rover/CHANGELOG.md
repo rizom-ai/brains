@@ -1,5 +1,55 @@
 # @brains/rover
 
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- Updated dependencies [[`5fe63bd`](https://github.com/rizom-ai/brains/commit/5fe63bd4d7686c43ad969c5d6b57ac52bdabd34a), [`0d1a2e8`](https://github.com/rizom-ai/brains/commit/0d1a2e888d41026c358c10b7229ef72adacad784)]:
+  - @brains/cms@0.2.0-alpha.177
+  - @brains/web-chat@0.2.0-alpha.177
+  - @brains/agent-discovery@0.2.0-alpha.177
+  - @brains/assessment@0.2.0-alpha.177
+  - @brains/blog@0.2.0-alpha.177
+  - @brains/decks@0.2.0-alpha.177
+  - @brains/doc@0.2.0-alpha.177
+  - @brains/document-plugin@0.2.0-alpha.177
+  - @brains/image-plugin@0.2.0-alpha.177
+  - @brains/link@0.2.0-alpha.177
+  - @brains/note@0.2.0-alpha.177
+  - @brains/portfolio@0.2.0-alpha.177
+  - @brains/products@0.2.0-alpha.177
+  - @brains/prompt@0.2.0-alpha.177
+  - @brains/rizom-ecosystem@0.2.0-alpha.177
+  - @brains/series@0.2.0-alpha.177
+  - @brains/site-info@0.2.0-alpha.177
+  - @brains/social-media@0.2.0-alpha.177
+  - @brains/topics@0.2.0-alpha.177
+  - @brains/wishlist@0.2.0-alpha.177
+  - @brains/a2a@0.2.0-alpha.177
+  - @brains/chat@0.2.0-alpha.177
+  - @brains/discord@0.2.0-alpha.177
+  - @brains/mcp@0.2.0-alpha.177
+  - @brains/webserver@0.2.0-alpha.177
+  - @brains/analytics@0.2.0-alpha.177
+  - @brains/atproto@0.2.0-alpha.177
+  - @brains/atproto-registry@0.2.0-alpha.177
+  - @brains/content-pipeline@0.2.0-alpha.177
+  - @brains/dashboard@0.2.0-alpha.177
+  - @brains/directory-sync@0.2.0-alpha.177
+  - @brains/email-resend@0.2.0-alpha.177
+  - @brains/newsletter@0.2.0-alpha.177
+  - @brains/notifications@0.2.0-alpha.177
+  - @brains/obsidian-vault@0.2.0-alpha.177
+  - @brains/playbooks@0.2.0-alpha.177
+  - @brains/rover-onboarding@0.2.0-alpha.177
+  - @brains/site-builder-plugin@0.2.0-alpha.177
+  - @brains/site-content@0.2.0-alpha.177
+  - @brains/stock-photo@0.2.0-alpha.177
+  - @brains/app@0.2.0-alpha.177
+  - @brains/auth-service@0.2.0-alpha.177
+  - @brains/site-default@0.2.0-alpha.177
+  - @rizom/theme-default@0.2.0-alpha.177
+
 ## 0.2.0-alpha.176
 
 ### Patch Changes

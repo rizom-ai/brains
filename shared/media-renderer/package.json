@@ -1,6 +1,6 @@
 {
   "name": "@brains/media-renderer",
-  "version": "0.2.0-alpha.176",
+  "version": "0.2.0-alpha.177",
   "dependencies": {
     "playwright-core": "^1.61.0"
   },

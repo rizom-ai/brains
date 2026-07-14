@@ -1,5 +1,17 @@
 # @brains/cms
 
+## 0.2.0-alpha.177
+
+### Patch Changes
+
+- [#58](https://github.com/rizom-ai/brains/pull/58) [`5fe63bd`](https://github.com/rizom-ai/brains/commit/5fe63bd4d7686c43ad969c5d6b57ac52bdabd34a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move CMS navigation, optional workspace, entity, schema, sync-status, and agent-target server state into a package-local TanStack Query cache. Saves, deletes, image uploads, and workspace actions now use mutation hooks, while a typed reducer coordinates editor workflows and keeps drafts pinned to their opened content hash with targeted invalidation and request-count coverage.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.177
+  - @brains/utils@0.2.0-alpha.177
+  - @brains/auth-service@0.2.0-alpha.177
+  - @brains/plugins@0.2.0-alpha.177
+
 ## 0.2.0-alpha.176
 
 ### Patch Changes
