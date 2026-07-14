@@ -1,5 +1,231 @@
 # @brains/plugins
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/site-composition@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/conversation-service@0.2.0-alpha.172
+  - @brains/identity-service@0.2.0-alpha.172
+  - @brains/job-queue@0.2.0-alpha.172
+  - @brains/messaging-service@0.2.0-alpha.172
+  - @brains/runtime-state@0.2.0-alpha.172
+  - @brains/templates@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/site-composition@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/conversation-service@0.2.0-alpha.171
+  - @brains/identity-service@0.2.0-alpha.171
+  - @brains/job-queue@0.2.0-alpha.171
+  - @brains/messaging-service@0.2.0-alpha.171
+  - @brains/runtime-state@0.2.0-alpha.171
+  - @brains/templates@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/site-composition@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/conversation-service@0.2.0-alpha.170
+  - @brains/identity-service@0.2.0-alpha.170
+  - @brains/job-queue@0.2.0-alpha.170
+  - @brains/messaging-service@0.2.0-alpha.170
+  - @brains/runtime-state@0.2.0-alpha.170
+  - @brains/templates@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/site-composition@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/conversation-service@0.2.0-alpha.169
+  - @brains/identity-service@0.2.0-alpha.169
+  - @brains/job-queue@0.2.0-alpha.169
+  - @brains/messaging-service@0.2.0-alpha.169
+  - @brains/runtime-state@0.2.0-alpha.169
+  - @brains/templates@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/site-composition@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/conversation-service@0.2.0-alpha.168
+  - @brains/identity-service@0.2.0-alpha.168
+  - @brains/job-queue@0.2.0-alpha.168
+  - @brains/messaging-service@0.2.0-alpha.168
+  - @brains/runtime-state@0.2.0-alpha.168
+  - @brains/templates@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies [[`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990)]:
+  - @brains/templates@0.2.0-alpha.167
+  - @brains/site-composition@0.2.0-alpha.167
+  - @brains/messaging-service@0.2.0-alpha.167
+  - @brains/job-queue@0.2.0-alpha.167
+  - @brains/conversation-service@0.2.0-alpha.167
+  - @brains/identity-service@0.2.0-alpha.167
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+  - @brains/runtime-state@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.166
+  - @brains/contracts@0.2.0-alpha.166
+  - @brains/site-composition@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/conversation-service@0.2.0-alpha.166
+  - @brains/identity-service@0.2.0-alpha.166
+  - @brains/job-queue@0.2.0-alpha.166
+  - @brains/messaging-service@0.2.0-alpha.166
+  - @brains/runtime-state@0.2.0-alpha.166
+  - @brains/templates@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies [[`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33)]:
+  - @brains/templates@0.2.0-alpha.165
+  - @brains/site-composition@0.2.0-alpha.165
+  - @brains/messaging-service@0.2.0-alpha.165
+  - @brains/job-queue@0.2.0-alpha.165
+  - @brains/conversation-service@0.2.0-alpha.165
+  - @brains/identity-service@0.2.0-alpha.165
+  - @brains/content-formatters@0.2.0-alpha.165
+  - @brains/contracts@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+  - @brains/runtime-state@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.164
+  - @brains/contracts@0.2.0-alpha.164
+  - @brains/site-composition@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/conversation-service@0.2.0-alpha.164
+  - @brains/identity-service@0.2.0-alpha.164
+  - @brains/job-queue@0.2.0-alpha.164
+  - @brains/messaging-service@0.2.0-alpha.164
+  - @brains/runtime-state@0.2.0-alpha.164
+  - @brains/templates@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.163
+  - @brains/contracts@0.2.0-alpha.163
+  - @brains/site-composition@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/conversation-service@0.2.0-alpha.163
+  - @brains/identity-service@0.2.0-alpha.163
+  - @brains/job-queue@0.2.0-alpha.163
+  - @brains/messaging-service@0.2.0-alpha.163
+  - @brains/runtime-state@0.2.0-alpha.163
+  - @brains/templates@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.162
+  - @brains/contracts@0.2.0-alpha.162
+  - @brains/site-composition@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/conversation-service@0.2.0-alpha.162
+  - @brains/identity-service@0.2.0-alpha.162
+  - @brains/job-queue@0.2.0-alpha.162
+  - @brains/messaging-service@0.2.0-alpha.162
+  - @brains/runtime-state@0.2.0-alpha.162
+  - @brains/templates@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- [`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Expose a visibility-scoped `context.semantic.project()` API for provider-independent semantic projections without exposing raw embeddings to plugins, add an interactive agent proximity map to the dashboard, and support archived agent lifecycle state with faint historical traces.
+
+- Updated dependencies []:
+  - @brains/identity-service@0.2.0-alpha.161
+  - @brains/content-formatters@0.2.0-alpha.161
+  - @brains/contracts@0.2.0-alpha.161
+  - @brains/site-composition@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+  - @brains/conversation-service@0.2.0-alpha.161
+  - @brains/job-queue@0.2.0-alpha.161
+  - @brains/messaging-service@0.2.0-alpha.161
+  - @brains/runtime-state@0.2.0-alpha.161
+  - @brains/templates@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.160
+  - @brains/content-formatters@0.2.0-alpha.160
+  - @brains/contracts@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+  - @brains/conversation-service@0.2.0-alpha.160
+  - @brains/identity-service@0.2.0-alpha.160
+  - @brains/job-queue@0.2.0-alpha.160
+  - @brains/messaging-service@0.2.0-alpha.160
+  - @brains/runtime-state@0.2.0-alpha.160
+  - @brains/templates@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.159
+  - @brains/contracts@0.2.0-alpha.159
+  - @brains/site-composition@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/conversation-service@0.2.0-alpha.159
+  - @brains/identity-service@0.2.0-alpha.159
+  - @brains/job-queue@0.2.0-alpha.159
+  - @brains/messaging-service@0.2.0-alpha.159
+  - @brains/runtime-state@0.2.0-alpha.159
+  - @brains/templates@0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ### Patch Changes

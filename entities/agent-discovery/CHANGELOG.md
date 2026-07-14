@@ -1,5 +1,247 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- [`0ce1257`](https://github.com/rizom-ai/brains/commit/0ce1257934837f984c3e418eab4dc6edac6dab51) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Second-order agent discovery. Brains serve their approved public agents as minimal name/url pointers at /.well-known/agent-directory.json, and the trusted agent_scan_directories tool walks each approved peer's directory, verifies each pointee's own Agent Card, and saves sightings as discovered agents carrying provenance (introducedBy, hops) — skipping self and known agents, merging introducers on repeat sightings. Sighted agents chart on the proximity map at half light, threads growing from their introducers, germinating only within semantic reach with an active introducer; approving one (agent_connect) promotes it to a full first-order contact.
+
+- Updated dependencies [[`0ce1257`](https://github.com/rizom-ai/brains/commit/0ce1257934837f984c3e418eab4dc6edac6dab51)]:
+  - @brains/dashboard@0.2.0-alpha.172
+  - @brains/atproto-contracts@0.2.0-alpha.172
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/http-signatures@0.2.0-alpha.172
+  - @brains/ui-library@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/auth-service@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+  - @brains/templates@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.171
+  - @brains/atproto-contracts@0.2.0-alpha.171
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/http-signatures@0.2.0-alpha.171
+  - @brains/ui-library@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/auth-service@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+  - @brains/templates@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.170
+  - @brains/atproto-contracts@0.2.0-alpha.170
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/http-signatures@0.2.0-alpha.170
+  - @brains/ui-library@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/auth-service@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+  - @brains/templates@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.169
+  - @brains/atproto-contracts@0.2.0-alpha.169
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/http-signatures@0.2.0-alpha.169
+  - @brains/ui-library@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/auth-service@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+  - @brains/templates@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- [`e28fb20`](https://github.com/rizom-ai/brains/commit/e28fb20048c9cba0cffe21f81847b76eadd2c76f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the proximity-map site template registering under the wrong scoped name. The template key was `agent-proximity-map`, so the plugin registered it as `agent-discovery:agent-proximity-map` while site routes reference `agent-discovery:proximity-map` — the registry lookup missed and the section silently dropped from built pages (the map hero never rendered). The key is now `proximity-map`, and a plugin test pins the scoped template names routes rely on.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.168
+  - @brains/atproto-contracts@0.2.0-alpha.168
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/http-signatures@0.2.0-alpha.168
+  - @brains/ui-library@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/auth-service@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+  - @brains/templates@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- [`2fa8809`](https://github.com/rizom-ai/brains/commit/2fa8809b8218120230ce3094b65cc6286a9651a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The proximity map's site hero copy (kicker, heading, lede, CTA) is now
+  content-authored. The template renders optional copy fields with the previous
+  strings as defaults, and the section registers an overlayFormatter so a site
+  edits the copy as an ordinary markdown section while the map data stays live
+  (via the content-overlay merge). Brains that author nothing render exactly as
+  before.
+- Updated dependencies [[`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990)]:
+  - @brains/templates@0.2.0-alpha.167
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/dashboard@0.2.0-alpha.167
+  - @brains/auth-service@0.2.0-alpha.167
+  - @brains/atproto-contracts@0.2.0-alpha.167
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/http-signatures@0.2.0-alpha.167
+  - @brains/ui-library@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- [`14120e9`](https://github.com/rizom-ai/brains/commit/14120e9c487f9fe19c974e320bbd49e70900e6ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give the proximity map the full card width and let it breathe: the chart column duplicated what the map already says (constellation labels, member names, hover-wake on the mists), so it is gone along with its styles and script handlers. The disc recenters for the wide field and the site crop follows the map center. The console soil is no longer a dark rectangle — it pools, dense at the disc and dissolving into the card with no geometric boundary, grain and outer content fading with it. And every eight seconds a ripple of light leaves the center; each bulb shimmers as the wavefront crosses its radius, so the arrival order is the proximity order — archived traces give no answer. Ripple, shimmer, and nutrient pulses all stop under prefers-reduced-motion.
+
+- Updated dependencies [[`14120e9`](https://github.com/rizom-ai/brains/commit/14120e9c487f9fe19c974e320bbd49e70900e6ff)]:
+  - @brains/dashboard@0.2.0-alpha.166
+  - @brains/atproto-contracts@0.2.0-alpha.166
+  - @brains/content-formatters@0.2.0-alpha.166
+  - @brains/contracts@0.2.0-alpha.166
+  - @brains/http-signatures@0.2.0-alpha.166
+  - @brains/ui-library@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/auth-service@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+  - @brains/templates@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- [`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Polish the agent proximity map: templates can now declare `staticAssets` that site-builder emits for routes using them, so the map's interaction script ships as a real file instead of a CSP-hostile data: URI. The chart HUD gains a free-agents row with hover linkage, nutrient pulses ride approved threads (hidden under reduced motion), SVG defs are namespaced per surface, the tooltip is structured and injection-safe, node labels thin out past the label budget, and interactive elements drop the button role they could not honor.
+
+- Updated dependencies [[`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33)]:
+  - @brains/templates@0.2.0-alpha.165
+  - @brains/dashboard@0.2.0-alpha.165
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/auth-service@0.2.0-alpha.165
+  - @brains/atproto-contracts@0.2.0-alpha.165
+  - @brains/content-formatters@0.2.0-alpha.165
+  - @brains/contracts@0.2.0-alpha.165
+  - @brains/http-signatures@0.2.0-alpha.165
+  - @brains/ui-library@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.164
+  - @brains/atproto-contracts@0.2.0-alpha.164
+  - @brains/content-formatters@0.2.0-alpha.164
+  - @brains/contracts@0.2.0-alpha.164
+  - @brains/http-signatures@0.2.0-alpha.164
+  - @brains/ui-library@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/auth-service@0.2.0-alpha.164
+  - @brains/plugins@0.2.0-alpha.164
+  - @brains/templates@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- [`983ff85`](https://github.com/rizom-ai/brains/commit/983ff852d6415c62407afa900668d358774a98ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the semantic agent proximity map as a composable public website section with a dedicated datasource, paper-climate rendering, and route-scoped interaction script.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.163
+  - @brains/atproto-contracts@0.2.0-alpha.163
+  - @brains/content-formatters@0.2.0-alpha.163
+  - @brains/contracts@0.2.0-alpha.163
+  - @brains/http-signatures@0.2.0-alpha.163
+  - @brains/ui-library@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/auth-service@0.2.0-alpha.163
+  - @brains/plugins@0.2.0-alpha.163
+  - @brains/templates@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.162
+  - @brains/atproto-contracts@0.2.0-alpha.162
+  - @brains/content-formatters@0.2.0-alpha.162
+  - @brains/contracts@0.2.0-alpha.162
+  - @brains/http-signatures@0.2.0-alpha.162
+  - @brains/ui-library@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/auth-service@0.2.0-alpha.162
+  - @brains/plugins@0.2.0-alpha.162
+  - @brains/templates@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- [`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Expose a visibility-scoped `context.semantic.project()` API for provider-independent semantic projections without exposing raw embeddings to plugins, add an interactive agent proximity map to the dashboard, and support archived agent lifecycle state with faint historical traces.
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/plugins@0.2.0-alpha.161
+  - @brains/dashboard@0.2.0-alpha.161
+  - @brains/atproto-contracts@0.2.0-alpha.161
+  - @brains/auth-service@0.2.0-alpha.161
+  - @brains/content-formatters@0.2.0-alpha.161
+  - @brains/contracts@0.2.0-alpha.161
+  - @brains/http-signatures@0.2.0-alpha.161
+  - @brains/ui-library@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+  - @brains/templates@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.160
+  - @brains/dashboard@0.2.0-alpha.160
+  - @brains/auth-service@0.2.0-alpha.160
+  - @brains/atproto-contracts@0.2.0-alpha.160
+  - @brains/content-formatters@0.2.0-alpha.160
+  - @brains/contracts@0.2.0-alpha.160
+  - @brains/http-signatures@0.2.0-alpha.160
+  - @brains/ui-library@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+  - @brains/templates@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.159
+  - @brains/atproto-contracts@0.2.0-alpha.159
+  - @brains/content-formatters@0.2.0-alpha.159
+  - @brains/contracts@0.2.0-alpha.159
+  - @brains/http-signatures@0.2.0-alpha.159
+  - @brains/ui-library@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/auth-service@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+  - @brains/templates@0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ### Patch Changes

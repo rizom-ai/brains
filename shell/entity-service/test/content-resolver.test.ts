@@ -114,6 +114,14 @@ Some text
         getEntityRaw: mock(() => Promise.resolve(null)),
         listEntities: mock(() => Promise.resolve([])),
         search: mock(() => Promise.resolve([])),
+        projectSemanticSpace: mock(() =>
+          Promise.resolve({
+            origin: { kind: "centroid" as const },
+            points: [],
+            neighbors: [],
+            distanceRange: { min: 0, max: 0 },
+          }),
+        ),
         getEntityTypes: mock(() => []),
         hasEntityType: mock(() => false),
         countEntities: mock(() => Promise.resolve(0)),

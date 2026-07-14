@@ -22,7 +22,7 @@ import rover from "@brains/rover";
 import ranger from "@brains/ranger";
 import relay from "@brains/relay";
 import defaultSite from "@brains/site-default";
-import defaultTheme from "@brains/theme-default";
+import defaultTheme from "@rizom/theme-default";
 import rizomTheme from "@brains/theme-rizom";
 
 registerModel("rover", rover);
@@ -30,6 +30,9 @@ registerModel("ranger", ranger);
 registerModel("relay", relay);
 
 registerPackage("@brains/site-default", defaultSite);
+registerPackage("@rizom/theme-default", defaultTheme);
+// Legacy alias: brain.yaml files written before the theme was published
+// under the @rizom scope may still reference the old name.
 registerPackage("@brains/theme-default", defaultTheme);
 registerPackage("@brains/theme-rizom", rizomTheme);
 

@@ -8,6 +8,8 @@ export interface SiteRuntimeScript {
 
 export interface RouteScriptTemplate {
   runtimeScripts?: SiteRuntimeScript[];
+  /** Files behind runtimeScripts srcs, keyed by output-relative path. */
+  staticAssets?: Record<string, string>;
 }
 
 export interface RouteScriptContext {
@@ -37,4 +39,26 @@ export function collectRouteScripts(
     if (script.module) attrs.push('type="module"');
     return `<script ${attrs.join(" ")}></script>`;
   });
+}
+
+/**
+ * Gather the static assets declared by templates actually used on the given
+ * routes — the files behind their `runtimeScripts` srcs. Deduped by output
+ * path; the first declaration wins. Unused templates contribute nothing.
+ */
+export function collectRouteAssets(
+  routes: RouteDefinition[],
+  context: RouteScriptContext,
+): Record<string, string> {
+  const assets: Record<string, string> = {};
+  for (const route of routes) {
+    for (const section of route.sections) {
+      const template = context.getViewTemplate(section.template);
+      if (!template?.staticAssets) continue;
+      for (const [path, content] of Object.entries(template.staticAssets)) {
+        assets[path] ??= content;
+      }
+    }
+  }
+  return assets;
 }

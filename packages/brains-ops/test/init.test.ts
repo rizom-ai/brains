@@ -229,24 +229,28 @@ describe("initPilotRepo", () => {
     );
     expect(buildWorkflow).toContain("docker/build-push-action@v7");
     expect(buildWorkflow).toContain("target: fleet");
-    expect(buildWorkflow).toContain("brainVersion");
+    // The image set is a pure function of the declared fleet state: a config
+    // push resolves the registry and matrix-builds only the missing images.
     expect(buildWorkflow).toContain("brain_version:");
     expect(buildWorkflow).toContain("users/*.yaml");
-    expect(buildWorkflow).toContain("cohorts/*.yaml");
-    expect(buildWorkflow).toContain("package.json");
-    expect(buildWorkflow).toContain("bun.lock");
+    expect(buildWorkflow).toContain("cohorts/**");
+    expect(buildWorkflow).toContain("pilot.yaml");
     expect(buildWorkflow).toContain("${{ inputs.brain_version || '' }}");
     expect(buildWorkflow).toContain(
-      "bun deploy/scripts/resolve-build-config.ts",
+      "bun deploy/scripts/resolve-missing-images.ts",
     );
-    expect(buildWorkflow).toContain("SITE_PACKAGES=${{ env.SITE_PACKAGES }}");
     expect(buildWorkflow).toContain(
-      "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
+      "image: ${{ fromJson(needs.resolve.outputs.images_json) }}",
     );
-    expect(buildWorkflow).toContain("type=raw,value=${{ env.IMAGE_TAG }}");
-    expect(buildWorkflow).not.toContain(
-      "type=raw,value=brain-${{ env.BRAIN_VERSION }}-${{ github.sha }}",
+    expect(buildWorkflow).toContain(
+      "BRAIN_VERSION=${{ matrix.image.brain_version }}",
     );
+    expect(buildWorkflow).toContain(
+      "SITE_PACKAGES=${{ matrix.image.site_packages }}",
+    );
+    expect(buildWorkflow).toContain("ghcr.io/${{ github.repository }}");
+    expect(buildWorkflow).toContain("type=raw,value=${{ matrix.image.tag }}");
+    expect(buildWorkflow).not.toContain("resolve-build-config");
     expect(buildWorkflow).not.toContain("TODO:");
 
     const deployWorkflow = await readFile(
@@ -261,7 +265,6 @@ describe("initPilotRepo", () => {
       "github.event.workflow_run.conclusion == 'success'",
     );
     expect(deployWorkflow).toContain("fetch-depth: 0");
-    expect(deployWorkflow).toContain("users/*.yaml");
     expect(deployWorkflow).toContain("users/*/brain.yaml");
     expect(deployWorkflow).toContain("users/*/.env");
     expect(deployWorkflow).toContain("users/*/content/**");
@@ -275,15 +278,22 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("Finalize generated config");
     expect(deployWorkflow).toContain("actions/download-artifact@v4");
     expect(deployWorkflow).toContain("pattern: generated-*-config");
+    // A new user's generated config is untracked; without intent-to-add
+    // every `git diff` below is blind to it and the finalize step silently
+    // drops the directory, so later deploys skip the user forever.
+    expect(deployWorkflow).toContain("git add --intent-to-add -- users views");
     expect(deployWorkflow).toContain("merge-multiple: true");
     expect(deployWorkflow).toContain("bun install");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/resolve-deploy-handles.ts",
     );
     expect(deployWorkflow).toContain("Decrypt user secrets");
+    // Shared operator env (age key, shared API keys) loads through varlock —
+    // per-step secret plumbing is gone with it.
     expect(deployWorkflow).toContain(
-      "AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}",
+      "BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}",
     );
+    expect(deployWorkflow).toContain("varlock");
     expect(deployWorkflow).toContain(
       'bun deploy/scripts/decrypt-user-secrets.ts "$HANDLE"',
     );
@@ -292,47 +302,25 @@ describe("initPilotRepo", () => {
       "bun deploy/scripts/resolve-user-config.ts",
     );
     expect(deployWorkflow).toContain("bun deploy/scripts/sync-content-repo.ts");
-    expect(deployWorkflow).toContain(
-      'export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"',
-    );
     expect(deployWorkflow).toContain("bun deploy/scripts/provision-server.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/update-dns.ts");
     expect(deployWorkflow).toContain(
       "PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}",
     );
     expect(deployWorkflow).toContain(
-      "WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}",
-    );
-    expect(deployWorkflow).toContain(
-      "CONFIG_CF_ZONE_ID: ${{ steps.user_config.outputs.cloudflare_zone_id }}",
-    );
-    expect(deployWorkflow).toContain(
-      'export CF_ZONE_ID="${CONFIG_CF_ZONE_ID:-${CF_ZONE_ID:-$SHARED_CF_ZONE_ID}}"',
-    );
-    expect(deployWorkflow).toContain('if [ -n "$WWW_DOMAIN" ]; then');
-    expect(deployWorkflow).toContain(
-      'BRAIN_DOMAIN="$WWW_DOMAIN" bun deploy/scripts/update-dns.ts',
-    );
-    expect(deployWorkflow).toContain(
       'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
     );
-    expect(deployWorkflow).toContain("https://$WWW_DOMAIN/");
+    expect(deployWorkflow).toContain("https://$PREVIEW_DOMAIN/");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/write-kamal-secrets.ts",
     );
-    expect(deployWorkflow).toContain(
-      'export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"',
-    );
     expect(deployWorkflow).not.toContain("MCP_AUTH_TOKEN");
-    expect(deployWorkflow).toContain(
-      "SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}",
-    );
-    expect(deployWorkflow).toContain(
-      "SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}",
-    );
     expect(deployWorkflow).toContain("bun deploy/scripts/write-ssh-key.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/validate-secrets.ts");
-    expect(deployWorkflow).toContain("Wait for shared image tag");
+    // The Build workflow fires off the same config push, so the deploy waits
+    // long enough to cover a full image build.
+    expect(deployWorkflow).toContain("Wait for image tag");
+    expect(deployWorkflow).toContain("seq 1 60");
     expect(deployWorkflow).toContain(
       "${{ steps.user_config.outputs.image_repository }}:${{ steps.user_config.outputs.image_tag }}",
     );
@@ -373,7 +361,6 @@ describe("initPilotRepo", () => {
       'git commit -m "chore(ops): reconcile $HANDLE"',
     );
     expect(deployWorkflow).not.toContain("\n          git push\n");
-    expect(deployWorkflow).not.toContain("node <<");
     expect(deployWorkflow).not.toContain("TODO:");
 
     const decryptUserSecretsScript = await readFile(
@@ -389,15 +376,16 @@ describe("initPilotRepo", () => {
       'writeGitHubEnv("ATPROTO_IDENTIFIER"',
     );
 
-    const resolveBuildScript = await readFile(
-      join(repo, "deploy", "scripts", "resolve-build-config.ts"),
+    // The build's resolve step is a thin caller — the logic (derive the
+    // declared image set, probe the registry) lives in @rizom/ops.
+    const resolveImagesScript = await readFile(
+      join(repo, "deploy", "scripts", "resolve-missing-images.ts"),
       "utf8",
     );
-    expect(resolveBuildScript).toContain("loadPilotRegistry");
-    expect(resolveBuildScript).toContain("SITE_PACKAGES");
-    expect(resolveBuildScript).toContain("IMAGE_TAG");
-    expect(resolveBuildScript).toContain("siteOverride.package");
-    expect(resolveBuildScript).toContain("sites-");
+    expect(resolveImagesScript).toContain("runResolveMissingImages");
+    expect(resolveImagesScript).toContain('requireEnv("GITHUB_REPOSITORY")');
+    expect(resolveImagesScript).toContain("writeGitHubOutput");
+    expect(resolveImagesScript).toContain('from "./helpers"');
 
     const resolveScript = await readFile(
       join(repo, "deploy", "scripts", "resolve-user-config.ts"),
@@ -405,15 +393,12 @@ describe("initPilotRepo", () => {
     );
     expect(resolveScript).toContain("brain_yaml_path");
     expect(resolveScript).toContain("preview_domain");
-    expect(resolveScript).toContain("www_domain");
-    expect(resolveScript).toContain("cloudflare_zone_id");
     expect(resolveScript).toContain("image_tag");
-    expect(resolveScript).toContain("resolveImageTag");
-    expect(resolveScript).toContain("const previewDomain = pilotZone");
-    expect(resolveScript).toContain(": `preview.${brainDomain}`");
-    expect(resolveScript).toContain(
-      'const wwwDomain = pilotZone ? "" : `www.${brainDomain}`',
-    );
+    // Tag derivation goes through the shared @rizom/ops helpers so the build
+    // and the deploy can never disagree about a tag.
+    expect(resolveScript).toContain("siteImageTag");
+    expect(resolveScript).toContain("sitePackagesFor");
+    expect(resolveScript).toContain("-preview.");
     expect(resolveScript).toContain('from "./helpers"');
 
     const helpersScript = await readFile(
@@ -423,6 +408,8 @@ describe("initPilotRepo", () => {
     expect(helpersScript).toContain("readJsonResponse");
     expect(helpersScript).toContain("parseEnvFile");
     expect(helpersScript).toContain("requireEnv");
+    expect(helpersScript).toContain("siteImageTag");
+    expect(helpersScript).toContain("runResolveMissingImages");
 
     const resolveHandlesScript = await readFile(
       join(repo, "deploy", "scripts", "resolve-deploy-handles.ts"),
@@ -448,6 +435,11 @@ describe("initPilotRepo", () => {
     expect(reconcileWorkflow).not.toContain("repository: rizom-ai/brains");
     expect(reconcileWorkflow).toContain(
       'git fetch origin "${{ github.ref_name }}"',
+    );
+    // Same untracked-blindness guard as the deploy finalize step: a brand
+    // new users/<handle>/ directory must be visible to the diff dance.
+    expect(reconcileWorkflow).toContain(
+      "git add --intent-to-add -- views users",
     );
     expect(reconcileWorkflow).toContain(
       'git reset --hard "origin/${{ github.ref_name }}"',

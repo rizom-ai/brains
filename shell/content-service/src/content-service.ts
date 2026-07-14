@@ -160,6 +160,19 @@ export class ContentService implements IContentService {
               this.dependencies.logger.debug(
                 `Resolved content via DataSource fetch for ${scopedTemplateName}`,
               );
+              // Opt-in overlay: when the template declares an overlayFormatter,
+              // the section's own saved content is merged over the live base
+              // (authored fields win) instead of the two being mutually
+              // exclusive. Absent → classic datasource-wins precedence.
+              if (template.overlayFormatter && options?.savedContent) {
+                return (await this.applyContentOverlay(
+                  scopedTemplateName,
+                  template,
+                  data,
+                  options.savedContent,
+                  scopedEntityService,
+                )) as T;
+              }
               return data as T;
             }
           }
@@ -223,6 +236,51 @@ export class ContentService implements IContentService {
       `No content could be resolved for ${scopedTemplateName}`,
     );
     return null;
+  }
+
+  /**
+   * Merge a section's authored saved content over a datasource base. The
+   * saved entity is parsed with the template's overlayFormatter and shallow-
+   * merged so authored fields win; the result is validated against the
+   * template schema. Any miss — no saved entity, parse error, or a merged
+   * shape that fails validation — falls back to the untouched base, so a
+   * malformed override can never break a live section.
+   */
+  private async applyContentOverlay(
+    scopedTemplateName: string,
+    template: Template,
+    base: unknown,
+    savedContent: { entityType: string; entityId: string },
+    scopedEntityService: IEntityService,
+  ): Promise<unknown> {
+    try {
+      const entity = await scopedEntityService.getEntity({
+        entityType: savedContent.entityType,
+        id: savedContent.entityId,
+      });
+      if (!entity?.content) {
+        return base;
+      }
+      const overlay = template.overlayFormatter?.parse(entity.content);
+      if (overlay === undefined || overlay === null) {
+        return base;
+      }
+      const merged = {
+        ...(base as Record<string, unknown>),
+        ...(overlay as Record<string, unknown>),
+      };
+      const validated = template.schema.parse(merged);
+      this.dependencies.logger.debug(
+        `Applied authored content overlay for ${scopedTemplateName}`,
+      );
+      return validated;
+    } catch (error) {
+      this.dependencies.logger.debug(
+        `Content overlay skipped for ${scopedTemplateName}, using datasource base`,
+        { error },
+      );
+      return base;
+    }
   }
 
   /**

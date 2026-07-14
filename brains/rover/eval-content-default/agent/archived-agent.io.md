@@ -3,7 +3,7 @@ name: Archived Agent
 kind: professional
 brainName: Archived Agent
 url: "https://archived-agent.io/a2a"
-status: discovered
+status: archived
 discoveredAt: "2026-03-12T10:00:00.000Z"
 ---
 
@@ -11,7 +11,7 @@ discoveredAt: "2026-03-12T10:00:00.000Z"
 
 ## About
 
-Archived Agent is a paused contact kept for discovered-directory call refusal tests.
+Archived Agent is a paused contact kept for archived-directory call refusal tests.
 
 ## Skills
 

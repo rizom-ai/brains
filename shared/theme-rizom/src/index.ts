@@ -1,7 +1,7 @@
 // Types for CSS imports are defined in types.d.ts
 /// <reference types="./types.d.ts" />
 
-import defaultThemeCSS from "@brains/theme-default";
+import defaultThemeCSS from "@rizom/theme-default";
 import themeCSSOnly from "./theme.css" with { type: "text" };
 
 /**

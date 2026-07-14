@@ -1,5 +1,57 @@
 # @rizom/brain
 
+## 0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- [`457e95f`](https://github.com/rizom-ai/brains/commit/457e95f38476ef5fdc2b676ae83153de6be66599) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Themes become independently published npm packages, completing the
+  published-package model for brain.yaml: `@rizom/theme-default` (the editorial
+  base) and `@rizom/theme-rizom-ai` (the consolidated rizom.ai theme, depending
+  on the base so fixes flow via npm resolution) publish dist-only artifacts with
+  their CSS inlined. The brain entrypoint registers `@rizom/theme-default` and
+  keeps a `@brains/theme-default` alias for pre-rename brain.yaml files; hosted
+  deployments install `@rizom/*` theme refs next to the brain instead of
+  requiring themes to be bundled into a brain release.
+
+## 0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- [`7a1d3a0`](https://github.com/rizom-ai/brains/commit/7a1d3a0417afba050565948dc3f1e7aadc4eff89) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Schema-first site sections: new `@rizom/site-sections` package authors a content
+  section from a single zod schema (`defineSection` ties the component props to
+  `z.infer<schema>`; `sectionGroup` bundles a namespace). The brain derives the
+  CMS fields and the markdown formatter from the same schema by introspection, so
+  there is no hand-written field DSL to keep in sync. `@rizom/site` carries the
+  opaque `SiteSectionGroup` contract and `SiteDefinition.sections`;
+  `createRizomSite` gains `sections` and `entityDisplay` options, `themeProfile`
+  becomes optional (omit it to ship no profile canvas and no
+  `data-theme-profile`), and `RizomFrame` gains a `canvas` prop to drop the dead
+  canvas mount on profile-less sites.
+
+## 0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ## 0.2.0-alpha.157

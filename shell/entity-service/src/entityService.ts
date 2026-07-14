@@ -34,6 +34,8 @@ import type {
   DeleteEntityRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceProjection,
   CreateEntityRequest,
   CreateEntityFromMarkdownRequest,
   UpdateEntityRequest,
@@ -451,6 +453,12 @@ export class EntityService implements IEntityService {
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     return this.entitySearch.searchWithDistances(request.query);
+  }
+
+  public async projectSemanticSpace(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection> {
+    return this.entitySearch.projectSemanticSpace(request);
   }
 
   public async countEmbeddings(): Promise<number> {

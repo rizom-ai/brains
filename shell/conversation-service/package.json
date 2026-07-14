@@ -1,6 +1,6 @@
 {
   "name": "@brains/conversation-service",
-  "version": "0.2.0-alpha.158",
+  "version": "0.2.0-alpha.172",
   "description": "Conversation storage and retrieval service for Brains",
   "dependencies": {
     "@brains/contracts": "workspace:*",

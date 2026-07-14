@@ -1,5 +1,49 @@
 # @brains/ops
 
+## 0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- [`fccd93d`](https://github.com/rizom-ai/brains/commit/fccd93dff5635d942bcc43c631a26bc1267630ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Sync the rover-pilot scaffold templates to the running pipeline design: build.yml resolves the declared image set from the registry and matrix-builds missing images (replacing the batched resolve-build-config design, which leaked every same-version site override into one shared image), deploy.yml waits long enough for a concurrent build and drops the per-step shared-secret plumbing in favor of varlock, and the deploy scripts derive tags through the shared @rizom/ops helpers. Remaining drift in six templated scripts (update-dns, decrypt-user-secrets, resolve-deploy-handles, sync-content-repo, provision-server, validate-secrets) is bidirectional and tracked as a follow-up.
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- [`5c828fd`](https://github.com/rizom-ai/brains/commit/5c828fd6823b582835f5c7892ed2994b322ba603) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `resolveImageBuilds` and `runResolveMissingImages` (also on the `/deploy` entry): the Build workflow's resolve step as ops logic — derive the declared image set from the pilot registry, probe the container registry per tag, and emit the missing ones as a GitHub Actions build matrix, with dispatch inputs forcing a single explicit build. rover-pilot's build.yml becomes a thin caller.
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- [`13efe5c`](https://github.com/rizom-ai/brains/commit/13efe5cb1f15ef694e4634914ffee5d68f57c37a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add image derivation to the ops registry model: `siteImageTag` (moved from rover-pilot's local copy), `sitePackagesFor`, and `requiredImages` — the image set the declared fleet state requires, derived purely from resolved users. This lets rover-pilot's Build workflow build exactly what a config push declares (default image per brain version in use, plus one per-instance sites image per site override) instead of relying on manual dispatches, and lets its deploy resolve tags through the same function so build and deploy can never disagree.
+
+## 0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- [`78ff7f2`](https://github.com/rizom-ai/brains/commit/78ff7f294dadd6e4b830ea0f5a262b0c4ec4b9d1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix new users being skipped by every deploy after onboarding. The reconcile and deploy workflows committed generated output via `git diff`, which is blind to untracked files — so a newly added user's generated `users/<handle>/` directory was silently dropped and never appeared in any commit range the deploy handle-resolver inspects. Both workflow templates now stage generated paths with `git add --intent-to-add` before the diff dance.
+
+## 0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ## 0.2.0-alpha.157

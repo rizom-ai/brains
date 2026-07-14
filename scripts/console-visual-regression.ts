@@ -382,7 +382,7 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewport.height + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
-  if (surface === "cms-editor") {
+  if (surface.startsWith("cms-") && surface !== "cms-library") {
     const modes = await page
       .locator(".cms-mobile-modes")
       .evaluate((node) => getComputedStyle(node).display);
@@ -560,6 +560,41 @@ const server = Bun.serve({
           },
         ],
       });
+    if (url.pathname === "/cms/api/entities" && request.method === "PUT") {
+      // Saves only happen in the secondary-state scenarios: an emptied
+      // title pins the validation error line (cms-invalid), any other
+      // save pins the reconcile card (cms-conflict).
+      const body = (await request.json()) as {
+        frontmatter?: { title?: string };
+      };
+      if (body.frontmatter?.title?.includes("!!"))
+        return Response.json(
+          {
+            error: "Validation failed",
+            issues: [
+              { path: ["title"], message: "Title may not contain '!!'." },
+            ],
+          },
+          { status: 400 },
+        );
+      return Response.json(
+        {
+          error:
+            "The entry changed after you opened it — directory sync imported a newer version of this manuscript.",
+        },
+        { status: 409 },
+      );
+    }
+    if (url.pathname === "/cms/api/upload")
+      // Slow enough that the cms-upload capture always lands while the
+      // widget shows "Uploading…", but finite — a never-resolving request
+      // can wedge browser teardown at the end of the run.
+      return new Promise<Response>((resolve) =>
+        setTimeout(
+          () => resolve(json({ entityId: "image/verdigris-board" })),
+          30_000,
+        ),
+      );
     if (url.pathname === "/cms/api/entities" && url.searchParams.has("id"))
       return json({ entity });
     if (url.pathname === "/cms/api/entities") return json({ entities });
@@ -598,9 +633,24 @@ try {
         "chat-drawer",
         "cms-library",
         "cms-editor",
+        "cms-delete",
+        "cms-conflict",
+        "cms-invalid",
+        "cms-upload",
       ] as const) {
         // The sessions drawer only exists at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
+        // Secondary editor states are pinned at desktop and phone; tablet
+        // adds no distinct composition for these overlays and lines.
+        const isCmsSecondary =
+          surface === "cms-delete" ||
+          surface === "cms-conflict" ||
+          surface === "cms-invalid" ||
+          surface === "cms-upload";
+        if (isCmsSecondary && viewport.width === 768) continue;
+        console.error(
+          `→ ${surface} ${viewport.width}x${viewport.height} ${climate}`,
+        );
         const isChat = surface.startsWith("chat");
         const conversationId =
           surface === "chat-cards"
@@ -628,14 +678,14 @@ try {
           },
           { now: FIXED_NOW, conversation: conversationId },
         );
+        const isCmsEditor = surface === "cms-editor" || isCmsSecondary;
         const route =
           surface === "dashboard" ? "/dashboard" : isChat ? "/chat" : "/cms";
-        const hash =
-          surface === "cms-editor"
-            ? "#/posts/field-notes"
-            : isChat
-              ? `#s/${conversationId}`
-              : "";
+        const hash = isCmsEditor
+          ? "#/posts/field-notes"
+          : isChat
+            ? `#s/${conversationId}`
+            : "";
         await page.goto(
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
           { waitUntil: "networkidle" },
@@ -720,6 +770,47 @@ try {
             if (settled === tops && settled === previousTops) break;
             previousTops = settled;
           }
+        }
+        if (surface === "cms-delete") {
+          // Open the delete confirmation. Phone tucks the control behind
+          // the ••• disclosure; wider widths show it in the pipeline bar.
+          if (viewport.width <= 640) {
+            await page.locator(".cms-mobile-more summary").click();
+            await page.getByRole("button", { name: "Delete entry" }).click();
+          } else {
+            await page.locator(".pipeline .btn.danger").click();
+          }
+          await page.locator(".delete-modal").waitFor();
+        }
+        if (surface === "cms-conflict") {
+          // Save with an unchanged title: the fixture answers 409, raising
+          // the reconcile card above the save bar.
+          await page.locator(".save-btn").click();
+          await page.locator(".conflict").waitFor();
+        }
+        if (surface === "cms-invalid") {
+          // Two validation aspects in one frame: a server-rejected save
+          // (the fixture 400s on "!!") pins the pipeline error line, then
+          // an emptied required title pins the :user-invalid outline.
+          await page.getByLabel("Title").fill("Notes from the rhizome!!");
+          await page.locator(".save-btn").click();
+          await page.locator(".status-error").waitFor();
+          await page.getByLabel("Title").fill("");
+          await page.getByLabel("Title").blur();
+          await page.waitForFunction(() =>
+            document.querySelector(".field input:user-invalid"),
+          );
+        }
+        if (surface === "cms-upload") {
+          // Start a cover-image upload the fixture never completes, so the
+          // widget's in-flight state stays up for the capture.
+          await page.locator('.upload-zone input[type="file"]').setInputFiles({
+            name: "verdigris-board.png",
+            mimeType: "image/png",
+            buffer: fixtureImage,
+          });
+          await page.getByText("Uploading…").waitFor();
+          await page.getByText("Uploading…").scrollIntoViewIfNeeded();
         }
         await page.evaluate(() => document.fonts.ready);
         await checkLayout(page, surface, viewport.width);

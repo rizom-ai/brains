@@ -91,6 +91,9 @@ export interface ViewTemplate<T = unknown> {
 
   /** Runtime script dependencies (see Template.runtimeScripts). */
   runtimeScripts?: RuntimeScript[];
+
+  /** Static files behind runtimeScripts srcs (see Template.staticAssets). */
+  staticAssets?: Record<string, string>;
 }
 
 /**

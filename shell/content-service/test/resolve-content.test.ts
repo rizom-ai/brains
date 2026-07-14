@@ -1311,6 +1311,178 @@ describe("ContentService.resolveContent", () => {
     });
   });
 
+  describe("Overlay merge (datasource base + authored saved content)", () => {
+    // A template that opts in via `overlayFormatter`: the datasource supplies
+    // the live base (here `count`), and the section's own saved content
+    // supplies authored presentation fields (here `heading`/`lede`) that are
+    // merged over the base. This is what lets the proximity map keep live map
+    // data while its hero copy is content-authored.
+    const overlaySchema = z.object({
+      count: z.number(),
+      heading: z.string().optional(),
+      lede: z.string().optional(),
+    });
+    const overlayFormatter = {
+      format: (data: unknown): string => JSON.stringify(data),
+      parse: (content: string): unknown => JSON.parse(content),
+    };
+
+    it("merges authored saved content over the datasource base", async () => {
+      const mockTemplate: Template = {
+        name: "map",
+        description: "Map with authored copy",
+        dataSourceId: "shell:map-source",
+        schema: overlaySchema,
+        overlayFormatter,
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:map-source",
+        fetch: mock().mockResolvedValue({ count: 42 }),
+      };
+
+      templateRegistry.register("map", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+      getEntitySpy.mockResolvedValue({
+        id: "home:network",
+        type: "site-content",
+        content: JSON.stringify({ heading: "Authored", lede: "From markdown" }),
+      });
+
+      const result = await contentService.resolveContent("map", {
+        dataParams: {},
+        savedContent: { entityType: "site-content", entityId: "home:network" },
+      });
+
+      expect(result).toEqual({
+        count: 42,
+        heading: "Authored",
+        lede: "From markdown",
+      });
+    });
+
+    it("lets authored fields win over datasource fields of the same name", async () => {
+      const mockTemplate: Template = {
+        name: "map-win",
+        description: "Authored copy overrides live copy",
+        dataSourceId: "shell:map-win-source",
+        schema: overlaySchema,
+        overlayFormatter,
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:map-win-source",
+        // The datasource happens to emit a default heading; authored wins.
+        fetch: mock().mockResolvedValue({ count: 7, heading: "Live default" }),
+      };
+
+      templateRegistry.register("map-win", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+      getEntitySpy.mockResolvedValue({
+        id: "home:network",
+        type: "site-content",
+        content: JSON.stringify({ heading: "Authored" }),
+      });
+
+      const result = await contentService.resolveContent("map-win", {
+        dataParams: {},
+        savedContent: { entityType: "site-content", entityId: "home:network" },
+      });
+
+      expect(result).toEqual({ count: 7, heading: "Authored" });
+    });
+
+    it("returns the pure datasource base when no saved content exists", async () => {
+      const mockTemplate: Template = {
+        name: "map-empty",
+        description: "Overlay template with no authored copy yet",
+        dataSourceId: "shell:map-empty-source",
+        schema: overlaySchema,
+        overlayFormatter,
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:map-empty-source",
+        fetch: mock().mockResolvedValue({ count: 3 }),
+      };
+
+      templateRegistry.register("map-empty", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+      getEntitySpy.mockResolvedValue(null); // nothing authored
+
+      const result = await contentService.resolveContent("map-empty", {
+        dataParams: {},
+        savedContent: { entityType: "site-content", entityId: "home:network" },
+      });
+
+      expect(result).toEqual({ count: 3 });
+    });
+
+    it("ignores saved content for datasource templates without an overlayFormatter", async () => {
+      // No overlayFormatter → the datasource wins outright and the saved
+      // entity is never even read (byte-identical to today's precedence).
+      const mockTemplate: Template = {
+        name: "no-overlay",
+        description: "Datasource template, no overlay opt-in",
+        dataSourceId: "shell:no-overlay-source",
+        schema: overlaySchema,
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:no-overlay-source",
+        fetch: mock().mockResolvedValue({ count: 99 }),
+      };
+
+      templateRegistry.register("no-overlay", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const result = await contentService.resolveContent("no-overlay", {
+        dataParams: {},
+        savedContent: { entityType: "site-content", entityId: "home:network" },
+      });
+
+      expect(result).toEqual({ count: 99 });
+      expect(mockDependencies.entityService.getEntity).not.toHaveBeenCalled();
+    });
+
+    it("validates the merged result against the template schema", async () => {
+      const mockTemplate: Template = {
+        name: "map-invalid",
+        description: "Authored copy that violates the schema is rejected",
+        dataSourceId: "shell:map-invalid-source",
+        schema: overlaySchema,
+        overlayFormatter,
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:map-invalid-source",
+        fetch: mock().mockResolvedValue({ count: 1 }),
+      };
+
+      templateRegistry.register("map-invalid", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+      getEntitySpy.mockResolvedValue({
+        id: "home:network",
+        type: "site-content",
+        // heading must be a string; a number fails schema validation.
+        content: JSON.stringify({ heading: 123 }),
+      });
+
+      const result = await contentService.resolveContent("map-invalid", {
+        dataParams: {},
+        savedContent: { entityType: "site-content", entityId: "home:network" },
+      });
+
+      // Merge fails validation → fall back to the valid datasource base.
+      expect(result).toEqual({ count: 1 });
+    });
+  });
+
   describe("Plugin scoping", () => {
     it("should apply plugin scoping when provided", async () => {
       const mockTemplate: Template = {

@@ -1,5 +1,145 @@
 # @brains/mcp
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/auth-service@0.2.0-alpha.172
+  - @brains/mcp-service@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/auth-service@0.2.0-alpha.171
+  - @brains/mcp-service@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/auth-service@0.2.0-alpha.170
+  - @brains/mcp-service@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/auth-service@0.2.0-alpha.169
+  - @brains/mcp-service@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/auth-service@0.2.0-alpha.168
+  - @brains/mcp-service@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-service@0.2.0-alpha.167
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/auth-service@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/auth-service@0.2.0-alpha.166
+  - @brains/mcp-service@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-service@0.2.0-alpha.165
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/auth-service@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/auth-service@0.2.0-alpha.164
+  - @brains/mcp-service@0.2.0-alpha.164
+  - @brains/plugins@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/auth-service@0.2.0-alpha.163
+  - @brains/mcp-service@0.2.0-alpha.163
+  - @brains/plugins@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/auth-service@0.2.0-alpha.162
+  - @brains/mcp-service@0.2.0-alpha.162
+  - @brains/plugins@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/plugins@0.2.0-alpha.161
+  - @brains/auth-service@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+  - @brains/mcp-service@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.160
+  - @brains/auth-service@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+  - @brains/mcp-service@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/auth-service@0.2.0-alpha.159
+  - @brains/mcp-service@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ### Patch Changes

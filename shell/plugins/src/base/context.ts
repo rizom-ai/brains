@@ -1,7 +1,11 @@
 import type { IShell } from "../interfaces";
 import { type Logger } from "@brains/utils/logger";
 import { derivePreviewDomain } from "@brains/site-composition";
-import type { ICoreEntityService } from "@brains/entity-service";
+import type {
+  ICoreEntityService,
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceProjection,
+} from "@brains/entity-service";
 import type { JudgeInput, PluginRegistrationContext } from "../interfaces";
 import type { AppInfo } from "../contracts/app-info";
 import type { EntityDisplayEntry } from "@brains/site-composition";
@@ -31,6 +35,12 @@ import type {
   IMessagingNamespace,
   IPermissionsNamespace,
 } from "./context-types";
+
+export interface ISemanticNamespace {
+  project(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection>;
+}
 
 export type {
   IConversationsNamespace,
@@ -110,6 +120,9 @@ export interface BasePluginContext {
 
   /** Core entity service with read-only operations */
   readonly entityService: ICoreEntityService;
+
+  /** Provider-independent semantic indexing operations. */
+  readonly semantic: ISemanticNamespace;
 
   // ============================================================================
   // Brain Identity & Profile
@@ -236,6 +249,10 @@ export function createBasePluginContext(
     pluginId,
     logger,
     entityService,
+
+    semantic: {
+      project: (request) => entityService.projectSemanticSpace(request),
+    },
 
     identity: createIdentityNamespace(shell, getAppInfo),
 

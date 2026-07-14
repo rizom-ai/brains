@@ -1,5 +1,151 @@
 # @brains/cms
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/auth-service@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/auth-service@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/auth-service@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/auth-service@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/auth-service@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.167
+  - @brains/auth-service@0.2.0-alpha.167
+  - @brains/console-theme@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/auth-service@0.2.0-alpha.166
+  - @brains/plugins@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.165
+  - @brains/auth-service@0.2.0-alpha.165
+  - @brains/console-theme@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/auth-service@0.2.0-alpha.164
+  - @brains/plugins@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/auth-service@0.2.0-alpha.163
+  - @brains/plugins@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/auth-service@0.2.0-alpha.162
+  - @brains/plugins@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- [`698697c`](https://github.com/rizom-ai/brains/commit/698697c01aa33e35f03a74cfc3a81675f74b4d60) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drop the "content studio" wordmark from the CMS crumbbar — it added noise without wayfinding value. The crumbbar now leads with the collection breadcrumb directly.
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/plugins@0.2.0-alpha.161
+  - @brains/auth-service@0.2.0-alpha.161
+  - @brains/console-theme@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.160
+  - @brains/auth-service@0.2.0-alpha.160
+  - @brains/console-theme@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- [`8b82059`](https://github.com/rizom-ai/brains/commit/8b82059646b1fd41113fb61ca56e0930a4ff60c5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Audit and pin the CMS secondary states. The conflict card's "Reload latest" button was invisible in paper climate (and barely legible in instrument) — a stale `.pipeline .reload` rule from its old home in the dark pipeline bar overrode the ghost button treatment; the rule is removed. The phone ••• disclosure now folds when Delete is chosen instead of hanging open behind the dialog scrim. The delete dialog and conflict card are pinned in visual baselines at desktop and phone widths, both climates.
+
+- [`630b6be`](https://github.com/rizom-ai/brains/commit/630b6be9a61b4ce74f9f99fb49939bfbf2e5f926) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give the save bar's status line breathing room from the pipeline readout — the validation error used to butt directly against the commit ref. The remaining secondary states (validation error line + invalid-field outline, in-flight upload) are now pinned in visual baselines, completing the secondary-state sweep.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/auth-service@0.2.0-alpha.159
+  - @brains/plugins@0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ### Patch Changes

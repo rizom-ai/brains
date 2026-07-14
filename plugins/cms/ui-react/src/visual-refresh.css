@@ -20,12 +20,6 @@
     ),
     var(--console-frame);
 }
-.crumb-mark {
-  color: var(--console-text-muted);
-}
-.crumb-mark b {
-  color: var(--console-text-dim);
-}
 .crumb {
   color: var(--console-text-dim);
 }
@@ -530,6 +524,9 @@
   align-items: baseline;
   gap: 7px;
   color: var(--console-err);
+}
+.pipeline > .status {
+  margin-left: 14px;
 }
 .status-error::before {
   content: "×";

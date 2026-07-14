@@ -1,5 +1,197 @@
 # @brains/content-service
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/ai-service@0.2.0-alpha.172
+  - @brains/entity-service@0.2.0-alpha.172
+  - @brains/job-queue@0.2.0-alpha.172
+  - @brains/templates@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/ai-service@0.2.0-alpha.171
+  - @brains/entity-service@0.2.0-alpha.171
+  - @brains/job-queue@0.2.0-alpha.171
+  - @brains/templates@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/ai-service@0.2.0-alpha.170
+  - @brains/entity-service@0.2.0-alpha.170
+  - @brains/job-queue@0.2.0-alpha.170
+  - @brains/templates@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/ai-service@0.2.0-alpha.169
+  - @brains/entity-service@0.2.0-alpha.169
+  - @brains/job-queue@0.2.0-alpha.169
+  - @brains/templates@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/ai-service@0.2.0-alpha.168
+  - @brains/entity-service@0.2.0-alpha.168
+  - @brains/job-queue@0.2.0-alpha.168
+  - @brains/templates@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- [`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an opt-in content overlay so a datasource-backed section can also carry
+  content-authored fields. A template may declare an `overlayFormatter`; when it
+  does, its section's saved site-content is parsed and merged over the datasource
+  output (authored fields win, then the merge is validated against the template
+  schema), instead of datasource and saved content being mutually exclusive.
+  Site-builder now offers every section its own saved content alongside any
+  dataQuery. Templates without an overlayFormatter are unchanged — the datasource
+  still wins outright and the saved entity is never read. This lets a live
+  section (e.g. the agent proximity map) keep real-time data while its hero copy
+  is edited like any other markdown section.
+- Updated dependencies [[`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990)]:
+  - @brains/templates@0.2.0-alpha.167
+  - @brains/ai-service@0.2.0-alpha.167
+  - @brains/job-queue@0.2.0-alpha.167
+  - @brains/entity-service@0.2.0-alpha.167
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.166
+  - @brains/contracts@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/ai-service@0.2.0-alpha.166
+  - @brains/entity-service@0.2.0-alpha.166
+  - @brains/job-queue@0.2.0-alpha.166
+  - @brains/templates@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies [[`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33)]:
+  - @brains/templates@0.2.0-alpha.165
+  - @brains/ai-service@0.2.0-alpha.165
+  - @brains/job-queue@0.2.0-alpha.165
+  - @brains/entity-service@0.2.0-alpha.165
+  - @brains/content-formatters@0.2.0-alpha.165
+  - @brains/contracts@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.164
+  - @brains/contracts@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/ai-service@0.2.0-alpha.164
+  - @brains/entity-service@0.2.0-alpha.164
+  - @brains/job-queue@0.2.0-alpha.164
+  - @brains/templates@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.163
+  - @brains/contracts@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/ai-service@0.2.0-alpha.163
+  - @brains/entity-service@0.2.0-alpha.163
+  - @brains/job-queue@0.2.0-alpha.163
+  - @brains/templates@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.162
+  - @brains/contracts@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/ai-service@0.2.0-alpha.162
+  - @brains/entity-service@0.2.0-alpha.162
+  - @brains/job-queue@0.2.0-alpha.162
+  - @brains/templates@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies [[`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765)]:
+  - @brains/entity-service@0.2.0-alpha.161
+  - @brains/ai-service@0.2.0-alpha.161
+  - @brains/content-formatters@0.2.0-alpha.161
+  - @brains/contracts@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+  - @brains/job-queue@0.2.0-alpha.161
+  - @brains/templates@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.160
+  - @brains/contracts@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+  - @brains/ai-service@0.2.0-alpha.160
+  - @brains/entity-service@0.2.0-alpha.160
+  - @brains/job-queue@0.2.0-alpha.160
+  - @brains/templates@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.159
+  - @brains/contracts@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/ai-service@0.2.0-alpha.159
+  - @brains/entity-service@0.2.0-alpha.159
+  - @brains/job-queue@0.2.0-alpha.159
+  - @brains/templates@0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ### Patch Changes

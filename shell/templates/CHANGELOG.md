@@ -1,5 +1,129 @@
 # @brains/templates
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- [`eba956f`](https://github.com/rizom-ai/brains/commit/eba956f9894d549e47c6ebe5d478bae0887a2990) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an opt-in content overlay so a datasource-backed section can also carry
+  content-authored fields. A template may declare an `overlayFormatter`; when it
+  does, its section's saved site-content is parsed and merged over the datasource
+  output (authored fields win, then the merge is validated against the template
+  schema), instead of datasource and saved content being mutually exclusive.
+  Site-builder now offers every section its own saved content alongside any
+  dataQuery. Templates without an overlayFormatter are unchanged — the datasource
+  still wins outright and the saved entity is never read. This lets a live
+  section (e.g. the agent proximity map) keep real-time data while its hero copy
+  is edited like any other markdown section.
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- [`6484d4b`](https://github.com/rizom-ai/brains/commit/6484d4b8dc4bc2182370ddfff3e0b8594aee2b33) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Polish the agent proximity map: templates can now declare `staticAssets` that site-builder emits for routes using them, so the map's interaction script ships as a real file instead of a CSP-hostile data: URI. The chart HUD gains a free-agents row with hover linkage, nutrient pulses ride approved threads (hidden under reduced motion), SVG defs are namespaced per surface, the tooltip is structured and injection-safe, node labels thin out past the label budget, and interactive elements drop the button role they could not honor.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ### Patch Changes

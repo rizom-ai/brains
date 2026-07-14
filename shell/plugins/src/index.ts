@@ -89,6 +89,7 @@ export type {
   IConversationsNamespace,
   IEvalNamespace,
   IInsightsNamespace,
+  ISemanticNamespace,
 } from "./base/context";
 export type {
   IRuntimeStateNamespace,
@@ -188,6 +189,13 @@ export type {
   EntityTypeConfig,
   ICoreEntityService,
   IEntityService,
+  ProjectSemanticSpaceRequest,
+  SemanticEntityReference,
+  SemanticSpaceDistanceRange,
+  SemanticSpaceNeighbor,
+  SemanticSpaceOrigin,
+  SemanticSpacePoint,
+  SemanticSpaceProjection,
   SearchResult,
 } from "@brains/entity-service";
 export {

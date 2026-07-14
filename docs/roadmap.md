@@ -167,6 +167,10 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
+- [operator-surface-state-management.md](./plans/operator-surface-state-management.md) — standardize Dashboard/CMS/web-chat state ownership without a global browser store: TanStack Query for React server caches, typed reducers for complex local workflows, URL-owned navigation, and framework-neutral shared preferences.
+- [cms-publishing-workspace.md](./plans/cms-publishing-workspace.md) — host content-pipeline management in an optional CMS workspace while keeping CMS fully independent when content-pipeline is absent and reducing Dashboard publishing to a read-only digest.
+- [cms-site-workspace.md](./plans/cms-site-workspace.md) — register an optional Site workspace from site-builder for preview/live status and rebuild actions, proving the CMS workspace boundary with a second independent provider.
+- [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
@@ -186,7 +190,6 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
-- [agent-proximity-map.md](./plans/agent-proximity-map.md) — **P2, not started**: radial embedding-distance map of discovered agents around the brain, with labeled semantic clusters; ships as a console dashboard widget and a public site template, plus the read-only `getEmbeddings` core API it needs.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; recurring alerts are blocked on a shared scheduler/heartbeat primitive and stay outside the entity package.
 
 ### 7. Keep the framework sustainable

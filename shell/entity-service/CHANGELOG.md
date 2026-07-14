@@ -1,5 +1,147 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.172
+  - @brains/contracts@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/job-queue@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.171
+  - @brains/contracts@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/job-queue@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.170
+  - @brains/contracts@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/job-queue@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.169
+  - @brains/contracts@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/job-queue@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/job-queue@0.2.0-alpha.168
+
+## 0.2.0-alpha.167
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.167
+  - @brains/content-formatters@0.2.0-alpha.167
+  - @brains/contracts@0.2.0-alpha.167
+  - @brains/utils@0.2.0-alpha.167
+
+## 0.2.0-alpha.166
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.166
+  - @brains/contracts@0.2.0-alpha.166
+  - @brains/utils@0.2.0-alpha.166
+  - @brains/job-queue@0.2.0-alpha.166
+
+## 0.2.0-alpha.165
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.165
+  - @brains/content-formatters@0.2.0-alpha.165
+  - @brains/contracts@0.2.0-alpha.165
+  - @brains/utils@0.2.0-alpha.165
+
+## 0.2.0-alpha.164
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.164
+  - @brains/contracts@0.2.0-alpha.164
+  - @brains/utils@0.2.0-alpha.164
+  - @brains/job-queue@0.2.0-alpha.164
+
+## 0.2.0-alpha.163
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.163
+  - @brains/contracts@0.2.0-alpha.163
+  - @brains/utils@0.2.0-alpha.163
+  - @brains/job-queue@0.2.0-alpha.163
+
+## 0.2.0-alpha.162
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.162
+  - @brains/contracts@0.2.0-alpha.162
+  - @brains/utils@0.2.0-alpha.162
+  - @brains/job-queue@0.2.0-alpha.162
+
+## 0.2.0-alpha.161
+
+### Patch Changes
+
+- [`61c6862`](https://github.com/rizom-ai/brains/commit/61c68624c0ae21f9d00d307db02ce5a1439d2765) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Expose a visibility-scoped `context.semantic.project()` API for provider-independent semantic projections without exposing raw embeddings to plugins, add an interactive agent proximity map to the dashboard, and support archived agent lifecycle state with faint historical traces.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.161
+  - @brains/contracts@0.2.0-alpha.161
+  - @brains/utils@0.2.0-alpha.161
+  - @brains/job-queue@0.2.0-alpha.161
+
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.160
+  - @brains/contracts@0.2.0-alpha.160
+  - @brains/utils@0.2.0-alpha.160
+  - @brains/job-queue@0.2.0-alpha.160
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.159
+  - @brains/contracts@0.2.0-alpha.159
+  - @brains/utils@0.2.0-alpha.159
+  - @brains/job-queue@0.2.0-alpha.159
+
 ## 0.2.0-alpha.158
 
 ### Patch Changes
