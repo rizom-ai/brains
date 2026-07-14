@@ -29,6 +29,11 @@ export class JobQueueService implements IJobQueueService {
   private handlerRegistry: HandlerRegistry;
   private repository: JobQueueRepository;
   private deduplicator: JobDeduplicator;
+  private walInitialization: Promise<void> | null = null;
+  private walInitializationSettled = false;
+  private closeRequested = false;
+  private clientClosed = false;
+  private readonly databaseUrl: string;
 
   /**
    * Get the singleton instance
@@ -58,7 +63,10 @@ export class JobQueueService implements IJobQueueService {
    * Close the underlying database connection.
    */
   public close(): void {
-    this.client.close();
+    this.closeRequested = true;
+    if (!this.walInitialization || this.walInitializationSettled) {
+      this.closeClient();
+    }
   }
 
   /**
@@ -77,6 +85,7 @@ export class JobQueueService implements IJobQueueService {
   private constructor(config: JobQueueServiceConfig, logger?: Logger) {
     const { db, client, url } = createJobQueueDatabase(config);
     this.client = client;
+    this.databaseUrl = url;
     this.logger = (logger ?? Logger.getInstance()).child("JobQueueService");
 
     this.handlerRegistry = new HandlerRegistry(this.logger);
@@ -86,11 +95,30 @@ export class JobQueueService implements IJobQueueService {
       config.claimTimeoutMs ?? 300_000,
     );
     this.deduplicator = new JobDeduplicator();
+  }
 
-    // Enable WAL mode asynchronously (non-blocking)
-    enableWALMode(client, url).catch((error) => {
+  /** Settle non-fatal database readiness work before the shell becomes ready. */
+  public initialize(): Promise<void> {
+    if (this.closeRequested) return Promise.resolve();
+    this.walInitialization ??= this.initializeWALMode();
+    return this.walInitialization;
+  }
+
+  private async initializeWALMode(): Promise<void> {
+    try {
+      await enableWALMode(this.client, this.databaseUrl);
+    } catch (error) {
       this.logger.warn("Failed to enable WAL mode (non-fatal)", error);
-    });
+    } finally {
+      this.walInitializationSettled = true;
+      if (this.closeRequested) this.closeClient();
+    }
+  }
+
+  private closeClient(): void {
+    if (this.clientClosed) return;
+    this.clientClosed = true;
+    this.client.close();
   }
 
   /**

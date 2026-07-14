@@ -31,6 +31,7 @@ function machineContext(
     actor: null,
     source: null,
     attachments: [],
+    signal: undefined,
     response: null,
     pendingConfirmations: [],
     activeConfirmation: null,

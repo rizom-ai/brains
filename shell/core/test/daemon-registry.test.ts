@@ -50,6 +50,68 @@ describe("DaemonRegistry", () => {
     expect(registry.get("test-daemon")?.status).toBe("stopped");
   });
 
+  it("should release a started daemon only once", async () => {
+    let stopCalls = 0;
+    const mockDaemon: Daemon = {
+      start: async () => {},
+      stop: async () => {
+        stopCalls++;
+      },
+    };
+
+    registry.register("test-daemon", mockDaemon, "test-plugin");
+    await registry.start("test-daemon");
+    await registry.stop("test-daemon");
+    await registry.stop("test-daemon");
+
+    expect(stopCalls).toBe(1);
+  });
+
+  it("should reject overwriting a running daemon", async () => {
+    const mockDaemon: Daemon = {
+      start: async () => {},
+      stop: async () => {},
+    };
+
+    registry.register("test-daemon", mockDaemon, "test-plugin");
+    await registry.start("test-daemon");
+
+    expect(() =>
+      registry.register("test-daemon", mockDaemon, "other-plugin"),
+    ).toThrow("Cannot overwrite running daemon");
+
+    await registry.stop("test-daemon");
+  });
+
+  it("should preserve stop errors and allow a later retry", async () => {
+    const stopError = new Error("stop failed");
+    let stopCalls = 0;
+    const mockDaemon: Daemon = {
+      start: async () => {},
+      stop: async () => {
+        stopCalls++;
+        if (stopCalls === 1) throw stopError;
+      },
+    };
+
+    registry.register("test-daemon", mockDaemon, "test-plugin");
+    await registry.start("test-daemon");
+
+    let receivedError: unknown;
+    try {
+      await registry.stop("test-daemon");
+    } catch (error) {
+      receivedError = error;
+    }
+
+    expect(receivedError).toBe(stopError);
+    expect(registry.get("test-daemon")?.status).toBe("error");
+
+    await registry.stop("test-daemon");
+    expect(stopCalls).toBe(2);
+    expect(registry.get("test-daemon")?.status).toBe("stopped");
+  });
+
   it("should handle daemon health checks", async () => {
     const mockHealth: DaemonHealth = {
       status: "healthy",
@@ -104,18 +166,70 @@ describe("DaemonRegistry", () => {
     expect(statuses[0]?.health?.message).toBe("check-1");
   });
 
-  it("should throw from startPlugin when a daemon fails to start", async () => {
+  it("should preserve the startup error and release a failed daemon", async () => {
+    const startError = new Error("boom");
+    let stopped = false;
     const mockDaemon: Daemon = {
       start: async () => {
-        throw new Error("boom");
+        throw startError;
       },
-      stop: async () => {},
+      stop: async () => {
+        stopped = true;
+      },
     };
 
     registry.register("test-daemon", mockDaemon, "test-plugin");
 
-    expect(registry.startPlugin("test-plugin")).rejects.toThrow("boom");
-    expect(registry.get("test-daemon")?.status).toBe("error");
+    let receivedError: unknown;
+    try {
+      await registry.startPlugin("test-plugin");
+    } catch (error) {
+      receivedError = error;
+    }
+
+    expect(receivedError).toBe(startError);
+    expect(stopped).toBe(true);
+    expect(registry.get("test-daemon")?.status).toBe("stopped");
+  });
+
+  it("should roll back plugin daemons in reverse order after partial startup", async () => {
+    const order: string[] = [];
+    const firstDaemon: Daemon = {
+      start: async () => {
+        order.push("first-start");
+      },
+      stop: async () => {
+        order.push("first-stop");
+      },
+    };
+    const secondDaemon: Daemon = {
+      start: async () => {
+        order.push("second-start");
+        throw new Error("second failed");
+      },
+      stop: async () => {
+        order.push("second-stop");
+      },
+    };
+
+    registry.register("first", firstDaemon, "test-plugin");
+    registry.register("second", secondDaemon, "test-plugin");
+
+    let receivedError: unknown;
+    try {
+      await registry.startPlugin("test-plugin");
+    } catch (error) {
+      receivedError = error;
+    }
+
+    expect(receivedError).toBeInstanceOf(Error);
+    expect((receivedError as Error).message).toBe("second failed");
+    expect(order).toEqual([
+      "first-start",
+      "second-start",
+      "second-stop",
+      "first-stop",
+    ]);
   });
 
   it("should manage daemons by plugin", async () => {

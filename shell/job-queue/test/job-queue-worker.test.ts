@@ -8,7 +8,11 @@ import {
   spyOn,
 } from "bun:test";
 import { JobQueueWorker } from "../src/job-queue-worker";
-import type { IJobQueueService, JobInfo } from "../src/types";
+import type {
+  IJobQueueService,
+  JobInfo,
+  JobQueueWorkerConfig,
+} from "../src/types";
 import {
   createSilentLogger,
   createMockProgressReporter,
@@ -19,6 +23,9 @@ import type {
   IJobProgressMonitor,
   ProgressReporter,
 } from "@brains/utils/progress";
+import { Effect } from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
+import { TestClock, TestContext } from "@brains/effect-runtime/test";
 
 const mockProgressReporter = createMockProgressReporter();
 
@@ -73,6 +80,29 @@ function createMockHandler(): MockHandler {
     onError: mock(() => Promise.resolve()),
     validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
   };
+}
+
+function createWorkerWithClock(
+  service: IJobQueueService,
+  progressMonitor: IJobProgressMonitor,
+  config: JobQueueWorkerConfig,
+  clock: Clock.Clock,
+): JobQueueWorker {
+  // Keep the clock seam out of the package's public Promise API.
+  const createWithClock = JobQueueWorker.createFresh as unknown as (
+    jobQueueService: IJobQueueService,
+    monitor: IJobProgressMonitor,
+    logger: ReturnType<typeof createSilentLogger>,
+    workerConfig: JobQueueWorkerConfig,
+    runtimeOptions: { clock: Clock.Clock },
+  ) => JobQueueWorker;
+  return createWithClock(
+    service,
+    progressMonitor,
+    createSilentLogger(),
+    config,
+    { clock },
+  );
 }
 
 function createWorkerWithSingleJob(
@@ -155,6 +185,17 @@ describe("JobQueueWorker", () => {
       await worker.stop();
       expect(worker.isWorkerRunning()).toBe(false);
     });
+
+    it("should create a fresh fiber scope when restarted", async () => {
+      await worker.start();
+      await worker.stop();
+      await worker.start();
+
+      expect(worker.isWorkerRunning()).toBe(true);
+
+      await worker.stop();
+      expect(worker.isWorkerRunning()).toBe(false);
+    });
   });
 
   describe("Configuration", () => {
@@ -184,6 +225,8 @@ describe("JobQueueWorker", () => {
 
       expect(autoWorker.isWorkerRunning()).toBe(true);
       await autoWorker.stop();
+      await Bun.sleep(5);
+      expect(autoWorker.isWorkerRunning()).toBe(false);
     });
   });
 
@@ -210,12 +253,39 @@ describe("JobQueueWorker", () => {
   });
 
   describe("Job processing integration", () => {
-    it("should call dequeue when running", async () => {
-      await worker.start();
+    it("should poll on schedule and stop polling when stopped", async () => {
+      const program = Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        worker = createWorkerWithClock(
+          mockService,
+          mockProgressMonitor,
+          { pollInterval: 50 },
+          clock,
+        );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+        try {
+          yield* Effect.promise(() => worker.start());
+          yield* Effect.yieldNow();
 
-      expect(mockService.dequeue).toHaveBeenCalled();
+          yield* TestClock.adjust(49);
+          expect(mockService.dequeue).not.toHaveBeenCalled();
+
+          yield* TestClock.adjust(1);
+          yield* Effect.yieldNow();
+          expect(mockService.dequeue).toHaveBeenCalledTimes(1);
+
+          yield* Effect.promise(() => worker.stop());
+          yield* TestClock.adjust(500);
+          yield* Effect.yieldNow();
+          expect(mockService.dequeue).toHaveBeenCalledTimes(1);
+        } finally {
+          if (worker.isWorkerRunning()) {
+            yield* Effect.promise(() => worker.stop());
+          }
+        }
+      }).pipe(Effect.provide(TestContext.TestContext));
+
+      await Effect.runPromise(program);
     });
 
     it("should process jobs when available", async () => {

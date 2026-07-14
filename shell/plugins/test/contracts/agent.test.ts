@@ -102,11 +102,13 @@ describe("public agent contracts", () => {
     });
   });
 
-  it("forwards native attachments through the public agent namespace", async () => {
+  it("forwards native attachments and cancellation through the public agent namespace", async () => {
     const calls: unknown[] = [];
+    const signals: Array<AbortSignal | undefined> = [];
     const agent = createPublicAgentNamespace({
-      chat: async (_message, _conversationId, context) => {
+      chat: async (_message, _conversationId, context, signal) => {
         calls.push(context);
+        signals.push(signal);
         return {
           text: "ok",
           usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
@@ -119,17 +121,23 @@ describe("public agent contracts", () => {
       invalidateAgent: () => {},
     });
 
-    await agent.chat("Summarize", "conversation-1", {
-      attachments: [
-        {
-          kind: "text",
-          filename: "notes.md",
-          mediaType: "text/markdown",
-          content: "# Notes",
-          source: { kind: "upload", id: "upload-123" },
-        },
-      ],
-    });
+    const controller = new AbortController();
+    await agent.chat(
+      "Summarize",
+      "conversation-1",
+      {
+        attachments: [
+          {
+            kind: "text",
+            filename: "notes.md",
+            mediaType: "text/markdown",
+            content: "# Notes",
+            source: { kind: "upload", id: "upload-123" },
+          },
+        ],
+      },
+      controller.signal,
+    );
 
     expect(calls).toEqual([
       {
@@ -144,6 +152,7 @@ describe("public agent contracts", () => {
         ],
       },
     ]);
+    expect(signals).toEqual([controller.signal]);
   });
 
   it("maps runtime agent responses to the stable public contract", () => {

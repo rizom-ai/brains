@@ -346,18 +346,39 @@ export function ProximityMap({
   const mistId = `proximity-mist-${surface}`;
   const blurRef = `url(#${blurId})`;
 
-  const maxNodeDistance = Math.max(...data.nodes.map((node) => node.distance));
+  const maxNodeDistance = Math.max(
+    ...data.nodes.map((node) => node.distance),
+    ...data.sightings.map((sighting) => sighting.distance),
+  );
   const maxDistance = Math.max(data.distanceRange.max, maxNodeDistance, 0.1);
   const strata = strataForDistanceRange(maxDistance);
   const layouts = buildNodeLayouts(data.nodes, maxDistance);
   const positions = new Map(layouts.map(({ node, point }) => [node.id, point]));
+  const nodeNamesById = new Map(data.nodes.map((node) => [node.id, node.name]));
   const clusterIdByNode = new Map<string, string>();
   data.clusters.forEach((cluster, index) => {
     for (const memberId of cluster.memberIds)
       clusterIdByNode.set(memberId, `cluster-${index}`);
   });
   const weaveRandom = mulberry32(7331);
+  const sightingRandom = mulberry32(4242);
   const activeNodes = data.nodes.filter((node) => node.status !== "archived");
+  // Render only sightings whose introducers are actually on this map —
+  // a thread has to grow from somewhere.
+  const sightingLayouts = data.sightings.flatMap((sighting) => {
+    const viaPoints = sighting.viaIds.flatMap((viaId) => {
+      const from = positions.get(viaId);
+      return from ? [{ viaId, from }] : [];
+    });
+    if (viaPoints.length === 0) return [];
+    return [
+      {
+        sighting,
+        point: polar(sighting.distance, sighting.bearing, maxDistance),
+        viaPoints,
+      },
+    ];
+  });
   const pulseLayouts = layouts
     .filter(({ node }) => node.status === "approved")
     .slice(0, MAX_PULSES);
@@ -675,6 +696,85 @@ export function ProximityMap({
                 textAnchor={labelAnchor}
               >
                 {node.name.toLowerCase()}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* second-order sightings — hearsay at half light. Threads grow from
+            the introducing peers' roots, never from the center: reachable
+            through someone, not directly. */}
+        {sightingLayouts.map(({ sighting, point, viaPoints }) => {
+          const viaNames = sighting.viaIds
+            .map((viaId) => nodeNamesById.get(viaId) ?? viaId)
+            .join(" · ");
+          const onRight = point.x >= CENTER_X;
+          return (
+            <g
+              class="proximity-sighting"
+              key={`sighting:${sighting.id}`}
+              data-proximity-sighting={sighting.id}
+              data-proximity-name={sighting.name}
+              data-proximity-via={viaNames}
+              data-proximity-via-ids={sighting.viaIds.join(" ")}
+              data-proximity-distance={sighting.distance.toFixed(2)}
+              data-proximity-tags={sighting.tags.join(", ")}
+              tabIndex={0}
+            >
+              <title>{`${sighting.name} · second order · via ${viaNames} · distance ${sighting.distance.toFixed(2)}`}</title>
+              {viaPoints.map(({ viaId, from }) => {
+                const dx = point.x - from.x;
+                const dy = point.y - from.y;
+                const length = Math.max(1, Math.hypot(dx, dy));
+                const bow = (sightingRandom() - 0.5) * length * 0.5;
+                const middle = {
+                  x: from.x + dx * 0.5 + (-dy / length) * bow,
+                  y: from.y + dy * 0.5 + (dx / length) * bow,
+                };
+                const d = `M ${from.x} ${from.y} Q ${middle.x} ${middle.y}, ${point.x} ${point.y}`;
+                return (
+                  <g class="proximity-sighting-thread" key={viaId}>
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke="var(--console-accent)"
+                      strokeOpacity="0.09"
+                      strokeWidth="2.4"
+                      filter={blurRef}
+                    />
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke="var(--console-accent)"
+                      strokeOpacity="0.2"
+                      strokeWidth="0.8"
+                    />
+                  </g>
+                );
+              })}
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r="7.8"
+                fill="var(--console-accent)"
+                opacity="0.07"
+                filter={blurRef}
+              />
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r="3"
+                fill="var(--console-accent)"
+                opacity="0.5"
+              />
+              <text
+                class="proximity-node-label"
+                fill-opacity="0.55"
+                x={point.x + (onRight ? 11 : -11)}
+                y={point.y + 3}
+                textAnchor={onRight ? "start" : "end"}
+              >
+                {sighting.name.toLowerCase()}
               </text>
             </g>
           );

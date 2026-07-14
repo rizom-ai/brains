@@ -18,6 +18,8 @@ export interface ToolContext {
   // Progress reporting
   progressToken?: string | number;
   sendProgress?: (notification: ProgressNotification) => Promise<void>;
+  /** Cancellation for the active request; handlers may opt in. */
+  signal?: AbortSignal;
 
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
@@ -319,6 +321,9 @@ export interface IMCPService extends IMCPTransport {
    * Register behavioral instructions from a plugin for the agent system prompt
    */
   registerInstructions(pluginId: string, instructions: string): void;
+
+  /** Remove every tool, resource, prompt, and instruction owned by a plugin. */
+  unregisterPlugin?(pluginId: string): void;
 
   /**
    * Get all registered plugin instructions

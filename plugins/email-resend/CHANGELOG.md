@@ -1,5 +1,77 @@
 # @brains/email-resend
 
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.175
+  - @brains/email-contracts@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/email-contracts@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/email-contracts@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/email-contracts@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/email-contracts@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/email-contracts@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/email-contracts@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/email-contracts@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+
 ## 0.2.0-alpha.167
 
 ### Patch Changes

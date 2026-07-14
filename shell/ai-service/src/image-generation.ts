@@ -15,6 +15,8 @@ export async function generateImageResult(
   clients: ProviderClients,
   logger: Logger,
 ): Promise<ImageGenerationResult> {
+  const signal = options?.signal;
+  signal?.throwIfAborted();
   const { provider, modelId } = selectImageProvider(imageModel);
   const model = getImageModel(clients, provider, modelId);
 
@@ -28,11 +30,17 @@ export async function generateImageResult(
     const aspectRatio: AspectRatio = options?.aspectRatio ?? "16:9";
     const result =
       provider === "google"
-        ? await generateImage({ model, prompt, aspectRatio })
+        ? await generateImage({
+            model,
+            prompt,
+            aspectRatio,
+            ...(signal ? { abortSignal: signal } : {}),
+          })
         : await generateImage({
             model,
             prompt,
             size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
+            ...(signal ? { abortSignal: signal } : {}),
             providerOptions: {
               openai: { quality: "medium" },
             },
@@ -48,6 +56,7 @@ export async function generateImageResult(
 
     return { base64, dataUrl };
   } catch (error) {
+    signal?.throwIfAborted();
     logger.error("Failed to generate image", error);
     throw new Error("Image generation failed", { cause: error });
   }

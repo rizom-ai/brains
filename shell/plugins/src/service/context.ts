@@ -227,8 +227,9 @@ export function createServicePluginContext(
       generateObject: async <T>(
         prompt: string,
         schema: AIGenerationSchema<T>,
+        signal?: AbortSignal,
       ): Promise<{ object: T }> => {
-        return shell.generateObject(prompt, schema);
+        return shell.generateObject(prompt, schema, signal);
       },
       generateImage: async (
         prompt: string,

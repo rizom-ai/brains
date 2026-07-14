@@ -37,6 +37,10 @@ export class InsightsRegistry implements IInsightsRegistry {
     this.handlers.set(type, handler);
   }
 
+  unregister(type: string): void {
+    this.handlers.delete(type);
+  }
+
   getTypes(): string[] {
     return Array.from(this.handlers.keys());
   }

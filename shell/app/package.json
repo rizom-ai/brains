@@ -1,6 +1,6 @@
 {
   "name": "@brains/app",
-  "version": "0.2.0-alpha.167",
+  "version": "0.2.0-alpha.175",
   "description": "High-level factory for creating Brain applications",
   "keywords": [
     "brain",
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@brains/core": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
     "@brains/site-composition": "workspace:*",

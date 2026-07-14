@@ -20,6 +20,8 @@ export interface TestAgentInput {
   did?: string;
   status?: AgentStatus;
   discoveredAt?: string;
+  introducedBy?: string[];
+  hops?: number;
   about?: string;
   notes?: string;
 }
@@ -43,6 +45,10 @@ export function createTestAgent(input: TestAgentInput = {}): AgentEntity {
       url,
       status: input.status ?? "discovered",
       discoveredAt,
+      ...(input.introducedBy !== undefined
+        ? { introducedBy: input.introducedBy }
+        : {}),
+      ...(input.hops !== undefined ? { hops: input.hops } : {}),
       about: input.about ?? `${name} is a brain agent.`,
       skills: [
         {

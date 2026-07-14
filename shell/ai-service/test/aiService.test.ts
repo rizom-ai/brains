@@ -229,6 +229,37 @@ describe("AIService", () => {
       });
     });
 
+    it("should pass cancellation to the text provider", async () => {
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
+      const signal = new AbortController().signal;
+
+      await service.generateText("System", "User", signal);
+
+      expect(generateTextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ abortSignal: signal }),
+      );
+    });
+
+    it("should preserve the abort reason", async () => {
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
+      const controller = new AbortController();
+      const reason = new Error("request cancelled");
+      generateTextSpy.mockImplementationOnce(() => {
+        controller.abort(reason);
+        return Promise.reject(reason);
+      });
+
+      void expect(
+        service.generateText("System", "User", controller.signal),
+      ).rejects.toBe(reason);
+    });
+
     it("should emit ai:usage log entry with token counts", async () => {
       const testLogger = createTestLogger(LogLevel.INFO);
       // Spy on child so child logger calls inherit the spy
@@ -397,6 +428,30 @@ describe("AIService", () => {
           prompt: expect.stringContaining("Decide whether the goal is met."),
           schema,
         }),
+      );
+    });
+
+    it("should pass cancellation to the object provider", async () => {
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
+      const schema = z.object({ met: z.boolean() });
+      const signal = new AbortController().signal;
+      generateObjectSpy.mockResolvedValueOnce({
+        object: { met: true },
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      });
+
+      await service.judge({
+        instruction: "Judge this.",
+        material: "Evidence.",
+        schema,
+        signal,
+      });
+
+      expect(generateObjectSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ abortSignal: signal }),
       );
     });
   });
@@ -589,6 +644,17 @@ describe("AIService", () => {
         expect(result.base64).toBe(VALID_PNG_BASE64);
         expect(result.dataUrl).toBe(
           `data:image/png;base64,${VALID_PNG_BASE64}`,
+        );
+      });
+
+      it("should pass cancellation to the image provider", async () => {
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const signal = new AbortController().signal;
+
+        await service.generateImage("A sunset", { signal });
+
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ abortSignal: signal }),
         );
       });
 

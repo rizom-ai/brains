@@ -1,11 +1,12 @@
 {
   "name": "@brains/plugins",
-  "version": "0.2.0-alpha.167",
+  "version": "0.2.0-alpha.175",
   "description": "Core plugin system implementation for Brains",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/messaging-service": "workspace:*",

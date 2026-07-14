@@ -136,6 +136,32 @@ describe("MCPService", () => {
     });
   });
 
+  describe("plugin teardown", () => {
+    it("removes only capabilities owned by the target plugin", () => {
+      const createTool = (name: string): Tool => ({
+        name,
+        description: name,
+        inputSchema: {},
+        handler: async () => ({ success: true, data: name }),
+      });
+      mcpService.setProtocolMode("debug");
+      mcpService.registerTool("plugin-a", createTool("tool-a"));
+      mcpService.registerTool("plugin-b", createTool("tool-b"));
+      mcpService.registerInstructions("plugin-a", "A instructions");
+      mcpService.registerInstructions("plugin-b", "B instructions");
+
+      mcpService.unregisterPlugin("plugin-a");
+
+      expect(mcpService.listTools().map(({ tool }) => tool.name)).toEqual([
+        "tool-b",
+      ]);
+      expect(mcpService.getInstructions()).toEqual(["B instructions"]);
+      expect(listProtocolToolNames(mcpService.getMcpServer())).toEqual([
+        "tool-b",
+      ]);
+    });
+  });
+
   describe("initialization", () => {
     it("should create singleton instance", () => {
       const instance1 = MCPService.getInstance(

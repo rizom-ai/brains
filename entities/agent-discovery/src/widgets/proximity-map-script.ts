@@ -2,6 +2,7 @@ export const proximityMapScript = `(function () {
   document.querySelectorAll("[data-proximity-map]").forEach(function (map) {
     var nodes = map.querySelectorAll("[data-proximity-node]");
     var clusters = map.querySelectorAll("[data-proximity-cluster-id]");
+    var sightings = map.querySelectorAll("[data-proximity-sighting]");
     var tooltip = map.querySelector("[data-proximity-tooltip]");
 
     function reset() {
@@ -11,10 +12,19 @@ export const proximityMapScript = `(function () {
       clusters.forEach(function (cluster) {
         cluster.style.opacity = "";
       });
+      sightings.forEach(function (sighting) {
+        sighting.style.opacity = "";
+      });
       if (tooltip) {
         tooltip.hidden = true;
         tooltip.textContent = "";
       }
+    }
+
+    function dimSightings() {
+      sightings.forEach(function (sighting) {
+        sighting.style.opacity = "0.16";
+      });
     }
 
     // Structured tooltip built exclusively through textContent — agent names
@@ -75,6 +85,7 @@ export const proximityMapScript = `(function () {
           cluster.style.opacity = "0.14";
         });
       }
+      dimSightings();
 
       var name = node.getAttribute("data-proximity-name") || "Agent";
       var kind = node.getAttribute("data-proximity-kind") || "agent";
@@ -91,11 +102,38 @@ export const proximityMapScript = `(function () {
 
     function activateCluster(cluster, clusterId) {
       focusCluster(clusterId);
+      dimSightings();
       var label = cluster.getAttribute("data-proximity-cluster-label") || "Constellation";
       var members = cluster.getAttribute("data-proximity-cluster-members") || "0";
       showTooltip(cluster, {
         name: label,
         meta: "constellation · " + members + " agents",
+      });
+    }
+
+    // Hovering a sighting keeps its introducers lit — you see whose roots
+    // reach it, and that you cannot reach it directly yet.
+    function activateSighting(sighting) {
+      var viaIds = (sighting.getAttribute("data-proximity-via-ids") || "").split(" ");
+      nodes.forEach(function (candidate) {
+        var isIntroducer = viaIds.indexOf(candidate.getAttribute("data-proximity-node")) !== -1;
+        candidate.style.opacity = isIntroducer ? "1" : "0.2";
+      });
+      clusters.forEach(function (cluster) {
+        cluster.style.opacity = "0.14";
+      });
+      sightings.forEach(function (candidate) {
+        candidate.style.opacity = candidate === sighting ? "1" : "0.16";
+      });
+
+      var name = sighting.getAttribute("data-proximity-name") || "Sighting";
+      var via = sighting.getAttribute("data-proximity-via") || "";
+      var distance = sighting.getAttribute("data-proximity-distance") || "";
+      var tags = sighting.getAttribute("data-proximity-tags") || "";
+      showTooltip(sighting, {
+        name: name,
+        meta: "second order · via " + via + " · distance " + distance,
+        tags: tags ? tags.split(", ") : [],
       });
     }
 
@@ -114,6 +152,10 @@ export const proximityMapScript = `(function () {
       var clusterId = cluster.getAttribute("data-proximity-cluster-id");
       if (!clusterId) return;
       bind(cluster, function () { activateCluster(cluster, clusterId); });
+    });
+
+    sightings.forEach(function (sighting) {
+      bind(sighting, function () { activateSighting(sighting); });
     });
   });
 })();`;

@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-12
+Last updated: 2026-07-14
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -169,6 +169,7 @@ Plans:
 
 - [operator-surface-state-management.md](./plans/operator-surface-state-management.md) — standardize Dashboard/CMS/web-chat state ownership without a global browser store: TanStack Query for React server caches, typed reducers for complex local workflows, URL-owned navigation, and framework-neutral shared preferences.
 - [cms-publishing-workspace.md](./plans/cms-publishing-workspace.md) — host content-pipeline management in an optional CMS workspace while keeping CMS fully independent when content-pipeline is absent and reducing Dashboard publishing to a read-only digest.
+- [cms-site-workspace.md](./plans/cms-site-workspace.md) — register an optional Site workspace from site-builder for preview/live status and rebuild actions, proving the CMS workspace boundary with a second independent provider.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
@@ -197,9 +198,11 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
+- [directory-sync-effect-lifecycle.md](./plans/directory-sync-effect-lifecycle.md) — scope directory watchers, git schedules, debounce work, cancellation, and shutdown under the private Effect runtime while keeping plugin APIs Promise-based.
+- [effect-lifecycle-adoption.md](./plans/effect-lifecycle-adoption.md) — companion sweep: supervise content-pipeline's scheduled publishes, link a2a streaming turns to stream lifetime, and scope media-renderer browser processes, all behind Promise-based contracts.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
-- [shared-heartbeat-recurring-checks.md](./plans/shared-heartbeat-recurring-checks.md) — **P2 dependency** for recurring plugin checks: reuse the existing scheduler/daemon/runtime-state/notification primitives rather than shipping opportunity-specific timers.
+- [shared-heartbeat-recurring-checks.md](./plans/shared-heartbeat-recurring-checks.md) — **pulled forward, active**: shared recurring-check layer with agent discovery's directory scan as the first full-path consumer (schedule → run → dedupe → notify); second-order discovery needs unattended recurrence to work as pitched. BD stale alerts adopt it once the BD slice merges; identity-scoped dedupe still waits for the P1 identity boundary.
 
 Research probes (parked):
 

@@ -77,8 +77,18 @@ describe("JobQueueService", () => {
     testHandler = new TestJobHandler();
   });
   afterEach(async () => {
+    service.close();
     JobQueueService.resetInstance();
     await cleanup();
+  });
+  describe("Database readiness", () => {
+    it("initializes WAL mode once", async () => {
+      const first = service.initialize();
+      const second = service.initialize();
+
+      expect(second).toBe(first);
+      await first;
+    });
   });
   describe("Handler registration", () => {
     it("should register a job handler successfully", () => {

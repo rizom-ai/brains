@@ -88,10 +88,12 @@ export class AIService implements IAIService {
   public async generateText(
     systemPrompt: string,
     userPrompt: string,
+    signal?: AbortSignal,
   ): Promise<{
     text: string;
     usage: TokenUsage;
   }> {
+    signal?.throwIfAborted();
     this.logger.debug("Generating text response", {
       model: this.config.model,
     });
@@ -101,6 +103,7 @@ export class AIService implements IAIService {
         model: this.getModel(),
         system: systemPrompt,
         prompt: userPrompt,
+        ...(signal ? { abortSignal: signal } : {}),
         ...getTextGenerationOptions(
           this.config,
           this.capabilities.provider,
@@ -114,6 +117,7 @@ export class AIService implements IAIService {
 
       return { text: result.text, usage };
     } catch (error) {
+      signal?.throwIfAborted();
       this.logger.error("Failed to generate text", error);
       throw new Error("AI text generation failed", { cause: error });
     }
@@ -126,10 +130,12 @@ export class AIService implements IAIService {
     systemPrompt: string,
     userPrompt: string,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ): Promise<{
     object: T;
     usage: TokenUsage;
   }> {
+    signal?.throwIfAborted();
     this.logger.debug("Generating structured response", {
       model: this.config.model,
     });
@@ -145,6 +151,7 @@ export class AIService implements IAIService {
         system: systemPrompt,
         prompt: userPrompt,
         schema,
+        ...(signal ? { abortSignal: signal } : {}),
         ...generationOptions,
         providerOptions: {
           ...generationOptions.providerOptions,
@@ -158,6 +165,7 @@ export class AIService implements IAIService {
 
       return { object: result.object, usage };
     } catch (error) {
+      signal?.throwIfAborted();
       this.logger.error("Failed to generate object", error);
       throw new Error("AI object generation failed", { cause: error });
     }
@@ -180,6 +188,7 @@ export class AIService implements IAIService {
         input.material,
       ].join("\n"),
       input.schema,
+      input.signal,
     );
 
     return { verdict: object, usage };

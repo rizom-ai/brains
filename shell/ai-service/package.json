@@ -1,6 +1,6 @@
 {
   "name": "@brains/ai-service",
-  "version": "0.2.0-alpha.167",
+  "version": "0.2.0-alpha.175",
   "description": "AI service for text/object generation and agent conversation orchestration",
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.84",
@@ -8,6 +8,7 @@
     "@ai-sdk/openai": "^3.0.71",
     "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/mcp-service": "workspace:*",

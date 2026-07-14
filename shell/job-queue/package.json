@@ -1,8 +1,9 @@
 {
   "name": "@brains/job-queue",
-  "version": "0.2.0-alpha.167",
+  "version": "0.2.0-alpha.175",
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",
@@ -19,6 +20,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./effect": "./src/effect.ts",
     "./migrate": "./src/migrate.ts"
   },
   "main": "./src/index.ts",

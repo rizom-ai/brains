@@ -64,6 +64,7 @@ interface StreamedChatInput {
   attachments: ChatAttachment[];
   messageId?: string;
   interfaceType: string;
+  signal?: AbortSignal;
 }
 
 export async function handleStreamedChat(
@@ -87,6 +88,7 @@ export async function handleStreamedChat(
         ...buildWebChatContext(input),
         attachments: input.attachments,
       },
+      input.signal,
     );
 
     await deps.handleAgentResponseToolStatuses(response, input.conversationId);
@@ -117,6 +119,7 @@ interface StreamedConfirmationsInput {
   approvalResponses: ApprovalResponse[];
   permissionLevel: "anchor" | "public";
   interfaceType: string;
+  signal?: AbortSignal;
 }
 
 export async function handleStreamedConfirmations(
@@ -147,6 +150,7 @@ export async function handleStreamedConfirmations(
             approvalId: approvalResponse.id,
           }),
         },
+        input.signal,
       );
       await deps.handleAgentResponseToolStatuses(
         response,

@@ -3,7 +3,6 @@ import { ContentService as ContentServiceClass } from "@brains/content-service";
 import { ConversationService } from "@brains/conversation-service";
 import { DataSourceRegistry } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
-import { JobQueueService } from "@brains/job-queue";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -22,6 +21,7 @@ import type { Logger } from "@brains/utils/logger";
 import { DaemonRegistry } from "../daemon-registry";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
+import type { ShellLifecycle } from "./shell-lifecycle";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
 import {
@@ -34,8 +34,9 @@ export function createShellServices(options: {
   config: ShellConfig;
   dependencies: ShellDependencies | undefined;
   initializerLogger: Logger;
+  lifecycle: ShellLifecycle;
 }): ShellServices {
-  const { config, dependencies, initializerLogger } = options;
+  const { config, dependencies, initializerLogger, lifecycle } = options;
   initializerLogger.debug("Initializing Shell services");
 
   const logger = createServiceLogger(config, dependencies?.logger);
@@ -77,15 +78,25 @@ export function createShellServices(options: {
       createDatabaseConfig(config.runtimeStateDatabase),
       logger,
     );
+  lifecycle.addSyncFinalizer(() => runtimeStateService.close());
+
   const mcpService =
     dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 
-  const jobQueueService =
-    dependencies?.jobQueueService ??
-    JobQueueService.getInstance(
-      createDatabaseConfig(config.jobQueueDatabase),
-      logger,
-    );
+  const jobServices = initializeJobServices({
+    dependencies,
+    jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
+    messageBus,
+    logger,
+  });
+  const {
+    batchJobManager,
+    jobProgressMonitor,
+    jobQueueService,
+    jobQueueWorker,
+  } = jobServices;
+  lifecycle.addSyncFinalizer(() => jobServices.closeDatabase());
+  lifecycle.addSyncFinalizer(() => jobServices.rollbackRuntime());
 
   const entityService = EntityService.getInstance({
     embeddingService,
@@ -96,6 +107,7 @@ export function createShellServices(options: {
     dbConfig: createDatabaseConfig(config.database),
     embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
   });
+  lifecycle.addSyncFinalizer(() => entityService.close());
 
   const conversationService =
     dependencies?.conversationService ??
@@ -104,6 +116,17 @@ export function createShellServices(options: {
       messageBus,
       createDatabaseConfig(config.conversationDatabase),
     );
+  lifecycle.addSyncFinalizer(() => conversationService.close());
+
+  lifecycle.addSyncFinalizer(() => {
+    for (const dispose of disposables.splice(0)) {
+      try {
+        dispose();
+      } catch (error) {
+        logger.warn("Failed to dispose shell subscription", error);
+      }
+    }
+  });
 
   const contentService =
     dependencies?.contentService ??
@@ -133,14 +156,6 @@ export function createShellServices(options: {
     disposables,
   });
 
-  const { batchJobManager, jobProgressMonitor, jobQueueWorker } =
-    initializeJobServices({
-      dependencies,
-      jobQueueService,
-      messageBus,
-      logger,
-    });
-
   return {
     logger,
     disposables,
@@ -161,6 +176,7 @@ export function createShellServices(options: {
     jobQueueWorker,
     batchJobManager,
     jobProgressMonitor,
+    jobServicesLifecycle: jobServices,
     permissionService,
     identityService,
     profileService,
