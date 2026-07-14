@@ -8,6 +8,7 @@ import {
 } from "react";
 import { type EventChatAction } from "@brains/contracts";
 import { Chat, useChat } from "@ai-sdk/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "@brains/utils/zod";
 import {
   DefaultChatTransport,
@@ -51,7 +52,9 @@ import {
   parseChatSessionHash,
   type JumpLocalGroup,
 } from "./jump-local";
+import { describeFetchFailure, type WebChatSession } from "./api";
 import { toUiMessage, webChatMessagesResponseSchema } from "./history-messages";
+import { sessionListQueryOptions, webChatKeys } from "./queries";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
   webChatUploadAccept,
@@ -60,7 +63,6 @@ import {
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 
-type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type SessionDialog =
   | { kind: "rename"; session: WebChatSession }
   | { kind: "archive"; session: WebChatSession }
@@ -125,17 +127,7 @@ function PromptSubmitControl({
 const dayMs = 24 * 60 * 60 * 1000;
 const sessionTitleMaxLength = 48;
 
-const webChatSessionSchema = z.looseObject({
-  id: z.string(),
-  title: z.string(),
-  lastActiveAt: z.string(),
-});
-
-const webChatSessionsResponseSchema = z.looseObject({
-  sessions: z.array(webChatSessionSchema),
-});
-
-type WebChatSession = z.output<typeof webChatSessionSchema>;
+const emptySessions: WebChatSession[] = [];
 
 function createConversationId(): string {
   return `web-${crypto.randomUUID()}`;
@@ -318,21 +310,20 @@ export function ProgressPart({
   );
 }
 
-function describeFetchFailure(response: Response, fallback: string): string {
-  if (response.status === 401 || response.status === 403) {
-    return "Your operator session may have expired. Refresh or sign in again.";
-  }
-  return `${fallback} (${response.status})`;
-}
-
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState(() =>
     getBrowserConversationId(),
   );
-  const [sessions, setSessions] = useState<WebChatSession[]>([]);
-  const [sessionsStatus, setSessionsStatus] = useState<AsyncStatus>("idle");
-  const [sessionError, setSessionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const sessionsQuery = useQuery(sessionListQueryOptions());
+  const sessions = sessionsQuery.data ?? emptySessions;
+  const sessionsStatus = sessionsQuery.isPending
+    ? "loading"
+    : sessionsQuery.isError
+      ? "error"
+      : "ready";
+  const sessionError = sessionsQuery.error?.message ?? null;
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [loadingConversationId, setLoadingConversationId] = useState<
     string | null
@@ -489,43 +480,21 @@ export function App(): React.ReactElement {
 
   useEffect(() => {
     focusPromptTextarea(promptInputRef.current);
-    void loadSessions();
   }, []);
 
   async function loadSessions(
-    options: { quiet?: boolean } = {},
+    _options: { quiet?: boolean } = {},
   ): Promise<void> {
-    if (!options.quiet) {
-      setSessionsStatus("loading");
-      setSessionError(null);
-    }
+    await sessionsQuery.refetch();
+  }
 
-    try {
-      const response = await fetch("/api/chat/sessions", {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not load saved sessions."),
-        );
-      }
-      const parsed = webChatSessionsResponseSchema.safeParse(
-        await response.json(),
-      );
-      if (!parsed.success) {
-        throw new Error("Could not load saved sessions.");
-      }
-      setSessions(parsed.data.sessions);
-      setSessionsStatus("ready");
-      setSessionError(null);
-    } catch (error) {
-      setSessionsStatus("error");
-      setSessionError(
-        error instanceof Error
-          ? error.message
-          : "Could not load saved sessions.",
-      );
-    }
+  function updateCachedSessions(
+    update: (current: WebChatSession[]) => WebChatSession[],
+  ): void {
+    queryClient.setQueryData<WebChatSession[]>(
+      webChatKeys.sessions(),
+      (current) => update(current ?? emptySessions),
+    );
   }
 
   function upsertPendingSession(text: string): void {
@@ -535,7 +504,7 @@ export function App(): React.ReactElement {
       title: deriveSessionTitle(text),
       lastActiveAt: now,
     };
-    setSessions((current) => {
+    updateCachedSessions((current) => {
       const existingSession = current.find(
         (session) => session.id === conversationId,
       );
@@ -806,7 +775,7 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not rename that session."),
         );
       }
-      setSessions((current) =>
+      updateCachedSessions((current) =>
         current.map((candidate) =>
           candidate.id === session.id
             ? { ...candidate, title: trimmedTitle }
@@ -841,7 +810,7 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not archive that session."),
         );
       }
-      setSessions((current) =>
+      updateCachedSessions((current) =>
         current.filter((candidate) => candidate.id !== session.id),
       );
       if (session.id === conversationId) {
@@ -875,7 +844,7 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not delete that session."),
         );
       }
-      setSessions((current) =>
+      updateCachedSessions((current) =>
         current.filter((candidate) => candidate.id !== session.id),
       );
       if (session.id === conversationId) {
