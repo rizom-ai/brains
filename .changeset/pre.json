@@ -232,6 +232,7 @@
     "ops-per-user-plaintext-secrets",
     "ops-required-images",
     "ops-resolve-missing-images",
+    "ops-template-pipeline-sync",
     "ops-verify-user-command",
     "ops-verify-user-followups",
     "ops-workflow-race-reconcile",

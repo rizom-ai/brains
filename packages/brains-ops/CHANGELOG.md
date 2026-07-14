@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- [`fccd93d`](https://github.com/rizom-ai/brains/commit/fccd93dff5635d942bcc43c631a26bc1267630ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Sync the rover-pilot scaffold templates to the running pipeline design: build.yml resolves the declared image set from the registry and matrix-builds missing images (replacing the batched resolve-build-config design, which leaked every same-version site override into one shared image), deploy.yml waits long enough for a concurrent build and drops the per-step shared-secret plumbing in favor of varlock, and the deploy scripts derive tags through the shared @rizom/ops helpers. Remaining drift in six templated scripts (update-dns, decrypt-user-secrets, resolve-deploy-handles, sync-content-repo, provision-server, validate-secrets) is bidirectional and tracked as a follow-up.
+
 ## 0.2.0-alpha.170
 
 ### Patch Changes

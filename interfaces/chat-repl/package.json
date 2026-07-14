@@ -1,6 +1,6 @@
 {
   "name": "@brains/chat-repl",
-  "version": "0.2.0-alpha.170",
+  "version": "0.2.0-alpha.171",
   "dependencies": {
     "@brains/plugins": "workspace:*",
     "chalk": "^5.4.1",
