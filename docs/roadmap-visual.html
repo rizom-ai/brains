@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-07-12 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-07-14 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -328,6 +328,22 @@
           </div>
           <div class="card-desc">local AI runtime sidecar direction.</div>
           <div class="card-file">embedding-service.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Directory sync Effect lifecycle</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">scope directory watchers, git schedules, debounce work, cancellation, and shutdown under the private Effect runtime while keeping plugin APIs Promise-based.</div>
+          <div class="card-file">directory-sync-effect-lifecycle.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Effect lifecycle adoption (content-pipeline, a2a, media-renderer)</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">companion sweep: supervise content-pipeline's scheduled publishes, link a2a streaming turns to stream lifetime, and scope media-renderer browser processes, all behind Promise-based contracts.</div>
+          <div class="card-file">effect-lifecycle-adoption.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
