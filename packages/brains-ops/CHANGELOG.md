@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- [`5c828fd`](https://github.com/rizom-ai/brains/commit/5c828fd6823b582835f5c7892ed2994b322ba603) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `resolveImageBuilds` and `runResolveMissingImages` (also on the `/deploy` entry): the Build workflow's resolve step as ops logic — derive the declared image set from the pilot registry, probe the container registry per tag, and emit the missing ones as a GitHub Actions build matrix, with dispatch inputs forcing a single explicit build. rover-pilot's build.yml becomes a thin caller.
+
 ## 0.2.0-alpha.169
 
 ### Patch Changes

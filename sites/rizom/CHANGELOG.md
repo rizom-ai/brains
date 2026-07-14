@@ -1,5 +1,12 @@
 # @brains/site-rizom
 
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.170
+
 ## 0.2.0-alpha.169
 
 ### Patch Changes
