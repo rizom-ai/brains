@@ -8,6 +8,7 @@ import {
 } from "./tools";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
+import { PublicationQueueService } from "./publication-queue-service";
 import { PublishExecutor } from "./publish-executor";
 import { PublishAssetRegistry } from "./publish-assets";
 import { PublishAssetPreflight } from "./publish-asset-preflight";
@@ -19,7 +20,6 @@ import type {
 import { contentPipelineConfigSchema } from "./types/config";
 import { subscribeToMessages } from "./lib/message-handlers";
 import { createScheduler } from "./lib/create-scheduler";
-import { rebuildQueueFromEntities } from "./lib/queue-rebuild";
 import { registerDashboardWidget } from "./lib/dashboard-widget";
 import { registerCmsWorkspace } from "./lib/cms-workspace";
 import packageJson from "../package.json";
@@ -30,6 +30,7 @@ export class ContentPipelinePlugin extends ServicePlugin<
 > {
   private pluginContext?: ServicePluginContext;
   private queueManager!: QueueManager;
+  private publicationQueueService!: PublicationQueueService;
   private providerRegistry!: ProviderRegistry;
   private retryTracker!: RetryTracker;
   private publishExecutor!: PublishExecutor;
@@ -47,6 +48,10 @@ export class ContentPipelinePlugin extends ServicePlugin<
     this.pluginContext = context;
 
     this.queueManager = QueueManager.createFresh();
+    this.publicationQueueService = new PublicationQueueService(
+      context,
+      this.queueManager,
+    );
     this.providerRegistry = ProviderRegistry.createFresh();
     this.retryTracker = RetryTracker.createFresh();
     this.publishAssetRegistry = PublishAssetRegistry.createFresh();
@@ -72,6 +77,7 @@ export class ContentPipelinePlugin extends ServicePlugin<
 
     subscribeToMessages(context, {
       queueManager: this.queueManager,
+      publicationQueueService: this.publicationQueueService,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
       publishExecutor: this.publishExecutor,
@@ -85,10 +91,8 @@ export class ContentPipelinePlugin extends ServicePlugin<
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    await rebuildQueueFromEntities(
-      context.entityService,
-      this.queueManager,
-      this.logger,
+    await this.publicationQueueService.reconcile(
+      context.entityService.getEntityTypes(),
     );
     await registerCmsWorkspace(context, this.id, {
       providerRegistry: this.providerRegistry,
@@ -107,7 +111,12 @@ export class ContentPipelinePlugin extends ServicePlugin<
     }
 
     return [
-      createQueueTool(this.pluginContext, this.id, this.queueManager),
+      createQueueTool(
+        this.pluginContext,
+        this.id,
+        this.queueManager,
+        this.publicationQueueService,
+      ),
       createPublishTool(
         this.pluginContext,
         this.id,
@@ -133,6 +142,10 @@ export class ContentPipelinePlugin extends ServicePlugin<
 
   public getQueueManager(): QueueManager {
     return this.queueManager;
+  }
+
+  public getPublicationQueueService(): PublicationQueueService {
+    return this.publicationQueueService;
   }
 
   public getProviderRegistry(): ProviderRegistry {

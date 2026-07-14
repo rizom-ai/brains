@@ -11,6 +11,21 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 
+function addDraftQueueEntities(
+  harness: PluginTestHarness<ContentPipelinePlugin>,
+  entityType: string,
+  ids: string[],
+): void {
+  harness.addEntities(
+    ids.map((id) => ({
+      id,
+      entityType,
+      content: `---\ntitle: ${id}\nstatus: draft\n---\n\nBody`,
+      metadata: { title: id, status: "draft" },
+    })),
+  );
+}
+
 const createMockJobQueueService = (
   enqueue: (job: unknown) => Promise<string>,
 ): never =>
@@ -79,6 +94,7 @@ describe("ContentPipelinePlugin", () => {
 
   describe("queue operations via message bus", () => {
     it("should add entity to queue", async () => {
+      addDraftQueueEntities(harness, "blog-post", ["post-1"]);
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "blog-post",
         entityId: "post-1",
@@ -118,6 +134,7 @@ describe("ContentPipelinePlugin", () => {
     });
 
     it("stores queue add authorization context", async () => {
+      addDraftQueueEntities(harness, "social-post", ["post-1"]);
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "social-post",
         entityId: "post-1",
@@ -139,6 +156,7 @@ describe("ContentPipelinePlugin", () => {
     });
 
     it("should remove entity from queue", async () => {
+      addDraftQueueEntities(harness, "blog-post", ["post-1"]);
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "blog-post",
         entityId: "post-1",
@@ -154,6 +172,7 @@ describe("ContentPipelinePlugin", () => {
     });
 
     it("should reorder entities in queue", async () => {
+      addDraftQueueEntities(harness, "blog-post", ["post-1", "post-2"]);
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "blog-post",
         entityId: "post-1",
