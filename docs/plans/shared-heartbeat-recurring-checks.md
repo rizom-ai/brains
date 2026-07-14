@@ -33,6 +33,13 @@ Extract or reuse these pieces. Do not add a parallel scheduling stack.
 For Business Development, the domain package owns “Warm opportunity has no action for 14
 days.” The shared layer owns weekly execution, dedupe, retries, and notification dispatch.
 
+A second consumer is already known: agent discovery’s directory scan
+(`agent_scan_directories`, shipped manual-only with the agent-sightings work). The tool is
+idempotent and aggregation/merge logic is already the reusable core; registering it as a
+recurring check turns second-order sightings from an on-demand pull into something the map
+surfaces on its own. Until then, scanning stays operator-invoked by explicit decision —
+not by an opportunity-specific timer inside agent-discovery.
+
 ## Delivery order
 
 1. Extract generic scheduler backend contracts from content-pipeline without moving its
@@ -43,8 +50,9 @@ days.” The shared layer owns weekly execution, dedupe, retries, and notificati
    `runtimeState`.
 4. Route alerts through a narrow notifications adapter.
 5. Adopt it in Business Development as the first consumer.
-6. Decide whether generic alert/dashboard surfaces are justified only after a second
-   consumer appears.
+6. Register agent discovery’s directory scan as the second consumer.
+7. Decide whether generic alert/dashboard surfaces are justified now that two consumers
+   exist.
 
 ## Decisions still required
 
