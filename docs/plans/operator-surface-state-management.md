@@ -11,9 +11,9 @@ reload, and delete. A typed reducer now owns atomic browse/create/edit/save/dele
 transitions, while pipeline, save-status, and delete presentation have focused component
 ownership. The CMS workflow gate passed. Web-chat saved-session metadata now uses its own
 query cache. Reopened history is copied into, rather than shared with, the AI SDK active
-message owner; session mutation hooks remain. This plan standardizes how state is
-classified and managed without forcing the three surfaces into one browser store or one
-application.
+message owner. Rename, archive, and delete now use typed mutation hooks with targeted
+session and history cache updates. This plan standardizes how state is classified and
+managed without forcing the three surfaces into one browser store or one application.
 
 The optional publishing UI described in
 [`cms-publishing-workspace.md`](./cms-publishing-workspace.md) follows this state model but

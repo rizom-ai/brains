@@ -8,7 +8,7 @@ import {
 } from "react";
 import { type EventChatAction } from "@brains/contracts";
 import { Chat, useChat } from "@ai-sdk/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "@brains/utils/zod";
 import {
   DefaultChatTransport,
@@ -52,8 +52,15 @@ import {
   parseChatSessionHash,
   type JumpLocalGroup,
 } from "./jump-local";
-import { describeFetchFailure, type WebChatSession } from "./api";
+import type { WebChatSession } from "./api";
 import { createActiveMessageSeed } from "./history-messages";
+import {
+  archiveWebChatSession,
+  deleteWebChatSession,
+  removeWebChatSessionCaches,
+  renameWebChatSession,
+  renameWebChatSessionCache,
+} from "./mutations";
 import {
   sessionHistoryQueryOptions,
   sessionListQueryOptions,
@@ -321,6 +328,15 @@ export function App(): React.ReactElement {
   );
   const queryClient = useQueryClient();
   const sessionsQuery = useQuery(sessionListQueryOptions());
+  const renameSessionMutation = useMutation({
+    mutationFn: renameWebChatSession,
+  });
+  const archiveSessionMutation = useMutation({
+    mutationFn: archiveWebChatSession,
+  });
+  const deleteSessionMutation = useMutation({
+    mutationFn: deleteWebChatSession,
+  });
   const sessions = sessionsQuery.data ?? emptySessions;
   const sessionsStatus = sessionsQuery.isPending
     ? "loading"
@@ -332,15 +348,15 @@ export function App(): React.ReactElement {
   const [loadingConversationId, setLoadingConversationId] = useState<
     string | null
   >(null);
-  const [deletingConversationId, setDeletingConversationId] = useState<
-    string | null
-  >(null);
-  const [archivingConversationId, setArchivingConversationId] = useState<
-    string | null
-  >(null);
-  const [renamingConversationId, setRenamingConversationId] = useState<
-    string | null
-  >(null);
+  const deletingConversationId = deleteSessionMutation.isPending
+    ? deleteSessionMutation.variables.conversationId
+    : null;
+  const archivingConversationId = archiveSessionMutation.isPending
+    ? archiveSessionMutation.variables.conversationId
+    : null;
+  const renamingConversationId = renameSessionMutation.isPending
+    ? renameSessionMutation.variables.conversationId
+    : null;
   const [sessionDialog, setSessionDialog] = useState<SessionDialog>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
@@ -742,14 +758,14 @@ export function App(): React.ReactElement {
     setRenameDraft("");
   }
 
-  async function renameConversation(
+  function renameConversation(
     session: WebChatSession,
     nextTitle: string,
-  ): Promise<void> {
+  ): void {
     const trimmedTitle = nextTitle.trim();
     if (
       isBusyStatus(status) ||
-      renamingConversationId ||
+      renameSessionMutation.isPending ||
       !trimmedTitle ||
       trimmedTitle === session.title
     ) {
@@ -758,114 +774,62 @@ export function App(): React.ReactElement {
     }
 
     setHistoryError(null);
-    setRenamingConversationId(session.id);
-    try {
-      const response = await fetch(
-        `/api/chat/sessions?id=${encodeURIComponent(session.id)}`,
-        {
-          method: "PUT",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: trimmedTitle }),
+    renameSessionMutation.mutate(
+      { conversationId: session.id, title: trimmedTitle },
+      {
+        onSuccess: () => {
+          renameWebChatSessionCache(queryClient, {
+            conversationId: session.id,
+            title: trimmedTitle,
+          });
+          closeSessionDialog();
+          focusPromptTextarea(promptInputRef.current);
         },
-      );
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not rename that session."),
-        );
-      }
-      updateCachedSessions((current) =>
-        current.map((candidate) =>
-          candidate.id === session.id
-            ? { ...candidate, title: trimmedTitle }
-            : candidate,
-        ),
-      );
-      closeSessionDialog();
-      focusPromptTextarea(promptInputRef.current);
-    } catch (error) {
-      setHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Could not rename that session.",
-      );
-    } finally {
-      setRenamingConversationId(null);
-    }
+        onError: (error) => {
+          setHistoryError(error.message);
+        },
+      },
+    );
   }
 
-  async function archiveConversation(session: WebChatSession): Promise<void> {
-    if (isBusyStatus(status) || archivingConversationId) return;
+  function archiveConversation(session: WebChatSession): void {
+    if (isBusyStatus(status) || archiveSessionMutation.isPending) return;
 
     setHistoryError(null);
-    setArchivingConversationId(session.id);
-    try {
-      const response = await fetch(
-        `/api/chat/sessions/archive?id=${encodeURIComponent(session.id)}`,
-        { method: "PUT", credentials: "include" },
-      );
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not archive that session."),
-        );
-      }
-      queryClient.removeQueries({
-        queryKey: webChatKeys.history(session.id),
-      });
-      updateCachedSessions((current) =>
-        current.filter((candidate) => candidate.id !== session.id),
-      );
-      if (session.id === conversationId) {
-        resetToNewConversation();
-      }
-      closeSessionDialog();
-      focusPromptTextarea(promptInputRef.current);
-    } catch (error) {
-      setHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Could not archive that session.",
-      );
-    } finally {
-      setArchivingConversationId(null);
-    }
+    archiveSessionMutation.mutate(
+      { conversationId: session.id },
+      {
+        onSuccess: () => {
+          removeWebChatSessionCaches(queryClient, session.id);
+          if (session.id === conversationId) resetToNewConversation();
+          closeSessionDialog();
+          focusPromptTextarea(promptInputRef.current);
+        },
+        onError: (error) => {
+          setHistoryError(error.message);
+        },
+      },
+    );
   }
 
-  async function deleteConversation(session: WebChatSession): Promise<void> {
-    if (isBusyStatus(status) || deletingConversationId) return;
+  function deleteConversation(session: WebChatSession): void {
+    if (isBusyStatus(status) || deleteSessionMutation.isPending) return;
 
     setHistoryError(null);
-    setDeletingConversationId(session.id);
-    try {
-      const response = await fetch(
-        `/api/chat/sessions?id=${encodeURIComponent(session.id)}`,
-        { method: "DELETE", credentials: "include" },
-      );
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not delete that session."),
-        );
-      }
-      queryClient.removeQueries({
-        queryKey: webChatKeys.history(session.id),
-      });
-      updateCachedSessions((current) =>
-        current.filter((candidate) => candidate.id !== session.id),
-      );
-      if (session.id === conversationId) {
-        resetToNewConversation();
-      }
-      closeSessionDialog();
-      focusPromptTextarea(promptInputRef.current);
-    } catch (error) {
-      setHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Could not delete that session.",
-      );
-    } finally {
-      setDeletingConversationId(null);
-    }
+    deleteSessionMutation.mutate(
+      { conversationId: session.id },
+      {
+        onSuccess: () => {
+          removeWebChatSessionCaches(queryClient, session.id);
+          if (session.id === conversationId) resetToNewConversation();
+          closeSessionDialog();
+          focusPromptTextarea(promptInputRef.current);
+        },
+        onError: (error) => {
+          setHistoryError(error.message);
+        },
+      },
+    );
   }
 
   function renderSessions(): React.ReactNode {
