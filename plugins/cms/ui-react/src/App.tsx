@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
+  useReducer,
   useRef,
   useState,
   type ReactElement,
@@ -20,7 +21,6 @@ import {
   requestAssist,
   requestFieldAssist,
   type AgentTarget,
-  type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
   type FieldAssistResponse,
@@ -28,6 +28,12 @@ import {
   type GitSyncState,
 } from "./api";
 import { createEditorDocument } from "./editor-document";
+import {
+  editorWorkflowReducer,
+  initialEditorWorkflowState,
+  type SaveState,
+} from "./editor-workflow";
+export { applyFieldChange } from "./editor-workflow";
 import {
   removeEntity,
   saveEntity,
@@ -78,33 +84,6 @@ export function emptyDraft(fields: FieldDescriptor[]): Record<string, unknown> {
     if (field.default !== undefined) draft[field.name] = field.default;
   }
   return draft;
-}
-
-/**
- * Fold one field edit into the frontmatter draft, coercing the raw input
- * value to the type the widget represents. Emptied fields are dropped so
- * optional keys disappear instead of persisting as "".
- */
-export function applyFieldChange(
-  draft: Record<string, unknown>,
-  descriptor: FieldDescriptor,
-  raw: unknown,
-): Record<string, unknown> {
-  const next = { ...draft };
-  if (raw === "") {
-    delete next[descriptor.name];
-    return next;
-  }
-  if (descriptor.widget === "boolean") {
-    next[descriptor.name] = raw === true;
-    return next;
-  }
-  if (descriptor.widget === "number") {
-    next[descriptor.name] = Number(raw);
-    return next;
-  }
-  next[descriptor.name] = raw;
-  return next;
 }
 
 function datetimeLocalValue(value: string): string {
@@ -722,14 +701,6 @@ export function TypeSwitcher(props: {
   );
 }
 
-export type SaveState =
-  | { kind: "idle" }
-  | { kind: "saving" }
-  /** noop: the entity service skipped a byte-identical write. */
-  | { kind: "saved"; noop?: boolean }
-  | { kind: "conflict"; message: string }
-  | { kind: "error"; message: string };
-
 export function SaveStateNotice(props: {
   state: SaveState;
   onReload: () => void;
@@ -1212,11 +1183,6 @@ export function Field(props: {
   );
 }
 
-type EditorMode =
-  | { kind: "browse" }
-  | { kind: "edit"; entity: EntityDetail }
-  | { kind: "create" };
-
 type MobileEditorPane = "details" | "write" | "preview";
 
 export function DeleteDialog(props: {
@@ -1272,21 +1238,24 @@ export function DeleteDialog(props: {
 
 export function App(): ReactElement {
   const [entityType, setEntityType] = useState<string | null>(null);
-  const [mode, setMode] = useState<EditorMode>({ kind: "browse" });
-  const [draft, setDraft] = useState<Record<string, unknown>>({});
-  const [body, setBody] = useState<string>("");
+  const [editor, dispatchEditor] = useReducer(
+    editorWorkflowReducer,
+    initialEditorWorkflowState,
+  );
+  const { mode, draft, body, save: saveState, deleteOpen } = editor;
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
   const [bodyMode, setBodyMode] = useState<BodyMode>("split");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
-  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
   const [loadError, setLoadError] = useState<string | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const saveStartedAt = useRef(0);
   // Entity id from a console-jump door, opened once its collection loads.
   const pendingDeepLinkId = useRef<string | null>(null);
+  const openRequestId = useRef(0);
+  const selectedEntityType = useRef(entityType);
+  selectedEntityType.current = entityType;
   const queryClient = useQueryClient();
   const entityTypesQuery = useQuery(entityTypesQueryOptions());
   const types = entityTypesQuery.data ?? null;
@@ -1318,7 +1287,9 @@ export function App(): ReactElement {
   useEffect(() => {
     if (!deleteOpen) return undefined;
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape" && !deleting) setDeleteOpen(false);
+      if (event.key === "Escape" && !deleting) {
+        dispatchEditor({ type: "deleteCancelled" });
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return (): void => window.removeEventListener("keydown", onKeyDown);
@@ -1364,9 +1335,9 @@ export function App(): ReactElement {
 
   useEffect(() => {
     if (!entityType) return;
-    setMode({ kind: "browse" });
+    openRequestId.current += 1;
+    dispatchEditor({ type: "collectionChanged" });
     setMobilePane("details");
-    setSaveState({ kind: "idle" });
     setFieldAssistState({ kind: "idle" });
     let active = true;
     Promise.all([
@@ -1390,9 +1361,7 @@ export function App(): ReactElement {
               .then((entity) => {
                 if (!active) return;
                 const document = createEditorDocument(entity);
-                setMode({ kind: "edit", entity: document.entity });
-                setDraft(document.draft);
-                setBody(document.body);
+                dispatchEditor({ type: "documentOpened", document });
               });
           }
         }
@@ -1408,14 +1377,13 @@ export function App(): ReactElement {
               .then((entity) => {
                 if (!active) return;
                 const document = createEditorDocument(entity);
-                setMode({ kind: "edit", entity: document.entity });
-                setDraft(document.draft);
-                setBody(document.body);
+                dispatchEditor({ type: "documentOpened", document });
               });
           }
-          setMode({ kind: "create" });
-          setDraft(emptyDraft(loadedSchema.fields));
-          setBody("");
+          dispatchEditor({
+            type: "creationStarted",
+            draft: emptyDraft(loadedSchema.fields),
+          });
         }
         return undefined;
       })
@@ -1430,37 +1398,49 @@ export function App(): ReactElement {
   const openEntity = useCallback(
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
       if (!entityType) return;
+      const requestId = ++openRequestId.current;
+      const requestedType = entityType;
       queryClient
         .fetchQuery({
           ...entityDetailQueryOptions(entityType, id),
           staleTime: 0,
         })
         .then((entity) => {
+          if (
+            requestId !== openRequestId.current ||
+            selectedEntityType.current !== requestedType
+          ) {
+            return;
+          }
           const document = createEditorDocument(entity);
-          setMode({ kind: "edit", entity: document.entity });
-          setDraft(document.draft);
-          setBody(document.body);
+          dispatchEditor({
+            type: "documentOpened",
+            document,
+            save: nextState,
+          });
           setFieldAssistState({ kind: "idle" });
-          setSaveState(nextState);
         })
-        .catch((error: unknown) => setLoadError(errorMessage(error)));
+        .catch((error: unknown) => {
+          if (requestId === openRequestId.current) {
+            setLoadError(errorMessage(error));
+          }
+        });
     },
     [entityType, queryClient],
   );
 
   const startCreate = useCallback((): void => {
     if (!schema) return;
-    setSaveState({ kind: "idle" });
+    dispatchEditor({
+      type: "creationStarted",
+      draft: emptyDraft(schema.fields),
+    });
     setFieldAssistState({ kind: "idle" });
-    setMode({ kind: "create" });
-    setDraft(emptyDraft(schema.fields));
-    setBody("");
   }, [schema]);
 
   const backToList = useCallback((): void => {
-    setMode({ kind: "browse" });
+    dispatchEditor({ type: "browseRequested" });
     setFieldAssistState({ kind: "idle" });
-    setSaveState({ kind: "idle" });
   }, []);
 
   const runFieldAssist = useCallback(
@@ -1499,9 +1479,7 @@ export function App(): ReactElement {
 
   const applyFieldAssist = useCallback(
     (field: string, suggestion: string | string[]): void => {
-      setDraft((current) =>
-        applyFieldAssistSuggestion(current, field, suggestion),
-      );
+      dispatchEditor({ type: "fieldAssistApplied", field, suggestion });
       setFieldAssistState({ kind: "idle" });
     },
     [],
@@ -1511,7 +1489,7 @@ export function App(): ReactElement {
     if (!entityType || mode.kind === "browse" || !schema) return;
     saveStartedAt.current = Date.now();
     setBaselineCommit(syncStatus?.git?.lastCommit ?? null);
-    setSaveState({ kind: "saving" });
+    dispatchEditor({ type: "saveStarted" });
     const bodyPayload = schema.hasBody ? { body } : {};
     const input: SaveEntityInput =
       mode.kind === "create"
@@ -1545,11 +1523,13 @@ export function App(): ReactElement {
         openEntity(result.entityId, { kind: "saved", noop });
       },
       onError: (error: Error) => {
-        setSaveState(
-          error instanceof ApiError && error.status === 409
-            ? { kind: "conflict", message: errorMessage(error) }
-            : { kind: "error", message: errorMessage(error) },
-        );
+        dispatchEditor({
+          type: "saveFailed",
+          save:
+            error instanceof ApiError && error.status === 409
+              ? { kind: "conflict", message: errorMessage(error) }
+              : { kind: "error", message: errorMessage(error) },
+        });
       },
     });
   }, [
@@ -1573,8 +1553,7 @@ export function App(): ReactElement {
       { entityType, id },
       {
         onSuccess: async () => {
-          setDeleteOpen(false);
-          setMode({ kind: "browse" });
+          dispatchEditor({ type: "deleteSucceeded" });
           queryClient.removeQueries({
             queryKey: cmsKeys.entity(entityType, id),
           });
@@ -1588,8 +1567,10 @@ export function App(): ReactElement {
           ]);
         },
         onError: (error: Error) => {
-          setDeleteOpen(false);
-          setSaveState({ kind: "error", message: errorMessage(error) });
+          dispatchEditor({
+            type: "deleteFailed",
+            message: errorMessage(error),
+          });
         },
       },
     );
@@ -1764,9 +1745,11 @@ export function App(): ReactElement {
                     descriptor={descriptor}
                     value={draft[descriptor.name]}
                     onChange={(raw) =>
-                      setDraft((current) =>
-                        applyFieldChange(current, descriptor, raw),
-                      )
+                      dispatchEditor({
+                        type: "fieldChanged",
+                        descriptor,
+                        raw,
+                      })
                     }
                   />
                   {schema.hasBody && body.trim().length > 0 && (
@@ -1791,7 +1774,9 @@ export function App(): ReactElement {
                 <BodyEditor
                   value={body}
                   mode={bodyMode}
-                  onChange={setBody}
+                  onChange={(nextBody) =>
+                    dispatchEditor({ type: "bodyChanged", body: nextBody })
+                  }
                   onModeChange={setBodyMode}
                   assist={{
                     entityType,
@@ -1856,7 +1841,7 @@ export function App(): ReactElement {
                   <button
                     type="button"
                     className="btn danger"
-                    onClick={() => setDeleteOpen(true)}
+                    onClick={() => dispatchEditor({ type: "deleteRequested" })}
                   >
                     Delete
                   </button>
@@ -1870,7 +1855,7 @@ export function App(): ReactElement {
                         event.currentTarget
                           .closest("details")
                           ?.removeAttribute("open");
-                        setDeleteOpen(true);
+                        dispatchEditor({ type: "deleteRequested" });
                       }}
                     >
                       Delete entry
@@ -1886,7 +1871,7 @@ export function App(): ReactElement {
         <DeleteDialog
           entityId={mode.entity.id}
           deleting={deleting}
-          onCancel={() => setDeleteOpen(false)}
+          onCancel={() => dispatchEditor({ type: "deleteCancelled" })}
           onConfirm={remove}
         />
       )}

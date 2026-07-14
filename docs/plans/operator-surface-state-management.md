@@ -7,7 +7,8 @@ currently have intentionally separate runtimes and no shared client-state librar
 CMS entity, type, schema, sync-status, and agent-target reads now use the package-local
 query cache; saves, deletes, and image uploads use mutation hooks behind an explicit draft
 boundary. The authenticated CMS gate passed for create, upload, save, no-op save, conflict
-reload, and delete. Workflow decomposition is next. This plan standardizes how state is
+reload, and delete. A typed reducer now owns atomic browse/create/edit/save/delete and draft
+transitions; focused component extraction remains. This plan standardizes how state is
 classified and managed without forcing the three surfaces into one browser store or one
 application.
 
