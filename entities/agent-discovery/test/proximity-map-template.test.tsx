@@ -43,6 +43,16 @@ const data: ProximityMapData = {
       links: [{ sourceId: "alpha", targetId: "beta" }],
     },
   ],
+  sightings: [
+    {
+      id: "vale",
+      name: "Vale",
+      viaIds: ["alpha"],
+      tags: ["research"],
+      distance: 0.44,
+      bearing: 120,
+    },
+  ],
   distanceRange: { min: 0.25, max: 0.5 },
   pendingCount: 1,
 };

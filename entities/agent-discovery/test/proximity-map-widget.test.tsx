@@ -54,6 +54,16 @@ const data: ProximityMapData = {
       links: [{ sourceId: "alpha", targetId: "beta" }],
     },
   ],
+  sightings: [
+    {
+      id: "vale",
+      name: "Vale",
+      viaIds: ["alpha", "gamma"],
+      tags: ["research", "methods"],
+      distance: 0.44,
+      bearing: 120,
+    },
+  ],
   distanceRange: { min: 0.25, max: 0.5 },
   pendingCount: 1,
 };
@@ -88,6 +98,37 @@ describe("ProximityMap", () => {
     // constellations stay legible on the map itself
     expect(html).toContain('data-proximity-cluster="research · 2"');
     expect(html).toContain("proximity-cluster-label");
+  });
+
+  test("charts sightings at half light, routed through their introducers", () => {
+    const html = render(<ProximityMap data={data} />);
+
+    expect(html).toContain('data-proximity-sighting="vale"');
+    // threads grow from BOTH introducers, never from the center
+    const threads = html.split("proximity-sighting-thread").length - 1;
+    expect(threads).toBe(2);
+    // hover metadata: readable names and matchable ids
+    expect(html).toContain('data-proximity-via="Alpha · Gamma"');
+    expect(html).toContain('data-proximity-via-ids="alpha gamma"');
+  });
+
+  test("skips sightings whose introducers are not on the map", () => {
+    const orphaned: ProximityMapData = {
+      ...data,
+      sightings: [
+        {
+          id: "ghost",
+          name: "Ghost",
+          viaIds: ["nobody"],
+          tags: [],
+          distance: 0.3,
+          bearing: 200,
+        },
+      ],
+    };
+
+    const html = render(<ProximityMap data={orphaned} />);
+    expect(html).not.toContain('data-proximity-sighting="ghost"');
   });
 
   test("breathes a ripple whose arrival order is the proximity order", () => {
@@ -163,6 +204,7 @@ describe("ProximityMap", () => {
           center: { kind: "centroid" },
           nodes: [],
           clusters: [],
+          sightings: [],
           distanceRange: { min: 0, max: 0 },
           pendingCount: 2,
         }}
