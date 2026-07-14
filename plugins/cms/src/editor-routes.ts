@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import type {
   BaseEntity,
+  CmsWorkspaceActor,
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
@@ -17,6 +18,7 @@ import {
 } from "./config";
 import { deriveConsoleSurfaces } from "@brains/console-theme";
 import { renderEditorShellHtml } from "./editor-shell";
+import type { CmsWorkspaceRegistry } from "./workspace-registry";
 
 // Named cms-app.js (not app.js): in the bundled @rizom/brain this resolves
 // to the shared dist/ui directory, where app.js is web-chat's bundle.
@@ -35,6 +37,11 @@ const createEntityPayloadSchema = z.object({
   entityType: z.string(),
   frontmatter: z.record(z.string(), z.unknown()),
   body: z.string().optional(),
+});
+
+const workspaceActionPayloadSchema = z.object({
+  id: z.string().trim().min(1),
+  action: z.unknown(),
 });
 
 const assistContextShape = {
@@ -116,6 +123,7 @@ export interface EditorRouteOptions {
   getContext: () => ServicePluginContext;
   resolveOperatorSession: (request: Request) => Promise<boolean>;
   getEntityDisplay: () => CmsEntityDisplayMap | undefined;
+  workspaceRegistry: CmsWorkspaceRegistry;
 }
 
 /**
@@ -127,8 +135,13 @@ export interface EditorRouteOptions {
 export function createEditorRoutes(
   options: EditorRouteOptions,
 ): WebRouteDefinition[] {
-  const { routePath, getContext, resolveOperatorSession, getEntityDisplay } =
-    options;
+  const {
+    routePath,
+    getContext,
+    resolveOperatorSession,
+    getEntityDisplay,
+    workspaceRegistry,
+  } = options;
   const assetPath = `${routePath}/assets/app.js`;
   const apiPath = (suffix: string): string => `${routePath}/api/${suffix}`;
 
@@ -196,7 +209,31 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const denied = await requireSession(request);
         if (denied) return denied;
-        return handleListTypes(getContext(), getEntityDisplay());
+        return handleListTypes(
+          getContext(),
+          getEntityDisplay(),
+          workspaceRegistry,
+        );
+      },
+    },
+    {
+      path: apiPath("workspace"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const denied = await requireSession(request);
+        if (denied) return denied;
+        return handleGetWorkspace(workspaceRegistry, request);
+      },
+    },
+    {
+      path: apiPath("workspace"),
+      method: "POST",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const denied = await requireSession(request);
+        if (denied) return denied;
+        return handleWorkspaceAction(workspaceRegistry, request);
       },
     },
     {
@@ -337,6 +374,7 @@ async function handleSyncStatus(
 async function handleListTypes(
   context: ServicePluginContext,
   entityDisplay: CmsEntityDisplayMap | undefined,
+  workspaceRegistry: CmsWorkspaceRegistry,
 ): Promise<Response> {
   const counts = new Map(
     (await context.entityService.getEntityCounts()).map((entry) => [
@@ -360,7 +398,90 @@ async function handleListTypes(
     ];
   });
 
-  return jsonResponse({ types });
+  return jsonResponse({
+    types,
+    workspaces: workspaceRegistry.listDescriptors(),
+  });
+}
+
+async function handleGetWorkspace(
+  workspaceRegistry: CmsWorkspaceRegistry,
+  request: Request,
+): Promise<Response> {
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) {
+    return jsonResponse({ error: "id query parameter is required" }, 400);
+  }
+
+  const workspace = workspaceRegistry.get(id);
+  if (!workspace) {
+    return jsonResponse({ error: `Unknown CMS workspace: ${id}` }, 404);
+  }
+
+  try {
+    return jsonResponse({
+      workspace: {
+        id: workspace.id,
+        rendererName: workspace.rendererName,
+        data: await workspace.dataProvider(),
+      },
+    });
+  } catch (error) {
+    return jsonResponse(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "CMS workspace data provider failed",
+      },
+      502,
+    );
+  }
+}
+
+async function handleWorkspaceAction(
+  workspaceRegistry: CmsWorkspaceRegistry,
+  request: Request,
+): Promise<Response> {
+  let payload: z.infer<typeof workspaceActionPayloadSchema>;
+  try {
+    payload = workspaceActionPayloadSchema.parse(await request.json());
+  } catch {
+    return jsonResponse({ error: "Invalid workspace action payload" }, 400);
+  }
+
+  const workspace = workspaceRegistry.get(payload.id);
+  if (!workspace) {
+    return jsonResponse({ error: `Unknown CMS workspace: ${payload.id}` }, 404);
+  }
+  if (!workspace.actionHandler) {
+    return jsonResponse(
+      { error: `CMS workspace ${payload.id} does not provide actions` },
+      405,
+    );
+  }
+
+  const actor: CmsWorkspaceActor = {
+    interfaceType: "cms",
+    userId: "operator",
+    userPermissionLevel: "anchor",
+  };
+
+  try {
+    return jsonResponse({
+      result: await workspace.actionHandler(payload.action, actor),
+    });
+  } catch (error) {
+    return jsonResponse(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "CMS workspace action failed",
+      },
+      400,
+    );
+  }
 }
 
 function handleGetSchema(

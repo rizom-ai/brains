@@ -21,6 +21,7 @@ import { subscribeToMessages } from "./lib/message-handlers";
 import { createScheduler } from "./lib/create-scheduler";
 import { rebuildQueueFromEntities } from "./lib/queue-rebuild";
 import { registerDashboardWidget } from "./lib/dashboard-widget";
+import { registerCmsWorkspace } from "./lib/cms-workspace";
 import packageJson from "../package.json";
 
 export class ContentPipelinePlugin extends ServicePlugin<
@@ -89,6 +90,11 @@ export class ContentPipelinePlugin extends ServicePlugin<
       this.queueManager,
       this.logger,
     );
+    await registerCmsWorkspace(context, this.id, {
+      providerRegistry: this.providerRegistry,
+      queueManager: this.queueManager,
+      retryTracker: this.retryTracker,
+    });
     await registerDashboardWidget(context, this.id);
     await this.scheduler.start();
 

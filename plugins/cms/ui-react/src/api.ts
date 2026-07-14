@@ -11,6 +11,65 @@ export interface EntityTypeInfo {
   count: number;
 }
 
+export interface CmsWorkspaceInfo {
+  id: string;
+  pluginId: string;
+  label: string;
+  rendererName: string;
+  entityTypes: string[];
+}
+
+export interface CmsNavigation {
+  types: EntityTypeInfo[];
+  workspaces: CmsWorkspaceInfo[];
+}
+
+export interface PublicationQueueItem {
+  entityId: string;
+  entityType: string;
+  title: string;
+  position: number;
+  queuedAt: string;
+  destination: string;
+  scheduledFor?: string;
+}
+
+export interface PublicationJobItem {
+  id: string;
+  label: string;
+  target: string;
+  status: "pending" | "processing";
+}
+
+export interface PublicationFailureItem {
+  entityId: string;
+  entityType: string;
+  title: string;
+  error: string;
+  retryCount: number;
+}
+
+export interface PublicationPipelineSnapshot {
+  summary: {
+    draft: number;
+    queued: number;
+    generating: number;
+    failed: number;
+    published: number;
+    needsOperator: number;
+  };
+  queue: PublicationQueueItem[];
+  generating: PublicationJobItem[];
+  failures: PublicationFailureItem[];
+  publishableEntityTypes: string[];
+}
+
+export interface CmsWorkspaceData {
+  id: string;
+  rendererName: string;
+  data: PublicationPipelineSnapshot;
+}
+
 export interface FieldDescriptor {
   name: string;
   label: string;
@@ -100,11 +159,23 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+export async function fetchNavigation(): Promise<CmsNavigation> {
+  const response = await requestJson<{
+    types: EntityTypeInfo[];
+    workspaces?: CmsWorkspaceInfo[];
+  }>("/cms/api/types");
+  return { types: response.types, workspaces: response.workspaces ?? [] };
+}
+
 export async function fetchTypes(): Promise<EntityTypeInfo[]> {
-  const { types } = await requestJson<{ types: EntityTypeInfo[] }>(
-    "/cms/api/types",
+  return (await fetchNavigation()).types;
+}
+
+export async function fetchWorkspace(id: string): Promise<CmsWorkspaceData> {
+  const { workspace } = await requestJson<{ workspace: CmsWorkspaceData }>(
+    `/cms/api/workspace?id=${encodeURIComponent(id)}`,
   );
-  return types;
+  return workspace;
 }
 
 export async function fetchSchema(entityType: string): Promise<TypeSchema> {
