@@ -1,5 +1,23 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- [`eaf9f49`](https://github.com/rizom-ai/brains/commit/eaf9f490ca36f74535fd56b0f549f49de899defe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let entity adapters declare their own publish gate for `publishedOnly` queries. What "published" means belongs to the entity type: an adapter may declare `publishedStatuses` (exact — no status means not published), and query building consults it instead of the shell hardcoding every plugin's lifecycle vocabulary. The agent adapter declares `["approved"]` — approval is the directory's publish gate — fixing the production-only 404 where an approved agent appeared in the directory list but its detail route was never emitted (production builds only whitelisted `published`/`active`/no-status). Non-declaring types keep the default semantics unchanged.
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.174
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/dashboard@0.2.0-alpha.174
+  - @brains/auth-service@0.2.0-alpha.174
+  - @brains/content-formatters@0.2.0-alpha.174
+  - @brains/contracts@0.2.0-alpha.174
+  - @brains/http-signatures@0.2.0-alpha.174
+  - @brains/ui-library@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+  - @brains/templates@0.2.0-alpha.174
+
 ## 0.2.0-alpha.173
 
 ### Patch Changes

@@ -256,6 +256,7 @@
     "public-entity-types-reconciliation",
     "public-site-package-deps-republish",
     "public-site-package-deps",
+    "published-only-approved-agents",
     "published-theme-packages",
     "quiet-dingos-search",
     "relay-auth-service",

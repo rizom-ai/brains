@@ -1,5 +1,22 @@
 # @brains/plugins
 
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/identity-service@0.2.0-alpha.174
+  - @brains/content-formatters@0.2.0-alpha.174
+  - @brains/contracts@0.2.0-alpha.174
+  - @brains/effect-runtime@0.2.0-alpha.174
+  - @brains/site-composition@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+  - @brains/conversation-service@0.2.0-alpha.174
+  - @brains/job-queue@0.2.0-alpha.174
+  - @brains/messaging-service@0.2.0-alpha.174
+  - @brains/runtime-state@0.2.0-alpha.174
+  - @brains/templates@0.2.0-alpha.174
+
 ## 0.2.0-alpha.173
 
 ### Patch Changes
