@@ -4,9 +4,9 @@
 
 **Active on `work/operator-surface-state-management`.** Dashboard, CMS, and web-chat
 currently have intentionally separate runtimes and no shared client-state library. The
-CMS entity-list and entity-detail/save slices now establish the query cache, explicit draft
-boundary, and mutation path; later phases remain gated by their request-count, conflict,
-and dirty-draft behavior checks. This plan standardizes how state is classified and
+CMS entity, type, schema, sync-status, and agent-target reads now use the package-local
+query cache; saves and deletes use mutation hooks behind an explicit draft boundary. Upload
+migration and authenticated behavior gates remain before CMS workflow decomposition. This plan standardizes how state is classified and
 managed without forcing the three surfaces into one browser store or one application.
 
 The optional publishing UI described in
