@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
@@ -7,12 +8,9 @@ import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
   applyFieldAssistSuggestion,
-  applyFieldChange,
   applySuggestionToSelection,
   BodyEditor,
   createBodyEditorState,
-  DeleteDialog,
-  derivePipeline,
   emptyDraft,
   entityPublicationState,
   entityTitle,
@@ -21,16 +19,22 @@ import {
   fieldAssistVariant,
   parseCmsHash,
   MODEL_ASSIST_TARGET,
-  PipelineStations,
   PublicationActions,
   PublishConfirmationDialog,
   PublishingWorkspace,
-  SaveStateNotice,
   styles,
   typeHasPublicationField,
   TypeSwitcher,
   parseCmsWorkspaceHash,
 } from "./App";
+import {
+  DeleteDialog,
+  derivePipeline,
+  PipelineStations,
+  SaveStateNotice,
+} from "./editor-status";
+import { applyFieldChange } from "./editor-workflow";
+import { createCmsQueryClient } from "./query-client";
 import type {
   AgentTarget,
   CmsWorkspaceInfo,
@@ -126,8 +130,13 @@ describe("editor surface styles", () => {
 });
 
 function renderField(descriptor: FieldDescriptor, value: unknown): string {
+  const client = createCmsQueryClient();
   return renderToStaticMarkup(
-    createElement(Field, { descriptor, value, onChange: () => {} }),
+    createElement(
+      QueryClientProvider,
+      { client },
+      createElement(Field, { descriptor, value, onChange: () => {} }),
+    ),
   );
 }
 

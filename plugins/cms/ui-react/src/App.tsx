@@ -3,9 +3,11 @@ import { markdown } from "@codemirror/lang-markdown";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
+  useReducer,
   useRef,
   useState,
   type ReactElement,
@@ -15,36 +17,52 @@ import responsiveStyles from "./responsive.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   ApiError,
-  createEntity,
-  deleteEntity,
-  fetchAgentTargets,
-  fetchEntities,
-  fetchEntity,
-  fetchNavigation,
-  fetchSchema,
-  fetchSyncStatus,
-  fetchWorkspace,
   requestAgentAnswer,
   requestAssist,
   requestFieldAssist,
-  runWorkspaceAction,
-  updateEntity,
-  uploadFile,
   type AgentTarget,
   type CmsWorkspaceInfo,
-  type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
   type FieldAssistResponse,
   type FieldDescriptor,
-  type GitSyncState,
   type PublicationPipelineSnapshot,
   type PublishingAction,
   type PublishingActionResult,
   type PublishConfirmationArgs,
-  type SyncStatus,
   type TypeSchema,
 } from "./api";
+import { createEditorDocument } from "./editor-document";
+import {
+  editorWorkflowReducer,
+  initialEditorWorkflowState,
+  type SaveState,
+} from "./editor-workflow";
+import {
+  DeleteDialog,
+  derivePipeline,
+  PipelineStations,
+  SaveStateNotice,
+} from "./editor-status";
+import {
+  removeEntity,
+  runCmsWorkspaceAction,
+  saveEntity,
+  uploadImage,
+  type SaveEntityInput,
+} from "./mutations";
+import {
+  agentTargetsQueryOptions,
+  cmsKeys,
+  entityDetailQueryOptions,
+  entityListQueryOptions,
+  entitySchemaQueryOptions,
+  invalidateAfterUpload,
+  invalidateAfterWorkspaceAction,
+  navigationQueryOptions,
+  syncStatusQueryOptions,
+  workspaceQueryOptions,
+} from "./queries";
 
 /** Pick the list-row label for an entity: frontmatter title, else id. */
 export function entityTitle(entity: EntitySummary): string {
@@ -90,33 +108,6 @@ export function emptyDraft(fields: FieldDescriptor[]): Record<string, unknown> {
     if (field.default !== undefined) draft[field.name] = field.default;
   }
   return draft;
-}
-
-/**
- * Fold one field edit into the frontmatter draft, coercing the raw input
- * value to the type the widget represents. Emptied fields are dropped so
- * optional keys disappear instead of persisting as "".
- */
-export function applyFieldChange(
-  draft: Record<string, unknown>,
-  descriptor: FieldDescriptor,
-  raw: unknown,
-): Record<string, unknown> {
-  const next = { ...draft };
-  if (raw === "") {
-    delete next[descriptor.name];
-    return next;
-  }
-  if (descriptor.widget === "boolean") {
-    next[descriptor.name] = raw === true;
-    return next;
-  }
-  if (descriptor.widget === "number") {
-    next[descriptor.name] = Number(raw);
-    return next;
-  }
-  next[descriptor.name] = raw;
-  return next;
 }
 
 function datetimeLocalValue(value: string): string {
@@ -309,6 +300,7 @@ function CodeMirrorBodySource(props: {
  */
 export const MODEL_ASSIST_TARGET = "model";
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
+const EMPTY_WORKSPACES: CmsWorkspaceInfo[] = [];
 
 type AgentAskMode = "answer" | "rewrite";
 
@@ -773,155 +765,6 @@ export function TypeSwitcher(props: {
   );
 }
 
-export type SaveState =
-  | { kind: "idle" }
-  | { kind: "saving" }
-  /** noop: the entity service skipped a byte-identical write. */
-  | { kind: "saved"; noop?: boolean }
-  | { kind: "conflict"; message: string }
-  | { kind: "error"; message: string };
-
-export function SaveStateNotice(props: {
-  state: SaveState;
-  onReload: () => void;
-}): ReactElement | null {
-  const { state, onReload } = props;
-  if (state.kind === "saved") {
-    return state.noop ? (
-      <p className="status status-ok">No changes — already saved.</p>
-    ) : (
-      <p className="status status-ok">Saved through the entity service.</p>
-    );
-  }
-  if (state.kind === "conflict") {
-    return (
-      <section className="conflict" role="alert">
-        <h4>The manuscript changed elsewhere</h4>
-        <p>{state.message}</p>
-        <button type="button" className="btn ghost reload" onClick={onReload}>
-          Reload latest
-        </button>
-      </section>
-    );
-  }
-  if (state.kind === "error") {
-    return <p className="status status-error">{state.message}</p>;
-  }
-  return null;
-}
-
-export type StationState = "pending" | "active" | "done";
-
-export interface PipelineView {
-  db: StationState;
-  exported: StationState;
-  committed: StationState;
-  /** Short ref of the latest commit, for the "last write" readout. */
-  commitRef: string | null;
-}
-
-/**
- * Where the last save stands in the entity db → file export → git commit
- * chain. The entity db station follows the save request itself; the export
- * and commit stations are read off polled git state: a dirty tree means the
- * file landed and the debounced auto-commit is still due, a clean tree with
- * a new commit means the write is fully persisted, and a clean tree with the
- * baseline commit means the export has not become visible yet.
- */
-export function derivePipeline(args: {
-  save: SaveState;
-  git: GitSyncState | null;
-  baselineCommit: string | null;
-}): PipelineView {
-  const { save, git, baselineCommit } = args;
-  const commitRef = git?.lastCommit ? git.lastCommit.slice(0, 7) : null;
-
-  if (save.kind === "saving") {
-    return {
-      db: "active",
-      exported: "pending",
-      committed: "pending",
-      commitRef,
-    };
-  }
-  if (save.kind !== "saved") {
-    return {
-      db: "pending",
-      exported: "pending",
-      committed: "pending",
-      commitRef,
-    };
-  }
-  if (save.noop) {
-    // Nothing was written and no event fired, so no export or commit is
-    // coming — but everything already reflects this exact content.
-    return { db: "done", exported: "done", committed: "done", commitRef };
-  }
-  if (!git) {
-    // Export is a synchronous subscriber of the entity:updated event; with
-    // no git there is nothing further to observe.
-    return { db: "done", exported: "done", committed: "pending", commitRef };
-  }
-  if (git.hasChanges) {
-    return { db: "done", exported: "done", committed: "active", commitRef };
-  }
-  if (git.lastCommit !== baselineCommit) {
-    return { db: "done", exported: "done", committed: "done", commitRef };
-  }
-  return { db: "done", exported: "active", committed: "pending", commitRef };
-}
-
-function Station(props: { state: StationState; label: string }): ReactElement {
-  const className =
-    props.state === "pending" ? "station" : `station ${props.state}`;
-  return (
-    <span className={className}>
-      <span className="dot" />
-      {props.label}
-    </span>
-  );
-}
-
-function Track(props: { flowing: boolean }): ReactElement {
-  return (
-    <span className={props.flowing ? "track flowing" : "track"}>
-      <span className="flow" />
-    </span>
-  );
-}
-
-/** The save-pipeline instrument strip: single-writer thesis as UI. */
-export function PipelineStations(props: {
-  view: PipelineView;
-  gitConfigured: boolean;
-}): ReactElement {
-  const { view, gitConfigured } = props;
-  return (
-    <span className="stations-wrap">
-      <span className="stations">
-        <Station state={view.db} label="entity db" />
-        <Track flowing={view.db === "done" && view.exported === "active"} />
-        <Station state={view.exported} label="exported to file" />
-        {gitConfigured ? (
-          <>
-            <Track
-              flowing={view.exported === "done" && view.committed === "active"}
-            />
-            <Station state={view.committed} label="committed" />
-          </>
-        ) : (
-          <span className="station no-git">no git remote</span>
-        )}
-      </span>
-      {view.commitRef && (
-        <span className="commit-ref">
-          last write <b>{view.commitRef}</b>
-        </span>
-      )}
-    </span>
-  );
-}
-
 /**
  * Image-reference widget: uploads go to the configured CMS upload API, which promotes the
  * bytes into an `image` entity through the owning plugin's pipeline; the
@@ -933,11 +776,8 @@ function ImageField(props: {
   onChange: (raw: string) => void;
 }): ReactElement {
   const { descriptor, value, onChange } = props;
-  const [uploadState, setUploadState] = useState<
-    | { kind: "idle" }
-    | { kind: "uploading" }
-    | { kind: "error"; message: string }
-  >({ kind: "idle" });
+  const queryClient = useQueryClient();
+  const uploadMutation = useMutation({ mutationFn: uploadImage });
   const current = typeof value === "string" && value.length > 0 ? value : null;
 
   return (
@@ -966,25 +806,20 @@ function ImageField(props: {
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
             if (!file) return;
-            setUploadState({ kind: "uploading" });
-            uploadFile(file)
-              .then((result) => {
-                setUploadState({ kind: "idle" });
+            uploadMutation.mutate(file, {
+              onSuccess: (result) => {
                 onChange(result.entityId);
-              })
-              .catch((error: unknown) =>
-                setUploadState({
-                  kind: "error",
-                  message:
-                    error instanceof Error ? error.message : String(error),
-                }),
-              );
+                void invalidateAfterUpload(queryClient);
+              },
+            });
           }}
         />
       </label>
-      {uploadState.kind === "uploading" && <p className="status">Uploading…</p>}
-      {uploadState.kind === "error" && (
-        <p className="status status-error">{uploadState.message}</p>
+      {uploadMutation.isPending && <p className="status">Uploading…</p>}
+      {uploadMutation.error && (
+        <p className="status status-error">
+          {errorMessage(uploadMutation.error)}
+        </p>
       )}
     </div>
   );
@@ -1271,63 +1106,7 @@ export function Field(props: {
   );
 }
 
-type EditorMode =
-  | { kind: "browse" }
-  | { kind: "edit"; entity: EntityDetail }
-  | { kind: "create" };
-
 type MobileEditorPane = "details" | "write" | "preview";
-
-export function DeleteDialog(props: {
-  entityId: string;
-  deleting?: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}): ReactElement {
-  return (
-    <div
-      className="modal-scrim"
-      role="presentation"
-      onMouseDown={props.deleting ? undefined : props.onCancel}
-    >
-      <section
-        className="delete-modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="delete-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <span className="modal-mark" aria-hidden="true">
-          ×
-        </span>
-        <h3 id="delete-title">Delete this entry?</h3>
-        <p>
-          The exported file for <code>{props.entityId}</code> will be removed.
-          Its history remains recoverable in git.
-        </p>
-        <div className="modal-actions">
-          <button
-            type="button"
-            className="btn ghost"
-            autoFocus
-            disabled={props.deleting}
-            onClick={props.onCancel}
-          >
-            Keep entry
-          </button>
-          <button
-            type="button"
-            className="btn danger"
-            disabled={props.deleting}
-            onClick={props.onConfirm}
-          >
-            {props.deleting ? "Deleting…" : "Delete entry"}
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
 
 function publicationLabel(value: string): string {
   return value
@@ -1789,35 +1568,65 @@ export function PublishingWorkspace(props: {
 }
 
 export function App(): ReactElement {
-  const [types, setTypes] = useState<EntityTypeInfo[] | null>(null);
-  const [workspaces, setWorkspaces] = useState<CmsWorkspaceInfo[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
     null,
   );
-  const [workspaceData, setWorkspaceData] =
-    useState<PublicationPipelineSnapshot | null>(null);
-  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
-  const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
   const [entityType, setEntityType] = useState<string | null>(null);
-  const [schema, setSchema] = useState<TypeSchema | null>(null);
-  const [entities, setEntities] = useState<EntitySummary[] | null>(null);
-  const [mode, setMode] = useState<EditorMode>({ kind: "browse" });
-  const [draft, setDraft] = useState<Record<string, unknown>>({});
-  const [body, setBody] = useState<string>("");
+  const [editor, dispatchEditor] = useReducer(
+    editorWorkflowReducer,
+    initialEditorWorkflowState,
+  );
+  const { mode, draft, body, save: saveState, deleteOpen } = editor;
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
   const [bodyMode, setBodyMode] = useState<BodyMode>("split");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
-  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const saveStartedAt = useRef(0);
   // Entity id from a console-jump door, opened once its collection loads.
   const pendingDeepLinkId = useRef<string | null>(null);
+  const openRequestId = useRef(0);
+  const selectedEntityTypeRef = useRef(entityType);
+  selectedEntityTypeRef.current = entityType;
+  const queryClient = useQueryClient();
+  const navigationQuery = useQuery(navigationQueryOptions());
+  const types = navigationQuery.data?.types ?? null;
+  const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
+  const workspaceQuery = useQuery({
+    ...workspaceQueryOptions(activeWorkspaceId ?? ""),
+    enabled: activeWorkspaceId !== null,
+  });
+  const workspaceData = workspaceQuery.data?.data ?? null;
+  const workspaceError = workspaceQuery.error
+    ? errorMessage(workspaceQuery.error)
+    : null;
+  const agentTargetsQuery = useQuery(agentTargetsQueryOptions());
+  const agentTargets = agentTargetsQuery.data ?? EMPTY_AGENT_TARGETS;
+  const syncStatusQuery = useQuery(syncStatusQueryOptions());
+  const syncStatus = syncStatusQuery.data ?? null;
+  const entityListQuery = useQuery({
+    ...entityListQueryOptions(entityType ?? ""),
+    enabled: entityType !== null,
+  });
+  const entities = entityType ? (entityListQuery.data ?? null) : null;
+  const entitySchemaQuery = useQuery({
+    ...entitySchemaQueryOptions(entityType ?? ""),
+    enabled: entityType !== null,
+  });
+  const schema = entityType ? (entitySchemaQuery.data ?? null) : null;
+  const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
+  useQuery({
+    ...entityDetailQueryOptions(entityType ?? "", activeEntityId ?? ""),
+    enabled: entityType !== null && activeEntityId !== null,
+  });
+  const saveEntityMutation = useMutation({ mutationFn: saveEntity });
+  const deleteEntityMutation = useMutation({ mutationFn: removeEntity });
+  const workspaceActionMutation = useMutation({
+    mutationFn: runCmsWorkspaceAction,
+  });
+  const deleting = deleteEntityMutation.isPending;
 
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeWorkspace = workspaces.find(
@@ -1827,62 +1636,40 @@ export function App(): ReactElement {
   useEffect(() => {
     if (!deleteOpen) return undefined;
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape" && !deleting) setDeleteOpen(false);
+      if (event.key === "Escape" && !deleting) {
+        dispatchEditor({ type: "deleteCancelled" });
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return (): void => window.removeEventListener("keydown", onKeyDown);
   }, [deleteOpen, deleting]);
 
   useEffect(() => {
-    fetchNavigation()
-      .then(({ types: loaded, workspaces: loadedWorkspaces }) => {
-        setTypes(loaded);
-        setWorkspaces(loadedWorkspaces);
-        // URL doors may target either an entity or an optional workspace.
-        const workspaceTarget = parseCmsWorkspaceHash(window.location.hash);
-        if (
-          workspaceTarget &&
-          loadedWorkspaces.some(
-            (workspace) => workspace.id === workspaceTarget.workspaceId,
-          )
-        ) {
-          setActiveWorkspaceId(workspaceTarget.workspaceId);
-        }
-        const target = parseCmsHash(window.location.hash);
-        const targeted =
-          target && loaded.some((info) => info.entityType === target.entityType)
-            ? target
-            : null;
-        if (targeted?.id !== undefined) {
-          pendingDeepLinkId.current = targeted.id;
-        }
-        const first = loaded.find((info) => !info.isSingleton) ?? loaded[0];
-        setEntityType(
-          targeted ? targeted.entityType : first ? first.entityType : null,
-        );
-      })
-      .catch((error: unknown) => setLoadError(errorMessage(error)));
-    // No directory-sync installed → null, and the pipeline strip stays off.
-    fetchAgentTargets()
-      .then(setAgentTargets)
-      .catch(() => setAgentTargets([]));
-    fetchSyncStatus()
-      .then(setSyncStatus)
-      .catch(() => setSyncStatus(null));
-  }, []);
-
-  useEffect(() => {
-    if (!activeWorkspaceId) {
-      setWorkspaceData(null);
-      setWorkspaceError(null);
-      return;
+    if (!types) return;
+    // A console-jump door (#/{type}[/{id}]) overrides the default starting
+    // collection; the id half is honored once entities load.
+    const target = parseCmsHash(window.location.hash);
+    const targeted =
+      target && types.some((info) => info.entityType === target.entityType)
+        ? target
+        : null;
+    if (targeted?.id !== undefined) {
+      pendingDeepLinkId.current = targeted.id;
     }
-    setWorkspaceData(null);
-    setWorkspaceError(null);
-    fetchWorkspace(activeWorkspaceId)
-      .then((workspace) => setWorkspaceData(workspace.data))
-      .catch((error: unknown) => setWorkspaceError(errorMessage(error)));
-  }, [activeWorkspaceId]);
+    const workspaceTarget = parseCmsWorkspaceHash(window.location.hash);
+    if (
+      workspaceTarget &&
+      workspaces.some(
+        (workspace) => workspace.id === workspaceTarget.workspaceId,
+      )
+    ) {
+      setActiveWorkspaceId(workspaceTarget.workspaceId);
+    }
+    const first = types.find((info) => !info.isSingleton) ?? types[0];
+    setEntityType(
+      targeted ? targeted.entityType : first ? first.entityType : null,
+    );
+  }, [types, workspaces]);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
   // updates syncStatus, which re-runs this effect until the view settles or
@@ -1897,69 +1684,107 @@ export function App(): ReactElement {
     if (view.committed === "done") return undefined;
     if (Date.now() - saveStartedAt.current > 20_000) return undefined;
     const timer = window.setTimeout(() => {
-      fetchSyncStatus()
-        .then(setSyncStatus)
-        .catch(() => {});
+      void queryClient.invalidateQueries({
+        queryKey: cmsKeys.syncStatus(),
+      });
     }, 900);
     return (): void => window.clearTimeout(timer);
-  }, [saveState, syncStatus, baselineCommit]);
+  }, [saveState, syncStatus, baselineCommit, queryClient]);
 
   useEffect(() => {
     if (!entityType) return;
-    setMode({ kind: "browse" });
+    openRequestId.current += 1;
+    dispatchEditor({ type: "collectionChanged" });
     setMobilePane("details");
-    setSaveState({ kind: "idle" });
     setFieldAssistState({ kind: "idle" });
-    setEntities(null);
-    setSchema(null);
-    Promise.all([fetchSchema(entityType), fetchEntities(entityType)])
+    let active = true;
+    Promise.all([
+      queryClient.fetchQuery({
+        ...entitySchemaQueryOptions(entityType),
+        staleTime: 0,
+      }),
+      queryClient.ensureQueryData(entityListQueryOptions(entityType)),
+    ])
       .then(([loadedSchema, loadedEntities]) => {
-        setSchema(loadedSchema);
-        setEntities(loadedEntities);
+        if (!active) return undefined;
         const deepLinkId = pendingDeepLinkId.current;
         if (deepLinkId !== null) {
           pendingDeepLinkId.current = null;
           if (loadedEntities.some((entry) => entry.id === deepLinkId)) {
-            return fetchEntity(entityType, deepLinkId).then((entity) => {
-              setMode({ kind: "edit", entity });
-              setDraft(entity.frontmatter);
-              setBody(entity.body);
-            });
+            return queryClient
+              .fetchQuery({
+                ...entityDetailQueryOptions(entityType, deepLinkId),
+                staleTime: 0,
+              })
+              .then((entity) => {
+                if (!active) return;
+                const document = createEditorDocument(entity);
+                dispatchEditor({ type: "documentOpened", document });
+              });
           }
         }
         // Singletons skip the list: open the record, or start creating it.
         if (loadedSchema.isSingleton) {
           const record = loadedEntities[0];
           if (record) {
-            return fetchEntity(entityType, record.id).then((entity) => {
-              setMode({ kind: "edit", entity });
-              setDraft(entity.frontmatter);
-              setBody(entity.body);
-            });
+            return queryClient
+              .fetchQuery({
+                ...entityDetailQueryOptions(entityType, record.id),
+                staleTime: 0,
+              })
+              .then((entity) => {
+                if (!active) return;
+                const document = createEditorDocument(entity);
+                dispatchEditor({ type: "documentOpened", document });
+              });
           }
-          setMode({ kind: "create" });
-          setDraft(emptyDraft(loadedSchema.fields));
-          setBody("");
+          dispatchEditor({
+            type: "creationStarted",
+            draft: emptyDraft(loadedSchema.fields),
+          });
         }
         return undefined;
       })
-      .catch((error: unknown) => setLoadError(errorMessage(error)));
-  }, [entityType]);
+      .catch((error: unknown) => {
+        if (active) setLoadError(errorMessage(error));
+      });
+    return (): void => {
+      active = false;
+    };
+  }, [entityType, queryClient]);
 
   const openEntity = useCallback(
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
       if (!entityType) return;
-      fetchEntity(entityType, id)
-        .then((entity) => {
-          setMode({ kind: "edit", entity });
-          setDraft(entity.frontmatter);
-          setBody(entity.body);
-          setFieldAssistState({ kind: "idle" });
-          setSaveState(nextState);
+      const requestId = ++openRequestId.current;
+      const requestedType = entityType;
+      queryClient
+        .fetchQuery({
+          ...entityDetailQueryOptions(entityType, id),
+          staleTime: 0,
         })
-        .catch((error: unknown) => setLoadError(errorMessage(error)));
+        .then((entity) => {
+          if (
+            requestId !== openRequestId.current ||
+            selectedEntityTypeRef.current !== requestedType
+          ) {
+            return;
+          }
+          const document = createEditorDocument(entity);
+          dispatchEditor({
+            type: "documentOpened",
+            document,
+            save: nextState,
+          });
+          setFieldAssistState({ kind: "idle" });
+        })
+        .catch((error: unknown) => {
+          if (requestId === openRequestId.current) {
+            setLoadError(errorMessage(error));
+          }
+        });
     },
-    [entityType],
+    [entityType, queryClient],
   );
 
   const openWorkspaceEntity = useCallback(
@@ -2001,17 +1826,16 @@ export function App(): ReactElement {
 
   const startCreate = useCallback((): void => {
     if (!schema) return;
-    setSaveState({ kind: "idle" });
+    dispatchEditor({
+      type: "creationStarted",
+      draft: emptyDraft(schema.fields),
+    });
     setFieldAssistState({ kind: "idle" });
-    setMode({ kind: "create" });
-    setDraft(emptyDraft(schema.fields));
-    setBody("");
   }, [schema]);
 
   const backToList = useCallback((): void => {
-    setMode({ kind: "browse" });
+    dispatchEditor({ type: "browseRequested" });
     setFieldAssistState({ kind: "idle" });
-    setSaveState({ kind: "idle" });
   }, []);
 
   const runFieldAssist = useCallback(
@@ -2050,9 +1874,7 @@ export function App(): ReactElement {
 
   const applyFieldAssist = useCallback(
     (field: string, suggestion: string | string[]): void => {
-      setDraft((current) =>
-        applyFieldAssistSuggestion(current, field, suggestion),
-      );
+      dispatchEditor({ type: "fieldAssistApplied", field, suggestion });
       setFieldAssistState({ kind: "idle" });
     },
     [],
@@ -2062,53 +1884,92 @@ export function App(): ReactElement {
     if (!entityType || mode.kind === "browse" || !schema) return;
     saveStartedAt.current = Date.now();
     setBaselineCommit(syncStatus?.git?.lastCommit ?? null);
-    setSaveState({ kind: "saving" });
+    dispatchEditor({ type: "saveStarted" });
     const bodyPayload = schema.hasBody ? { body } : {};
-    const write =
+    const input: SaveEntityInput =
       mode.kind === "create"
-        ? createEntity({ entityType, frontmatter: draft, ...bodyPayload })
-        : updateEntity({
+        ? {
+            kind: "create",
+            entityType,
+            frontmatter: draft,
+            ...bodyPayload,
+          }
+        : {
+            kind: "update",
             entityType,
             id: mode.entity.id,
             frontmatter: draft,
             baseContentHash: mode.entity.contentHash,
             ...bodyPayload,
-          });
-    write
-      .then(async (result) => {
-        setEntities(await fetchEntities(entityType));
+          };
+    saveEntityMutation.mutate(input, {
+      onSuccess: async (result) => {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: cmsKeys.entities(entityType),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: cmsKeys.syncStatus(),
+          }),
+        ]);
         const noop = "skipped" in result && result.skipped === true;
         // Re-fetch after every save so the next edit carries a fresh
         // contentHash precondition.
         openEntity(result.entityId, { kind: "saved", noop });
-      })
-      .catch((error: unknown) =>
-        setSaveState(
-          error instanceof ApiError && error.status === 409
-            ? { kind: "conflict", message: errorMessage(error) }
-            : { kind: "error", message: errorMessage(error) },
-        ),
-      );
-  }, [entityType, mode, draft, body, schema, openEntity, syncStatus]);
+      },
+      onError: (error: Error) => {
+        dispatchEditor({
+          type: "saveFailed",
+          save:
+            error instanceof ApiError && error.status === 409
+              ? { kind: "conflict", message: errorMessage(error) }
+              : { kind: "error", message: errorMessage(error) },
+        });
+      },
+    });
+  }, [
+    entityType,
+    mode,
+    draft,
+    body,
+    schema,
+    openEntity,
+    syncStatus,
+    queryClient,
+    saveEntityMutation,
+  ]);
 
   const remove = useCallback((): void => {
     if (!entityType || mode.kind !== "edit" || deleting) return;
     const { id } = mode.entity;
-    setDeleting(true);
     // Recoverable downstream: the delete is exported and committed, so the
     // file remains in git history.
-    deleteEntity(entityType, id)
-      .then(async () => {
-        setDeleteOpen(false);
-        setMode({ kind: "browse" });
-        setEntities(await fetchEntities(entityType));
-      })
-      .catch((error: unknown) => {
-        setDeleteOpen(false);
-        setSaveState({ kind: "error", message: errorMessage(error) });
-      })
-      .finally(() => setDeleting(false));
-  }, [entityType, mode, deleting]);
+    deleteEntityMutation.mutate(
+      { entityType, id },
+      {
+        onSuccess: async () => {
+          dispatchEditor({ type: "deleteSucceeded" });
+          queryClient.removeQueries({
+            queryKey: cmsKeys.entity(entityType, id),
+          });
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: cmsKeys.entities(entityType),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: cmsKeys.syncStatus(),
+            }),
+          ]);
+        },
+        onError: (error: Error) => {
+          dispatchEditor({
+            type: "deleteFailed",
+            message: errorMessage(error),
+          });
+        },
+      },
+    );
+  }, [entityType, mode, deleting, queryClient, deleteEntityMutation]);
 
   const performPublishingAction = useCallback(
     async (action: PublishingAction): Promise<PublishingActionResult> => {
@@ -2119,12 +1980,12 @@ export function App(): ReactElement {
       );
       if (!capability) throw new Error("Publishing is unavailable");
 
-      const result = await runWorkspaceAction(capability.id, action);
+      const result = await workspaceActionMutation.mutateAsync({
+        workspaceId: capability.id,
+        action,
+      });
       if (!isPublishingActionError(result) && !isPublishConfirmation(result)) {
-        if (activeWorkspaceId === capability.id) {
-          const refreshed = await fetchWorkspace(capability.id);
-          setWorkspaceData(refreshed.data);
-        }
+        await invalidateAfterWorkspaceAction(queryClient, capability.id);
         if (
           mode.kind === "edit" &&
           entityType === action.entityType &&
@@ -2135,14 +1996,25 @@ export function App(): ReactElement {
       }
       return result;
     },
-    [activeWorkspaceId, entityType, mode, openEntity, workspaces],
+    [
+      entityType,
+      mode,
+      openEntity,
+      queryClient,
+      workspaceActionMutation,
+      workspaces,
+    ],
   );
 
-  if (loadError) {
+  const visibleLoadError =
+    loadError ??
+    (navigationQuery.error ? errorMessage(navigationQuery.error) : null);
+
+  if (visibleLoadError) {
     return (
       <div className="studio">
         <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
-        <p className="status status-error boot-status">{loadError}</p>
+        <p className="status status-error boot-status">{visibleLoadError}</p>
       </div>
     );
   }
@@ -2347,9 +2219,11 @@ export function App(): ReactElement {
                     descriptor={descriptor}
                     value={draft[descriptor.name]}
                     onChange={(raw) =>
-                      setDraft((current) =>
-                        applyFieldChange(current, descriptor, raw),
-                      )
+                      dispatchEditor({
+                        type: "fieldChanged",
+                        descriptor,
+                        raw,
+                      })
                     }
                   />
                   {entitySchema.hasBody && body.trim().length > 0 && (
@@ -2388,7 +2262,9 @@ export function App(): ReactElement {
                 <BodyEditor
                   value={body}
                   mode={bodyMode}
-                  onChange={setBody}
+                  onChange={(nextBody) =>
+                    dispatchEditor({ type: "bodyChanged", body: nextBody })
+                  }
                   onModeChange={setBodyMode}
                   assist={{
                     entityType: selectedEntityType,
@@ -2453,7 +2329,7 @@ export function App(): ReactElement {
                   <button
                     type="button"
                     className="btn danger"
-                    onClick={() => setDeleteOpen(true)}
+                    onClick={() => dispatchEditor({ type: "deleteRequested" })}
                   >
                     Delete
                   </button>
@@ -2467,7 +2343,7 @@ export function App(): ReactElement {
                         event.currentTarget
                           .closest("details")
                           ?.removeAttribute("open");
-                        setDeleteOpen(true);
+                        dispatchEditor({ type: "deleteRequested" });
                       }}
                     >
                       Delete entry
@@ -2483,7 +2359,7 @@ export function App(): ReactElement {
         <DeleteDialog
           entityId={mode.entity.id}
           deleting={deleting}
-          onCancel={() => setDeleteOpen(false)}
+          onCancel={() => dispatchEditor({ type: "deleteCancelled" })}
           onConfirm={remove}
         />
       )}

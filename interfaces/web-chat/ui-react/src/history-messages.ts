@@ -219,6 +219,17 @@ export const webChatMessagesResponseSchema: z.ZodType<WebChatMessagesResponse> =
     messages: z.array(webChatHistoryMessageSchema),
   });
 
+/**
+ * The query cache owns an immutable history snapshot. AI SDK receives a
+ * detached seed and exclusively owns all active and streaming mutations.
+ */
+export function createActiveMessageSeed(messages: UIMessage[]): UIMessage[] {
+  return messages.map((message) => ({
+    ...message,
+    parts: [...message.parts],
+  }));
+}
+
 export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
   const parts: UIMessage["parts"] = [];
   const displayContent = stripInternalEntityMemoryNote(message.content);
