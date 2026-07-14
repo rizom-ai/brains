@@ -1,13 +1,18 @@
-import {
-  BatchJobManager,
-  JobProgressMonitor,
-  JobQueueService,
-  JobQueueWorker,
-  type IBatchJobManager,
-  type IJobQueueService,
-  type IJobQueueWorker,
-  type JobQueueServiceConfig,
+import type {
+  IBatchJobManager,
+  IJobQueueService,
+  IJobQueueWorker,
+  JobQueueServiceConfig,
 } from "@brains/job-queue";
+import {
+  BatchJobManagerTag,
+  JobProgressMonitorTag,
+  JobQueueServiceTag,
+  JobQueueWorkerTag,
+  createJobQueueRuntimeLayer,
+  createJobQueueServiceLayer,
+  type JobQueueRuntimeLayerHandle,
+} from "@brains/job-queue/effect";
 import type { MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
@@ -21,32 +26,6 @@ import {
 } from "@brains/effect-runtime";
 import { runEffectPromise } from "../effect-runtime";
 import type { ShellDependencies } from "../types/shell-types";
-
-class JobQueueServiceTag extends Context.Tag("@brains/core/JobQueueService")<
-  JobQueueServiceTag,
-  IJobQueueService
->() {}
-
-class BatchJobManagerTag extends Context.Tag("@brains/core/BatchJobManager")<
-  BatchJobManagerTag,
-  IBatchJobManager
->() {}
-
-class JobProgressMonitorTag extends Context.Tag(
-  "@brains/core/JobProgressMonitor",
-)<JobProgressMonitorTag, IJobProgressMonitor>() {}
-
-class JobQueueWorkerTag extends Context.Tag("@brains/core/JobQueueWorker")<
-  JobQueueWorkerTag,
-  IJobQueueWorker
->() {}
-
-type JobRuntimeContext =
-  BatchJobManagerTag | JobProgressMonitorTag | JobQueueWorkerTag;
-
-interface JobRuntimeReleaseState {
-  skipRelease: boolean;
-}
 
 export interface JobServices {
   batchJobManager: IBatchJobManager;
@@ -68,138 +47,56 @@ export interface JobServiceOptions {
   logger: Logger;
 }
 
-function createJobQueueLayer(
-  options: JobServiceOptions,
-): Layer.Layer<JobQueueServiceTag> {
-  return Layer.scoped(
-    JobQueueServiceTag,
-    Effect.acquireRelease(
-      Effect.sync(
-        () =>
-          options.dependencies?.jobQueueService ??
-          JobQueueService.createFresh(options.jobQueueConfig, options.logger),
-      ),
-      (jobQueueService) =>
-        Effect.sync(() => {
-          jobQueueService.close();
-        }),
-    ),
-  );
-}
-
-function createJobRuntimeLayer(
-  options: JobServiceOptions,
-  jobQueueService: IJobQueueService,
-  releaseState: JobRuntimeReleaseState,
-): Layer.Layer<JobRuntimeContext> {
-  const acquire = Effect.sync(() => {
-    const batchJobManager =
-      options.dependencies?.batchJobManager ??
-      BatchJobManager.createFresh(jobQueueService, options.logger);
-    const jobProgressMonitor =
-      options.dependencies?.jobProgressMonitor ??
-      JobProgressMonitor.createFresh(
-        jobQueueService,
-        options.messageBus,
-        batchJobManager,
-        options.logger,
-      );
-    const jobQueueWorker =
-      options.dependencies?.jobQueueWorker ??
-      JobQueueWorker.createFresh(
-        jobQueueService,
-        jobProgressMonitor,
-        options.logger,
-        {
-          pollInterval: 100,
-          concurrency: 1,
-          autoStart: false,
-        },
-      );
-
-    return Context.make(BatchJobManagerTag, batchJobManager).pipe(
-      Context.add(JobProgressMonitorTag, jobProgressMonitor),
-      Context.add(JobQueueWorkerTag, jobQueueWorker),
-    );
-  });
-
-  return Layer.scopedContext(
-    Effect.acquireRelease(acquire, (context) =>
-      releaseState.skipRelease ? Effect.void : releaseJobRuntime(context),
-    ),
-  );
-}
-
-function releaseJobRuntime(
-  context: Context.Context<JobRuntimeContext>,
-): Effect.Effect<void> {
-  const jobQueueWorker = Context.get(context, JobQueueWorkerTag);
-  const jobProgressMonitor = Context.get(context, JobProgressMonitorTag);
-  const batchJobManager = Context.get(context, BatchJobManagerTag);
-
-  return Effect.gen(function* () {
-    const workerExit = yield* Effect.exit(
-      Effect.tryPromise({
-        try: () => jobQueueWorker.stop(),
-        catch: (error) => error,
-      }),
-    );
-    const progressExit = yield* Effect.exit(
-      Effect.try({
-        try: () => jobProgressMonitor.stop(),
-        catch: (error) => error,
-      }),
-    );
-    const batchExit = yield* Effect.exit(
-      Effect.tryPromise({
-        try: async () => {
-          await batchJobManager.stop();
-        },
-        catch: (error) => error,
-      }),
-    );
-
-    const firstFailure = [workerExit, progressExit, batchExit].find(
-      Exit.isFailure,
-    );
-    if (firstFailure) yield* Effect.die(Cause.squash(firstFailure.cause));
-  });
-}
-
 function closeScopeSync(scope: Scope.CloseableScope): void {
   const exit = Effect.runSyncExit(Scope.close(scope, Exit.void));
   if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
 }
 
 /**
- * Acquire the complete job-service slice with fresh production instances by
- * default. Separate runtime and database scopes preserve shell shutdown order:
- * workers drain before plugins stop, while the queue database remains available
- * until dependent shell resources have been released.
+ * Compose the job-queue package's internal Effect layers with separate runtime
+ * and database scopes. Workers drain before plugins stop, while the queue
+ * database remains available until dependent shell resources are released.
  */
 export function initializeJobServices(options: JobServiceOptions): JobServices {
   const databaseScope = Effect.runSync(Scope.make());
   let runtimeScope: Scope.CloseableScope | undefined;
-  let runtimeReleaseState: JobRuntimeReleaseState | undefined;
+  let runtimeLayerHandle: JobQueueRuntimeLayerHandle | undefined;
 
   try {
     const databaseContext = Effect.runSync(
-      Layer.buildWithScope(createJobQueueLayer(options), databaseScope),
+      Layer.buildWithScope(
+        createJobQueueServiceLayer({
+          config: options.jobQueueConfig,
+          logger: options.logger,
+          ...(options.dependencies?.jobQueueService && {
+            service: options.dependencies.jobQueueService,
+          }),
+        }),
+        databaseScope,
+      ),
     );
     const jobQueueService = Context.get(databaseContext, JobQueueServiceTag);
 
     const acquiredRuntimeScope = Effect.runSync(Scope.make());
-    const acquiredRuntimeReleaseState: JobRuntimeReleaseState = {
-      skipRelease: false,
-    };
-    runtimeReleaseState = acquiredRuntimeReleaseState;
     runtimeScope = acquiredRuntimeScope;
+    const acquiredRuntimeLayerHandle = createJobQueueRuntimeLayer({
+      messageBus: options.messageBus,
+      logger: options.logger,
+      ...(options.dependencies?.batchJobManager && {
+        batchJobManager: options.dependencies.batchJobManager,
+      }),
+      ...(options.dependencies?.jobProgressMonitor && {
+        jobProgressMonitor: options.dependencies.jobProgressMonitor,
+      }),
+      ...(options.dependencies?.jobQueueWorker && {
+        jobQueueWorker: options.dependencies.jobQueueWorker,
+      }),
+    });
+    runtimeLayerHandle = acquiredRuntimeLayerHandle;
     const runtimeContext = Effect.runSync(
       Layer.buildWithScope(
-        createJobRuntimeLayer(
-          options,
-          jobQueueService,
-          acquiredRuntimeReleaseState,
+        acquiredRuntimeLayerHandle.layer.pipe(
+          Layer.provide(Layer.succeed(JobQueueServiceTag, jobQueueService)),
         ),
         acquiredRuntimeScope,
       ),
@@ -231,7 +128,7 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
       rollbackRuntime: (): void => {
         if (runtimeClosed) return;
         runtimeClosed = true;
-        acquiredRuntimeReleaseState.skipRelease = true;
+        acquiredRuntimeLayerHandle.abandon();
         closeScopeSync(acquiredRuntimeScope);
       },
       closeDatabase: (): void => {
@@ -243,7 +140,7 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
   } catch (error) {
     if (runtimeScope) {
       try {
-        if (runtimeReleaseState) runtimeReleaseState.skipRelease = true;
+        runtimeLayerHandle?.abandon();
         closeScopeSync(runtimeScope);
       } catch (cleanupError) {
         options.logger.warn(
