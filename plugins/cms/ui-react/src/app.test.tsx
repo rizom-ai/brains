@@ -8,12 +8,9 @@ import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
   applyFieldAssistSuggestion,
-  applyFieldChange,
   applySuggestionToSelection,
   BodyEditor,
   createBodyEditorState,
-  DeleteDialog,
-  derivePipeline,
   emptyDraft,
   entityPublicationState,
   entityTitle,
@@ -22,12 +19,17 @@ import {
   fieldAssistVariant,
   parseCmsHash,
   MODEL_ASSIST_TARGET,
-  PipelineStations,
-  SaveStateNotice,
   styles,
   typeHasPublicationField,
   TypeSwitcher,
 } from "./App";
+import {
+  DeleteDialog,
+  derivePipeline,
+  PipelineStations,
+  SaveStateNotice,
+} from "./editor-status";
+import { applyFieldChange } from "./editor-workflow";
 import { createCmsQueryClient } from "./query-client";
 import type {
   AgentTarget,

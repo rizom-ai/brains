@@ -8,9 +8,10 @@ CMS entity, type, schema, sync-status, and agent-target reads now use the packag
 query cache; saves, deletes, and image uploads use mutation hooks behind an explicit draft
 boundary. The authenticated CMS gate passed for create, upload, save, no-op save, conflict
 reload, and delete. A typed reducer now owns atomic browse/create/edit/save/delete and draft
-transitions; focused component extraction remains. This plan standardizes how state is
-classified and managed without forcing the three surfaces into one browser store or one
-application.
+transitions, while pipeline, save-status, and delete presentation have focused component
+ownership. The CMS workflow gate passed; web-chat server state is next. This plan
+standardizes how state is classified and managed without forcing the three surfaces into
+one browser store or one application.
 
 The optional publishing UI described in
 [`cms-publishing-workspace.md`](./cms-publishing-workspace.md) follows this state model but
