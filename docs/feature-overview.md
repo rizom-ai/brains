@@ -30,7 +30,7 @@ Individual plugins can still be added, removed, or configured at the instance le
 
 ## Core bundle
 
-Core is the posture-independent foundation. It provides the knowledge system, AI runtime, identity and permissions, operator surfaces, file synchronization, and agent-to-agent connectivity.
+Core is the posture-independent foundation. It provides the knowledge system, AI runtime, identity and permissions, browser and platform chat, operator surfaces, file synchronization, and agent-to-agent connectivity.
 
 ### Core plugins
 
@@ -43,9 +43,13 @@ Core is the posture-independent foundation. It provides the knowledge system, AI
 | `email-resend`     | Transactional email delivery through Resend when configured                                                                              |
 | `mcp`              | MCP tools, resources, prompts, and resource templates over HTTP or stdio                                                                 |
 | `webserver`        | Shared HTTP host for browser routes, APIs, MCP, A2A, static output, and `/health`                                                        |
+| `web-chat`         | Operator browser chat with sessions, uploads, confirmations, sources, attachments, action cards, and job progress                        |
+| `chat`             | One multi-platform Chat SDK interface for Discord and Slack adapters                                                                     |
 | `a2a`              | Agent Card discovery, inbound A2A tasks, and outbound calls to peer agents                                                               |
-| `dashboard`        | Extensible operator widgets for knowledge, network, site, publishing, and system status                                                  |
-| `cms`              | Browser-based structured editing for registered content types and plugin workspaces                                                      |
+| `dashboard`        | Tabbed operator console with extensible widgets, live system signals, action counts, and cross-surface navigation                        |
+| `cms`              | Structured editing, AI-assisted review and rewriting, agent consultation, and plugin-provided workspaces                                 |
+| `playbooks`        | Durable, stateful guided workflows with status, actions, evidence, and operator gates                                                    |
+| Guided onboarding  | Optional first-run identity, profile, and knowledge-loop setup built on playbooks                                                        |
 | `note`             | General Markdown notes and imported knowledge                                                                                            |
 | `link`             | URL capture, extraction, and summaries                                                                                                   |
 | `topics`           | Topic extraction and organization across source content                                                                                  |
@@ -55,7 +59,7 @@ Core is the posture-independent foundation. It provides the knowledge system, AI
 | `decks`            | Markdown presentations, AI generation, carousel/PDF output, and site routes when Site is enabled                                         |
 | `agents`           | Saved or discovered peer brains and their advertised skills                                                                              |
 | `assessment`       | Derived SWOT assessments from agent and skill evidence                                                                                   |
-| `atproto-registry` | Canonical AT Protocol contracts and discovery support                                                                                    |
+| `atproto-registry` | Serves canonical `ai.rizom.brain.*` lexicons and governance metadata on registry deployments                                             |
 
 ### Knowledge and storage
 
@@ -88,22 +92,65 @@ The agent can use the brain's content and tools to:
 
 State-changing actions use a confirmation flow. In normal MCP mode, reads are exposed directly while writes and reasoning requests go through the brain's `chat` and `confirm` tools.
 
+### Operator console
+
+Core includes three coordinated browser surfaces:
+
+- **Dashboard** — tabbed knowledge, publishing, site, network, and system views; live runtime activity; directory-sync status; semantic-index health; plugin digests; operator-attention counts; and endpoint links.
+- **CMS** — schema-driven frontmatter and Markdown editing, unsaved-change safeguards, AI review/fact-check/rewrite actions on selected text, consultation with saved agents, and optional plugin workspaces.
+- **Web chat** — persistent sessions and history, uploads, streaming responses, confirmations, sources, generated attachments, suggested actions, and background-job progress.
+
+The shared console chrome includes responsive navigation and a command palette for jumping between surfaces and dashboard sections.
+
+### Multi-platform chat
+
+The `chat` interface replaces platform-specific chat plugins with one Chat SDK host. Discord and Slack adapters can run independently or together.
+
+Current shared capabilities include:
+
+- mentions, direct messages, channel allowlists, and mention requirements;
+- subscribed-thread follow-ups with platform-isolated subscription state that survives restarts;
+- URL capture and bot/self-message filtering;
+- trusted/owner-only text, image, and PDF upload ingestion with follow-up reuse;
+- native confirmation cards plus text confirmation fallbacks;
+- suggested-action buttons with stale and replay protection;
+- live tool status and background-job progress updates;
+- visibility-checked delivery of generated images, PDFs, and text artifacts;
+- platform-specific response chunking and `discord:*` / `slack:*` permission rules.
+
+Discord supports gateway and webhook delivery. Slack supports a single workspace through either webhook or Socket Mode. Both adapters keep uploads and subscriptions isolated by platform.
+
+### Agent network and discovery
+
+Core can build and use a reviewable network of peer brains:
+
+- verify and save a peer from its Agent Card before treating it as an approved contact;
+- advertise this brain through an Agent Card and a public approved-agent directory;
+- call approved peers over A2A and receive asynchronous A2A tasks;
+- crawl approved peers' public directories one hop to record second-order sightings without auto-approving them;
+- preserve who introduced each sighting and merge repeat sightings idempotently;
+- visualize approved peers, semantic clusters, and relevant sightings in an interactive proximity map;
+- grant or revoke inbound peer trust separately from outbound contact approval;
+- sign trusted A2A requests with RFC 9421 HTTP Message Signatures and pin peer keys from JWKS;
+- discover reviewable candidate brain cards from explicitly supplied AT Protocol repositories.
+
 ### Shared system tools
 
 All content types use one consistent tool surface.
 
-| Tool              | Purpose                                                      |
-| ----------------- | ------------------------------------------------------------ |
-| `system_search`   | Semantic search across all or selected content types         |
-| `system_get`      | Retrieve one item by id, slug, or title                      |
-| `system_list`     | List a known content type with filters                       |
-| `system_create`   | Save supplied text, a URL, an upload, or a prior response    |
-| `system_generate` | Generate content, images, covers, or derived media artifacts |
-| `system_update`   | Change fields, visibility, status, or full content           |
-| `system_delete`   | Delete an item when the caller has permission                |
-| `system_extract`  | Run supported derivation workflows                           |
-| `system_insights` | Return aggregate content or plugin-provided insights         |
-| `system_status`   | Report brain and service status                              |
+| Tool                | Purpose                                                      |
+| ------------------- | ------------------------------------------------------------ |
+| `system_search`     | Semantic search across all or selected content types         |
+| `system_get`        | Retrieve one item by id, slug, or title                      |
+| `system_list`       | List a known content type with filters                       |
+| `system_create`     | Save supplied text, a URL, an upload, or a prior response    |
+| `system_generate`   | Generate content, images, covers, or derived media artifacts |
+| `system_update`     | Change fields, visibility, status, or full content           |
+| `system_delete`     | Delete an item when the caller has permission                |
+| `system_extract`    | Run supported derivation workflows                           |
+| `system_insights`   | Return aggregate content or plugin-provided insights         |
+| `system_job_status` | Check progress and results for a background job              |
+| `system_status`     | Report brain and service status                              |
 
 ### Core content types
 
@@ -122,6 +169,7 @@ All content types use one consistent tool surface.
 | Agent           | Saved or discovered peer brain                                         |
 | Skill           | A capability advertised through agent discovery                        |
 | SWOT            | A derived strengths, weaknesses, opportunities, and threats assessment |
+| Playbook        | A durable guided workflow with states, actions, and completion gates   |
 
 ## Site bundle
 
@@ -145,6 +193,8 @@ The Site bundle turns the brain's content graph into a public website. It is ind
 - reusable Preact layouts, site packages, and themes;
 - local theme and site composition overrides;
 - editable site identity and section content;
+- AI generation for all sections, one route, or one section;
+- operator-triggered preview and production rebuilds;
 - separate preview and production output;
 - Markdown rendering and syntax highlighting;
 - image extraction and asset handling;
@@ -165,16 +215,16 @@ The Publishing bundle adds content production, scheduling, and external distribu
 
 ### Publishing plugins
 
-| Plugin             | User-facing capability                                                               |
-| ------------------ | ------------------------------------------------------------------------------------ |
-| `blog`             | Generate, edit, schedule, and publish long-form posts                                |
-| `series`           | Group related posts into ordered collections                                         |
-| `portfolio`        | Publish projects and case studies                                                    |
-| `content-pipeline` | Durable queues, scheduling, retries, generation schedules, and publishing operations |
-| `social-media`     | Generate and publish LinkedIn text, image, and native PDF/document posts             |
-| `newsletter`       | Generate newsletters and manage Buttondown delivery and subscribers                  |
-| `stock-photo`      | Search and select Unsplash images                                                    |
-| `atproto`          | Publish brain cards and supported public entities to an AT Protocol PDS              |
+| Plugin             | User-facing capability                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `blog`             | Generate, edit, schedule, and publish long-form posts                                                                                  |
+| `series`           | Group related posts into ordered collections                                                                                           |
+| `portfolio`        | Publish projects and case studies                                                                                                      |
+| `content-pipeline` | Durable queues, scheduling, retries, generation schedules, and publishing operations                                                   |
+| `social-media`     | Generate and publish LinkedIn text, image, and native PDF/document posts                                                               |
+| `newsletter`       | Generate newsletters and manage Buttondown delivery and subscribers                                                                    |
+| `stock-photo`      | Search and select Unsplash images                                                                                                      |
+| `atproto`          | `did:web` identity, candidate brain-card discovery, and publication of brain cards and supported public entities to an AT Protocol PDS |
 
 ### Publishing workflows
 
@@ -188,7 +238,10 @@ The Publishing bundle adds content production, scheduling, and external distribu
 - add, remove, and reorder queued items;
 - schedule publishing and recurring draft generation;
 - retry failed publications;
-- inspect publishing state through the CMS and dashboard;
+- manage queue order, retries, source links, and confirmed direct publishing in the CMS Publishing workspace;
+- inspect a compact publishing digest in the dashboard;
+- expose `did:web` identity documents;
+- discover reviewable candidate brains from AT Protocol repositories;
 - publish supported public records through AT Protocol.
 
 ### Publishing content types
@@ -239,16 +292,11 @@ The Team bundle adds shared conversation memory and a trusted-collaborator permi
 
 The Team bundle supplies a permission posture, not a complete multi-user account system. First-class user accounts, per-user state, and cross-interface identity linking are still in development.
 
-## Configurable interfaces and workflows
+## Optional authoring integration
 
-User-facing interface and workflow plugins can be selected per instance alongside the four bundles.
-
-| Capability       | How it fits                                                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `web-chat`       | Browser chat at `/chat` with sessions, confirmations, uploads, sources, attachments, action cards, and job progress |
-| `discord`        | Mentions, DMs, optional threads, channel restrictions, typing indicators, and URL capture                           |
-| `obsidian-vault` | Generated templates, file classes, Bases views, pipeline views, and singleton settings views                        |
-| `playbooks`      | Optional stateful workflows for guided setup and repeatable operator processes                                      |
+| Capability       | How it fits                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------- |
+| `obsidian-vault` | Generated templates, file classes, Bases views, pipeline views, and singleton settings views |
 
 ## Interfaces
 
@@ -257,12 +305,12 @@ Interfaces can be enabled or removed independently from the content bundles wher
 | Surface                 | User experience                                                                                      | Typical use                                   |
 | ----------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | Operator web chat       | Browser chat with sessions, uploads, confirmations, sources, attachments, action cards, and progress | Day-to-day operator interaction               |
+| Platform chat           | One `chat` interface with independently configurable Discord and Slack adapters                      | Community, team, and operator chat            |
 | CMS                     | Structured browser editing and plugin-provided workspaces                                            | Content and publishing operations             |
 | Dashboard               | Extensible themed widgets grouped by concern                                                         | Status and operational overview               |
 | MCP                     | HTTP at `/mcp` or local stdio                                                                        | Claude Desktop, Cursor, and other MCP clients |
 | Terminal chat           | `brain chat` or `brain start --cli`                                                                  | Local conversation and testing                |
 | Direct CLI tools        | Local `brain tool` calls or remote commands                                                          | Scripts, diagnostics, and operations          |
-| Discord                 | Bot mentions, DMs, and threads                                                                       | Community or team chat                        |
 | A2A                     | Agent Card and JSON-RPC messaging                                                                    | Brain-to-brain communication                  |
 | Public website          | Static pages generated from selected content                                                         | Public knowledge and publishing               |
 | Direct files / Obsidian | Edit `brain-data/` with any text editor                                                              | Portable, local-first authoring               |
@@ -283,18 +331,19 @@ Interfaces can be enabled or removed independently from the content bundles wher
 
 ## Integrations and bundle ownership
 
-| Integration               | Owning bundle or scope | What it enables                              | Common secret                     |
-| ------------------------- | ---------------------- | -------------------------------------------- | --------------------------------- |
-| AI provider               | Core                   | Chat, generation, extraction, and embeddings | `AI_API_KEY`                      |
-| Image provider            | Core                   | AI image generation                          | `AI_IMAGE_KEY`                    |
-| Git host                  | Core                   | Private content-repository synchronization   | `GIT_SYNC_TOKEN`                  |
-| Resend                    | Core                   | Setup and transactional email delivery       | `SETUP_EMAIL_API_KEY`             |
-| Cloudflare Web Analytics  | Site                   | Website analytics                            | Cloudflare API token and site tag |
-| LinkedIn                  | Publishing             | Text, image, and native document publishing  | `LINKEDIN_ACCESS_TOKEN`           |
-| Buttondown                | Publishing             | Newsletter subscribers and delivery          | `BUTTONDOWN_API_KEY`              |
-| Unsplash                  | Publishing             | Stock-photo search and selection             | `UNSPLASH_ACCESS_KEY`             |
-| AT Protocol / Bluesky PDS | Publishing             | Brain-card and entity publishing             | `ATPROTO_APP_PASSWORD`            |
-| Discord                   | Independent interface  | Discord bot access                           | `DISCORD_BOT_TOKEN`               |
+| Integration               | Owning bundle or scope | What it enables                                  | Common secret                                                       |
+| ------------------------- | ---------------------- | ------------------------------------------------ | ------------------------------------------------------------------- |
+| AI provider               | Core                   | Chat, generation, extraction, and embeddings     | `AI_API_KEY`                                                        |
+| Image provider            | Core                   | AI image generation                              | `AI_IMAGE_KEY`                                                      |
+| Git host                  | Core                   | Private content-repository synchronization       | `GIT_SYNC_TOKEN`                                                    |
+| Resend                    | Core                   | Setup and transactional email delivery           | `SETUP_EMAIL_API_KEY`                                               |
+| Cloudflare Web Analytics  | Site                   | Website analytics                                | Cloudflare API token and site tag                                   |
+| LinkedIn                  | Publishing             | Text, image, and native document publishing      | `LINKEDIN_ACCESS_TOKEN`                                             |
+| Buttondown                | Publishing             | Newsletter subscribers and delivery              | `BUTTONDOWN_API_KEY`                                                |
+| Unsplash                  | Publishing             | Stock-photo search and selection                 | `UNSPLASH_ACCESS_KEY`                                               |
+| AT Protocol / Bluesky PDS | Publishing             | Brain-card and entity publishing                 | `ATPROTO_APP_PASSWORD`                                              |
+| Chat: Discord adapter     | Core (`chat`)          | Discord mentions, DMs, threads, files, and cards | `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID` |
+| Chat: Slack adapter       | Core (`chat`)          | Slack mentions, DMs, threads, files, and cards   | `SLACK_BOT_TOKEN` plus `SLACK_APP_TOKEN` or `SLACK_SIGNING_SECRET`  |
 
 Included integrations remain inactive until their required credentials are configured. Keep non-secret settings in `brain.yaml` and secrets in environment-backed configuration.
 
@@ -319,7 +368,7 @@ Brains can run locally with Bun, in a container, or through the documented Kamal
 
 ## Customization and extension
 
-Most instances can be customized without creating a separate brain model:
+Most instances can be customized without creating a separate brain definition:
 
 1. choose Core plus the Site, Publishing, and Team bundles needed by the instance;
 2. add or remove individual plugins at the edges;
@@ -343,7 +392,8 @@ The project does **not** currently claim to provide:
 - a multi-tenant hosted SaaS platform;
 - a complete first-class multi-user account system;
 - generic autonomous-agent orchestration;
-- every planned integration shown in the roadmap, such as Slack or provider-neutral web search;
+- provider-neutral web search;
+- multi-workspace Slack OAuth or a hosted shared chat gateway;
 - a fully stable plugin SDK before `1.0`.
 
 ## Read next
