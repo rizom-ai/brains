@@ -6,8 +6,10 @@
 currently have intentionally separate runtimes and no shared client-state library. The
 CMS entity, type, schema, sync-status, and agent-target reads now use the package-local
 query cache; saves, deletes, and image uploads use mutation hooks behind an explicit draft
-boundary. The authenticated CMS behavior gate remains before workflow decomposition. This plan standardizes how state is classified and
-managed without forcing the three surfaces into one browser store or one application.
+boundary. The authenticated CMS gate passed for create, upload, save, no-op save, conflict
+reload, and delete. Workflow decomposition is next. This plan standardizes how state is
+classified and managed without forcing the three surfaces into one browser store or one
+application.
 
 The optional publishing UI described in
 [`cms-publishing-workspace.md`](./cms-publishing-workspace.md) follows this state model but
