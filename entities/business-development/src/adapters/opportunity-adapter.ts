@@ -10,7 +10,8 @@ import {
 
 export class OpportunityAdapter extends BaseEntityAdapter<
   OpportunityEntity,
-  OpportunityMetadata
+  OpportunityMetadata,
+  OpportunityFrontmatter
 > {
   constructor() {
     super({
@@ -54,4 +55,4 @@ export class OpportunityAdapter extends BaseEntityAdapter<
   }
 }
 
-export const opportunityAdapter = new OpportunityAdapter();
+export const opportunityAdapter: OpportunityAdapter = new OpportunityAdapter();

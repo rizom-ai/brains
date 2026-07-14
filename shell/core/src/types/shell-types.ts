@@ -30,6 +30,7 @@ import type {
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
+import type { RecurringCheckService } from "@brains/recurring-checks";
 import type { RuntimeStateService } from "@brains/runtime-state";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
@@ -67,6 +68,7 @@ export interface ShellServices {
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
   runtimeStateService: RuntimeStateService;
+  recurringCheckService: RecurringCheckService;
 }
 
 export interface ShellDependencies {
@@ -92,4 +94,5 @@ export interface ShellDependencies {
   attachmentRegistry?: AttachmentRegistry;
   runtimeUploadRegistry?: RuntimeUploadRegistry;
   runtimeStateService?: RuntimeStateService;
+  recurringCheckService?: RecurringCheckService;
 }

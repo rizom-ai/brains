@@ -170,6 +170,10 @@ export class ShellBootloader {
   }
 
   private async startRuntimeServices(): Promise<void> {
+    const recurringDaemonName = "shell:recurring-checks";
+    if (this.services.daemonRegistry.has(recurringDaemonName)) {
+      await this.services.daemonRegistry.start(recurringDaemonName);
+    }
     await this.services.pluginManager.startPluginDaemons();
     await this.services.jobQueueWorker.start();
     this.services.jobProgressMonitor.start();

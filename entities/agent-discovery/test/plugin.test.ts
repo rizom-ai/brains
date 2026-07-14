@@ -170,6 +170,28 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("registers the directory scan as a daily recurring check", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let registered: { id: string; cadence: string } | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        registered = check;
+        return () => {};
+      },
+    });
+
+    await harness.installPlugin(new AgentToolsPlugin());
+
+    expect(registered).toMatchObject({
+      id: "directory-scan",
+      cadence: "daily",
+    });
+    harness.reset();
+  });
+
   it("registers agent_connect as the canonical confirmation-gated A2A verification tool", async () => {
     const harness = createPluginHarness<Plugin>({});
     const fetchMock = createMockAgentCardFetch({

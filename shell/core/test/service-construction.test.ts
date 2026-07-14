@@ -50,6 +50,12 @@ describe("Shell service construction", () => {
           runtimeStateCloseCalls++;
         },
       } as NonNullable<ShellDependencies["runtimeStateService"]>,
+      recurringCheckService: {
+        start: async (): Promise<void> => {},
+        stop: async (): Promise<void> => {},
+        namespace: () => ({ register: () => () => {} }),
+        unregisterPlugin: (): void => {},
+      } as unknown as NonNullable<ShellDependencies["recurringCheckService"]>,
       jobQueueService: {
         close: (): void => {
           jobQueueCloseCalls++;

@@ -92,6 +92,8 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 | `shell/mcp-service`          | MCP tool/resource/prompt/template registration                          |
 | `shell/messaging-service`    | Typed event bus used across plugins                                     |
 | `shell/runtime-state`        | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`) |
+| `shell/scheduler`            | Shared scheduler contracts and deterministic test backend               |
+| `shell/recurring-checks`     | Recurring cadence, retries, dedupe, and alert delivery orchestration    |
 | `shell/plugins`              | Base plugin classes, contexts, harnesses                                |
 | `shell/templates`            | Template registry and resolution                                        |
 | `shell/ai-evaluation`        | Eval runner, test cases, judges, reporting                              |

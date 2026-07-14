@@ -49,26 +49,40 @@ Previously listed as open; settled with the pull-forward:
   auth-runtime-db identity boundary (P1) — identity-scoped dedupe built before that lands
   would be rework on sand. This is the one genuine P1 dependency; it gates the dedupe
   _scope_, not the layer.
-- **Failed delivery preserves the dedupe key.** An alert that never reached anyone has not
-  been delivered; a delivery failure must not silence its own retry.
+- **UTC with deterministic fleet staggering.** Each brain/check pair gets a stable offset
+  inside its daily or weekly UTC window, avoiding a fleet-wide traffic spike while keeping
+  tests and operations predictable.
+- **One startup catch-up, no overlap.** A brain runs at most one missed occurrence after
+  plugins are ready. If the previous run is still active, the next occurrence is skipped.
+- **The notifications plugin owns the default recipient.** Recurring alerts omit an explicit
+  recipient and use the same configured email address as onboarding mail. Generated Rover
+  and fleet configuration pass that address to both plugins.
+- **Condition-episode dedupe.** Domain checks supply a key that remains stable while the
+  condition is unchanged and changes when a new episode begins. Successful delivery marks
+  that key delivered per brain; there is no arbitrary expiry window.
+- **Failed delivery remains pending.** An alert that never reached anyone is not marked
+  delivered. Its non-secret operational payload remains pending so a retry does not lose an
+  alert from an idempotent domain mutation.
+- **Bounded job-queue retries.** Scheduled and catch-up checks use the shared job queue with
+  its existing exponential backoff and three-retry limit.
 
 ## Slices
 
 ### Slice 1 — scheduler contracts
 
-Extract generic scheduler backend contracts from content-pipeline (its domain-specific
-scheduler stays where it is). Deterministic contract tests: cadence, injected time,
-reset, failure. No test sleeps on wall time.
+**Implemented on `work/shared-heartbeat`.** Extract generic scheduler backend contracts
+from content-pipeline (its domain-specific scheduler stays where it is). Deterministic
+contract tests: cadence, injected time, reset, failure. No test sleeps on wall time.
 
 ### Slice 2 — recurring-check service + first consumer
 
-One registration path riding shell daemon lifecycle. Checks runnable on demand. Agent
+**Implemented on `work/shared-heartbeat`; fleet verification remains.** One registration path riding shell daemon lifecycle. Checks runnable on demand. Agent
 discovery registers the directory scan on a daily cadence — the scan tool's
 aggregation/merge logic is already idempotent, so the check is a thin wrapper.
 
 ### Slice 3 — dedupe + notify
 
-`runtimeState` dedupe and a narrow notifications adapter. The scan notifies when
+**Implemented on `work/shared-heartbeat`; fleet verification remains.** `runtimeState` dedupe and a narrow notifications adapter. The scan notifies when
 `created > 0` ("N agents sighted through <peers>") and stays silent on no-op re-scans —
 dedupe verified by the repeat-scan case.
 
@@ -84,7 +98,7 @@ after both consumers run in production.
 ## Verification
 
 - Tests advance an injected clock; none sleep on wall time.
-- Repeated checks do not duplicate an alert inside the dedupe window.
+- Repeated checks do not duplicate an unchanged condition episode.
 - A changed/reset domain condition permits a later alert.
 - Failed checks and failed delivery follow explicit retry semantics.
 - Daemons start only after plugin ready hooks and stop cleanly.

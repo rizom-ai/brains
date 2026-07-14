@@ -16,10 +16,22 @@ import type { AgentEntity } from "../schemas/agent";
 
 const agentScanDirectoriesInputSchema = z.object({});
 
-type AgentScanContext = Pick<
+export type AgentScanContext = Pick<
   EntityPluginContext | ServicePluginContext,
   "entityService" | "permissions" | "domain"
 >;
+
+export interface AgentScanDirectoriesResult {
+  peersScanned: number;
+  unreachablePeers: number;
+  created: number;
+  updated: number;
+  alreadyKnown: number;
+  unverified: number;
+  createdDomains: string[];
+  introducingPeers: string[];
+  observedAt: string;
+}
 
 const remoteDirectorySchema = z.object({
   agents: z.array(z.object({ name: z.string(), url: z.string() })),
@@ -41,6 +53,123 @@ async function fetchAgentDirectory(
   } catch {
     return null;
   }
+}
+
+export async function scanAgentDirectories(
+  context: AgentScanContext,
+  fetchFn: FetchFn = globalThis.fetch,
+): Promise<AgentScanDirectoriesResult> {
+  const allAgents = await context.entityService.listEntities<AgentEntity>({
+    entityType: AGENT_ENTITY_TYPE,
+  });
+  const peers = allAgents.filter(
+    (agent) => agent.metadata.status === "approved",
+  );
+  const selfDomain = context.domain?.toLowerCase();
+
+  // Aggregate across all directories first so an agent reported by
+  // several peers is upserted once, with its full set of introducers.
+  const introducersByDomain = new Map<string, Set<string>>();
+  let unreachablePeers = 0;
+  for (const peer of peers) {
+    const directory = await fetchAgentDirectory(peer.id, fetchFn);
+    if (!directory) {
+      unreachablePeers += 1;
+      continue;
+    }
+    for (const entry of directory.agents) {
+      const domain = extractDomain(entry.url).toLowerCase();
+      if (!domain || domain === selfDomain || domain === peer.id) continue;
+      const introducers = introducersByDomain.get(domain) ?? new Set();
+      introducers.add(peer.id);
+      introducersByDomain.set(domain, introducers);
+    }
+  }
+
+  const agentsById = new Map(allAgents.map((agent) => [agent.id, agent]));
+  const now = new Date().toISOString();
+  const createdDomains: string[] = [];
+  const introducingPeers = new Set<string>();
+  let created = 0;
+  let updated = 0;
+  let alreadyKnown = 0;
+  let unverified = 0;
+
+  for (const [domain, introducers] of introducersByDomain) {
+    const existing = agentsById.get(domain);
+    if (existing) {
+      const { frontmatter, body } = agentAdapter.parseEntity(existing);
+      const prior = frontmatter.introducedBy ?? [];
+      // Only sightings accumulate introducers. Agents known first-hand
+      // (connected, or discovered via ATProto) don't gain provenance
+      // from peer reports — how we already know them stands.
+      if (frontmatter.status !== "discovered" || prior.length === 0) {
+        alreadyKnown += 1;
+        continue;
+      }
+      const merged = [
+        ...prior,
+        ...[...introducers].filter((id) => !prior.includes(id)),
+      ];
+      if (merged.length === prior.length) continue;
+
+      await context.entityService.updateEntity({
+        entity: {
+          ...existing,
+          content: agentAdapter.createAgentContent({
+            ...frontmatter,
+            introducedBy: merged,
+            about: body.about,
+            skills: body.skills,
+            notes: body.notes,
+          }),
+          updated: now,
+        },
+      });
+      updated += 1;
+      continue;
+    }
+
+    // The pointee's own card is the source of truth — the peer only
+    // vouches that it exists.
+    const card = await fetchAgentCard(domain, fetchFn);
+    if (!card) {
+      unverified += 1;
+      continue;
+    }
+
+    const built = buildAgentFromCard(card, {
+      status: "discovered",
+      provenance: { introducedBy: [...introducers], hops: 2 },
+    });
+    const parsedContent = agentAdapter.fromMarkdown(built.content);
+    await context.entityService.createEntity({
+      entity: {
+        id: domain,
+        entityType: AGENT_ENTITY_TYPE,
+        content: built.content,
+        metadata: { ...parsedContent.metadata, ...built.metadata },
+        visibility: "public",
+        created: now,
+        updated: now,
+      },
+    });
+    created += 1;
+    createdDomains.push(domain);
+    for (const introducer of introducers) introducingPeers.add(introducer);
+  }
+
+  return {
+    peersScanned: peers.length,
+    unreachablePeers,
+    created,
+    updated,
+    alreadyKnown,
+    unverified,
+    createdDomains,
+    introducingPeers: [...introducingPeers],
+    observedAt: now,
+  };
 }
 
 export function createAgentScanDirectoriesTool(
@@ -76,111 +205,16 @@ export function createAgentScanDirectoriesTool(
         };
       }
 
-      const allAgents = await context.entityService.listEntities<AgentEntity>({
-        entityType: AGENT_ENTITY_TYPE,
-      });
-      const peers = allAgents.filter(
-        (agent) => agent.metadata.status === "approved",
-      );
-      const selfDomain = context.domain?.toLowerCase();
-
-      // Aggregate across all directories first so an agent reported by
-      // several peers is upserted once, with its full set of introducers.
-      const introducersByDomain = new Map<string, Set<string>>();
-      let unreachablePeers = 0;
-      for (const peer of peers) {
-        const directory = await fetchAgentDirectory(peer.id, fetchFn);
-        if (!directory) {
-          unreachablePeers += 1;
-          continue;
-        }
-        for (const entry of directory.agents) {
-          const domain = extractDomain(entry.url).toLowerCase();
-          if (!domain || domain === selfDomain || domain === peer.id) continue;
-          const introducers = introducersByDomain.get(domain) ?? new Set();
-          introducers.add(peer.id);
-          introducersByDomain.set(domain, introducers);
-        }
-      }
-
-      const agentsById = new Map(allAgents.map((agent) => [agent.id, agent]));
-      const now = new Date().toISOString();
-      let created = 0;
-      let updated = 0;
-      let alreadyKnown = 0;
-      let unverified = 0;
-
-      for (const [domain, introducers] of introducersByDomain) {
-        const existing = agentsById.get(domain);
-        if (existing) {
-          const { frontmatter, body } = agentAdapter.parseEntity(existing);
-          const prior = frontmatter.introducedBy ?? [];
-          // Only sightings accumulate introducers. Agents known first-hand
-          // (connected, or discovered via ATProto) don't gain provenance
-          // from peer reports — how we already know them stands.
-          if (frontmatter.status !== "discovered" || prior.length === 0) {
-            alreadyKnown += 1;
-            continue;
-          }
-          const merged = [
-            ...prior,
-            ...[...introducers].filter((id) => !prior.includes(id)),
-          ];
-          if (merged.length === prior.length) continue;
-
-          await context.entityService.updateEntity({
-            entity: {
-              ...existing,
-              content: agentAdapter.createAgentContent({
-                ...frontmatter,
-                introducedBy: merged,
-                about: body.about,
-                skills: body.skills,
-                notes: body.notes,
-              }),
-              updated: now,
-            },
-          });
-          updated += 1;
-          continue;
-        }
-
-        // The pointee's own card is the source of truth — the peer only
-        // vouches that it exists.
-        const card = await fetchAgentCard(domain, fetchFn);
-        if (!card) {
-          unverified += 1;
-          continue;
-        }
-
-        const built = buildAgentFromCard(card, {
-          status: "discovered",
-          provenance: { introducedBy: [...introducers], hops: 2 },
-        });
-        const parsedContent = agentAdapter.fromMarkdown(built.content);
-        await context.entityService.createEntity({
-          entity: {
-            id: domain,
-            entityType: AGENT_ENTITY_TYPE,
-            content: built.content,
-            metadata: { ...parsedContent.metadata, ...built.metadata },
-            visibility: "public",
-            created: now,
-            updated: now,
-          },
-        });
-        created += 1;
-      }
-
+      const result = await scanAgentDirectories(context, fetchFn);
       return {
         success: true,
         data: {
-          peersScanned: peers.length,
-          unreachablePeers,
-          created,
-          updated,
-          alreadyKnown,
-          unverified,
+          peersScanned: result.peersScanned,
+          unreachablePeers: result.unreachablePeers,
+          created: result.created,
+          updated: result.updated,
+          alreadyKnown: result.alreadyKnown,
+          unverified: result.unverified,
         },
       };
     },

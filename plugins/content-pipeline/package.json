@@ -5,8 +5,8 @@
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "croner": "^10.0.1"
+    "@brains/scheduler": "workspace:*",
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

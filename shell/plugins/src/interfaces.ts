@@ -56,6 +56,7 @@ import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
 import type { IAttachmentsNamespace } from "./service/attachment-registry";
+import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type {
@@ -300,6 +301,7 @@ export interface IShell {
   getAttachmentRegistry(): IAttachmentsNamespace;
   getRuntimeUploadRegistry(): IRuntimeUploadsNamespace;
   getRuntimeState(): IRuntimeStateNamespace;
+  getRecurringChecks(pluginId: string): IRecurringChecksNamespace;
 
   // Identity and Profile
   getIdentity(): BrainCharacter;

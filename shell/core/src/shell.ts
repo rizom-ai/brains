@@ -40,6 +40,7 @@ import type { IContentService } from "@brains/content-service";
 
 // Messaging
 import type { IMessageBus } from "@brains/messaging-service";
+import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 
 // Identity
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
@@ -367,6 +368,10 @@ export class Shell implements IShell {
     return this.services.runtimeStateService;
   }
 
+  public getRecurringChecks(pluginId: string): IRecurringChecksNamespace {
+    return this.services.recurringCheckService.namespace(pluginId);
+  }
+
   public getMessageBus(): IMessageBus {
     return this.services.messageBus;
   }
@@ -450,6 +455,7 @@ export class Shell implements IShell {
   public unregisterPluginCapabilities(pluginId: string): void {
     this.services.mcpService.unregisterPlugin?.(pluginId);
     this.services.jobQueueService.unregisterPluginHandlers(pluginId);
+    this.services.recurringCheckService.unregisterPlugin(pluginId);
     this.endpointRegistry.unregister(pluginId);
     this.interactionRegistry.unregister(pluginId);
 

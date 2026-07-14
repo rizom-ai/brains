@@ -55,6 +55,7 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
   attachmentRegistry: { honoredByCore: true, cleanup: "none" },
   runtimeUploadRegistry: { honoredByCore: true, cleanup: "none" },
   runtimeStateService: { honoredByCore: true, cleanup: "close" },
+  recurringCheckService: { honoredByCore: true, cleanup: "stop" },
 };
 
 const logger = createSilentLogger("service-ownership");

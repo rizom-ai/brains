@@ -4,9 +4,13 @@ import {
   opportunityConfigSchema,
   opportunitySchema,
   type OpportunityConfig,
+  type OpportunityConfigInput,
   type OpportunityEntity,
 } from "./schemas/opportunity";
-import { opportunityAdapter } from "./adapters/opportunity-adapter";
+import {
+  opportunityAdapter,
+  type OpportunityAdapter,
+} from "./adapters/opportunity-adapter";
 import { OpportunityFocusDataSource } from "./datasources/opportunity-focus-datasource";
 import { OpportunityStackDataSource } from "./datasources/opportunity-stack-datasource";
 import { buildOpportunityFocus } from "./lib/opportunity-focus";
@@ -15,13 +19,14 @@ import packageJson from "../package.json";
 
 export class BusinessDevelopmentPlugin extends EntityPlugin<
   OpportunityEntity,
-  OpportunityConfig
+  OpportunityConfig,
+  OpportunityConfigInput
 > {
-  readonly entityType = opportunityAdapter.entityType;
-  readonly schema = opportunitySchema;
-  readonly adapter = opportunityAdapter;
+  readonly entityType = "opportunity" as const;
+  readonly schema: typeof opportunitySchema = opportunitySchema;
+  readonly adapter: OpportunityAdapter = opportunityAdapter;
 
-  constructor(config: Partial<OpportunityConfig> = {}) {
+  constructor(config: OpportunityConfigInput = {}) {
     super("business-development", packageJson, config, opportunityConfigSchema);
   }
 
@@ -87,15 +92,17 @@ export class BusinessDevelopmentPlugin extends EntityPlugin<
 }
 
 export function createBusinessDevelopmentPlugin(
-  config: Partial<OpportunityConfig> = {},
+  config: OpportunityConfigInput = {},
 ): Plugin {
   return new BusinessDevelopmentPlugin(config);
 }
 
-export const businessDevelopmentPlugin = createBusinessDevelopmentPlugin;
+export const businessDevelopmentPlugin: typeof createBusinessDevelopmentPlugin =
+  createBusinessDevelopmentPlugin;
 
 export type {
   OpportunityConfig,
+  OpportunityConfigInput,
   OpportunityEntity,
   OpportunityFrontmatter,
   OpportunityMetadata,

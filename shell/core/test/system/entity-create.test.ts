@@ -689,6 +689,18 @@ describe("system_create tool", () => {
   });
 
   it("hydrates structured create fields through the registered frontmatter schema", async () => {
+    services.addEntities([
+      {
+        id: "existing-note-type-registration",
+        entityType: "note",
+        content: "Existing note",
+        metadata: { title: "Existing Note" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-existing-note-type-registration",
+      },
+    ]);
+
     const result = await exec({
       entityType: "note",
       title: "Fielded Note",
