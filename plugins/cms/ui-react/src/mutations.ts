@@ -1,4 +1,4 @@
-import { createEntity, updateEntity } from "./api";
+import { createEntity, deleteEntity, updateEntity } from "./api";
 
 export type SaveEntityInput =
   | {
@@ -16,10 +16,21 @@ export type SaveEntityInput =
       baseContentHash: string;
     };
 
+export interface DeleteEntityInput {
+  entityType: string;
+  id: string;
+}
+
 export interface SaveEntityResult {
   entityId: string;
   jobId: string;
   skipped?: boolean;
+}
+
+export function removeEntity(
+  input: DeleteEntityInput,
+): Promise<{ deleted: boolean }> {
+  return deleteEntity(input.entityType, input.id);
 }
 
 export function saveEntity(input: SaveEntityInput): Promise<SaveEntityResult> {

@@ -16,7 +16,6 @@ import responsiveStyles from "./responsive.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   ApiError,
-  deleteEntity,
   requestAgentAnswer,
   requestAssist,
   requestFieldAssist,
@@ -30,7 +29,7 @@ import {
   type GitSyncState,
 } from "./api";
 import { createEditorDocument } from "./editor-document";
-import { saveEntity, type SaveEntityInput } from "./mutations";
+import { removeEntity, saveEntity, type SaveEntityInput } from "./mutations";
 import {
   agentTargetsQueryOptions,
   cmsKeys,
@@ -1288,7 +1287,6 @@ export function App(): ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const saveStartedAt = useRef(0);
   // Entity id from a console-jump door, opened once its collection loads.
   const pendingDeepLinkId = useRef<string | null>(null);
@@ -1315,6 +1313,8 @@ export function App(): ReactElement {
     enabled: entityType !== null && activeEntityId !== null,
   });
   const saveEntityMutation = useMutation({ mutationFn: saveEntity });
+  const deleteEntityMutation = useMutation({ mutationFn: removeEntity });
+  const deleting = deleteEntityMutation.isPending;
 
   const activeType = types?.find((info) => info.entityType === entityType);
 
@@ -1570,23 +1570,33 @@ export function App(): ReactElement {
   const remove = useCallback((): void => {
     if (!entityType || mode.kind !== "edit" || deleting) return;
     const { id } = mode.entity;
-    setDeleting(true);
     // Recoverable downstream: the delete is exported and committed, so the
     // file remains in git history.
-    deleteEntity(entityType, id)
-      .then(async () => {
-        setDeleteOpen(false);
-        setMode({ kind: "browse" });
-        await queryClient.invalidateQueries({
-          queryKey: cmsKeys.entities(entityType),
-        });
-      })
-      .catch((error: unknown) => {
-        setDeleteOpen(false);
-        setSaveState({ kind: "error", message: errorMessage(error) });
-      })
-      .finally(() => setDeleting(false));
-  }, [entityType, mode, deleting, queryClient]);
+    deleteEntityMutation.mutate(
+      { entityType, id },
+      {
+        onSuccess: async () => {
+          setDeleteOpen(false);
+          setMode({ kind: "browse" });
+          queryClient.removeQueries({
+            queryKey: cmsKeys.entity(entityType, id),
+          });
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: cmsKeys.entities(entityType),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: cmsKeys.syncStatus(),
+            }),
+          ]);
+        },
+        onError: (error: Error) => {
+          setDeleteOpen(false);
+          setSaveState({ kind: "error", message: errorMessage(error) });
+        },
+      },
+    );
+  }, [entityType, mode, deleting, queryClient, deleteEntityMutation]);
 
   const visibleLoadError =
     loadError ??
