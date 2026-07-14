@@ -1,5 +1,16 @@
 # @brains/note
 
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.175
+  - @brains/atproto-contracts@0.2.0-alpha.175
+  - @brains/document@0.2.0-alpha.175
+  - @brains/contracts@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+
 ## 0.2.0-alpha.174
 
 ### Patch Changes

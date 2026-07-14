@@ -1,5 +1,17 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- [#57](https://github.com/rizom-ai/brains/pull/57) [`b148151`](https://github.com/rizom-ai/brains/commit/b148151a76a1e7cab2030f0a9916375de40b74d1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the internal job-service tags and scoped Layers into an `@brains/job-queue/effect` surface so shell packages can compose queue and runtime ownership across package boundaries without exposing Effect through public runtime APIs.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.175
+  - @brains/effect-runtime@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+  - @brains/mcp-service@0.2.0-alpha.175
+
 ## 0.2.0-alpha.174
 
 ### Patch Changes

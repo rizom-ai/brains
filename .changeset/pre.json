@@ -214,6 +214,7 @@
     "image-target-fields-standalone",
     "inline-media-preview",
     "isolate-mcp-conversations",
+    "job-queue-effect-surface",
     "link-capture-alias-fix",
     "linkedin-native-documents",
     "local-auth-issuer-defaults",
