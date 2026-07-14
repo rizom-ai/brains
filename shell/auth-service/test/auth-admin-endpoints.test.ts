@@ -94,6 +94,7 @@ describe("auth admin API", () => {
 
     expect(unauthenticated.status).toBe(401);
     expect(forbidden.status).toBe(403);
+    expect(await forbidden.json()).toEqual({ error: "Anchor access required" });
     expect(owner.permissionLevel).toBe("anchor");
   });
 

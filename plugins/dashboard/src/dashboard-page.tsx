@@ -9,6 +9,7 @@ import { InteractionsCard } from "./render/interactions-card";
 import { WidgetCard } from "./render/widget-card";
 import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
+import { DASHBOARD_PEOPLE_SCRIPT, PeoplePanel } from "./render/people-panel";
 import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
 import {
   CONSOLE_CLIMATE_SCRIPT,
@@ -244,49 +245,69 @@ const DASHBOARD_TABS_SCRIPT = `(function () {
   });
 })();`;
 
-function OperatorGate({
+function RestrictedAccessGate({
   hiddenWidgetCount,
   loginUrl,
+  principal,
 }: {
   hiddenWidgetCount: number;
   loginUrl: string;
+  principal: NonNullable<DashboardRenderInput["authAccess"]>["principal"];
 }): JSX.Element {
   return (
-    <section class="card operator-gate">
+    <section class="card access-gate">
       <div>
-        <div class="card-title">Operator access</div>
+        <div class="card-title">Restricted access</div>
         <p>
           {hiddenWidgetCount === 1
             ? "1 private console widget is hidden."
             : `${hiddenWidgetCount} private console widgets are hidden.`}{" "}
           {""}
-          Sign in with your passkey to unlock the restricted layer.
+          {principal
+            ? `Your ${roleLabel(principal.role)} role does not include this layer.`
+            : "Sign in with your passkey to unlock the restricted layer."}
         </p>
       </div>
-      <a class="operator-gate-link" href={loginUrl}>
-        Sign in
-      </a>
+      {!principal && (
+        <a class="access-gate-link" href={loginUrl}>
+          Sign in
+        </a>
+      )}
     </section>
   );
+}
+
+function roleLabel(role: "anchor" | "trusted" | "public"): string {
+  return `${role.slice(0, 1).toUpperCase()}${role.slice(1)}`;
+}
+
+function initials(displayName: string): string {
+  return displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.slice(0, 1).toUpperCase())
+    .join("");
 }
 
 function ConsoleStrip({
   dashboardPath,
   surfaces,
-  operatorAccess,
+  authAccess,
 }: {
   dashboardPath: string;
   surfaces: ConsoleSurface[];
-  operatorAccess: DashboardRenderInput["operatorAccess"];
+  authAccess: DashboardRenderInput["authAccess"];
 }): JSX.Element {
-  const sessionHref = operatorAccess?.isOperator
-    ? operatorAccess.logoutUrl
-    : (operatorAccess?.loginUrl ?? "/login");
-  const sessionLabel = operatorAccess?.isOperator ? "Operator" : "Visitor";
-  const sessionAction = operatorAccess?.isOperator ? "Sign out" : "Sign in";
+  const principal = authAccess?.principal;
+  const sessionHref = principal
+    ? authAccess.logoutUrl
+    : (authAccess?.loginUrl ?? "/login");
+  const sessionLabel = principal?.displayName ?? "Visitor";
+  const sessionAction = principal ? "Sign out" : "Sign in";
 
   return (
-    <header class="console-strip" aria-label="Operator surfaces">
+    <header class="console-strip" aria-label="Console surfaces">
       <a class="console-mark" href={dashboardPath} aria-label="Dashboard home">
         <span class="pulse"></span>
         <span>
@@ -327,25 +348,30 @@ function ConsoleStrip({
         ◐
       </button>
       <a
-        class={
-          operatorAccess?.isOperator
-            ? "session-chip"
-            : "session-chip is-visitor"
-        }
+        class={principal ? "session-chip" : "session-chip is-visitor"}
         href={sessionHref}
-        aria-label={`${sessionLabel} · ${sessionAction}`}
+        aria-label={`${sessionLabel} · ${principal ? roleLabel(principal.role) : sessionAction} · ${sessionAction}`}
       >
-        <span>{sessionLabel}</span>
+        <span>
+          {sessionLabel}
+          {principal ? ` · ${roleLabel(principal.role)}` : ""}
+        </span>
         <strong>{sessionAction}</strong>
         <span class="session-chip-avatar" aria-hidden="true">
-          {operatorAccess?.isOperator ? "OP" : "VI"}
+          {principal ? initials(principal.displayName) : "VI"}
         </span>
       </a>
     </header>
   );
 }
 
-function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
+function TabBar({
+  tabs,
+  showPeople,
+}: {
+  tabs: WidgetTab[];
+  showPeople: boolean;
+}): JSX.Element {
   return (
     <nav class="dashboard-tabs" aria-label="Dashboard sections" role="tablist">
       <a
@@ -374,6 +400,17 @@ function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
           ) : null}
         </a>
       ))}
+      {showPeople && (
+        <a
+          class="dashboard-tab"
+          href="#people"
+          role="tab"
+          aria-selected="false"
+          data-dashboard-tab-link="people"
+        >
+          People
+        </a>
+      )}
     </nav>
   );
 }
@@ -820,11 +857,11 @@ function JobQueueCard({
 function OverviewPanel({
   input,
   tabs,
-  showOperatorGate,
+  showAccessGate,
 }: {
   input: DashboardRenderInput;
   tabs: WidgetTab[];
-  showOperatorGate: boolean;
+  showAccessGate: boolean;
 }): JSX.Element {
   const digestCards = buildOverviewDigestCards(tabs, input);
   const activityLog = input.activityLog ?? [];
@@ -838,10 +875,11 @@ function OverviewPanel({
     >
       <VitalsRow input={input} />
       <IdentityCapsule input={input} />
-      {showOperatorGate && input.operatorAccess && (
-        <OperatorGate
-          hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
-          loginUrl={input.operatorAccess.loginUrl}
+      {showAccessGate && input.authAccess && (
+        <RestrictedAccessGate
+          hiddenWidgetCount={input.authAccess.hiddenWidgetCount}
+          loginUrl={input.authAccess.loginUrl}
+          principal={input.authAccess.principal}
         />
       )}
       <div class="overview-grid">
@@ -936,10 +974,9 @@ function DashboardDocument({
   input: DashboardRenderInput;
 }): JSX.Element {
   const tabs = groupExternalWidgets(input.widgets);
-  const showOperatorGate =
-    input.operatorAccess &&
-    !input.operatorAccess.isOperator &&
-    input.operatorAccess.hiddenWidgetCount > 0;
+  const showAccessGate =
+    input.authAccess !== undefined && input.authAccess.hiddenWidgetCount > 0;
+  const showPeople = input.authAccess?.principal?.role === "anchor";
   const dashboardPath = input.dashboardPath ?? "/dashboard";
   const now = new Date();
 
@@ -983,19 +1020,19 @@ function DashboardDocument({
               },
             ]
           }
-          operatorAccess={input.operatorAccess}
+          authAccess={input.authAccess}
         />
         <main class="console" data-component="dashboard:dashboard">
           <div class="frame">
             <Masthead title={input.title} tagline={input.profile.description} />
-            <TabBar tabs={tabs} />
+            <TabBar tabs={tabs} showPeople={showPeople} />
 
             <div class="canvas">
               <div class="dashboard-tab-panels">
                 <OverviewPanel
                   input={input}
                   tabs={tabs}
-                  showOperatorGate={Boolean(showOperatorGate)}
+                  showAccessGate={showAccessGate}
                 />
                 {tabs.map((tab) => (
                   <WidgetTabPanel
@@ -1005,6 +1042,7 @@ function DashboardDocument({
                     now={now}
                   />
                 ))}
+                {showPeople && <PeoplePanel />}
               </div>
             </div>
           </div>
@@ -1019,6 +1057,11 @@ function DashboardDocument({
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_PALETTE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: DASHBOARD_TABS_SCRIPT }} />
+        {showPeople && (
+          <script
+            dangerouslySetInnerHTML={{ __html: DASHBOARD_PEOPLE_SCRIPT }}
+          />
+        )}
         {input.widgetScripts.map((script, index) => (
           <script
             key={`widget-script:${index}`}

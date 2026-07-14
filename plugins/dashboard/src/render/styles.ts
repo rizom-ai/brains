@@ -1,5 +1,5 @@
 /**
- * CSS for the operator-console dashboard.
+ * CSS for the Brain Console dashboard.
  *
  * The palette, type ramp, and console-strip chrome come from the shared
  * @brains/console-theme sheet; this module only appends the dashboard's
@@ -7,10 +7,13 @@
  */
 import { CONSOLE_THEME_CSS } from "@brains/console-theme";
 import componentStyles from "./styles/components.css" with { type: "text" };
+import peoplePanelStyles from "./styles/people-panel.css" with { type: "text" };
 import responsiveStyles from "./styles/responsive.css" with { type: "text" };
 
 export const DASHBOARD_STYLES: string = `${CONSOLE_THEME_CSS}
 
 ${componentStyles}
+
+${peoplePanelStyles}
 
 ${responsiveStyles}`;

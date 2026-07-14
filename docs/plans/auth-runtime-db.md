@@ -303,7 +303,7 @@ Validation: trusted users cannot call anchor-only tools; suspended users are den
 
 ### Phase 5 — Management surface
 
-**Status: backend implemented; People client remains in phase 7.** User, role, status, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin anchor-session API and remain deliberately absent from model tools.
+**Status: implemented, including the People client completed in phase 7.** User, role, status, identity, passkey, session-revocation, and user-specific passkey-registration operations are available through a same-origin anchor-session API and remain deliberately absent from model tools.
 
 - Add an authenticated, anchor-driven admin API/dashboard and optional local CLI wrappers for user/identity/passkey management.
 - Require explicit anchor interaction and confirmation for role, status, identity, and credential mutations.
@@ -324,15 +324,16 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 
 ### Phase 7 — Auth-session terminology and People dashboard
 
-**Status: required and open.**
+**Status: dashboard implemented; compatibility terminology migration remains open.**
 
-- Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
-- Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; retain temporary aliases only where compatibility requires them.
-- Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.
-- Rename `OperatorSetupRequired` and user-facing operator setup/login copy to first-anchor setup or generic passkey/authenticated-session language.
-- Keep `single-operator` only as an immutable historical migration alias.
-- Make dashboard permission resolution use `resolveSession()` and the principal's actual role instead of treating any session as anchor.
-- Add the anchor-only People tab and canonical `Anchor`/`Trusted`/`Public` masthead labels required by the multi-user plan.
+- [x] Approve the lightweight [People dashboard mockup](../design/people-dashboard-mockup.html).
+- [ ] Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
+- [ ] Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; retain temporary aliases only where compatibility requires them.
+- [ ] Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.
+- [ ] Rename `OperatorSetupRequired` and user-facing operator setup/login copy to first-anchor setup or generic passkey/authenticated-session language.
+- [ ] Keep `single-operator` only as an immutable historical migration alias.
+- [x] Make dashboard permission resolution use `resolveSession()` and the principal's actual role instead of treating any session as anchor.
+- [x] Add the anchor-only People tab and canonical `Anchor`/`Trusted`/`Public` masthead labels required by the multi-user plan.
 
 Validation: existing sessions survive migration; trusted sessions stay trusted in the dashboard; only anchors can use People administration; no user-facing role copy says Owner or Operator.
 

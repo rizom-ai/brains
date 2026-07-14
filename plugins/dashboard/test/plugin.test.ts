@@ -91,7 +91,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("/api/console/jump");
     });
 
-    it("should require an operator session for the console jump", async () => {
+    it("should require an authenticated session for the console jump", async () => {
       const route = plugin
         .getWebRoutes()
         .find((r) => r.path === "/api/console/jump");
@@ -103,7 +103,7 @@ describe("DashboardPlugin", () => {
       expect(response?.status).toBe(401);
     });
 
-    it("should return grouped jump doors for an operator", async () => {
+    it("should return grouped jump doors for an authenticated user", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: `/tmp/dashboard-jump-auth-${Date.now()}`,
       });
@@ -392,12 +392,64 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Semantic index · ready · 0 active");
     });
 
-    it("should show anchor endpoints and interactions to signed-in operators", async () => {
+    it("should retain the authenticated user's actual dashboard role", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-trusted-auth-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const trustedUser = await authPlugin.getService().createUser({
+        displayName: "Mira Reyes",
+        role: "trusted",
+        status: "active",
+      });
+      const session = await authPlugin
+        .getService()
+        .createOperatorSession(trustedUser.userId);
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+      const shell = harness.getMockShell();
+      shell.registerEndpoint({
+        label: "MCP",
+        url: "/mcp",
+        pluginId: "mcp",
+        priority: 30,
+        visibility: "trusted",
+      });
+      shell.registerEndpoint({
+        label: "CMS",
+        url: "/cms",
+        pluginId: "cms",
+        priority: 40,
+        visibility: "anchor",
+      });
+
+      const routes = plugin.getWebRoutes();
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard", {
+          headers: { Cookie: cookie },
+        }),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain("Mira Reyes");
+      expect(html).toContain("Trusted");
+      expect(html).toContain("MCP");
+      expect(html).not.toContain("CMS");
+      expect(html).not.toContain('href="#people"');
+    });
+
+    it("should show anchor endpoints, interactions, and People to an anchor", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: `/tmp/dashboard-auth-${Date.now()}`,
       });
       await harness.installPlugin(authPlugin);
-      const session = await authPlugin.getService().createOperatorSession();
+      const anchorUser = await authPlugin.getService().createUser({
+        displayName: "Yeehaa",
+        role: "anchor",
+        status: "active",
+      });
+      const session = await authPlugin
+        .getService()
+        .createOperatorSession(anchorUser.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       const shell = harness.getMockShell();
       shell.registerEndpoint({
@@ -432,8 +484,13 @@ describe("DashboardPlugin", () => {
       );
       const html = await response?.text();
 
+      expect(html).toContain("Yeehaa");
+      expect(html).toContain("Anchor");
       expect(html).toContain("MCP");
       expect(html).toContain("CMS");
+      expect(html).toContain('href="#people"');
+      expect(html).toContain('id="people"');
+      expect(html).toContain("/auth/admin/users");
       expect(html).not.toContain("restricted widget is hidden");
     });
   });

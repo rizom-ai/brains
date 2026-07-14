@@ -330,14 +330,15 @@ Validation:
 
 ### Phase 5 — Dashboard People UX and terminology migration
 
-**Status: required and open.**
+**Status: dashboard implemented; compatibility terminology migration remains open.**
 
-- Add an anchor-only People tab at `/dashboard#people` over the existing admin API.
-- Support user listing/creation, role and status changes, identity attach/detach, passkey setup/revocation, and user-session revocation with explicit confirmations.
-- Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-anchor elevation.
-- Show `Name · Anchor|Trusted|Public · Sign out` in the masthead.
-- Rename legacy operator session/store/cookie/setup identifiers according to the terminology contract, with DB and cookie compatibility migration.
-- Update tests, docs, and UI copy so Operator and Owner are never presented as roles.
+- [x] Approve the lightweight [People dashboard mockup](../design/people-dashboard-mockup.html).
+- [x] Add an anchor-only People tab at `/dashboard#people` over the existing admin API.
+- [x] Support user listing/creation, role and status changes, identity attach/detach, passkey setup/revocation, and user-session revocation with explicit confirmations.
+- [x] Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-anchor elevation.
+- [x] Show `Name · Anchor|Trusted|Public · Sign out` in the console masthead.
+- [ ] Rename legacy operator session/store/cookie/setup identifiers according to the terminology contract, with DB and cookie compatibility migration.
+- [ ] Update remaining tests, docs, and shared UI copy so Operator and Owner are never presented as roles.
 
 Validation:
 

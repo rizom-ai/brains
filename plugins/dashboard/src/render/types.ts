@@ -20,8 +20,14 @@ export interface RenderableWidgetData extends WidgetData {
   component?: WidgetComponent;
 }
 
-export interface DashboardOperatorAccess {
-  isOperator: boolean;
+export interface DashboardSessionPrincipal {
+  displayName: string;
+  role: "anchor" | "trusted" | "public";
+  permissionLevel: "anchor" | "trusted" | "public";
+}
+
+export interface DashboardAuthAccess {
+  principal?: DashboardSessionPrincipal;
   hiddenWidgetCount: number;
   loginUrl: string;
   logoutUrl: string;
@@ -81,7 +87,7 @@ export interface DashboardRenderInput {
   indexReady?: boolean;
   indexStatus?: DashboardIndexStatus;
   directorySyncStatus?: DashboardDirectorySyncStatus;
-  operatorAccess?: DashboardOperatorAccess;
+  authAccess?: DashboardAuthAccess;
 }
 
 // exactOptionalPropertyTypes = true treats `x?: string` and

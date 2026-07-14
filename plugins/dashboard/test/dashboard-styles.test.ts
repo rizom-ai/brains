@@ -32,6 +32,18 @@ describe("DASHBOARD_STYLES", () => {
     expect(localStyles).not.toContain(".session-chip");
   });
 
+  it("centers People dialogs in the viewport despite the global reset", () => {
+    const dialogRule = DASHBOARD_STYLES.match(
+      /\.people-dialog\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(dialogRule).toContain("position: fixed");
+    expect(dialogRule).toContain("inset: 0");
+    expect(dialogRule).toContain("margin: auto");
+    expect(dialogRule).toContain("max-height: calc(100dvh - 32px)");
+    expect(dialogRule).toContain("overflow-y: auto");
+  });
+
   it("ships a phone composition for tabs, vitals, and job rows", () => {
     expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
     expect(DASHBOARD_STYLES).toContain("overscroll-behavior-inline: contain");

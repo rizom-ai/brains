@@ -392,12 +392,10 @@ export class DashboardPlugin extends ServicePlugin<
           }
 
           const ctx = this.ctx;
-          const operatorSession =
-            await getActiveAuthService()?.getOperatorSession(request);
-          const isOperator = Boolean(operatorSession);
-          const permissionLevel: WidgetVisibility = isOperator
-            ? "anchor"
-            : "public";
+          const principal =
+            await getActiveAuthService()?.resolveSession(request);
+          const permissionLevel: WidgetVisibility =
+            principal?.permissionLevel ?? "public";
           const anchorWidgets =
             this.widgetRegistry?.list({ permissionLevel: "anchor" }) ?? [];
           const visibleWidgets = anchorWidgets.filter((widget) =>
@@ -473,8 +471,16 @@ export class DashboardPlugin extends ServicePlugin<
             ...(this.config.themeCSS !== undefined && {
               themeCSS: this.config.themeCSS,
             }),
-            operatorAccess: {
-              isOperator,
+            authAccess: {
+              ...(principal
+                ? {
+                    principal: {
+                      displayName: principal.displayName,
+                      role: principal.role,
+                      permissionLevel: principal.permissionLevel,
+                    },
+                  }
+                : {}),
               hiddenWidgetCount,
               loginUrl: `/login?return_to=${encodedReturnTo}`,
               logoutUrl: `/logout?return_to=${encodedReturnTo}`,
@@ -491,11 +497,11 @@ export class DashboardPlugin extends ServicePlugin<
         method: "GET",
         public: true,
         handler: async (request: Request): Promise<Response> => {
-          const operatorSession =
-            await getActiveAuthService()?.getOperatorSession(request);
-          if (!operatorSession) {
+          const principal =
+            await getActiveAuthService()?.resolveSession(request);
+          if (!principal) {
             return Response.json(
-              { error: "Operator session required" },
+              { error: "Authentication required" },
               { status: 401 },
             );
           }

@@ -158,7 +158,7 @@ export async function handleAuthAdminRequest(
     return adminJson({ error: "Authentication required" }, 401);
   }
   if (principal.permissionLevel !== "anchor") {
-    return adminJson({ error: "Owner access required" }, 403);
+    return adminJson({ error: "Anchor access required" }, 403);
   }
 
   const path = new URL(request.url).pathname;

@@ -25,8 +25,7 @@ describe("renderDashboardPageHtml", () => {
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       widgetScripts: [],
-      operatorAccess: {
-        isOperator: false,
+      authAccess: {
         hiddenWidgetCount: 1,
         loginUrl: "/login?return_to=%2Fdashboard",
         logoutUrl: "/logout?return_to=%2Fdashboard",
@@ -35,9 +34,92 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("Operator access");
+    expect(html).toContain("Restricted access");
     expect(html).toContain("1 private console widget is hidden.");
     expect(html).toContain('href="/login?return_to=%2Fdashboard"');
+  });
+
+  it("should explain role-limited widgets without asking signed-in users to sign in again", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Brain",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Brain" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+      authAccess: {
+        principal: {
+          displayName: "Mira",
+          role: "trusted",
+          permissionLevel: "trusted",
+        },
+        hiddenWidgetCount: 1,
+        loginUrl: "/login",
+        logoutUrl: "/logout",
+      },
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain("Your Trusted role does not include this layer.");
+    expect(html).not.toContain('class="access-gate-link"');
+  });
+
+  it("should render the People administration client only for anchors", () => {
+    const anchorInput: DashboardRenderInput = {
+      title: "Test Brain",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Brain" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+      authAccess: {
+        principal: {
+          displayName: "Yeehaa",
+          role: "anchor",
+          permissionLevel: "anchor",
+        },
+        hiddenWidgetCount: 0,
+        loginUrl: "/login",
+        logoutUrl: "/logout",
+      },
+    };
+    const trustedInput: DashboardRenderInput = {
+      ...anchorInput,
+      authAccess: {
+        ...anchorInput.authAccess,
+        principal: {
+          displayName: "Mira",
+          role: "trusted",
+          permissionLevel: "trusted",
+        },
+      },
+    };
+
+    const anchorHtml = renderDashboardPageHtml(anchorInput);
+    const trustedHtml = renderDashboardPageHtml(trustedInput);
+
+    expect(anchorHtml).toContain('href="#people"');
+    expect(anchorHtml).toContain('data-people-list="true"');
+    expect(anchorHtml).toContain('data-people-detail="true"');
+    expect(anchorHtml).toContain('id="people-add-dialog"');
+    expect(anchorHtml).toContain('id="people-confirm-dialog"');
+    expect(anchorHtml).toContain('id="people-identity-dialog"');
+    expect(anchorHtml).toContain('id="people-setup-dialog"');
+    expect(anchorHtml).toContain("/auth/admin/users");
+    expect(anchorHtml).toContain("/auth/admin/mutations");
+    expect(anchorHtml).toContain("createUser");
+    expect(anchorHtml).toContain("updateUserRole");
+    expect(anchorHtml).toContain("updateUserStatus");
+    expect(anchorHtml).toContain("attachIdentity");
+    expect(anchorHtml).toContain("detachIdentity");
+    expect(anchorHtml).toContain("revokePasskey");
+    expect(anchorHtml).toContain("startPasskeyRegistration");
+    expect(anchorHtml).toContain("revokeUserSessions");
+    expect(trustedHtml).not.toContain('href="#people"');
+    expect(trustedHtml).not.toContain('data-people-list="true"');
   });
 
   it("should inject theme CSS before dashboard component styles", () => {
@@ -375,12 +457,12 @@ describe("renderDashboardPageHtml", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
-      dashboardPath: "/operator",
+      dashboardPath: "/console",
       surfaces: [
         {
           id: "dashboard",
           label: "Dashboard",
-          href: "/operator",
+          href: "/console",
           isActive: true,
         },
         { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
@@ -391,31 +473,36 @@ describe("renderDashboardPageHtml", () => {
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       widgetScripts: [],
-      operatorAccess: {
-        isOperator: true,
+      authAccess: {
+        principal: {
+          displayName: "Yeehaa",
+          role: "anchor",
+          permissionLevel: "anchor",
+        },
         hiddenWidgetCount: 0,
-        loginUrl: "/login?return_to=%2Foperator",
-        logoutUrl: "/logout?return_to=%2Foperator",
+        loginUrl: "/login?return_to=%2Fconsole",
+        logoutUrl: "/logout?return_to=%2Fconsole",
       },
     };
 
     const html = renderDashboardPageHtml(input);
 
     expect(html).toContain('class="console-strip"');
-    expect(html).toContain('href="/operator"');
+    expect(html).toContain('href="/console"');
     expect(html).toContain('href="/chat"');
     expect(html).toContain('href="/cms"');
-    expect(html).toContain("Operator");
+    expect(html).toContain("Yeehaa");
+    expect(html).toContain("Anchor");
     // Mockup strip chrome: brandmark, command palette hint, session chip.
     expect(html).toContain("Console");
     expect(html).toContain("<kbd>⌘K</kbd>");
-    // Operator session renders the plain chip (visitor modifier only exists
+    // An authenticated session renders the plain chip (visitor modifier only exists
     // in the sheet, not in the markup).
     expect(html).toContain('class="session-chip"');
     expect(html).not.toContain('class="session-chip is-visitor"');
   });
 
-  it("should render the visitor session chip as neutral, not operator-green", () => {
+  it("should render the visitor session chip as neutral", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -424,8 +511,7 @@ describe("renderDashboardPageHtml", () => {
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       widgetScripts: [],
-      operatorAccess: {
-        isOperator: false,
+      authAccess: {
         hiddenWidgetCount: 2,
         loginUrl: "/login?return_to=%2F",
         logoutUrl: "/logout?return_to=%2F",
@@ -494,8 +580,12 @@ describe("renderDashboardPageHtml", () => {
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       widgetScripts: [],
-      operatorAccess: {
-        isOperator: true,
+      authAccess: {
+        principal: {
+          displayName: "Yeehaa",
+          role: "anchor",
+          permissionLevel: "anchor",
+        },
         hiddenWidgetCount: 0,
         loginUrl: "/login?return_to=%2Fdashboard",
         logoutUrl: "/logout?return_to=%2Fdashboard",
@@ -550,8 +640,7 @@ describe("renderDashboardPageHtml", () => {
       }),
       widgets: {},
       widgetScripts: [],
-      operatorAccess: {
-        isOperator: false,
+      authAccess: {
         hiddenWidgetCount: 1,
         loginUrl: "/login?return_to=%2Fdashboard",
         logoutUrl: "/logout?return_to=%2Fdashboard",
@@ -564,12 +653,12 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('class="card identity-capsule"');
     expect(html).toContain("“Research brain”");
     expect(html).toContain('class="value">clarity</span>');
-    expect(html).toContain("Operator access");
+    expect(html).toContain("Restricted access");
     // Interactions move to the System tab; entity summary to Knowledge.
     expect(html).toContain("Ways to connect");
     expect(html).toContain("Let other agents talk to this brain.");
     expect(html).toContain('href="https://brain.test/a2a"');
-    expect(html.indexOf("Operator access")).toBeLessThan(
+    expect(html.indexOf("Restricted access")).toBeLessThan(
       html.indexOf('id="knowledge"'),
     );
     expect(html.indexOf('id="knowledge"')).toBeLessThan(
