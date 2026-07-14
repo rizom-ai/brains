@@ -1,5 +1,12 @@
 # @rizom/site-docs
 
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.171
+
 ## 0.2.0-alpha.170
 
 ### Patch Changes
