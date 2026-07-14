@@ -7,7 +7,8 @@ export const AGENT_PROXIMITY_WIDGET_ID = "agent-proximity";
 export const AGENT_PROXIMITY_WIDGET_RENDERER = "AgentProximityWidget";
 export const AGENT_DATASOURCE_ID = "agent-discovery:entities";
 export const AGENT_PROXIMITY_DATASOURCE_ID = "agent-discovery:proximity-map";
-export const AGENT_PROXIMITY_TEMPLATE_NAME = "agent-proximity-map";
+// Registered under the plugin scope: routes reference "agent-discovery:proximity-map".
+export const AGENT_PROXIMITY_TEMPLATE_NAME = "proximity-map";
 export const AGENT_LIST_TEMPLATE_NAME = "agent-list";
 export const AGENT_DETAIL_TEMPLATE_NAME = "agent-detail";
 

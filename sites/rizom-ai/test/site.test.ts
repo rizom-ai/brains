@@ -112,11 +112,12 @@ describe("@rizom/site-rizom-ai", () => {
     const sectionIds = route?.sections?.map((section) => section.id);
 
     // The map is the hero; the text hero is gone. Order follows the redesign:
-    // map → the dark (problem) → lights find each other (growth) → mission →
-    // faces → colophon.
+    // map → the dark (problem) → it starts with one light (the product) →
+    // lights find each other (growth) → mission → faces → colophon.
     expect(sectionIds).toEqual([
       "network",
       "problem",
+      "one-light",
       "growth",
       "mission",
       "faces",
@@ -139,10 +140,21 @@ describe("@rizom/site-rizom-ai", () => {
     expect(templates).toEqual([
       "agent-discovery:proximity-map",
       "home:problem",
+      "home:one-light",
       "home:growth",
       "home:mission",
       "home:faces",
       "home:alive",
     ]);
+  });
+
+  test("home section group carries the one-light product hook", () => {
+    const groups = Array.isArray(site.sections)
+      ? site.sections
+      : site.sections
+        ? [site.sections]
+        : [];
+    const home = groups.find((group) => group.namespace === "home");
+    expect(home && Object.keys(home.sections)).toContain("one-light");
   });
 });
