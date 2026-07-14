@@ -84,6 +84,9 @@ export class AgentAdapter extends BaseEntityAdapter<
         "A saved remote peer-brain contact in the local agent directory.",
       schema: agentEntitySchema,
       frontmatterSchema: agentFrontmatterSchema,
+      // Approval is the directory's publish gate: production site builds
+      // (publishedOnly) emit detail routes only for approved agents.
+      publishedStatuses: ["approved"],
     });
   }
 
