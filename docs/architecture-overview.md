@@ -182,6 +182,19 @@ Interface plugins are how users or other agents interact with a brain:
 - browsers connect through `interfaces/webserver` for public pages, dashboard/CMS routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 
+## Operator browser state
+
+Dashboard, CMS, and web-chat are separate applications with separate lifecycles. They do not share a mutable browser store:
+
+- Dashboard stays server-rendered. Addressable tabs use the URL hash, request data stays request-owned, and transient enhancement state stays in the DOM.
+- CMS and web-chat each own an unpersisted package-local TanStack Query client. Keys come from typed package-local factories, and mutations update or invalidate only related entries.
+- The CMS query cache owns server snapshots while `editorWorkflowReducer` owns coordinated editor transitions. Cached snapshots and mutable drafts are separate; a background refresh cannot silently replace a dirty draft.
+- The AI SDK `Chat`/`useChat` instance exclusively owns active and streamed chat messages. A history query may load an immutable snapshot, but reopening copies that snapshot into the AI SDK owner rather than sharing it.
+- Addressable entity and conversation doors use URL hashes. Dialogs, panes, composer text, dirty drafts, and other transient state stay local.
+- Cross-surface preferences remain framework-neutral localStorage helpers with browser events; query clients and mutable application caches are never shared across surfaces.
+
+Package-specific key and invalidation rules are documented in the [CMS README](../plugins/cms/README.md) and [web-chat README](../interfaces/web-chat/README.md).
+
 ## Runtime flow
 
 A typical boot sequence looks like this:

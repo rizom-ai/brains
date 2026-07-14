@@ -243,8 +243,7 @@ workspace without CMS importing the provider package.
 4. Add contextual actions only for entity types reported as publishable.
 5. Reuse the publish executor's candidate validation and implement a two-step confirmed
    publish action with content-hash protection.
-6. Integrate workspace reads and mutations with the CMS query/reducer conventions from
-   `operator-surface-state-management.md`; the client cache is never the domain owner.
+6. Integrate workspace reads and mutations with the [CMS state conventions](../../plugins/cms/README.md#query-and-mutation-conventions); the client cache is never the domain owner.
 
 Gate: CMS + content-pipeline supports the complete queue workflow; CMS without
 content-pipeline shows no dormant navigation or action controls.

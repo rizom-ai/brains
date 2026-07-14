@@ -167,7 +167,6 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
-- [operator-surface-state-management.md](./plans/operator-surface-state-management.md) — standardize Dashboard/CMS/web-chat state ownership without a global browser store: TanStack Query for React server caches, typed reducers for complex local workflows, URL-owned navigation, and framework-neutral shared preferences.
 - [cms-publishing-workspace.md](./plans/cms-publishing-workspace.md) — host content-pipeline management in an optional CMS workspace while keeping CMS fully independent when content-pipeline is absent and reducing Dashboard publishing to a read-only digest.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
