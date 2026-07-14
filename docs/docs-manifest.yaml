@@ -11,6 +11,12 @@ docs:
     order: 10
     source: packages/brain-cli/docs/getting-started.md
 
+  - id: feature-overview
+    title: Feature Overview
+    section: Start here
+    order: 15
+    source: docs/feature-overview.md
+
   - id: brain-yaml-reference
     title: brain.yaml Reference
     section: Start here
@@ -112,6 +118,3 @@ docs:
     section: Architecture
     order: 160
     source: docs/brain-model.md
-
-
-
