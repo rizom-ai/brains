@@ -122,6 +122,44 @@ class PostTestAdapter extends BaseEntityAdapter<Post, PostMetadata> {
 
 export const postAdapter: PostTestAdapter = new PostTestAdapter();
 
+// -- Peer entity (used in: count-entities publishedStatuses declaration) --
+
+export const peerSchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"peer">;
+    metadata: z.ZodObject<{ status: z.ZodOptional<z.ZodString> }>;
+  }>
+> = baseEntitySchema.extend({
+  entityType: z.literal("peer"),
+  metadata: z.object({ status: z.string().optional() }),
+});
+
+export type Peer = z.infer<typeof peerSchema>;
+
+class PeerTestAdapter extends BaseEntityAdapter<Peer, Peer["metadata"]> {
+  // This type's own publish gate: only approval makes it public content.
+  public override readonly publishedStatuses: string[] = ["approved"];
+
+  constructor() {
+    super({
+      entityType: "peer",
+      purpose: "Test peer entity with adapter-declared publish statuses.",
+      schema: peerSchema,
+      frontmatterSchema: z.object({ status: z.string().optional() }),
+    });
+  }
+
+  public override toMarkdown(entity: Peer): string {
+    return entity.content;
+  }
+
+  public fromMarkdown(): Partial<Peer> {
+    return {};
+  }
+}
+
+export const peerAdapter: PeerTestAdapter = new PeerTestAdapter();
+
 // -- Minimal test entity (used in: storeEmbedding) --
 
 export const minimalTestSchema: ReturnType<

@@ -423,6 +423,15 @@ export interface EntityAdapter<
   /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
   supportsCoverImage?: boolean;
 
+  /**
+   * Optional: the `metadata.status` values that count as published for
+   * `publishedOnly` queries (production site builds). Declaring this makes the
+   * list exact — entities without a status are NOT published. When absent, the
+   * default lifecycle semantics apply: status `published`, `active`, or no
+   * status at all.
+   */
+  publishedStatuses?: string[];
+
   /** Optional: Extract coverImageId from entity content/frontmatter */
   getCoverImageId?(entity: TEntity): string | undefined;
 

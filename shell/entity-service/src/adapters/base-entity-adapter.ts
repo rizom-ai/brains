@@ -37,6 +37,7 @@ export interface BaseEntityAdapterConfig<
   isSingleton?: boolean;
   hasBody?: boolean;
   supportsCoverImage?: boolean;
+  publishedStatuses?: string[];
   bodyFormatter?: BodyTemplateProvider;
 }
 
@@ -61,6 +62,7 @@ export abstract class BaseEntityAdapter<
   public readonly isSingleton?: boolean;
   public readonly hasBody?: boolean;
   public readonly supportsCoverImage?: boolean;
+  public readonly publishedStatuses?: string[];
 
   // Stored separately with output type preserved for type-safe parsing.
   private readonly fmSchema: z.ZodType<TFrontmatter>;
@@ -79,6 +81,8 @@ export abstract class BaseEntityAdapter<
     if (config.hasBody !== undefined) this.hasBody = config.hasBody;
     if (config.supportsCoverImage !== undefined)
       this.supportsCoverImage = config.supportsCoverImage;
+    if (config.publishedStatuses !== undefined)
+      this.publishedStatuses = config.publishedStatuses;
   }
 
   // ── Abstract methods (subclasses must implement) ──
