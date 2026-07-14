@@ -5,14 +5,16 @@ Start here if you want to install `brains`, create a local brain, connect it to 
 If you are new, read these in order:
 
 1. [Getting Started](../packages/brain-cli/docs/getting-started.md)
-2. [Content Management](./content-management.md)
-3. [Interface Setup](./interface-setup.md)
-4. [Customization Guide](./customization-guide.md)
-5. [Deployment Guide](../packages/brain-cli/docs/deployment-guide.md)
+2. [Feature Overview](./feature-overview.md)
+3. [Content Management](./content-management.md)
+4. [Interface Setup](./interface-setup.md)
+5. [Customization Guide](./customization-guide.md)
+6. [Deployment Guide](../packages/brain-cli/docs/deployment-guide.md)
 
 ## Setup and operation
 
 - [Getting Started](../packages/brain-cli/docs/getting-started.md) — install the CLI, create a brain, and start it locally
+- [Feature Overview](./feature-overview.md) — user-facing guide to the knowledge, publishing, interface, integration, and operational features available today
 - [CLI Reference](../packages/brain-cli/docs/cli-reference.md) — commands such as `brain init`, `brain start`, `brain chat`, and `brain tool`
 - [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md) — the main configuration file
 - [Deployment Guide](../packages/brain-cli/docs/deployment-guide.md) — deploy to a server with the generated Docker/Kamal workflow

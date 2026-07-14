@@ -1,5 +1,24 @@
 # @brains/plugins
 
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- [`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional CMS publishing workspace with durable queue operations, confirmed direct publishing, and a compact read-only Dashboard digest.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.176
+  - @brains/contracts@0.2.0-alpha.176
+  - @brains/effect-runtime@0.2.0-alpha.176
+  - @brains/site-composition@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+  - @brains/conversation-service@0.2.0-alpha.176
+  - @brains/identity-service@0.2.0-alpha.176
+  - @brains/job-queue@0.2.0-alpha.176
+  - @brains/messaging-service@0.2.0-alpha.176
+  - @brains/runtime-state@0.2.0-alpha.176
+  - @brains/templates@0.2.0-alpha.176
+
 ## 0.2.0-alpha.175
 
 ### Patch Changes
