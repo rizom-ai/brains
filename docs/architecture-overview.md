@@ -42,7 +42,7 @@ This keeps Effect focused on runtime orchestration while preserving the stable a
 
 Effect `Layer` is adopted only for complete vertical slices. Wrapping process-global `getInstance()` calls in layers would hide singleton state, add a parallel dependency system, and risk changing registration and boot order.
 
-The first layer-owned slice is the job-service stack. It constructs fresh queue, batch, progress, and worker instances behind internal `Context.Tag` contracts. Separate scoped runtime and database layers preserve shutdown order: workers and cleanup fibers stop before plugin teardown, while the queue database remains available until dependent shell resources have closed. Existing Promise interfaces and dependency-injected test implementations remain unchanged, and Effect types do not cross the public boundary.
+The first layer-owned slice is the job-service stack. The private `@brains/job-queue/effect` subpath owns its `Context.Tag` contracts and scoped queue/runtime layers; core composes those layers across the package boundary instead of rebuilding job-queue lifecycle ownership locally. Separate runtime and database scopes preserve shutdown order: workers and cleanup fibers stop before plugin teardown, while the queue database remains available until dependent shell resources have closed. Existing Promise interfaces and dependency-injected test implementations remain unchanged, and Effect types do not cross the public authoring boundary.
 
 Future layers must meet the same criteria:
 

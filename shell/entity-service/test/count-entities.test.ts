@@ -199,4 +199,41 @@ describe("countEntities", () => {
       await declaringCtx.cleanup();
     }
   });
+
+  // Regression: the production site build's detail-route enumeration
+  // (DynamicRouteGenerator) lists with publishedOnly AND a public visibility
+  // scope together. An approved agent must survive both filters — this is the
+  // exact query shape behind the /agents/<slug> 404 on production builds.
+  test("production route enumeration finds approved entities (publishedOnly + public scope)", async () => {
+    const routeCtx = await setupEntityService([
+      { name: "peer", schema: peerSchema, adapter: peerAdapter },
+    ]);
+    try {
+      await insertTestEntity(
+        routeCtx.dbConfig,
+        {
+          id: "yeehaa-io",
+          entityType: "peer",
+          content: "approved agent",
+          metadata: { status: "approved" },
+          created: Date.now(),
+          updated: Date.now(),
+          embedding: mockEmbedding,
+        },
+        routeCtx.embeddingDbConfig,
+      );
+
+      const entities = await routeCtx.entityService.listEntities({
+        entityType: "peer",
+        options: {
+          limit: 1000,
+          publishedOnly: true,
+          filter: { visibilityScope: "public" },
+        },
+      });
+      expect(entities.map((entity) => entity.id)).toEqual(["yeehaa-io"]);
+    } finally {
+      await routeCtx.cleanup();
+    }
+  });
 });
