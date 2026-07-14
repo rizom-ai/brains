@@ -1,5 +1,15 @@
 # @brains/a2a
 
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/auth-service@0.2.0-alpha.173
+  - @brains/http-signatures@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+
 ## 0.2.0-alpha.172
 
 ### Patch Changes

@@ -1,5 +1,31 @@
 # @brains/ranger
 
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/app@0.2.0-alpha.173
+  - @brains/mcp@0.2.0-alpha.173
+  - @brains/link@0.2.0-alpha.173
+  - @brains/note@0.2.0-alpha.173
+  - @brains/products@0.2.0-alpha.173
+  - @brains/discord@0.2.0-alpha.173
+  - @brains/site-info@0.2.0-alpha.173
+  - @brains/prompt@0.2.0-alpha.173
+  - @brains/social-media@0.2.0-alpha.173
+  - @brains/wishlist@0.2.0-alpha.173
+  - @brains/webserver@0.2.0-alpha.173
+  - @brains/analytics@0.2.0-alpha.173
+  - @brains/atproto-registry@0.2.0-alpha.173
+  - @brains/cms@0.2.0-alpha.173
+  - @brains/dashboard@0.2.0-alpha.173
+  - @brains/directory-sync@0.2.0-alpha.173
+  - @brains/site-builder-plugin@0.2.0-alpha.173
+  - @brains/site-content@0.2.0-alpha.173
+  - @rizom/site-rizom@0.2.0-alpha.173
+  - @brains/theme-rizom@0.2.0-alpha.173
+
 ## 0.2.0-alpha.172
 
 ### Patch Changes

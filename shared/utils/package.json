@@ -1,6 +1,6 @@
 {
   "name": "@brains/utils",
-  "version": "0.2.0-alpha.172",
+  "version": "0.2.0-alpha.173",
   "dependencies": {
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.2.0",
