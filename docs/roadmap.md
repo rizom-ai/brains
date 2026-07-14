@@ -198,6 +198,8 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
+- [directory-sync-effect-lifecycle.md](./plans/directory-sync-effect-lifecycle.md) — scope directory watchers, git schedules, debounce work, cancellation, and shutdown under the private Effect runtime while keeping plugin APIs Promise-based.
+- [effect-lifecycle-adoption.md](./plans/effect-lifecycle-adoption.md) — companion sweep: supervise content-pipeline's scheduled publishes, link a2a streaming turns to stream lifetime, and scope media-renderer browser processes, all behind Promise-based contracts.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 - [shared-heartbeat-recurring-checks.md](./plans/shared-heartbeat-recurring-checks.md) — **P2 dependency** for recurring plugin checks: reuse the existing scheduler/daemon/runtime-state/notification primitives rather than shipping opportunity-specific timers.
