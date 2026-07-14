@@ -1,5 +1,79 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.175
+  - @rizom/site@0.2.0-alpha.175
+  - @rizom/site-sections@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.174
+  - @rizom/site@0.2.0-alpha.174
+  - @rizom/site-sections@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.173
+  - @rizom/site@0.2.0-alpha.173
+  - @rizom/site-sections@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.172
+  - @rizom/site-sections@0.2.0-alpha.172
+  - @rizom/site-rizom@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.171
+  - @rizom/site-sections@0.2.0-alpha.171
+  - @rizom/site-rizom@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.170
+  - @rizom/site-sections@0.2.0-alpha.170
+  - @rizom/site-rizom@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.169
+  - @rizom/site-sections@0.2.0-alpha.169
+  - @rizom/site-rizom@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- [`e28fb20`](https://github.com/rizom-ai/brains/commit/e28fb20048c9cba0cffe21f81847b76eadd2c76f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the missing "It starts with one light — yours" home section (the product hook between the problem trio and the growth diagram, per the rev-8 redesign), and give the shared trio schema an optional cap note so the problem cap can carry its trail line.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.168
+  - @rizom/site-sections@0.2.0-alpha.168
+  - @rizom/site-rizom@0.2.0-alpha.168
+
 ## 0.2.0-alpha.167
 
 ### Patch Changes

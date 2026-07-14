@@ -423,6 +423,15 @@ export interface EntityAdapter<
   /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
   supportsCoverImage?: boolean;
 
+  /**
+   * Optional: the `metadata.status` values that count as published for
+   * `publishedOnly` queries (production site builds). Declaring this makes the
+   * list exact — entities without a status are NOT published. When absent, the
+   * default lifecycle semantics apply: status `published`, `active`, or no
+   * status at all.
+   */
+  publishedStatuses?: string[];
+
   /** Optional: Extract coverImageId from entity content/frontmatter */
   getCoverImageId?(entity: TEntity): string | undefined;
 
@@ -822,8 +831,11 @@ export interface EmbeddingIndexStats {
 }
 
 export interface IndexReadinessOptions {
-  timeoutMs: number;
+  /** Stop polling after this duration. Omit for an owning runtime monitor. */
+  timeoutMs?: number;
   intervalMs?: number;
+  /** Cancels readiness polling when the owning runtime shuts down. */
+  signal?: AbortSignal;
 }
 
 export interface IndexReadinessStatus extends EmbeddingIndexStats {
@@ -889,6 +901,9 @@ export interface EntityRegistry {
     adapter: EntityAdapter<TEntity, TMetadata>,
     config?: EntityTypeConfig,
   ): void;
+
+  /** Remove an entity type after failed plugin registration or shell teardown. */
+  unregisterEntityType(type: string): void;
 
   getSchema(type: string): UnknownEntitySchema;
 

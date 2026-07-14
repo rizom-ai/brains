@@ -2,9 +2,16 @@
 
 ## Status
 
-Proposed P2 dependency. Do not implement as part of the current Business Development
-slice. Opportunity stale alerts exposed the need, but scheduling, dedupe, and delivery are
-shared infrastructure.
+Active — pulled forward from proposed-P2 on 2026-07-14. The original sequencing ("do not
+build before the P0/P1 lanes") assumed no consumer needed this urgently. That premise no
+longer holds: agent discovery's directory scan (`agent_scan_directories`) shipped
+manual-only with the agent-sightings work and is deployed across the fleet, and
+second-order discovery only delivers its promise — the map showing the operator something
+they don't already know — if scanning recurs without an operator asking. Peers' directories
+change when _they_ approve agents, which is invisible locally by definition; no local event
+can trigger it. The scan is a live first consumer that exercises the full path
+(schedule → run → dedupe → notify). Business Development adoption follows when the BD
+slice merges.
 
 ## Goal
 
@@ -22,7 +29,7 @@ starting plugin-owned timers or inventing one-off schedulers.
 
 Extract or reuse these pieces. Do not add a parallel scheduling stack.
 
-## Proposed boundary
+## Boundary
 
 - A shared shell-owned scheduler package owns generic scheduler backend contracts and
   deterministic test implementations.
@@ -30,28 +37,49 @@ Extract or reuse these pieces. Do not add a parallel scheduling stack.
 - Domain plugins own the query/rule that decides what is noteworthy and the alert payload.
 - Checks can run on demand for tests and operator previews.
 
-For Business Development, the domain package owns “Warm opportunity has no action for 14
-days.” The shared layer owns weekly execution, dedupe, retries, and notification dispatch.
+## Settled decisions
 
-## Delivery order
+Previously listed as open; settled with the pull-forward:
 
-1. Extract generic scheduler backend contracts from content-pipeline without moving its
-   domain-specific scheduler.
-2. Add deterministic contract tests for cadence, injected time, dedupe, reset, and failed
-   delivery.
-3. Implement one recurring-check registration path using shell daemon lifecycle and
-   `runtimeState`.
-4. Route alerts through a narrow notifications adapter.
-5. Adopt it in Business Development as the first consumer.
-6. Decide whether generic alert/dashboard surfaces are justified only after a second
-   consumer appears.
+- **Shell-owned service, not a service plugin.** Every brain needs it, and a domain plugin
+  registering a check must not depend on a sibling plugin happening to be bundled.
+- **Calendar-aligned daily/weekly cadence in the public contract.** Cron expressions stay
+  an internal backend detail; consumers declare intent, not schedule syntax.
+- **Dedupe scope v1 is per brain.** Widening to user/space identity waits for the
+  auth-runtime-db identity boundary (P1) — identity-scoped dedupe built before that lands
+  would be rework on sand. This is the one genuine P1 dependency; it gates the dedupe
+  _scope_, not the layer.
+- **Failed delivery preserves the dedupe key.** An alert that never reached anyone has not
+  been delivered; a delivery failure must not silence its own retry.
 
-## Decisions still required
+## Slices
 
-- Shell service versus first-party service plugin ownership.
-- Calendar-aligned daily/weekly cadence versus generic cron in the public contract.
-- Whether failed delivery consumes or preserves the dedupe key.
-- Whether v1 dedupe scope is per brain or includes user/space identity.
+### Slice 1 — scheduler contracts
+
+Extract generic scheduler backend contracts from content-pipeline (its domain-specific
+scheduler stays where it is). Deterministic contract tests: cadence, injected time,
+reset, failure. No test sleeps on wall time.
+
+### Slice 2 — recurring-check service + first consumer
+
+One registration path riding shell daemon lifecycle. Checks runnable on demand. Agent
+discovery registers the directory scan on a daily cadence — the scan tool's
+aggregation/merge logic is already idempotent, so the check is a thin wrapper.
+
+### Slice 3 — dedupe + notify
+
+`runtimeState` dedupe and a narrow notifications adapter. The scan notifies when
+`created > 0` ("N agents sighted through <peers>") and stays silent on no-op re-scans —
+dedupe verified by the repeat-scan case.
+
+### Slice 4 — Business Development adoption
+
+When the BD capture/ranking/focus slice merges: the domain package owns "warm opportunity
+has no action for 14 days," the shared layer owns weekly execution, dedupe, retries, and
+dispatch. Not before — the consumer does not exist yet.
+
+Deferred, unchanged: whether generic alert/dashboard surfaces are justified is decided
+after both consumers run in production.
 
 ## Verification
 
@@ -61,10 +89,12 @@ days.” The shared layer owns weekly execution, dedupe, retries, and notificati
 - Failed checks and failed delivery follow explicit retry semantics.
 - Daemons start only after plugin ready hooks and stop cleanly.
 - Content-pipeline remains green against the extracted scheduler backend.
+- A fleet brain runs the daily scan unattended; a re-scan that creates nothing produces
+  no repeat notification.
 
 ## Non-goals
 
 - A Business Development-only daemon.
 - Durable content or secrets in heartbeat state.
 - A new dashboard framework.
-- Building this before P0 release work or the P1 identity/model/consolidation lanes.
+- Identity/space-scoped dedupe before the runtime identity boundary lands.

@@ -1,6 +1,6 @@
 {
   "name": "@brains/ai-evaluation",
-  "version": "0.2.0-alpha.167",
+  "version": "0.2.0-alpha.175",
   "description": "AI evaluation system for testing agent and plugin performance",
   "bin": {
     "brain-eval": "./src/run-evaluations.ts"
@@ -9,6 +9,7 @@
     "@brains/ai-service": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/content-formatters": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",

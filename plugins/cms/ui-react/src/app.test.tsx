@@ -19,9 +19,13 @@ import {
   fieldAssistVariant,
   parseCmsHash,
   MODEL_ASSIST_TARGET,
+  PublicationActions,
+  PublishConfirmationDialog,
+  PublishingWorkspace,
   styles,
   typeHasPublicationField,
   TypeSwitcher,
+  parseCmsWorkspaceHash,
 } from "./App";
 import {
   DeleteDialog,
@@ -33,9 +37,11 @@ import { applyFieldChange } from "./editor-workflow";
 import { createCmsQueryClient } from "./query-client";
 import type {
   AgentTarget,
+  CmsWorkspaceInfo,
   EntityTypeInfo,
   FieldDescriptor,
   GitSyncState,
+  PublicationPipelineSnapshot,
 } from "./api";
 
 const stringField: FieldDescriptor = {
@@ -158,6 +164,16 @@ describe("parseCmsHash", () => {
       entityType: "site info",
       id: "front page",
     });
+  });
+
+  it("parses workspace doors separately from entity doors", () => {
+    expect(parseCmsWorkspaceHash("#/workspace/publishing")).toEqual({
+      workspaceId: "publishing",
+    });
+    expect(parseCmsWorkspaceHash("#/workspace/publish%20desk")).toEqual({
+      workspaceId: "publish desk",
+    });
+    expect(parseCmsHash("#/workspace/publishing")).toBeNull();
   });
 
   it("rejects everything else", () => {
@@ -396,6 +412,40 @@ describe("TypeSwitcher", () => {
     expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
   });
 
+  it("shows Operations only when a workspace capability registers", () => {
+    const workspace: CmsWorkspaceInfo = {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "PublishingWorkspace",
+      entityTypes: ["post"],
+    };
+    const withWorkspace = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types,
+        active: null,
+        onSelect: () => {},
+        workspaces: [workspace],
+        activeWorkspace: "publishing",
+        workspaceBadges: { publishing: 2 },
+        onSelectWorkspace: () => {},
+      }),
+    );
+    const withoutWorkspace = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types,
+        active: "post",
+        onSelect: () => {},
+      }),
+    );
+
+    expect(withWorkspace).toContain("Operations");
+    expect(withWorkspace).toContain("Publishing");
+    expect(withWorkspace).toContain(">2<");
+    expect(withoutWorkspace).not.toContain("Operations");
+    expect(withoutWorkspace).not.toContain("Publishing");
+  });
+
   it("groups brain machinery under System instead of flooding Content", () => {
     const machinery: EntityTypeInfo[] = [
       {
@@ -433,6 +483,141 @@ describe("TypeSwitcher", () => {
     expect(html.indexOf("System")).toBeGreaterThan(html.indexOf("Site Info"));
     expect(html.indexOf("Prompts")).toBeGreaterThan(html.indexOf("System"));
     expect(html.indexOf("Agents")).toBeGreaterThan(html.indexOf("System"));
+  });
+});
+
+describe("PublishingWorkspace", () => {
+  const data: PublicationPipelineSnapshot = {
+    summary: {
+      draft: 1,
+      queued: 1,
+      generating: 1,
+      failed: 1,
+      published: 8,
+      needsOperator: 2,
+    },
+    queue: [
+      {
+        entityId: "queued-post",
+        entityType: "post",
+        title: "Domain as identity",
+        position: 1,
+        queuedAt: "2026-07-14T08:00:00.000Z",
+        destination: "website",
+        scheduledFor: "2026-07-20T09:00:00.000Z",
+      },
+    ],
+    generating: [
+      {
+        id: "job-1",
+        label: "og-image",
+        target: "post/queued-post",
+        status: "processing",
+      },
+    ],
+    failures: [
+      {
+        entityId: "failed-newsletter",
+        entityType: "newsletter",
+        title: "March dispatch",
+        error: "Provider rejected sender",
+        retryCount: 1,
+      },
+    ],
+    publishableEntityTypes: ["newsletter", "post"],
+  };
+
+  it("renders the publication desk from canonical pipeline data", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishingWorkspace, {
+        data,
+        onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+    expect(html).toContain("Publishing desk");
+    expect(html).toContain("Dispatch queue");
+    expect(html).toContain("Domain as identity");
+    expect(html).toContain("Website");
+    expect(html).toContain("OG Image");
+    expect(html).toContain("March dispatch");
+    expect(html).toContain("Provider rejected sender");
+  });
+
+  it("renders a quiet queue when no dispatch is pending", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishingWorkspace, {
+        data: {
+          ...data,
+          summary: { ...data.summary, queued: 0 },
+          queue: [],
+        },
+        onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+    expect(html).toContain("Nothing is queued for publication");
+  });
+
+  it("offers queue ordering, removal, and failed-item retry controls", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishingWorkspace, {
+        data,
+        onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+    expect(html).toContain('aria-label="Move Domain as identity earlier"');
+    expect(html).toContain('aria-label="Move Domain as identity later"');
+    expect(html).toContain('aria-label="Remove Domain as identity from queue"');
+    expect(html).toContain(">Retry<");
+  });
+});
+
+describe("PublicationActions", () => {
+  const renderActions = (status: string, unsaved = false): string =>
+    renderToStaticMarkup(
+      createElement(PublicationActions, {
+        entityType: "post",
+        entityId: "field-notes",
+        title: "Field notes",
+        status,
+        unsaved,
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+  it("maps persisted publication state to contextual actions", () => {
+    expect(renderActions("draft")).toContain("Add to queue");
+    expect(renderActions("queued")).toContain("Remove from queue");
+    expect(renderActions("failed")).toContain(">Retry<");
+    expect(renderActions("published")).toContain("Published");
+    expect(renderActions("published")).not.toContain("Publish now");
+  });
+
+  it("keeps publication separate from unsaved editor state", () => {
+    const html = renderActions("draft", true);
+    expect(html).toContain("Save changes before changing publication state");
+    expect(html).toContain("disabled");
+  });
+
+  it("renders an explicit external-publication confirmation", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishConfirmationDialog, {
+        title: "Field notes",
+        preview: "This will publish post:field-notes publicly.",
+        confirming: false,
+        onCancel: () => {},
+        onConfirm: () => {},
+      }),
+    );
+    expect(html).toContain('role="alertdialog"');
+    expect(html).toContain("Publish Field notes now?");
+    expect(html).toContain("publicly");
+    expect(html).toContain("Confirm publication");
   });
 });
 

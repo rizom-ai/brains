@@ -16,9 +16,11 @@ import {
   entityDetailQueryOptions,
   entityListQueryOptions,
   entitySchemaQueryOptions,
-  entityTypesQueryOptions,
   invalidateAfterUpload,
+  invalidateAfterWorkspaceAction,
+  navigationQueryOptions,
   syncStatusQueryOptions,
+  workspaceQueryOptions,
 } from "./queries";
 
 const originalFetch = globalThis.fetch;
@@ -102,33 +104,41 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-describe("CMS entity-types query", () => {
-  it("loads through one stable cache entry", async () => {
+describe("CMS navigation query", () => {
+  it("loads entity types and optional workspaces through one stable request", async () => {
     let requests = 0;
     mockFetch(async () => {
       requests += 1;
-      return Response.json({ types: [entityType("post")] });
+      return Response.json({
+        types: [entityType("post")],
+        workspaces: [
+          {
+            id: "publishing",
+            pluginId: "content-pipeline",
+            label: "Publishing",
+            rendererName: "PublishingWorkspace",
+            entityTypes: ["post"],
+          },
+        ],
+      });
     });
     const client = createCmsQueryClient();
-    const options = entityTypesQueryOptions();
-    const observer = new QueryObserver(client, options);
-    const statuses: string[] = [];
-    const unsubscribe = observer.subscribe((result) => {
-      statuses.push(result.status);
-    });
+    const options = navigationQueryOptions();
 
-    const initialized = await client.ensureQueryData(options);
+    const [first, second] = await Promise.all([
+      client.fetchQuery(options),
+      client.fetchQuery(options),
+    ]);
 
-    expect(cmsKeys.types()).toEqual(["cms", "types"]);
-    expect(initialized).toEqual([entityType("post")]);
-    expect(statuses).toContain("pending");
-    expect(observer.getCurrentResult().status).toBe("success");
+    expect(cmsKeys.navigation()).toEqual(["cms", "navigation"]);
+    expect(first.types).toEqual([entityType("post")]);
+    expect(first.workspaces).toHaveLength(1);
+    expect(second).toBe(first);
     expect(requests).toBe(1);
-    unsubscribe();
     client.clear();
   });
 
-  it("surfaces a type-list error without retrying", async () => {
+  it("surfaces a navigation error without retrying", async () => {
     let requests = 0;
     mockFetch(async () => {
       requests += 1;
@@ -138,7 +148,7 @@ describe("CMS entity-types query", () => {
 
     let caught: unknown;
     try {
-      await client.fetchQuery(entityTypesQueryOptions());
+      await client.fetchQuery(navigationQueryOptions());
     } catch (error: unknown) {
       caught = error;
     }
@@ -150,12 +160,83 @@ describe("CMS entity-types query", () => {
   });
 });
 
+describe("CMS workspace query", () => {
+  it("deduplicates one workspace snapshot request", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({
+        workspace: {
+          id: "publishing",
+          rendererName: "PublishingWorkspace",
+          data: {
+            summary: {
+              draft: 0,
+              queued: 1,
+              generating: 0,
+              failed: 0,
+              published: 0,
+              needsOperator: 0,
+            },
+            queue: [],
+            generating: [],
+            failures: [],
+            publishableEntityTypes: ["post"],
+          },
+        },
+      });
+    });
+    const client = createCmsQueryClient();
+    const options = workspaceQueryOptions("publishing");
+
+    const [first, second] = await Promise.all([
+      client.fetchQuery(options),
+      client.fetchQuery(options),
+    ]);
+
+    expect(cmsKeys.workspace("publishing")).toEqual([
+      "cms",
+      "workspace",
+      "publishing",
+    ]);
+    expect(first.data.summary.queued).toBe(1);
+    expect(second).toBe(first);
+    expect(requests).toBe(1);
+    client.clear();
+  });
+});
+
+describe("CMS workspace invalidation", () => {
+  it("invalidates only the acted-on workspace snapshot", async () => {
+    const client = createCmsQueryClient();
+    client.setQueryData(cmsKeys.workspace("publishing"), { data: "before" });
+    client.setQueryData(cmsKeys.workspace("review"), { data: "untouched" });
+    client.setQueryData(cmsKeys.navigation(), { types: [], workspaces: [] });
+
+    await invalidateAfterWorkspaceAction(client, "publishing");
+
+    expect(
+      client.getQueryState(cmsKeys.workspace("publishing"))?.isInvalidated,
+    ).toBe(true);
+    expect(
+      client.getQueryState(cmsKeys.workspace("review"))?.isInvalidated,
+    ).toBe(false);
+    expect(client.getQueryState(cmsKeys.navigation())?.isInvalidated).toBe(
+      false,
+    );
+    client.clear();
+  });
+});
+
 describe("CMS upload invalidation", () => {
   it("invalidates only image entities, type counts, and sync status", async () => {
     const client = createCmsQueryClient();
     client.setQueryData(cmsKeys.entities("image"), []);
     client.setQueryData(cmsKeys.entities("post"), []);
-    client.setQueryData(cmsKeys.types(), [entityType("image")]);
+    client.setQueryData(cmsKeys.navigation(), {
+      types: [entityType("image")],
+      workspaces: [],
+    });
     client.setQueryData(cmsKeys.syncStatus(), syncStatus("abc123"));
 
     await invalidateAfterUpload(client);
@@ -163,7 +244,9 @@ describe("CMS upload invalidation", () => {
     expect(client.getQueryState(cmsKeys.entities("image"))?.isInvalidated).toBe(
       true,
     );
-    expect(client.getQueryState(cmsKeys.types())?.isInvalidated).toBe(true);
+    expect(client.getQueryState(cmsKeys.navigation())?.isInvalidated).toBe(
+      true,
+    );
     expect(client.getQueryState(cmsKeys.syncStatus())?.isInvalidated).toBe(
       true,
     );

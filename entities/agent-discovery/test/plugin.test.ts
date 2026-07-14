@@ -624,6 +624,24 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("registers site templates under the scoped names routes reference", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+
+    await harness.installPlugin(plugin);
+
+    // Site routes address templates as `${pluginId}:${key}` — these names are
+    // the public contract (sites/rizom-ai routes reference them verbatim).
+    const names = Array.from(harness.getTemplates().keys()).sort();
+    expect(names).toEqual([
+      "agent-discovery:agent-detail",
+      "agent-discovery:agent-list",
+      "agent-discovery:proximity-map",
+    ]);
+
+    harness.reset();
+  });
+
   it("should register dashboard widgets on plugins ready", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();

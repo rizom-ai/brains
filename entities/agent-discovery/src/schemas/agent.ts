@@ -62,6 +62,8 @@ export type AgentFrontmatterSchema = z.ZodObject<{
   a2aEndpoint: z.ZodOptional<z.ZodString>;
   status: AgentStatusSchema;
   discoveredAt: z.ZodString;
+  introducedBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  hops: z.ZodOptional<z.ZodNumber>;
 }>;
 
 /**
@@ -92,6 +94,21 @@ export const agentFrontmatterSchema: AgentFrontmatterSchema = z.object({
     .string()
     .datetime()
     .describe("When this agent was first discovered"),
+
+  // Sighting provenance — present on second-order agents discovered
+  // through a connected peer's directory. A discovered agent with
+  // introducers charts as a sighting on the proximity map; approval
+  // promotes it to a first-order contact and drops the provenance.
+  introducedBy: z
+    .array(z.string())
+    .optional()
+    .describe("Agent ids of the peers whose directories reported this agent"),
+  hops: z
+    .number()
+    .int()
+    .min(2)
+    .optional()
+    .describe("Discovery order: 2 = sighted through a first-order peer"),
 });
 
 export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;
@@ -144,6 +161,8 @@ const agentFrontmatterParserSchema: AgentFrontmatterSchema = z.object({
   a2aEndpoint: z.string().url().optional(),
   status: agentStatusParserSchema,
   discoveredAt: z.string().datetime(),
+  introducedBy: z.array(z.string()).optional(),
+  hops: z.number().int().min(2).optional(),
 });
 
 const agentMetadataParserSchema: AgentMetadataSchema = z.object({

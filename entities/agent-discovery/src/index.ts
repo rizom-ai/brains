@@ -83,6 +83,7 @@ export {
   type ProximityMapData,
   type ProximityMapDistanceRange,
   type ProximityMapNode,
+  type ProximityMapSighting,
 } from "./lib/proximity-map-schema";
 
 export {

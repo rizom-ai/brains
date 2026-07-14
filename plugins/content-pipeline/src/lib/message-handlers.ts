@@ -2,6 +2,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
+import type { PublicationQueueService } from "../publication-queue-service";
 import type { RetryTracker } from "../retry-tracker";
 import type { ContentScheduler } from "../scheduler";
 import {
@@ -23,6 +24,8 @@ import type {
   PublishListPayload,
   PublishReportSuccessPayload,
   PublishReportFailurePayload,
+  PublishCompletedPayload,
+  PublishFailedPayload,
   GenerateCompletedPayload,
   GenerateFailedPayload,
   PublishAssetRegisterPayload,
@@ -36,6 +39,7 @@ import { publishConfigSchema } from "../types/config";
 
 export interface MessageHandlerDeps {
   queueManager: QueueManager;
+  publicationQueueService: PublicationQueueService;
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
   publishExecutor: PublishEntityExecutor;
@@ -104,6 +108,29 @@ function subscribeToPublishMessages(
     { success: boolean }
   >(PUBLISH_MESSAGES.REPORT_FAILURE, async (msg) =>
     handleReportFailure(deps, msg.payload),
+  );
+
+  context.messaging.subscribe<PublishCompletedPayload, { success: boolean }>(
+    PUBLISH_MESSAGES.COMPLETED,
+    async (msg) => {
+      await deps.publicationQueueService.complete(
+        msg.payload.entityType,
+        msg.payload.entityId,
+      );
+      return { success: true };
+    },
+  );
+
+  context.messaging.subscribe<PublishFailedPayload, { success: boolean }>(
+    PUBLISH_MESSAGES.FAILED,
+    async (msg) => {
+      await deps.publicationQueueService.fail(
+        msg.payload.entityType,
+        msg.payload.entityId,
+        msg.payload.error,
+      );
+      return { success: true };
+    },
   );
 
   deps.logger.debug("Subscribed to publish messages");
@@ -275,7 +302,7 @@ async function handleQueue(
       "publish",
       authContext,
     );
-    const result = await deps.queueManager.add(
+    const result = await deps.publicationQueueService.enqueue(
       entityType,
       entityId,
       authContext,
@@ -355,7 +382,7 @@ async function handleRemove(
   const { entityType, entityId } = payload;
 
   try {
-    await deps.queueManager.remove(entityType, entityId);
+    await deps.publicationQueueService.remove(entityType, entityId);
     deps.logger.debug(`Entity removed from queue: ${entityId}`, {
       entityType,
     });
@@ -374,7 +401,7 @@ async function handleReorder(
   const { entityType, entityId, position } = payload;
 
   try {
-    await deps.queueManager.reorder(entityType, entityId, position);
+    await deps.publicationQueueService.reorder(entityType, entityId, position);
     deps.logger.debug(`Entity reordered: ${entityId}`, {
       entityType,
       newPosition: position,

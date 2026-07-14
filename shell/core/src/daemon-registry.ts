@@ -12,6 +12,8 @@ import {
   startDaemonInfo,
   stopDaemonInfo,
 } from "./daemon-operations";
+import { Effect, Exit, Scope } from "@brains/effect-runtime";
+import { runEffectPromise } from "./effect-runtime";
 
 /**
  * Daemon registry for managing long-running interface processes
@@ -21,6 +23,7 @@ export class DaemonRegistry {
   private static instance: DaemonRegistry | null = null;
 
   private daemons: Map<string, DaemonInfo> = new Map();
+  private daemonScopes: Map<string, Scope.CloseableScope> = new Map();
   private logger: Logger;
 
   /**
@@ -58,6 +61,9 @@ export class DaemonRegistry {
    * Register a daemon
    */
   public register(name: string, daemon: Daemon, pluginId: string): void {
+    if (this.daemonScopes.has(name)) {
+      throw new Error(`Cannot overwrite running daemon: ${name}`);
+    }
     if (this.daemons.has(name)) {
       this.logger.warn(`Daemon already registered: ${name}, overwriting`);
     }
@@ -96,7 +102,24 @@ export class DaemonRegistry {
       throw new Error(`Daemon not registered: ${name}`);
     }
 
-    await startDaemonInfo(daemonInfo, this.logger);
+    if (this.daemonScopes.has(name)) {
+      await startDaemonInfo(daemonInfo, this.logger);
+      return;
+    }
+
+    const scope = Effect.runSync(Scope.make());
+    const daemonResource = Effect.acquireRelease(
+      Effect.promise(() => startDaemonInfo(daemonInfo, this.logger)),
+      () => Effect.promise(() => stopDaemonInfo(daemonInfo, this.logger)),
+    );
+
+    try {
+      await runEffectPromise(Scope.extend(daemonResource, scope));
+      this.daemonScopes.set(name, scope);
+    } catch (error) {
+      await runEffectPromise(Scope.close(scope, Exit.fail(error)));
+      throw error;
+    }
   }
 
   /**
@@ -108,7 +131,14 @@ export class DaemonRegistry {
       throw new Error(`Daemon not registered: ${name}`);
     }
 
-    await stopDaemonInfo(daemonInfo, this.logger);
+    const scope = this.daemonScopes.get(name);
+    if (!scope) {
+      await stopDaemonInfo(daemonInfo, this.logger);
+      return;
+    }
+
+    this.daemonScopes.delete(name);
+    await runEffectPromise(Scope.close(scope, Exit.void));
   }
 
   /**
@@ -192,16 +222,30 @@ export class DaemonRegistry {
     );
 
     let firstError: Error | undefined;
+    const attempted: string[] = [];
 
     for (const daemonInfo of pluginDaemons) {
+      const alreadyRunning = this.daemonScopes.has(daemonInfo.name);
       try {
         await this.start(daemonInfo.name);
+        if (!alreadyRunning) attempted.push(daemonInfo.name);
       } catch (error) {
         firstError ??= toError(error);
+        if (!alreadyRunning) attempted.push(daemonInfo.name);
       }
     }
 
     if (firstError) {
+      for (const daemonName of attempted.reverse()) {
+        try {
+          await this.stop(daemonName);
+        } catch (rollbackError) {
+          this.logger.error(
+            `Failed to roll back daemon: ${daemonName}`,
+            rollbackError,
+          );
+        }
+      }
       throw firstError;
     }
   }

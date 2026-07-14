@@ -1,0 +1,2809 @@
+<!doctype html>
+<html lang="en" data-review-climate="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CMS Publishing Workspace — Integration Mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --review-bg: #090812;
+        --review-panel: #0f0d1c;
+        --review-line: rgba(241, 234, 221, 0.12);
+        --review-text: #f1eadd;
+        --review-dim: rgba(241, 234, 221, 0.62);
+        --review-faint: rgba(241, 234, 221, 0.38);
+        --review-accent: #ff8b3d;
+        --display: "Fraunces", Georgia, serif;
+        --ui: "IBM Plex Sans", sans-serif;
+        --mono: "JetBrains Mono", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        background:
+          radial-gradient(
+            circle at 8% 0,
+            rgba(255, 139, 61, 0.1),
+            transparent 26rem
+          ),
+          radial-gradient(
+            circle at 94% 24%,
+            rgba(129, 140, 248, 0.08),
+            transparent 28rem
+          ),
+          var(--review-bg);
+        color: var(--review-text);
+        font-family: var(--ui);
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body::before {
+        position: fixed;
+        z-index: 100;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        content: "";
+        opacity: 0.42;
+        pointer-events: none;
+      }
+
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--review-accent);
+        outline-offset: 3px;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .review-head .eyebrow,
+      .review-head h1,
+      .review-intro {
+        animation: rise 0.55s ease-out both;
+      }
+
+      .review-head h1 {
+        animation-delay: 0.07s;
+      }
+
+      .review-intro {
+        animation-delay: 0.14s;
+      }
+
+      .review-head,
+      .review-nav,
+      .specimen,
+      .decision-grid,
+      .review-foot {
+        width: min(100% - 40px, 1480px);
+        margin-inline: auto;
+      }
+
+      .review-head {
+        padding: 74px 0 30px;
+      }
+
+      .eyebrow,
+      .spec-num,
+      .screen-label,
+      .decision small {
+        font-family: var(--mono);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow {
+        color: var(--review-accent);
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .review-head h1 {
+        max-width: 12ch;
+        margin: 14px 0 0;
+        font-family: var(--display);
+        font-size: clamp(44px, 7vw, 88px);
+        font-variation-settings:
+          "SOFT" 58,
+          "opsz" 120;
+        font-weight: 480;
+        letter-spacing: -0.04em;
+        line-height: 0.93;
+      }
+
+      .review-head h1 em {
+        color: var(--review-accent);
+        font-weight: 390;
+      }
+
+      .review-intro {
+        display: grid;
+        grid-template-columns: minmax(0, 62ch) auto;
+        gap: 30px;
+        align-items: end;
+        margin-top: 28px;
+      }
+
+      .review-intro p {
+        margin: 0;
+        color: var(--review-dim);
+        font-size: 16px;
+      }
+
+      .review-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .review-control {
+        min-height: 40px;
+        padding: 0 15px;
+        border: 1px solid var(--review-line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.025);
+        color: var(--review-dim);
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .review-control:hover,
+      .review-control.is-active {
+        border-color: rgba(255, 139, 61, 0.55);
+        background: rgba(255, 139, 61, 0.09);
+        color: var(--review-text);
+      }
+
+      .review-nav {
+        position: sticky;
+        z-index: 80;
+        top: 0;
+        display: flex;
+        overflow-x: auto;
+        border-block: 1px solid var(--review-line);
+        background: rgba(9, 8, 18, 0.86);
+        backdrop-filter: blur(18px);
+        scrollbar-width: none;
+      }
+
+      .review-nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .review-nav a {
+        flex: 0 0 auto;
+        padding: 11px 14px;
+        color: var(--review-faint);
+        font-family: var(--mono);
+        font-size: 10px;
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+
+      .review-nav a:hover {
+        color: var(--review-text);
+      }
+
+      .review-nav span {
+        margin-right: 7px;
+        color: var(--review-accent);
+      }
+
+      .specimen {
+        padding-top: 88px;
+      }
+
+      .specimen-head {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) minmax(260px, 42ch);
+        gap: 18px;
+        align-items: baseline;
+        margin-bottom: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--review-line);
+      }
+
+      .spec-num {
+        color: var(--review-accent);
+        font-size: 10px;
+      }
+
+      .specimen h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(28px, 3vw, 42px);
+        font-variation-settings:
+          "SOFT" 52,
+          "opsz" 80;
+        font-weight: 520;
+        letter-spacing: -0.025em;
+        line-height: 1;
+      }
+
+      .specimen-note {
+        margin: 0;
+        color: var(--review-faint);
+        font-size: 13px;
+        text-align: right;
+      }
+
+      .screen-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 8px;
+        color: var(--review-faint);
+        font-size: 9px;
+      }
+
+      /* Canonical console climate --------------------------------------- */
+      .console-window {
+        --c-bg: #ece5d6;
+        --c-frame: #f4efe6;
+        --c-card: #faf7f0;
+        --c-card-soft: #ece5d6;
+        --c-deep: #dfd4bc;
+        --c-text: #211d18;
+        --c-text-66: rgba(33, 29, 24, 0.66);
+        --c-text-44: rgba(33, 29, 24, 0.44);
+        --c-text-24: rgba(33, 29, 24, 0.24);
+        --c-line: rgba(33, 29, 24, 0.16);
+        --c-line-soft: rgba(33, 29, 24, 0.08);
+        --c-accent: #c44a1d;
+        --c-accent-soft: rgba(196, 74, 29, 0.1);
+        --c-secondary: #6b2fa0;
+        --c-secondary-soft: rgba(107, 47, 160, 0.09);
+        --c-ok: #3d6b5c;
+        --c-ok-soft: rgba(61, 107, 92, 0.14);
+        --c-warn: #a97613;
+        --c-warn-soft: rgba(169, 118, 19, 0.12);
+        --c-err: #932f2f;
+        --c-err-soft: rgba(147, 47, 47, 0.09);
+        --c-on-dark: #f4efe6;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(241, 234, 221, 0.15);
+        border-radius: 12px;
+        background: var(--c-bg);
+        box-shadow: 0 36px 90px -38px rgba(0, 0, 0, 0.92);
+        color: var(--c-text);
+        color-scheme: light;
+        font-family: var(--ui);
+        transition:
+          background-color 0.35s ease,
+          color 0.35s ease;
+      }
+
+      .console-window::before {
+        position: absolute;
+        z-index: 30;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          var(--c-accent),
+          color-mix(in srgb, var(--c-accent) 30%, transparent) 55%,
+          transparent
+        );
+        content: "";
+        pointer-events: none;
+      }
+
+      .console-strip,
+      .crumbbar,
+      .workspace,
+      .type-rail,
+      .aside-card,
+      .colophon,
+      .manuscript {
+        transition:
+          background-color 0.35s ease,
+          border-color 0.35s ease,
+          color 0.35s ease;
+      }
+
+      [data-review-climate="instrument"] .console-window {
+        --c-bg: #0a0819;
+        --c-frame: #0f0d22;
+        --c-card: #14112b;
+        --c-card-soft: #1b1638;
+        --c-deep: #05040f;
+        --c-text: #f1eadd;
+        --c-text-66: rgba(241, 234, 221, 0.66);
+        --c-text-44: rgba(241, 234, 221, 0.44);
+        --c-text-24: rgba(241, 234, 221, 0.24);
+        --c-line: rgba(241, 234, 221, 0.14);
+        --c-line-soft: rgba(241, 234, 221, 0.07);
+        --c-accent: #ff8b3d;
+        --c-accent-soft: rgba(255, 139, 61, 0.12);
+        --c-secondary: #9998ff;
+        --c-secondary-soft: rgba(153, 152, 255, 0.12);
+        --c-ok: #68cc8b;
+        --c-ok-soft: rgba(104, 204, 139, 0.13);
+        --c-warn: #f5c158;
+        --c-warn-soft: rgba(245, 193, 88, 0.12);
+        --c-err: #e26d6d;
+        --c-err-soft: rgba(226, 109, 109, 0.1);
+        --c-on-dark: #0f0d22;
+        color-scheme: dark;
+      }
+
+      .console-strip {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        min-height: 52px;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--c-line);
+        background:
+          linear-gradient(
+            to bottom,
+            color-mix(in srgb, white 18%, transparent),
+            transparent
+          ),
+          var(--c-frame);
+      }
+
+      .console-mark {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--c-text-66);
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .console-mark b {
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .pulse {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--c-accent);
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        50% {
+          box-shadow: 0 0 0 6px transparent;
+        }
+
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-accent) 48%, transparent);
+        }
+      }
+
+      .surface-nav {
+        display: flex;
+        gap: 2px;
+      }
+
+      .surface-nav a {
+        padding: 5px 12px;
+        border-radius: 6px;
+        color: var(--c-text-44);
+        font-size: 13px;
+        text-decoration: none;
+      }
+
+      .surface-nav a.active {
+        background: var(--c-line-soft);
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .strip-spacer {
+        flex: 1;
+      }
+
+      .command-chip,
+      .session-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+
+      .command-chip {
+        padding: 5px 10px;
+        border: 1px solid var(--c-line);
+        border-radius: 6px;
+        color: var(--c-text-44);
+        font-size: 12px;
+      }
+
+      .command-chip kbd {
+        padding: 1px 5px;
+        border: 1px solid var(--c-line);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        font-family: var(--mono);
+        font-size: 9px;
+      }
+
+      .session-chip {
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: var(--c-ok-soft);
+        color: var(--c-ok);
+        font-family: var(--mono);
+        font-size: 10px;
+      }
+
+      .session-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--c-ok);
+      }
+
+      .crumbbar {
+        display: flex;
+        align-items: center;
+        min-height: 40px;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--c-line);
+        background: var(--c-frame);
+        color: var(--c-text-44);
+        font-size: 12px;
+      }
+
+      .crumbbar b {
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .crumbbar .capability {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: auto;
+        color: var(--c-ok);
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .capability::before {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      .cms-layout {
+        display: grid;
+        grid-template-columns: 226px minmax(0, 1fr);
+        min-height: 720px;
+      }
+
+      .type-rail {
+        padding: 20px 0 26px;
+        border-right: 1px solid var(--c-line);
+        background:
+          linear-gradient(
+            to right,
+            transparent 62%,
+            color-mix(in srgb, var(--c-text) 2.5%, transparent)
+          ),
+          var(--c-card-soft);
+      }
+
+      .rail-group + .rail-group {
+        margin-top: 13px;
+        padding-top: 17px;
+        border-top: 1px solid var(--c-line-soft);
+      }
+
+      .rail-label {
+        padding: 0 20px 7px;
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .rail-item {
+        display: flex;
+        width: 100%;
+        min-height: 32px;
+        align-items: center;
+        gap: 9px;
+        padding: 5px 20px 5px 18px;
+        border: 0;
+        border-left: 2px solid transparent;
+        background: transparent;
+        color: var(--c-text-66);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .rail-item:hover {
+        background: var(--c-card);
+        color: var(--c-text);
+      }
+
+      .rail-item.active {
+        border-left-color: var(--c-accent);
+        background: var(--c-card);
+        color: var(--c-text);
+      }
+
+      .rail-item .glyph {
+        width: 16px;
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .rail-item.active .glyph {
+        color: var(--c-accent);
+      }
+
+      .rail-count {
+        margin-left: auto;
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 10px;
+      }
+
+      .rail-count.attention {
+        display: grid;
+        width: 18px;
+        height: 18px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--c-err);
+        color: var(--c-card);
+        font-size: 8px;
+        font-weight: 600;
+      }
+
+      /* Publishing workspace ------------------------------------------- */
+      .workspace {
+        min-width: 0;
+        padding: 28px 30px 34px;
+        background: var(--c-frame);
+      }
+
+      .workspace-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: end;
+        padding-bottom: 21px;
+        border-bottom: 2px solid var(--c-text);
+      }
+
+      .workspace-kicker {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--c-accent);
+        font-family: var(--mono);
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .workspace-head h3 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(32px, 4vw, 49px);
+        font-variation-settings:
+          "SOFT" 62,
+          "opsz" 82;
+        font-weight: 520;
+        letter-spacing: -0.035em;
+        line-height: 0.95;
+      }
+
+      .workspace-head p {
+        max-width: 49ch;
+        margin: 8px 0 0;
+        color: var(--c-text-66);
+        font-size: 13px;
+      }
+
+      .workspace-status {
+        padding-bottom: 3px;
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 9px;
+        text-align: right;
+      }
+
+      .workspace-status strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--c-ok);
+        font-size: 10px;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+
+      .workspace-status strong::before {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-right: 7px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      .pipeline-vitals {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .pipeline-vital {
+        min-width: 0;
+        padding: 18px 16px 17px;
+        border-right: 1px solid var(--c-line);
+      }
+
+      .pipeline-vital:first-child {
+        padding-left: 0;
+      }
+
+      .pipeline-vital:last-child {
+        border-right: 0;
+      }
+
+      .pipeline-vital span {
+        display: block;
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .pipeline-vital b {
+        display: inline-block;
+        margin-top: 5px;
+        font-family: var(--display);
+        font-size: 29px;
+        font-variation-settings: "SOFT" 35;
+        font-weight: 520;
+        line-height: 1;
+      }
+
+      .pipeline-vital small {
+        margin-left: 5px;
+        color: var(--c-text-44);
+        font-size: 10px;
+      }
+
+      .pipeline-vital.warn b {
+        color: var(--c-err);
+      }
+
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.75fr) minmax(270px, 0.75fr);
+        gap: 28px;
+        padding-top: 25px;
+      }
+
+      .section-title {
+        display: flex;
+        min-height: 30px;
+        align-items: baseline;
+        gap: 9px;
+        margin-bottom: 5px;
+      }
+
+      .section-title h4 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 19px;
+        font-weight: 540;
+      }
+
+      .section-title span {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .queue-list {
+        border-top: 1px solid var(--c-text);
+      }
+
+      .queue-item {
+        position: relative;
+        animation: rise 0.5s ease-out both;
+        display: grid;
+        grid-template-columns: 42px minmax(160px, 1fr) minmax(96px, 0.38fr) 116px auto;
+        gap: 13px;
+        min-height: 84px;
+        align-items: center;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--c-line);
+        transition:
+          background 180ms ease,
+          transform 180ms ease;
+      }
+
+      .queue-item::before {
+        position: absolute;
+        top: 13px;
+        bottom: 13px;
+        left: -10px;
+        width: 2px;
+        background: transparent;
+        content: "";
+      }
+
+      .queue-item:hover {
+        background: color-mix(in srgb, var(--c-card) 75%, transparent);
+      }
+
+      .queue-item:hover::before {
+        background: var(--c-accent);
+      }
+
+      .queue-position {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+
+      .queue-copy {
+        min-width: 0;
+      }
+
+      .queue-copy strong {
+        display: block;
+        overflow: hidden;
+        font-family: var(--display);
+        font-size: 17px;
+        font-variation-settings:
+          "SOFT" 48,
+          "opsz" 30;
+        font-weight: 540;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .queue-copy span,
+      .queue-destination,
+      .queue-time {
+        color: var(--c-text-44);
+        font-size: 11px;
+      }
+
+      .queue-copy span {
+        display: block;
+        overflow: hidden;
+        margin-top: 3px;
+        font-family: var(--mono);
+        font-size: 9px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .destination-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 7px;
+        border: 1px solid var(--c-line);
+        border-radius: 999px;
+        color: var(--c-text-66);
+        font-family: var(--mono);
+        font-size: 8px;
+        white-space: nowrap;
+      }
+
+      .destination-pill::before {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--c-secondary);
+        content: "";
+      }
+
+      .destination-pill.site::before {
+        background: var(--c-ok);
+      }
+
+      .queue-time b {
+        display: block;
+        color: var(--c-text-66);
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 500;
+      }
+
+      .queue-actions {
+        display: flex;
+        gap: 4px;
+      }
+
+      .icon-btn,
+      .text-btn,
+      .primary-btn,
+      .quiet-btn,
+      .danger-btn {
+        border: 1px solid var(--c-line);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--c-text-66);
+        cursor: pointer;
+      }
+
+      .icon-btn {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .icon-btn:hover,
+      .text-btn:hover,
+      .quiet-btn:hover {
+        border-color: var(--c-text-44);
+        background: var(--c-card);
+        color: var(--c-text);
+      }
+
+      .queue-foot {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding-top: 11px;
+        color: var(--c-text-44);
+        font-size: 10px;
+      }
+
+      .queue-foot span:first-child {
+        font-family: var(--mono);
+      }
+
+      .queue-item:nth-child(1) {
+        animation-delay: 0.05s;
+      }
+
+      .queue-item:nth-child(2) {
+        animation-delay: 0.11s;
+      }
+
+      .queue-item:nth-child(3) {
+        animation-delay: 0.17s;
+      }
+
+      .workspace-aside {
+        display: grid;
+        align-content: start;
+        gap: 15px;
+      }
+
+      .workspace-aside > * {
+        animation: rise 0.5s ease-out both;
+      }
+
+      .workspace-aside > :nth-child(1) {
+        animation-delay: 0.12s;
+      }
+
+      .workspace-aside > :nth-child(2) {
+        animation-delay: 0.18s;
+      }
+
+      .workspace-aside > :nth-child(3) {
+        animation-delay: 0.24s;
+      }
+
+      .aside-card {
+        padding: 16px;
+        border: 1px solid var(--c-line);
+        background: var(--c-card);
+      }
+
+      .aside-card.attention {
+        border-color: color-mix(in srgb, var(--c-err) 38%, var(--c-line));
+        background:
+          linear-gradient(135deg, var(--c-err-soft), transparent 68%),
+          var(--c-card);
+      }
+
+      .aside-card-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 13px;
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .aside-card-head i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--c-secondary);
+      }
+
+      .attention .aside-card-head i {
+        background: var(--c-err);
+      }
+
+      .generation-title,
+      .failure-title {
+        display: block;
+        font-family: var(--display);
+        font-size: 16px;
+        font-weight: 540;
+      }
+
+      .generation-meta,
+      .failure-meta {
+        display: block;
+        margin-top: 3px;
+        color: var(--c-text-44);
+        font-size: 11px;
+      }
+
+      .progress-track {
+        height: 3px;
+        margin-top: 14px;
+        overflow: hidden;
+        background: var(--c-line);
+      }
+
+      .progress-track i {
+        display: block;
+        width: 64%;
+        height: 100%;
+        background: var(--c-secondary);
+        animation: breathe 2.4s ease-in-out infinite;
+      }
+
+      @keyframes breathe {
+        50% {
+          opacity: 0.48;
+        }
+      }
+
+      .failure-error {
+        margin: 10px 0 13px;
+        padding-left: 10px;
+        border-left: 2px solid var(--c-err);
+        color: var(--c-err);
+        font-family: var(--mono);
+        font-size: 9px;
+        line-height: 1.55;
+      }
+
+      .aside-actions {
+        display: flex;
+        gap: 7px;
+      }
+
+      .text-btn,
+      .primary-btn,
+      .quiet-btn,
+      .danger-btn {
+        min-height: 34px;
+        padding: 0 11px;
+        font-size: 11px;
+      }
+
+      .primary-btn {
+        border-color: var(--c-text);
+        background: var(--c-text);
+        color: var(--c-card);
+      }
+
+      .primary-btn:hover {
+        background: var(--c-accent);
+        border-color: var(--c-accent);
+        color: white;
+      }
+
+      .danger-btn {
+        border-color: var(--c-err);
+        color: var(--c-err);
+      }
+
+      .primary-btn:disabled {
+        border-color: var(--c-line);
+        background: var(--c-card-soft);
+        color: var(--c-text-44);
+        cursor: default;
+      }
+
+      .policy-card {
+        padding: 4px 2px 0;
+      }
+
+      .policy-card dl {
+        margin: 0;
+      }
+
+      .policy-card div {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--c-line-soft);
+        font-size: 10px;
+      }
+
+      .policy-card dt {
+        color: var(--c-text-44);
+      }
+
+      .policy-card dd {
+        margin: 0;
+        color: var(--c-text-66);
+        font-family: var(--mono);
+        text-align: right;
+      }
+
+      .toast {
+        position: absolute;
+        z-index: 10;
+        right: 24px;
+        bottom: 24px;
+        padding: 10px 13px;
+        border: 1px solid var(--c-line);
+        border-radius: 7px;
+        background: var(--c-text);
+        box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.7);
+        color: var(--c-card);
+        font-family: var(--mono);
+        font-size: 9px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: 180ms ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .demo-frame {
+        position: relative;
+      }
+
+      .absent-view {
+        display: none;
+      }
+
+      .demo-frame[data-mode="absent"] .pipeline-present {
+        display: none;
+      }
+
+      .demo-frame[data-mode="absent"] .absent-view {
+        display: block;
+      }
+
+      .library-head {
+        display: flex;
+        align-items: end;
+        gap: 18px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid var(--c-text);
+      }
+
+      .library-head h3 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 36px;
+        font-variation-settings: "SOFT" 65;
+        font-weight: 540;
+      }
+
+      .library-head span {
+        padding-bottom: 6px;
+        color: var(--c-text-44);
+        font-size: 11px;
+      }
+
+      .library-head .primary-btn {
+        margin-left: auto;
+      }
+
+      .library-row {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr) 120px 120px;
+        gap: 12px;
+        align-items: center;
+        padding: 16px 3px;
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .library-row .num,
+      .library-row time {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 9px;
+      }
+
+      .library-row strong {
+        display: block;
+        font-family: var(--display);
+        font-size: 17px;
+        font-weight: 520;
+      }
+
+      .library-row small {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 9px;
+      }
+
+      .status-chip {
+        justify-self: start;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--c-warn-soft);
+        color: var(--c-warn);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .status-chip.published {
+        background: var(--c-ok-soft);
+        color: var(--c-ok);
+      }
+
+      /* Entity editor --------------------------------------------------- */
+      .editor-layout {
+        display: grid;
+        grid-template-columns: 328px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 650px) 60px;
+        background: var(--c-frame);
+      }
+
+      .colophon {
+        overflow-y: auto;
+        padding: 25px 26px 38px;
+        border-right: 1px solid var(--c-line);
+        background: var(--c-card-soft);
+      }
+
+      .colophon-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 13px;
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .colophon-head span:first-child {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .colophon-head .status-chip {
+        font-size: 8px;
+      }
+
+      .field {
+        display: block;
+        margin-bottom: 17px;
+      }
+
+      .field-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        color: var(--c-text-66);
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .field-label em {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        font-style: normal;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .field-box {
+        display: block;
+        width: 100%;
+        min-height: 38px;
+        padding: 9px 10px;
+        border: 1px solid var(--c-line);
+        border-radius: 5px;
+        background: var(--c-card);
+        color: var(--c-text);
+        font-size: 12px;
+      }
+
+      .publication-block {
+        margin-top: 26px;
+        padding-top: 18px;
+        border-top: 2px solid var(--c-text);
+      }
+
+      .publication-block-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .publication-block h4 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 18px;
+        font-weight: 550;
+      }
+
+      .publication-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: var(--c-warn-soft);
+        color: var(--c-warn);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .publication-state::before {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      .publication-block p {
+        margin: 8px 0 13px;
+        color: var(--c-text-44);
+        font-size: 10px;
+      }
+
+      .publication-destination {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 0;
+        border-block: 1px solid var(--c-line-soft);
+        color: var(--c-text-44);
+        font-size: 10px;
+      }
+
+      .publication-destination b {
+        color: var(--c-text-66);
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 500;
+      }
+
+      .publication-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+        margin-top: 13px;
+      }
+
+      .manuscript {
+        min-width: 0;
+        overflow-y: auto;
+        background: var(--c-card);
+      }
+
+      .manuscript-toolbar {
+        position: sticky;
+        z-index: 2;
+        top: 0;
+        display: flex;
+        min-height: 42px;
+        align-items: center;
+        padding: 0 25px;
+        border-bottom: 1px solid var(--c-line);
+        background: color-mix(in srgb, var(--c-card) 92%, transparent);
+        backdrop-filter: blur(12px);
+      }
+
+      .manuscript-toolbar span {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .mode-tabs {
+        display: flex;
+        gap: 2px;
+        margin-left: auto;
+      }
+
+      .mode-tabs button {
+        padding: 4px 9px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--c-text-44);
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 8px;
+        text-transform: uppercase;
+      }
+
+      .mode-tabs button.active {
+        background: var(--c-line-soft);
+        color: var(--c-text);
+      }
+
+      .manuscript-page {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 64px 64px 90px;
+      }
+
+      .manuscript-page .doc-type {
+        color: var(--c-accent);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .manuscript-page h3 {
+        max-width: 13ch;
+        margin: 12px 0 25px;
+        font-family: var(--display);
+        font-size: clamp(38px, 5vw, 60px);
+        font-variation-settings:
+          "SOFT" 58,
+          "opsz" 100;
+        font-weight: 480;
+        letter-spacing: -0.04em;
+        line-height: 0.98;
+      }
+
+      .manuscript-page p {
+        max-width: 62ch;
+        margin: 0 0 19px;
+        color: var(--c-text-66);
+        font-family: var(--display);
+        font-size: 16px;
+        line-height: 1.7;
+      }
+
+      .manuscript-page blockquote {
+        max-width: 52ch;
+        margin: 30px 0;
+        padding-left: 19px;
+        border-left: 2px solid var(--c-accent);
+        color: var(--c-text);
+        font-family: var(--display);
+        font-size: 20px;
+        font-style: italic;
+        line-height: 1.4;
+      }
+
+      .save-pipeline {
+        grid-column: 1 / -1;
+        display: flex;
+        min-height: 60px;
+        align-items: center;
+        gap: 17px;
+        padding: 0 19px;
+        background: var(--c-text);
+        color: var(--c-on-dark);
+      }
+
+      .save-btn {
+        min-height: 38px;
+        padding: 0 20px;
+        border: 0;
+        border-radius: 6px;
+        background: var(--c-accent);
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .save-stations {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: color-mix(in srgb, var(--c-on-dark) 58%, transparent);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .save-stations .done {
+        color: color-mix(in srgb, var(--c-ok) 80%, var(--c-on-dark));
+      }
+
+      .save-stations i {
+        width: 35px;
+        height: 1px;
+        background: color-mix(in srgb, var(--c-on-dark) 25%, transparent);
+      }
+
+      .save-note {
+        margin-left: auto;
+        color: color-mix(in srgb, var(--c-on-dark) 55%, transparent);
+        font-family: var(--mono);
+        font-size: 8px;
+      }
+
+      .editor-demo {
+        position: relative;
+      }
+
+      .publish-scrim {
+        position: absolute;
+        z-index: 20;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: color-mix(in srgb, var(--c-deep) 65%, transparent);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+        backdrop-filter: blur(4px);
+      }
+
+      .publish-scrim.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .publish-dialog {
+        width: min(100%, 480px);
+        border: 1px solid var(--c-text);
+        background: var(--c-card);
+        box-shadow: 14px 14px 0 var(--c-accent);
+        color: var(--c-text);
+        transform: translateY(9px);
+        transition: transform 180ms ease;
+      }
+
+      .publish-scrim.open .publish-dialog {
+        transform: translateY(0);
+      }
+
+      .dialog-head {
+        padding: 21px 23px 17px;
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .dialog-head span {
+        color: var(--c-err);
+        font-family: var(--mono);
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .dialog-head h3 {
+        margin: 7px 0 0;
+        font-family: var(--display);
+        font-size: 28px;
+        font-weight: 530;
+        letter-spacing: -0.02em;
+      }
+
+      .dialog-body {
+        padding: 18px 23px;
+      }
+
+      .dialog-body p {
+        margin: 0 0 17px;
+        color: var(--c-text-66);
+        font-size: 12px;
+      }
+
+      .publish-receipt {
+        border-block: 1px solid var(--c-line);
+      }
+
+      .publish-receipt div {
+        display: grid;
+        grid-template-columns: 110px minmax(0, 1fr);
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--c-line-soft);
+        font-size: 10px;
+      }
+
+      .publish-receipt div:last-child {
+        border-bottom: 0;
+      }
+
+      .publish-receipt dt {
+        color: var(--c-text-44);
+      }
+
+      .publish-receipt dd {
+        overflow: hidden;
+        margin: 0;
+        color: var(--c-text-66);
+        font-family: var(--mono);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 15px 23px 21px;
+      }
+
+      /* Mobile comparison ---------------------------------------------- */
+      .phone-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 410px));
+        justify-content: center;
+        gap: 34px;
+      }
+
+      .phone-wrap {
+        min-width: 0;
+      }
+
+      .phone {
+        min-height: 780px;
+        border-radius: 24px;
+      }
+
+      .phone .console-strip {
+        min-height: 46px;
+        gap: 12px;
+        padding: 0 12px;
+      }
+
+      .phone .console-mark {
+        font-size: 9px;
+      }
+
+      .phone .console-mark .long,
+      .phone .surface-nav a:not(.active),
+      .phone .command-chip,
+      .phone .session-chip span:not(.session-dot) {
+        display: none;
+      }
+
+      .phone .surface-nav {
+        margin-left: auto;
+      }
+
+      .phone .surface-nav a.active {
+        font-size: 11px;
+      }
+
+      .phone .session-chip {
+        width: 31px;
+        height: 31px;
+        justify-content: center;
+        padding: 0;
+      }
+
+      .phone .crumbbar {
+        min-height: 42px;
+        padding: 0 12px;
+        font-size: 10px;
+      }
+
+      .phone .crumbbar .capability {
+        font-size: 8px;
+      }
+
+      .mobile-type-switcher {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--c-line);
+        background: var(--c-card-soft);
+        scrollbar-width: none;
+      }
+
+      .mobile-type-switcher::-webkit-scrollbar {
+        display: none;
+      }
+
+      .mobile-type-pill {
+        flex: 0 0 auto;
+        min-height: 36px;
+        padding: 0 11px;
+        border: 1px solid var(--c-line);
+        border-radius: 999px;
+        background: var(--c-card);
+        color: var(--c-text-66);
+        font-size: 10px;
+      }
+
+      .mobile-type-pill.active {
+        border-color: var(--c-accent);
+        background: var(--c-accent-soft);
+        color: var(--c-text);
+      }
+
+      .mobile-workspace {
+        padding: 20px 16px 28px;
+        background: var(--c-frame);
+      }
+
+      .mobile-workspace .workspace-kicker {
+        margin-bottom: 5px;
+      }
+
+      .mobile-workspace h3 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 31px;
+        font-variation-settings:
+          "SOFT" 65,
+          "opsz" 70;
+        font-weight: 520;
+        letter-spacing: -0.03em;
+      }
+
+      .mobile-workspace > p {
+        margin: 5px 0 15px;
+        color: var(--c-text-44);
+        font-size: 11px;
+      }
+
+      .mobile-vitals {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-block: 1px solid var(--c-text);
+      }
+
+      .mobile-vital {
+        padding: 10px 3px;
+        border-right: 1px solid var(--c-line);
+      }
+
+      .mobile-vital:last-child {
+        border-right: 0;
+      }
+
+      .mobile-vital b {
+        display: block;
+        font-family: var(--display);
+        font-size: 21px;
+        font-weight: 520;
+      }
+
+      .mobile-vital span {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .mobile-queue-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin: 17px 0 6px;
+      }
+
+      .mobile-queue-title h4 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 17px;
+      }
+
+      .mobile-queue-title span {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+        text-transform: uppercase;
+      }
+
+      .mobile-queue-card {
+        display: grid;
+        grid-template-columns: 27px minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: center;
+        padding: 13px 0;
+        border-top: 1px solid var(--c-line);
+      }
+
+      .mobile-queue-card:last-of-type {
+        border-bottom: 1px solid var(--c-line);
+      }
+
+      .mobile-queue-card .pos {
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 9px;
+      }
+
+      .mobile-queue-card strong {
+        display: block;
+        overflow: hidden;
+        font-family: var(--display);
+        font-size: 14px;
+        font-weight: 540;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .mobile-queue-card small {
+        display: block;
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+      }
+
+      .mobile-arrows {
+        display: flex;
+        gap: 3px;
+      }
+
+      .mobile-arrows button {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--c-line);
+        border-radius: 50%;
+        background: transparent;
+        color: var(--c-text-66);
+      }
+
+      .mobile-attention {
+        margin-top: 16px;
+        padding: 13px;
+        border: 1px solid color-mix(in srgb, var(--c-err) 38%, var(--c-line));
+        background: var(--c-err-soft);
+      }
+
+      .mobile-attention span {
+        color: var(--c-err);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .mobile-attention strong {
+        display: block;
+        margin: 4px 0 10px;
+        font-family: var(--display);
+        font-size: 15px;
+      }
+
+      .mobile-library {
+        padding: 20px 16px;
+        background: var(--c-frame);
+      }
+
+      .mobile-library h3 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 30px;
+        font-weight: 520;
+      }
+
+      .mobile-library > p {
+        margin: 4px 0 15px;
+        color: var(--c-text-44);
+        font-size: 11px;
+      }
+
+      .mobile-library-row {
+        padding: 14px 0;
+        border-top: 1px solid var(--c-line);
+      }
+
+      .mobile-library-row strong {
+        display: block;
+        font-family: var(--display);
+        font-size: 15px;
+        font-weight: 540;
+      }
+
+      .mobile-library-row span {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 3px;
+        color: var(--c-text-44);
+        font-family: var(--mono);
+        font-size: 8px;
+      }
+
+      /* Decisions ------------------------------------------------------- */
+      .decision-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        padding-top: 88px;
+      }
+
+      .decision {
+        min-height: 172px;
+        padding: 18px;
+        border: 1px solid var(--review-line);
+        background: rgba(255, 255, 255, 0.025);
+      }
+
+      .decision small {
+        color: var(--review-accent);
+        font-size: 8px;
+      }
+
+      .decision h3 {
+        margin: 14px 0 8px;
+        font-family: var(--display);
+        font-size: 20px;
+        font-weight: 520;
+      }
+
+      .decision p {
+        margin: 0;
+        color: var(--review-faint);
+        font-size: 12px;
+      }
+
+      .review-foot {
+        padding: 62px 0 46px;
+        color: var(--review-faint);
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 1080px) {
+        .workspace-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .workspace-aside {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .queue-item {
+          grid-template-columns: 35px minmax(160px, 1fr) 100px auto;
+        }
+
+        .queue-destination {
+          display: none;
+        }
+
+        .decision-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 760px) {
+        .review-head {
+          padding-top: 48px;
+        }
+
+        .review-intro,
+        .specimen-head {
+          grid-template-columns: 1fr;
+        }
+
+        .review-controls {
+          justify-content: flex-start;
+        }
+
+        .specimen-note {
+          text-align: left;
+        }
+
+        .desktop-only {
+          display: none;
+        }
+
+        .phone-grid,
+        .decision-grid {
+          grid-template-columns: minmax(0, 410px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="review-head">
+      <span class="eyebrow">Operator console · interaction proposal</span>
+      <h1>The publication <em>desk</em>, inside the CMS.</h1>
+      <div class="review-intro">
+        <p>
+          A working integration mockup for an optional content-pipeline
+          capability. Publishing joins the CMS as an operational workspace—not
+          another entity type—and disappears completely when the plugin is not
+          present.
+        </p>
+        <div class="review-controls" aria-label="Mockup controls">
+          <button
+            class="review-control is-active"
+            type="button"
+            data-demo-mode="workspace"
+          >
+            Pipeline present
+          </button>
+          <button class="review-control" type="button" data-demo-mode="absent">
+            Pipeline absent
+          </button>
+          <button class="review-control" type="button" id="climateToggle">
+            Switch to instrument
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="review-nav" aria-label="Mockup sections">
+      <a href="#workspace"><span>01</span>Workspace</a>
+      <a href="#entity"><span>02</span>Entity actions</a>
+      <a href="#mobile"><span>03</span>Mobile + absence</a>
+      <a href="#decisions"><span>04</span>Decisions</a>
+    </nav>
+
+    <section class="specimen" id="workspace">
+      <header class="specimen-head">
+        <span class="spec-num">01</span>
+        <h2>Publishing becomes a CMS workspace</h2>
+        <p class="specimen-note">
+          A numbered editorial queue replaces the Dashboard kanban. Operations
+          live beside content collections, but in their own capability group.
+        </p>
+      </header>
+      <span class="screen-label">
+        <span>Desktop · 1440 reference</span>
+        <span>Use the controls above to remove content-pipeline</span>
+      </span>
+
+      <div class="demo-frame" id="desktopDemo" data-mode="workspace">
+        <div class="console-window">
+          <header class="console-strip">
+            <span class="console-mark"
+              ><i class="pulse"></i> Brain · <b>Console</b></span
+            >
+            <nav class="surface-nav" aria-label="Console surfaces">
+              <a href="#">Dashboard</a>
+              <a href="#">Chat</a>
+              <a class="active" href="#workspace">CMS</a>
+            </nav>
+            <span class="strip-spacer"></span>
+            <span class="command-chip">Search or jump… <kbd>⌘K</kbd></span>
+            <span class="session-chip"
+              ><i class="session-dot"></i> Operator</span
+            >
+          </header>
+          <div class="crumbbar pipeline-present">
+            CMS&nbsp; / &nbsp;<b>Publishing</b>
+            <span class="capability">content-pipeline connected</span>
+          </div>
+          <div class="crumbbar absent-view">
+            CMS&nbsp; / &nbsp;<b>Posts</b>
+          </div>
+
+          <div class="cms-layout">
+            <aside class="type-rail" aria-label="CMS navigation">
+              <section class="rail-group">
+                <div class="rail-label">Content</div>
+                <button class="rail-item" type="button">
+                  <span class="glyph">¶</span> Posts
+                  <span class="rail-count">24</span>
+                </button>
+                <button class="rail-item" type="button">
+                  <span class="glyph">≡</span> Notes
+                  <span class="rail-count">112</span>
+                </button>
+                <button class="rail-item" type="button">
+                  <span class="glyph">↗</span> Links
+                  <span class="rail-count">86</span>
+                </button>
+                <button class="rail-item" type="button">
+                  <span class="glyph">▥</span> Decks
+                  <span class="rail-count">7</span>
+                </button>
+              </section>
+              <section class="rail-group">
+                <div class="rail-label">Collections</div>
+                <button class="rail-item" type="button">
+                  <span class="glyph">◇</span> Series
+                  <span class="rail-count">5</span>
+                </button>
+                <button class="rail-item" type="button">
+                  <span class="glyph">#</span> Topics
+                  <span class="rail-count">19</span>
+                </button>
+              </section>
+              <section class="rail-group pipeline-present">
+                <div class="rail-label">Operations</div>
+                <button class="rail-item active" type="button">
+                  <span class="glyph">⇥</span> Publishing
+                  <span class="rail-count attention">2</span>
+                </button>
+              </section>
+              <section class="rail-group">
+                <div class="rail-label">Site</div>
+                <button class="rail-item" type="button">
+                  <span class="glyph">⌂</span> Site info
+                  <span class="rail-count">solo</span>
+                </button>
+              </section>
+            </aside>
+
+            <main class="workspace pipeline-present">
+              <header class="workspace-head">
+                <div>
+                  <span class="workspace-kicker">Publication operations</span>
+                  <h3>Publishing desk</h3>
+                  <p>
+                    Review intent, order dispatches, and resolve failures. Draft
+                    editing stays in its normal collection.
+                  </p>
+                </div>
+                <div class="workspace-status">
+                  <strong>Pipeline online</strong>
+                  next dispatch · Mon 09:00
+                </div>
+              </header>
+
+              <div class="pipeline-vitals" aria-label="Pipeline summary">
+                <div class="pipeline-vital">
+                  <span>Queued</span><b data-queued-count>3</b
+                  ><small>dispatches</small>
+                </div>
+                <div class="pipeline-vital">
+                  <span>Generating</span><b>1</b><small>asset</small>
+                </div>
+                <div class="pipeline-vital warn">
+                  <span>Needs attention</span><b data-attention-count>2</b
+                  ><small>items</small>
+                </div>
+                <div class="pipeline-vital">
+                  <span>Published</span><b>28</b><small>all time</small>
+                </div>
+              </div>
+
+              <div class="workspace-grid">
+                <section>
+                  <header class="section-title">
+                    <h4>Dispatch queue</h4>
+                    <span>earliest first</span>
+                  </header>
+                  <div class="queue-list" id="queueList">
+                    <article class="queue-item" data-queue-item>
+                      <span class="queue-position">01</span>
+                      <div class="queue-copy">
+                        <strong>Domain as identity</strong>
+                        <span>post/domain-as-identity</span>
+                      </div>
+                      <div class="queue-destination">
+                        <span class="destination-pill site">Website</span>
+                      </div>
+                      <div class="queue-time">
+                        <b>Mon · 09:00</b> scheduled
+                      </div>
+                      <div class="queue-actions">
+                        <button
+                          class="icon-btn"
+                          type="button"
+                          data-move="up"
+                          aria-label="Move Domain as identity earlier"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          class="icon-btn"
+                          type="button"
+                          data-move="down"
+                          aria-label="Move Domain as identity later"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </article>
+                    <article class="queue-item" data-queue-item>
+                      <span class="queue-position">02</span>
+                      <div class="queue-copy">
+                        <strong>Weekly field notes — issue 14</strong>
+                        <span>newsletter/field-notes-14</span>
+                      </div>
+                      <div class="queue-destination">
+                        <span class="destination-pill">Buttondown</span>
+                      </div>
+                      <div class="queue-time">
+                        <b>Fri · 08:00</b> scheduled
+                      </div>
+                      <div class="queue-actions">
+                        <button
+                          class="icon-btn"
+                          type="button"
+                          data-move="up"
+                          aria-label="Move Weekly field notes earlier"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          class="icon-btn"
+                          type="button"
+                          data-move="down"
+                          aria-label="Move Weekly field notes later"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </article>
+                    <article class="queue-item" data-queue-item>
+                      <span class="queue-position">03</span>
+                      <div class="queue-copy">
+                        <strong>A field guide to durable identity</strong>
+                        <span>social-post/durable-identity-linkedin</span>
+                      </div>
+                      <div class="queue-destination">
+                        <span class="destination-pill">LinkedIn</span>
+                      </div>
+                      <div class="queue-time">
+                        <b>Fri · 08:15</b> after issue 14
+                      </div>
+                      <div class="queue-actions">
+                        <button
+                          class="icon-btn"
+                          type="button"
+                          data-move="up"
+                          aria-label="Move A field guide earlier"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          class="icon-btn"
+                          type="button"
+                          data-move="down"
+                          aria-label="Move A field guide later"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </article>
+                  </div>
+                  <footer class="queue-foot">
+                    <span>queue order is durable</span>
+                    <span>Changes apply immediately</span>
+                  </footer>
+                </section>
+
+                <aside class="workspace-aside">
+                  <section class="aside-card">
+                    <header class="aside-card-head">
+                      <i></i> Generating now
+                    </header>
+                    <strong class="generation-title">OG image</strong>
+                    <span class="generation-meta"
+                      >post/domain-as-identity · rendering</span
+                    >
+                    <div class="progress-track" aria-label="64 percent complete">
+                      <i></i>
+                    </div>
+                  </section>
+
+                  <section class="aside-card attention" id="failureCard">
+                    <header class="aside-card-head">
+                      <i></i> Needs attention
+                    </header>
+                    <strong class="failure-title">March dispatch</strong>
+                    <span class="failure-meta"
+                      >newsletter/march-dispatch · failed</span
+                    >
+                    <p class="failure-error">
+                      Provider rejected sender address. Check Buttondown
+                      configuration.
+                    </p>
+                    <div class="aside-actions">
+                      <button class="primary-btn" type="button" id="retryButton">
+                        Retry
+                      </button>
+                      <button class="quiet-btn" type="button">Open entry</button>
+                    </div>
+                  </section>
+
+                  <section class="policy-card">
+                    <header class="aside-card-head">
+                      <i></i> Dispatch policy
+                    </header>
+                    <dl>
+                      <div><dt>Posts</dt><dd>Mon · 09:00</dd></div>
+                      <div><dt>Newsletter</dt><dd>Fri · 08:00</dd></div>
+                      <div><dt>Social</dt><dd>after source</dd></div>
+                    </dl>
+                  </section>
+                </aside>
+              </div>
+            </main>
+
+            <main class="workspace absent-view">
+              <header class="library-head">
+                <h3>Posts</h3>
+                <span>24 entities · sorted by updated</span>
+                <button class="primary-btn" type="button">New post</button>
+              </header>
+              <article class="library-row">
+                <span class="num">01</span>
+                <div>
+                  <strong>Domain as identity</strong>
+                  <small>post/domain-as-identity</small>
+                </div>
+                <span class="status-chip">draft</span>
+                <time>18 min ago</time>
+              </article>
+              <article class="library-row">
+                <span class="num">02</span>
+                <div>
+                  <strong>Protocols for patient software</strong>
+                  <small>post/patient-software</small>
+                </div>
+                <span class="status-chip published">published</span>
+                <time>yesterday</time>
+              </article>
+              <article class="library-row">
+                <span class="num">03</span>
+                <div>
+                  <strong>Small systems, held carefully</strong>
+                  <small>post/small-systems</small>
+                </div>
+                <span class="status-chip">draft</span>
+                <time>4 days ago</time>
+              </article>
+            </main>
+          </div>
+        </div>
+        <div class="toast" id="toast" role="status" aria-live="polite">
+          Queue order updated
+        </div>
+      </div>
+    </section>
+
+    <section class="specimen desktop-only" id="entity">
+      <header class="specimen-head">
+        <span class="spec-num">02</span>
+        <h2>Actions stay contextual—and separate from Save</h2>
+        <p class="specimen-note">
+          Publication controls live in the colophon. The black footer continues
+          to describe only entity DB → file → git persistence.
+        </p>
+      </header>
+      <span class="screen-label">
+        <span>Entity editor · publishable post</span>
+        <span>Click “Publish now” to inspect confirmation</span>
+      </span>
+
+      <div class="console-window editor-demo" id="editorDemo">
+        <header class="console-strip">
+          <span class="console-mark"
+            ><i class="pulse"></i> Brain · <b>Console</b></span
+          >
+          <nav class="surface-nav" aria-label="Console surfaces">
+            <a href="#">Dashboard</a>
+            <a href="#">Chat</a>
+            <a class="active" href="#entity">CMS</a>
+          </nav>
+          <span class="strip-spacer"></span>
+          <span class="command-chip">Search or jump… <kbd>⌘K</kbd></span>
+          <span class="session-chip"><i class="session-dot"></i> Operator</span>
+        </header>
+        <div class="crumbbar">
+          Posts&nbsp; / &nbsp;<b>Domain as identity</b>
+          <span class="capability">publishable</span>
+        </div>
+
+        <div class="editor-layout">
+          <aside class="colophon">
+            <header class="colophon-head">
+              <span>Frontmatter</span>
+              <span class="status-chip">draft</span>
+            </header>
+            <label class="field">
+              <span class="field-label">Title <em>required</em></span>
+              <span class="field-box">Domain as identity</span>
+            </label>
+            <label class="field">
+              <span class="field-label">Series <em>reference</em></span>
+              <span class="field-box">Trust &amp; Identity</span>
+            </label>
+            <label class="field">
+              <span class="field-label">Description <em>optional</em></span>
+              <span class="field-box"
+                >How domain-bound identity changes trust between brains.</span
+              >
+            </label>
+
+            <section class="publication-block">
+              <header class="publication-block-head">
+                <h4>Publication</h4>
+                <span class="publication-state">Draft</span>
+              </header>
+              <p>
+                This capability is supplied by content-pipeline and is not part
+                of the document save path.
+              </p>
+              <div class="publication-destination">
+                <span>Destination</span><b>Website</b>
+              </div>
+              <div class="publication-destination">
+                <span>Schedule</span><b>Mon · 09:00</b>
+              </div>
+              <div class="publication-actions">
+                <button class="primary-btn" type="button">Add to queue</button>
+                <button class="quiet-btn" type="button" id="publishNowButton">
+                  Publish now
+                </button>
+              </div>
+            </section>
+          </aside>
+
+          <main class="manuscript">
+            <header class="manuscript-toolbar">
+              <span>Markdown manuscript</span>
+              <div class="mode-tabs">
+                <button type="button">Source</button>
+                <button class="active" type="button">Split</button>
+                <button type="button">Preview</button>
+              </div>
+            </header>
+            <article class="manuscript-page">
+              <span class="doc-type">Trust &amp; identity · essay 04</span>
+              <h3>Domain as identity</h3>
+              <p>
+                Two brains that have never met can already talk—but only as
+                strangers. Trust should not depend on a shared secret pasted
+                into two configuration files.
+              </p>
+              <p>
+                A domain is more than a route. It is a durable public claim: a
+                place where capabilities, history, and accountable ownership can
+                meet.
+              </p>
+              <blockquote>
+                A leaked token is a stolen key. A domain-bound identity is a
+                name that can answer for itself.
+              </blockquote>
+              <p>
+                The practical work is not to remove credentials. It is to make
+                credentials subordinate to an identity that survives rotation,
+                migration, and changing infrastructure.
+              </p>
+            </article>
+          </main>
+
+          <footer class="save-pipeline">
+            <button class="save-btn" type="button">Save</button>
+            <span class="save-stations">
+              <span class="done">● entity db</span><i></i
+              ><span class="done">● exported to file</span><i></i
+              ><span class="done">● committed</span>
+            </span>
+            <span class="save-note">last write 83f2a91</span>
+          </footer>
+        </div>
+
+        <div
+          class="publish-scrim"
+          id="publishScrim"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="publishDialogTitle"
+        >
+          <section class="publish-dialog">
+            <header class="dialog-head">
+              <span>External side effect</span>
+              <h3 id="publishDialogTitle">Publish “Domain as identity”?</h3>
+            </header>
+            <div class="dialog-body">
+              <p>
+                The current saved revision will be sent to its registered public
+                provider. Changes made after this confirmation will invalidate
+                the action.
+              </p>
+              <dl class="publish-receipt">
+                <div><dt>Destination</dt><dd>Website · public</dd></div>
+                <div><dt>Entity</dt><dd>post/domain-as-identity</dd></div>
+                <div><dt>Revision</dt><dd>sha256:8fc6…d2a1</dd></div>
+                <div><dt>Confirmation</dt><dd>expires in 15 minutes</dd></div>
+              </dl>
+            </div>
+            <footer class="dialog-actions">
+              <button class="quiet-btn" type="button" id="cancelPublish">
+                Keep as draft
+              </button>
+              <button class="primary-btn" type="button" id="confirmPublish">
+                Confirm publication
+              </button>
+            </footer>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="specimen" id="mobile">
+      <header class="specimen-head">
+        <span class="spec-num">03</span>
+        <h2>Mobile presence, and true absence</h2>
+        <p class="specimen-note">
+          The workspace becomes a horizontal CMS destination. Without the
+          plugin, no disabled Publishing pill, empty panel, or error message is
+          left behind.
+        </p>
+      </header>
+
+      <div class="phone-grid">
+        <div class="phone-wrap">
+          <span class="screen-label"><span>390px · pipeline present</span></span>
+          <div class="console-window phone">
+            <header class="console-strip">
+              <span class="console-mark"
+                ><i class="pulse"></i> Brain
+                <span class="long">· Console</span></span
+              >
+              <nav class="surface-nav"><a class="active" href="#">CMS</a></nav>
+              <span class="session-chip"
+                ><i class="session-dot"></i><span>Operator</span></span
+              >
+            </header>
+            <div class="crumbbar">
+              CMS&nbsp; / &nbsp;<b>Publishing</b>
+              <span class="capability">online</span>
+            </div>
+            <nav class="mobile-type-switcher" aria-label="CMS destinations">
+              <button class="mobile-type-pill" type="button">Posts · 24</button>
+              <button class="mobile-type-pill" type="button">Notes · 112</button>
+              <button class="mobile-type-pill active" type="button">
+                Publishing · 2
+              </button>
+              <button class="mobile-type-pill" type="button">Site info</button>
+            </nav>
+            <main class="mobile-workspace">
+              <span class="workspace-kicker">Publication operations</span>
+              <h3>Publishing desk</h3>
+              <p>Order dispatches and resolve what needs attention.</p>
+              <div class="mobile-vitals">
+                <div class="mobile-vital"><b>3</b><span>Queued</span></div>
+                <div class="mobile-vital"><b>1</b><span>Generating</span></div>
+                <div class="mobile-vital"><b>2</b><span>Attention</span></div>
+                <div class="mobile-vital"><b>28</b><span>Published</span></div>
+              </div>
+              <header class="mobile-queue-title">
+                <h4>Dispatch queue</h4>
+                <span>earliest first</span>
+              </header>
+              <article class="mobile-queue-card">
+                <span class="pos">01</span>
+                <div>
+                  <strong>Domain as identity</strong>
+                  <small>Website · Mon 09:00</small>
+                </div>
+                <div class="mobile-arrows">
+                  <button type="button" aria-label="Move earlier">↑</button>
+                  <button type="button" aria-label="Move later">↓</button>
+                </div>
+              </article>
+              <article class="mobile-queue-card">
+                <span class="pos">02</span>
+                <div>
+                  <strong>Weekly field notes — issue 14</strong>
+                  <small>Buttondown · Fri 08:00</small>
+                </div>
+                <div class="mobile-arrows">
+                  <button type="button" aria-label="Move earlier">↑</button>
+                  <button type="button" aria-label="Move later">↓</button>
+                </div>
+              </article>
+              <article class="mobile-queue-card">
+                <span class="pos">03</span>
+                <div>
+                  <strong>A field guide to durable identity</strong>
+                  <small>LinkedIn · after issue 14</small>
+                </div>
+                <div class="mobile-arrows">
+                  <button type="button" aria-label="Move earlier">↑</button>
+                  <button type="button" aria-label="Move later">↓</button>
+                </div>
+              </article>
+              <section class="mobile-attention">
+                <span>Needs attention</span>
+                <strong>March dispatch failed at Buttondown</strong>
+                <button class="primary-btn" type="button">Retry</button>
+              </section>
+            </main>
+          </div>
+        </div>
+
+        <div class="phone-wrap">
+          <span class="screen-label"><span>390px · pipeline absent</span></span>
+          <div class="console-window phone">
+            <header class="console-strip">
+              <span class="console-mark"
+                ><i class="pulse"></i> Brain
+                <span class="long">· Console</span></span
+              >
+              <nav class="surface-nav"><a class="active" href="#">CMS</a></nav>
+              <span class="session-chip"
+                ><i class="session-dot"></i><span>Operator</span></span
+              >
+            </header>
+            <div class="crumbbar">CMS&nbsp; / &nbsp;<b>Posts</b></div>
+            <nav class="mobile-type-switcher" aria-label="CMS destinations">
+              <button class="mobile-type-pill active" type="button">
+                Posts · 24
+              </button>
+              <button class="mobile-type-pill" type="button">Notes · 112</button>
+              <button class="mobile-type-pill" type="button">Links · 86</button>
+              <button class="mobile-type-pill" type="button">Site info</button>
+            </nav>
+            <main class="mobile-library">
+              <h3>Posts</h3>
+              <p>24 entities · sorted by updated</p>
+              <article class="mobile-library-row">
+                <strong>Domain as identity</strong>
+                <span><i>post/domain-as-identity</i><b>18 min ago</b></span>
+              </article>
+              <article class="mobile-library-row">
+                <strong>Protocols for patient software</strong>
+                <span><i>post/patient-software</i><b>yesterday</b></span>
+              </article>
+              <article class="mobile-library-row">
+                <strong>Small systems, held carefully</strong>
+                <span><i>post/small-systems</i><b>4 days ago</b></span>
+              </article>
+              <article class="mobile-library-row">
+                <strong>The texture of public memory</strong>
+                <span><i>post/public-memory</i><b>7 days ago</b></span>
+              </article>
+            </main>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="decision-grid" id="decisions" aria-label="Design decisions">
+      <article class="decision">
+        <small>Information architecture</small>
+        <h3>Capability, not collection</h3>
+        <p>
+          Publishing sits under Operations. It never pretends to be another
+          entity type, even though it links back into entity editors.
+        </p>
+      </article>
+      <article class="decision">
+        <small>Visual language</small>
+        <h3>Dispatch ledger, not kanban</h3>
+        <p>
+          Numbered rows express durable order and schedule better than the
+          Dashboard’s former three-lane board.
+        </p>
+      </article>
+      <article class="decision">
+        <small>State boundary</small>
+        <h3>Save is not publish</h3>
+        <p>
+          Publication actions stay in the colophon; the black save bar keeps its
+          exact DB → file → git meaning.
+        </p>
+      </article>
+      <article class="decision">
+        <small>Optional composition</small>
+        <h3>Absence leaves no scar</h3>
+        <p>
+          No provider means no Operations group, no Publishing route, and no
+          browser request that fails after the CMS opens.
+        </p>
+      </article>
+    </section>
+
+    <footer class="review-foot">
+      CMS publishing workspace · interaction mockup · paper is the default
+      editorial climate
+    </footer>
+
+    <script>
+      const root = document.documentElement;
+      const desktopDemo = document.getElementById("desktopDemo");
+      const modeButtons = Array.from(
+        document.querySelectorAll("[data-demo-mode]"),
+      );
+      const climateToggle = document.getElementById("climateToggle");
+      const queueList = document.getElementById("queueList");
+      const toast = document.getElementById("toast");
+      const retryButton = document.getElementById("retryButton");
+      const failureCard = document.getElementById("failureCard");
+      const publishScrim = document.getElementById("publishScrim");
+      const publishNowButton = document.getElementById("publishNowButton");
+      const cancelPublish = document.getElementById("cancelPublish");
+      const confirmPublish = document.getElementById("confirmPublish");
+      let toastTimer;
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      function setMode(mode) {
+        desktopDemo.dataset.mode = mode;
+        modeButtons.forEach((button) => {
+          button.classList.toggle("is-active", button.dataset.demoMode === mode);
+        });
+      }
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => setMode(button.dataset.demoMode));
+      });
+
+      climateToggle.addEventListener("click", () => {
+        const instrument = root.dataset.reviewClimate === "instrument";
+        root.dataset.reviewClimate = instrument ? "paper" : "instrument";
+        climateToggle.textContent = instrument
+          ? "Switch to instrument"
+          : "Switch to paper";
+      });
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => toast.classList.remove("show"), 1600);
+      }
+
+      function refreshQueuePositions() {
+        Array.from(queueList.querySelectorAll("[data-queue-item]")).forEach(
+          (item, index) => {
+            item.querySelector(".queue-position").textContent = String(
+              index + 1,
+            ).padStart(2, "0");
+          },
+        );
+      }
+
+      queueList.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-move]");
+        if (!button) return;
+        const item = button.closest("[data-queue-item]");
+        if (button.dataset.move === "up" && item.previousElementSibling) {
+          queueList.insertBefore(item, item.previousElementSibling);
+          showToast("Moved earlier · queue order updated");
+        }
+        if (button.dataset.move === "down" && item.nextElementSibling) {
+          queueList.insertBefore(item.nextElementSibling, item);
+          showToast("Moved later · queue order updated");
+        }
+        refreshQueuePositions();
+        if (!reduceMotion) {
+          item.animate(
+            [
+              { backgroundColor: "var(--c-accent-soft)" },
+              { backgroundColor: "transparent" },
+            ],
+            { duration: 650, easing: "ease-out" },
+          );
+        }
+      });
+
+      retryButton.addEventListener("click", () => {
+        failureCard.classList.remove("attention");
+        failureCard.querySelector(".aside-card-head").lastChild.textContent =
+          " Retry queued";
+        failureCard.querySelector(".failure-meta").textContent =
+          "newsletter/march-dispatch · queued";
+        failureCard.querySelector(".failure-error").textContent =
+          "Credential check passed. Waiting for the newsletter schedule.";
+        retryButton.textContent = "Queued";
+        retryButton.disabled = true;
+        document.querySelectorAll("[data-queued-count]").forEach((node) => {
+          node.textContent = "4";
+        });
+        document.querySelectorAll("[data-attention-count]").forEach((node) => {
+          node.textContent = "1";
+        });
+        showToast("March dispatch returned to queue");
+      });
+
+      function setPublishDialog(open) {
+        publishScrim.classList.toggle("open", open);
+        if (open) cancelPublish.focus();
+        else publishNowButton.focus();
+      }
+
+      publishNowButton.addEventListener("click", () => setPublishDialog(true));
+      cancelPublish.addEventListener("click", () => setPublishDialog(false));
+      publishScrim.addEventListener("click", (event) => {
+        if (event.target === publishScrim) setPublishDialog(false);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && publishScrim.classList.contains("open")) {
+          setPublishDialog(false);
+        }
+      });
+      confirmPublish.addEventListener("click", () => {
+        setPublishDialog(false);
+        showToast("Publication confirmed");
+      });
+    </script>
+  </body>
+</html>

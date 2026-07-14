@@ -27,6 +27,12 @@ export interface BatchEmbeddingResult {
 export interface IEmbeddingService {
   /** Vector dimensions produced by this provider */
   readonly dimensions: number;
-  generateEmbedding(text: string): Promise<EmbeddingResult>;
-  generateEmbeddings(texts: string[]): Promise<BatchEmbeddingResult>;
+  generateEmbedding(
+    text: string,
+    signal?: AbortSignal,
+  ): Promise<EmbeddingResult>;
+  generateEmbeddings(
+    texts: string[],
+    signal?: AbortSignal,
+  ): Promise<BatchEmbeddingResult>;
 }

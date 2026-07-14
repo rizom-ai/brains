@@ -93,6 +93,19 @@ export class EntityRegistry implements IEntityRegistry {
     this.logger.debug(`Registered entity type: ${type}`);
   }
 
+  unregisterEntityType(type: string): void {
+    this.entitySchemas.delete(type);
+    this.entityAdapters.delete(type);
+    this.entityConfigs.delete(type);
+    this.createInterceptors.delete(type);
+    this.persistValidators.delete(type);
+    this.frontmatterExtensions.delete(type);
+    this.uploadSaveHandlers = this.uploadSaveHandlers.filter(
+      (registration) => registration.entityType !== type,
+    );
+    this.logger.debug(`Unregistered entity type: ${type}`);
+  }
+
   /**
    * Get schema for a specific entity type
    */

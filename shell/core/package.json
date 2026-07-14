@@ -1,8 +1,9 @@
 {
   "name": "@brains/core",
-  "version": "0.2.0-alpha.167",
+  "version": "0.2.0-alpha.175",
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",

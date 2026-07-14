@@ -173,6 +173,9 @@ module.exports = {
     },
   ],
   options: {
+    exclude: {
+      path: "(^|/)dist/",
+    },
     doNotFollow: {
       path: "node_modules",
     },

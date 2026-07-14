@@ -25,6 +25,14 @@ const createMockShell = (): ShellInstance => {
   } as unknown as ShellInstance;
 };
 
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve: () => void = () => {};
+  const promise = new Promise<void>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
+
 describe("App", () => {
   describe("create", () => {
     it("should create an app with default config", () => {
@@ -79,6 +87,81 @@ describe("App", () => {
 
       expect(app.stop()).resolves.toBeUndefined();
       expect(mockShell.shutdown).toHaveBeenCalled();
+    });
+
+    it("should share one in-flight stop operation", async () => {
+      const shutdown = deferred();
+      const mockShell = createMockShell();
+      mockShell.shutdown = mock(() => shutdown.promise);
+      const app = App.create({}, mockShell);
+
+      const first = app.stop();
+      const second = app.stop();
+      await Promise.resolve();
+
+      expect(second).toBe(first);
+      expect(mockShell.shutdown).toHaveBeenCalledTimes(1);
+
+      shutdown.resolve();
+      await first;
+    });
+
+    it("should acquire signal listeners once and release them on stop", async () => {
+      const mockShell = createMockShell();
+      const app = App.create({}, mockShell);
+      const existingSigint = new Set(process.listeners("SIGINT"));
+      const existingSigterm = new Set(process.listeners("SIGTERM"));
+
+      await app.start();
+      await app.start();
+
+      const sigintHandler = process
+        .listeners("SIGINT")
+        .find((listener) => !existingSigint.has(listener));
+      const sigtermHandler = process
+        .listeners("SIGTERM")
+        .find((listener) => !existingSigterm.has(listener));
+      expect(sigintHandler).toBeDefined();
+      expect(sigtermHandler).toBeDefined();
+
+      await app.stop();
+
+      expect(process.listeners("SIGINT")).not.toContain(sigintHandler);
+      expect(process.listeners("SIGTERM")).not.toContain(sigtermHandler);
+    });
+
+    it("should run only one shutdown fiber for concurrent signals", async () => {
+      const mockShell = createMockShell();
+      const app = App.create({}, mockShell);
+      const existingSigint = new Set(process.listeners("SIGINT"));
+      const existingSigterm = new Set(process.listeners("SIGTERM"));
+      const originalExit = process.exit;
+      const exit = mock((_code?: number): never => undefined as never);
+
+      try {
+        process.exit = exit;
+        await app.start();
+        const sigintHandler = process
+          .listeners("SIGINT")
+          .find((listener) => !existingSigint.has(listener));
+        const sigtermHandler = process
+          .listeners("SIGTERM")
+          .find((listener) => !existingSigterm.has(listener));
+        if (!sigintHandler || !sigtermHandler) {
+          throw new Error("Expected app signal handlers");
+        }
+
+        sigintHandler("SIGINT");
+        sigtermHandler("SIGTERM");
+        await Bun.sleep(10);
+
+        expect(mockShell.shutdown).toHaveBeenCalledTimes(1);
+        expect(exit).toHaveBeenCalledTimes(1);
+        expect(exit).toHaveBeenCalledWith(0);
+      } finally {
+        process.exit = originalExit;
+        await app.stop();
+      }
     });
 
     it("should initialize shell during app initialization", async () => {

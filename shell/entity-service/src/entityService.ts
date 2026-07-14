@@ -54,6 +54,8 @@ import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
+import { Cause, Effect, Exit } from "@brains/effect-runtime";
+import { makeIndexReadinessPollingEffect } from "./index-readiness";
 
 /**
  * Options for creating an EntityService instance
@@ -299,22 +301,47 @@ export class EntityService implements IEntityService {
   public async awaitIndexReady(
     options: IndexReadinessOptions,
   ): Promise<IndexReadinessStatus> {
-    const intervalMs = options.intervalMs ?? 250;
-    const deadline = Date.now() + options.timeoutMs;
+    let probeFailed = false;
+    const probe = Effect.tryPromise({
+      try: () => this.getIndexReadinessStatus(),
+      catch: (error) => error,
+    }).pipe(
+      Effect.tapError((error) =>
+        Effect.sync(() => {
+          if (!probeFailed) {
+            this.logger.warn(
+              "Semantic index readiness check failed; retrying",
+              {
+                error,
+              },
+            );
+            probeFailed = true;
+          }
+        }),
+      ),
+      Effect.tap(() =>
+        Effect.sync(() => {
+          probeFailed = false;
+        }),
+      ),
+    );
+    const polling = makeIndexReadinessPollingEffect(probe, {
+      intervalMs: options.intervalMs ?? 250,
+      ...(options.timeoutMs !== undefined && {
+        timeoutMs: options.timeoutMs,
+      }),
+    });
+    const exit = await Effect.runPromiseExit(polling, {
+      ...(options.signal && { signal: options.signal }),
+    });
 
-    for (;;) {
-      const status = await this.getIndexReadinessStatus();
-      if (status.ready) {
-        this.indexReady = true;
-        return status;
-      }
-
-      if (Date.now() >= deadline) {
-        return status;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    if (Exit.isFailure(exit)) {
+      if (options.signal?.aborted) throw options.signal.reason;
+      throw Cause.squash(exit.cause);
     }
+
+    if (exit.value.ready) this.indexReady = true;
+    return exit.value;
   }
 
   private async getIndexReadinessStatus(): Promise<IndexReadinessStatus> {
@@ -390,12 +417,32 @@ export class EntityService implements IEntityService {
     request: ListEntitiesRequest,
   ): Promise<T[]> {
     const { entityType, options } = request;
-    return this.entityQueries.listEntities<T>(entityType, options);
+    return this.entityQueries.listEntities<T>(
+      entityType,
+      options,
+      this.publishedStatusesFor(entityType),
+    );
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {
     const { entityType, options } = request;
-    return this.entityQueries.countEntities(entityType, options);
+    return this.entityQueries.countEntities(
+      entityType,
+      options,
+      this.publishedStatusesFor(entityType),
+    );
+  }
+
+  /**
+   * The adapter-declared publish-gate statuses for a type, if any. What
+   * "published" means belongs to the entity type — queries consult this
+   * instead of the shell hardcoding every plugin's lifecycle vocabulary.
+   */
+  private publishedStatusesFor(entityType: string): string[] | undefined {
+    if (!this.entityRegistry.hasEntityType(entityType)) {
+      return undefined;
+    }
+    return this.entityRegistry.getAdapter(entityType).publishedStatuses;
   }
 
   public async getEntityCounts(

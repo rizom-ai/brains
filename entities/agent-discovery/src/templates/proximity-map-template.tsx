@@ -181,6 +181,7 @@ const SITE_STYLES = `
   text-transform: uppercase;
 }
 .agent-proximity-site .proximity-agent,
+.agent-proximity-site .proximity-sighting,
 .agent-proximity-site .proximity-cluster-weave,
 .agent-proximity-site .proximity-cluster-mist {
   cursor: pointer;

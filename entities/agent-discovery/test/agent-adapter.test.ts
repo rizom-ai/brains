@@ -9,6 +9,13 @@ describe("AgentAdapter", () => {
     expect(adapter.entityType).toBe("agent");
   });
 
+  it("declares approval as the publish gate for publishedOnly builds", () => {
+    // Production site builds filter to published entities; for agents,
+    // approval is what makes one public-directory content — discovered and
+    // archived agents must stay out of static routes.
+    expect(adapter.publishedStatuses).toEqual(["approved"]);
+  });
+
   describe("createAgentContent", () => {
     it("should build markdown with frontmatter and body sections", () => {
       const content = adapter.createAgentContent({

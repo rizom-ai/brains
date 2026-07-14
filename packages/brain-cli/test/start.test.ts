@@ -6,7 +6,7 @@ import { EventEmitter } from "events";
 import type { BootMode } from "@brains/core";
 import { resolveRunnerType, start } from "../src/commands/start";
 import { registerModel, resetModels } from "../src/lib/model-registry";
-import { resetBootFn, setBootFn } from "../src/lib/boot";
+import { resetBootFn, setBootFn, type BootedBrain } from "../src/lib/boot";
 
 function createTestBrainDir(): string {
   const dir = join(
@@ -164,9 +164,17 @@ describe("resolveRunnerType", () => {
       chat: boolean;
       mode?: BootMode;
     }> = [];
+    const stop = mock(async (): Promise<void> => {});
+    const bootedBrain: BootedBrain = {
+      getShell: () => ({
+        getMCPService: () => ({ getCliTools: () => [] }),
+      }),
+      stop,
+    };
     registerModel("rover", { name: "rover" });
     setBootFn(async (_cwd, _modelName, _definition, flags) => {
       seenFlags.push(flags);
+      return bootedBrain;
     });
 
     try {
@@ -177,6 +185,7 @@ describe("resolveRunnerType", () => {
 
       expect(result.success).toBe(true);
       expect(seenFlags).toEqual([{ chat: false, mode: "startup-check" }]);
+      expect(stop).toHaveBeenCalledTimes(1);
     } finally {
       if (previousApiKey === undefined) {
         delete process.env["AI_API_KEY"];

@@ -23,6 +23,7 @@ export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 
 export interface ImageGenerationOptions {
   aspectRatio?: AspectRatio;
+  signal?: AbortSignal;
 }
 
 export interface ImageGenerationResult {
@@ -60,6 +61,7 @@ export interface IEntityAINamespace {
   generateObject: <T>(
     prompt: string,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ) => Promise<{ object: T }>;
 
   /** Generate an image using AI (requires AI_API_KEY) */
@@ -118,8 +120,9 @@ export function createEntityPluginContext(
       generateObject: async <T>(
         prompt: string,
         schema: AIGenerationSchema<T>,
+        signal?: AbortSignal,
       ): Promise<{ object: T }> => {
-        return shell.generateObject(prompt, schema);
+        return shell.generateObject(prompt, schema, signal);
       },
       generateImage: async (
         prompt: string,

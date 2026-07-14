@@ -1,11 +1,54 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { mockFetch } from "@brains/test-utils";
-import { removeEntity, saveEntity, uploadImage } from "./mutations";
+import {
+  removeEntity,
+  runCmsWorkspaceAction,
+  saveEntity,
+  uploadImage,
+} from "./mutations";
 
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+});
+
+describe("CMS workspace mutation", () => {
+  it("posts one typed action to the encoded workspace", async () => {
+    let requests = 0;
+    let requestedUrl = "";
+    let method: string | undefined;
+    let payload: unknown;
+    mockFetch(async (url, options) => {
+      requests += 1;
+      requestedUrl = url;
+      method = options.method;
+      payload = JSON.parse(String(options.body));
+      return Response.json({ result: { success: true } });
+    });
+
+    const result = await runCmsWorkspaceAction({
+      workspaceId: "publishing/desk",
+      action: {
+        type: "queue",
+        entityType: "post",
+        entityId: "field-notes",
+      },
+    });
+
+    expect(requestedUrl).toBe("/cms/api/workspace");
+    expect(method).toBe("POST");
+    expect(payload).toEqual({
+      id: "publishing/desk",
+      action: {
+        type: "queue",
+        entityType: "post",
+        entityId: "field-notes",
+      },
+    });
+    expect(result).toEqual({ success: true });
+    expect(requests).toBe(1);
+  });
 });
 
 describe("CMS upload mutation", () => {

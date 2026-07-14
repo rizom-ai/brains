@@ -62,8 +62,20 @@ export async function bootEvalApp(options: BootEvalAppOptions): Promise<App> {
     },
   };
   const app = App.create(evalConfig);
-  await app.initialize();
-  return app;
+  try {
+    await app.initialize();
+    return app;
+  } catch (error) {
+    try {
+      await app.stop();
+    } catch (shutdownError) {
+      console.error(
+        "Failed to stop eval app after boot failure:",
+        shutdownError,
+      );
+    }
+    throw error;
+  }
 }
 
 function cloneEvaluationData(evalDbBase: string): void {

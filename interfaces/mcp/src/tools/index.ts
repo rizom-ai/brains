@@ -109,13 +109,19 @@ export function createMCPTools(
           toolContext.conversationId,
           toolContext.channelId,
         );
-        const response = await context.agent.chat(
-          input.message,
-          conversation.internalId,
-          {
-            ...getChatContext(toolContext),
-          },
-        );
+        const chatContext = getChatContext(toolContext);
+        const response = toolContext.signal
+          ? await context.agent.chat(
+              input.message,
+              conversation.internalId,
+              chatContext,
+              toolContext.signal,
+            )
+          : await context.agent.chat(
+              input.message,
+              conversation.internalId,
+              chatContext,
+            );
 
         return agentResponseToToolResponse(response, {
           conversationId: conversation.handle,
@@ -145,12 +151,21 @@ export function createMCPTools(
           toolContext.conversationId,
           toolContext.channelId,
         );
-        const response = await context.agent.confirmPendingAction(
-          conversation.internalId,
-          input.confirmed,
-          input.approvalId,
-          getChatContext(toolContext),
-        );
+        const chatContext = getChatContext(toolContext);
+        const response = toolContext.signal
+          ? await context.agent.confirmPendingAction(
+              conversation.internalId,
+              input.confirmed,
+              input.approvalId,
+              chatContext,
+              toolContext.signal,
+            )
+          : await context.agent.confirmPendingAction(
+              conversation.internalId,
+              input.confirmed,
+              input.approvalId,
+              chatContext,
+            );
 
         return agentResponseToToolResponse(response, {
           conversationId: conversation.handle,

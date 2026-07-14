@@ -15,7 +15,8 @@
 All server-state keys come from `ui-react/src/queries.ts`:
 
 ```ts
-cmsKeys.types();
+cmsKeys.navigation();
+cmsKeys.workspace(workspaceId);
 cmsKeys.schema(entityType);
 cmsKeys.entities(entityType);
 cmsKeys.entity(entityType, entityId);
@@ -27,7 +28,8 @@ Transport calls belong in `api.ts`; query and mutation wrappers belong in `queri
 
 - saves refresh the affected list and sync status, then explicitly reopen the saved detail with its fresh content hash;
 - deletes remove the affected detail and refresh its list and sync status;
-- image uploads refresh only image-list, type, and sync-status data;
+- image uploads refresh only image-list, navigation-count, and sync-status data;
+- publishing actions refresh only their workspace snapshot;
 - sync polling invalidates only `cmsKeys.syncStatus()`.
 
 Do not optimistically rewrite entity content or advance the pinned content hash. The entity service remains authoritative for byte-identical no-op saves and content-hash conflicts. Tests must cover exact request counts, stale responses, deduplication, draft preservation, and invalidation with `@brains/test-utils` `mockFetch` before a server-state path is migrated.

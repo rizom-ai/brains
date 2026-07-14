@@ -7,6 +7,7 @@ import type { JobHandler, JobOptions } from "@brains/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import type { EntityPluginContext } from "./context";
+import { Cause, Effect, Exit } from "@brains/effect-runtime";
 
 export interface EntityChangePayload<TEntity extends BaseEntity = BaseEntity> {
   entityType: string;
@@ -286,39 +287,46 @@ export async function reconcileDerivedEntities<
     });
   }
 
-  for (const [id, item] of desiredById) {
-    const existingEntity = existingById.get(id);
-    const input = { ...toEntityInput(item, id), visibility: outputVisibility };
-
-    try {
-      if (!existingEntity) {
-        await context.entityService.createEntity({ entity: input });
-        created++;
-        continue;
-      }
-
-      if (equals?.(existingEntity, item) ?? false) {
-        skipped++;
-        continue;
-      }
-
-      const updatedEntity: TEntity = {
-        ...existingEntity,
-        ...input,
-        id,
-        entityType: targetType,
+  await runBounded(
+    Array.from(desiredById),
+    mutationConcurrency,
+    async ([id, item]) => {
+      const existingEntity = existingById.get(id);
+      const input = {
+        ...toEntityInput(item, id),
         visibility: outputVisibility,
       };
-      await context.entityService.updateEntity({ entity: updatedEntity });
-      updated++;
-    } catch (error) {
-      logger?.error("Failed to reconcile derived entity", {
-        targetType,
-        id,
-        error: getErrorMessage(error),
-      });
-    }
-  }
+
+      try {
+        if (!existingEntity) {
+          await context.entityService.createEntity({ entity: input });
+          created++;
+          return;
+        }
+
+        if (equals?.(existingEntity, item) ?? false) {
+          skipped++;
+          return;
+        }
+
+        const updatedEntity: TEntity = {
+          ...existingEntity,
+          ...input,
+          id,
+          entityType: targetType,
+          visibility: outputVisibility,
+        };
+        await context.entityService.updateEntity({ entity: updatedEntity });
+        updated++;
+      } catch (error) {
+        logger?.error("Failed to reconcile derived entity", {
+          targetType,
+          id,
+          error: getErrorMessage(error),
+        });
+      }
+    },
+  );
 
   return { created, updated, deleted, skipped };
 }
@@ -365,8 +373,16 @@ async function runBounded<T>(
   concurrency: number,
   run: (item: T) => Promise<void>,
 ): Promise<void> {
-  for (let index = 0; index < items.length; index += concurrency) {
-    const batch = items.slice(index, index + concurrency);
-    await Promise.all(batch.map((item) => run(item)));
-  }
+  const exit = await Effect.runPromiseExit(
+    Effect.forEach(
+      items,
+      (item) =>
+        Effect.tryPromise({
+          try: () => run(item),
+          catch: (error) => error,
+        }),
+      { concurrency, discard: true },
+    ),
+  );
+  if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
 }

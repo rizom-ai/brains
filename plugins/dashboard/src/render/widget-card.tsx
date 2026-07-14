@@ -5,8 +5,11 @@ import type { JSX } from "preact";
 import type { RenderableWidgetData } from "./types";
 
 const KV_SKIP_KEYS = new Set(["rendered", "version"]);
-const PIPELINE_STATUSES = ["draft", "queued", "published", "failed"] as const;
-const COMPACT_WIDGET_RENDERERS = new Set(["StatsWidget", "SystemWidget"]);
+const COMPACT_WIDGET_RENDERERS = new Set([
+  "StatsWidget",
+  "SystemWidget",
+  "PipelineWidget",
+]);
 
 const listItemSchema = z.object({
   id: z.string(),
@@ -24,36 +27,30 @@ const listWidgetDataSchema = z.object({
 });
 const kvWidgetDataSchema = z.record(z.string(), z.unknown());
 
-const pipelineStatusSchema = z.enum(PIPELINE_STATUSES);
-const pipelineSummarySchema = z.object({
-  draft: z.number().optional(),
-  queued: z.number().optional(),
-  published: z.number().optional(),
-  failed: z.number().optional(),
-});
-const pipelineItemSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  type: z.string(),
-  status: pipelineStatusSchema,
-  scheduledFor: z.string().optional(),
-  retryInfo: z.string().optional(),
-});
-const pipelineGeneratingItemSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  target: z.string(),
-  status: z.enum(["pending", "processing"]),
-});
 const pipelineWidgetDataSchema = z.object({
-  summary: pipelineSummarySchema,
-  items: z.array(pipelineItemSchema),
-  generating: z.array(pipelineGeneratingItemSchema).default([]),
+  summary: z.object({
+    draft: z.number().int().nonnegative(),
+    queued: z.number().int().nonnegative(),
+    generating: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+    published: z.number().int().nonnegative(),
+    needsOperator: z.number().int().nonnegative(),
+  }),
+  failures: z
+    .array(
+      z.object({
+        entityId: z.string(),
+        entityType: z.string(),
+        title: z.string(),
+        error: z.string(),
+        retryCount: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
+  managementUrl: z.string().optional(),
 });
 
 type ListItem = z.output<typeof listItemSchema>;
-type PipelineItem = z.output<typeof pipelineItemSchema>;
-type PipelineGeneratingItem = z.output<typeof pipelineGeneratingItemSchema>;
 
 interface RendererProps {
   widget: RenderableWidgetData;
@@ -80,15 +77,6 @@ function toDisplayValue(value: unknown): string {
     return JSON.stringify(value);
   }
   return String(value);
-}
-
-function comparePipelineItems(a: PipelineItem, b: PipelineItem): number {
-  const aMeta = a.retryInfo ?? a.scheduledFor ?? "";
-  const bMeta = b.retryInfo ?? b.scheduledFor ?? "";
-  const metaDiff = aMeta.localeCompare(bMeta);
-  if (metaDiff !== 0) return metaDiff;
-
-  return a.title.localeCompare(b.title);
 }
 
 function parsedListData(data: unknown): ListItem[] {
@@ -201,35 +189,19 @@ function ListBody({ widget }: RendererProps): JSX.Element {
   );
 }
 
-function BoardWorkCard({ item }: { item: PipelineItem }): JSX.Element {
-  return (
-    <div class={`work${item.status === "failed" ? " work--failed" : ""}`}>
-      <div class="work-title">{item.title}</div>
-      <div class="work-meta">
-        <span>{item.type}</span>
-        <span class={item.status === "failed" ? "work-status--err" : ""}>
-          {item.retryInfo ?? item.scheduledFor ?? item.status}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function BoardLane({
+function PipelineMetric({
   label,
-  count,
-  children,
+  value,
+  tone = "",
 }: {
   label: string;
-  count: number;
-  children: JSX.Element[] | JSX.Element;
+  value: number;
+  tone?: string;
 }): JSX.Element {
   return (
-    <div class="lane">
-      <div class="lane-head">
-        {label} <span class="lane-count">{count}</span>
-      </div>
-      {count === 0 ? <p class="lane-empty">—</p> : children}
+    <div class={`pipeline-metric${tone ? ` pipeline-metric--${tone}` : ""}`}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }
@@ -240,41 +212,38 @@ function PipelineBody({ widget }: RendererProps): JSX.Element {
     return <p class="muted">Nothing to show yet.</p>;
   }
 
-  const items = [...parsed.data.items].sort(comparePipelineItems);
-  const queued = items.filter((item) => item.status === "queued");
-  // Review holds everything waiting on an operator: drafts and failures.
-  const review = [
-    ...items.filter((item) => item.status === "draft"),
-    ...items.filter((item) => item.status === "failed"),
-  ];
-  const generating: PipelineGeneratingItem[] = parsed.data.generating;
-
+  const { summary, failures, managementUrl } = parsed.data;
   return (
-    <div class="board">
-      <BoardLane label="Queued" count={queued.length}>
-        {queued.map((item) => (
-          <BoardWorkCard key={item.id} item={item} />
-        ))}
-      </BoardLane>
-      <BoardLane label="Generating" count={generating.length}>
-        {generating.map((job) => (
-          <div key={job.id} class="work work--generating">
-            <div class="work-title">{job.label}</div>
-            <div class="work-meta">
-              <span>{job.target}</span>
-              <span class="work-status--warm">{job.status}</span>
+    <div class="pipeline-digest">
+      <dl class="pipeline-metrics">
+        <PipelineMetric label="Queued" value={summary.queued} />
+        <PipelineMetric label="Generating" value={summary.generating} />
+        <PipelineMetric
+          label="Awaiting review"
+          value={summary.needsOperator}
+          tone={summary.needsOperator > 0 ? "warn" : ""}
+        />
+        <PipelineMetric label="Published" value={summary.published} tone="ok" />
+      </dl>
+      {failures.length > 0 && (
+        <section class="pipeline-failures" aria-label="Publication failures">
+          <h4>Needs attention</h4>
+          {failures.slice(0, 3).map((failure) => (
+            <div
+              class="pipeline-failure"
+              key={`${failure.entityType}:${failure.entityId}`}
+            >
+              <strong>{failure.title}</strong>
+              <span>{failure.error}</span>
             </div>
-            <div class="minibar" aria-hidden="true">
-              <i></i>
-            </div>
-          </div>
-        ))}
-      </BoardLane>
-      <BoardLane label="Review" count={review.length}>
-        {review.map((item) => (
-          <BoardWorkCard key={item.id} item={item} />
-        ))}
-      </BoardLane>
+          ))}
+        </section>
+      )}
+      {managementUrl && (
+        <a class="pipeline-manage" href={managementUrl}>
+          Manage in CMS →
+        </a>
+      )}
     </div>
   );
 }

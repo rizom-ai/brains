@@ -3,18 +3,21 @@ import {
   fetchAgentTargets,
   fetchEntities,
   fetchEntity,
+  fetchNavigation,
   fetchSchema,
   fetchSyncStatus,
-  fetchTypes,
+  fetchWorkspace,
   type AgentTarget,
+  type CmsNavigation,
+  type CmsWorkspaceData,
   type EntityDetail,
   type EntitySummary,
-  type EntityTypeInfo,
   type SyncStatus,
   type TypeSchema,
 } from "./api";
 
-export type EntityTypesQueryKey = readonly ["cms", "types"];
+export type NavigationQueryKey = readonly ["cms", "navigation"];
+export type WorkspaceQueryKey = readonly ["cms", "workspace", string];
 export type AgentTargetsQueryKey = readonly ["cms", "agent-targets"];
 export type SyncStatusQueryKey = readonly ["cms", "sync-status"];
 export type EntitySchemaQueryKey = readonly ["cms", "schema", string];
@@ -23,7 +26,12 @@ export type EntityDetailQueryKey = readonly ["cms", "entity", string, string];
 
 export const cmsKeys = {
   all: ["cms"] as const,
-  types: (): EntityTypesQueryKey => ["cms", "types"],
+  navigation: (): NavigationQueryKey => ["cms", "navigation"],
+  workspace: (workspaceId: string): WorkspaceQueryKey => [
+    "cms",
+    "workspace",
+    workspaceId,
+  ],
   agentTargets: (): AgentTargetsQueryKey => ["cms", "agent-targets"],
   syncStatus: (): SyncStatusQueryKey => ["cms", "sync-status"],
   schema: (entityType: string): EntitySchemaQueryKey => [
@@ -44,16 +52,39 @@ export const cmsKeys = {
   ],
 };
 
-export function entityTypesQueryOptions(): UseQueryOptions<
-  EntityTypeInfo[],
+export function navigationQueryOptions(): UseQueryOptions<
+  CmsNavigation,
   Error,
-  EntityTypeInfo[],
-  EntityTypesQueryKey
+  CmsNavigation,
+  NavigationQueryKey
 > {
   return {
-    queryKey: cmsKeys.types(),
-    queryFn: fetchTypes,
+    queryKey: cmsKeys.navigation(),
+    queryFn: fetchNavigation,
   };
+}
+
+export function workspaceQueryOptions(
+  workspaceId: string,
+): UseQueryOptions<
+  CmsWorkspaceData,
+  Error,
+  CmsWorkspaceData,
+  WorkspaceQueryKey
+> {
+  return {
+    queryKey: cmsKeys.workspace(workspaceId),
+    queryFn: () => fetchWorkspace(workspaceId),
+  };
+}
+
+export function invalidateAfterWorkspaceAction(
+  queryClient: QueryClient,
+  workspaceId: string,
+): Promise<void> {
+  return queryClient.invalidateQueries({
+    queryKey: cmsKeys.workspace(workspaceId),
+  });
 }
 
 export async function invalidateAfterUpload(
@@ -61,7 +92,7 @@ export async function invalidateAfterUpload(
 ): Promise<void> {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: cmsKeys.entities("image") }),
-    queryClient.invalidateQueries({ queryKey: cmsKeys.types() }),
+    queryClient.invalidateQueries({ queryKey: cmsKeys.navigation() }),
     queryClient.invalidateQueries({ queryKey: cmsKeys.syncStatus() }),
   ]);
 }

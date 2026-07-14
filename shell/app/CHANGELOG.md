@@ -1,5 +1,106 @@
 # @brains/app
 
+## 0.2.0-alpha.175
+
+### Patch Changes
+
+- Updated dependencies [[`b148151`](https://github.com/rizom-ai/brains/commit/b148151a76a1e7cab2030f0a9916375de40b74d1)]:
+  - @brains/core@0.2.0-alpha.175
+  - @brains/plugins@0.2.0-alpha.175
+  - @brains/effect-runtime@0.2.0-alpha.175
+  - @brains/site-composition@0.2.0-alpha.175
+  - @brains/utils@0.2.0-alpha.175
+  - @brains/runtime-state@0.2.0-alpha.175
+  - @brains/templates@0.2.0-alpha.175
+
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/core@0.2.0-alpha.174
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/effect-runtime@0.2.0-alpha.174
+  - @brains/site-composition@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+  - @brains/runtime-state@0.2.0-alpha.174
+  - @brains/templates@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- [#56](https://github.com/rizom-ai/brains/pull/56) [`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell lifecycle ownership with a centralized Effect boundary, scoped job-service layers, supervised fibers, deterministic schedules, transactional startup rollback, terminal plugin teardown, graceful job draining, daemon rollback, and end-to-end `AbortSignal` cancellation for AI requests and agent turns. Build public package subpaths with shared chunks to avoid duplicating their runtime code.
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/core@0.2.0-alpha.173
+  - @brains/effect-runtime@0.2.0-alpha.173
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/runtime-state@0.2.0-alpha.173
+  - @brains/site-composition@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+  - @brains/templates@0.2.0-alpha.173
+
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.172
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/core@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+  - @brains/runtime-state@0.2.0-alpha.172
+  - @brains/templates@0.2.0-alpha.172
+
+## 0.2.0-alpha.171
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.171
+  - @brains/utils@0.2.0-alpha.171
+  - @brains/core@0.2.0-alpha.171
+  - @brains/plugins@0.2.0-alpha.171
+  - @brains/runtime-state@0.2.0-alpha.171
+  - @brains/templates@0.2.0-alpha.171
+
+## 0.2.0-alpha.170
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.170
+  - @brains/utils@0.2.0-alpha.170
+  - @brains/core@0.2.0-alpha.170
+  - @brains/plugins@0.2.0-alpha.170
+  - @brains/runtime-state@0.2.0-alpha.170
+  - @brains/templates@0.2.0-alpha.170
+
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.169
+  - @brains/utils@0.2.0-alpha.169
+  - @brains/core@0.2.0-alpha.169
+  - @brains/plugins@0.2.0-alpha.169
+  - @brains/runtime-state@0.2.0-alpha.169
+  - @brains/templates@0.2.0-alpha.169
+
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/core@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+  - @brains/runtime-state@0.2.0-alpha.168
+  - @brains/templates@0.2.0-alpha.168
+
 ## 0.2.0-alpha.167
 
 ### Patch Changes

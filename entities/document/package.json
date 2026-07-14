@@ -1,6 +1,6 @@
 {
   "name": "@brains/document-plugin",
-  "version": "0.2.0-alpha.167",
+  "version": "0.2.0-alpha.175",
   "description": "Document entity type for generated PDFs and publishable document attachments",
   "dependencies": {
     "@brains/contracts": "workspace:*",

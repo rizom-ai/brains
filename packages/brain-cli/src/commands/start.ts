@@ -122,7 +122,10 @@ export async function start(
     // alongside the model definitions. This import is resolved at bundle time.
     try {
       const { bootBrain } = await import("../lib/boot");
-      await bootBrain(cwd, config.brain, definition, flags);
+      const bootedBrain = await bootBrain(cwd, config.brain, definition, flags);
+      if (flags.mode === "startup-check") {
+        await bootedBrain?.stop?.();
+      }
       return { success: true };
     } catch (error) {
       return {

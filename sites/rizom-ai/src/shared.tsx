@@ -212,9 +212,11 @@ export const trioItemSchema: z.ZodObject<{
 
 export const trioSchema: z.ZodObject<{
   cap: z.ZodString;
+  capNote: z.ZodOptional<z.ZodString>;
   items: z.ZodArray<typeof trioItemSchema>;
 }> = z.object({
   cap: z.string(),
+  capNote: z.string().optional(),
   items: z.array(trioItemSchema),
 });
 

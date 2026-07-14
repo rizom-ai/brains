@@ -1,4 +1,12 @@
-import { createEntity, deleteEntity, updateEntity, uploadFile } from "./api";
+import {
+  createEntity,
+  deleteEntity,
+  runWorkspaceAction,
+  updateEntity,
+  uploadFile,
+  type PublishingAction,
+  type PublishingActionResult,
+} from "./api";
 
 export type SaveEntityInput =
   | {
@@ -21,6 +29,11 @@ export interface DeleteEntityInput {
   id: string;
 }
 
+export interface CmsWorkspaceActionInput {
+  workspaceId: string;
+  action: PublishingAction;
+}
+
 export interface UploadImageResult {
   entityId: string;
   jobId?: string;
@@ -30,6 +43,12 @@ export interface SaveEntityResult {
   entityId: string;
   jobId: string;
   skipped?: boolean;
+}
+
+export function runCmsWorkspaceAction(
+  input: CmsWorkspaceActionInput,
+): Promise<PublishingActionResult> {
+  return runWorkspaceAction(input.workspaceId, input.action);
 }
 
 export function uploadImage(file: File): Promise<UploadImageResult> {

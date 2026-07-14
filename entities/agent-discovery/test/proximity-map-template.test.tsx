@@ -43,6 +43,16 @@ const data: ProximityMapData = {
       links: [{ sourceId: "alpha", targetId: "beta" }],
     },
   ],
+  sightings: [
+    {
+      id: "vale",
+      name: "Vale",
+      viaIds: ["alpha"],
+      tags: ["research"],
+      distance: 0.44,
+      bearing: 120,
+    },
+  ],
   distanceRange: { min: 0.25, max: 0.5 },
   pendingCount: 1,
 };
@@ -101,16 +111,16 @@ describe("AgentProximityMapTemplate", () => {
   });
 
   test("schema accepts optional authored copy fields (overlay-mergeable)", () => {
-    const template = getTemplates()["agent-proximity-map"];
-    if (!template) throw new Error("agent-proximity-map template not found");
+    const template = getTemplates()["proximity-map"];
+    if (!template) throw new Error("proximity-map template not found");
     expect(
       template.schema.safeParse({ ...data, headingLead: "Custom" }).success,
     ).toBe(true);
   });
 
   test("registers an overlayFormatter that round-trips authored copy markdown", () => {
-    const template = getTemplates()["agent-proximity-map"];
-    if (!template) throw new Error("agent-proximity-map template not found");
+    const template = getTemplates()["proximity-map"];
+    if (!template) throw new Error("proximity-map template not found");
     expect(template.overlayFormatter).toBeDefined();
 
     const copy = {
@@ -131,8 +141,8 @@ describe("AgentProximityMapTemplate", () => {
   });
 
   test("registers a public datasource template and a CSP-safe runtime script asset", () => {
-    const template = getTemplates()["agent-proximity-map"];
-    if (!template) throw new Error("agent-proximity-map template not found");
+    const template = getTemplates()["proximity-map"];
+    if (!template) throw new Error("proximity-map template not found");
 
     expect(template.dataSourceId).toBe("agent-discovery:proximity-map");
     expect(template.requiredPermission).toBe("public");
