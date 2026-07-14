@@ -1,6 +1,6 @@
 {
   "name": "@brains/site-composition",
-  "version": "0.2.0-alpha.168",
+  "version": "0.2.0-alpha.169",
   "description": "Shared site composition contract and merge helpers",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

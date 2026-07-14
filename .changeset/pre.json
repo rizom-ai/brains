@@ -230,6 +230,7 @@
     "ops-dockerfile-reconcile",
     "ops-merge-encrypted-user-secrets",
     "ops-per-user-plaintext-secrets",
+    "ops-required-images",
     "ops-verify-user-command",
     "ops-verify-user-followups",
     "ops-workflow-race-reconcile",

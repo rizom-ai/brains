@@ -1,5 +1,12 @@
 # @brains/chat-repl
 
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.169
+
 ## 0.2.0-alpha.168
 
 ### Patch Changes

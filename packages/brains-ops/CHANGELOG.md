@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.169
+
+### Patch Changes
+
+- [`13efe5c`](https://github.com/rizom-ai/brains/commit/13efe5cb1f15ef694e4634914ffee5d68f57c37a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add image derivation to the ops registry model: `siteImageTag` (moved from rover-pilot's local copy), `sitePackagesFor`, and `requiredImages` — the image set the declared fleet state requires, derived purely from resolved users. This lets rover-pilot's Build workflow build exactly what a config push declares (default image per brain version in use, plus one per-instance sites image per site override) instead of relying on manual dispatches, and lets its deploy resolve tags through the same function so build and deploy can never disagree.
+
 ## 0.2.0-alpha.168
 
 ## 0.2.0-alpha.167

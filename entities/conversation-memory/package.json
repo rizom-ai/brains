@@ -1,6 +1,6 @@
 {
   "name": "@brains/conversation-memory",
-  "version": "0.2.0-alpha.168",
+  "version": "0.2.0-alpha.169",
   "description": "Plugin for deriving durable conversation memory",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
