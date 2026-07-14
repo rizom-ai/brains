@@ -3,6 +3,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
@@ -18,7 +19,6 @@ import {
   createEntity,
   deleteEntity,
   fetchAgentTargets,
-  fetchEntities,
   fetchEntity,
   fetchSchema,
   fetchSyncStatus,
@@ -38,6 +38,7 @@ import {
   type SyncStatus,
   type TypeSchema,
 } from "./api";
+import { cmsKeys, entityListQueryOptions } from "./queries";
 
 /** Pick the list-row label for an entity: frontmatter title, else id. */
 export function entityTitle(entity: EntitySummary): string {
@@ -1277,7 +1278,6 @@ export function App(): ReactElement {
   const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
   const [entityType, setEntityType] = useState<string | null>(null);
   const [schema, setSchema] = useState<TypeSchema | null>(null);
-  const [entities, setEntities] = useState<EntitySummary[] | null>(null);
   const [mode, setMode] = useState<EditorMode>({ kind: "browse" });
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [body, setBody] = useState<string>("");
@@ -1295,6 +1295,12 @@ export function App(): ReactElement {
   const saveStartedAt = useRef(0);
   // Entity id from a console-jump door, opened once its collection loads.
   const pendingDeepLinkId = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const entityListQuery = useQuery({
+    ...entityListQueryOptions(entityType ?? ""),
+    enabled: entityType !== null,
+  });
+  const entities = entityType ? (entityListQuery.data ?? null) : null;
 
   const activeType = types?.find((info) => info.entityType === entityType);
 
@@ -1362,12 +1368,13 @@ export function App(): ReactElement {
     setMobilePane("details");
     setSaveState({ kind: "idle" });
     setFieldAssistState({ kind: "idle" });
-    setEntities(null);
     setSchema(null);
-    Promise.all([fetchSchema(entityType), fetchEntities(entityType)])
+    Promise.all([
+      fetchSchema(entityType),
+      queryClient.ensureQueryData(entityListQueryOptions(entityType)),
+    ])
       .then(([loadedSchema, loadedEntities]) => {
         setSchema(loadedSchema);
-        setEntities(loadedEntities);
         const deepLinkId = pendingDeepLinkId.current;
         if (deepLinkId !== null) {
           pendingDeepLinkId.current = null;
@@ -1396,7 +1403,7 @@ export function App(): ReactElement {
         return undefined;
       })
       .catch((error: unknown) => setLoadError(errorMessage(error)));
-  }, [entityType]);
+  }, [entityType, queryClient]);
 
   const openEntity = useCallback(
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
@@ -1491,7 +1498,9 @@ export function App(): ReactElement {
           });
     write
       .then(async (result) => {
-        setEntities(await fetchEntities(entityType));
+        await queryClient.invalidateQueries({
+          queryKey: cmsKeys.entities(entityType),
+        });
         const noop = "skipped" in result && result.skipped === true;
         // Re-fetch after every save so the next edit carries a fresh
         // contentHash precondition.
@@ -1504,7 +1513,16 @@ export function App(): ReactElement {
             : { kind: "error", message: errorMessage(error) },
         ),
       );
-  }, [entityType, mode, draft, body, schema, openEntity, syncStatus]);
+  }, [
+    entityType,
+    mode,
+    draft,
+    body,
+    schema,
+    openEntity,
+    syncStatus,
+    queryClient,
+  ]);
 
   const remove = useCallback((): void => {
     if (!entityType || mode.kind !== "edit" || deleting) return;
@@ -1516,14 +1534,16 @@ export function App(): ReactElement {
       .then(async () => {
         setDeleteOpen(false);
         setMode({ kind: "browse" });
-        setEntities(await fetchEntities(entityType));
+        await queryClient.invalidateQueries({
+          queryKey: cmsKeys.entities(entityType),
+        });
       })
       .catch((error: unknown) => {
         setDeleteOpen(false);
         setSaveState({ kind: "error", message: errorMessage(error) });
       })
       .finally(() => setDeleting(false));
-  }, [entityType, mode, deleting]);
+  }, [entityType, mode, deleting, queryClient]);
 
   if (loadError) {
     return (

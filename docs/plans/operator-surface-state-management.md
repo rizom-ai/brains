@@ -2,8 +2,10 @@
 
 ## Status
 
-**Proposed.** Dashboard, CMS, and web-chat currently have intentionally separate runtimes
-and no shared client-state library. This plan standardizes how state is classified and
+**Active on `work/operator-surface-state-management`.** Dashboard, CMS, and web-chat
+currently have intentionally separate runtimes and no shared client-state library. The
+first implementation slice is the CMS entity-list query cache; later phases remain gated by
+its request-count and behavior checks. This plan standardizes how state is classified and
 managed without forcing the three surfaces into one browser store or one application.
 
 The optional publishing UI described in
