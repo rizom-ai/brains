@@ -398,6 +398,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       parsed.data.message,
       parsed.data.conversationId,
       this.createRemoteAgentChatContext(parsed.data.conversationId),
+      request.signal,
     );
 
     return Response.json(response);
@@ -429,6 +430,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       parsed.data.confirmed,
       parsed.data.approvalId,
       this.createRemoteAgentChatContext(parsed.data.conversationId),
+      request.signal,
     );
 
     return Response.json(response);
@@ -519,6 +521,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
               approvalResponses,
               permissionLevel,
               interfaceType: webChatInterfaceType,
+              signal: request.signal,
             },
             streamDeps,
           );
@@ -539,6 +542,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
             attachments,
             ...(messageId ? { messageId } : {}),
             interfaceType: webChatInterfaceType,
+            signal: request.signal,
           },
           streamDeps,
         );

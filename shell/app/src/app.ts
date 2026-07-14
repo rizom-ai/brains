@@ -4,6 +4,8 @@ import { Logger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
 import { resolveStandardConfig } from "./standard-paths";
+import { Effect, Exit, Scope } from "@brains/effect-runtime";
+import type { Fiber } from "@brains/effect-runtime";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];
@@ -18,8 +20,9 @@ export const STARTUP_CHECK_API_KEY = "startup-check";
 export class App {
   private shell: Shell | null = null;
   private config: AppConfig;
-  private shutdownHandlers: Array<() => void> = [];
-  private isShuttingDown = false;
+  private signalScope: Scope.CloseableScope | null = null;
+  private signalShutdownFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private stopPromise: Promise<void> | null = null;
   private hasCLI = false;
 
   public static create(config?: AppConfigInput, shell?: Shell): App {
@@ -214,18 +217,17 @@ export class App {
   }
 
   public async start(): Promise<void> {
-    // Set up signal handlers
+    if (this.stopPromise) return;
     this.setupSignalHandlers();
   }
 
-  public async stop(): Promise<void> {
-    if (this.isShuttingDown) {
-      return; // Already shutting down
-    }
+  public stop(): Promise<void> {
+    this.stopPromise ??= this.stopApp();
+    return this.stopPromise;
+  }
 
-    this.isShuttingDown = true;
-
-    this.cleanupSignalHandlers();
+  private async stopApp(): Promise<void> {
+    await this.closeSignalScope();
     await this.shell?.shutdown();
   }
 
@@ -281,41 +283,56 @@ export class App {
   }
 
   private setupSignalHandlers(): void {
-    const gracefulShutdown = async (signal: string): Promise<void> => {
-      const logger = Logger.getInstance();
-      logger.info(`\nReceived ${signal}, shutting down gracefully...`);
+    if (this.signalScope) return;
 
-      try {
-        await this.stop();
-        process.exit(0);
-      } catch (error) {
-        logger.error("Error during shutdown:", error);
-        process.exit(1);
-      }
-    };
-
+    const scope = Effect.runSync(Scope.make());
     const sigintHandler = (): void => {
-      void gracefulShutdown("SIGINT");
+      this.requestGracefulShutdown("SIGINT");
     };
     const sigtermHandler = (): void => {
-      void gracefulShutdown("SIGTERM");
+      this.requestGracefulShutdown("SIGTERM");
     };
 
     process.on("SIGINT", sigintHandler);
     process.on("SIGTERM", sigtermHandler);
-
-    // Store handlers so we can remove them later
-    this.shutdownHandlers.push(
-      () => process.removeListener("SIGINT", sigintHandler),
-      () => process.removeListener("SIGTERM", sigtermHandler),
+    Effect.runSync(
+      Scope.addFinalizer(
+        scope,
+        Effect.sync(() => {
+          process.removeListener("SIGTERM", sigtermHandler);
+          process.removeListener("SIGINT", sigintHandler);
+        }),
+      ),
     );
+    this.signalScope = scope;
   }
 
-  private cleanupSignalHandlers(): void {
-    for (const cleanup of this.shutdownHandlers) {
-      cleanup();
-    }
-    this.shutdownHandlers = [];
+  private requestGracefulShutdown(signal: "SIGINT" | "SIGTERM"): void {
+    if (this.signalShutdownFiber) return;
+
+    const logger = Logger.getInstance();
+    logger.info(`\nReceived ${signal}, shutting down gracefully...`);
+    const shutdown = Effect.tryPromise({
+      try: () => this.stop(),
+      catch: (error) => error,
+    }).pipe(
+      Effect.match({
+        onFailure: (error) => {
+          logger.error("Error during shutdown:", error);
+          process.exit(1);
+        },
+        onSuccess: () => {
+          process.exit(0);
+        },
+      }),
+    );
+    this.signalShutdownFiber = Effect.runFork(shutdown);
+  }
+
+  private async closeSignalScope(): Promise<void> {
+    const scope = this.signalScope;
+    this.signalScope = null;
+    if (scope) await Effect.runPromise(Scope.close(scope, Exit.void));
   }
 
   public getShell(): Shell {

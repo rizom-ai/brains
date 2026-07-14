@@ -36,6 +36,10 @@ import type { RuntimeStateService } from "@brains/runtime-state";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
 
+export interface JobServicesLifecycle {
+  closeRuntime(): Promise<void>;
+}
+
 export interface ShellServices {
   logger: Logger;
   disposables: Array<() => void>;
@@ -56,6 +60,7 @@ export interface ShellServices {
   jobQueueWorker: IJobQueueWorker;
   batchJobManager: IBatchJobManager;
   jobProgressMonitor: IJobProgressMonitor;
+  jobServicesLifecycle: JobServicesLifecycle;
   permissionService: PermissionService;
   identityService: BrainCharacterService;
   profileService: AnchorProfileService;

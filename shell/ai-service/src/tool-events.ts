@@ -51,6 +51,7 @@ export interface ToolEventEmitter {
  */
 interface ToolExecutionOptionsLike {
   toolCallId?: string | undefined;
+  abortSignal?: AbortSignal | undefined;
 }
 
 type ToolHandler = (

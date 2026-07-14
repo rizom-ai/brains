@@ -22,6 +22,42 @@ brain model + brain.yaml instance config = running brain
 5. **Brain model / instance separation** — reusable models live in `brains/`; running instances are lightweight directories centered on `brain.yaml`.
 6. **Public API first** — external code should use the published `@rizom/brain/*` authoring APIs. Internal packages may use workspace packages, but should still avoid reaching into shell internals unless there is no supported boundary yet.
 
+## Effect runtime boundary
+
+The shell uses Effect for internal control-plane concerns where ownership and structured concurrency matter: transactional shell and plugin startup rollback, scoped resource finalization, daemon lifecycle, background monitors, worker and agent-turn fibers, cancellation, and concurrent lifecycle barriers.
+
+The boundary is intentionally narrow:
+
+- Public shell, plugin, daemon, and job APIs remain Promise-based.
+- Cancellation crosses public boundaries as standard `AbortSignal`, not Effect types.
+- Zod remains the schema and external contract system; Effect Schema is not used in parallel.
+- Simple CRUD, validation, and synchronous registry operations should not be wrapped mechanically in Effect.
+- Long-running work must be attached to an owning scope or supervised fiber; detached fibers require an explicit reason.
+- Wrapping a Promise does not make its underlying operation cancellable. Cancellation-sensitive adapters must consume the signal supplied by Effect.
+- Persistent jobs drain gracefully by default so interruption cannot abandon a claimed queue row.
+
+This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages. Shell packages import the curated private `@brains/effect-runtime` boundary rather than depending on Effect independently; deterministic test services use the boundary's `/test` subpath.
+
+### Layer adoption
+
+Effect `Layer` is adopted only for complete vertical slices. Wrapping process-global `getInstance()` calls in layers would hide singleton state, add a parallel dependency system, and risk changing registration and boot order.
+
+The first layer-owned slice is the job-service stack. It constructs fresh queue, batch, progress, and worker instances behind internal `Context.Tag` contracts. Separate scoped runtime and database layers preserve shutdown order: workers and cleanup fibers stop before plugin teardown, while the queue database remains available until dependent shell resources have closed. Existing Promise interfaces and dependency-injected test implementations remain unchanged, and Effect types do not cross the public boundary.
+
+Future layers must meet the same criteria:
+
+1. construct fresh service instances without static singleton state;
+2. use internal `Context.Tag` contracts without exposing Effect types publicly;
+3. own acquisition and release through scoped layers;
+4. replace the corresponding shell singleton resets and manual service finalizers; and
+5. support test implementations through the existing dependency boundary.
+
+### Runtime impact
+
+The completed Effect hardening was measured against its pre-adoption merge base (`699aa9973`) using Bun 1.3.11. The bundled CLI grew from 7,510,645 to 7,795,413 bytes (+3.8%), or from 2,087,731 to 2,183,484 gzip bytes (+4.6%). Thirty interleaved fresh-process `brain --version` samples showed a median startup change from 430.5 ms to 434.5 ms (+4.0 ms, +0.9%) with a warm filesystem cache.
+
+Building public library subpaths in one split graph then removed duplicate runtime code and source maps. The packed `@rizom/brain` artifact fell from the pre-Effect baseline of 16,477,259 bytes to 14,554,611 bytes (-11.7%); it had been 17,454,522 bytes before shared chunks. Effect therefore retains a measurable standalone CLI cost but no material process-startup regression in this benchmark, while the distributed package is smaller overall. Keep Effect internal and scoped to lifecycle/concurrency boundaries so future growth remains attributable to concrete runtime benefits.
+
 ## Workspace structure
 
 The monorepo is organized into these main categories:

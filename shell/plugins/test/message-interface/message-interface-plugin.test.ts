@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { MessageInterfacePlugin } from "../../src/message-interface/message-interface-plugin";
 import type {
   ToolActivityEvent,
@@ -182,6 +182,10 @@ describe("MessageInterfacePlugin", () => {
     plugin = new TestMessageInterface();
   });
 
+  afterEach(async () => {
+    await plugin.shutdown?.();
+  });
+
   describe("progress event handling", () => {
     it("should store progress events in the map", async () => {
       const event = createProgressEvent();
@@ -219,6 +223,16 @@ describe("MessageInterfacePlugin", () => {
       expect(plugin.sentResponses).toHaveLength(1);
       expect(plugin.sentResponses[0]).toContain("❌");
       expect(plugin.sentResponses[0]).toContain("failed");
+    });
+
+    it("should clear progress state during terminal shutdown", async () => {
+      const event = createProgressEvent({ status: "completed" });
+      await plugin.testHandleProgressEvent(event, createJobContext());
+      expect(plugin.getProgressEventsMap().has(event.id)).toBe(true);
+
+      await plugin.shutdown?.();
+
+      expect(plugin.getProgressEventsMap().size).toBe(0);
     });
 
     it("should NOT send response for processing events", async () => {

@@ -268,6 +268,7 @@ export type InsightHandler = (
  */
 export interface IInsightsRegistry {
   register(type: string, handler: InsightHandler): void;
+  unregister(type: string): void;
   getTypes(): string[];
   get(
     type: string,
@@ -325,6 +326,7 @@ export interface IShell {
   generateObject<T>(
     prompt: string,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ): Promise<{ object: T }>;
   judge<T>(input: JudgeInput<T>): Promise<{
     verdict: T;
@@ -358,6 +360,8 @@ export interface IShell {
   ): void;
   registerPrompt(pluginId: string, prompt: Prompt): void;
   registerInstructions(pluginId: string, instructions: string): void;
+  /** @internal Release capabilities owned by a terminally stopped plugin. */
+  unregisterPluginCapabilities?(pluginId: string): void;
 
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;

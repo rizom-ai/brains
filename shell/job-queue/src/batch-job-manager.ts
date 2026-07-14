@@ -2,9 +2,28 @@ import type { IJobQueueService, JobContext, JobOptions } from "./types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import { JOB_STATUS } from "./schemas";
 import type { Logger } from "@brains/utils/logger";
+import {
+  Effect,
+  Exit,
+  Fiber,
+  FiberSet,
+  Schedule,
+  Scope,
+} from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
 
 const TERMINAL_BATCH_RETENTION_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+
+interface BatchJobManagerOptions {
+  /** Internal clock boundary used for deterministic scheduling tests. */
+  clock?: Clock.Clock;
+}
+
+interface CleanupSupervisor {
+  scope: Scope.CloseableScope;
+  fibers: FiberSet.FiberSet<void, never>;
+}
 
 /**
  * Batch job manager for tracking groups of related jobs
@@ -35,10 +54,15 @@ export class BatchJobManager {
     }
   >();
 
-  // Timer that sweeps terminal batches older than the retention window. Runs
+  // Fiber that sweeps terminal batches older than the retention window. Runs
   // independently of enqueue activity so the map stays bounded even when no
   // new batches are arriving.
-  private cleanupTimer: NodeJS.Timeout | null = null;
+  private cleanupFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private cleanupSupervisor: CleanupSupervisor | null = null;
+  private readonly inFlightCleanups = new Set<Promise<number>>();
+  private stopPromise: Promise<void> | null = null;
+  private stopped = false;
+  private readonly clock: Clock.Clock | undefined;
 
   public static getInstance(
     jobQueue: IJobQueueService,
@@ -55,38 +79,108 @@ export class BatchJobManager {
   public static createFresh(
     jobQueue: IJobQueueService,
     logger: Logger,
+  ): BatchJobManager;
+  public static createFresh(
+    jobQueue: IJobQueueService,
+    logger: Logger,
+    options?: BatchJobManagerOptions,
   ): BatchJobManager {
-    return new BatchJobManager(jobQueue, logger);
+    return new BatchJobManager(jobQueue, logger, options);
   }
 
-  private constructor(jobQueue: IJobQueueService, logger: Logger) {
+  private constructor(
+    jobQueue: IJobQueueService,
+    logger: Logger,
+    options?: BatchJobManagerOptions,
+  ) {
     this.jobQueue = jobQueue;
     this.logger = logger;
+    this.clock = options?.clock;
   }
 
-  /**
-   * Start the periodic cleanup timer. Idempotent — repeated calls reuse the
-   * existing interval. The timer is `unref()`-ed so it never blocks process
-   * exit on its own.
-   */
+  /** Start the periodic cleanup fiber. Idempotent across repeated calls. */
   public start(intervalMs: number = CLEANUP_INTERVAL_MS): void {
-    if (this.cleanupTimer) return;
-    this.cleanupTimer = setInterval(() => {
-      this.scheduleTerminalBatchCleanup();
-    }, intervalMs);
-    this.cleanupTimer.unref();
+    if (this.cleanupFiber) return;
+    if (this.stopped) {
+      this.stopPromise = null;
+      this.stopped = false;
+    }
+    this.cleanupFiber = Effect.runFork(this.runCleanupLoop(intervalMs));
   }
 
-  public stop(): void {
-    if (!this.cleanupTimer) return;
-    clearInterval(this.cleanupTimer);
-    this.cleanupTimer = null;
+  public stop(): Promise<void> {
+    this.stopPromise ??= this.stopCleanup();
+    return this.stopPromise;
+  }
+
+  private runCleanupLoop(intervalMs: number): Effect.Effect<void> {
+    const scheduledCleanup = this.cleanupTerminalBatchMetadata().pipe(
+      Effect.schedule(Schedule.spaced(intervalMs)),
+      Effect.asVoid,
+    );
+    return this.clock
+      ? Effect.withClock(scheduledCleanup, this.clock)
+      : scheduledCleanup;
   }
 
   private scheduleTerminalBatchCleanup(): void {
-    void this.cleanup(TERMINAL_BATCH_RETENTION_MS).catch((error) => {
-      this.logger.warn("Failed to clean up terminal batch metadata", { error });
-    });
+    if (this.stopped || this.stopPromise) return;
+    this.cleanupSupervisor ??= this.createCleanupSupervisor();
+    const fiber = Effect.runFork(this.cleanupTerminalBatchMetadata());
+    FiberSet.unsafeAdd(this.cleanupSupervisor.fibers, fiber);
+  }
+
+  private async stopCleanup(): Promise<void> {
+    this.stopped = true;
+    const cleanupFiber = this.cleanupFiber;
+    this.cleanupFiber = null;
+    if (cleanupFiber) {
+      await Effect.runPromise(Fiber.interrupt(cleanupFiber));
+    }
+
+    const cleanupSupervisor = this.cleanupSupervisor;
+    if (cleanupSupervisor) {
+      await Effect.runPromise(FiberSet.awaitEmpty(cleanupSupervisor.fibers));
+    }
+    while (this.inFlightCleanups.size > 0) {
+      await Promise.allSettled(this.inFlightCleanups);
+    }
+    if (cleanupSupervisor) {
+      await Effect.runPromise(Scope.close(cleanupSupervisor.scope, Exit.void));
+      this.cleanupSupervisor = null;
+    }
+  }
+
+  private createCleanupSupervisor(): CleanupSupervisor {
+    const scope = Effect.runSync(Scope.make());
+    const fibers = Effect.runSync(
+      Scope.extend(FiberSet.make<void, never>(), scope),
+    );
+    return { scope, fibers };
+  }
+
+  private cleanupTerminalBatchMetadata(): Effect.Effect<void> {
+    return Effect.tryPromise({
+      try: () => {
+        const cleanup = this.cleanup(TERMINAL_BATCH_RETENTION_MS);
+        this.inFlightCleanups.add(cleanup);
+        void cleanup.then(
+          () => this.inFlightCleanups.delete(cleanup),
+          () => this.inFlightCleanups.delete(cleanup),
+        );
+        return cleanup;
+      },
+      catch: (error) => error,
+    }).pipe(
+      Effect.asVoid,
+      Effect.catchAll((error) =>
+        Effect.sync(() => {
+          this.logger.warn("Failed to clean up terminal batch metadata", {
+            error,
+          });
+        }),
+      ),
+    );
   }
 
   private validateOperations(operations: BatchOperation[]): void {

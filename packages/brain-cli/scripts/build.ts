@@ -220,6 +220,34 @@ const libraryEntries = [
   },
 ] as const;
 
+async function bundleLibraries(): Promise<void> {
+  // Build public subpaths together so shared runtime code (including Effect)
+  // is emitted once instead of copied into every independently built bundle.
+  rmSync(join(outdir, "chunks"), { recursive: true, force: true });
+  const result = await Bun.build({
+    entrypoints: libraryEntries.map((entry) => entry.source),
+    outdir,
+    target: "bun",
+    format: "esm",
+    minify: true,
+    splitting: true,
+    sourcemap: "linked",
+    external: sharedExternals,
+    naming: {
+      entry: "[name].js",
+      chunk: "chunks/[name]-[hash].js",
+      asset: "chunks/[name]-[hash].[ext]",
+    },
+  });
+  if (!result.success) {
+    console.error("Public library bundle build failed:");
+    for (const log of result.logs) {
+      console.error(log);
+    }
+    process.exit(1);
+  }
+}
+
 async function emitLibraryDeclarations(): Promise<void> {
   const declarationOutDir = mkdtempSync(join(tmpdir(), "brain-cli-dts-"));
   try {
@@ -295,16 +323,10 @@ const cliBuild = bundle({
   writeFileSync(outFile, `#!/usr/bin/env bun\n${stripped}`);
 });
 
-const libraryBuilds = libraryEntries.map((entry) =>
-  bundle({
-    name: entry.name,
-    source: entry.source,
-    sourcemap: "linked",
-  }),
-);
+const libraryBuild = bundleLibraries();
 
 // Declarations only need source files; run them concurrently with bundling.
-await Promise.all([cliBuild, ...libraryBuilds, emitLibraryDeclarations()]);
+await Promise.all([cliBuild, libraryBuild, emitLibraryDeclarations()]);
 
 // ─── Copy bundled web chat UI asset ───────────────────────────────────────
 

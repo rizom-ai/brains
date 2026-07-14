@@ -118,6 +118,7 @@ export interface BrainAgent {
   generate(params: {
     messages: ModelMessage[];
     options: BrainCallOptions;
+    abortSignal?: AbortSignal;
   }): Promise<BrainAgentResult>;
 }
 
@@ -218,6 +219,7 @@ export interface IAgentService {
     message: string,
     conversationId: string,
     context?: ChatContext,
+    signal?: AbortSignal,
   ): Promise<AgentResponse>;
 
   /**
@@ -231,7 +233,11 @@ export interface IAgentService {
     confirmed: boolean,
     approvalId: string,
     context: ChatContext,
+    signal?: AbortSignal,
   ): Promise<AgentResponse>;
+
+  /** Stop active turns and release conversation actors. */
+  shutdown?(): Promise<void>;
 
   /**
    * Invalidate the cached agent so the next conversation rebuilds

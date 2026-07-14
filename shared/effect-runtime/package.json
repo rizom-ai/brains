@@ -1,0 +1,34 @@
+{
+  "name": "@brains/effect-runtime",
+  "version": "0.2.0-alpha.158",
+  "dependencies": {
+    "effect": "^3.21.4"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./test": {
+      "types": "./src/test.ts",
+      "default": "./src/test.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "private": true,
+  "scripts": {
+    "clean": "rm -rf dist",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

@@ -49,6 +49,8 @@ Public plugin lifecycle hooks are:
 
 The shell calls all plugin registration hooks first, prepares ready state, then calls ready hooks. Background daemons and job processing start after ready hooks.
 
+Plugin instances are one-shot resources for one shell lifetime. Shutdown is terminal: the shell releases plugin subscriptions, handlers, daemons, registered capabilities, and other owned runtime resources rather than dynamically re-enabling the same instance. Registration is transactional, so resources acquired before a failed `onRegister` or `onReady` hook are rolled back. Dynamic plugin loading or re-enabling is not currently supported; it requires separate load/unload contracts with idempotent removal across every capability registry.
+
 ## Registration model
 
 Plugins register capabilities through a hybrid: override class methods (`getTools`, `getResources`, `getInstructions`, `getApiRoutes`, `getWebRoutes`, and on `ServicePlugin` the `registerEntityTypes` / `registerJobHandlers` hooks) for static declarations the shell collects automatically, and call `context.*.register*()` inside `onRegister` for dynamic, conditional, or namespaced registration (entity types, templates, data sources, daemons, instructions). See [External Plugin Authoring → Registration model](./external-plugin-authoring.md#registration-model) for the full breakdown.

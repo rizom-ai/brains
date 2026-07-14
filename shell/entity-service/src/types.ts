@@ -822,8 +822,11 @@ export interface EmbeddingIndexStats {
 }
 
 export interface IndexReadinessOptions {
-  timeoutMs: number;
+  /** Stop polling after this duration. Omit for an owning runtime monitor. */
+  timeoutMs?: number;
   intervalMs?: number;
+  /** Cancels readiness polling when the owning runtime shuts down. */
+  signal?: AbortSignal;
 }
 
 export interface IndexReadinessStatus extends EmbeddingIndexStats {
@@ -889,6 +892,9 @@ export interface EntityRegistry {
     adapter: EntityAdapter<TEntity, TMetadata>,
     config?: EntityTypeConfig,
   ): void;
+
+  /** Remove an entity type after failed plugin registration or shell teardown. */
+  unregisterEntityType(type: string): void;
 
   getSchema(type: string): UnknownEntitySchema;
 

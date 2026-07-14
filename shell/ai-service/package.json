@@ -8,6 +8,7 @@
     "@ai-sdk/openai": "^3.0.71",
     "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/mcp-service": "workspace:*",

@@ -28,7 +28,7 @@ export interface PluginManager {
 
   disablePlugin(id: string): Promise<void>;
 
-  enablePlugin(id: string): Promise<void>;
+  shutdownPlugins(): Promise<void>;
 
   on<E extends PluginEvent>(
     event: E,
@@ -76,7 +76,6 @@ export const PluginEvent = {
   INITIALIZED: "plugin:initialized",
   ERROR: "plugin:error",
   DISABLED: "plugin:disabled",
-  ENABLED: "plugin:enabled",
 } as const;
 export type PluginEvent = (typeof PluginEvent)[keyof typeof PluginEvent];
 
@@ -89,5 +88,4 @@ export interface PluginManagerEventMap {
   [PluginEvent.INITIALIZED]: [pluginId: string, plugin: Plugin];
   [PluginEvent.ERROR]: [pluginId: string, error: Error];
   [PluginEvent.DISABLED]: [pluginId: string];
-  [PluginEvent.ENABLED]: [pluginId: string];
 }

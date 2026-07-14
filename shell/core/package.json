@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.172",
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",

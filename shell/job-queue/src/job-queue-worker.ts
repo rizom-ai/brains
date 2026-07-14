@@ -9,6 +9,20 @@ import type {
   JobQueueWorkerStats,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
+import {
+  Effect,
+  Exit,
+  Fiber,
+  FiberMap,
+  Schedule,
+  Scope,
+} from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
+
+interface JobQueueWorkerRuntimeOptions {
+  /** Internal clock boundary used for deterministic polling tests. */
+  clock?: Clock.Clock;
+}
 
 /**
  * Generic job queue worker that processes jobs from the queue
@@ -26,9 +40,11 @@ export class JobQueueWorker {
   private activeJobs: Set<string> = new Set();
   private stats: JobQueueWorkerStats;
   private startTime: number = 0;
-  private pollTimeout: NodeJS.Timeout | null = null;
+  private pollFiber: Fiber.RuntimeFiber<void, never> | null = null;
   private currentPoll: Promise<void> | null = null;
-  private processingPromises: Map<string, Promise<void>> = new Map();
+  private workerScope: Scope.CloseableScope | null = null;
+  private jobFibers: FiberMap.FiberMap<string, void, never> | null = null;
+  private readonly clock: Clock.Clock | undefined;
 
   /**
    * Get the singleton instance
@@ -63,8 +79,21 @@ export class JobQueueWorker {
     progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
+  ): JobQueueWorker;
+  public static createFresh(
+    jobQueueService: IJobQueueService,
+    progressMonitor: IJobProgressMonitor,
+    logger: Logger,
+    config?: JobQueueWorkerConfig,
+    runtimeOptions?: JobQueueWorkerRuntimeOptions,
   ): JobQueueWorker {
-    return new JobQueueWorker(jobQueueService, progressMonitor, logger, config);
+    return new JobQueueWorker(
+      jobQueueService,
+      progressMonitor,
+      logger,
+      config,
+      runtimeOptions,
+    );
   }
 
   /**
@@ -75,10 +104,12 @@ export class JobQueueWorker {
     progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
+    runtimeOptions?: JobQueueWorkerRuntimeOptions,
   ) {
     this.logger = logger.child("JobQueueWorker");
     this.jobQueueService = jobQueueService;
     this.progressMonitor = progressMonitor;
+    this.clock = runtimeOptions?.clock;
     this.config = {
       concurrency: config?.concurrency ?? 1,
       pollInterval: config?.pollInterval ?? 1000,
@@ -121,8 +152,13 @@ export class JobQueueWorker {
     this.startTime = Date.now();
     this.stats.isRunning = true;
 
-    // Start the main processing loop
-    this.scheduleNextPoll();
+    this.workerScope = Effect.runSync(Scope.make());
+    this.jobFibers = Effect.runSync(
+      Scope.extend(FiberMap.make<string, void, never>(), this.workerScope),
+    );
+
+    // Start the supervised polling fiber.
+    this.pollFiber = Effect.runFork(this.runPollingLoop());
   }
 
   /**
@@ -143,28 +179,34 @@ export class JobQueueWorker {
     this.logger.debug("Stopping JobQueueWorker");
     this.shouldStop = true;
 
-    // Clear any scheduled polls
-    if (this.pollTimeout) {
-      clearTimeout(this.pollTimeout);
-      this.pollTimeout = null;
+    // Interrupting the polling fiber cancels its sleep immediately. A Promise
+    // already dequeuing work may continue underneath, so currentPoll is still
+    // awaited below to preserve claim-and-drain semantics.
+    if (options.awaitInFlightPoll && this.pollFiber) {
+      const pollFiber = this.pollFiber;
+      await Effect.runPromise(Fiber.interrupt(pollFiber));
+      this.pollFiber = null;
     }
 
     // A poll already past its shouldStop check may still claim jobs; wait for
-    // it so those jobs are registered in processingPromises before we drain.
+    // it so those jobs are registered in the FiberMap before we drain.
     // Skipped when the poll itself initiates the stop (maxJobs reached),
     // which would deadlock on its own promise.
     if (options.awaitInFlightPoll && this.currentPoll) {
       await this.currentPoll;
+      this.currentPoll = null;
     }
 
-    // Drain in snapshots — an in-flight poll can add jobs while we await
-    while (this.processingPromises.size > 0) {
+    // The in-flight poll is settled, so no more fibers can be added. Await
+    // existing jobs without interrupting them, preserving graceful shutdown.
+    if (this.jobFibers) {
       this.logger.debug("Waiting for active jobs to complete", {
-        activeJobs: this.processingPromises.size,
+        activeJobs: this.activeJobs.size,
       });
-      await Promise.all(this.processingPromises.values());
+      await Effect.runPromise(FiberMap.awaitEmpty(this.jobFibers));
     }
 
+    await this.closeWorkerScope();
     this.isRunning = false;
     this.stats.isRunning = false;
     this.logger.debug("JobQueueWorker stopped");
@@ -248,10 +290,23 @@ export class JobQueueWorker {
         }
       }
 
-      // Process jobs concurrently
+      // Process jobs concurrently under the worker's supervised fiber map.
+      const jobFibers = this.jobFibers;
+      if (!jobFibers) {
+        if (jobs.length > 0) {
+          throw new Error("Worker job fiber scope is not available");
+        }
+        return;
+      }
       for (const job of jobs) {
-        const processingPromise = this.processJobWrapper(job);
-        this.processingPromises.set(job.id, processingPromise);
+        this.activeJobs.add(job.id);
+        await Effect.runPromise(
+          FiberMap.run(
+            jobFibers,
+            job.id,
+            Effect.promise(() => this.processJobWrapper(job)),
+          ),
+        );
       }
     } catch (error) {
       this.logger.error("Error processing available jobs", { error });
@@ -264,7 +319,6 @@ export class JobQueueWorker {
    */
   private async processJobWrapper(job: JobInfo): Promise<void> {
     const jobId = job.id;
-    this.activeJobs.add(jobId);
 
     try {
       this.logger.debug("Processing job", {
@@ -301,25 +355,58 @@ export class JobQueueWorker {
       this.stats.lastError = getErrorMessage(error);
     } finally {
       this.activeJobs.delete(jobId);
-      this.processingPromises.delete(jobId);
     }
   }
 
   /**
-   * Schedule the next poll for jobs
+   * Poll on a spaced schedule until stop is requested. The fiber is
+   * interrupted by stop() while waiting or between polls.
    */
-  private scheduleNextPoll(): void {
-    if (!this.isRunning || this.shouldStop) {
-      return;
-    }
+  private runPollingLoop(): Effect.Effect<void> {
+    const poll = Effect.suspend(() => {
+      if (!this.isWorkerRunning() || this.isStopRequested()) {
+        return Effect.interrupt;
+      }
 
-    this.pollTimeout = setTimeout(async () => {
-      // Track the in-flight poll so stop() can wait for jobs it claims
+      // Keep the Promise reference because dequeue itself is not abortable.
+      // stop() waits for it before draining any jobs claimed by that poll.
       this.currentPoll = this.processAvailableJobs();
-      await this.currentPoll;
-      this.currentPoll = null;
-      this.scheduleNextPoll();
-    }, this.config.pollInterval);
+      return Effect.promise(() => this.currentPoll ?? Promise.resolve()).pipe(
+        Effect.andThen(
+          Effect.suspend(() => {
+            this.currentPoll = null;
+            return !this.isWorkerRunning() || this.isStopRequested()
+              ? Effect.interrupt
+              : Effect.void;
+          }),
+        ),
+      );
+    });
+
+    const scheduledPolling = poll.pipe(
+      Effect.schedule(Schedule.spaced(this.config.pollInterval)),
+      Effect.asVoid,
+    );
+    const loop = this.clock
+      ? Effect.withClock(scheduledPolling, this.clock)
+      : scheduledPolling;
+
+    return loop.pipe(
+      Effect.ensuring(
+        Effect.sync(() => {
+          this.pollFiber = null;
+        }),
+      ),
+    );
+  }
+
+  private async closeWorkerScope(): Promise<void> {
+    const scope = this.workerScope;
+    this.workerScope = null;
+    this.jobFibers = null;
+    if (scope) {
+      await Effect.runPromise(Scope.close(scope, Exit.void));
+    }
   }
 
   /**
