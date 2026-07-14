@@ -367,11 +367,18 @@ describe("initPilotRepo", () => {
       join(repo, "deploy", "scripts", "decrypt-user-secrets.ts"),
       "utf8",
     );
+    // Secrets are emitted through writeSecretGitHubEnv, which masks the value
+    // and skips empties. CMS_CONTENT_REPO_PAT falls back to the git-sync token.
+    // The scaffold still wires the per-user ATProto publishing credential; TLS
+    // material is handled by the kamal proxy block via shared env, not here.
     expect(decryptUserSecretsScript).toContain(
-      'writeGitHubEnv("ATPROTO_APP_PASSWORD"',
+      'writeSecretGitHubEnv("AI_API_KEY"',
     );
-    expect(decryptUserSecretsScript).toContain('"CERTIFICATE_PEM"');
-    expect(decryptUserSecretsScript).toContain('"PRIVATE_KEY_PEM"');
+    expect(decryptUserSecretsScript).toContain('"CMS_CONTENT_REPO_PAT"');
+    expect(decryptUserSecretsScript).toContain("maskGitHubSecret");
+    expect(decryptUserSecretsScript).toContain(
+      'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD"',
+    );
     expect(decryptUserSecretsScript).not.toContain(
       'writeGitHubEnv("ATPROTO_IDENTIFIER"',
     );
@@ -419,8 +426,14 @@ describe("initPilotRepo", () => {
       'if (eventName !== "push" && eventName !== "workflow_run")',
     );
     expect(resolveHandlesScript).toContain('eventName === "workflow_run"');
+    // Deploy handles come from reconcile outputs (brain.yaml/.env/content) and
+    // the encrypted secrets file — NOT the raw users/<handle>.yaml registry
+    // file, which flows through Build + Reconcile first.
     expect(resolveHandlesScript).toContain(
-      "path.match(/^users\\/([^/]+)\\.yaml$/)",
+      "path.match(/^users\\/([^/]+)\\/(?:\\.env|brain\\.yaml|content\\/.*)$/)",
+    );
+    expect(resolveHandlesScript).toContain(
+      "path.match(/^users\\/([^/]+)\\.secrets\\.yaml\\.age$/)",
     );
 
     const reconcileWorkflow = await readFile(
@@ -593,7 +606,7 @@ describe("initPilotRepo", () => {
     await writeFile(
       decryptScriptPath,
       (await readFile(decryptScriptPath, "utf8")).replace(
-        'writeGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"] ?? "");\n',
+        'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"]);\n',
         "",
       ),
     );
@@ -607,7 +620,7 @@ describe("initPilotRepo", () => {
       "- ATPROTO_APP_PASSWORD",
     );
     expect(await readFile(decryptScriptPath, "utf8")).toContain(
-      'writeGitHubEnv("ATPROTO_APP_PASSWORD"',
+      'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD"',
     );
   });
 
@@ -740,7 +753,7 @@ describe("initPilotRepo", () => {
     expect(output).toContain('handles_json=["alice"]');
   });
 
-  it("resolve-deploy-handles returns changed handles for user registry changes", async () => {
+  it("resolve-deploy-handles deploys the reconciled brain.yaml, not the raw registry file", async () => {
     const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
@@ -750,13 +763,16 @@ describe("initPilotRepo", () => {
     initializeGitRepo(repo);
     const beforeSha = commitAll(repo, "initial");
 
+    // A raw users/<handle>.yaml registry edit does NOT trigger a deploy handle
+    // on its own: it flows through Build (image) + Reconcile, and it is the
+    // regenerated users/<handle>/brain.yaml that deploys. This ordering keeps a
+    // deploy from running against stale config before reconcile catches up.
     await writeFile(
       join(repo, "users", "alice.yaml"),
       `handle: alice\ndiscord:\n  enabled: false\nsiteOverride:\n  package: "@rizom/site-docs"\n  version: 0.2.0-alpha.136\n`,
     );
-    const currentSha = commitAll(repo, "update alice site package");
+    const registrySha = commitAll(repo, "update alice site package");
     await writeFile(outputPath, "");
-
     execFileSync(
       process.execPath,
       ["deploy/scripts/resolve-deploy-handles.ts"],
@@ -766,15 +782,41 @@ describe("initPilotRepo", () => {
           ...process.env,
           GITHUB_EVENT_NAME: "push",
           BEFORE_SHA: beforeSha,
-          GITHUB_SHA: currentSha,
+          GITHUB_SHA: registrySha,
           GITHUB_OUTPUT: outputPath,
         },
         encoding: "utf8",
       },
     );
+    expect(await readFile(outputPath, "utf8")).toContain("handles_json=[]");
 
-    const output = await readFile(outputPath, "utf8");
-    expect(output).toContain('handles_json=["alice"]');
+    // Reconcile's output — users/<handle>/brain.yaml — is what resolves the
+    // handle and triggers the deploy.
+    await mkdir(join(repo, "users", "alice"), { recursive: true });
+    await writeFile(
+      join(repo, "users", "alice", "brain.yaml"),
+      "version: 0.2.0-alpha.136\n",
+    );
+    const reconciledSha = commitAll(repo, "reconcile alice brain.yaml");
+    await writeFile(outputPath, "");
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: registrySha,
+          GITHUB_SHA: reconciledSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+    expect(await readFile(outputPath, "utf8")).toContain(
+      'handles_json=["alice"]',
+    );
   });
 
   it("resolve-deploy-handles returns changed user handles for workflow_run events", async () => {

@@ -5,53 +5,6 @@ import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { readJsonResponse, requireEnv } from "./helpers";
 
-const handle = requireEnv("HANDLE");
-const contentRepo = requireEnv("CONTENT_REPO");
-const token = requireEnv("GIT_SYNC_TOKEN");
-const sourceDir = join("users", handle, "content");
-
-if (!existsSync(sourceDir)) {
-  process.exit(0);
-}
-
-const { owner, repo } = parseRepoSlug(contentRepo);
-await ensureGitHubRepo({ owner, repo, token });
-
-const tempRoot = await mkdtemp(join(tmpdir(), "brains-ops-content-"));
-const checkoutDir = join(tempRoot, "repo");
-const remoteUrl = buildAuthenticatedRemoteUrl(owner, repo, token);
-
-runGit(["clone", remoteUrl, checkoutDir]);
-runGit(["-C", checkoutDir, "checkout", "-B", "main"]);
-
-const copiedFiles = await copyMissingFiles(sourceDir, checkoutDir);
-if (copiedFiles === 0) {
-  process.exit(0);
-}
-
-runGit(["-C", checkoutDir, "config", "user.name", "brains-ops[bot]"]);
-runGit([
-  "-C",
-  checkoutDir,
-  "config",
-  "user.email",
-  "41898282+github-actions[bot]@users.noreply.github.com",
-]);
-runGit(["-C", checkoutDir, "add", "."]);
-
-if (hasNoStagedChanges(checkoutDir)) {
-  process.exit(0);
-}
-
-runGit([
-  "-C",
-  checkoutDir,
-  "commit",
-  "-m",
-  `chore(content): seed ${handle} anchor profile`,
-]);
-runGit(["-C", checkoutDir, "push", "origin", "HEAD:main"]);
-
 const STALE_ANCHOR_PROFILE_MARKERS = [
   "name: Your Name Here",
   "Delete this and write your own",
@@ -66,6 +19,55 @@ interface EnsureGitHubRepoOptions {
 interface GitHubRepoResponse {
   clone_url?: string;
   private?: boolean;
+}
+
+async function main(): Promise<void> {
+  const handle = requireEnv("HANDLE");
+  const contentRepo = requireEnv("CONTENT_REPO");
+  const token = requireEnv("GIT_SYNC_TOKEN");
+  const sourceDir = join("users", handle, "content");
+
+  if (!existsSync(sourceDir)) {
+    return;
+  }
+
+  const { owner, repo } = parseRepoSlug(contentRepo);
+  await ensureGitHubRepo({ owner, repo, token });
+
+  const tempRoot = await mkdtemp(join(tmpdir(), "brains-ops-content-"));
+  const checkoutDir = join(tempRoot, "repo");
+  const remoteUrl = buildAuthenticatedRemoteUrl(owner, repo, token);
+
+  runGit(["clone", remoteUrl, checkoutDir]);
+  runGit(["-C", checkoutDir, "checkout", "-B", "main"]);
+
+  const copiedFiles = await copyMissingFiles(sourceDir, checkoutDir);
+  if (copiedFiles === 0) {
+    return;
+  }
+
+  runGit(["-C", checkoutDir, "config", "user.name", "brains-ops[bot]"]);
+  runGit([
+    "-C",
+    checkoutDir,
+    "config",
+    "user.email",
+    "41898282+github-actions[bot]@users.noreply.github.com",
+  ]);
+  runGit(["-C", checkoutDir, "add", "."]);
+
+  if (hasNoStagedChanges(checkoutDir)) {
+    return;
+  }
+
+  runGit([
+    "-C",
+    checkoutDir,
+    "commit",
+    "-m",
+    `chore(content): seed ${handle} anchor profile`,
+  ]);
+  runGit(["-C", checkoutDir, "push", "origin", "HEAD:main"]);
 }
 
 async function ensureGitHubRepo(
@@ -177,3 +179,5 @@ function isStaleAnchorProfile(content: string): boolean {
     content.includes(marker),
   );
 }
+
+await main();
