@@ -13,13 +13,15 @@ import {
   trioSchema,
   ctaSchema,
   delayClass,
+  ROOM_HIGHLIGHT_CLS,
 } from "./shared";
 
 /**
  * The umbrella home page. The hero is the live agent proximity map (wired in
  * routes.ts as agent-discovery:proximity-map); the sections here tell the
- * story the map opens — the dark it fights (problem), how the network grows
- * (growth), the mission band, the three faces, and the living-proof colophon.
+ * story the map opens — the dark it fights (problem), the one light that
+ * starts it (the product hook), how the network grows (growth), the mission
+ * band, the three faces, and the living-proof colophon.
  * Each section is authored from one zod schema (its component's props are
  * `z.infer` of that schema); copy is content-driven, stored as markdown in
  * site-content/home/<section>.md. Only the assembled section group is
@@ -54,12 +56,50 @@ function HomeGrowthSection({
 
 function HomeProblemSection({
   cap,
+  capNote,
   items,
 }: z.infer<typeof trioSchema>): JSX.Element {
   return (
     <Section id="problem" className="py-14">
-      <SectCap lead={cap} />
+      <SectCap lead={cap} trail={capNote} />
       <Trio items={items} mono={false} />
+    </Section>
+  );
+}
+
+/* ============ it starts with one light ============ */
+
+const oneLightSchema = z.object({
+  cap: z.string(),
+  capNote: z.string(),
+  headline: z.string(),
+  intro: z.string(),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+});
+
+function HomeOneLightSection({
+  cap,
+  capNote,
+  headline,
+  intro,
+  primaryCta,
+  secondaryCta,
+}: z.infer<typeof oneLightSchema>): JSX.Element {
+  return (
+    <Section id="one-light" className="py-14">
+      <SectCap lead={cap} trail={capNote} />
+      <h2 className="reveal reveal-delay-1 mt-3.5 max-w-[20em] font-display text-[clamp(28px,3vw,40px)] font-[465] leading-[1.1] tracking-[-0.014em] text-theme [font-variation-settings:'SOFT'_78,'opsz'_84]">
+        {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
+      </h2>
+      <p className="reveal reveal-delay-2 mt-4 max-w-[62ch] font-body text-[17px] leading-[1.7] text-theme-muted">
+        {intro}
+      </p>
+      <CtaRow
+        primaryCta={primaryCta}
+        secondaryCta={secondaryCta}
+        className="reveal reveal-delay-3 mt-6"
+      />
     </Section>
   );
 }
@@ -177,7 +217,12 @@ export const homeSections: SiteSectionGroup = sectionGroup("home", {
   }),
   problem: defineSection(trioSchema, HomeProblemSection, {
     title: "Problem",
-    description: "Why it has to exist — problem trio (large numerals)",
+    description: "The dark around the lights — problem trio (large numerals)",
+  }),
+  "one-light": defineSection(oneLightSchema, HomeOneLightSection, {
+    title: "One Light",
+    description:
+      "It starts with one light — the product hook between problem and growth",
   }),
   mission: defineSection(missionSchema, HomeMissionSection, {
     title: "Mission",
