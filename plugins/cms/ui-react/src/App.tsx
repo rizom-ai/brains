@@ -17,7 +17,6 @@ import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   ApiError,
   deleteEntity,
-  fetchAgentTargets,
   requestAgentAnswer,
   requestAssist,
   requestFieldAssist,
@@ -33,6 +32,7 @@ import {
 import { createEditorDocument } from "./editor-document";
 import { saveEntity, type SaveEntityInput } from "./mutations";
 import {
+  agentTargetsQueryOptions,
   cmsKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
@@ -1275,7 +1275,6 @@ export function DeleteDialog(props: {
 }
 
 export function App(): ReactElement {
-  const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
   const [entityType, setEntityType] = useState<string | null>(null);
   const [mode, setMode] = useState<EditorMode>({ kind: "browse" });
   const [draft, setDraft] = useState<Record<string, unknown>>({});
@@ -1296,6 +1295,8 @@ export function App(): ReactElement {
   const queryClient = useQueryClient();
   const entityTypesQuery = useQuery(entityTypesQueryOptions());
   const types = entityTypesQuery.data ?? null;
+  const agentTargetsQuery = useQuery(agentTargetsQueryOptions());
+  const agentTargets = agentTargetsQuery.data ?? EMPTY_AGENT_TARGETS;
   const syncStatusQuery = useQuery(syncStatusQueryOptions());
   const syncStatus = syncStatusQuery.data ?? null;
   const entityListQuery = useQuery({
@@ -1343,12 +1344,6 @@ export function App(): ReactElement {
       targeted ? targeted.entityType : first ? first.entityType : null,
     );
   }, [types]);
-
-  useEffect(() => {
-    fetchAgentTargets()
-      .then(setAgentTargets)
-      .catch(() => setAgentTargets([]));
-  }, []);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
   // updates syncStatus, which re-runs this effect until the view settles or

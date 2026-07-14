@@ -11,6 +11,7 @@ import type {
 import { createEditorDocument } from "./editor-document";
 import { createCmsQueryClient } from "./query-client";
 import {
+  agentTargetsQueryOptions,
   cmsKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
@@ -143,6 +144,47 @@ describe("CMS entity-types query", () => {
 
     if (!(caught instanceof Error)) throw caught;
     expect(caught.message).toBe("Types unavailable");
+    expect(requests).toBe(1);
+    client.clear();
+  });
+});
+
+describe("CMS agent-targets query", () => {
+  it("loads approved targets once through its own cache entry", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({
+        agents: [{ id: "reviewer", label: "Reviewer" }],
+      });
+    });
+    const client = createCmsQueryClient();
+
+    const first = await client.fetchQuery(agentTargetsQueryOptions());
+    const second = client.getQueryData(cmsKeys.agentTargets());
+
+    expect(cmsKeys.agentTargets()).toEqual(["cms", "agent-targets"]);
+    expect(first).toEqual([{ id: "reviewer", label: "Reviewer" }]);
+    expect(second).toEqual(first);
+    expect(requests).toBe(1);
+    client.clear();
+  });
+
+  it("does not retry when optional agent discovery is unavailable", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({ error: "A2A unavailable" }, { status: 503 });
+    });
+    const client = createCmsQueryClient();
+
+    try {
+      await client.fetchQuery(agentTargetsQueryOptions());
+    } catch {
+      // The app treats absent query data as an empty optional target list.
+    }
+
+    expect(client.getQueryData(cmsKeys.agentTargets())).toBeUndefined();
     expect(requests).toBe(1);
     client.clear();
   });

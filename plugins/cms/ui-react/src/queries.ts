@@ -1,10 +1,12 @@
 import type { UseQueryOptions } from "@tanstack/react-query";
 import {
+  fetchAgentTargets,
   fetchEntities,
   fetchEntity,
   fetchSchema,
   fetchSyncStatus,
   fetchTypes,
+  type AgentTarget,
   type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
@@ -13,6 +15,7 @@ import {
 } from "./api";
 
 export type EntityTypesQueryKey = readonly ["cms", "types"];
+export type AgentTargetsQueryKey = readonly ["cms", "agent-targets"];
 export type SyncStatusQueryKey = readonly ["cms", "sync-status"];
 export type EntitySchemaQueryKey = readonly ["cms", "schema", string];
 export type EntityListQueryKey = readonly ["cms", "entities", string];
@@ -21,6 +24,7 @@ export type EntityDetailQueryKey = readonly ["cms", "entity", string, string];
 export const cmsKeys = {
   all: ["cms"] as const,
   types: (): EntityTypesQueryKey => ["cms", "types"],
+  agentTargets: (): AgentTargetsQueryKey => ["cms", "agent-targets"],
   syncStatus: (): SyncStatusQueryKey => ["cms", "sync-status"],
   schema: (entityType: string): EntitySchemaQueryKey => [
     "cms",
@@ -49,6 +53,18 @@ export function entityTypesQueryOptions(): UseQueryOptions<
   return {
     queryKey: cmsKeys.types(),
     queryFn: fetchTypes,
+  };
+}
+
+export function agentTargetsQueryOptions(): UseQueryOptions<
+  AgentTarget[],
+  Error,
+  AgentTarget[],
+  AgentTargetsQueryKey
+> {
+  return {
+    queryKey: cmsKeys.agentTargets(),
+    queryFn: fetchAgentTargets,
   };
 }
 
