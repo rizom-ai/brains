@@ -627,21 +627,61 @@
 }
 .dispatch-row {
   display: grid;
-  grid-template-columns: 42px minmax(150px, 1fr) minmax(90px, 0.36fr) 112px auto;
-  gap: 13px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
   width: 100%;
   min-height: 82px;
   align-items: center;
-  padding: 13px 0;
-  border: 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--console-rule-strong);
   background: transparent;
   color: var(--console-text);
-  cursor: pointer;
-  text-align: left;
 }
 .dispatch-row:hover {
   background: var(--console-card);
+}
+.dispatch-entity {
+  display: grid;
+  grid-template-columns: 42px minmax(150px, 1fr) minmax(90px, 0.36fr) 112px auto;
+  gap: 13px;
+  align-items: center;
+  min-width: 0;
+  min-height: 64px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.dispatch-actions {
+  display: flex;
+  gap: 4px;
+  padding-right: 5px;
+}
+.dispatch-actions button {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 5px;
+  background: var(--console-frame);
+  color: var(--console-text-dim);
+  cursor: pointer;
+  font: 11px var(--console-mono);
+}
+.dispatch-actions button:hover:not(:disabled) {
+  border-color: var(--console-accent);
+  color: var(--console-accent-dim);
+}
+.dispatch-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+.dispatch-actions .dispatch-remove:hover:not(:disabled) {
+  border-color: var(--console-err);
+  color: var(--console-err);
 }
 .dispatch-position,
 .dispatch-row time,
@@ -735,7 +775,7 @@
   font-size: 11px;
 }
 .publication-job,
-.publication-failure {
+.publication-failure-open {
   display: block;
   width: 100%;
   padding: 0;
@@ -744,6 +784,12 @@
   color: var(--console-text);
   cursor: pointer;
   text-align: left;
+}
+.publication-failure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
 }
 .publication-job + .publication-job,
 .publication-failure + .publication-failure {
@@ -778,6 +824,97 @@
   border-left: 2px solid var(--console-err);
   color: var(--console-err);
   font: 9px/1.5 var(--console-mono);
+}
+.publication-retry {
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--console-err) 45%, transparent);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--console-err);
+  cursor: pointer;
+  font: 9px var(--console-mono);
+}
+.publication-retry:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+.publishing-action-error {
+  margin-top: 14px;
+}
+
+/* Contextual publication controls remain visually separate from save state. */
+.publication-actions {
+  margin-top: 22px;
+  padding: 15px;
+  border: 1px solid var(--console-rule-strong);
+  border-left: 3px solid var(--console-accent);
+  border-radius: 7px;
+  background: var(--console-card);
+}
+.publication-actions > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--console-text-muted);
+  font: 9px var(--console-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.publication-state {
+  color: var(--console-text-dim);
+  font-weight: 500;
+}
+.publication-state--queued {
+  color: var(--console-warn);
+}
+.publication-state--failed {
+  color: var(--console-err);
+}
+.publication-state--published {
+  color: var(--console-ok);
+}
+.publication-actions > p {
+  margin: 10px 0 0;
+  color: var(--console-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.publication-actions .publication-action-note {
+  color: var(--console-warn);
+}
+.publication-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 13px;
+}
+.publication-action-buttons .btn {
+  padding: 6px 9px;
+  font-size: 10px;
+}
+.publication-action-buttons .publication-publish-now {
+  border-color: var(--console-accent);
+  background: var(--console-accent);
+  color: var(--console-on-accent);
+}
+.publication-action-complete {
+  color: var(--console-ok) !important;
+  font-family: var(--console-mono);
+}
+.publication-modal .modal-mark {
+  color: var(--console-accent);
+}
+.publication-modal .publication-confirm-warning {
+  padding: 9px 11px;
+  border-left: 2px solid var(--console-warn);
+  background: color-mix(in srgb, var(--console-warn) 7%, transparent);
+  font: 10px/1.5 var(--console-mono);
+}
+.publication-modal .publish-confirm {
+  border-color: var(--console-accent);
+  background: var(--console-accent);
+  color: var(--console-on-accent);
 }
 
 /* Desktop manuscript drops the collection rail; the local crumb is its route back. */

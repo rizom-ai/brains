@@ -896,92 +896,90 @@ table.jobs {
 .link:hover dd { color: var(--console-accent); }
 .link:hover .arrow { transform: translateX(3px); color: var(--console-accent); }
 
-.board {
+.pipeline-digest {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--console-rule);
+  gap: 14px;
+}
+.pipeline-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--console-rule-strong);
   border-radius: 8px;
   overflow: hidden;
-  margin-top: 4px;
 }
-.lane {
-  background: var(--console-card-soft);
-  padding: 12px 14px 16px;
-  min-height: 190px;
+.pipeline-metric {
   min-width: 0;
+  padding: 12px 10px;
+  border-right: 1px solid var(--console-rule-strong);
+  background: var(--console-card-soft);
 }
-.lane-head {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--console-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--console-text-muted);
-  padding-bottom: 10px;
-}
-.lane-count { color: var(--console-accent); }
-.lane-empty {
-  font-family: var(--console-mono);
-  font-size: 11px;
-  color: var(--console-text-faint);
-}
-.work {
-  background: var(--console-card);
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 7px;
-  padding: 9px 11px;
-  margin-bottom: 8px;
-  transition: border-color 0.15s ease;
-}
-.work:hover { border-color: color-mix(in srgb, var(--console-accent) 50%, transparent); }
-.work-title {
-  font-family: var(--console-display);
-  font-variation-settings: "SOFT" 40;
-  font-size: 13.5px;
-  font-weight: 500;
-  line-height: 1.3;
-  color: var(--console-text);
-  overflow-wrap: anywhere;
-}
-.work-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-family: var(--console-mono);
-  font-size: 10px;
-  color: var(--console-text-muted);
-  margin-top: 5px;
-}
-.work--generating { border-color: color-mix(in srgb, var(--console-warn) 40%, transparent); }
-.work-status--warm { color: var(--console-warn); }
-.work--failed { border-color: color-mix(in srgb, var(--console-err) 40%, transparent); }
-.work-status--err { color: var(--console-err); }
-.minibar {
-  height: 2px;
-  background: var(--console-rule-strong);
-  border-radius: 999px;
-  margin-top: 7px;
+.pipeline-metric:last-child { border-right: 0; }
+.pipeline-metric dt {
   overflow: hidden;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
-.minibar i {
-  display: block;
-  height: 100%;
-  width: 45%;
-  background: var(--console-warn);
-  animation: minibar-grow 3s ease-in-out infinite alternate;
+.pipeline-metric dd {
+  margin-top: 5px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 24px;
+  font-variation-settings: "SOFT" 45;
+  font-weight: 540;
+  line-height: 1;
 }
-@keyframes minibar-grow {
-  to { width: 78%; }
+.pipeline-metric--warn dd { color: var(--console-warn); }
+.pipeline-metric--ok dd { color: var(--console-ok); }
+.pipeline-failures {
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
 }
-@media (max-width: 900px) {
-  .board { grid-template-columns: 1fr; }
-  .lane { min-height: 0; }
+.pipeline-failures h4 {
+  color: var(--console-err);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
-@container dashboard-card (max-width: 560px) {
-  .board { grid-template-columns: 1fr; }
-  .lane { min-height: 0; }
+.pipeline-failure {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.45fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--console-rule);
+}
+.pipeline-failure strong {
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 13px;
+  font-weight: 530;
+}
+.pipeline-failure span {
+  color: var(--console-err);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  line-height: 1.45;
+}
+.pipeline-manage {
+  justify-self: start;
+  color: var(--console-accent);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  text-decoration: none;
+}
+.pipeline-manage:hover { text-decoration: underline; }
+@container dashboard-card (max-width: 430px) {
+  .pipeline-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pipeline-metric:nth-child(2) { border-right: 0; }
+  .pipeline-metric:nth-child(-n + 2) { border-bottom: 1px solid var(--console-rule-strong); }
+  .pipeline-failure { grid-template-columns: minmax(0, 1fr); gap: 3px; }
 }
 
 .swot {
@@ -1597,9 +1595,9 @@ table.jobs {
   .list-name { font-size: 14.5px; }
   .list-desc { font-size: 13px; }
   .muted { font-size: 13.5px; }
-  .lane-head { font-size: 10.5px; }
-  .work-title { font-size: 14.5px; }
-  .work-meta { font-size: 10.5px; }
+  .pipeline-metric dt { font-size: 9px; }
+  .pipeline-failure strong { font-size: 14px; }
+  .pipeline-failure span { font-size: 10px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -161,6 +161,75 @@ describe("publication pipeline snapshot", () => {
     ]);
   });
 
+  it("keeps each destination contiguous in its executable order", async () => {
+    const shell = createMockShell();
+    const context = createServicePluginContext(shell, "content-pipeline");
+    registerType(context, "newsletter");
+    registerType(context, "post");
+    for (const input of [
+      { entityType: "post", id: "post-one", title: "Post one" },
+      { entityType: "post", id: "post-two", title: "Post two" },
+      {
+        entityType: "newsletter",
+        id: "newsletter-one",
+        title: "Newsletter one",
+      },
+    ]) {
+      await addEntity(context, { ...input, status: "queued" });
+    }
+
+    const providers = ProviderRegistry.createFresh();
+    providers.register("post", {
+      name: "website",
+      publish: async () => ({ id: "remote-post" }),
+    });
+    providers.register("newsletter", {
+      name: "buttondown",
+      publish: async () => ({ id: "remote-newsletter" }),
+    });
+    const queue = QueueManager.createFresh();
+    queue.replace([
+      {
+        entityType: "post",
+        entityId: "post-one",
+        position: 1,
+        queuedAt: "2026-07-14T08:00:00.000Z",
+        authContext: {},
+      },
+      {
+        entityType: "newsletter",
+        entityId: "newsletter-one",
+        position: 1,
+        queuedAt: "2026-07-14T08:01:00.000Z",
+        authContext: {},
+      },
+      {
+        entityType: "post",
+        entityId: "post-two",
+        position: 2,
+        queuedAt: "2026-07-14T08:02:00.000Z",
+        authContext: {},
+      },
+    ]);
+
+    const snapshot = await getPublicationPipelineSnapshot(
+      context,
+      providers,
+      queue,
+      RetryTracker.createFresh(),
+    );
+
+    expect(
+      snapshot.queue.map((item) =>
+        [item.entityType, item.entityId, item.position].join(":"),
+      ),
+    ).toEqual([
+      "newsletter:newsletter-one:1",
+      "post:post-one:1",
+      "post:post-two:2",
+    ]);
+  });
+
   it("returns an idle snapshot when no publish provider is registered", async () => {
     const shell = createMockShell();
     const context = createServicePluginContext(shell, "content-pipeline");

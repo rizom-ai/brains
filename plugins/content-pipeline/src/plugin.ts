@@ -92,14 +92,21 @@ export class ContentPipelinePlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await this.publicationQueueService.reconcile(
-      context.entityService.getEntityTypes(),
+      this.providerRegistry.getRegisteredTypes(),
     );
-    await registerCmsWorkspace(context, this.id, {
+    const cmsWorkspaceUrl = await registerCmsWorkspace(context, this.id, {
+      providerRegistry: this.providerRegistry,
+      queueManager: this.queueManager,
+      publicationQueueService: this.publicationQueueService,
+      retryTracker: this.retryTracker,
+      publishExecutor: this.publishExecutor,
+    });
+    await registerDashboardWidget(context, this.id, {
       providerRegistry: this.providerRegistry,
       queueManager: this.queueManager,
       retryTracker: this.retryTracker,
+      ...(cmsWorkspaceUrl ? { managementUrl: cmsWorkspaceUrl } : {}),
     });
-    await registerDashboardWidget(context, this.id);
     await this.scheduler.start();
 
     this.logger.info("Content pipeline plugin started");

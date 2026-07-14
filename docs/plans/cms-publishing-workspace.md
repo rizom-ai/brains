@@ -2,9 +2,11 @@
 
 ## Status
 
-**Proposed.** Move publication-pipeline operation into the CMS when
-`@brains/content-pipeline` is installed, while keeping the CMS fully functional when that
-plugin is absent. Reduce the Dashboard publication surface to a compact, read-only digest.
+**Implemented.** Publication-pipeline operation is available in CMS only when
+`@brains/content-pipeline` registers the capability. Queue intent and ordering are
+reconciled durably, confirmed direct publishing is content-hash protected, and Dashboard
+now renders a compact read-only digest. CMS-only optionality is covered by route and UI
+tests; the combined composition was verified in the full Rover test app.
 
 ## Goal
 

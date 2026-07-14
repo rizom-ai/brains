@@ -90,6 +90,27 @@ describe("ContentPipelinePlugin", () => {
 
       expect(plugin.getScheduler().isRunning()).toBe(true);
     });
+
+    it("passes the resolved CMS workspace URL to the dashboard digest", async () => {
+      let dashboardDataProvider: (() => Promise<unknown>) | undefined;
+      harness.subscribe("cms:register-workspace", async () => ({
+        success: true,
+        data: { workspaceUrl: "/studio#/workspace/publishing" },
+      }));
+      harness.subscribe<{ dataProvider: () => Promise<unknown> }>(
+        "dashboard:register-widget",
+        async (message) => {
+          dashboardDataProvider = message.payload.dataProvider;
+          return { success: true };
+        },
+      );
+
+      await plugin.ready();
+
+      expect(await dashboardDataProvider?.()).toMatchObject({
+        managementUrl: "/studio#/workspace/publishing",
+      });
+    });
   });
 
   describe("queue operations via message bus", () => {
@@ -424,6 +445,13 @@ Post body`,
           metadata: { status: "draft", title: "Post 3" },
         },
       ]);
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "social-post",
+        provider: {
+          name: "linkedin",
+          publish: async () => ({ id: "remote-post" }),
+        },
+      });
 
       await plugin.ready();
 
@@ -432,6 +460,39 @@ Post body`,
       const queuedIds = queue.map((e) => e.entityId);
       expect(queuedIds).toContain("post-1");
       expect(queuedIds).toContain("post-2");
+    });
+
+    it("ignores queued status on types without a publish provider", async () => {
+      harness.addEntities([
+        {
+          id: "social-post",
+          entityType: "social-post",
+          content: "queued social post",
+          metadata: { status: "queued", title: "Social post" },
+        },
+        {
+          id: "workflow-card",
+          entityType: "workflow-card",
+          content: "queued workflow card",
+          metadata: { status: "queued", title: "Workflow card" },
+        },
+      ]);
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "social-post",
+        provider: {
+          name: "linkedin",
+          publish: async () => ({ id: "remote-post" }),
+        },
+      });
+
+      await plugin.ready();
+
+      expect(await plugin.getQueueManager().list("social-post")).toHaveLength(
+        1,
+      );
+      expect(await plugin.getQueueManager().list("workflow-card")).toHaveLength(
+        0,
+      );
     });
 
     it("should not add non-queued entities to queue", async () => {

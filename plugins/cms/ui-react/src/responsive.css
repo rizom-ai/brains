@@ -98,7 +98,7 @@
   .publishing-aside {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .dispatch-row {
+  .dispatch-entity {
     grid-template-columns: 35px minmax(150px, 1fr) 110px auto;
   }
   .dispatch-destination {
@@ -262,9 +262,20 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .dispatch-row {
-    grid-template-columns: 28px minmax(0, 1fr) auto;
     min-height: 72px;
+    gap: 6px;
+  }
+  .dispatch-entity {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
     gap: 9px;
+  }
+  .dispatch-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 27px);
+  }
+  .dispatch-actions .dispatch-remove {
+    grid-column: 1 / -1;
+    width: 58px;
   }
   .dispatch-row time {
     font-size: 7px;

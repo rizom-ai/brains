@@ -177,13 +177,9 @@ export async function getPublicationPipelineSnapshot(
       });
     }
   }
-  queue.sort((left, right) =>
-    left.queuedAt === right.queuedAt
-      ? left.entityType.localeCompare(right.entityType) ||
-        left.position - right.position
-      : left.queuedAt.localeCompare(right.queuedAt),
-  );
-
+  // QueueManager ordering is per publishable type because schedulers consume
+  // one destination at a time. Keep each destination contiguous so operator
+  // move controls match the executable order they mutate.
   const generating = await getGeneratingItems(context);
   summary.generating = generating.length;
 

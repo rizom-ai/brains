@@ -22,6 +22,8 @@ import {
   parseCmsHash,
   MODEL_ASSIST_TARGET,
   PipelineStations,
+  PublicationActions,
+  PublishConfirmationDialog,
   PublishingWorkspace,
   SaveStateNotice,
   styles,
@@ -518,7 +520,11 @@ describe("PublishingWorkspace", () => {
 
   it("renders the publication desk from canonical pipeline data", () => {
     const html = renderToStaticMarkup(
-      createElement(PublishingWorkspace, { data, onOpenEntity: () => {} }),
+      createElement(PublishingWorkspace, {
+        data,
+        onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
+      }),
     );
 
     expect(html).toContain("Publishing desk");
@@ -539,10 +545,70 @@ describe("PublishingWorkspace", () => {
           queue: [],
         },
         onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
       }),
     );
 
     expect(html).toContain("Nothing is queued for publication");
+  });
+
+  it("offers queue ordering, removal, and failed-item retry controls", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishingWorkspace, {
+        data,
+        onOpenEntity: () => {},
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+    expect(html).toContain('aria-label="Move Domain as identity earlier"');
+    expect(html).toContain('aria-label="Move Domain as identity later"');
+    expect(html).toContain('aria-label="Remove Domain as identity from queue"');
+    expect(html).toContain(">Retry<");
+  });
+});
+
+describe("PublicationActions", () => {
+  const renderActions = (status: string, unsaved = false): string =>
+    renderToStaticMarkup(
+      createElement(PublicationActions, {
+        entityType: "post",
+        entityId: "field-notes",
+        title: "Field notes",
+        status,
+        unsaved,
+        onAction: async () => ({ success: true as const }),
+      }),
+    );
+
+  it("maps persisted publication state to contextual actions", () => {
+    expect(renderActions("draft")).toContain("Add to queue");
+    expect(renderActions("queued")).toContain("Remove from queue");
+    expect(renderActions("failed")).toContain(">Retry<");
+    expect(renderActions("published")).toContain("Published");
+    expect(renderActions("published")).not.toContain("Publish now");
+  });
+
+  it("keeps publication separate from unsaved editor state", () => {
+    const html = renderActions("draft", true);
+    expect(html).toContain("Save changes before changing publication state");
+    expect(html).toContain("disabled");
+  });
+
+  it("renders an explicit external-publication confirmation", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublishConfirmationDialog, {
+        title: "Field notes",
+        preview: "This will publish post:field-notes publicly.",
+        confirming: false,
+        onCancel: () => {},
+        onConfirm: () => {},
+      }),
+    );
+    expect(html).toContain('role="alertdialog"');
+    expect(html).toContain("Publish Field notes now?");
+    expect(html).toContain("publicly");
+    expect(html).toContain("Confirm publication");
   });
 });
 
