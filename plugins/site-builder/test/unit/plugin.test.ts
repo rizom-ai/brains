@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import { createTemplate } from "@brains/plugins";
+import { createTemplate, type AnchorProfile } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { h } from "preact";
 import { createTestConfig } from "../test-helpers";
-import { mkdtemp } from "fs/promises";
+import { mkdtemp, readFile, rm } from "fs/promises";
 import { existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -51,6 +51,69 @@ describe("SiteBuilderPlugin", () => {
     expect(capabilities).toBeDefined();
     expect(capabilities.tools).toBeDefined();
     expect(capabilities.tools.length).toBeGreaterThan(0);
+  });
+
+  it("uses the shell-owned profile exposed by the plugin context", async () => {
+    const outputDir = await mkdtemp(
+      join(process.cwd(), ".site-builder-profile-"),
+    );
+    const profileUrl = "https://github.com/fresh-shell-profile";
+    harness.getMockShell().getProfile = (): AnchorProfile => ({
+      name: "Fresh Shell",
+      kind: "professional",
+      socialLinks: [{ platform: "github", url: profileUrl }],
+    });
+
+    try {
+      plugin = new SiteBuilderPlugin(
+        createTestConfig({
+          previewOutputDir: outputDir,
+          productionOutputDir: outputDir,
+          layouts: {
+            profile: ({ siteInfo }) =>
+              h("main", {}, siteInfo.socialLinks?.[0]?.url ?? "missing"),
+          },
+          routes: [
+            {
+              id: "profile",
+              path: "/",
+              title: "Profile",
+              description: "Profile route",
+              layout: "profile",
+              sections: [],
+            },
+          ],
+        }),
+      );
+
+      await harness.installPlugin(plugin);
+      const builder = plugin.getSiteBuilder();
+      expect(builder).toBeDefined();
+      if (!builder) throw new Error("Site builder was not initialized");
+
+      const result = await builder.build({
+        environment: "preview",
+        outputDir,
+        sharedImagesDir: join(outputDir, "images"),
+        enableContentGeneration: false,
+        cleanBeforeBuild: true,
+        siteConfig: {
+          title: "Profile",
+          description: "Profile route",
+        },
+        layouts: {
+          profile: ({ siteInfo }) =>
+            h("main", {}, siteInfo.socialLinks?.[0]?.url ?? "missing"),
+        },
+      });
+      expect(result).toMatchObject({ success: true, routesBuilt: 1 });
+
+      expect(await readFile(join(outputDir, "index.html"), "utf8")).toContain(
+        profileUrl,
+      );
+    } finally {
+      await rm(outputDir, { recursive: true, force: true });
+    }
   });
 
   it("should register templates when provided", async () => {

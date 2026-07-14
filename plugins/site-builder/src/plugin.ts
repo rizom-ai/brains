@@ -4,8 +4,12 @@ import type {
   Resource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin, AnchorProfileService } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
+import type {
+  SiteBuildProfile,
+  SiteBuildProfileService,
+} from "./lib/site-build-profile-service";
 import {
   RouteRegistry,
   UISlotRegistry,
@@ -41,7 +45,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
   private _slotRegistry?: UISlotRegistry;
-  private profileService?: AnchorProfileService;
+  private profileService?: SiteBuildProfileService;
   private layouts: Record<string, LayoutComponent>;
   private rebuildManager?: RebuildManager;
   private headScripts = new Map<string, string>();
@@ -109,10 +113,9 @@ export class SiteBuilderPlugin extends ServicePlugin<
       ),
     );
 
-    this.profileService = AnchorProfileService.getInstance(
-      context.entityService,
-      context.logger,
-    );
+    this.profileService = {
+      getProfile: (): SiteBuildProfile => context.identity.getProfile(),
+    };
 
     setupRouteHandlers(context, this._routeRegistry, this.logger);
 
@@ -135,11 +138,12 @@ export class SiteBuilderPlugin extends ServicePlugin<
     };
 
     // Initialize site builder
-    this.siteBuilder = SiteBuilder.getInstance(
+    this.siteBuilder = SiteBuilder.createFresh(
       context.logger.child("SiteBuilder"),
       siteBuilderServices,
       this.routeRegistry,
       this.profileService,
+      undefined,
       this.config.entityDisplay,
     );
 
@@ -347,7 +351,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
   protected override async onShutdown(): Promise<void> {
     this.logger.debug("Shutting down site-builder plugin");
     this.rebuildManager?.dispose();
-    SiteBuilder.resetInstance();
+    delete this.siteBuilder;
     this.logger.debug("Cleaned up all event subscriptions");
   }
 }

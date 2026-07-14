@@ -41,6 +41,7 @@ import type {
   UpdateEntityRequest,
   UpsertEntityRequest,
   EntityTypeConfig,
+  EntityRegistry as IEntityRegistry,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -62,7 +63,7 @@ import { makeIndexReadinessPollingEffect } from "./index-readiness";
  */
 export interface EntityServiceOptions {
   embeddingService: IEmbeddingService;
-  entityRegistry?: EntityRegistry;
+  entityRegistry?: IEntityRegistry;
   logger?: Logger;
   jobQueueService?: IJobQueueService;
   messageBus?: EntityEventBus;
@@ -89,7 +90,7 @@ export class EntityService implements IEntityService {
   private embeddingDb: EmbeddingDB;
   private embeddingDbClient: Client;
   private dbInitPromise!: Promise<void>;
-  private entityRegistry: EntityRegistry;
+  private entityRegistry: IEntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
 

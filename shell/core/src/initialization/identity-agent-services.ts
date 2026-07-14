@@ -160,7 +160,7 @@ export function initializeIdentityAndAgentServices(
     disposables,
   } = options;
 
-  const identityService = BrainCharacterService.getInstance(
+  const identityService = BrainCharacterService.createFresh(
     entityService,
     logger,
     config.identity,
@@ -176,13 +176,13 @@ export function initializeIdentityAndAgentServices(
     ),
   );
 
-  const profileService = AnchorProfileService.getInstance(
+  const profileService = AnchorProfileService.createFresh(
     entityService,
     logger,
     config.profile,
   );
 
-  const canonicalIdentityService = CanonicalIdentityService.getInstance(logger);
+  const canonicalIdentityService = CanonicalIdentityService.createFresh(logger);
 
   const agentFactory = createBrainAgentFactory({
     model: aiService.getModel(),
@@ -195,7 +195,7 @@ export function initializeIdentityAndAgentServices(
   });
   const assistantActorId = createBrainActorId(config.name);
 
-  const agentService = AgentService.getInstance(
+  const agentService = AgentService.createFresh(
     mcpService,
     conversationService,
     identityService,

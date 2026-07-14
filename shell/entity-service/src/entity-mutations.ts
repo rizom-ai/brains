@@ -15,8 +15,8 @@ import type {
   CreateEntityRequest,
   UpdateEntityRequest,
   UpsertEntityRequest,
+  EntityRegistry,
 } from "./types";
-import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";

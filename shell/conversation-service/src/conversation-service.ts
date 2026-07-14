@@ -93,9 +93,7 @@ export class ConversationService implements IConversationService {
     this.dbClient?.close();
   }
 
-  /**
-   * Create fresh instance (for testing)
-   */
+  /** Create a fresh instance around a caller-owned database handle. */
   public static createFresh(
     db: ConversationDB,
     logger: Logger,
@@ -103,6 +101,19 @@ export class ConversationService implements IConversationService {
     config?: ConversationServiceConfig,
   ): ConversationService {
     return new ConversationService(db, logger, messageBus, config);
+  }
+
+  /** Create a fresh instance that owns the database opened from config. */
+  public static createFreshFromConfig(
+    logger: Logger,
+    messageBus: MessageBus,
+    dbConfig: ConversationDbConfig,
+    config?: ConversationServiceConfig,
+  ): ConversationService {
+    const { db, client } = createConversationDatabase(dbConfig);
+    const instance = new ConversationService(db, logger, messageBus, config);
+    instance.dbClient = client;
+    return instance;
   }
 
   /**

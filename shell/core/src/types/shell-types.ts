@@ -4,8 +4,6 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { DaemonRegistry } from "../daemon-registry";
 import type {
   DataSourceRegistry,
-  EntityRegistry,
-  EntityService,
   IEmbeddingService,
   IEntityRegistry,
   IEntityService,
@@ -43,7 +41,7 @@ export interface JobServicesLifecycle {
 export interface ShellServices {
   logger: Logger;
   disposables: Array<() => void>;
-  entityRegistry: EntityRegistry;
+  entityRegistry: IEntityRegistry;
   messageBus: MessageBus;
   renderService: RenderService;
   daemonRegistry: DaemonRegistry;
@@ -52,7 +50,7 @@ export interface ShellServices {
   dataSourceRegistry: DataSourceRegistry;
   mcpService: IMCPService;
   embeddingService: IEmbeddingService;
-  entityService: EntityService;
+  entityService: IEntityService;
   aiService: IAIService;
   conversationService: IConversationService;
   contentService: ContentService;
