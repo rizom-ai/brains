@@ -3,7 +3,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
@@ -16,17 +16,14 @@ import responsiveStyles from "./responsive.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import {
   ApiError,
-  createEntity,
   deleteEntity,
   fetchAgentTargets,
-  fetchEntity,
   fetchSchema,
   fetchSyncStatus,
   fetchTypes,
   requestAgentAnswer,
   requestAssist,
   requestFieldAssist,
-  updateEntity,
   uploadFile,
   type AgentTarget,
   type EntityDetail,
@@ -38,7 +35,13 @@ import {
   type SyncStatus,
   type TypeSchema,
 } from "./api";
-import { cmsKeys, entityListQueryOptions } from "./queries";
+import { createEditorDocument } from "./editor-document";
+import { saveEntity, type SaveEntityInput } from "./mutations";
+import {
+  cmsKeys,
+  entityDetailQueryOptions,
+  entityListQueryOptions,
+} from "./queries";
 
 /** Pick the list-row label for an entity: frontmatter title, else id. */
 export function entityTitle(entity: EntitySummary): string {
@@ -1301,6 +1304,12 @@ export function App(): ReactElement {
     enabled: entityType !== null,
   });
   const entities = entityType ? (entityListQuery.data ?? null) : null;
+  const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
+  useQuery({
+    ...entityDetailQueryOptions(entityType ?? "", activeEntityId ?? ""),
+    enabled: entityType !== null && activeEntityId !== null,
+  });
+  const saveEntityMutation = useMutation({ mutationFn: saveEntity });
 
   const activeType = types?.find((info) => info.entityType === entityType);
 
@@ -1379,22 +1388,34 @@ export function App(): ReactElement {
         if (deepLinkId !== null) {
           pendingDeepLinkId.current = null;
           if (loadedEntities.some((entry) => entry.id === deepLinkId)) {
-            return fetchEntity(entityType, deepLinkId).then((entity) => {
-              setMode({ kind: "edit", entity });
-              setDraft(entity.frontmatter);
-              setBody(entity.body);
-            });
+            return queryClient
+              .fetchQuery({
+                ...entityDetailQueryOptions(entityType, deepLinkId),
+                staleTime: 0,
+              })
+              .then((entity) => {
+                const document = createEditorDocument(entity);
+                setMode({ kind: "edit", entity: document.entity });
+                setDraft(document.draft);
+                setBody(document.body);
+              });
           }
         }
         // Singletons skip the list: open the record, or start creating it.
         if (loadedSchema.isSingleton) {
           const record = loadedEntities[0];
           if (record) {
-            return fetchEntity(entityType, record.id).then((entity) => {
-              setMode({ kind: "edit", entity });
-              setDraft(entity.frontmatter);
-              setBody(entity.body);
-            });
+            return queryClient
+              .fetchQuery({
+                ...entityDetailQueryOptions(entityType, record.id),
+                staleTime: 0,
+              })
+              .then((entity) => {
+                const document = createEditorDocument(entity);
+                setMode({ kind: "edit", entity: document.entity });
+                setDraft(document.draft);
+                setBody(document.body);
+              });
           }
           setMode({ kind: "create" });
           setDraft(emptyDraft(loadedSchema.fields));
@@ -1408,17 +1429,22 @@ export function App(): ReactElement {
   const openEntity = useCallback(
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
       if (!entityType) return;
-      fetchEntity(entityType, id)
+      queryClient
+        .fetchQuery({
+          ...entityDetailQueryOptions(entityType, id),
+          staleTime: 0,
+        })
         .then((entity) => {
-          setMode({ kind: "edit", entity });
-          setDraft(entity.frontmatter);
-          setBody(entity.body);
+          const document = createEditorDocument(entity);
+          setMode({ kind: "edit", entity: document.entity });
+          setDraft(document.draft);
+          setBody(document.body);
           setFieldAssistState({ kind: "idle" });
           setSaveState(nextState);
         })
         .catch((error: unknown) => setLoadError(errorMessage(error)));
     },
-    [entityType],
+    [entityType, queryClient],
   );
 
   const startCreate = useCallback((): void => {
@@ -1486,18 +1512,24 @@ export function App(): ReactElement {
     setBaselineCommit(syncStatus?.git?.lastCommit ?? null);
     setSaveState({ kind: "saving" });
     const bodyPayload = schema.hasBody ? { body } : {};
-    const write =
+    const input: SaveEntityInput =
       mode.kind === "create"
-        ? createEntity({ entityType, frontmatter: draft, ...bodyPayload })
-        : updateEntity({
+        ? {
+            kind: "create",
+            entityType,
+            frontmatter: draft,
+            ...bodyPayload,
+          }
+        : {
+            kind: "update",
             entityType,
             id: mode.entity.id,
             frontmatter: draft,
             baseContentHash: mode.entity.contentHash,
             ...bodyPayload,
-          });
-    write
-      .then(async (result) => {
+          };
+    saveEntityMutation.mutate(input, {
+      onSuccess: async (result) => {
         await queryClient.invalidateQueries({
           queryKey: cmsKeys.entities(entityType),
         });
@@ -1505,14 +1537,15 @@ export function App(): ReactElement {
         // Re-fetch after every save so the next edit carries a fresh
         // contentHash precondition.
         openEntity(result.entityId, { kind: "saved", noop });
-      })
-      .catch((error: unknown) =>
+      },
+      onError: (error: Error) => {
         setSaveState(
           error instanceof ApiError && error.status === 409
             ? { kind: "conflict", message: errorMessage(error) }
             : { kind: "error", message: errorMessage(error) },
-        ),
-      );
+        );
+      },
+    });
   }, [
     entityType,
     mode,
@@ -1522,6 +1555,7 @@ export function App(): ReactElement {
     openEntity,
     syncStatus,
     queryClient,
+    saveEntityMutation,
   ]);
 
   const remove = useCallback((): void => {

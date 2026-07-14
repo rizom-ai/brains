@@ -2,4 +2,4 @@
 "@brains/cms": patch
 ---
 
-Move the CMS entity-list server state into a package-local TanStack Query cache with typed keys, targeted invalidation, and request-deduplication coverage.
+Move CMS entity-list and entity-detail server state into a package-local TanStack Query cache. Saves now use a mutation hook while drafts remain pinned to their opened content hash, with targeted invalidation and request-deduplication coverage.

@@ -1,9 +1,14 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { QueryObserver, type QueryObserverResult } from "@tanstack/react-query";
 import { mockFetch } from "@brains/test-utils";
-import type { EntitySummary } from "./api";
+import type { EntityDetail, EntitySummary } from "./api";
+import { createEditorDocument } from "./editor-document";
 import { createCmsQueryClient } from "./query-client";
-import { cmsKeys, entityListQueryOptions } from "./queries";
+import {
+  cmsKeys,
+  entityDetailQueryOptions,
+  entityListQueryOptions,
+} from "./queries";
 
 const originalFetch = globalThis.fetch;
 
@@ -18,6 +23,15 @@ function entity(title: string): EntitySummary {
 
 function entitiesResponse(entities: EntitySummary[]): Response {
   return Response.json({ entities });
+}
+
+function entityDetail(title: string, contentHash: string): EntityDetail {
+  return {
+    ...entity(title),
+    body: "Body text",
+    contentHash,
+    created: "2026-07-14T08:00:00.000Z",
+  };
 }
 
 function waitForResult<TQueryKey extends readonly unknown[]>(
@@ -41,6 +55,45 @@ function waitForResult<TQueryKey extends readonly unknown[]>(
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+});
+
+describe("CMS entity-detail query", () => {
+  it("loads explicitly once before mounting its cache observer", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({ entity: entityDetail("Field notes", "hash-1") });
+    });
+    const client = createCmsQueryClient();
+    const options = entityDetailQueryOptions("post", "field-notes");
+
+    await client.fetchQuery({ ...options, staleTime: 0 });
+    const observer = new QueryObserver(client, options);
+    const unsubscribe = observer.subscribe(() => {});
+    await Promise.resolve();
+
+    expect(observer.getCurrentResult().data?.contentHash).toBe("hash-1");
+    expect(requests).toBe(1);
+    unsubscribe();
+    client.clear();
+  });
+
+  it("keeps the mutable draft pinned when the server cache changes", () => {
+    const client = createCmsQueryClient();
+    const original = entityDetail("Original title", "hash-1");
+    const document = createEditorDocument(original);
+    client.setQueryData(cmsKeys.entity("post", "field-notes"), original);
+
+    client.setQueryData(
+      cmsKeys.entity("post", "field-notes"),
+      entityDetail("Changed elsewhere", "hash-2"),
+    );
+
+    expect(document.entity.contentHash).toBe("hash-1");
+    expect(document.draft["title"]).toBe("Original title");
+    expect(document.draft).not.toBe(original.frontmatter);
+    client.clear();
+  });
 });
 
 describe("CMS entity-list query", () => {
