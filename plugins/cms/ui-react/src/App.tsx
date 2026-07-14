@@ -18,7 +18,6 @@ import {
   ApiError,
   deleteEntity,
   fetchAgentTargets,
-  fetchSyncStatus,
   requestAgentAnswer,
   requestAssist,
   requestFieldAssist,
@@ -30,7 +29,6 @@ import {
   type FieldAssistResponse,
   type FieldDescriptor,
   type GitSyncState,
-  type SyncStatus,
 } from "./api";
 import { createEditorDocument } from "./editor-document";
 import { saveEntity, type SaveEntityInput } from "./mutations";
@@ -40,6 +38,7 @@ import {
   entityListQueryOptions,
   entitySchemaQueryOptions,
   entityTypesQueryOptions,
+  syncStatusQueryOptions,
 } from "./queries";
 
 /** Pick the list-row label for an entity: frontmatter title, else id. */
@@ -1288,7 +1287,6 @@ export function App(): ReactElement {
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1298,6 +1296,8 @@ export function App(): ReactElement {
   const queryClient = useQueryClient();
   const entityTypesQuery = useQuery(entityTypesQueryOptions());
   const types = entityTypesQuery.data ?? null;
+  const syncStatusQuery = useQuery(syncStatusQueryOptions());
+  const syncStatus = syncStatusQuery.data ?? null;
   const entityListQuery = useQuery({
     ...entityListQueryOptions(entityType ?? ""),
     enabled: entityType !== null,
@@ -1348,10 +1348,6 @@ export function App(): ReactElement {
     fetchAgentTargets()
       .then(setAgentTargets)
       .catch(() => setAgentTargets([]));
-    // No directory-sync installed → null, and the pipeline strip stays off.
-    fetchSyncStatus()
-      .then(setSyncStatus)
-      .catch(() => setSyncStatus(null));
   }, []);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
@@ -1367,12 +1363,12 @@ export function App(): ReactElement {
     if (view.committed === "done") return undefined;
     if (Date.now() - saveStartedAt.current > 20_000) return undefined;
     const timer = window.setTimeout(() => {
-      fetchSyncStatus()
-        .then(setSyncStatus)
-        .catch(() => {});
+      void queryClient.invalidateQueries({
+        queryKey: cmsKeys.syncStatus(),
+      });
     }, 900);
     return (): void => window.clearTimeout(timer);
-  }, [saveState, syncStatus, baselineCommit]);
+  }, [saveState, syncStatus, baselineCommit, queryClient]);
 
   useEffect(() => {
     if (!entityType) return;
@@ -1543,9 +1539,14 @@ export function App(): ReactElement {
           };
     saveEntityMutation.mutate(input, {
       onSuccess: async (result) => {
-        await queryClient.invalidateQueries({
-          queryKey: cmsKeys.entities(entityType),
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: cmsKeys.entities(entityType),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: cmsKeys.syncStatus(),
+          }),
+        ]);
         const noop = "skipped" in result && result.skipped === true;
         // Re-fetch after every save so the next edit carries a fresh
         // contentHash precondition.

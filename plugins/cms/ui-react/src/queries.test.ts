@@ -5,6 +5,7 @@ import type {
   EntityDetail,
   EntitySummary,
   EntityTypeInfo,
+  SyncStatus,
   TypeSchema,
 } from "./api";
 import { createEditorDocument } from "./editor-document";
@@ -15,6 +16,7 @@ import {
   entityListQueryOptions,
   entitySchemaQueryOptions,
   entityTypesQueryOptions,
+  syncStatusQueryOptions,
 } from "./queries";
 
 const originalFetch = globalThis.fetch;
@@ -39,6 +41,20 @@ function entityType(entityType: string): EntityTypeInfo {
     isSingleton: false,
     hasBody: true,
     count: 1,
+  };
+}
+
+function syncStatus(lastCommit: string | null): SyncStatus {
+  return {
+    directorySync: { lastSync: "2026-07-14T09:00:00.000Z", watching: true },
+    git: {
+      branch: "main",
+      hasChanges: false,
+      ahead: 0,
+      behind: 0,
+      lastCommit,
+      remote: "origin",
+    },
   };
 }
 
@@ -128,6 +144,40 @@ describe("CMS entity-types query", () => {
     if (!(caught instanceof Error)) throw caught;
     expect(caught.message).toBe("Types unavailable");
     expect(requests).toBe(1);
+    client.clear();
+  });
+});
+
+describe("CMS sync-status query", () => {
+  it("polls by invalidating one active cache entry", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json(syncStatus(requests === 1 ? "abc123" : "def456"));
+    });
+    const client = createCmsQueryClient();
+    const observer = new QueryObserver(client, syncStatusQueryOptions());
+    let resolveInitial: (() => void) | undefined;
+    let resolveRefreshed: (() => void) | undefined;
+    const initial = new Promise<void>((resolve) => {
+      resolveInitial = resolve;
+    });
+    const refreshed = new Promise<void>((resolve) => {
+      resolveRefreshed = resolve;
+    });
+    const unsubscribe = observer.subscribe((result) => {
+      if (result.data?.git?.lastCommit === "abc123") resolveInitial?.();
+      if (result.data?.git?.lastCommit === "def456") resolveRefreshed?.();
+    });
+    await initial;
+
+    await client.invalidateQueries({ queryKey: cmsKeys.syncStatus() });
+    await refreshed;
+
+    expect(cmsKeys.syncStatus()).toEqual(["cms", "sync-status"]);
+    expect(observer.getCurrentResult().data?.git?.lastCommit).toBe("def456");
+    expect(requests).toBe(2);
+    unsubscribe();
     client.clear();
   });
 });

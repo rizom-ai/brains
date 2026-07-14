@@ -3,14 +3,17 @@ import {
   fetchEntities,
   fetchEntity,
   fetchSchema,
+  fetchSyncStatus,
   fetchTypes,
   type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
+  type SyncStatus,
   type TypeSchema,
 } from "./api";
 
 export type EntityTypesQueryKey = readonly ["cms", "types"];
+export type SyncStatusQueryKey = readonly ["cms", "sync-status"];
 export type EntitySchemaQueryKey = readonly ["cms", "schema", string];
 export type EntityListQueryKey = readonly ["cms", "entities", string];
 export type EntityDetailQueryKey = readonly ["cms", "entity", string, string];
@@ -18,6 +21,7 @@ export type EntityDetailQueryKey = readonly ["cms", "entity", string, string];
 export const cmsKeys = {
   all: ["cms"] as const,
   types: (): EntityTypesQueryKey => ["cms", "types"],
+  syncStatus: (): SyncStatusQueryKey => ["cms", "sync-status"],
   schema: (entityType: string): EntitySchemaQueryKey => [
     "cms",
     "schema",
@@ -45,6 +49,18 @@ export function entityTypesQueryOptions(): UseQueryOptions<
   return {
     queryKey: cmsKeys.types(),
     queryFn: fetchTypes,
+  };
+}
+
+export function syncStatusQueryOptions(): UseQueryOptions<
+  SyncStatus,
+  Error,
+  SyncStatus,
+  SyncStatusQueryKey
+> {
+  return {
+    queryKey: cmsKeys.syncStatus(),
+    queryFn: fetchSyncStatus,
   };
 }
 
