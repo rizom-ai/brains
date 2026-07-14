@@ -1,5 +1,23 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- [`e28fb20`](https://github.com/rizom-ai/brains/commit/e28fb20048c9cba0cffe21f81847b76eadd2c76f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the proximity-map site template registering under the wrong scoped name. The template key was `agent-proximity-map`, so the plugin registered it as `agent-discovery:agent-proximity-map` while site routes reference `agent-discovery:proximity-map` — the registry lookup missed and the section silently dropped from built pages (the map hero never rendered). The key is now `proximity-map`, and a plugin test pins the scoped template names routes rely on.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.168
+  - @brains/atproto-contracts@0.2.0-alpha.168
+  - @brains/content-formatters@0.2.0-alpha.168
+  - @brains/contracts@0.2.0-alpha.168
+  - @brains/http-signatures@0.2.0-alpha.168
+  - @brains/ui-library@0.2.0-alpha.168
+  - @brains/utils@0.2.0-alpha.168
+  - @brains/auth-service@0.2.0-alpha.168
+  - @brains/plugins@0.2.0-alpha.168
+  - @brains/templates@0.2.0-alpha.168
+
 ## 0.2.0-alpha.167
 
 ### Patch Changes

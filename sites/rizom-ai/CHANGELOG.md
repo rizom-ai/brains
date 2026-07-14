@@ -1,5 +1,16 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.168
+
+### Patch Changes
+
+- [`e28fb20`](https://github.com/rizom-ai/brains/commit/e28fb20048c9cba0cffe21f81847b76eadd2c76f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the missing "It starts with one light — yours" home section (the product hook between the problem trio and the growth diagram, per the rev-8 redesign), and give the shared trio schema an optional cap note so the problem cap can carry its trail line.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.168
+  - @rizom/site-sections@0.2.0-alpha.168
+  - @rizom/site-rizom@0.2.0-alpha.168
+
 ## 0.2.0-alpha.167
 
 ### Patch Changes
