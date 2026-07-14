@@ -3,7 +3,6 @@ import { mock } from "bun:test";
 import type { SemanticSpaceProjection } from "@brains/plugins";
 import { buildProximityMapData } from "../src/lib/proximity-map-data";
 import { createTestAgent } from "./fixtures/agent";
-import { createTestSighting } from "./fixtures/sighting";
 
 describe("buildProximityMapData", () => {
   test("joins semantic points to agents and reports agents pending indexing", async () => {
@@ -79,7 +78,7 @@ describe("buildProximityMapData", () => {
     });
 
     expect(project).toHaveBeenCalledWith({
-      types: ["agent", "agent-sighting"],
+      types: ["agent"],
       origin: {
         entityId: "brain-character",
         entityType: "brain-character",
@@ -163,23 +162,23 @@ describe("buildProximityMapData", () => {
   });
 
   test("charts pruned second-order sightings routed through visible introducers", async () => {
+    const sightedAgent = (input: {
+      id: string;
+      name: string;
+      introducedBy: string[];
+    }): ReturnType<typeof createTestAgent> =>
+      createTestAgent({ ...input, status: "discovered", hops: 2 });
     const agents = [
       createTestAgent({ id: "kai", name: "Kai", status: "approved" }),
       createTestAgent({ id: "gone", name: "Gone", status: "archived" }),
-    ];
-    const sightings = [
       // near, introduced by an active agent → charted
-      createTestSighting({ id: "vale", name: "Vale", introducedBy: ["kai"] }),
+      sightedAgent({ id: "vale", name: "Vale", introducedBy: ["kai"] }),
       // introduced only by an archived agent → no honest route, dropped
-      createTestSighting({
-        id: "cairn",
-        name: "Cairn",
-        introducedBy: ["gone"],
-      }),
+      sightedAgent({ id: "cairn", name: "Cairn", introducedBy: ["gone"] }),
       // beyond the germination threshold → dropped
-      createTestSighting({ id: "far", name: "Far", introducedBy: ["kai"] }),
+      sightedAgent({ id: "far", name: "Far", introducedBy: ["kai"] }),
       // no embedding yet → dropped
-      createTestSighting({ id: "dark", name: "Dark", introducedBy: ["kai"] }),
+      sightedAgent({ id: "dark", name: "Dark", introducedBy: ["kai"] }),
     ];
     const project = mock(async () => ({
       origin: {
@@ -202,19 +201,19 @@ describe("buildProximityMapData", () => {
         },
         {
           entityId: "vale",
-          entityType: "agent-sighting",
+          entityType: "agent",
           coordinates: [0, 1] as [number, number],
           distanceToOrigin: 0.35,
         },
         {
           entityId: "cairn",
-          entityType: "agent-sighting",
+          entityType: "agent",
           coordinates: [0, -1] as [number, number],
           distanceToOrigin: 0.3,
         },
         {
           entityId: "far",
-          entityType: "agent-sighting",
+          entityType: "agent",
           coordinates: [1, 1] as [number, number],
           distanceToOrigin: 0.9,
         },
@@ -225,18 +224,19 @@ describe("buildProximityMapData", () => {
 
     const result = await buildProximityMapData({
       entityService: {
-        listEntities: (async (request: { entityType: string }) =>
-          request.entityType === "agent" ? agents : sightings) as never,
+        listEntities: (async () => agents) as never,
       },
       semantic: { project },
     });
 
+    // Sighted agents chart as sightings, not nodes.
+    expect(result.nodes.map((node) => node.id)).toEqual(["gone", "kai"]);
     expect(result.sightings).toEqual([
       {
         id: "vale",
         name: "Vale",
         viaIds: ["kai"],
-        tags: ["research"],
+        tags: ["blog", "writing"],
         distance: 0.35,
         bearing: 90,
       },

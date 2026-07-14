@@ -8,7 +8,11 @@ const agentAdapter = new AgentAdapter();
 
 export function buildAgentFromCard(
   card: ParsedAgentCard,
-  options: { status?: AgentStatus } = {},
+  options: {
+    status?: AgentStatus;
+    /** Sighting provenance for second-order agents reported by peers. */
+    provenance?: { introducedBy: string[]; hops: number };
+  } = {},
 ): {
   content: string;
   metadata: {
@@ -41,6 +45,10 @@ export function buildAgentFromCard(
     url: card.url,
     status,
     discoveredAt,
+    ...(options.provenance && {
+      introducedBy: options.provenance.introducedBy,
+      hops: options.provenance.hops,
+    }),
     about: aboutParts.join("\n\n"),
     skills: card.skills.map((s) => ({
       name: s.name,

@@ -87,17 +87,6 @@ export {
 } from "./lib/proximity-map-schema";
 
 export {
-  sightingEntitySchema,
-  sightingFrontmatterSchema,
-  sightingMetadataSchema,
-  type SightingEntity,
-  type SightingFrontmatter,
-  type SightingMetadata,
-} from "./schemas/sighting";
-
-export { SightingAdapter } from "./adapters/sighting-adapter";
-
-export {
   normalizeTag,
   normalizeTags,
   type TagVocabularyEntry,
