@@ -1,6 +1,15 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 
-import { requiredImages, sitePackagesFor, siteImageTag } from "../src/images";
+import {
+  requiredImages,
+  resolveImageBuilds,
+  runResolveMissingImages,
+  sitePackagesFor,
+  siteImageTag,
+} from "../src/images";
 
 describe("siteImageTag", () => {
   // The default path is sacred: an instance with no site override must build
@@ -135,5 +144,185 @@ describe("requiredImages", () => {
 
   it("resolves an empty fleet to no images", () => {
     expect(requiredImages([])).toEqual([]);
+  });
+});
+
+describe("resolveImageBuilds", () => {
+  const users = [
+    { brainVersion: "0.2.0-alpha.160" },
+    {
+      brainVersion: "0.2.0-alpha.167",
+      siteOverride: {
+        package: "@rizom/site-rizom-ai",
+        version: "0.2.0-alpha.167",
+      },
+    },
+  ];
+
+  it("filters the declared set to images missing from the registry", async () => {
+    const checked: string[] = [];
+    const builds = await resolveImageBuilds({
+      users,
+      imageExists: async (tag) => {
+        checked.push(tag);
+        return tag === "brain-0.2.0-alpha.160";
+      },
+    });
+
+    expect(builds).toHaveLength(1);
+    expect(builds[0]?.sitePackages).toEqual([
+      "@rizom/site-rizom-ai@0.2.0-alpha.167",
+    ]);
+    expect(checked.sort()).toEqual(
+      requiredImages(users)
+        .map((image) => image.tag)
+        .sort(),
+    );
+  });
+
+  it("resolves to nothing when every declared image exists", async () => {
+    const builds = await resolveImageBuilds({
+      users,
+      imageExists: async () => true,
+    });
+    expect(builds).toEqual([]);
+  });
+
+  // The manual/backfill path: explicit dispatch inputs force exactly that
+  // build, skipping both the registry and the exists check.
+  it("forces a single explicit build from dispatch inputs", async () => {
+    const builds = await resolveImageBuilds({
+      users,
+      brainVersionInput: "0.2.0-alpha.169",
+      sitePackagesInput:
+        "@rizom/site-rizom-ai@0.2.0-alpha.169 @rizom/theme-rizom-ai@0.2.0-alpha.169",
+      imageExists: async () => {
+        throw new Error("must not be consulted for an explicit build");
+      },
+    });
+
+    expect(builds).toEqual([
+      {
+        tag: siteImageTag("0.2.0-alpha.169", [
+          "@rizom/site-rizom-ai@0.2.0-alpha.169",
+          "@rizom/theme-rizom-ai@0.2.0-alpha.169",
+        ]),
+        brainVersion: "0.2.0-alpha.169",
+        sitePackages: [
+          "@rizom/site-rizom-ai@0.2.0-alpha.169",
+          "@rizom/theme-rizom-ai@0.2.0-alpha.169",
+        ],
+      },
+    ]);
+  });
+});
+
+describe("runResolveMissingImages", () => {
+  async function createPilotRepo(
+    files: Record<string, string>,
+  ): Promise<string> {
+    const root = await mkdtemp(join(tmpdir(), "rover-pilot-images-"));
+    for (const [relativePath, content] of Object.entries(files)) {
+      const filePath = join(root, relativePath);
+      await mkdir(dirname(filePath), { recursive: true });
+      await writeFile(filePath, content);
+    }
+    return root;
+  }
+
+  it("emits a GitHub matrix of missing images from the declared state", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.160
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/alice.yaml": `handle: alice
+discord:
+  enabled: false
+`,
+      "users/new.yaml": `handle: new
+siteOverride:
+  package: "@rizom/site-rizom-ai"
+  version: "0.2.0-alpha.167"
+  theme: "@rizom/theme-rizom-ai"
+discord:
+  enabled: false
+`,
+      "cohorts/pilot.yaml": `members:
+  - alice
+`,
+      "cohorts/new-rizom-ai.yaml": `brainVersionOverride: 0.2.0-alpha.167
+members:
+  - new
+`,
+    });
+
+    const outputs: Record<string, string> = {};
+    const probed: string[] = [];
+    const builds = await runResolveMissingImages({
+      rootDir: root,
+      imageRepository: "ghcr.io/rizom-ai/rover-pilot",
+      env: {},
+      runCommand: async (command, args) => {
+        probed.push(`${command} ${args.join(" ")}`);
+        // Only the fleet-default image exists in the registry.
+        if (!args.join(" ").endsWith(":brain-0.2.0-alpha.160")) {
+          throw new Error("manifest unknown");
+        }
+      },
+      writeOutput: (key, value) => {
+        outputs[key] = value;
+      },
+      log: () => {},
+    });
+
+    expect(builds).toHaveLength(1);
+    expect(
+      probed.every((line) => line.startsWith("docker manifest inspect")),
+    ).toBe(true);
+    const matrix = JSON.parse(outputs["images_json"] ?? "[]") as Array<{
+      tag: string;
+      brain_version: string;
+      site_packages: string;
+    }>;
+    expect(matrix).toEqual([
+      {
+        tag: builds[0]?.tag ?? "",
+        brain_version: "0.2.0-alpha.167",
+        site_packages:
+          "@rizom/site-rizom-ai@0.2.0-alpha.167 @rizom/theme-rizom-ai@0.2.0-alpha.167",
+      },
+    ]);
+  });
+
+  it("honors explicit dispatch inputs without touching the registry", async () => {
+    const outputs: Record<string, string> = {};
+    const builds = await runResolveMissingImages({
+      // No pilot repo at this path — the registry must not be loaded.
+      rootDir: "/nonexistent",
+      imageRepository: "ghcr.io/rizom-ai/rover-pilot",
+      env: {
+        BRAIN_VERSION_INPUT: "0.2.0-alpha.169",
+        SITE_PACKAGES_INPUT: "@rizom/site-rizom-ai@0.2.0-alpha.169",
+      },
+      runCommand: async () => {
+        throw new Error("must not probe the registry for an explicit build");
+      },
+      writeOutput: (key, value) => {
+        outputs[key] = value;
+      },
+      log: () => {},
+    });
+
+    expect(builds).toHaveLength(1);
+    expect(JSON.parse(outputs["images_json"] ?? "[]")).toHaveLength(1);
   });
 });
