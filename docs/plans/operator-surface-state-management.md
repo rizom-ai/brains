@@ -10,9 +10,10 @@ boundary. The authenticated CMS gate passed for create, upload, save, no-op save
 reload, and delete. A typed reducer now owns atomic browse/create/edit/save/delete and draft
 transitions, while pipeline, save-status, and delete presentation have focused component
 ownership. The CMS workflow gate passed. Web-chat saved-session metadata now uses its own
-query cache while AI SDK remains the active-message owner; history and session mutations
-remain. This plan standardizes how state is classified and managed without forcing the
-three surfaces into one browser store or one application.
+query cache. Reopened history is copied into, rather than shared with, the AI SDK active
+message owner; session mutation hooks remain. This plan standardizes how state is
+classified and managed without forcing the three surfaces into one browser store or one
+application.
 
 The optional publishing UI described in
 [`cms-publishing-workspace.md`](./cms-publishing-workspace.md) follows this state model but

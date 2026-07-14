@@ -3,7 +3,11 @@ import { QueryObserver, type QueryObserverResult } from "@tanstack/react-query";
 import { mockFetch } from "@brains/test-utils";
 import type { WebChatSession } from "./api";
 import { createWebChatQueryClient } from "./query-client";
-import { sessionListQueryOptions, webChatKeys } from "./queries";
+import {
+  sessionHistoryQueryOptions,
+  sessionListQueryOptions,
+  webChatKeys,
+} from "./queries";
 
 const originalFetch = globalThis.fetch;
 
@@ -36,6 +40,66 @@ function waitForResult(
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+});
+
+describe("web-chat session-history query", () => {
+  it("loads and transforms one encoded history request", async () => {
+    let requests = 0;
+    let requestedUrl = "";
+    mockFetch(async (url, options) => {
+      requests += 1;
+      requestedUrl = url;
+      expect(options.credentials).toBe("include");
+      return Response.json({
+        messages: [{ id: "message-1", role: "user", content: "Reopen this" }],
+      });
+    });
+    const client = createWebChatQueryClient();
+    const options = sessionHistoryQueryOptions("thread/one");
+
+    const [first, second] = await Promise.all([
+      client.fetchQuery(options),
+      client.fetchQuery(options),
+    ]);
+
+    expect(webChatKeys.history("thread/one")).toEqual([
+      "web-chat",
+      "history",
+      "thread/one",
+    ]);
+    expect(requestedUrl).toBe("/api/chat/messages?id=thread%2Fone");
+    expect(first).toEqual([
+      {
+        id: "message-1",
+        role: "user",
+        parts: [{ type: "text", text: "Reopen this" }],
+      },
+    ]);
+    expect(second).toBe(first);
+    expect(requests).toBe(1);
+    client.clear();
+  });
+
+  it("surfaces malformed history without retrying", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({ messages: [{ role: "user" }] });
+    });
+    const client = createWebChatQueryClient();
+    let caught: unknown;
+
+    try {
+      await client.fetchQuery(sessionHistoryQueryOptions("broken"));
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    if (!(caught instanceof Error)) throw caught;
+    expect(caught.message).toBe("Could not reopen that session.");
+    expect(requests).toBe(1);
+    client.clear();
+  });
 });
 
 describe("web-chat session-list query", () => {

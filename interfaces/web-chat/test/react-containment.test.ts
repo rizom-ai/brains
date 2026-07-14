@@ -77,6 +77,10 @@ describe("React containment", () => {
       join(packageRoot, "ui-react", "src", "App.tsx"),
       "utf-8",
     );
+    const apiSource = readFileSync(
+      join(packageRoot, "ui-react", "src", "api.ts"),
+      "utf-8",
+    );
 
     expect(appSource).toContain("brain:web-chat:conversation-id");
     expect(appSource).toContain("localStorage");
@@ -114,7 +118,9 @@ describe("React containment", () => {
     expect(appSource).toContain('method: "PUT"');
     expect(appSource).toContain('method: "DELETE"');
     expect(appSource).toContain("/api/chat/sessions");
-    expect(appSource).toContain("/api/chat/messages");
+    expect(apiSource).toContain("/api/chat/messages");
+    expect(appSource).toContain("queryClient.fetchQuery");
+    expect(appSource).toContain("createActiveMessageSeed");
 
     const messageSource = readFileSync(
       join(packageRoot, "ui-react", "src", "ai-elements", "message.tsx"),

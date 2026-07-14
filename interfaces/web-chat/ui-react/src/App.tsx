@@ -53,8 +53,12 @@ import {
   type JumpLocalGroup,
 } from "./jump-local";
 import { describeFetchFailure, type WebChatSession } from "./api";
-import { toUiMessage, webChatMessagesResponseSchema } from "./history-messages";
-import { sessionListQueryOptions, webChatKeys } from "./queries";
+import { createActiveMessageSeed } from "./history-messages";
+import {
+  sessionHistoryQueryOptions,
+  sessionListQueryOptions,
+  webChatKeys,
+} from "./queries";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
   webChatUploadAccept,
@@ -525,22 +529,11 @@ export function App(): React.ReactElement {
     setHistoryError(null);
     setLoadingConversationId(nextConversationId);
     try {
-      const response = await fetch(
-        `/api/chat/messages?id=${encodeURIComponent(nextConversationId)}`,
-        { credentials: "include" },
-      );
-      if (!response.ok) {
-        throw new Error(
-          describeFetchFailure(response, "Could not reopen that session."),
-        );
-      }
-      const parsed = webChatMessagesResponseSchema.safeParse(
-        await response.json(),
-      );
-      if (!parsed.success) {
-        throw new Error("Could not reopen that session.");
-      }
-      const nextMessages = parsed.data.messages.map(toUiMessage);
+      const cachedHistory = await queryClient.fetchQuery({
+        ...sessionHistoryQueryOptions(nextConversationId),
+        staleTime: 0,
+      });
+      const nextMessages = createActiveMessageSeed(cachedHistory);
       try {
         localStorage.setItem(conversationStorageKey, nextConversationId);
       } catch {
@@ -607,6 +600,9 @@ export function App(): React.ReactElement {
         setHistoryError(effect.historyError);
       })
       .finally(() => {
+        void queryClient.invalidateQueries({
+          queryKey: webChatKeys.history(conversationId),
+        });
         void loadSessions({ quiet: true });
         focusPromptTextarea(promptInputRef.current);
       });
@@ -666,6 +662,9 @@ export function App(): React.ReactElement {
           },
         ]);
       }
+      void queryClient.invalidateQueries({
+        queryKey: webChatKeys.history(conversationId),
+      });
       void loadSessions({ quiet: true });
     } catch (error) {
       const effect = classifySubmitError(error, "send");
@@ -810,6 +809,9 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not archive that session."),
         );
       }
+      queryClient.removeQueries({
+        queryKey: webChatKeys.history(session.id),
+      });
       updateCachedSessions((current) =>
         current.filter((candidate) => candidate.id !== session.id),
       );
@@ -844,6 +846,9 @@ export function App(): React.ReactElement {
           describeFetchFailure(response, "Could not delete that session."),
         );
       }
+      queryClient.removeQueries({
+        queryKey: webChatKeys.history(session.id),
+      });
       updateCachedSessions((current) =>
         current.filter((candidate) => candidate.id !== session.id),
       );

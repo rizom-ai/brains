@@ -1,4 +1,6 @@
+import type { UIMessage } from "ai";
 import { z } from "@brains/utils/zod";
+import { toUiMessage, webChatMessagesResponseSchema } from "./history-messages";
 
 const webChatSessionSchema = z.looseObject({
   id: z.string(),
@@ -24,6 +26,25 @@ export function describeFetchFailure(
     return "Your operator session may have expired. Refresh or sign in again.";
   }
   return `${fallback} (${response.status})`;
+}
+
+export async function fetchWebChatHistory(
+  conversationId: string,
+): Promise<UIMessage[]> {
+  const response = await fetch(
+    `/api/chat/messages?id=${encodeURIComponent(conversationId)}`,
+    { credentials: "include" },
+  );
+  if (!response.ok) {
+    throw new Error(
+      describeFetchFailure(response, "Could not reopen that session."),
+    );
+  }
+  const parsed = webChatMessagesResponseSchema.safeParse(await response.json());
+  if (!parsed.success) {
+    throw new Error("Could not reopen that session.");
+  }
+  return parsed.data.messages.map(toUiMessage);
 }
 
 export async function fetchWebChatSessions(): Promise<WebChatSession[]> {
