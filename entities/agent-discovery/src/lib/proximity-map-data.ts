@@ -29,7 +29,11 @@ const BRAIN_CHARACTER_REFERENCE = {
 } as const;
 export const PROXIMITY_NEIGHBOR_DISTANCE = 0.25;
 /** The rhizome grows toward nutrients: only sightings semantically near the
- * brain germinate onto the map; the far tail stays in the directory. */
+ * brain germinate onto the map; the far tail stays in the directory. Real
+ * embedding distances cluster well above naive expectations (connected
+ * agents commonly sit at 0.4–0.6 cosine), so this floor extends to the
+ * farthest active agent: a sighting germinates if it's no more distant
+ * than peers the brain already keeps. */
 export const SIGHTING_GERMINATION_DISTANCE = 0.5;
 
 export interface ProximityMapDataContext {
@@ -91,6 +95,10 @@ export async function buildProximityMapData(
 
   const activeNodes = nodes.filter((node) => node.status !== "archived");
   const activeNodeIds = new Set(activeNodes.map((node) => node.id));
+  const germinationDistance = Math.max(
+    SIGHTING_GERMINATION_DISTANCE,
+    ...activeNodes.map((node) => node.distance),
+  );
 
   // Second-order sightings germinate only when semantically near AND
   // honestly routable — at least one introducer must be an active node.
@@ -100,7 +108,7 @@ export async function buildProximityMapData(
     if (!point) continue;
 
     const distance = normalizeCosineDistance(point.distanceToOrigin);
-    if (distance > SIGHTING_GERMINATION_DISTANCE) continue;
+    if (distance > germinationDistance) continue;
 
     const viaIds = (frontmatter.introducedBy ?? []).filter((id) =>
       activeNodeIds.has(id),

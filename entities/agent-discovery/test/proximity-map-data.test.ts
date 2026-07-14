@@ -170,12 +170,16 @@ describe("buildProximityMapData", () => {
       createTestAgent({ ...input, status: "discovered", hops: 2 });
     const agents = [
       createTestAgent({ id: "kai", name: "Kai", status: "approved" }),
+      createTestAgent({ id: "vera", name: "Vera", status: "approved" }),
       createTestAgent({ id: "gone", name: "Gone", status: "archived" }),
       // near, introduced by an active agent → charted
       sightedAgent({ id: "vale", name: "Vale", introducedBy: ["kai"] }),
       // introduced only by an archived agent → no honest route, dropped
       sightedAgent({ id: "cairn", name: "Cairn", introducedBy: ["gone"] }),
-      // beyond the germination threshold → dropped
+      // past the 0.5 floor but within the rhizome's observed reach
+      // (Vera sits at 0.6) → charted
+      sightedAgent({ id: "reed", name: "Reed", introducedBy: ["kai"] }),
+      // beyond even the farthest active agent → dropped
       sightedAgent({ id: "far", name: "Far", introducedBy: ["kai"] }),
       // no embedding yet → dropped
       sightedAgent({ id: "dark", name: "Dark", introducedBy: ["kai"] }),
@@ -192,6 +196,12 @@ describe("buildProximityMapData", () => {
           entityType: "agent",
           coordinates: [1, 0] as [number, number],
           distanceToOrigin: 0.3,
+        },
+        {
+          entityId: "vera",
+          entityType: "agent",
+          coordinates: [0.5, -1] as [number, number],
+          distanceToOrigin: 0.6,
         },
         {
           entityId: "gone",
@@ -212,6 +222,12 @@ describe("buildProximityMapData", () => {
           distanceToOrigin: 0.3,
         },
         {
+          entityId: "reed",
+          entityType: "agent",
+          coordinates: [0, 1] as [number, number],
+          distanceToOrigin: 0.55,
+        },
+        {
           entityId: "far",
           entityType: "agent",
           coordinates: [1, 1] as [number, number],
@@ -230,8 +246,20 @@ describe("buildProximityMapData", () => {
     });
 
     // Sighted agents chart as sightings, not nodes.
-    expect(result.nodes.map((node) => node.id)).toEqual(["gone", "kai"]);
+    expect(result.nodes.map((node) => node.id)).toEqual([
+      "gone",
+      "kai",
+      "vera",
+    ]);
     expect(result.sightings).toEqual([
+      {
+        id: "reed",
+        name: "Reed",
+        viaIds: ["kai"],
+        tags: ["blog", "writing"],
+        distance: 0.55,
+        bearing: 90,
+      },
       {
         id: "vale",
         name: "Vale",
