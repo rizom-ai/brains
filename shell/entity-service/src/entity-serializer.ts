@@ -1,10 +1,9 @@
 import { getErrorMessage } from "@brains/utils/error";
-import type { BaseEntity } from "./types";
+import type { BaseEntity, EntityRegistry } from "./types";
 import {
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
 } from "./frontmatter";
-import type { EntityRegistry } from "./entityRegistry";
 import type { Logger } from "@brains/utils/logger";
 import type { EntityData } from "./entity-data";
 import { toEntityValidationError } from "./errors";
