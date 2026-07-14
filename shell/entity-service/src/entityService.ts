@@ -417,12 +417,32 @@ export class EntityService implements IEntityService {
     request: ListEntitiesRequest,
   ): Promise<T[]> {
     const { entityType, options } = request;
-    return this.entityQueries.listEntities<T>(entityType, options);
+    return this.entityQueries.listEntities<T>(
+      entityType,
+      options,
+      this.publishedStatusesFor(entityType),
+    );
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {
     const { entityType, options } = request;
-    return this.entityQueries.countEntities(entityType, options);
+    return this.entityQueries.countEntities(
+      entityType,
+      options,
+      this.publishedStatusesFor(entityType),
+    );
+  }
+
+  /**
+   * The adapter-declared publish-gate statuses for a type, if any. What
+   * "published" means belongs to the entity type — queries consult this
+   * instead of the shell hardcoding every plugin's lifecycle vocabulary.
+   */
+  private publishedStatusesFor(entityType: string): string[] | undefined {
+    if (!this.entityRegistry.hasEntityType(entityType)) {
+      return undefined;
+    }
+    return this.entityRegistry.getAdapter(entityType).publishedStatuses;
   }
 
   public async getEntityCounts(

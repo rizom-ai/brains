@@ -115,7 +115,8 @@
     "@brains/sveltia-cms": "0.2.0-alpha.141",
     "@brains/console-theme": "0.2.0-alpha.143",
     "@rizom/site-sections": "0.2.0-alpha.159",
-    "@rizom/theme-rizom-ai": "0.2.0-alpha.141"
+    "@rizom/theme-rizom-ai": "0.2.0-alpha.141",
+    "@brains/effect-runtime": "0.2.0-alpha.158"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -191,6 +192,7 @@
     "docker-node24-actions",
     "docs-agent-a2a-routing",
     "ecosystem-heading-dark-mode",
+    "effect-runtime-lifecycle",
     "entity-adapter-purpose-required",
     "entity-memory-metadata",
     "externalize-preact",
@@ -254,6 +256,7 @@
     "public-entity-types-reconciliation",
     "public-site-package-deps-republish",
     "public-site-package-deps",
+    "published-only-approved-agents",
     "published-theme-packages",
     "quiet-dingos-search",
     "relay-auth-service",

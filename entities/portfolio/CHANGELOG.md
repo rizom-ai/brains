@@ -1,5 +1,35 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.174
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.174
+  - @brains/media-page-composer@0.2.0-alpha.174
+  - @brains/plugins@0.2.0-alpha.174
+  - @brains/content-formatters@0.2.0-alpha.174
+  - @brains/contracts@0.2.0-alpha.174
+  - @brains/media-renderer@0.2.0-alpha.174
+  - @brains/ui-library@0.2.0-alpha.174
+  - @brains/utils@0.2.0-alpha.174
+  - @brains/templates@0.2.0-alpha.174
+
+## 0.2.0-alpha.173
+
+### Patch Changes
+
+- Updated dependencies [[`8427031`](https://github.com/rizom-ai/brains/commit/84270311c343964449d96c4cd60e4066daac4aef)]:
+  - @brains/plugins@0.2.0-alpha.173
+  - @brains/atproto-contracts@0.2.0-alpha.173
+  - @brains/media-page-composer@0.2.0-alpha.173
+  - @brains/content-formatters@0.2.0-alpha.173
+  - @brains/contracts@0.2.0-alpha.173
+  - @brains/media-renderer@0.2.0-alpha.173
+  - @brains/ui-library@0.2.0-alpha.173
+  - @brains/utils@0.2.0-alpha.173
+  - @brains/templates@0.2.0-alpha.173
+
 ## 0.2.0-alpha.172
 
 ### Patch Changes
