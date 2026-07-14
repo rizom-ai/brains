@@ -1,5 +1,15 @@
 # @brains/mcp
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/auth-service@0.2.0-alpha.172
+  - @brains/mcp-service@0.2.0-alpha.172
+  - @brains/plugins@0.2.0-alpha.172
+
 ## 0.2.0-alpha.171
 
 ### Patch Changes

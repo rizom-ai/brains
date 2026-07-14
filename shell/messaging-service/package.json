@@ -1,6 +1,6 @@
 {
   "name": "@brains/messaging-service",
-  "version": "0.2.0-alpha.171",
+  "version": "0.2.0-alpha.172",
   "dependencies": {
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"

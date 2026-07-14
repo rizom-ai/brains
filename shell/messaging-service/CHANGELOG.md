@@ -1,5 +1,13 @@
 # @brains/messaging-service
 
+## 0.2.0-alpha.172
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.172
+  - @brains/templates@0.2.0-alpha.172
+
 ## 0.2.0-alpha.171
 
 ### Patch Changes
