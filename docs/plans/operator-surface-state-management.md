@@ -75,8 +75,7 @@ cmsKeys.entities(entityType);
 cmsKeys.entity(entityType, entityId);
 cmsKeys.syncStatus();
 cmsKeys.agentTargets();
-cmsKeys.workspaces();
-cmsKeys.workspace(workspaceId);
+cmsKeys.workspace(workspaceId); // only after an optional workspace registers
 ```
 
 Suggested web-chat keys:
@@ -87,7 +86,10 @@ chatKeys.history(conversationId);
 ```
 
 The existing API clients remain the transport boundary. Query functions call those clients
-rather than embedding `fetch()` calls in components.
+rather than embedding `fetch()` calls in components. The first publishing capability has no
+workspace-list endpoint or `cmsKeys.workspaces()` query: its local registration controls
+whether `cmsKeys.workspace(workspaceId)` is enabled. Add list state only when a second real
+workspace requires discovery.
 
 ### Workflow reducers
 

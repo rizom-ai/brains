@@ -73,7 +73,9 @@ interface CmsWorkspaceRegistration {
 ```
 
 The exact contract remains narrow and Zod-validated, and it carries only what the single
-existing consumer needs. `priority` ordering and a `visibility` level are deliberately
+existing consumer needs. This is one optional publishing capability, not a speculative
+multi-workspace framework; the generic boundary exists only so CMS does not import or own
+content-pipeline behavior. `priority` ordering and a `visibility` level are deliberately
 omitted: with one workspace they are an ordering of one and an enum of one, and they are
 added in the same change that registers a second workspace. The contract must support:
 
@@ -99,8 +101,10 @@ The CMS exposes authenticated generic routes:
 - `POST <cms-route>/api/workspaces/:id/actions`.
 
 A `GET <cms-route>/api/workspaces` list route is not needed while exactly one workspace
-can register; the CMS navigation renders from its local registry. Add the list route when
-a second workspace exists.
+can register; the CMS navigation renders from its local registry. Correspondingly, the
+state-management plan uses only `cmsKeys.workspace(workspaceId)`, enabled after
+registration, and has no workspace-list query. Add the route and list key together only
+when a second workspace exists.
 
 Routes resolve a registered provider and call its server-side functions. They do not know
 about `QueueManager`, publish providers, or content-pipeline message names.
