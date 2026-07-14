@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed cleanup. The dependency on `work/effect-shell-lifecycle` is hard, not optional: the startup-order design uses `onReady()`, which exists only in that branch's `BasePlugin` (main's `ServicePlugin` has just `onRegister`/`onShutdown`), and the package must use the canonical private `@brains/effect-runtime` boundary and the shell's per-plugin cleanup semantics. Stack this work on that branch, or start after it merges.
+Proposed cleanup. The dependency on `work/effect-shell-lifecycle` is hard, not optional: the package must use the canonical private `@brains/effect-runtime` boundary, and the shutdown design relies on that branch's lifecycle guarantees — `onShutdown()` after registration failure and plugin disable, plus the per-plugin resource scope that owns subscriptions and job registrations. (`onReady()` itself already exists on main's `BasePlugin`.) Stack this work on that branch, or start after it merges.
 
 The worktree is currently 79 commits behind main (its directory-sync copy is at alpha.158, missing the seed-bootstrap `.git`-filter work). Rebasing it onto current main is part of the prerequisite and happens before Phase 1.
 
