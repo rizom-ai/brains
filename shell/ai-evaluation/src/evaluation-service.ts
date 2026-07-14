@@ -24,7 +24,7 @@ import { PluginLLMJudge } from "./plugin-llm-judge";
 import { YAMLLoader } from "./loaders/yaml-loader";
 import { PluginRunner } from "./plugin-runner";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
-import { Cause, Effect, Exit } from "effect";
+import { Cause, Effect, Exit } from "@brains/effect-runtime";
 
 const DEFAULT_MAX_PARALLEL = 3;
 const DEFAULT_INDEX_READINESS_TIMEOUT_MS = 60_000;

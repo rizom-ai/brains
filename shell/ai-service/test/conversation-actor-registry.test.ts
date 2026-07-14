@@ -3,8 +3,9 @@ import {
   ConversationActorRegistry,
   type ConversationActorRegistryOptions,
 } from "../src/conversation-actor-registry";
-import { Effect, TestClock, TestContext } from "effect";
-import type { Clock } from "effect";
+import { Effect } from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
+import { TestClock, TestContext } from "@brains/effect-runtime/test";
 
 interface FakeActor {
   id: number;

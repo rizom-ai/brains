@@ -1,4 +1,4 @@
-import { Cause, Effect, Either, Exit } from "effect";
+import { Cause, Effect, Either, Exit } from "@brains/effect-runtime";
 
 /**
  * Run an internal Effect through a Promise API without exposing FiberFailure.

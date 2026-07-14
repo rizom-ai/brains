@@ -52,7 +52,7 @@ import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
-import { Cause, Effect, Exit } from "effect";
+import { Cause, Effect, Exit } from "@brains/effect-runtime";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
 
 /**

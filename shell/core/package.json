@@ -3,13 +3,13 @@
   "version": "0.2.0-alpha.158",
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/effect-runtime": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "effect": "^3.21.4"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/ai-service": "workspace:*",

@@ -11,7 +11,14 @@ import {
 import type { MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
-import { Cause, Context, Effect, Exit, Layer, Scope } from "effect";
+import {
+  Cause,
+  Context,
+  Effect,
+  Exit,
+  Layer,
+  Scope,
+} from "@brains/effect-runtime";
 import { runEffectPromise } from "../effect-runtime";
 import type { ShellDependencies } from "../types/shell-types";
 

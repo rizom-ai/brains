@@ -9,8 +9,15 @@ import type {
   JobQueueWorkerStats,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
-import { Effect, Exit, Fiber, FiberMap, Schedule, Scope } from "effect";
-import type { Clock } from "effect";
+import {
+  Effect,
+  Exit,
+  Fiber,
+  FiberMap,
+  Schedule,
+  Scope,
+} from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
 
 interface JobQueueWorkerRuntimeOptions {
   /** Internal clock boundary used for deterministic polling tests. */

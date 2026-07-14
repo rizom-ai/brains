@@ -7,7 +7,7 @@ import type { JobHandler, JobOptions } from "@brains/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import type { EntityPluginContext } from "./context";
-import { Cause, Effect, Exit } from "effect";
+import { Cause, Effect, Exit } from "@brains/effect-runtime";
 
 export interface EntityChangePayload<TEntity extends BaseEntity = BaseEntity> {
   entityType: string;

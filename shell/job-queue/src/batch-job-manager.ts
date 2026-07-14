@@ -2,8 +2,15 @@ import type { IJobQueueService, JobContext, JobOptions } from "./types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import { JOB_STATUS } from "./schemas";
 import type { Logger } from "@brains/utils/logger";
-import { Effect, Exit, Fiber, FiberSet, Schedule, Scope } from "effect";
-import type { Clock } from "effect";
+import {
+  Effect,
+  Exit,
+  Fiber,
+  FiberSet,
+  Schedule,
+  Scope,
+} from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
 
 const TERMINAL_BATCH_RETENTION_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;

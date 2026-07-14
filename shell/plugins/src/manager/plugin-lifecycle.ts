@@ -7,7 +7,7 @@ import type { IDaemonRegistry } from "./daemon-types";
 import type { PluginInfo } from "./types";
 import { PluginStatus, PluginEvent } from "./types";
 import { PluginError } from "../errors";
-import { Exit } from "effect";
+import { Exit } from "@brains/effect-runtime";
 import {
   createPluginScopedShell,
   PluginResourceScope,

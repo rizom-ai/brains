@@ -4,8 +4,8 @@ import type {
   ChatContext,
 } from "@brains/ai-service";
 import { parseAgentResponse as parseSharedAgentResponse } from "@brains/contracts";
-import { Cause, Effect, Exit } from "effect";
-import type { Clock } from "effect";
+import { Cause, Effect, Exit } from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
 
 function parseAgentResponse(json: unknown): AgentResponse {
   try {

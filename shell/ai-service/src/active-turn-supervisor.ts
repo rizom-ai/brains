@@ -1,4 +1,11 @@
-import { Cause, Effect, Exit, Fiber, FiberSet, Scope } from "effect";
+import {
+  Cause,
+  Effect,
+  Exit,
+  Fiber,
+  FiberSet,
+  Scope,
+} from "@brains/effect-runtime";
 
 interface TurnSupervisorRuntime {
   scope: Scope.CloseableScope;

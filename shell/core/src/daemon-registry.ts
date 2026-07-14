@@ -12,7 +12,7 @@ import {
   startDaemonInfo,
   stopDaemonInfo,
 } from "./daemon-operations";
-import { Effect, Exit, Scope } from "effect";
+import { Effect, Exit, Scope } from "@brains/effect-runtime";
 import { runEffectPromise } from "./effect-runtime";
 
 /**

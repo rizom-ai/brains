@@ -4,7 +4,7 @@ import { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import { runConcurrentPhase } from "../effect-runtime";
-import { Effect } from "effect";
+import { Effect } from "@brains/effect-runtime";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { Effect, TestClock, TestContext } from "effect";
+import { Effect } from "@brains/effect-runtime";
+import { TestClock, TestContext } from "@brains/effect-runtime/test";
 import { KeyedCleanupSupervisor } from "../../src/message-interface/keyed-cleanup-supervisor";
 
 function withSupervisor(

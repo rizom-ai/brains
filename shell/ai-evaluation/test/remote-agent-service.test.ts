@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
-import { Effect, TestClock, TestContext } from "effect";
-import type { Clock } from "effect";
+import { Effect } from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
+import { TestClock, TestContext } from "@brains/effect-runtime/test";
 
 import { RemoteAgentService } from "../src/remote-agent-service";
 

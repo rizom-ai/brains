@@ -11,8 +11,15 @@
  * machine wiring stays in AgentService.
  */
 
-import { Effect, Exit, Fiber, FiberMap, Option, Scope } from "effect";
-import type { Clock } from "effect";
+import {
+  Effect,
+  Exit,
+  Fiber,
+  FiberMap,
+  Option,
+  Scope,
+} from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
 
 const DEFAULT_MAX_OPERATIONS_PER_CONVERSATION = 10;
 

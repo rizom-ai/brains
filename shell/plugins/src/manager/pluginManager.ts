@@ -13,7 +13,7 @@ import { PluginError } from "../errors";
 import { PluginLifecycle } from "./plugin-lifecycle";
 import { DependencyResolver } from "./dependency-resolver";
 import { CapabilityRegistrar } from "./capability-registrar";
-import { Effect, Either } from "effect";
+import { Effect, Either } from "@brains/effect-runtime";
 
 async function runConcurrentPhase(
   operations: Array<() => Promise<void>>,

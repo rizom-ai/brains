@@ -1,5 +1,5 @@
-import { Effect, Exit, FiberMap, Scope } from "effect";
-import type { Clock } from "effect";
+import { Effect, Exit, FiberMap, Scope } from "@brains/effect-runtime";
+import type { Clock } from "@brains/effect-runtime";
 
 interface KeyedCleanupSupervisorRuntimeOptions {
   clock?: Clock.Clock;
