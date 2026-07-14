@@ -1,5 +1,17 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.176
+
+### Patch Changes
+
+- [`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional CMS publishing workspace with durable queue operations, confirmed direct publishing, and a compact read-only Dashboard digest.
+
+- Updated dependencies [[`de494c9`](https://github.com/rizom-ai/brains/commit/de494c964bef7a85e4f6c88f17577d56fc1bc6fb)]:
+  - @brains/plugins@0.2.0-alpha.176
+  - @brains/auth-service@0.2.0-alpha.176
+  - @brains/console-theme@0.2.0-alpha.176
+  - @brains/utils@0.2.0-alpha.176
+
 ## 0.2.0-alpha.175
 
 ### Patch Changes
