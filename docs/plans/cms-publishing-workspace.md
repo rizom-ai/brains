@@ -2,10 +2,12 @@
 
 ## Status
 
-**Proposed.** Move publication-pipeline operation into the CMS when
-`@brains/content-pipeline` is installed, while keeping the CMS fully functional when that
-plugin is absent. Reduce the Dashboard publication surface to a compact, read-only digest.
-The shared workspace boundary also supports the concrete second provider planned in
+**Implemented.** Publication-pipeline operation is available in CMS only when
+`@brains/content-pipeline` registers the capability. Queue intent and ordering are
+reconciled durably, confirmed direct publishing is content-hash protected, and Dashboard
+now renders a compact read-only digest. CMS-only optionality is covered by route and UI
+tests; the combined composition was verified in the full Rover test app. The shared
+workspace boundary also supports the concrete second provider planned in
 [cms-site-workspace.md](./cms-site-workspace.md).
 
 ## Goal
@@ -152,19 +154,35 @@ Only entity types registered with the pipeline are included. The snapshot joins 
 entity state with active job and provider state; surfaces must not independently rescan all
 entity types and reinterpret arbitrary `status` fields.
 
-Entity metadata is the durable source for publication commitment and queue ordering,
-reusing the existing `status` and `queueOrder` vocabulary. The in-memory queue becomes an
-execution projection rebuilt from that durable state.
+Use a hybrid source of truth:
 
-Pipeline mutations maintain both sides consistently:
+- entity `status` is authoritative for durable publication intent and lifecycle
+  (`draft` / `queued` / `failed` / `published`);
+- namespaced `runtimeState` records own recoverable queue mechanics such as rank,
+  `queuedAt`, enqueue content hash, actor context, and mutation revision;
+- the in-memory queue is only an execution projection rebuilt by reconciling both stores.
 
-- queue: validate publish permission, persist `status: queued` and `queueOrder`, then update
-  the execution projection;
-- remove: remove from execution and return the entity to the appropriate non-queued state;
-- reorder: persist affected queue positions and refresh the projection;
-- failure: persist failed state and operator-safe error information;
-- retry: perform a validated failed-to-queued transition;
-- success: keep the existing centralized published-state update.
+This keeps queue membership recoverable from entities without writing every reorder into
+Markdown or producing noisy Git commits. Losing disposable runtime state loses custom
+ordering, not publication intent; reconciliation recreates missing records and removes
+orphans deterministically.
+
+Pipeline mutations maintain the stores consistently:
+
+- queue: validate publish permission, persist `status: queued`, then create the operational
+  queue record and refresh the execution projection;
+- remove: return the entity to the appropriate non-queued state, remove its runtime record,
+  and refresh execution order;
+- reorder: mutate runtime rank/revision only; do not rewrite entity content;
+- failure: persist failed entity state and operator-safe error information, then remove the
+  queue record;
+- retry: perform a validated failed-to-queued transition and create a fresh queue record;
+- success: keep the existing centralized published-state update and remove operational
+  queue state.
+
+No permanent reorder audit log is required in the first slice. If audit history becomes a
+requirement, append mutation events to the operator audit store rather than treating
+content Git history as an operations log.
 
 Characterization tests must pin current scheduler and restart behavior before this change.
 This plan does not silently introduce new delivery guarantees for external providers.
@@ -220,8 +238,9 @@ No queue mutation, drag-and-drop, retry, or direct-publish controls belong on Da
    `@brains/content-pipeline`.
 3. Make registered publishable types, not arbitrary status-bearing entities, the snapshot
    boundary.
-4. Persist queue status/order and failure transitions through the entity service.
-5. Make `QueueManager` an execution projection of durable entity state.
+4. Persist publication intent through entity status and queue ordering through a
+   Zod-validated `content-pipeline.queue.v1` runtime-state namespace.
+5. Reconcile those stores at startup and make `QueueManager` their execution projection.
 6. Switch the existing Dashboard data provider to the canonical snapshot without changing
    its rendering yet.
 
@@ -309,8 +328,9 @@ Application checks:
   put pipeline schemas and behavior in content-pipeline.
 - **Client-bundle plugin loading becomes unsafe or brittle:** use CMS-owned renderer names,
   not arbitrary runtime React components.
-- **Queue and entity metadata drift:** establish the durable transition path before adding
-  management UI and make all surfaces consume one snapshot.
+- **Queue intent and runtime order drift:** entity status wins membership conflicts;
+  startup reconciliation repairs missing runtime records, removes orphans, and hydrates one
+  execution projection consumed by all surfaces.
 - **Browser action bypasses publish confirmation:** require server-issued confirmation data
   tied to entity content hash and expiry.
 - **Plugin startup order drops registration:** subscribe in CMS `onRegister`, send from

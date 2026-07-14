@@ -7,6 +7,9 @@ import type {
 import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { QueueManager, QueueEntry } from "../queue-manager";
+import type { PublicationQueueService } from "../publication-queue-service";
+
+type QueueMutationService = Pick<QueueManager, "add" | "remove" | "reorder">;
 
 /**
  * Input schema for publish-pipeline:queue tool
@@ -119,7 +122,10 @@ export function createQueueTool(
   context: ServicePluginContext,
   pluginId: string,
   queueManager: QueueManager,
+  publicationQueueService?: PublicationQueueService,
 ): Tool<QueueOutput> {
+  const queueMutations: QueueMutationService =
+    publicationQueueService ?? queueManager;
   const tool = createTool(
     pluginId,
     "queue",
@@ -134,7 +140,7 @@ export function createQueueTool(
         case "add":
           return handleAdd(
             context,
-            queueManager,
+            queueMutations,
             entityType,
             entityId,
             toolContext,
@@ -142,7 +148,7 @@ export function createQueueTool(
         case "remove":
           return handleRemove(
             context,
-            queueManager,
+            queueMutations,
             entityType,
             entityId,
             toolContext,
@@ -150,7 +156,7 @@ export function createQueueTool(
         case "reorder":
           return handleReorder(
             context,
-            queueManager,
+            queueMutations,
             entityType,
             entityId,
             position,
@@ -224,7 +230,7 @@ async function handleList(
  */
 async function handleAdd(
   context: ServicePluginContext,
-  queueManager: QueueManager,
+  queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,
   toolContext?: { userPermissionLevel?: ToolContext["userPermissionLevel"] },
@@ -238,7 +244,7 @@ async function handleAdd(
     toolContext ?? {},
   );
 
-  const result = await queueManager.add(target.entityType, target.entityId, {
+  const result = await queueMutations.add(target.entityType, target.entityId, {
     ...toolContext,
     authorization: "user",
   });
@@ -259,7 +265,7 @@ async function handleAdd(
  */
 async function handleRemove(
   context: ServicePluginContext,
-  queueManager: QueueManager,
+  queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,
   toolContext?: { userPermissionLevel?: ToolContext["userPermissionLevel"] },
@@ -273,7 +279,7 @@ async function handleRemove(
     toolContext ?? {},
   );
 
-  await queueManager.remove(target.entityType, target.entityId);
+  await queueMutations.remove(target.entityType, target.entityId);
 
   return {
     success: true as const,
@@ -287,7 +293,7 @@ async function handleRemove(
  */
 async function handleReorder(
   context: ServicePluginContext,
-  queueManager: QueueManager,
+  queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,
   position?: number,
@@ -305,7 +311,7 @@ async function handleReorder(
     toolContext ?? {},
   );
 
-  await queueManager.reorder(
+  await queueMutations.reorder(
     target.entityType,
     target.entityId,
     nextPosition.position,

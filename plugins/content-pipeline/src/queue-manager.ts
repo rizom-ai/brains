@@ -21,9 +21,9 @@ export interface QueueEntry {
 export class QueueManager {
   private static instance: QueueManager | null = null;
 
-  // Map of entityType -> array of queue entries
-  // Deliberately in-memory only: queued entries are ephemeral and lost on
-  // restart (unlike @brains/job-queue jobs, which are persisted)
+  // Map of entityType -> the in-memory execution projection. Durable queue
+  // intent lives on entities and recoverable ordering lives in runtimeState;
+  // PublicationQueueService reconciles both into this map at startup.
   private queues: Map<string, QueueEntry[]> = new Map();
 
   /**
@@ -177,6 +177,23 @@ export class QueueManager {
       this.recalculatePositions(queue);
     }
     return entry;
+  }
+
+  /** Replace the in-memory execution projection from durable queue records. */
+  public replace(entries: QueueEntry[]): void {
+    this.queues.clear();
+    const sorted = [...entries].sort(
+      (left, right) =>
+        left.entityType.localeCompare(right.entityType) ||
+        left.position - right.position,
+    );
+    for (const entry of sorted) {
+      const queue = this.getOrCreateQueue(entry.entityType);
+      queue.push({ ...entry, authContext: { ...entry.authContext } });
+    }
+    for (const queue of this.queues.values()) {
+      this.recalculatePositions(queue);
+    }
   }
 
   /**

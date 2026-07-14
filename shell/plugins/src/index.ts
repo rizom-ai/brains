@@ -534,6 +534,13 @@ export type {
   WebRouteHandler,
 } from "./types/web-routes";
 export {
+  CMS_WORKSPACE_REGISTER_MESSAGE,
+  type CmsWorkspaceActor,
+  type CmsWorkspaceDescriptor,
+  type CmsWorkspaceRegistration,
+  type CmsWorkspaceRegistrationResult,
+} from "./types/cms-workspace";
+export {
   RouteDefinitionSchema,
   NavigationSlots,
   RegisterRoutesPayloadSchema,

@@ -20,21 +20,28 @@ import {
   fetchAgentTargets,
   fetchEntities,
   fetchEntity,
+  fetchNavigation,
   fetchSchema,
   fetchSyncStatus,
-  fetchTypes,
+  fetchWorkspace,
   requestAgentAnswer,
   requestAssist,
   requestFieldAssist,
+  runWorkspaceAction,
   updateEntity,
   uploadFile,
   type AgentTarget,
+  type CmsWorkspaceInfo,
   type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
   type FieldAssistResponse,
   type FieldDescriptor,
   type GitSyncState,
+  type PublicationPipelineSnapshot,
+  type PublishingAction,
+  type PublishingActionResult,
+  type PublishConfirmationArgs,
   type SyncStatus,
   type TypeSchema,
 } from "./api";
@@ -50,6 +57,10 @@ export interface CmsHashTarget {
   id?: string;
 }
 
+export interface CmsWorkspaceHashTarget {
+  workspaceId: string;
+}
+
 /**
  * Parse a console-jump door (#/{entityType}[/{id}]) into an editor target.
  * Ids may contain slashes; both segments are URI-decoded.
@@ -57,12 +68,19 @@ export interface CmsHashTarget {
 export function parseCmsHash(hash: string): CmsHashTarget | null {
   const match = /^#\/([^/]+)(?:\/(.+))?$/.exec(hash);
   const rawType = match?.[1];
-  if (rawType === undefined) return null;
+  if (rawType === undefined || rawType === "workspace") return null;
   const entityType = decodeURIComponent(rawType);
   const rawId = match?.[2];
   return rawId === undefined
     ? { entityType }
     : { entityType, id: decodeURIComponent(rawId) };
+}
+
+export function parseCmsWorkspaceHash(
+  hash: string,
+): CmsWorkspaceHashTarget | null {
+  const match = /^#\/workspace\/([^/]+)$/.exec(hash);
+  return match?.[1] ? { workspaceId: decodeURIComponent(match[1]) } : null;
 }
 
 /** Initial frontmatter draft for a new entity: descriptor defaults only. */
@@ -675,6 +693,10 @@ export function TypeSwitcher(props: {
   types: EntityTypeInfo[];
   active: string | null;
   onSelect: (entityType: string) => void;
+  workspaces?: CmsWorkspaceInfo[];
+  activeWorkspace?: string | null;
+  workspaceBadges?: Record<string, number>;
+  onSelectWorkspace?: (workspaceId: string) => void;
 }): ReactElement {
   const groups = (["Content", "Collections", "Site", "System"] as const)
     .map((label) => ({
@@ -684,34 +706,69 @@ export function TypeSwitcher(props: {
       ),
     }))
     .filter((group) => group.types.length > 0);
+  const renderGroup = (group: (typeof groups)[number]): ReactElement => (
+    <section className="rail-group" key={group.label}>
+      <div className="rail-title">{group.label}</div>
+      <ul>
+        {group.types.map((info) => (
+          <li key={info.entityType}>
+            <button
+              type="button"
+              className={
+                info.entityType === props.active ? "type active" : "type"
+              }
+              onClick={() => props.onSelect(info.entityType)}
+            >
+              {info.label}
+              {info.isSingleton ? (
+                <span className="singleton-mark">solo</span>
+              ) : (
+                <span className="count">{info.count}</span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 
   return (
     <nav className="types">
-      {groups.map((group) => (
-        <section className="rail-group" key={group.label}>
-          <div className="rail-title">{group.label}</div>
+      {groups
+        .filter(
+          (group) => group.label === "Content" || group.label === "Collections",
+        )
+        .map(renderGroup)}
+      {(props.workspaces?.length ?? 0) > 0 && (
+        <section className="rail-group rail-group--operations">
+          <div className="rail-title">Operations</div>
           <ul>
-            {group.types.map((info) => (
-              <li key={info.entityType}>
+            {props.workspaces?.map((workspace) => (
+              <li key={workspace.id}>
                 <button
                   type="button"
                   className={
-                    info.entityType === props.active ? "type active" : "type"
+                    workspace.id === props.activeWorkspace
+                      ? "type workspace-type active"
+                      : "type workspace-type"
                   }
-                  onClick={() => props.onSelect(info.entityType)}
+                  onClick={() => props.onSelectWorkspace?.(workspace.id)}
                 >
-                  {info.label}
-                  {info.isSingleton ? (
-                    <span className="singleton-mark">solo</span>
-                  ) : (
-                    <span className="count">{info.count}</span>
+                  {workspace.label}
+                  {(props.workspaceBadges?.[workspace.id] ?? 0) > 0 && (
+                    <span className="count count--attention">
+                      {props.workspaceBadges?.[workspace.id]}
+                    </span>
                   )}
                 </button>
               </li>
             ))}
           </ul>
         </section>
-      ))}
+      )}
+      {groups
+        .filter((group) => group.label === "Site" || group.label === "System")
+        .map(renderGroup)}
     </nav>
   );
 }
@@ -866,7 +923,7 @@ export function PipelineStations(props: {
 }
 
 /**
- * Image-reference widget: uploads go to /cms/api/upload, which promotes the
+ * Image-reference widget: uploads go to the configured CMS upload API, which promotes the
  * bytes into an `image` entity through the owning plugin's pipeline; the
  * field stores the resulting entity id.
  */
@@ -1272,8 +1329,474 @@ export function DeleteDialog(props: {
   );
 }
 
+function publicationLabel(value: string): string {
+  return value
+    .split(/[-_:]+/)
+    .filter(Boolean)
+    .map((part) =>
+      part.length <= 3
+        ? part.toUpperCase()
+        : `${part.charAt(0).toUpperCase()}${part.slice(1)}`,
+    )
+    .join(" ");
+}
+
+function publicationSchedule(value: string | undefined): string {
+  if (!value) return "next dispatch";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en", {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function isPublishingActionError(
+  result: PublishingActionResult,
+): result is Extract<PublishingActionResult, { success: false }> {
+  return "success" in result && result.success === false;
+}
+
+function isPublishConfirmation(
+  result: PublishingActionResult,
+): result is Extract<PublishingActionResult, { needsConfirmation: true }> {
+  return "needsConfirmation" in result && result.needsConfirmation === true;
+}
+
+export function PublishConfirmationDialog(props: {
+  title: string;
+  preview: string;
+  confirming: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}): ReactElement {
+  return (
+    <div
+      className="modal-scrim"
+      role="presentation"
+      onMouseDown={props.confirming ? undefined : props.onCancel}
+    >
+      <section
+        className="delete-modal publication-modal"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="publish-confirm-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <span className="modal-mark" aria-hidden="true">
+          ↑
+        </span>
+        <h3 id="publish-confirm-title">Publish {props.title} now?</h3>
+        <p>{props.preview}</p>
+        <p className="publication-confirm-warning">
+          This sends the current saved version to an external public provider.
+        </p>
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn ghost"
+            autoFocus
+            disabled={props.confirming}
+            onClick={props.onCancel}
+          >
+            Review again
+          </button>
+          <button
+            type="button"
+            className="btn publish-confirm"
+            disabled={props.confirming}
+            onClick={props.onConfirm}
+          >
+            {props.confirming ? "Publishing…" : "Confirm publication"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export function PublicationActions(props: {
+  entityType: string;
+  entityId: string;
+  title: string;
+  status: string;
+  unsaved: boolean;
+  onAction: (action: PublishingAction) => Promise<PublishingActionResult>;
+}): ReactElement {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<{
+    args: PublishConfirmationArgs;
+    preview: string;
+  } | null>(null);
+  const target = {
+    entityType: props.entityType,
+    entityId: props.entityId,
+  };
+  const disabled = props.unsaved || busy !== null;
+
+  const execute = useCallback(
+    async (action: PublishingAction, key: string): Promise<void> => {
+      setBusy(key);
+      setError(null);
+      try {
+        const result = await props.onAction(action);
+        if (isPublishingActionError(result)) throw new Error(result.error);
+        if (isPublishConfirmation(result)) {
+          setConfirmation({
+            args: result.args,
+            preview:
+              result.preview ??
+              `This will publish ${props.entityType}:${props.entityId} publicly.`,
+          });
+        } else if (action.type === "publish") {
+          setConfirmation(null);
+        }
+      } catch (actionError: unknown) {
+        setError(errorMessage(actionError));
+      } finally {
+        setBusy(null);
+      }
+    },
+    [props],
+  );
+
+  const lifecycleAction =
+    props.status === "queued"
+      ? ({ type: "remove", ...target } as const)
+      : props.status === "failed"
+        ? ({ type: "retry", ...target } as const)
+        : ({ type: "queue", ...target } as const);
+  const lifecycleLabel =
+    props.status === "queued"
+      ? "Remove from queue"
+      : props.status === "failed"
+        ? "Retry"
+        : "Add to queue";
+
+  return (
+    <section className="publication-actions" aria-label="Publication actions">
+      <header>
+        <span>Publication</span>
+        <b className={`publication-state publication-state--${props.status}`}>
+          {props.status}
+        </b>
+      </header>
+      <p>
+        Operates on the saved entity. Publication state is separate from the
+        save pipeline below.
+      </p>
+      {props.unsaved && (
+        <p className="publication-action-note">
+          Save changes before changing publication state.
+        </p>
+      )}
+      {props.status !== "published" && (
+        <div className="publication-action-buttons">
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={disabled}
+            onClick={() => void execute(lifecycleAction, "lifecycle")}
+          >
+            {busy === "lifecycle" ? "Working…" : lifecycleLabel}
+          </button>
+          <button
+            type="button"
+            className="btn publication-publish-now"
+            disabled={disabled}
+            onClick={() =>
+              void execute({ type: "publish", ...target }, "publish")
+            }
+          >
+            {busy === "publish" ? "Preparing…" : "Publish now"}
+          </button>
+        </div>
+      )}
+      {props.status === "published" && (
+        <p className="publication-action-complete">Published externally.</p>
+      )}
+      {error && <p className="status status-error">{error}</p>}
+      {confirmation && (
+        <PublishConfirmationDialog
+          title={props.title}
+          preview={confirmation.preview}
+          confirming={busy === "confirm"}
+          onCancel={() => setConfirmation(null)}
+          onConfirm={() =>
+            void execute(
+              {
+                type: "publish",
+                ...target,
+                confirmation: confirmation.args,
+              },
+              "confirm",
+            )
+          }
+        />
+      )}
+    </section>
+  );
+}
+
+export function PublishingWorkspace(props: {
+  data: PublicationPipelineSnapshot;
+  onOpenEntity: (entityType: string, entityId: string) => void;
+  onAction: (action: PublishingAction) => Promise<PublishingActionResult>;
+}): ReactElement {
+  const { data } = props;
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const execute = useCallback(
+    async (action: PublishingAction, key: string): Promise<void> => {
+      setPendingAction(key);
+      setActionError(null);
+      try {
+        const result = await props.onAction(action);
+        if (isPublishingActionError(result)) throw new Error(result.error);
+      } catch (error: unknown) {
+        setActionError(errorMessage(error));
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [props],
+  );
+
+  return (
+    <main className="publishing-workspace">
+      <header className="publishing-head">
+        <div>
+          <span className="publishing-kicker">Publication operations</span>
+          <h2>Publishing desk</h2>
+          <p>
+            Review intent, inspect dispatch order, and resolve publication
+            failures beside the content they belong to.
+          </p>
+        </div>
+        <span className="publishing-online">Pipeline online</span>
+      </header>
+
+      <section className="publishing-vitals" aria-label="Pipeline summary">
+        <div>
+          <span>Queued</span>
+          <b>{data.summary.queued}</b>
+        </div>
+        <div>
+          <span>Generating</span>
+          <b>{data.summary.generating}</b>
+        </div>
+        <div className={data.summary.needsOperator > 0 ? "needs" : ""}>
+          <span>Needs attention</span>
+          <b>{data.summary.needsOperator}</b>
+        </div>
+        <div>
+          <span>Published</span>
+          <b>{data.summary.published}</b>
+        </div>
+      </section>
+
+      {actionError && (
+        <p className="status status-error publishing-action-error">
+          {actionError}
+        </p>
+      )}
+      <div className="publishing-grid">
+        <section className="dispatch-section">
+          <header className="publishing-section-head">
+            <h3>Dispatch queue</h3>
+            <span>ordered within each destination</span>
+          </header>
+          {data.queue.length === 0 ? (
+            <p className="publishing-empty">
+              Nothing is queued for publication.
+            </p>
+          ) : (
+            <ol className="dispatch-list">
+              {data.queue.map((item, index) => {
+                const destinationCount = data.queue.filter(
+                  (candidate) => candidate.entityType === item.entityType,
+                ).length;
+                const key = `${item.entityType}:${item.entityId}`;
+                return (
+                  <li className="dispatch-row" key={key}>
+                    <button
+                      type="button"
+                      className="dispatch-entity"
+                      onClick={() =>
+                        props.onOpenEntity(item.entityType, item.entityId)
+                      }
+                    >
+                      <span className="dispatch-position">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="dispatch-copy">
+                        <strong>{item.title}</strong>
+                        <small>
+                          {item.entityType}/{item.entityId}
+                        </small>
+                      </span>
+                      <span className="dispatch-destination">
+                        {publicationLabel(item.destination)}
+                      </span>
+                      <time>{publicationSchedule(item.scheduledFor)}</time>
+                      <span className="dispatch-open">open →</span>
+                    </button>
+                    <span className="dispatch-actions">
+                      <button
+                        type="button"
+                        aria-label={`Move ${item.title} earlier`}
+                        disabled={item.position <= 1 || pendingAction !== null}
+                        onClick={() =>
+                          void execute(
+                            {
+                              type: "reorder",
+                              entityType: item.entityType,
+                              entityId: item.entityId,
+                              position: item.position - 1,
+                            },
+                            `${key}:earlier`,
+                          )
+                        }
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Move ${item.title} later`}
+                        disabled={
+                          item.position >= destinationCount ||
+                          pendingAction !== null
+                        }
+                        onClick={() =>
+                          void execute(
+                            {
+                              type: "reorder",
+                              entityType: item.entityType,
+                              entityId: item.entityId,
+                              position: item.position + 1,
+                            },
+                            `${key}:later`,
+                          )
+                        }
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        className="dispatch-remove"
+                        aria-label={`Remove ${item.title} from queue`}
+                        disabled={pendingAction !== null}
+                        onClick={() =>
+                          void execute(
+                            {
+                              type: "remove",
+                              entityType: item.entityType,
+                              entityId: item.entityId,
+                            },
+                            `${key}:remove`,
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+
+        <aside className="publishing-aside">
+          <section className="publishing-card">
+            <header>Generating now</header>
+            {data.generating.length === 0 ? (
+              <p>No publication assets are being generated.</p>
+            ) : (
+              data.generating.map((job) => (
+                <button
+                  type="button"
+                  className="publication-job"
+                  key={job.id}
+                  onClick={() => {
+                    const [entityType, ...id] = job.target.split("/");
+                    if (entityType && id.length > 0) {
+                      props.onOpenEntity(entityType, id.join("/"));
+                    }
+                  }}
+                >
+                  <strong>{publicationLabel(job.label)}</strong>
+                  <span>
+                    {job.target} · {job.status}
+                  </span>
+                  <i aria-hidden="true" />
+                </button>
+              ))
+            )}
+          </section>
+
+          <section className="publishing-card publishing-card--attention">
+            <header>Needs attention</header>
+            {data.failures.length === 0 ? (
+              <p>No failed publications.</p>
+            ) : (
+              data.failures.map((failure) => {
+                const key = `${failure.entityType}:${failure.entityId}`;
+                return (
+                  <div className="publication-failure" key={key}>
+                    <button
+                      type="button"
+                      className="publication-failure-open"
+                      onClick={() =>
+                        props.onOpenEntity(failure.entityType, failure.entityId)
+                      }
+                    >
+                      <strong>{failure.title}</strong>
+                      <span>
+                        {failure.entityType}/{failure.entityId}
+                      </span>
+                      <small>{failure.error}</small>
+                    </button>
+                    <button
+                      type="button"
+                      className="publication-retry"
+                      disabled={pendingAction !== null}
+                      onClick={() =>
+                        void execute(
+                          {
+                            type: "retry",
+                            entityType: failure.entityType,
+                            entityId: failure.entityId,
+                          },
+                          `${key}:retry`,
+                        )
+                      }
+                    >
+                      {pendingAction === `${key}:retry` ? "Retrying…" : "Retry"}
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </section>
+        </aside>
+      </div>
+    </main>
+  );
+}
+
 export function App(): ReactElement {
   const [types, setTypes] = useState<EntityTypeInfo[] | null>(null);
+  const [workspaces, setWorkspaces] = useState<CmsWorkspaceInfo[]>([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
+    null,
+  );
+  const [workspaceData, setWorkspaceData] =
+    useState<PublicationPipelineSnapshot | null>(null);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
   const [entityType, setEntityType] = useState<string | null>(null);
   const [schema, setSchema] = useState<TypeSchema | null>(null);
@@ -1297,6 +1820,9 @@ export function App(): ReactElement {
   const pendingDeepLinkId = useRef<string | null>(null);
 
   const activeType = types?.find((info) => info.entityType === entityType);
+  const activeWorkspace = workspaces.find(
+    (workspace) => workspace.id === activeWorkspaceId,
+  );
 
   useEffect(() => {
     if (!deleteOpen) return undefined;
@@ -1308,11 +1834,20 @@ export function App(): ReactElement {
   }, [deleteOpen, deleting]);
 
   useEffect(() => {
-    fetchTypes()
-      .then((loaded) => {
+    fetchNavigation()
+      .then(({ types: loaded, workspaces: loadedWorkspaces }) => {
         setTypes(loaded);
-        // A console-jump door (#/{type}[/{id}]) overrides the default
-        // starting collection; the id half is honored once entities load.
+        setWorkspaces(loadedWorkspaces);
+        // URL doors may target either an entity or an optional workspace.
+        const workspaceTarget = parseCmsWorkspaceHash(window.location.hash);
+        if (
+          workspaceTarget &&
+          loadedWorkspaces.some(
+            (workspace) => workspace.id === workspaceTarget.workspaceId,
+          )
+        ) {
+          setActiveWorkspaceId(workspaceTarget.workspaceId);
+        }
         const target = parseCmsHash(window.location.hash);
         const targeted =
           target && loaded.some((info) => info.entityType === target.entityType)
@@ -1335,6 +1870,19 @@ export function App(): ReactElement {
       .then(setSyncStatus)
       .catch(() => setSyncStatus(null));
   }, []);
+
+  useEffect(() => {
+    if (!activeWorkspaceId) {
+      setWorkspaceData(null);
+      setWorkspaceError(null);
+      return;
+    }
+    setWorkspaceData(null);
+    setWorkspaceError(null);
+    fetchWorkspace(activeWorkspaceId)
+      .then((workspace) => setWorkspaceData(workspace.data))
+      .catch((error: unknown) => setWorkspaceError(errorMessage(error)));
+  }, [activeWorkspaceId]);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
   // updates syncStatus, which re-runs this effect until the view settles or
@@ -1413,6 +1961,43 @@ export function App(): ReactElement {
     },
     [entityType],
   );
+
+  const openWorkspaceEntity = useCallback(
+    (nextEntityType: string, id: string): void => {
+      setActiveWorkspaceId(null);
+      window.history.replaceState(
+        null,
+        "",
+        `#/${encodeURIComponent(nextEntityType)}/${encodeURIComponent(id)}`,
+      );
+      if (nextEntityType === entityType) {
+        openEntity(id);
+        return;
+      }
+      pendingDeepLinkId.current = id;
+      setEntityType(nextEntityType);
+    },
+    [entityType, openEntity],
+  );
+
+  const selectEntityType = useCallback((nextEntityType: string): void => {
+    setActiveWorkspaceId(null);
+    window.history.replaceState(
+      null,
+      "",
+      `#/${encodeURIComponent(nextEntityType)}`,
+    );
+    setEntityType(nextEntityType);
+  }, []);
+
+  const selectWorkspace = useCallback((workspaceId: string): void => {
+    setActiveWorkspaceId(workspaceId);
+    window.history.replaceState(
+      null,
+      "",
+      `#/workspace/${encodeURIComponent(workspaceId)}`,
+    );
+  }, []);
 
   const startCreate = useCallback((): void => {
     if (!schema) return;
@@ -1525,6 +2110,34 @@ export function App(): ReactElement {
       .finally(() => setDeleting(false));
   }, [entityType, mode, deleting]);
 
+  const performPublishingAction = useCallback(
+    async (action: PublishingAction): Promise<PublishingActionResult> => {
+      const capability = workspaces.find(
+        (workspace) =>
+          workspace.rendererName === "PublishingWorkspace" &&
+          workspace.entityTypes.includes(action.entityType),
+      );
+      if (!capability) throw new Error("Publishing is unavailable");
+
+      const result = await runWorkspaceAction(capability.id, action);
+      if (!isPublishingActionError(result) && !isPublishConfirmation(result)) {
+        if (activeWorkspaceId === capability.id) {
+          const refreshed = await fetchWorkspace(capability.id);
+          setWorkspaceData(refreshed.data);
+        }
+        if (
+          mode.kind === "edit" &&
+          entityType === action.entityType &&
+          mode.entity.id === action.entityId
+        ) {
+          openEntity(action.entityId);
+        }
+      }
+      return result;
+    },
+    [activeWorkspaceId, entityType, mode, openEntity, workspaces],
+  );
+
   if (loadError) {
     return (
       <div className="studio">
@@ -1533,7 +2146,12 @@ export function App(): ReactElement {
       </div>
     );
   }
-  if (!types || (entityType && (!schema || !entities))) {
+  if (
+    !types ||
+    (activeWorkspaceId
+      ? !workspaceData && !workspaceError
+      : entityType && (!schema || !entities))
+  ) {
     return (
       <div className="studio">
         <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
@@ -1541,7 +2159,7 @@ export function App(): ReactElement {
       </div>
     );
   }
-  if (!entityType || !schema) {
+  if (!activeWorkspaceId && (!entityType || !schema)) {
     return (
       <div className="studio">
         <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
@@ -1552,23 +2170,42 @@ export function App(): ReactElement {
     );
   }
 
-  const editing = mode.kind !== "browse";
+  // The guards above guarantee these values on every entity-rendering branch.
+  // Workspace branches do not read them.
+  const entitySchema = schema as TypeSchema;
+  const selectedEntityType = entityType as string;
+  const editing = !activeWorkspaceId && mode.kind !== "browse";
   const heading =
     mode.kind === "edit"
       ? entityTitle(mode.entity)
       : mode.kind === "create"
         ? `New ${activeType?.label ?? entityType}`
         : (activeType?.label ?? entityType);
-  const collectionLabel = activeType?.label ?? entityType;
+  const collectionLabel =
+    activeWorkspace?.label ?? activeType?.label ?? entityType ?? "CMS";
   const entryLabel = singularLabel(collectionLabel);
   const syncPending = syncStatus?.git?.hasChanges === true;
+  const publicationWorkspace = workspaces.find(
+    (workspace) =>
+      workspace.rendererName === "PublishingWorkspace" &&
+      workspace.entityTypes.includes(selectedEntityType),
+  );
+  const hasUnsavedChanges =
+    mode.kind === "edit" &&
+    (body !== mode.entity.body ||
+      JSON.stringify(draft) !== JSON.stringify(mode.entity.frontmatter));
 
   return (
-    <div className="studio" data-view={editing ? "editor" : "listing"}>
+    <div
+      className="studio"
+      data-view={
+        activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
+      }
+    >
       <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb">
-          {editing && !schema.isSingleton ? (
+          {editing && !entitySchema.isSingleton ? (
             <button type="button" onClick={backToList}>
               {collectionLabel}
             </button>
@@ -1588,11 +2225,31 @@ export function App(): ReactElement {
         <aside className="rail">
           <TypeSwitcher
             types={types}
-            active={entityType}
-            onSelect={setEntityType}
+            active={activeWorkspaceId ? null : entityType}
+            onSelect={selectEntityType}
+            workspaces={workspaces}
+            activeWorkspace={activeWorkspaceId}
+            workspaceBadges={
+              workspaceData
+                ? { publishing: workspaceData.summary.needsOperator }
+                : {}
+            }
+            onSelectWorkspace={selectWorkspace}
           />
         </aside>
-        {!editing ? (
+        {activeWorkspaceId ? (
+          workspaceError ? (
+            <main className="publishing-workspace">
+              <p className="status status-error">{workspaceError}</p>
+            </main>
+          ) : workspaceData ? (
+            <PublishingWorkspace
+              data={workspaceData}
+              onOpenEntity={openWorkspaceEntity}
+              onAction={performPublishingAction}
+            />
+          ) : null
+        ) : !editing ? (
           <main className="listing">
             <div className="listing-head">
               <h3>{activeType?.label ?? entityType}</h3>
@@ -1621,7 +2278,7 @@ export function App(): ReactElement {
                     {singularLabel(entity.entityType)}/{entity.id}
                   </small>
                 </span>
-                {typeHasPublicationField(schema.fields) && (
+                {typeHasPublicationField(entitySchema.fields) && (
                   <span className={`chip ${entityPublicationState(entity)}`}>
                     {entityPublicationState(entity)}
                   </span>
@@ -1660,7 +2317,7 @@ export function App(): ReactElement {
                       ? "cms-mobile-mode is-active"
                       : "cms-mobile-mode"
                   }
-                  disabled={pane !== "details" && !schema.hasBody}
+                  disabled={pane !== "details" && !entitySchema.hasBody}
                   onClick={() => {
                     setMobilePane(pane);
                     if (pane === "write") setBodyMode("source");
@@ -1684,7 +2341,7 @@ export function App(): ReactElement {
                     : entityPublicationState(mode.entity)}
                 </span>
               </div>
-              {schema.fields.map((descriptor) => (
+              {entitySchema.fields.map((descriptor) => (
                 <div key={descriptor.name} className="field-with-assist">
                   <Field
                     descriptor={descriptor}
@@ -1695,7 +2352,7 @@ export function App(): ReactElement {
                       )
                     }
                   />
-                  {schema.hasBody && body.trim().length > 0 && (
+                  {entitySchema.hasBody && body.trim().length > 0 && (
                     <FieldAssistControls
                       descriptor={descriptor}
                       state={fieldAssistState}
@@ -1706,21 +2363,35 @@ export function App(): ReactElement {
                   )}
                 </div>
               ))}
-              {schema.fields.length === 0 && (
+              {entitySchema.fields.length === 0 && (
                 <p className="status">
                   This type is raw markdown — the whole document is the body.
                 </p>
               )}
+              {publicationWorkspace && mode.kind === "edit" && (
+                <PublicationActions
+                  entityType={selectedEntityType}
+                  entityId={mode.entity.id}
+                  title={entityTitle(mode.entity)}
+                  status={
+                    typeof mode.entity.frontmatter["status"] === "string"
+                      ? mode.entity.frontmatter["status"]
+                      : "draft"
+                  }
+                  unsaved={hasUnsavedChanges}
+                  onAction={performPublishingAction}
+                />
+              )}
             </aside>
             <section className="manuscript">
-              {schema.hasBody ? (
+              {entitySchema.hasBody ? (
                 <BodyEditor
                   value={body}
                   mode={bodyMode}
                   onChange={setBody}
                   onModeChange={setBodyMode}
                   assist={{
-                    entityType,
+                    entityType: selectedEntityType,
                     frontmatter: draft,
                     agents: agentTargets,
                   }}
@@ -1777,7 +2448,7 @@ export function App(): ReactElement {
                   : "entity db"}
               </span>
               <span className="spacer" />
-              {mode.kind === "edit" && !schema.isSingleton && (
+              {mode.kind === "edit" && !entitySchema.isSingleton && (
                 <>
                   <button
                     type="button"

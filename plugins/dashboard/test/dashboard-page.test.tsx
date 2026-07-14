@@ -643,13 +643,16 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html.match(/class="card widget-card--wide"/g)).toHaveLength(3);
+    expect(html.match(/class="card widget-card--wide"/g)).toHaveLength(2);
+    expect(html).toContain(
+      '<article class="card"><div class="card-head"><span class="card-title">Content Pipeline</span>',
+    );
     expect(html).toContain(
       '<article class="card"><div class="card-head"><span class="card-title">Tiny Stats</span>',
     );
   });
 
-  it("should render the pipeline widget as a three-lane board", () => {
+  it("renders the pipeline widget as a compact read-only digest", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -669,32 +672,22 @@ describe("renderDashboardPageHtml", () => {
             visibility: "public",
           },
           data: {
-            summary: { draft: 1, queued: 1, published: 3, failed: 1 },
-            items: [
+            summary: {
+              draft: 1,
+              queued: 1,
+              generating: 1,
+              failed: 1,
+              published: 3,
+              needsOperator: 2,
+            },
+            queue: [
               {
-                id: "q1",
+                entityId: "q1",
+                entityType: "post",
                 title: "Domain as identity",
-                type: "post",
-                status: "queued",
-              },
-              {
-                id: "d1",
-                title: "Verdigris pigments",
-                type: "note",
-                status: "draft",
-              },
-              {
-                id: "f1",
-                title: "Broken send",
-                type: "newsletter",
-                status: "failed",
-                retryInfo: "retried 2/3",
-              },
-              {
-                id: "p1",
-                title: "Shipped post",
-                type: "post",
-                status: "published",
+                position: 1,
+                queuedAt: "2026-07-14T08:00:00.000Z",
+                destination: "website",
               },
             ],
             generating: [
@@ -705,6 +698,17 @@ describe("renderDashboardPageHtml", () => {
                 status: "processing",
               },
             ],
+            failures: [
+              {
+                entityId: "f1",
+                entityType: "newsletter",
+                title: "Broken send",
+                error: "Provider rejected sender",
+                retryCount: 2,
+              },
+            ],
+            publishableEntityTypes: ["newsletter", "post"],
+            managementUrl: "/cms#/workspace/publishing",
           },
         },
       },
@@ -713,20 +717,62 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    // Three lanes with counts; published items stay off the board.
-    expect(html).toContain('class="board"');
+    expect(html).toContain('class="pipeline-digest"');
     expect(html).toContain("Queued");
     expect(html).toContain("Generating");
-    expect(html).toContain("Review");
-    expect(html).toContain("Domain as identity");
-    expect(html).toContain("og-image");
-    expect(html).toContain("post/domain-as-identity");
-    expect(html).toContain("Verdigris pigments");
-    expect(html).toContain("retried 2/3");
-    const board = html.slice(html.indexOf('class="board"'));
-    expect(board).not.toContain("Shipped post");
-    // The old filter-tab pipeline UI is gone.
-    expect(html).not.toContain("data-pipeline-tab");
+    expect(html).toContain("Awaiting review");
+    expect(html).toContain("Published");
+    expect(html).toContain("Broken send");
+    expect(html).toContain("Provider rejected sender");
+    expect(html).toContain('href="/cms#/workspace/publishing"');
+    expect(html).toContain("Manage in CMS");
+    expect(html).not.toContain('class="board"');
+    expect(html).not.toContain("Domain as identity");
+    expect(html).not.toContain("post/domain-as-identity");
+  });
+
+  it("omits the CMS link when no publishing workspace registered", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {
+        "content-pipeline:pipeline": {
+          widget: {
+            id: "pipeline",
+            pluginId: "content-pipeline",
+            title: "Publication Pipeline",
+            group: "publishing",
+            section: "primary",
+            priority: 10,
+            rendererName: "PipelineWidget",
+            visibility: "public",
+          },
+          data: {
+            summary: {
+              draft: 0,
+              queued: 0,
+              generating: 0,
+              failed: 0,
+              published: 4,
+              needsOperator: 0,
+            },
+            queue: [],
+            generating: [],
+            failures: [],
+            publishableEntityTypes: ["post"],
+          },
+        },
+      },
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+    expect(html).toContain('class="pipeline-digest"');
+    expect(html).not.toContain("Manage in CMS");
+    expect(html).not.toContain('href="undefined"');
   });
 
   it("should render plugin-owned custom widgets and inject their scripts", () => {
