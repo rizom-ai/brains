@@ -2,15 +2,19 @@ import type { UseQueryOptions } from "@tanstack/react-query";
 import {
   fetchEntities,
   fetchEntity,
+  fetchTypes,
   type EntityDetail,
   type EntitySummary,
+  type EntityTypeInfo,
 } from "./api";
 
+export type EntityTypesQueryKey = readonly ["cms", "types"];
 export type EntityListQueryKey = readonly ["cms", "entities", string];
 export type EntityDetailQueryKey = readonly ["cms", "entity", string, string];
 
 export const cmsKeys = {
   all: ["cms"] as const,
+  types: (): EntityTypesQueryKey => ["cms", "types"],
   entities: (entityType: string): EntityListQueryKey => [
     "cms",
     "entities",
@@ -23,6 +27,18 @@ export const cmsKeys = {
     entityId,
   ],
 };
+
+export function entityTypesQueryOptions(): UseQueryOptions<
+  EntityTypeInfo[],
+  Error,
+  EntityTypeInfo[],
+  EntityTypesQueryKey
+> {
+  return {
+    queryKey: cmsKeys.types(),
+    queryFn: fetchTypes,
+  };
+}
 
 export function entityListQueryOptions(
   entityType: string,

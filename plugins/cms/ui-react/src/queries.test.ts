@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { QueryObserver, type QueryObserverResult } from "@tanstack/react-query";
 import { mockFetch } from "@brains/test-utils";
-import type { EntityDetail, EntitySummary } from "./api";
+import type { EntityDetail, EntitySummary, EntityTypeInfo } from "./api";
 import { createEditorDocument } from "./editor-document";
 import { createCmsQueryClient } from "./query-client";
 import {
   cmsKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
+  entityTypesQueryOptions,
 } from "./queries";
 
 const originalFetch = globalThis.fetch;
@@ -23,6 +24,16 @@ function entity(title: string): EntitySummary {
 
 function entitiesResponse(entities: EntitySummary[]): Response {
   return Response.json({ entities });
+}
+
+function entityType(entityType: string): EntityTypeInfo {
+  return {
+    entityType,
+    label: entityType === "post" ? "Posts" : "Notes",
+    isSingleton: false,
+    hasBody: true,
+    count: 1,
+  };
 }
 
 function entityDetail(title: string, contentHash: string): EntityDetail {
@@ -55,6 +66,54 @@ function waitForResult<TQueryKey extends readonly unknown[]>(
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+});
+
+describe("CMS entity-types query", () => {
+  it("loads through one stable cache entry", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({ types: [entityType("post")] });
+    });
+    const client = createCmsQueryClient();
+    const options = entityTypesQueryOptions();
+    const observer = new QueryObserver(client, options);
+    const statuses: string[] = [];
+    const unsubscribe = observer.subscribe((result) => {
+      statuses.push(result.status);
+    });
+
+    const initialized = await client.ensureQueryData(options);
+
+    expect(cmsKeys.types()).toEqual(["cms", "types"]);
+    expect(initialized).toEqual([entityType("post")]);
+    expect(statuses).toContain("pending");
+    expect(observer.getCurrentResult().status).toBe("success");
+    expect(requests).toBe(1);
+    unsubscribe();
+    client.clear();
+  });
+
+  it("surfaces a type-list error without retrying", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({ error: "Types unavailable" }, { status: 503 });
+    });
+    const client = createCmsQueryClient();
+
+    let caught: unknown;
+    try {
+      await client.fetchQuery(entityTypesQueryOptions());
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    if (!(caught instanceof Error)) throw caught;
+    expect(caught.message).toBe("Types unavailable");
+    expect(requests).toBe(1);
+    client.clear();
+  });
 });
 
 describe("CMS entity-detail query", () => {

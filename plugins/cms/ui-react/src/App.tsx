@@ -20,7 +20,6 @@ import {
   fetchAgentTargets,
   fetchSchema,
   fetchSyncStatus,
-  fetchTypes,
   requestAgentAnswer,
   requestAssist,
   requestFieldAssist,
@@ -41,6 +40,7 @@ import {
   cmsKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
+  entityTypesQueryOptions,
 } from "./queries";
 
 /** Pick the list-row label for an entity: frontmatter title, else id. */
@@ -1277,7 +1277,6 @@ export function DeleteDialog(props: {
 }
 
 export function App(): ReactElement {
-  const [types, setTypes] = useState<EntityTypeInfo[] | null>(null);
   const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
   const [entityType, setEntityType] = useState<string | null>(null);
   const [schema, setSchema] = useState<TypeSchema | null>(null);
@@ -1299,6 +1298,8 @@ export function App(): ReactElement {
   // Entity id from a console-jump door, opened once its collection loads.
   const pendingDeepLinkId = useRef<string | null>(null);
   const queryClient = useQueryClient();
+  const entityTypesQuery = useQuery(entityTypesQueryOptions());
+  const types = entityTypesQuery.data ?? null;
   const entityListQuery = useQuery({
     ...entityListQueryOptions(entityType ?? ""),
     enabled: entityType !== null,
@@ -1323,29 +1324,28 @@ export function App(): ReactElement {
   }, [deleteOpen, deleting]);
 
   useEffect(() => {
-    fetchTypes()
-      .then((loaded) => {
-        setTypes(loaded);
-        // A console-jump door (#/{type}[/{id}]) overrides the default
-        // starting collection; the id half is honored once entities load.
-        const target = parseCmsHash(window.location.hash);
-        const targeted =
-          target && loaded.some((info) => info.entityType === target.entityType)
-            ? target
-            : null;
-        if (targeted?.id !== undefined) {
-          pendingDeepLinkId.current = targeted.id;
-        }
-        const first = loaded.find((info) => !info.isSingleton) ?? loaded[0];
-        setEntityType(
-          targeted ? targeted.entityType : first ? first.entityType : null,
-        );
-      })
-      .catch((error: unknown) => setLoadError(errorMessage(error)));
-    // No directory-sync installed → null, and the pipeline strip stays off.
+    if (!types) return;
+    // A console-jump door (#/{type}[/{id}]) overrides the default starting
+    // collection; the id half is honored once entities load.
+    const target = parseCmsHash(window.location.hash);
+    const targeted =
+      target && types.some((info) => info.entityType === target.entityType)
+        ? target
+        : null;
+    if (targeted?.id !== undefined) {
+      pendingDeepLinkId.current = targeted.id;
+    }
+    const first = types.find((info) => !info.isSingleton) ?? types[0];
+    setEntityType(
+      targeted ? targeted.entityType : first ? first.entityType : null,
+    );
+  }, [types]);
+
+  useEffect(() => {
     fetchAgentTargets()
       .then(setAgentTargets)
       .catch(() => setAgentTargets([]));
+    // No directory-sync installed → null, and the pipeline strip stays off.
     fetchSyncStatus()
       .then(setSyncStatus)
       .catch(() => setSyncStatus(null));
@@ -1579,11 +1579,15 @@ export function App(): ReactElement {
       .finally(() => setDeleting(false));
   }, [entityType, mode, deleting, queryClient]);
 
-  if (loadError) {
+  const visibleLoadError =
+    loadError ??
+    (entityTypesQuery.error ? errorMessage(entityTypesQuery.error) : null);
+
+  if (visibleLoadError) {
     return (
       <div className="studio">
         <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
-        <p className="status status-error boot-status">{loadError}</p>
+        <p className="status status-error boot-status">{visibleLoadError}</p>
       </div>
     );
   }
