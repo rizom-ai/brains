@@ -10,6 +10,7 @@ import type { JudgeInput, PluginRegistrationContext } from "../interfaces";
 import type { AppInfo } from "../contracts/app-info";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
+import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
@@ -175,6 +176,9 @@ export interface BasePluginContext {
   /** Disposable, secret-free operational state namespace. */
   readonly runtimeState: IRuntimeStateNamespace;
 
+  /** Shell-owned recurring checks registered by this plugin. */
+  readonly recurringChecks: IRecurringChecksNamespace;
+
   // ============================================================================
   // Conversations (Read-Only)
   // ============================================================================
@@ -279,6 +283,7 @@ export function createBasePluginContext(
     uploads,
 
     runtimeState,
+    recurringChecks: shell.getRecurringChecks(pluginId),
 
     conversations: createConversationsNamespace(shell),
 

@@ -6,11 +6,19 @@ import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
+  NOTIFICATIONS_SEND,
+  sendNotificationResultSchema,
+  type SendNotificationInput,
+  type SendNotificationResult,
+} from "@brains/notification-contracts";
+import {
   AttachmentRegistry,
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
+import { RecurringCheckService } from "@brains/recurring-checks";
 import { RuntimeStateService } from "@brains/runtime-state";
+import { CronerBackend } from "@brains/scheduler";
 import {
   PermissionService,
   RenderService,
@@ -97,6 +105,48 @@ export function createShellServices(options: {
   } = jobServices;
   lifecycle.addSyncFinalizer(() => jobServices.closeDatabase());
   lifecycle.addSyncFinalizer(() => jobServices.rollbackRuntime());
+
+  const recurringCheckService =
+    dependencies?.recurringCheckService ??
+    new RecurringCheckService({
+      brainId: config.siteBaseUrl ?? config.dataDir,
+      scheduler: new CronerBackend(),
+      runtimeState: runtimeStateService,
+      jobQueue: jobQueueService,
+      logger,
+      delivery: {
+        deliver: async (alert): Promise<void> => {
+          const response = await messageBus.send<
+            SendNotificationInput,
+            SendNotificationResult
+          >({
+            type: NOTIFICATIONS_SEND,
+            payload: {
+              title: alert.title,
+              body: alert.body,
+              ...(alert.html ? { html: alert.html } : {}),
+            },
+            sender: "shell.recurring-checks",
+          });
+          if (!("success" in response) || !response.success || !response.data) {
+            throw new Error("Recurring alert delivery failed");
+          }
+          const result = sendNotificationResultSchema.safeParse(response.data);
+          if (!result.success || result.data.status !== "sent") {
+            throw new Error("Recurring alert delivery failed");
+          }
+        },
+      },
+    });
+  const recurringDaemonName = "shell:recurring-checks";
+  daemonRegistry.register(
+    recurringDaemonName,
+    {
+      start: () => recurringCheckService.start(),
+      stop: () => recurringCheckService.stop(),
+    },
+    "shell",
+  );
 
   const entityService = EntityService.getInstance({
     embeddingService,
@@ -185,5 +235,6 @@ export function createShellServices(options: {
     attachmentRegistry,
     runtimeUploadRegistry,
     runtimeStateService,
+    recurringCheckService,
   };
 }

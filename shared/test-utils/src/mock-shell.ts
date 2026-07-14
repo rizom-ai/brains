@@ -729,6 +729,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getRuntimeUploadRegistry: () =>
       createRuntimeUploadsNamespace(runtimeUploadRegistry),
     getRuntimeState: () => runtimeState,
+    getRecurringChecks: () => ({ register: () => () => {} }),
     getConversationService: () => conversationService,
     getMCPService: () =>
       ({

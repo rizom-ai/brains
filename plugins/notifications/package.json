@@ -4,6 +4,7 @@
   "description": "Generic notification routing for transactional and administrative messages",
   "dependencies": {
     "@brains/email-contracts": "workspace:*",
+    "@brains/notification-contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },
