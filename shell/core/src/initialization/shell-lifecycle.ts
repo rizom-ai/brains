@@ -1,4 +1,4 @@
-import { Effect, Exit, Scope } from "@brains/effect-runtime";
+import { Effect, Exit, Scope } from "@brains/utils/effect";
 import { runEffectPromise } from "../effect-runtime";
 
 /**

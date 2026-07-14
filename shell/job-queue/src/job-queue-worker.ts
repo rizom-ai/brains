@@ -16,8 +16,8 @@ import {
   FiberMap,
   Schedule,
   Scope,
-} from "@brains/effect-runtime";
-import type { Clock } from "@brains/effect-runtime";
+} from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
 
 interface JobQueueWorkerRuntimeOptions {
   /** Internal clock boundary used for deterministic polling tests. */

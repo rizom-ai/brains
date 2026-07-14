@@ -18,7 +18,7 @@ import type {
   IJobProgressMonitor,
   ProgressReporter,
 } from "@brains/utils/progress";
-import { Context, Effect, Exit, Layer, Scope } from "@brains/effect-runtime";
+import { Context, Effect, Exit, Layer, Scope } from "@brains/utils/effect";
 import type { IJobQueueWorker, JobQueueWorkerStats } from "../src/types";
 
 const logger = createSilentLogger("job-queue-effect-layer-test");

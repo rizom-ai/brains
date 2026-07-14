@@ -8,8 +8,8 @@ import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
-import { Effect } from "@brains/effect-runtime";
-import { TestClock, TestContext } from "@brains/effect-runtime/test";
+import { Effect } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
 
 const defaultBatchOptions: JobOptions = {
   source: "test:batch-manager",

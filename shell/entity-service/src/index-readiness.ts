@@ -1,4 +1,4 @@
-import { Effect, Schedule } from "@brains/effect-runtime";
+import { Effect, Schedule } from "@brains/utils/effect";
 import type { IndexReadinessStatus } from "./types";
 
 interface IndexReadinessPollingOptions {

@@ -115,8 +115,7 @@
     "@brains/sveltia-cms": "0.2.0-alpha.141",
     "@brains/console-theme": "0.2.0-alpha.143",
     "@rizom/site-sections": "0.2.0-alpha.159",
-    "@rizom/theme-rizom-ai": "0.2.0-alpha.141",
-    "@brains/effect-runtime": "0.2.0-alpha.158"
+    "@rizom/theme-rizom-ai": "0.2.0-alpha.141"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",

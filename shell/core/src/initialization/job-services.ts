@@ -23,7 +23,7 @@ import {
   Exit,
   Layer,
   Scope,
-} from "@brains/effect-runtime";
+} from "@brains/utils/effect";
 import { runEffectPromise } from "../effect-runtime";
 import type { ShellDependencies } from "../types/shell-types";
 

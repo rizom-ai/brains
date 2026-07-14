@@ -4,8 +4,8 @@ import { Logger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
 import { resolveStandardConfig } from "./standard-paths";
-import { Effect, Exit, Scope } from "@brains/effect-runtime";
-import type { Fiber } from "@brains/effect-runtime";
+import { Effect, Exit, Scope } from "@brains/utils/effect";
+import type { Fiber } from "@brains/utils/effect";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];

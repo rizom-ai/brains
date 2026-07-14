@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed cleanup, companion to the directory-sync Effect lifecycle plan. Same hard prerequisite: `work/effect-shell-lifecycle` must be rebased onto main and available (stacked on, or merged), because all conversions import through the canonical private `@brains/effect-runtime` boundary and reuse its patterns. Execute after or alongside the directory-sync plan — they share the prerequisite and the same boundary rules.
+Proposed cleanup, companion to the directory-sync Effect lifecycle plan. Same hard prerequisite: `work/effect-shell-lifecycle` must be rebased onto main and available (stacked on, or merged), because all conversions import through the canonical private `@brains/utils/effect` boundary and reuse its patterns. Execute after or alongside the directory-sync plan — they share the prerequisite and the same boundary rules.
 
 Scope was set by a repo-wide sweep. Explicitly excluded:
 
@@ -13,7 +13,7 @@ Scope was set by a repo-wide sweep. Explicitly excluded:
 
 Give each package explicit ownership of its background work: scheduled cycles, streaming turns, and browser processes must be supervised, drain or cancel on shutdown according to an explicit policy, and never outlive their owner silently.
 
-Public contracts stay Promise-based. Cancellation crosses package boundaries only as `AbortSignal`; Effect remains an internal control-plane detail. Same boundary rules as the directory-sync plan: import only through `@brains/effect-runtime`, never expose Effect, Scope, Fiber, Layer, Clock, or Cause from package exports, no Effect Schema or Layer.
+Public contracts stay Promise-based. Cancellation crosses package boundaries only as `AbortSignal`; Effect remains an internal control-plane detail. Same boundary rules as the directory-sync plan: import only through `@brains/utils/effect`, never expose Effect, Scope, Fiber, Layer, Clock, or Cause from package exports, no Effect Schema or Layer.
 
 ## Why these packages
 
@@ -85,7 +85,7 @@ Each phase is a complete vertical slice — characterization tests first, conver
 ### Phase 1 — content-pipeline
 
 1. Characterization tests: an in-flight publish cycle continues after `stop()` returns; same-key cron firings can overlap; `resetInstance()` does not settle work.
-2. Add `@brains/effect-runtime`; convert `CronerBackend` to keyed supervised fibers with non-overlap and draining `stop()`; make `ScheduledJob.stop()` async through `ContentScheduler` and both runners; fix `resetInstance()`.
+2. Use `@brains/utils/effect`; convert `CronerBackend` to keyed supervised fibers with non-overlap and draining `stop()`; make `ScheduledJob.stop()` async through `ContentScheduler` and both runners; fix `resetInstance()`.
 3. New timing tests (interval cadence, non-overlap skip, drain-on-stop) use `TestClock`; existing `TestSchedulerBackend`-based tests keep passing unmodified except for async `stop()`.
 
 ### Phase 2 — a2a
@@ -107,7 +107,7 @@ Per phase:
 
 - `cd <package> && bun run typecheck && bun test`
 - `bun scripts/lint.mjs --force --filter <package>` from the repo root (per-package eslint dies under TS7)
-- repository dependency-boundary and declaration-leak checks after adding `@brains/effect-runtime`; generated declarations contain no Effect types
+- repository dependency-boundary and declaration-leak checks for `@brains/utils/effect`; generated declarations contain no Effect types
 
 Behavioral gates:
 

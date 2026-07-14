@@ -18,8 +18,8 @@ import {
   FiberMap,
   Option,
   Scope,
-} from "@brains/effect-runtime";
-import type { Clock } from "@brains/effect-runtime";
+} from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
 
 const DEFAULT_MAX_OPERATIONS_PER_CONVERSATION = 10;
 

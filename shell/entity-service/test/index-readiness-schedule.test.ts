@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { Cause, Effect, Exit, Fiber } from "@brains/effect-runtime";
-import { TestClock, TestContext } from "@brains/effect-runtime/test";
+import { Cause, Effect, Exit, Fiber } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
 import { makeIndexReadinessPollingEffect } from "../src/index-readiness";
 import type { IndexReadinessStatus } from "../src/types";
 

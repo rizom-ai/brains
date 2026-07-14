@@ -23,9 +23,9 @@ import type {
   IJobProgressMonitor,
   ProgressReporter,
 } from "@brains/utils/progress";
-import { Effect } from "@brains/effect-runtime";
-import type { Clock } from "@brains/effect-runtime";
-import { TestClock, TestContext } from "@brains/effect-runtime/test";
+import { Effect } from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
 
 const mockProgressReporter = createMockProgressReporter();
 

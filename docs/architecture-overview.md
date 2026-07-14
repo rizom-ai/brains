@@ -36,7 +36,7 @@ The boundary is intentionally narrow:
 - Wrapping a Promise does not make its underlying operation cancellable. Cancellation-sensitive adapters must consume the signal supplied by Effect.
 - Persistent jobs drain gracefully by default so interruption cannot abandon a claimed queue row.
 
-This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages. Shell packages import the curated private `@brains/effect-runtime` boundary rather than depending on Effect independently; deterministic test services use the boundary's `/test` subpath.
+This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages. Workspace packages import the curated private `@brains/utils/effect` subpath rather than depending on Effect independently; deterministic test services use `@brains/utils/effect/test`.
 
 ### Layer adoption
 

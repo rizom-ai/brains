@@ -9,8 +9,8 @@ import {
   FiberSet,
   Schedule,
   Scope,
-} from "@brains/effect-runtime";
-import type { Clock } from "@brains/effect-runtime";
+} from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
 
 const TERMINAL_BATCH_RETENTION_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;

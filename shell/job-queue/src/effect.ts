@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, Exit, Layer } from "@brains/effect-runtime";
+import { Cause, Context, Effect, Exit, Layer } from "@brains/utils/effect";
 import type { MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";

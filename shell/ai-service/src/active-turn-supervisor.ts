@@ -5,7 +5,7 @@ import {
   Fiber,
   FiberSet,
   Scope,
-} from "@brains/effect-runtime";
+} from "@brains/utils/effect";
 
 interface TurnSupervisorRuntime {
   scope: Scope.CloseableScope;

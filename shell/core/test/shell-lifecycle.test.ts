@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { Effect, Exit } from "@brains/effect-runtime";
+import { Effect, Exit } from "@brains/utils/effect";
 import { ShellLifecycle } from "../src/initialization/shell-lifecycle";
 
 describe("ShellLifecycle", () => {

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed cleanup. The dependency on `work/effect-shell-lifecycle` is hard, not optional: the package must use the canonical private `@brains/effect-runtime` boundary, and the shutdown design relies on that branch's lifecycle guarantees — `onShutdown()` after registration failure and plugin disable, plus the per-plugin resource scope that owns subscriptions and job registrations. (`onReady()` itself already exists on main's `BasePlugin`.) Stack this work on that branch, or start after it merges.
+Proposed cleanup. The dependency on `work/effect-shell-lifecycle` is hard, not optional: the package must use the canonical private `@brains/utils/effect` boundary, and the shutdown design relies on that branch's lifecycle guarantees — `onShutdown()` after registration failure and plugin disable, plus the per-plugin resource scope that owns subscriptions and job registrations. (`onReady()` itself already exists on main's `BasePlugin`.) Stack this work on that branch, or start after it merges.
 
 The worktree is currently 79 commits behind main (its directory-sync copy is at alpha.158, missing the seed-bootstrap `.git`-filter work). Rebasing it onto current main is part of the prerequisite and happens before Phase 1.
 
@@ -30,13 +30,13 @@ Characterize watcher startup before changing it. Plugin registration currently c
 
 Follow the patterns established in `work/effect-shell-lifecycle`:
 
-- Import only through `@brains/effect-runtime`, never from `effect` directly.
+- Import only through `@brains/utils/effect`, never from `effect` directly.
 - Public APIs stay Promise-based and accept optional `AbortSignal` at cancellation boundaries.
 - `Effect.tryPromise` supplies an `AbortSignal` to its `try` callback. Fiber interruption aborts that signal, but only a Promise adapter that consumes it is actually canceled.
 - `Effect.runPromiseExit(effect, { signal })` links caller cancellation to an Effect. If the caller signal wins, rethrow `signal.reason` to preserve abort reason identity.
 - Use `AbortSignal.any` when both lifecycle and caller signals exist.
 - Use scoped `FiberSet`/`FiberMap` ownership for active and replaceable work, with idempotent scope closure.
-- Inject `Clock` internally and use `Effect.withClock` plus `@brains/effect-runtime/test`'s `TestClock` instead of test sleeps.
+- Inject `Clock` internally and use `Effect.withClock` plus `@brains/utils/effect/test`'s `TestClock` instead of test sleeps.
 - Durable claimed jobs drain during worker shutdown. Do not interrupt them from the plugin scope.
 
 The concrete references are `ActiveTurnSupervisor`, `RemoteAgentService`, `KeyedCleanupSupervisor`, index-readiness polling, and the job worker's interrupt-poll-then-drain policy.
@@ -146,7 +146,7 @@ Register subscriptions and handlers only once; callbacks resolve the active gene
 
 ### Phase 1 — Runtime and watcher ownership
 
-1. Add `@brains/effect-runtime` as a workspace dependency.
+1. Use the existing `@brains/utils/effect` workspace boundary.
 2. Add the private scope and Promise boundary helper that does not leak `FiberFailure`.
 3. Make `FileWatcher.stop()` asynchronous: reject new events during stop, await Chokidar's close, and settle an already-fired `processPendingChanges()` (timeout and pending-map clearing already exist).
 4. Start and close the watcher through the runtime scope.
@@ -184,7 +184,7 @@ Run:
 - `cd plugins/directory-sync && bun run typecheck`
 - `cd plugins/directory-sync && bun test`
 - `bun scripts/lint.mjs --force --filter directory-sync` from the repo root (per-package eslint dies under TS7)
-- repository dependency-boundary and declaration-leak checks after adding `@brains/effect-runtime`
+- repository dependency-boundary and declaration-leak checks for `@brains/utils/effect`
 
 Behavioral gates:
 

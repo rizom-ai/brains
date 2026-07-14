@@ -2,6 +2,7 @@
   "name": "@brains/utils",
   "version": "0.2.0-alpha.178",
   "dependencies": {
+    "effect": "^3.21.4",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.2.0",
     "mdast-util-to-string": "^4.0.0",
@@ -24,6 +25,8 @@
     "./chunk-message": "./src/chunk-message.ts",
     "./date": "./src/date.ts",
     "./debounce": "./src/debounce.ts",
+    "./effect": "./src/effect.ts",
+    "./effect/test": "./src/effect-test.ts",
     "./env-schema": "./src/env-schema.ts",
     "./error": "./src/error.ts",
     "./fetch-like": "./src/fetch-like.ts",

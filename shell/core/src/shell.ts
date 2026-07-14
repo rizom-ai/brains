@@ -95,7 +95,7 @@ import { registerShellRuntimeFinalizers } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
 import { ShellLifecycle } from "./initialization/shell-lifecycle";
-import { Exit } from "@brains/effect-runtime";
+import { Exit } from "@brains/utils/effect";
 
 export type { ShellDependencies };
 

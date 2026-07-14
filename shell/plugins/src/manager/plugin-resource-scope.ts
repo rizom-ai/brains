@@ -1,6 +1,6 @@
 import type { IMessageBus, MessageHandler } from "@brains/messaging-service";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
-import { Cause, Effect, Exit, Scope } from "@brains/effect-runtime";
+import { Cause, Effect, Exit, Scope } from "@brains/utils/effect";
 import type { IShell } from "../interfaces";
 
 /** Internal resource scope for one plugin registration. */

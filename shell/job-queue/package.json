@@ -3,7 +3,6 @@
   "version": "0.2.0-alpha.178",
   "dependencies": {
     "@brains/contracts": "workspace:*",
-    "@brains/effect-runtime": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",

@@ -1,5 +1,5 @@
-// Canonical internal Effect boundary. Keep exports curated so shell packages do
-// not depend on Effect's broad root surface independently.
+// Canonical internal Effect boundary. Keep exports curated so workspace packages
+// do not depend on Effect's broad root surface independently.
 export {
   Cause,
   Context,
