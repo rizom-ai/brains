@@ -239,6 +239,7 @@
     "ops-required-images",
     "ops-resolve-missing-images",
     "ops-template-pipeline-sync",
+    "ops-template-script-drift",
     "ops-verify-user-command",
     "ops-verify-user-followups",
     "ops-workflow-race-reconcile",

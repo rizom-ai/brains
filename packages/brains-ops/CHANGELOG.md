@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.178
+
+### Patch Changes
+
+- [`b1c4afb`](https://github.com/rizom-ai/brains/commit/b1c4afbe9e1616fb70c99851e76d4a2962cb417e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reconcile the rover-pilot scaffold's deploy scripts with the running pilot pipeline so `brains-ops init` produces what actually deploys. Four scripts adopt live's current form: secret masking + CMS_CONTENT_REPO_PAT in decrypt-user-secrets, the BWS bootstrap token excluded from user-secret validation, the reconcile-aware deploy-handle matcher that keys off users/<h>/brain.yaml (and .env/content/.secrets) rather than the raw registry file, and the main()-wrapped sync-content-repo. (provision-server stays on its plain-access form: live's `?.` optional chaining is redundant under the ops types and functionally identical.) update-dns keeps its richer CNAME-migration form — a strict superset that lets a deploy claim a domain currently held by a CNAME (needed for the rizom.* cutover) — and that version is adopted into the live pilot too. The scaffold retains the per-user ATProto app-password wiring (now via the masked writeSecretGitHubEnv path): outbound publishing is implemented and rizom.ai is its flagship, so this is about-to-be-needed capability the live deploy will wire when publishing is switched on. Init's ATProto staleness detector and the init tests are updated to the new script forms.
+
 ## 0.2.0-alpha.177
 
 ## 0.2.0-alpha.176
