@@ -138,7 +138,7 @@ function isStaleDecryptUserSecretsScript(
   if (current.includes("ATPROTO_APP_PASSWORD")) return false;
 
   const legacyTemplate = template.replace(
-    'writeGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"] ?? "");\n',
+    'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"]);\n',
     "",
   );
 
