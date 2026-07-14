@@ -19,7 +19,6 @@ import {
   requestAgentAnswer,
   requestAssist,
   requestFieldAssist,
-  uploadFile,
   type AgentTarget,
   type EntityDetail,
   type EntitySummary,
@@ -29,7 +28,12 @@ import {
   type GitSyncState,
 } from "./api";
 import { createEditorDocument } from "./editor-document";
-import { removeEntity, saveEntity, type SaveEntityInput } from "./mutations";
+import {
+  removeEntity,
+  saveEntity,
+  uploadImage,
+  type SaveEntityInput,
+} from "./mutations";
 import {
   agentTargetsQueryOptions,
   cmsKeys,
@@ -37,6 +41,7 @@ import {
   entityListQueryOptions,
   entitySchemaQueryOptions,
   entityTypesQueryOptions,
+  invalidateAfterUpload,
   syncStatusQueryOptions,
 } from "./queries";
 
@@ -877,11 +882,8 @@ function ImageField(props: {
   onChange: (raw: string) => void;
 }): ReactElement {
   const { descriptor, value, onChange } = props;
-  const [uploadState, setUploadState] = useState<
-    | { kind: "idle" }
-    | { kind: "uploading" }
-    | { kind: "error"; message: string }
-  >({ kind: "idle" });
+  const queryClient = useQueryClient();
+  const uploadMutation = useMutation({ mutationFn: uploadImage });
   const current = typeof value === "string" && value.length > 0 ? value : null;
 
   return (
@@ -910,25 +912,20 @@ function ImageField(props: {
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
             if (!file) return;
-            setUploadState({ kind: "uploading" });
-            uploadFile(file)
-              .then((result) => {
-                setUploadState({ kind: "idle" });
+            uploadMutation.mutate(file, {
+              onSuccess: (result) => {
                 onChange(result.entityId);
-              })
-              .catch((error: unknown) =>
-                setUploadState({
-                  kind: "error",
-                  message:
-                    error instanceof Error ? error.message : String(error),
-                }),
-              );
+                void invalidateAfterUpload(queryClient);
+              },
+            });
           }}
         />
       </label>
-      {uploadState.kind === "uploading" && <p className="status">Uploading…</p>}
-      {uploadState.kind === "error" && (
-        <p className="status status-error">{uploadState.message}</p>
+      {uploadMutation.isPending && <p className="status">Uploading…</p>}
+      {uploadMutation.error && (
+        <p className="status status-error">
+          {errorMessage(uploadMutation.error)}
+        </p>
       )}
     </div>
   );

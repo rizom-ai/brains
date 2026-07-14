@@ -17,6 +17,7 @@ import {
   entityListQueryOptions,
   entitySchemaQueryOptions,
   entityTypesQueryOptions,
+  invalidateAfterUpload,
   syncStatusQueryOptions,
 } from "./queries";
 
@@ -145,6 +146,30 @@ describe("CMS entity-types query", () => {
     if (!(caught instanceof Error)) throw caught;
     expect(caught.message).toBe("Types unavailable");
     expect(requests).toBe(1);
+    client.clear();
+  });
+});
+
+describe("CMS upload invalidation", () => {
+  it("invalidates only image entities, type counts, and sync status", async () => {
+    const client = createCmsQueryClient();
+    client.setQueryData(cmsKeys.entities("image"), []);
+    client.setQueryData(cmsKeys.entities("post"), []);
+    client.setQueryData(cmsKeys.types(), [entityType("image")]);
+    client.setQueryData(cmsKeys.syncStatus(), syncStatus("abc123"));
+
+    await invalidateAfterUpload(client);
+
+    expect(client.getQueryState(cmsKeys.entities("image"))?.isInvalidated).toBe(
+      true,
+    );
+    expect(client.getQueryState(cmsKeys.types())?.isInvalidated).toBe(true);
+    expect(client.getQueryState(cmsKeys.syncStatus())?.isInvalidated).toBe(
+      true,
+    );
+    expect(client.getQueryState(cmsKeys.entities("post"))?.isInvalidated).toBe(
+      false,
+    );
     client.clear();
   });
 });

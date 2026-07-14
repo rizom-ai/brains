@@ -1,4 +1,4 @@
-import type { UseQueryOptions } from "@tanstack/react-query";
+import type { QueryClient, UseQueryOptions } from "@tanstack/react-query";
 import {
   fetchAgentTargets,
   fetchEntities,
@@ -54,6 +54,16 @@ export function entityTypesQueryOptions(): UseQueryOptions<
     queryKey: cmsKeys.types(),
     queryFn: fetchTypes,
   };
+}
+
+export async function invalidateAfterUpload(
+  queryClient: QueryClient,
+): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: cmsKeys.entities("image") }),
+    queryClient.invalidateQueries({ queryKey: cmsKeys.types() }),
+    queryClient.invalidateQueries({ queryKey: cmsKeys.syncStatus() }),
+  ]);
 }
 
 export function agentTargetsQueryOptions(): UseQueryOptions<

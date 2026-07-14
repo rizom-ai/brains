@@ -1,4 +1,4 @@
-import { createEntity, deleteEntity, updateEntity } from "./api";
+import { createEntity, deleteEntity, updateEntity, uploadFile } from "./api";
 
 export type SaveEntityInput =
   | {
@@ -21,10 +21,19 @@ export interface DeleteEntityInput {
   id: string;
 }
 
+export interface UploadImageResult {
+  entityId: string;
+  jobId?: string;
+}
+
 export interface SaveEntityResult {
   entityId: string;
   jobId: string;
   skipped?: boolean;
+}
+
+export function uploadImage(file: File): Promise<UploadImageResult> {
+  return uploadFile(file);
 }
 
 export function removeEntity(

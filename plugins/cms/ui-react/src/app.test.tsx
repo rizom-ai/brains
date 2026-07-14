@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
@@ -27,6 +28,7 @@ import {
   typeHasPublicationField,
   TypeSwitcher,
 } from "./App";
+import { createCmsQueryClient } from "./query-client";
 import type {
   AgentTarget,
   EntityTypeInfo,
@@ -120,8 +122,13 @@ describe("editor surface styles", () => {
 });
 
 function renderField(descriptor: FieldDescriptor, value: unknown): string {
+  const client = createCmsQueryClient();
   return renderToStaticMarkup(
-    createElement(Field, { descriptor, value, onChange: () => {} }),
+    createElement(
+      QueryClientProvider,
+      { client },
+      createElement(Field, { descriptor, value, onChange: () => {} }),
+    ),
   );
 }
 

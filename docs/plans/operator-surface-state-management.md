@@ -5,8 +5,8 @@
 **Active on `work/operator-surface-state-management`.** Dashboard, CMS, and web-chat
 currently have intentionally separate runtimes and no shared client-state library. The
 CMS entity, type, schema, sync-status, and agent-target reads now use the package-local
-query cache; saves and deletes use mutation hooks behind an explicit draft boundary. Upload
-migration and authenticated behavior gates remain before CMS workflow decomposition. This plan standardizes how state is classified and
+query cache; saves, deletes, and image uploads use mutation hooks behind an explicit draft
+boundary. The authenticated CMS behavior gate remains before workflow decomposition. This plan standardizes how state is classified and
 managed without forcing the three surfaces into one browser store or one application.
 
 The optional publishing UI described in

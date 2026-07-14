@@ -1,11 +1,38 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { mockFetch } from "@brains/test-utils";
-import { removeEntity, saveEntity } from "./mutations";
+import { removeEntity, saveEntity, uploadImage } from "./mutations";
 
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+});
+
+describe("CMS upload mutation", () => {
+  it("posts the selected file once as multipart form data", async () => {
+    let requests = 0;
+    let method: string | undefined;
+    let body: BodyInit | null | undefined;
+    mockFetch(async (_url, options) => {
+      requests += 1;
+      method = options.method;
+      body = options.body;
+      return Response.json({ entityId: "image-cover", jobId: "job-upload" });
+    });
+    const file = new File(["pixels"], "cover.png", { type: "image/png" });
+
+    const result = await uploadImage(file);
+
+    if (!(body instanceof FormData)) throw new Error("Expected FormData body");
+    const uploaded = body.get("file");
+    if (!(uploaded instanceof File)) throw new Error("Expected uploaded file");
+    expect(method).toBe("POST");
+    expect(uploaded.name).toBe("cover.png");
+    expect(uploaded.type).toBe("image/png");
+    expect(await uploaded.text()).toBe("pixels");
+    expect(result).toEqual({ entityId: "image-cover", jobId: "job-upload" });
+    expect(requests).toBe(1);
+  });
 });
 
 describe("CMS delete mutation", () => {
