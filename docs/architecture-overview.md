@@ -52,6 +52,12 @@ Future layers must meet the same criteria:
 4. replace the corresponding shell singleton resets and manual service finalizers; and
 5. support test implementations through the existing dependency boundary.
 
+### Runtime impact
+
+The completed Effect hardening was measured against its pre-adoption merge base (`699aa9973`) using Bun 1.3.11. The bundled CLI grew from 7,510,645 to 7,795,390 bytes (+3.8%), or from 2,087,731 to 2,183,273 gzip bytes (+4.6%). The packed `@rizom/brain` artifact grew from 16,477,259 to 17,454,522 bytes (+5.9%), primarily because the plugin and site bundles and their source maps each contain their required runtime code.
+
+Thirty interleaved fresh-process `brain --version` samples showed a median startup change from 430.5 ms to 434.5 ms (+4.0 ms, +0.9%) with a warm filesystem cache. Effect therefore has measurable distribution-size cost but no material process-startup regression in this benchmark. Keep Effect internal and scoped to lifecycle/concurrency boundaries so future growth remains attributable to concrete runtime benefits.
+
 ## Workspace structure
 
 The monorepo is organized into these main categories:
