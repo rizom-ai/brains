@@ -18,7 +18,6 @@ import {
   ApiError,
   deleteEntity,
   fetchAgentTargets,
-  fetchSchema,
   fetchSyncStatus,
   requestAgentAnswer,
   requestAssist,
@@ -32,7 +31,6 @@ import {
   type FieldDescriptor,
   type GitSyncState,
   type SyncStatus,
-  type TypeSchema,
 } from "./api";
 import { createEditorDocument } from "./editor-document";
 import { saveEntity, type SaveEntityInput } from "./mutations";
@@ -40,6 +38,7 @@ import {
   cmsKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
+  entitySchemaQueryOptions,
   entityTypesQueryOptions,
 } from "./queries";
 
@@ -1279,7 +1278,6 @@ export function DeleteDialog(props: {
 export function App(): ReactElement {
   const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
   const [entityType, setEntityType] = useState<string | null>(null);
-  const [schema, setSchema] = useState<TypeSchema | null>(null);
   const [mode, setMode] = useState<EditorMode>({ kind: "browse" });
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [body, setBody] = useState<string>("");
@@ -1305,6 +1303,11 @@ export function App(): ReactElement {
     enabled: entityType !== null,
   });
   const entities = entityType ? (entityListQuery.data ?? null) : null;
+  const entitySchemaQuery = useQuery({
+    ...entitySchemaQueryOptions(entityType ?? ""),
+    enabled: entityType !== null,
+  });
+  const schema = entityType ? (entitySchemaQuery.data ?? null) : null;
   const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
   useQuery({
     ...entityDetailQueryOptions(entityType ?? "", activeEntityId ?? ""),
@@ -1377,13 +1380,16 @@ export function App(): ReactElement {
     setMobilePane("details");
     setSaveState({ kind: "idle" });
     setFieldAssistState({ kind: "idle" });
-    setSchema(null);
+    let active = true;
     Promise.all([
-      fetchSchema(entityType),
+      queryClient.fetchQuery({
+        ...entitySchemaQueryOptions(entityType),
+        staleTime: 0,
+      }),
       queryClient.ensureQueryData(entityListQueryOptions(entityType)),
     ])
       .then(([loadedSchema, loadedEntities]) => {
-        setSchema(loadedSchema);
+        if (!active) return undefined;
         const deepLinkId = pendingDeepLinkId.current;
         if (deepLinkId !== null) {
           pendingDeepLinkId.current = null;
@@ -1394,6 +1400,7 @@ export function App(): ReactElement {
                 staleTime: 0,
               })
               .then((entity) => {
+                if (!active) return;
                 const document = createEditorDocument(entity);
                 setMode({ kind: "edit", entity: document.entity });
                 setDraft(document.draft);
@@ -1411,6 +1418,7 @@ export function App(): ReactElement {
                 staleTime: 0,
               })
               .then((entity) => {
+                if (!active) return;
                 const document = createEditorDocument(entity);
                 setMode({ kind: "edit", entity: document.entity });
                 setDraft(document.draft);
@@ -1423,7 +1431,12 @@ export function App(): ReactElement {
         }
         return undefined;
       })
-      .catch((error: unknown) => setLoadError(errorMessage(error)));
+      .catch((error: unknown) => {
+        if (active) setLoadError(errorMessage(error));
+      });
+    return (): void => {
+      active = false;
+    };
   }, [entityType, queryClient]);
 
   const openEntity = useCallback(

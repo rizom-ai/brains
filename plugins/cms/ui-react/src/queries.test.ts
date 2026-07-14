@@ -1,13 +1,19 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { QueryObserver, type QueryObserverResult } from "@tanstack/react-query";
 import { mockFetch } from "@brains/test-utils";
-import type { EntityDetail, EntitySummary, EntityTypeInfo } from "./api";
+import type {
+  EntityDetail,
+  EntitySummary,
+  EntityTypeInfo,
+  TypeSchema,
+} from "./api";
 import { createEditorDocument } from "./editor-document";
 import { createCmsQueryClient } from "./query-client";
 import {
   cmsKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
+  entitySchemaQueryOptions,
   entityTypesQueryOptions,
 } from "./queries";
 
@@ -33,6 +39,16 @@ function entityType(entityType: string): EntityTypeInfo {
     isSingleton: false,
     hasBody: true,
     count: 1,
+  };
+}
+
+function entitySchema(entityType: string): TypeSchema {
+  return {
+    entityType,
+    format: "frontmatter",
+    isSingleton: false,
+    hasBody: true,
+    fields: [{ name: "title", label: "Title", widget: "string" }],
   };
 }
 
@@ -112,6 +128,36 @@ describe("CMS entity-types query", () => {
     if (!(caught instanceof Error)) throw caught;
     expect(caught.message).toBe("Types unavailable");
     expect(requests).toBe(1);
+    client.clear();
+  });
+});
+
+describe("CMS entity-schema query", () => {
+  it("scopes schemas by type and avoids a duplicate observer request", async () => {
+    const requestedUrls: string[] = [];
+    mockFetch(async (url) => {
+      requestedUrls.push(url);
+      const type = new URL(url, "https://cms.test").searchParams.get("type");
+      return Response.json(entitySchema(type ?? "unknown"));
+    });
+    const client = createCmsQueryClient();
+    const postOptions = entitySchemaQueryOptions("post");
+
+    await client.fetchQuery({ ...postOptions, staleTime: 0 });
+    const observer = new QueryObserver(client, postOptions);
+    const unsubscribe = observer.subscribe(() => {});
+    await client.fetchQuery({
+      ...entitySchemaQueryOptions("note"),
+      staleTime: 0,
+    });
+
+    expect(cmsKeys.schema("post")).toEqual(["cms", "schema", "post"]);
+    expect(observer.getCurrentResult().data?.entityType).toBe("post");
+    expect(requestedUrls).toEqual([
+      "/cms/api/schema?type=post",
+      "/cms/api/schema?type=note",
+    ]);
+    unsubscribe();
     client.clear();
   });
 });

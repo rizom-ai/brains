@@ -2,19 +2,27 @@ import type { UseQueryOptions } from "@tanstack/react-query";
 import {
   fetchEntities,
   fetchEntity,
+  fetchSchema,
   fetchTypes,
   type EntityDetail,
   type EntitySummary,
   type EntityTypeInfo,
+  type TypeSchema,
 } from "./api";
 
 export type EntityTypesQueryKey = readonly ["cms", "types"];
+export type EntitySchemaQueryKey = readonly ["cms", "schema", string];
 export type EntityListQueryKey = readonly ["cms", "entities", string];
 export type EntityDetailQueryKey = readonly ["cms", "entity", string, string];
 
 export const cmsKeys = {
   all: ["cms"] as const,
   types: (): EntityTypesQueryKey => ["cms", "types"],
+  schema: (entityType: string): EntitySchemaQueryKey => [
+    "cms",
+    "schema",
+    entityType,
+  ],
   entities: (entityType: string): EntityListQueryKey => [
     "cms",
     "entities",
@@ -37,6 +45,18 @@ export function entityTypesQueryOptions(): UseQueryOptions<
   return {
     queryKey: cmsKeys.types(),
     queryFn: fetchTypes,
+  };
+}
+
+export function entitySchemaQueryOptions(
+  entityType: string,
+): UseQueryOptions<TypeSchema, Error, TypeSchema, EntitySchemaQueryKey> {
+  return {
+    queryKey: cmsKeys.schema(entityType),
+    queryFn: () => fetchSchema(entityType),
+    // Collection switching explicitly refreshes schemas. Its mounted observer
+    // must share that request rather than immediately issuing another.
+    staleTime: Number.POSITIVE_INFINITY,
   };
 }
 
