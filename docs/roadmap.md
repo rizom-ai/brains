@@ -44,7 +44,7 @@ Priority is explicit; an existing worktree does not automatically outrank releas
 | **P1**   | Real runtime identity boundary     | Finish `feature/auth-runtime-db` as one database-backed source of truth with transactional role invariants and deny-by-default identity resolution; multi-user behavior follows on that foundation.                         |
 | **P1**   | One brain composed from bundles    | Start the capability-bundle walking skeleton after the release candidate is cut; keep every deployed posture green through the migration.                                                                                   |
 | **P1**   | One production Rizom brain/site    | Finish the in-flight consolidated site and content work, stage the consolidated package on `new.rizom.ai`, then cut over production. This may proceed beside bundle work but must not invent a competing model abstraction. |
-| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts wait for the [shared scheduler/heartbeat plan](./plans/shared-heartbeat-recurring-checks.md).      |
+| **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                                   |
 
 Everything marked parked or exploratory below is demand-gated. New work should not preempt P0/P1 without an explicit roadmap change.
 
@@ -201,7 +201,6 @@ Cleanup:
 - [effect-lifecycle-adoption.md](./plans/effect-lifecycle-adoption.md) — companion sweep: supervise content-pipeline's scheduled publishes, link a2a streaming turns to stream lifetime, and scope media-renderer browser processes, all behind Promise-based contracts.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
-- [shared-heartbeat-recurring-checks.md](./plans/shared-heartbeat-recurring-checks.md) — **pulled forward, active**: shared recurring-check layer with agent discovery's directory scan as the first full-path consumer (schedule → run → dedupe → notify); second-order discovery needs unattended recurrence to work as pitched. BD stale alerts adopt it once the BD slice merges; identity-scoped dedupe still waits for the P1 identity boundary.
 
 Research probes (parked):
 
