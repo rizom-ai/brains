@@ -1,6 +1,9 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
-import { ConversationService } from "@brains/conversation-service";
+import {
+  ConversationServiceTag,
+  createConversationServiceLayer,
+} from "@brains/conversation-service/effect";
 import {
   DataSourceRegistry,
   EntityRegistry,
@@ -134,14 +137,20 @@ export function createShellServices(options: {
     lifecycle.addSyncFinalizer(() => entityService.close());
   }
 
-  const conversationService =
-    dependencies?.conversationService ??
-    ConversationService.createFreshFromConfig(
+  const conversationContext = lifecycle.buildLayer(
+    createConversationServiceLayer({
+      dbConfig: createDatabaseConfig(config.conversationDatabase),
       logger,
       messageBus,
-      createDatabaseConfig(config.conversationDatabase),
-    );
-  lifecycle.addSyncFinalizer(() => conversationService.close());
+      ...(dependencies?.conversationService && {
+        service: dependencies.conversationService,
+      }),
+    }),
+  );
+  const conversationService = Context.get(
+    conversationContext,
+    ConversationServiceTag,
+  );
 
   lifecycle.addSyncFinalizer(() => {
     for (const dispose of disposables.splice(0)) {
