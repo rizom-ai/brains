@@ -31,13 +31,13 @@ const SectionHeading = ({ children }: { children: string }): JSX.Element => (
  * Individual skill row
  */
 const SkillRow = ({ skill }: { skill: AgentSkill }): JSX.Element => (
-  <div className="flex items-start gap-3 px-4 py-3 bg-theme-subtle rounded-lg">
-    <div className="flex-1">
+  <div className="flex flex-wrap items-start gap-3 px-4 py-3 bg-theme-subtle rounded-lg">
+    <div className="flex-1 min-w-[16rem]">
       <div className="text-sm font-semibold text-heading">{skill.name}</div>
       <div className="text-[13px] text-theme-muted">{skill.description}</div>
     </div>
     {skill.tags.length > 0 && (
-      <div className="flex gap-1 flex-shrink-0">
+      <div className="flex flex-wrap gap-1">
         {skill.tags.map((tag) => (
           <span
             key={tag}
@@ -98,14 +98,14 @@ export const AgentDetailTemplate = ({
             ← Back to Directory
           </a>
 
-          {/* Header */}
-          <div className="flex items-start gap-6 mb-8">
+          {/* Header — avatar stacks above the name block on phones */}
+          <div className="flex flex-col items-start gap-4 mb-8 sm:flex-row sm:gap-6">
             <AgentAvatar
               name={frontmatter.name}
               className="w-[72px] h-[72px] text-3xl"
             />
             <div>
-              <div className="flex items-center gap-3 mb-1">
+              <div className="flex flex-wrap items-center gap-3 mb-1">
                 <h1 className="text-3xl md:text-4xl font-bold text-heading">
                   {frontmatter.name}
                 </h1>
@@ -182,8 +182,8 @@ export const AgentDetailTemplate = ({
               )}
             </div>
 
-            {/* Sidebar */}
-            <aside className="flex-1 md:pl-8 md:border-l border-theme-muted/20">
+            {/* Sidebar — hairline above when stacked, beside when columned */}
+            <aside className="flex-1 border-t border-theme-muted/20 pt-8 md:border-t-0 md:pt-0 md:pl-8 md:border-l">
               {/* Brain */}
               <section className="mb-8">
                 <SectionHeading>Brain</SectionHeading>
@@ -207,7 +207,7 @@ export const AgentDetailTemplate = ({
                     <div className="text-[13px] text-theme-muted mb-0.5">
                       Endpoint
                     </div>
-                    <div className="text-xs text-heading font-mono">
+                    <div className="text-xs text-heading font-mono break-all">
                       {frontmatter.url}
                     </div>
                   </div>

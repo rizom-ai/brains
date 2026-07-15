@@ -58,8 +58,8 @@ export const proximityMapScript = `(function () {
       var anchorRect = anchor.getBoundingClientRect();
       var left = anchorRect.right - mapRect.left + 12;
       var top = anchorRect.top - mapRect.top - 8;
-      tooltip.style.left = Math.min(left, mapRect.width - tooltip.offsetWidth - 12) + "px";
-      tooltip.style.top = Math.max(12, top) + "px";
+      tooltip.style.left = Math.max(12, Math.min(left, mapRect.width - tooltip.offsetWidth - 12)) + "px";
+      tooltip.style.top = Math.max(12, Math.min(top, mapRect.height - tooltip.offsetHeight - 12)) + "px";
     }
 
     function focusCluster(clusterId) {
@@ -142,7 +142,25 @@ export const proximityMapScript = `(function () {
       element.addEventListener("mouseleave", reset);
       element.addEventListener("focus", activate);
       element.addEventListener("blur", reset);
+      // Touch fires neither mouseenter nor (reliably) focus on SVG
+      // elements — a tap activates directly.
+      element.addEventListener("click", function (event) {
+        event.stopPropagation();
+        activate();
+      });
     }
+
+    // A tap on the map ground dismisses whatever a previous tap lit up
+    // (touch has no mouseleave, and blur never fires if focus never did).
+    map.addEventListener("click", function (event) {
+      if (
+        !event.target.closest(
+          "[data-proximity-node], [data-proximity-cluster-id], [data-proximity-sighting]"
+        )
+      ) {
+        reset();
+      }
+    });
 
     nodes.forEach(function (node) {
       bind(node, function () { activateNode(node); });

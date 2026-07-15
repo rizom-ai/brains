@@ -113,7 +113,7 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
   const activeIndex = orgIndexActive(path);
   const home = isHome(path);
   return (
-    <div className="relative z-[2] flex items-baseline gap-6 border-b border-theme-light px-6 py-3 font-label text-label-xs uppercase tracking-[0.14em] md:px-10 xl:px-20">
+    <div className="relative z-[2] flex flex-wrap items-baseline gap-x-4 gap-y-1.5 border-b border-theme-light px-4 py-3 font-label text-label-xs uppercase tracking-[0.12em] sm:gap-x-6 sm:px-6 sm:tracking-[0.14em] md:px-10 xl:px-20">
       <span className="text-theme-muted">rizom</span>
       {FACES.map((item) =>
         // No face is current on the umbrella home, nor on a cross-room index.
@@ -121,7 +121,7 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
           <a
             key={item.key}
             href={item.href}
-            className="text-accent"
+            className="-my-2 inline-block py-2 text-accent"
             aria-current="page"
           >
             {item.label}
@@ -130,20 +130,20 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
           <a
             key={item.key}
             href={item.href}
-            className="text-theme-light transition-colors hover:text-theme"
+            className="-my-2 inline-block py-2 text-theme-light transition-colors hover:text-theme"
           >
             {item.label}
           </a>
         ),
       )}
-      <div className="ml-auto flex items-baseline gap-6">
+      <div className="ml-auto flex items-baseline gap-4 sm:gap-6">
         {ORG_INDEXES.map((index) => {
           const active = activeIndex === index.href;
           return (
             <a
               key={index.href}
               href={index.href}
-              className={`transition-colors ${
+              className={`-my-2 inline-block py-2 transition-colors ${
                 active ? "text-accent" : "text-theme-light hover:text-theme"
               }`}
               {...(active ? { "aria-current": "page" } : {})}
@@ -152,6 +152,16 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
             </a>
           );
         })}
+        {/* boot.js binds by id and syncs the label; window.toggleTheme
+            (injected by site-engine) flips data-theme + persists it. */}
+        <button
+          id="themeToggle"
+          type="button"
+          aria-label="Toggle color theme"
+          className="-my-2 inline-block cursor-pointer py-2 uppercase text-theme-light transition-colors hover:text-theme"
+        >
+          ☀ Light
+        </button>
       </div>
     </div>
   );
@@ -161,13 +171,13 @@ function Wordmark({ nameplate }: { nameplate: string | null }): JSX.Element {
   return (
     <a
       href="/"
-      className="font-display text-[26px] font-semibold tracking-[-0.01em] [font-variation-settings:'SOFT'_100]"
+      className="font-display text-[clamp(22px,5.5vw,26px)] font-semibold tracking-[-0.01em] [font-variation-settings:'SOFT'_100]"
       aria-label="Rizom home"
     >
       <span className="text-theme">rizom</span>
       <span className="text-accent">.</span>
       {nameplate && (
-        <span className="text-[20px] font-normal text-theme-muted">
+        <span className="text-[clamp(17px,4.3vw,20px)] font-normal text-theme-muted">
           {nameplate}
         </span>
       )}
@@ -189,9 +199,11 @@ function FaceNav({
   const links: FaceLink[] = chrome.links;
 
   return (
-    <nav className="relative z-[2] flex items-baseline gap-8 px-6 py-5 md:px-10 xl:px-20">
+    <nav className="relative z-[2] flex items-baseline gap-4 px-4 py-5 sm:gap-8 sm:px-6 md:px-10 xl:px-20">
       <Wordmark nameplate={chrome.nameplate} />
-      <div className="hidden items-baseline gap-7 md:flex">
+      {/* Below sm the footer carries every chrome link; the row keeps
+          just the wordmark and the CTA so nothing overflows. */}
+      <div className="hidden items-baseline gap-7 sm:flex">
         {links.map((link) => (
           <a
             key={`${link.href}-${link.label}`}
@@ -205,7 +217,7 @@ function FaceNav({
       <div className="flex-1" />
       <a
         href={chrome.cta.href}
-        className="self-center rounded-[3px] bg-accent px-[18px] py-[9px] font-body text-[16px] font-medium text-theme-inverse transition-[filter,transform] hover:brightness-110 hover:-translate-y-px"
+        className="self-center whitespace-nowrap rounded-[3px] bg-accent px-3.5 py-2 font-body text-[15px] font-medium text-theme-inverse transition-[filter,transform] hover:brightness-110 hover:-translate-y-px sm:px-[18px] sm:py-[9px] sm:text-[16px]"
       >
         {chrome.cta.label}
       </a>
@@ -265,7 +277,7 @@ function SiteFooter({
   siteInfo: RizomLayoutProps["siteInfo"];
 }): JSX.Element {
   return (
-    <footer className="relative z-[1] grid gap-10 border-t border-theme px-6 pt-11 pb-[38px] md:grid-cols-2 md:px-10 xl:grid-cols-[1.3fr_1fr_1fr_1fr] xl:px-20">
+    <footer className="relative z-[1] grid gap-10 border-t border-theme px-4 pt-11 pb-[38px] sm:grid-cols-2 sm:px-6 md:px-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr] xl:px-20">
       <div>
         <a
           href="/"
@@ -287,7 +299,7 @@ function SiteFooter({
             <a
               key={link.href + link.label}
               href={link.href}
-              className="block py-[3px] font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme"
+              className="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme"
             >
               {link.label}
             </a>
