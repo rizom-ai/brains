@@ -118,6 +118,7 @@ export class RecurringCheckService {
   private readonly nowFallback: () => Date;
   private readonly checks = new Map<string, RegisteredCheck>();
   private readonly runningChecks = new Map<string, AbortController>();
+  private handlerRegistered = false;
   private started = false;
 
   constructor(options: RecurringCheckServiceOptions) {
@@ -147,6 +148,17 @@ export class RecurringCheckService {
       },
     };
     this.jobQueue.registerHandler(RECURRING_CHECK_JOB_TYPE, handler, "shell");
+    this.handlerRegistered = true;
+  }
+
+  /** Roll back an installed but stopped service during shell construction. */
+  abandon(): void {
+    if (this.started) {
+      throw new Error("Cannot abandon a running recurring check service");
+    }
+    if (!this.handlerRegistered) return;
+    this.jobQueue.unregisterHandler(RECURRING_CHECK_JOB_TYPE);
+    this.handlerRegistered = false;
   }
 
   namespace(pluginId: string): IRecurringChecksNamespace {

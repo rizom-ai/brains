@@ -156,6 +156,8 @@ export function createShellServices(options: {
         },
       },
     });
+  lifecycle.addSyncFinalizer(() => recurringCheckService.abandon());
+
   const recurringDaemonName = "shell:recurring-checks";
   daemonRegistry.register(
     recurringDaemonName,
@@ -165,6 +167,7 @@ export function createShellServices(options: {
     },
     "shell",
   );
+  lifecycle.addSyncFinalizer(() => daemonRegistry.abandon(recurringDaemonName));
 
   const entityContext = lifecycle.buildLayer(
     createEntityServiceLayer({

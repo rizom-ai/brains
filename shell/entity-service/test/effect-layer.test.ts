@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { Context, Effect, Exit, Layer, Scope } from "@brains/utils/effect";
+import type { IJobQueueService } from "@brains/job-queue";
 import {
   createMockJobQueueService,
   createSilentLogger,
@@ -17,6 +18,9 @@ import { createTestEntityDatabase } from "./helpers/test-entity-db";
 const logger = createSilentLogger("entity-effect-layer");
 
 type TestDatabase = Awaited<ReturnType<typeof createTestEntityDatabase>>;
+type TestLayerOptions = EntityServiceLayerOptions & {
+  jobQueueService: IJobQueueService;
+};
 
 function closeScope(scope: Scope.CloseableScope): void {
   Effect.runSync(Scope.close(scope, Exit.void));
@@ -37,12 +41,22 @@ async function expectClientClosed(promise: Promise<unknown>): Promise<void> {
   expect(errorText).toContain("CLIENT_CLOSED");
 }
 
-function createLayerOptions(database: TestDatabase): EntityServiceLayerOptions {
+function createLayerOptions(database: TestDatabase): TestLayerOptions {
+  const registeredTypes = new Set<string>();
+  const jobQueueService = createMockJobQueueService();
+  jobQueueService.registerHandler = (type): void => {
+    registeredTypes.add(type);
+  };
+  jobQueueService.unregisterHandler = (type): void => {
+    registeredTypes.delete(type);
+  };
+  jobQueueService.getRegisteredTypes = (): string[] => [...registeredTypes];
+
   return {
     embeddingService: mockEmbeddingService,
     entityRegistry: EntityRegistry.createFresh(logger),
     logger,
-    jobQueueService: createMockJobQueueService(),
+    jobQueueService,
     dbConfig: database.config,
     embeddingDbConfig: database.embeddingConfig,
   };
@@ -74,16 +88,15 @@ describe("entity-service Effect layer", () => {
     const secondDatabase = await createDatabase();
     const firstScope = createScope();
     const secondScope = createScope();
+    const firstOptions = createLayerOptions(firstDatabase);
+    const secondOptions = createLayerOptions(secondDatabase);
 
     const firstContext = Effect.runSync(
-      Layer.buildWithScope(
-        createEntityServiceLayer(createLayerOptions(firstDatabase)),
-        firstScope,
-      ),
+      Layer.buildWithScope(createEntityServiceLayer(firstOptions), firstScope),
     );
     const secondContext = Effect.runSync(
       Layer.buildWithScope(
-        createEntityServiceLayer(createLayerOptions(secondDatabase)),
+        createEntityServiceLayer(secondOptions),
         secondScope,
       ),
     );
@@ -94,9 +107,18 @@ describe("entity-service Effect layer", () => {
     await first.initialize();
     await second.initialize();
 
+    expect(firstOptions.jobQueueService.getRegisteredTypes()).toContain(
+      "shell:embedding",
+    );
     closeScope(firstScope);
     await expectClientClosed(first.listEntities({ entityType: "note" }));
     await expectClientClosed(first.countEmbeddings());
+    expect(firstOptions.jobQueueService.getRegisteredTypes()).not.toContain(
+      "shell:embedding",
+    );
+    expect(secondOptions.jobQueueService.getRegisteredTypes()).toContain(
+      "shell:embedding",
+    );
     expect(await second.listEntities({ entityType: "note" })).toEqual([]);
     expect(await second.countEmbeddings()).toBe(0);
 
@@ -128,6 +150,9 @@ describe("entity-service Effect layer", () => {
     closeScope(scope);
 
     expect(closeCalls).toBe(1);
+    expect(options.jobQueueService.getRegisteredTypes()).not.toContain(
+      "shell:embedding",
+    );
     await expectClientClosed(service.listEntities({ entityType: "note" }));
     await expectClientClosed(service.countEmbeddings());
   });
@@ -135,11 +160,9 @@ describe("entity-service Effect layer", () => {
   it("supports synchronous rollback before database readiness", async () => {
     const database = await createDatabase();
     const scope = createScope();
+    const options = createLayerOptions(database);
     const context = Effect.runSync(
-      Layer.buildWithScope(
-        createEntityServiceLayer(createLayerOptions(database)),
-        scope,
-      ),
+      Layer.buildWithScope(createEntityServiceLayer(options), scope),
     );
     const service = Context.get(context, EntityServiceTag);
 
@@ -150,6 +173,9 @@ describe("entity-service Effect layer", () => {
       // Closing the scope intentionally interrupts database initialization.
     }
 
+    expect(options.jobQueueService.getRegisteredTypes()).not.toContain(
+      "shell:embedding",
+    );
     await expectClientClosed(service.listEntities({ entityType: "note" }));
     await expectClientClosed(service.countEmbeddings());
   });

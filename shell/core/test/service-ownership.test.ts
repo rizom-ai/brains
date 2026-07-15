@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
 import type { IEmbeddingService } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -12,6 +13,11 @@ import { ConversationService } from "@brains/conversation-service";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { MessageBus } from "@brains/messaging-service";
 import type { Plugin } from "@brains/plugins";
+import {
+  RECURRING_CHECK_JOB_TYPE,
+  RecurringCheckService,
+} from "@brains/recurring-checks";
+import { CronerBackend } from "@brains/scheduler";
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import {
@@ -19,6 +25,7 @@ import {
   createSilentLogger,
 } from "@brains/test-utils";
 import type { ShellConfigInput } from "../src/config";
+import { DaemonRegistry } from "../src/daemon-registry";
 import { resetAllSingletons } from "../src/initialization/reset";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createTestDirectory } from "./helpers/test-db";
@@ -30,7 +37,7 @@ interface TestDirectory {
 
 interface DependencyAuditEntry {
   honoredByCore: boolean;
-  cleanup: "none" | "close" | "shutdown" | "stop";
+  cleanup: "none" | "close" | "shutdown" | "stop" | "stop+abandon";
 }
 
 const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
@@ -56,7 +63,10 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
   attachmentRegistry: { honoredByCore: true, cleanup: "none" },
   runtimeUploadRegistry: { honoredByCore: true, cleanup: "none" },
   runtimeStateService: { honoredByCore: true, cleanup: "close" },
-  recurringCheckService: { honoredByCore: true, cleanup: "stop" },
+  recurringCheckService: {
+    honoredByCore: true,
+    cleanup: "stop+abandon",
+  },
 };
 
 const logger = createSilentLogger("service-ownership");
@@ -164,6 +174,26 @@ describe("Shell service ownership", () => {
     await shell.initialize({ mode: "register-only" });
     return shell;
   }
+
+  it("keeps singleton resets out of normal shell composition", () => {
+    const serviceFactory = readFileSync(
+      new URL("../src/initialization/service-factory.ts", import.meta.url),
+      "utf8",
+    );
+    const shell = readFileSync(
+      new URL("../src/shell.ts", import.meta.url),
+      "utf8",
+    );
+    const bootloader = readFileSync(
+      new URL("../src/initialization/shellBootloader.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(serviceFactory).not.toContain(".getInstance(");
+    expect(serviceFactory).not.toContain("resetServiceSingletons");
+    expect(shell).not.toContain("resetServiceSingletons");
+    expect(bootloader).not.toContain("ShellInitializer.getInstance");
+  });
 
   it("audits every ShellDependencies override without ignored services", () => {
     const ignoredOverrides = Object.entries(dependencyAudit)
@@ -295,26 +325,38 @@ describe("Shell service ownership", () => {
     expect(entities).toEqual([]);
   });
 
-  it("preserves entity layer construction failure identity", async () => {
+  it("rolls back recurring registrations when entity construction fails", async () => {
     const directory = await createDirectory();
     await migrateTestDatabases(directory.dir);
     const failure = new Error("entity handler registration failed");
+    const registeredTypes = new Set<string>();
+    const unregisteredTypes: string[] = [];
     const jobQueueService = createMockJobQueueService();
-    jobQueueService.registerHandler = (): void => {
-      throw failure;
+    jobQueueService.registerHandler = (type): void => {
+      if (type === "shell:embedding") throw failure;
+      registeredTypes.add(type);
     };
+    jobQueueService.unregisterHandler = (type): void => {
+      registeredTypes.delete(type);
+      unregisteredTypes.push(type);
+    };
+    const daemonRegistry = DaemonRegistry.createFresh(logger);
     let constructionError: unknown;
 
     try {
       Shell.createFresh(createTestConfig(directory.dir), {
         ...defaultDependencies(),
         jobQueueService,
+        daemonRegistry,
       });
     } catch (error) {
       constructionError = error;
     }
 
     expect(constructionError).toBe(failure);
+    expect(registeredTypes.has(RECURRING_CHECK_JOB_TYPE)).toBe(false);
+    expect(unregisteredTypes).toEqual([RECURRING_CHECK_JOB_TYPE]);
+    expect(daemonRegistry.has("shell:recurring-checks")).toBe(false);
   });
 
   it("honors the advertised entity service and registry overrides", async () => {
@@ -412,6 +454,29 @@ describe("Shell service ownership", () => {
       closeRuntimeState();
     };
 
+    const recurringCheckService = new RecurringCheckService({
+      brainId: "service-ownership",
+      scheduler: new CronerBackend(),
+      runtimeState: runtimeStateService,
+      jobQueue: jobQueueService,
+      logger,
+      delivery: { deliver: async (): Promise<void> => {} },
+    });
+    const stopRecurring = recurringCheckService.stop.bind(
+      recurringCheckService,
+    );
+    recurringCheckService.stop = async (): Promise<void> => {
+      order.push("recurring-runtime");
+      await stopRecurring();
+    };
+    const abandonRecurring = recurringCheckService.abandon.bind(
+      recurringCheckService,
+    );
+    recurringCheckService.abandon = (): void => {
+      order.push("recurring-handler");
+      abandonRecurring();
+    };
+
     const messageBus = MessageBus.createFresh(logger);
     const conversationService = ConversationService.createFreshFromConfig(
       logger,
@@ -469,6 +534,7 @@ describe("Shell service ownership", () => {
       jobQueueService,
       jobQueueWorker,
       runtimeStateService,
+      recurringCheckService,
       messageBus,
       conversationService,
       entityRegistry,
@@ -490,11 +556,13 @@ describe("Shell service ownership", () => {
     await shell.shutdown();
 
     expect(order).toEqual([
+      "recurring-runtime",
       "job-runtime",
       "plugins",
       "agent",
       "conversation-database",
       "entity-database",
+      "recurring-handler",
       "job-database",
       "runtime-state-database",
     ]);

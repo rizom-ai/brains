@@ -99,6 +99,7 @@ export class EntityService implements IEntityService {
   private entityQueries: EntityQueries;
   private entityMutations: EntityMutations;
   private contentResolver: ContentResolver;
+  private embeddingHandlerRegistered = false;
   private indexReady = false;
 
   public static getInstance(options: EntityServiceOptions): EntityService {
@@ -120,9 +121,18 @@ export class EntityService implements IEntityService {
     let firstError: unknown;
     let failed = false;
     try {
-      this.embeddingDbClient.close();
+      if (this.embeddingHandlerRegistered) {
+        this.jobQueueService.unregisterHandler("shell:embedding");
+        this.embeddingHandlerRegistered = false;
+      }
     } catch (error) {
       firstError = error;
+      failed = true;
+    }
+    try {
+      this.embeddingDbClient.close();
+    } catch (error) {
+      if (!failed) firstError = error;
       failed = true;
     }
     try {
@@ -202,6 +212,7 @@ export class EntityService implements IEntityService {
         "shell:embedding",
         embeddingJobHandler,
       );
+      this.embeddingHandlerRegistered = true;
 
       // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
       this.dbInitPromise = this.initializeDatabase(
@@ -212,6 +223,14 @@ export class EntityService implements IEntityService {
       // unhandled rejection in the window before initialize() awaits.
       this.dbInitPromise.catch(() => {});
     } catch (error) {
+      try {
+        if (this.embeddingHandlerRegistered) {
+          options.jobQueueService?.unregisterHandler("shell:embedding");
+          this.embeddingHandlerRegistered = false;
+        }
+      } catch {
+        // Preserve the construction failure after attempting all cleanup.
+      }
       try {
         embeddingDbClient?.close();
       } catch {

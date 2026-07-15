@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 This roadmap is the public-facing view of where `brains` is headed.
 

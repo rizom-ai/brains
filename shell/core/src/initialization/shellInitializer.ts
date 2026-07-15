@@ -152,9 +152,9 @@ export class ShellInitializer {
 }
 
 /**
- * Reset all service singletons (sync).
- * Closes DB connections and nulls static references so the next
- * getInstance() / createFresh() call creates brand-new instances.
+ * Compatibility/test utility for legacy package singleton factories.
+ * Normal Shell construction and rollback do not call this function, and
+ * createFresh() services never depend on it.
  *
  * Does NOT touch Shell.instance — call Shell.resetInstance() or
  * shell.shutdown() separately when you need to stop background services.
