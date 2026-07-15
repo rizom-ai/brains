@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { Plugin } from "@brains/plugins";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
-import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
+import {
+  AgentToolsPlugin,
+  type AgentToolsConfigInput,
+} from "../src/plugins/agent-tools-plugin";
 import { AgentAdapter } from "../src/adapters/agent-adapter";
 import type { FetchFn } from "../src/lib/fetch-agent-card";
 import type { AgentEntity } from "../src/schemas/agent";
@@ -79,7 +82,90 @@ async function setupHarness(network: {
   return harness;
 }
 
+type AgentDiscoveryTestHarness = ReturnType<typeof createPluginHarness<Plugin>>;
+type AgentDiscoveryTestShell = ReturnType<
+  AgentDiscoveryTestHarness["getMockShell"]
+>;
+type CapturedRecurringCheck = Parameters<
+  ReturnType<AgentDiscoveryTestShell["getRecurringChecks"]>["register"]
+>[0];
+
+async function setupRecurringCheck(
+  network: { fetch: FetchFn },
+  config: AgentToolsConfigInput = {},
+): Promise<{
+  harness: AgentDiscoveryTestHarness;
+  check: CapturedRecurringCheck;
+}> {
+  const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
+  const shell = harness.getMockShell();
+  const registered: { check?: CapturedRecurringCheck } = {};
+  shell.getRecurringChecks = (): ReturnType<
+    typeof shell.getRecurringChecks
+  > => ({
+    register: (definition): (() => void) => {
+      registered.check = definition;
+      return () => {};
+    },
+  });
+
+  await harness.installPlugin(new AgentDiscoveryPlugin());
+  await harness.installPlugin(new AgentToolsPlugin(network.fetch, config));
+  const check = registered.check;
+  if (!check) throw new Error("Directory recurring check was not registered");
+  return { harness, check };
+}
+
 describe("agent_scan_directories", () => {
+  it("scans daily without notifying on new agents by default", async () => {
+    const network = createMockNetwork({
+      "kai.brain": {
+        directory: directoryOf("https://vale.example/a2a"),
+      },
+      "vale.example": { card: createAgentCard("vale.example", "Vale") },
+    });
+    const { harness, check } = await setupRecurringCheck(network);
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({ id: "kai.brain", status: "approved" }),
+    });
+
+    const result = await check.run({ signal: new AbortController().signal });
+
+    expect(result.alerts).toBeUndefined();
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "agent",
+        id: "vale.example",
+      }),
+    ).not.toBeNull();
+    harness.reset();
+  });
+
+  it("notifies on new agents when explicitly enabled", async () => {
+    const network = createMockNetwork({
+      "kai.brain": {
+        directory: directoryOf("https://vale.example/a2a"),
+      },
+      "vale.example": { card: createAgentCard("vale.example", "Vale") },
+    });
+    const { harness, check } = await setupRecurringCheck(network, {
+      notifyOnNewAgents: true,
+    });
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({ id: "kai.brain", status: "approved" }),
+    });
+
+    const result = await check.run({ signal: new AbortController().signal });
+
+    expect(result.alerts).toEqual([
+      expect.objectContaining({
+        title: "New agent sightings",
+        body: "1 agent sighted through kai.brain",
+      }),
+    ]);
+    harness.reset();
+  });
+
   it("registers as a trusted external tool", async () => {
     const network = createMockNetwork({});
     const harness = await setupHarness(network);
