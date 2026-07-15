@@ -1,7 +1,10 @@
 import type { Plugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod";
 import { agentDiscoveryPlugin } from "./plugins/agent-plugin";
-import { agentToolsPlugin } from "./plugins/agent-tools-plugin";
+import {
+  agentToolsConfigSchema,
+  agentToolsPlugin,
+} from "./plugins/agent-tools-plugin";
 import { skillPlugin } from "./plugins/skill-plugin";
 
 export {
@@ -10,20 +13,15 @@ export {
 } from "./plugins/agent-plugin";
 export {
   AgentToolsPlugin,
+  agentToolsConfigSchema,
   agentToolsPlugin,
+  type AgentToolsConfig,
+  type AgentToolsConfigInput,
 } from "./plugins/agent-tools-plugin";
 
-/**
- * Composite config for the agent-discovery feature.
- *
- * Currently no shared options — the schema is empty but strict so any
- * unrecognized brain.yaml override surfaces as a ZodError instead of being
- * silently dropped. Add fields here when shared config (e.g. a card cache TTL
- * or discovery toggle) is introduced.
- */
-export const agentDiscoveryCompositeConfigSchema: z.ZodObject<
-  Record<string, never>
-> = z.object({}).strict();
+/** Composite config for the agent-discovery feature. */
+export const agentDiscoveryCompositeConfigSchema: typeof agentToolsConfigSchema =
+  agentToolsConfigSchema;
 
 export type AgentDiscoveryCompositeConfig = z.output<
   typeof agentDiscoveryCompositeConfigSchema
@@ -40,9 +38,11 @@ export type AgentDiscoveryCompositeConfigInput = z.input<
  * capability when the brain should derive assessment outputs from the
  * agent/skill evidence.
  */
-export function agentDiscovery(config: Record<string, unknown> = {}): Plugin[] {
-  agentDiscoveryCompositeConfigSchema.parse(config);
-  return [agentDiscoveryPlugin(), agentToolsPlugin(), skillPlugin()];
+export function agentDiscovery(
+  config: AgentDiscoveryCompositeConfigInput = {},
+): Plugin[] {
+  const parsed = agentDiscoveryCompositeConfigSchema.parse(config);
+  return [agentDiscoveryPlugin(), agentToolsPlugin(parsed), skillPlugin()];
 }
 
 export {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { agentDiscovery } from "../src";
+import { agentDiscovery, agentDiscoveryCompositeConfigSchema } from "../src";
 
 describe("agent-discovery composite", () => {
   test("returns the agent, agent tools, and skill plugins", () => {
@@ -14,6 +14,18 @@ describe("agent-discovery composite", () => {
   test("includes entity plugins plus the agent service tool plugin", () => {
     const plugins = agentDiscovery();
     expect(plugins.map((p) => p.type)).toEqual(["entity", "service", "entity"]);
+  });
+
+  test("disables new-agent notifications by default", () => {
+    expect(agentDiscoveryCompositeConfigSchema.parse({})).toEqual({
+      notifyOnNewAgents: false,
+    });
+  });
+
+  test("accepts explicit new-agent notification opt-in", () => {
+    expect(
+      agentDiscoveryCompositeConfigSchema.parse({ notifyOnNewAgents: true }),
+    ).toEqual({ notifyOnNewAgents: true });
   });
 
   test("works when called with no arguments", () => {
