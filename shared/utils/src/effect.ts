@@ -2,6 +2,7 @@
 // do not depend on Effect's broad root surface independently.
 export {
   Cause,
+  Clock,
   Context,
   Effect,
   Either,
@@ -14,4 +15,3 @@ export {
   Schedule,
   Scope,
 } from "effect";
-export type { Clock } from "effect";

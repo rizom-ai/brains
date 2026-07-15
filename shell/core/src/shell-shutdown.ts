@@ -14,9 +14,11 @@ export function registerShellRuntimeFinalizers(
 
   lifecycle.addFinalizer(() => services.pluginManager.shutdownPlugins());
 
+  lifecycle.addFinalizer(() => services.jobServicesLifecycle.closeRuntime());
+
+  // Abort cancellation-aware checks before the job worker drains. Their jobs
+  // remain retryable instead of holding shutdown on remote I/O.
   lifecycle.addFinalizer(() =>
     services.daemonRegistry.unregister("shell:recurring-checks"),
   );
-
-  lifecycle.addFinalizer(() => services.jobServicesLifecycle.closeRuntime());
 }

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { Effect } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
 import { TestSchedulerBackend } from "../src";
 
 describe("TestSchedulerBackend", () => {
@@ -18,6 +20,28 @@ describe("TestSchedulerBackend", () => {
       "2026-07-14T00:02:00.000Z",
     ]);
     expect(scheduler.now().toISOString()).toBe("2026-07-14T00:02:30.000Z");
+  });
+
+  it("uses Effect TestClock as its single injected time source", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const scheduler = new TestSchedulerBackend({ clock });
+        let runs = 0;
+        scheduler.scheduleInterval(1_000, () => {
+          runs += 1;
+        });
+
+        yield* TestClock.adjust(999);
+        yield* Effect.promise(() => scheduler.runDue());
+        expect(runs).toBe(0);
+
+        yield* TestClock.adjust(1);
+        yield* Effect.promise(() => scheduler.runDue());
+        expect(runs).toBe(1);
+        expect(scheduler.now().getTime()).toBe(clock.unsafeCurrentTimeMillis());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
   });
 
   it("uses injected time to evaluate cron cadence", async () => {

@@ -1,4 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import { Effect } from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
 import type {
   IJobQueueService,
   JobHandler,
@@ -21,6 +24,10 @@ import {
 
 class MemoryRuntimeState implements IRuntimeStateNamespace {
   private readonly values = new Map<string, unknown>();
+
+  snapshot(): unknown[] {
+    return [...this.values.values()];
+  }
 
   scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T> {
     const prefix = `${options.namespace}:`;
@@ -104,24 +111,31 @@ const logger = {
 
 function createService(options?: {
   now?: Date;
+  clock?: Clock.Clock;
   delivery?: (body: string) => Promise<void>;
 }): {
   service: RecurringCheckService;
   scheduler: TestSchedulerBackend;
   queue: TestJobQueue;
+  state: MemoryRuntimeState;
   delivered: string[];
 } {
   const now = options?.now ?? new Date("2026-07-14T12:00:00.000Z");
-  const scheduler = new TestSchedulerBackend({ now });
+  const scheduler = new TestSchedulerBackend({
+    ...(options?.clock ? { clock: options.clock } : { now }),
+  });
   const queue = new TestJobQueue();
+  const state = new MemoryRuntimeState();
   const delivered: string[] = [];
   const service = new RecurringCheckService({
     brainId: "brain.example",
     scheduler,
-    runtimeState: new MemoryRuntimeState(),
+    runtimeState: state,
     jobQueue: queue as unknown as IJobQueueService,
     logger,
-    now: (): Date => new Date(now),
+    ...(options?.clock
+      ? { clock: options.clock }
+      : { now: (): Date => new Date(now) }),
     delivery: {
       deliver: async (alert): Promise<void> => {
         if (options?.delivery) await options.delivery(alert.body);
@@ -129,7 +143,7 @@ function createService(options?: {
       },
     },
   });
-  return { service, scheduler, queue, delivered };
+  return { service, scheduler, queue, state, delivered };
 }
 
 describe("RecurringCheckService", () => {
@@ -205,6 +219,72 @@ describe("RecurringCheckService", () => {
     await service.start();
 
     expect(queue.enqueued).toHaveLength(1);
+  });
+
+  it("shares Effect TestClock time with the scheduler and persisted run state", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const { service, scheduler, queue, state } = createService({ clock });
+        service.namespace("agent").register({
+          id: "directory-scan",
+          cadence: "daily",
+          run: async () => ({}),
+        });
+        yield* Effect.promise(() => service.start());
+        yield* Effect.promise(() => queue.processLatest());
+
+        const schedule = createRecurringCheckSchedule(
+          "brain.example",
+          "agent:directory-scan",
+          "daily",
+        );
+        const start = clock.unsafeCurrentTimeMillis();
+        const previous = getPreviousOccurrence(new Date(start), schedule);
+        const next = previous.getTime() + schedule.periodMs;
+        yield* TestClock.adjust(next - start);
+        yield* Effect.promise(() => scheduler.runDue());
+        yield* Effect.promise(() => queue.processLatest());
+
+        expect(queue.enqueued).toHaveLength(2);
+        expect(state.snapshot()).toContainEqual({
+          kind: "last-success",
+          checkId: "agent:directory-scan",
+          at: new Date(next).toISOString(),
+        });
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("aborts an active check when the service stops", async () => {
+    const { service } = createService();
+    let observedSignal: AbortSignal | undefined;
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    service.namespace("agent").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async ({ signal }) => {
+        observedSignal = signal;
+        markStarted?.();
+        return new Promise((_resolve, reject) => {
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        });
+      },
+    });
+    const run = service
+      .runNow("agent:directory-scan")
+      .catch((error: unknown) => error);
+    await started;
+
+    await service.stop();
+
+    expect(observedSignal?.aborted).toBe(true);
+    expect(await run).toEqual(new Error("Recurring check service stopped"));
   });
 
   it("does not overlap runs of the same check", async () => {

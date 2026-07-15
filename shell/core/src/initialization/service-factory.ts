@@ -1,5 +1,6 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
+import { Clock } from "@brains/utils/effect";
 import { ConversationService } from "@brains/conversation-service";
 import { DataSourceRegistry } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
@@ -112,6 +113,7 @@ export function createShellServices(options: {
       brainId: config.siteBaseUrl ?? config.dataDir,
       scheduler: new CronerBackend(),
       runtimeState: runtimeStateService,
+      clock: Clock.make(),
       jobQueue: jobQueueService,
       logger,
       delivery: {

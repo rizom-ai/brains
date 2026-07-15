@@ -36,8 +36,12 @@ export class AgentToolsPlugin extends ServicePlugin<
     context.recurringChecks.register({
       id: "directory-scan",
       cadence: "daily",
-      run: async () => {
-        const result = await scanAgentDirectories(context, this.fetchFn);
+      run: async ({ signal }) => {
+        const result = await scanAgentDirectories(
+          context,
+          this.fetchFn,
+          signal,
+        );
         if (result.created === 0) return {};
 
         const createdDomains = [...result.createdDomains].sort();

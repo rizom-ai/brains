@@ -54,6 +54,9 @@ Previously listed as open; settled with the pull-forward:
   tests and operations predictable.
 - **One startup catch-up, no overlap.** A brain runs at most one missed occurrence after
   plugins are ready. If the previous run is still active, the next occurrence is skipped.
+- **Cancellation crosses as `AbortSignal`.** Stopping the recurring-check daemon aborts
+  active domain checks, including in-flight directory and Agent Card requests, while the
+  durable job remains eligible for retry.
 - **The notifications plugin owns the default recipient.** Recurring alerts omit an explicit
   recipient and use the same configured email address as onboarding mail. Generated Rover
   and fleet configuration pass that address to both plugins.
@@ -97,11 +100,12 @@ after both consumers run in production.
 
 ## Verification
 
-- Tests advance an injected clock; none sleep on wall time.
+- Tests advance a shared Effect `TestClock`; scheduler and service state use the same time
+  source, and none sleep on wall time.
 - Repeated checks do not duplicate an unchanged condition episode.
 - A changed/reset domain condition permits a later alert.
 - Failed checks and failed delivery follow explicit retry semantics.
-- Daemons start only after plugin ready hooks and stop cleanly.
+- Daemons start only after plugin ready hooks; stopping aborts active remote checks cleanly.
 - Content-pipeline remains green against the extracted scheduler backend.
 - A fleet brain runs the daily scan unattended; a re-scan that creates nothing produces
   no repeat notification.

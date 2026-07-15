@@ -14,10 +14,15 @@ export interface RecurringCheckResult {
   alerts?: RecurringAlert[] | undefined;
 }
 
+export interface RecurringCheckRunContext {
+  /** Aborted when the caller cancels or the recurring-check daemon stops. */
+  signal: AbortSignal;
+}
+
 export interface RecurringCheckDefinition {
   id: string;
   cadence: RecurringCheckCadence;
-  run(): Promise<RecurringCheckResult>;
+  run(context: RecurringCheckRunContext): Promise<RecurringCheckResult>;
 }
 
 export interface IRecurringChecksNamespace {

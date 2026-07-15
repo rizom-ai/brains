@@ -13,4 +13,5 @@ export type {
   RecurringCheckCadence,
   RecurringCheckDefinition,
   RecurringCheckResult,
+  RecurringCheckRunContext,
 } from "./types";
