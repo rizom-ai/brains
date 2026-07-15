@@ -1,5 +1,34 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- [`4643d93`](https://github.com/rizom-ai/brains/commit/4643d932b67391778b2a27deb6c028a5edf191a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redesign the agent directory index and detail pages as an editorial pass on
+  the brand: display-serif agent names and masthead, mono eyebrows and section
+  rules, stat-tab filters (count numerals double as the filter row), and a
+  two-column card grid grouped as Connected / Sightings / Archived. Sighting
+  provenance is surfaced instead of dimming discovered agents — cards lead with
+  "via <introducer> · N hops", and the detail hero carries a sighted-through
+  status line with an approve note phrased as a chat ask ("connect to
+  <domain>") rather than a tool command. The
+  detail sidebar becomes hairline key-value rows (endpoint, first seen, hop
+  distance, DID) plus an "Introduced by" list.
+
+- [`a9bb766`](https://github.com/rizom-ai/brains/commit/a9bb7662ed1edab11a79bbb17dc48cbbf5b26fe9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep daily agent-directory scans enabled while making new-agent notifications opt-in through `notifyOnNewAgents`.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.182
+  - @brains/atproto-contracts@0.2.0-alpha.182
+  - @brains/content-formatters@0.2.0-alpha.182
+  - @brains/contracts@0.2.0-alpha.182
+  - @brains/http-signatures@0.2.0-alpha.182
+  - @brains/ui-library@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/auth-service@0.2.0-alpha.182
+  - @brains/plugins@0.2.0-alpha.182
+  - @brains/templates@0.2.0-alpha.182
+
 ## 0.2.0-alpha.181
 
 ### Patch Changes

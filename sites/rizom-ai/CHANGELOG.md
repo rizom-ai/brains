@@ -1,5 +1,16 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- [`e01e612`](https://github.com/rizom-ai/brains/commit/e01e612a14105fe70fcb5074605d8c006d1a08e3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - One width system: section blocks fill the shared content column instead of stopping at per-section caps tuned to the mockup's narrower frame (the growth diagram gains ~200px of presence); reading measure moves to ch caps on the copy itself. Chrome fixes: the faces strip's rizom mark links home, and the org-index pages (/writing, /network) wear the plain umbrella wordmark and home links instead of falling back to rizom.brain.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.182
+  - @rizom/site-sections@0.2.0-alpha.182
+  - @rizom/site-rizom@0.2.0-alpha.182
+
 ## 0.2.0-alpha.181
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.182
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.182
+  - @brains/contracts@0.2.0-alpha.182
+  - @brains/utils@0.2.0-alpha.182
+  - @brains/auth-service@0.2.0-alpha.182
+  - @brains/plugins@0.2.0-alpha.182
+
 ## 0.2.0-alpha.181
 
 ### Patch Changes
