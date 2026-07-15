@@ -9,6 +9,7 @@ import type {
   StateMachine,
   StateSchema,
 } from "xstate";
+import { actorRefKey } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
@@ -130,7 +131,7 @@ function parseRecord(value: unknown): ParsedRecord | undefined {
 }
 
 function actorKey(actor: ConversationMessageActor | null): string | undefined {
-  return actor?.canonicalId ?? actor?.actorId;
+  return actor ? actorRefKey(actor.identity) : undefined;
 }
 
 function withRequester(

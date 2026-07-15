@@ -1,3 +1,4 @@
+import { createExternalActorId } from "@brains/contracts";
 import {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
@@ -191,16 +192,24 @@ function buildWebChatContext(
     channelId: input.conversationId,
     channelName: "Web Chat",
     actor: buildMessageActorMetadata({
-      actorId:
-        input.principal?.userId ??
-        `${input.interfaceType}:${input.conversationId}:operator`,
+      identity: input.principal
+        ? {
+            kind: "user",
+            userId: input.principal.userId,
+            ...(input.principal.canonicalId
+              ? { canonicalId: input.principal.canonicalId }
+              : {}),
+          }
+        : {
+            kind: "external",
+            externalActorId: createExternalActorId(
+              input.interfaceType,
+              `${input.interfaceType}:${input.conversationId}:browser-user`,
+            ),
+          },
       interfaceType: input.interfaceType,
       role: "user",
-      ...(input.principal ? { userId: input.principal.userId } : {}),
-      ...(input.principal?.canonicalId
-        ? { canonicalId: input.principal.canonicalId }
-        : {}),
-      displayName: input.principal?.displayName ?? "Web Chat operator",
+      displayName: input.principal?.displayName ?? "Web Chat user",
     }),
     source: buildMessageSourceMetadata({
       ...(input.messageId ? { messageId: input.messageId } : {}),

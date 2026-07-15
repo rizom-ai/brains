@@ -1,11 +1,11 @@
 import type { InterfacePluginContext } from "@brains/plugins";
 
-type OperatorSessionResolver = (request: Request) => Promise<boolean>;
+type AuthSessionResolver = (request: Request) => Promise<boolean>;
 type JobService = InterfacePluginContext["jobs"];
 
 interface JobStatusHandlerDeps {
-  resolveOperatorSession: OperatorSessionResolver;
-  createOperatorLoginRequiredResponse: (request: Request) => Response;
+  resolveAuthSession: AuthSessionResolver;
+  createAuthLoginRequiredResponse: (request: Request) => Response;
   jobs: JobService;
 }
 
@@ -13,8 +13,8 @@ export async function handleJobStatusRequest(
   request: Request,
   deps: JobStatusHandlerDeps,
 ): Promise<Response> {
-  if (!(await deps.resolveOperatorSession(request))) {
-    return deps.createOperatorLoginRequiredResponse(request);
+  if (!(await deps.resolveAuthSession(request))) {
+    return deps.createAuthLoginRequiredResponse(request);
   }
 
   const jobId = new URL(request.url).searchParams.get("id")?.trim();

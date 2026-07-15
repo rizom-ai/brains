@@ -2,6 +2,7 @@ import { z } from "@brains/utils/zod";
 import {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
+  type ConversationMessageActor,
 } from "@brains/conversation-service";
 import type { AgentResponse } from "@brains/contracts";
 export {
@@ -97,17 +98,7 @@ export interface ChatContext {
   interfaceType?: string | undefined;
   channelId?: string | undefined;
   channelName?: string | undefined;
-  actor?:
-    | {
-        actorId: string;
-        canonicalId?: string | undefined;
-        interfaceType: string;
-        role: "user" | "assistant";
-        displayName?: string | undefined;
-        username?: string | undefined;
-        isBot?: boolean | undefined;
-      }
-    | undefined;
+  actor?: ConversationMessageActor | undefined;
   source?:
     | {
         messageId?: string | undefined;

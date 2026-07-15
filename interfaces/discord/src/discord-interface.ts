@@ -1,4 +1,5 @@
 import { getActiveAuthService, type AuthPrincipal } from "@brains/auth-service";
+import { createExternalActorId } from "@brains/contracts";
 import {
   MessageInterfacePlugin,
   buildApprovalResultView,
@@ -459,19 +460,35 @@ export class DiscordInterface extends MessageInterfacePlugin<
       throw new Error("Discord context is not registered");
     }
 
+    const auth = await this.resolveDiscordAuth(
+      this.context,
+      interaction.user.id,
+      { channelId: interaction.channelId },
+    );
     return {
-      userPermissionLevel: await this.resolveDiscordUserPermissionLevel(
-        this.context,
-        interaction.user.id,
-        { channelId: interaction.channelId },
-      ),
+      userPermissionLevel: auth.permissionLevel,
       interfaceType: "discord",
       channelId: interaction.channelId,
       actor: {
-        actorId: `discord:${interaction.user.id}`,
+        identity: auth.principal
+          ? {
+              kind: "user",
+              userId: auth.principal.userId,
+              ...(auth.principal.canonicalId
+                ? { canonicalId: auth.principal.canonicalId }
+                : {}),
+            }
+          : {
+              kind: "external",
+              externalActorId: createExternalActorId(
+                "discord",
+                interaction.user.id,
+              ),
+            },
         interfaceType: "discord",
         role: "user",
-        displayName: interaction.user.displayName,
+        displayName:
+          auth.principal?.displayName ?? interaction.user.displayName,
         username: interaction.user.username,
         isBot: Boolean(interaction.user.bot),
       },
@@ -1056,13 +1073,23 @@ export class DiscordInterface extends MessageInterfacePlugin<
   ): Record<string, unknown> {
     return {
       actor: {
-        actorId: `discord:${message.author.id}`,
+        identity: options.principal
+          ? {
+              kind: "user",
+              userId: options.principal.userId,
+              ...(options.principal.canonicalId
+                ? { canonicalId: options.principal.canonicalId }
+                : {}),
+            }
+          : {
+              kind: "external",
+              externalActorId: createExternalActorId(
+                "discord",
+                message.author.id,
+              ),
+            },
         interfaceType: "discord",
         role: "user",
-        ...(options.principal ? { userId: options.principal.userId } : {}),
-        ...(options.principal?.canonicalId
-          ? { canonicalId: options.principal.canonicalId }
-          : {}),
         displayName:
           options.principal?.displayName ?? this.getAuthorDisplayName(message),
         username: message.author.username,

@@ -1,3 +1,4 @@
+import { actorRefFromLegacy } from "@brains/contracts";
 import {
   type BaseEntity,
   type ContentVisibility,
@@ -9,11 +10,13 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
-import type {
-  ActionItemEntity,
-  DecisionEntity,
+import {
+  actionItemSchema,
+  decisionSchema,
+  type ActionItemEntity,
+  type DecisionEntity,
 } from "../schemas/conversation-memory";
-import type { SummaryEntity } from "../schemas/summary";
+import { summarySchema, type SummaryEntity } from "../schemas/summary";
 import type { SummaryConfig } from "../schemas/summary-config";
 import { SummaryExtractor } from "./summary-extractor";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
@@ -205,7 +208,21 @@ export function registerSummaryEvalHandlers(params: {
       ? createSeededRetrievalContext(context, parsed.memory)
       : context;
     const retriever = new ConversationMemoryRetriever(retrievalContext);
-    return retriever.retrieve(parsed);
+    const { actorId, canonicalId, memory: _memory, ...retrievalInput } = parsed;
+    const legacyIdentity = actorId ?? canonicalId;
+    return retriever.retrieve({
+      ...retrievalInput,
+      ...(legacyIdentity
+        ? {
+            identity: actorRefFromLegacy({
+              actorId: legacyIdentity,
+              interfaceType: sourceFromLegacyActorId(legacyIdentity),
+              role: "user",
+              ...(canonicalId ? { canonicalId } : {}),
+            }),
+          }
+        : {}),
+    });
   });
 
   context.eval.registerHandler("buildAgentContext", async (input: unknown) => {
@@ -446,7 +463,7 @@ function baseMemoryFields(
 }
 
 function toSummaryEntity(memory: SeededMemory): SummaryEntity {
-  return {
+  return summarySchema.parse({
     ...baseMemoryFields(memory),
     entityType: "summary",
     metadata: {
@@ -460,11 +477,11 @@ function toSummaryEntity(memory: SeededMemory): SummaryEntity {
       projectionVersion: 1,
       ...(memory.participants ? { participants: memory.participants } : {}),
     },
-  };
+  });
 }
 
 function toDecisionEntity(memory: SeededMemory): DecisionEntity {
-  return {
+  return decisionSchema.parse({
     ...baseMemoryFields(memory),
     entityType: "decision",
     metadata: {
@@ -484,7 +501,7 @@ function toDecisionEntity(memory: SeededMemory): DecisionEntity {
       ...(memory.decidedBy ? { decidedBy: memory.decidedBy } : {}),
       ...(memory.mentionedBy ? { mentionedBy: memory.mentionedBy } : {}),
     },
-  };
+  });
 }
 
 function toActionItemEntity(memory: SeededMemory): ActionItemEntity {
@@ -492,7 +509,7 @@ function toActionItemEntity(memory: SeededMemory): ActionItemEntity {
     memory.status === "done" || memory.status === "dropped"
       ? memory.status
       : "open";
-  return {
+  return actionItemSchema.parse({
     ...baseMemoryFields(memory),
     entityType: "action-item",
     metadata: {
@@ -512,5 +529,10 @@ function toActionItemEntity(memory: SeededMemory): ActionItemEntity {
       ...(memory.assignedTo ? { assignedTo: memory.assignedTo } : {}),
       ...(memory.requestedBy ? { requestedBy: memory.requestedBy } : {}),
     },
-  };
+  });
+}
+
+function sourceFromLegacyActorId(actorId: string): string {
+  const separator = actorId.indexOf(":");
+  return separator > 0 ? actorId.slice(0, separator) : "legacy";
 }

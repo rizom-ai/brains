@@ -1332,7 +1332,7 @@ describe("AgentService", () => {
         channelId: "thread-456",
         channelName: "Ops Guild",
         actor: {
-          actorId: "discord:user-789",
+          identity: { kind: "external", externalActorId: "discord:user-789" },
           interfaceType: "discord",
           role: "user",
           displayName: "Mira Ops",
@@ -1356,7 +1356,10 @@ describe("AgentService", () => {
           content: "Hello from Mira",
           metadata: expect.objectContaining({
             actor: expect.objectContaining({
-              actorId: "discord:user-789",
+              identity: {
+                kind: "external",
+                externalActorId: "discord:user-789",
+              },
               displayName: "Mira Ops",
             }),
             source: expect.objectContaining({
@@ -1386,11 +1389,15 @@ describe("AgentService", () => {
         async (
           actor: ConversationMessageActor,
         ): Promise<ConversationMessageActor> =>
-          actor.actorId === "discord:user-789"
+          actor.identity.kind === "external" &&
+          actor.identity.externalActorId === "discord:user-789"
             ? {
                 ...actor,
-                userId: "usr_mira",
-                canonicalId: "person:mira",
+                identity: {
+                  kind: "user",
+                  userId: "usr_mira",
+                  canonicalId: "person:mira",
+                },
               }
             : actor,
       );
@@ -1409,7 +1416,7 @@ describe("AgentService", () => {
       await service.chat("Hello from Mira", "test-conversation", {
         interfaceType: "discord",
         actor: {
-          actorId: "discord:user-789",
+          identity: { kind: "external", externalActorId: "discord:user-789" },
           interfaceType: "discord",
           role: "user",
           displayName: "Mira Ops",
@@ -1417,16 +1424,23 @@ describe("AgentService", () => {
       });
 
       expect(enrichActor).toHaveBeenCalledWith(
-        expect.objectContaining({ actorId: "discord:user-789" }),
+        expect.objectContaining({
+          identity: {
+            kind: "external",
+            externalActorId: "discord:user-789",
+          },
+        }),
       );
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
           metadata: expect.objectContaining({
             actor: expect.objectContaining({
-              actorId: "discord:user-789",
-              userId: "usr_mira",
-              canonicalId: "person:mira",
+              identity: {
+                kind: "user",
+                userId: "usr_mira",
+                canonicalId: "person:mira",
+              },
               displayName: "Mira Ops",
             }),
           }),
@@ -1463,8 +1477,11 @@ describe("AgentService", () => {
 
       await service.chat("Hello", "test-conversation", {
         actor: {
-          actorId: "discord:user-789",
-          canonicalId: "person:explicit",
+          identity: {
+            kind: "user",
+            userId: "usr_explicit",
+            canonicalId: "person:explicit",
+          },
           interfaceType: "discord",
           role: "user",
         },
@@ -1475,7 +1492,11 @@ describe("AgentService", () => {
         expect.objectContaining({
           metadata: expect.objectContaining({
             actor: expect.objectContaining({
-              canonicalId: "person:explicit",
+              identity: {
+                kind: "user",
+                userId: "usr_explicit",
+                canonicalId: "person:explicit",
+              },
             }),
           }),
         }),
@@ -1502,21 +1523,29 @@ describe("AgentService", () => {
 
       await service.chat("Hello", "test-conversation", {
         actor: {
-          actorId: "discord:user-789",
+          identity: { kind: "external", externalActorId: "discord:user-789" },
           interfaceType: "discord",
           role: "user",
         },
       });
 
       expect(enrichActor).toHaveBeenCalledWith(
-        expect.objectContaining({ actorId: "discord:user-789" }),
+        expect.objectContaining({
+          identity: {
+            kind: "external",
+            externalActorId: "discord:user-789",
+          },
+        }),
       );
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
           metadata: expect.objectContaining({
-            actor: expect.not.objectContaining({
-              canonicalId: expect.anything(),
+            actor: expect.objectContaining({
+              identity: {
+                kind: "external",
+                externalActorId: "discord:user-789",
+              },
             }),
           }),
         }),
@@ -1532,7 +1561,7 @@ describe("AgentService", () => {
         logger,
         {
           agentFactory: mockAgentFactory,
-          assistantActorId: "brain:relay",
+          assistantAgentId: "brain:relay",
         },
       );
 
@@ -1544,7 +1573,7 @@ describe("AgentService", () => {
           role: "assistant",
           metadata: expect.objectContaining({
             actor: expect.objectContaining({
-              actorId: "brain:relay",
+              identity: { kind: "agent", agentId: "brain:relay" },
               interfaceType: "agent",
               role: "assistant",
               displayName: "Test Brain",
@@ -1572,7 +1601,7 @@ describe("AgentService", () => {
         expect.objectContaining({
           metadata: expect.objectContaining({
             actor: expect.objectContaining({
-              actorId: "brain:assistant",
+              identity: { kind: "agent", agentId: "brain:assistant" },
               displayName: "Test Brain",
             }),
           }),
@@ -2119,8 +2148,7 @@ describe("AgentService", () => {
         userPermissionLevel: "anchor",
         interfaceType: "evaluation",
         actor: {
-          actorId: "eval-anchor-alice",
-          canonicalId: "alice",
+          identity: { kind: "user", userId: "alice", canonicalId: "alice" },
           interfaceType: "evaluation",
           role: "user",
         },
@@ -2141,8 +2169,7 @@ describe("AgentService", () => {
           userPermissionLevel: "public",
           interfaceType: "evaluation",
           actor: {
-            actorId: "eval-public-bob",
-            canonicalId: "bob",
+            identity: { kind: "user", userId: "bob", canonicalId: "bob" },
             interfaceType: "evaluation",
             role: "user",
           },
@@ -2165,8 +2192,7 @@ describe("AgentService", () => {
           userPermissionLevel: "anchor",
           interfaceType: "evaluation",
           actor: {
-            actorId: "eval-anchor-alice",
-            canonicalId: "alice",
+            identity: { kind: "user", userId: "alice", canonicalId: "alice" },
             interfaceType: "evaluation",
             role: "user",
           },
@@ -2352,7 +2378,7 @@ describe("AgentService", () => {
         userPermissionLevel: "anchor",
         interfaceType: "evaluation",
         actor: {
-          actorId: "eval-anchor-alice",
+          identity: { kind: "external", externalActorId: "eval-anchor-alice" },
           interfaceType: "evaluation",
           role: "user",
         },
@@ -2395,8 +2421,7 @@ describe("AgentService", () => {
         userPermissionLevel: "anchor",
         interfaceType: "evaluation",
         actor: {
-          actorId: "eval-anchor-alice",
-          canonicalId: "alice",
+          identity: { kind: "user", userId: "alice", canonicalId: "alice" },
           interfaceType: "evaluation",
           role: "user",
         },
@@ -2410,8 +2435,7 @@ describe("AgentService", () => {
           userPermissionLevel: "public",
           interfaceType: "evaluation",
           actor: {
-            actorId: "eval-public-bob",
-            canonicalId: "bob",
+            identity: { kind: "user", userId: "bob", canonicalId: "bob" },
             interfaceType: "evaluation",
             role: "user",
           },
@@ -2434,8 +2458,7 @@ describe("AgentService", () => {
           userPermissionLevel: "anchor",
           interfaceType: "evaluation",
           actor: {
-            actorId: "eval-anchor-alice",
-            canonicalId: "alice",
+            identity: { kind: "user", userId: "alice", canonicalId: "alice" },
             interfaceType: "evaluation",
             role: "user",
           },
@@ -2476,8 +2499,7 @@ describe("AgentService", () => {
         userPermissionLevel: "anchor",
         interfaceType: "evaluation",
         actor: {
-          actorId: "eval-anchor-alice",
-          canonicalId: "alice",
+          identity: { kind: "user", userId: "alice", canonicalId: "alice" },
           interfaceType: "evaluation",
           role: "user",
         },
@@ -2493,8 +2515,7 @@ describe("AgentService", () => {
           userPermissionLevel: "public",
           interfaceType: "evaluation",
           actor: {
-            actorId: "eval-public-bob",
-            canonicalId: "bob",
+            identity: { kind: "user", userId: "bob", canonicalId: "bob" },
             interfaceType: "evaluation",
             role: "user",
           },
@@ -2532,8 +2553,7 @@ describe("AgentService", () => {
           userPermissionLevel: "anchor",
           interfaceType: "evaluation",
           actor: {
-            actorId: "eval-anchor-alice",
-            canonicalId: "alice",
+            identity: { kind: "user", userId: "alice", canonicalId: "alice" },
             interfaceType: "evaluation",
             role: "user",
           },
@@ -3607,9 +3627,11 @@ describe("AgentService", () => {
         channelId: "!room:example.org",
         channelName: "Ops",
         actor: {
-          actorId: "matrix:@mira:example.org",
-          userId: "usr_mira",
-          canonicalId: "user:mira",
+          identity: {
+            kind: "user",
+            userId: "usr_mira",
+            canonicalId: "user:mira",
+          },
           interfaceType: "matrix",
           role: "user",
           displayName: "Mira",
@@ -3625,9 +3647,11 @@ describe("AgentService", () => {
           channelId: "!room:example.org",
           channelName: "Ops",
           actor: {
-            actorId: "matrix:@mira:example.org",
-            userId: "usr_mira",
-            canonicalId: "user:mira",
+            identity: {
+              kind: "user",
+              userId: "usr_mira",
+              canonicalId: "user:mira",
+            },
             interfaceType: "matrix",
             role: "user",
             displayName: "Mira",

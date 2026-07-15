@@ -193,7 +193,7 @@ describe("buildSummaryCoverageData", () => {
 });
 
 describe("registerSummaryCoverageWidget", () => {
-  it("registers an operator-only coverage widget", async () => {
+  it("registers an Anchor-only coverage widget", async () => {
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
     let payload: Record<string, unknown> | undefined;
     const send = mock(async (request: { type: string; payload: unknown }) => {

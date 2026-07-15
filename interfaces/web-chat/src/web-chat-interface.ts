@@ -1,6 +1,7 @@
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
   agentEventActionSchema,
+  createExternalActorId,
   parseAgentResponse,
 } from "@brains/contracts";
 import { getActiveAuthService, type AuthPrincipal } from "@brains/auth-service";
@@ -104,8 +105,8 @@ const chatBootstrapResponseSchema = z.object({
       .strict(),
   ),
 });
-type OperatorSessionResolver = (request: Request) => Promise<boolean>;
-type OperatorPrincipalResolver = (
+type AuthSessionResolver = (request: Request) => Promise<boolean>;
+type BrowserPrincipalResolver = (
   request: Request,
 ) => Promise<AuthPrincipal | undefined>;
 type PermissionLevelResolver = (
@@ -113,17 +114,16 @@ type PermissionLevelResolver = (
 ) => Promise<UserPermissionLevel>;
 
 export interface WebChatDeps {
-  /** Override how an operator session is detected (used in tests). */
-  resolveOperatorSession?: OperatorSessionResolver;
+  /** Override how an auth session is detected (used in tests). */
+  resolveAuthSession?: AuthSessionResolver;
   /** Override authenticated principal resolution (used in tests). */
-  resolveOperatorPrincipal?: OperatorPrincipalResolver;
+  resolveAuthPrincipal?: BrowserPrincipalResolver;
   /** Override the resolved caller permission level (used in tests). */
   resolvePermissionLevel?: PermissionLevelResolver;
 }
 
-const defaultResolveOperatorPrincipal: OperatorPrincipalResolver = async (
-  request,
-) => getActiveAuthService()?.resolveSession(request);
+const defaultResolveAuthPrincipal: BrowserPrincipalResolver = async (request) =>
+  getActiveAuthService()?.resolveSession(request);
 
 export class WebChatInterface extends MessageInterfacePlugin<
   WebChatConfig,
@@ -131,19 +131,19 @@ export class WebChatInterface extends MessageInterfacePlugin<
 > {
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
-  private readonly resolveOperatorSession: OperatorSessionResolver;
-  private readonly resolveOperatorPrincipal: OperatorPrincipalResolver;
+  private readonly resolveAuthSession: AuthSessionResolver;
+  private readonly resolveAuthPrincipal: BrowserPrincipalResolver;
   private readonly resolveCallerPermissionLevel:
     PermissionLevelResolver | undefined;
 
   constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
-    this.resolveOperatorPrincipal =
-      deps.resolveOperatorPrincipal ?? defaultResolveOperatorPrincipal;
-    this.resolveOperatorSession =
-      deps.resolveOperatorSession ??
+    this.resolveAuthPrincipal =
+      deps.resolveAuthPrincipal ?? defaultResolveAuthPrincipal;
+    this.resolveAuthSession =
+      deps.resolveAuthSession ??
       (async (request): Promise<boolean> =>
-        (await this.resolveOperatorPrincipal(request))?.permissionLevel ===
+        (await this.resolveAuthPrincipal(request))?.permissionLevel ===
         "anchor");
     this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
   }
@@ -303,8 +303,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleChatPage(request: Request): Promise<Response> {
-    if (!(await this.resolveOperatorSession(request))) {
-      return this.createOperatorLoginRequiredResponse(request);
+    if (!(await this.resolveAuthSession(request))) {
+      return this.createAuthLoginRequiredResponse(request);
     }
 
     const requestUrl = new URL(request.url);
@@ -366,7 +366,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleActionRequest(request: Request): Promise<Response> {
-    if (!(await this.resolveOperatorSession(request))) {
+    if (!(await this.resolveAuthSession(request))) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -419,7 +419,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   private async handleUploadRequest(request: Request): Promise<Response> {
     return handleUploadRouteRequest(request, {
-      resolveOperatorSession: this.resolveOperatorSession,
+      resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
         this.getContext().uploads.scoped(createWebChatUploadStoreScope()),
     });
@@ -429,7 +429,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     request: Request,
   ): Promise<Response> {
     return handleUploadDownloadRouteRequest(request, {
-      resolveOperatorSession: this.resolveOperatorSession,
+      resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
         this.getContext().uploads.scoped(createWebChatUploadStoreScope()),
     });
@@ -438,7 +438,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentChatRequest(
     request: Request,
   ): Promise<Response> {
-    if (!(await this.resolveOperatorSession(request))) {
+    const principal = await this.resolveAuthPrincipal(request);
+    const hasAnchorAccess = principal
+      ? principal.permissionLevel === "anchor"
+      : await this.resolveAuthSession(request);
+    if (!hasAnchorAccess) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -457,7 +461,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     const response = await this.getContext().agent.chat(
       parsed.data.message,
       parsed.data.conversationId,
-      this.createRemoteAgentChatContext(parsed.data.conversationId),
+      this.createRemoteAgentChatContext(parsed.data.conversationId, principal),
     );
 
     return Response.json(response);
@@ -466,7 +470,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentConfirmRequest(
     request: Request,
   ): Promise<Response> {
-    if (!(await this.resolveOperatorSession(request))) {
+    const principal = await this.resolveAuthPrincipal(request);
+    const hasAnchorAccess = principal
+      ? principal.permissionLevel === "anchor"
+      : await this.resolveAuthSession(request);
+    if (!hasAnchorAccess) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -488,32 +496,49 @@ export class WebChatInterface extends MessageInterfacePlugin<
       parsed.data.conversationId,
       parsed.data.confirmed,
       parsed.data.approvalId,
-      this.createRemoteAgentChatContext(parsed.data.conversationId),
+      this.createRemoteAgentChatContext(parsed.data.conversationId, principal),
     );
 
     return Response.json(response);
   }
 
-  private createRemoteAgentChatContext(conversationId: string): ChatContext {
+  private createRemoteAgentChatContext(
+    conversationId: string,
+    principal: AuthPrincipal | undefined,
+  ): ChatContext {
     return {
       userPermissionLevel: "anchor",
       interfaceType: "remote-agent",
       channelId: conversationId,
       channelName: "Remote Agent",
       actor: {
-        actorId: `remote-agent:${conversationId}:operator`,
+        identity: principal
+          ? {
+              kind: "user",
+              userId: principal.userId,
+              ...(principal.canonicalId
+                ? { canonicalId: principal.canonicalId }
+                : {}),
+            }
+          : {
+              kind: "external",
+              externalActorId: createExternalActorId(
+                "remote-agent",
+                `remote-agent:${conversationId}:browser-user`,
+              ),
+            },
         interfaceType: "remote-agent",
         role: "user",
-        displayName: "Remote agent operator",
+        displayName: principal?.displayName ?? "Remote agent user",
       },
     };
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
-    const principal = await this.resolveOperatorPrincipal(request);
+    const principal = await this.resolveAuthPrincipal(request);
     const hasAnchorAccess = principal
       ? principal.permissionLevel === "anchor"
-      : await this.resolveOperatorSession(request);
+      : await this.resolveAuthSession(request);
     if (!hasAnchorAccess) {
       return new Response("Forbidden", { status: 403 });
     }
@@ -662,8 +687,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return handleDocumentAttachmentRouteRequest(request, {
       resolvePermissionLevel: (nextRequest) =>
         this.resolveAttachmentPermissionLevel(nextRequest),
-      createOperatorLoginRequiredResponse: (nextRequest) =>
-        this.createOperatorLoginRequiredResponse(nextRequest),
+      createAuthLoginRequiredResponse: (nextRequest) =>
+        this.createAuthLoginRequiredResponse(nextRequest),
       entityService: this.getContext().entityService,
     });
   }
@@ -674,17 +699,17 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return handleImageAttachmentRouteRequest(request, {
       resolvePermissionLevel: (nextRequest) =>
         this.resolveAttachmentPermissionLevel(nextRequest),
-      createOperatorLoginRequiredResponse: (nextRequest) =>
-        this.createOperatorLoginRequiredResponse(nextRequest),
+      createAuthLoginRequiredResponse: (nextRequest) =>
+        this.createAuthLoginRequiredResponse(nextRequest),
       entityService: this.getContext().entityService,
     });
   }
 
   private async handleJobStatusRequest(request: Request): Promise<Response> {
     return handleJobStatusRouteRequest(request, {
-      resolveOperatorSession: this.resolveOperatorSession,
-      createOperatorLoginRequiredResponse: (nextRequest) =>
-        this.createOperatorLoginRequiredResponse(nextRequest),
+      resolveAuthSession: this.resolveAuthSession,
+      createAuthLoginRequiredResponse: (nextRequest) =>
+        this.createAuthLoginRequiredResponse(nextRequest),
       jobs: this.getContext().jobs,
     });
   }
@@ -706,11 +731,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async resolvePermissionLevel(
     request: Request,
   ): Promise<"anchor" | "public"> {
-    const principal = await this.resolveOperatorPrincipal(request);
+    const principal = await this.resolveAuthPrincipal(request);
     if (principal) {
       return principal.permissionLevel === "anchor" ? "anchor" : "public";
     }
-    return (await this.resolveOperatorSession(request)) ? "anchor" : "public";
+    return (await this.resolveAuthSession(request)) ? "anchor" : "public";
   }
 
   private async resolveAttachmentPermissionLevel(
@@ -722,11 +747,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return this.resolvePermissionLevel(request);
   }
 
-  private createOperatorLoginRequiredResponse(request: Request): Response {
+  private createAuthLoginRequiredResponse(request: Request): Response {
     const authService = getActiveAuthService();
-    if (authService) return authService.createOperatorLoginResponse(request);
+    if (authService) return authService.createAuthLoginResponse(request);
 
-    return new Response("Operator login required", {
+    return new Response("Authentication required", {
       status: 401,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });

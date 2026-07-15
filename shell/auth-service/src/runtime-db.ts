@@ -24,6 +24,7 @@ const INITIAL_MIGRATION_ID = 1;
 const OPTIONAL_CHALLENGE_USER_MIGRATION_ID = 2;
 const A2A_PEER_TRUST_MIGRATION_ID = 3;
 const SIGNING_KEY_PURPOSE_MIGRATION_ID = 4;
+const AUTH_SESSION_TERMINOLOGY_MIGRATION_ID = 5;
 
 export class AuthRuntimeDatabase {
   private readonly storageDir: string;
@@ -74,6 +75,7 @@ export class AuthRuntimeDatabase {
       await this.runOptionalChallengeUserMigration();
       await this.runA2APeerTrustMigration();
       await this.runSigningKeyPurposeMigration();
+      await this.runAuthSessionTerminologyMigration();
       await this.secureLocalDatabaseFile();
     } catch (error) {
       await this.stop();
@@ -110,6 +112,35 @@ export class AuthRuntimeDatabase {
       return;
     }
     await chmod(path, 0o600);
+  }
+
+  private async runAuthSessionTerminologyMigration(): Promise<void> {
+    const existing = await this.client.execute({
+      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
+      args: [AUTH_SESSION_TERMINOLOGY_MIGRATION_ID],
+    });
+    if (existing.rows.length > 0) {
+      return;
+    }
+
+    await this.client.batch(
+      [
+        "ALTER TABLE operator_sessions RENAME TO auth_sessions",
+        "DROP INDEX IF EXISTS idx_operator_sessions_user_id",
+        `CREATE INDEX idx_auth_sessions_user_id
+          ON auth_sessions(user_id)`,
+        {
+          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
+            VALUES (?, ?, ?)`,
+          args: [
+            AUTH_SESSION_TERMINOLOGY_MIGRATION_ID,
+            "auth-session-terminology",
+            Date.now(),
+          ],
+        },
+      ],
+      "write",
+    );
   }
 
   private async runSigningKeyPurposeMigration(): Promise<void> {
@@ -212,13 +243,43 @@ export class AuthRuntimeDatabase {
   }
 
   private async runMigrations(): Promise<void> {
+    await this.client
+      .execute(`CREATE TABLE IF NOT EXISTS auth_schema_migrations (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      applied_at INTEGER NOT NULL
+    )`);
+    const authSessionMigration = await this.client.execute({
+      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
+      args: [AUTH_SESSION_TERMINOLOGY_MIGRATION_ID],
+    });
+    const sessionSchemaStatements =
+      authSessionMigration.rows.length > 0
+        ? [
+            `CREATE TABLE IF NOT EXISTS auth_sessions (
+              token_hash TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+              expires_at INTEGER NOT NULL,
+              revoked_at INTEGER,
+              created_at INTEGER NOT NULL
+            )`,
+            `CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id
+              ON auth_sessions(user_id)`,
+          ]
+        : [
+            `CREATE TABLE IF NOT EXISTS operator_sessions (
+              token_hash TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+              expires_at INTEGER NOT NULL,
+              revoked_at INTEGER,
+              created_at INTEGER NOT NULL
+            )`,
+            `CREATE INDEX IF NOT EXISTS idx_operator_sessions_user_id
+              ON operator_sessions(user_id)`,
+          ];
+
     await this.client.batch(
       [
-        `CREATE TABLE IF NOT EXISTS auth_schema_migrations (
-          id INTEGER PRIMARY KEY,
-          name TEXT NOT NULL,
-          applied_at INTEGER NOT NULL
-        )`,
         `CREATE TABLE IF NOT EXISTS auth_users (
           id TEXT PRIMARY KEY,
           display_name TEXT NOT NULL,
@@ -272,15 +333,7 @@ export class AuthRuntimeDatabase {
         )`,
         `CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_user_id
           ON webauthn_challenges(user_id)`,
-        `CREATE TABLE IF NOT EXISTS operator_sessions (
-          token_hash TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-          expires_at INTEGER NOT NULL,
-          revoked_at INTEGER,
-          created_at INTEGER NOT NULL
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_operator_sessions_user_id
-          ON operator_sessions(user_id)`,
+        ...sessionSchemaStatements,
         `CREATE TABLE IF NOT EXISTS oauth_clients (
           client_id TEXT PRIMARY KEY,
           secret_hash TEXT,

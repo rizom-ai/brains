@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { actorRefKey, createExternalActorId } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { CanonicalIdentityService } from "../src/canonical-identity-service";
 
@@ -11,13 +12,21 @@ describe("CanonicalIdentityService", () => {
     await service.refreshCache();
 
     expect(service.getLinks()).toEqual([]);
-    expect(service.resolveActor("discord:123")).toBeNull();
+    expect(
+      service.resolveActor({
+        kind: "external",
+        externalActorId: createExternalActorId("discord", "123"),
+      }),
+    ).toBeNull();
   });
 
   it("leaves unlinked user actors unchanged", async () => {
     const service = CanonicalIdentityService.createFresh(logger);
     const actor = {
-      actorId: "discord:123",
+      identity: {
+        kind: "external" as const,
+        externalActorId: createExternalActorId("discord", "123"),
+      },
       interfaceType: "discord",
       role: "user" as const,
       displayName: "Mira",
@@ -29,8 +38,9 @@ describe("CanonicalIdentityService", () => {
   it("enriches actors through an injected private identity resolver", async () => {
     const service = CanonicalIdentityService.createFresh(
       logger,
-      async (actorId) =>
-        actorId === "discord:123"
+      async (identity) =>
+        actorRefKey(identity) ===
+        `external:${createExternalActorId("discord", "123")}`
           ? {
               userId: "usr_mira",
               canonicalId: "user:mira",
@@ -39,7 +49,10 @@ describe("CanonicalIdentityService", () => {
           : null,
     );
     const actor = {
-      actorId: "discord:123",
+      identity: {
+        kind: "external" as const,
+        externalActorId: createExternalActorId("discord", "123"),
+      },
       interfaceType: "discord",
       role: "user" as const,
       displayName: "Mira on Discord",
@@ -47,8 +60,11 @@ describe("CanonicalIdentityService", () => {
 
     expect(await service.enrichActor(actor)).toEqual({
       ...actor,
-      userId: "usr_mira",
-      canonicalId: "user:mira",
+      identity: {
+        kind: "user",
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+      },
       displayName: "Mira",
     });
   });

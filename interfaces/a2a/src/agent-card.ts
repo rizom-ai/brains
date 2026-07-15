@@ -83,7 +83,7 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
   const extensions: AgentExtension[] = [
     {
       uri: ANCHOR_EXTENSION_URI,
-      description: "Anchor (operator) identity for this brain",
+      description: "Anchor identity for this brain",
       params: anchorParams,
     },
   ];

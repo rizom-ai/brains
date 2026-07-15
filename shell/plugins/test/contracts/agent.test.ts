@@ -15,7 +15,7 @@ describe("public agent contracts", () => {
         interfaceType: "discord",
         channelId: "thread-456",
         actor: {
-          actorId: "discord:user-789",
+          identity: { kind: "external", externalActorId: "ext_mira" },
           interfaceType: "discord",
           role: "user",
           displayName: "Mira Ops",
@@ -31,7 +31,7 @@ describe("public agent contracts", () => {
       interfaceType: "discord",
       channelId: "thread-456",
       actor: {
-        actorId: "discord:user-789",
+        identity: { kind: "external", externalActorId: "ext_mira" },
         interfaceType: "discord",
         role: "user",
         displayName: "Mira Ops",

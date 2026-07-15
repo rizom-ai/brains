@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { createExternalActorId } from "@brains/contracts";
 import { createInterfacePluginContext } from "@brains/plugins/test";
 import {
   createMockShell,
@@ -80,10 +81,13 @@ describe("MCP tools", () => {
         channelId: "session-1",
         channelName: "MCP Session",
         actor: {
-          actorId: "operator-1",
+          identity: {
+            kind: "user",
+            userId: "operator-1",
+            canonicalId: "user:operator-1",
+          },
           interfaceType: "mcp",
           role: "user",
-          canonicalId: "user:operator-1",
           displayName: "Mira",
         },
       },
@@ -325,7 +329,10 @@ describe("MCP tools", () => {
         channelId: "session-1",
         channelName: "MCP Session",
         actor: {
-          actorId: "operator-1",
+          identity: {
+            kind: "external",
+            externalActorId: createExternalActorId("mcp", "operator-1"),
+          },
           interfaceType: "mcp",
           role: "user",
         },

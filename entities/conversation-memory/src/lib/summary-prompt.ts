@@ -1,3 +1,4 @@
+import { actorRefKey } from "@brains/contracts";
 import {
   conversationMessageMetadataSchema,
   type ConversationMessageActor,
@@ -34,7 +35,7 @@ function getSpeakerLabel(message: Message): string {
     firstNonEmpty([
       actor.displayName ?? "",
       actor.username ?? "",
-      actor.actorId,
+      actorRefKey(actor.identity),
     ]) ?? message.role;
 
   return `${label} [${message.role}]`;

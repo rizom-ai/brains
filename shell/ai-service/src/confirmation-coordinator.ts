@@ -11,6 +11,7 @@
  */
 
 import { waitFor, type createActor } from "xstate";
+import { actorRefKey } from "@brains/contracts";
 import { PermissionService } from "@brains/templates";
 import type {
   ConversationMessageActor,
@@ -38,7 +39,7 @@ export interface ConfirmationContext {
 function actorKey(
   actor: ConversationMessageActor | null | undefined,
 ): string | undefined {
-  return actor?.canonicalId ?? actor?.actorId;
+  return actor ? actorRefKey(actor.identity) : undefined;
 }
 
 /**

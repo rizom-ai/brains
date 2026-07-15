@@ -44,7 +44,7 @@ export function renderSetupPage(setupToken: string): string {
 
 export function renderLoginPage(
   returnTo: string,
-  title = "Operator login",
+  title = "Passkey login",
 ): string {
   return `<!doctype html>
 <html lang="en">
@@ -139,7 +139,7 @@ function authPageHeadAssets(): string {
         box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 28px 70px -34px rgba(0, 0, 0, 0.72);
       }
       .card::before {
-        content: "Operator gate";
+        content: "Authenticated access";
         display: block;
         margin-bottom: 16px;
         font-family: var(--font-mono);
@@ -316,12 +316,12 @@ function getScopeCopy(scope: string): { title: string; description: string } {
       return {
         title: "Basic profile",
         description:
-          "Share the local operator profile subject with the client.",
+          "Share the authenticated user's local profile subject with the client.",
       };
     case "email":
       return {
         title: "Email address",
-        description: "Share the operator email address when one is configured.",
+        description: "Share the verified email address when one is configured.",
       };
     case "offline_access":
       return {
@@ -391,7 +391,7 @@ export function renderAuthorizePage(
 
 export function unauthorizedHtmlResponse(request: Request): Response {
   const returnTo = `${new URL(request.url).pathname}${new URL(request.url).search}`;
-  return new Response(renderLoginPage(returnTo, "Operator login required"), {
+  return new Response(renderLoginPage(returnTo, "Passkey login required"), {
     status: 401,
     headers: {
       "Content-Type": "text/html; charset=utf-8",

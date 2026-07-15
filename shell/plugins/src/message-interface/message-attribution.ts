@@ -1,14 +1,13 @@
+import type { ActorRef } from "@brains/contracts";
 import type {
   ConversationMessageActor,
   ConversationMessageSource,
 } from "@brains/conversation-service";
 
 export interface MessageActorInput {
+  identity: ActorRef;
   interfaceType: string;
-  actorId: string;
-  userId?: string;
   role?: "user" | "assistant";
-  canonicalId?: string;
   displayName?: string;
   username?: string;
   isBot?: boolean | string;
@@ -26,11 +25,9 @@ export function buildMessageActorMetadata(
   input: MessageActorInput,
 ): ConversationMessageActor {
   return {
-    actorId: input.actorId,
-    ...(input.userId ? { userId: input.userId } : {}),
+    identity: input.identity,
     interfaceType: input.interfaceType,
     role: input.role ?? "user",
-    ...(input.canonicalId ? { canonicalId: input.canonicalId } : {}),
     ...(input.displayName ? { displayName: input.displayName } : {}),
     ...(input.username ? { username: input.username } : {}),
     ...(input.isBot !== undefined

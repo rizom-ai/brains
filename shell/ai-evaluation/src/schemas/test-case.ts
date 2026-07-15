@@ -1,3 +1,8 @@
+import {
+  conversationMessageActorSchema,
+  conversationMessageMetadataSchema,
+  type ConversationMessageActor,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 export type AgentTestCaseType =
@@ -193,7 +198,6 @@ export const evalAttachmentSchema: z.ZodDiscriminatedUnion<
 ]);
 
 type UserPermissionLevel = "anchor" | "trusted" | "public";
-type MessageRole = "user" | "assistant";
 
 const userPermissionLevelSchema: z.ZodEnum<{
   anchor: "anchor";
@@ -201,31 +205,13 @@ const userPermissionLevelSchema: z.ZodEnum<{
   public: "public";
 }> = z.enum(["anchor", "trusted", "public"]);
 
-const messageRoleSchema: z.ZodEnum<{
-  user: "user";
-  assistant: "assistant";
-}> = z.enum(["user", "assistant"]);
-
-export interface ConversationMessageActor {
-  actorId: string;
-  canonicalId?: string | undefined;
-  interfaceType: string;
-  role: MessageRole;
-  displayName?: string | undefined;
-  username?: string | undefined;
-  isBot?: boolean | undefined;
-}
-
-const conversationMessageActorSchema: z.ZodType<ConversationMessageActor> =
-  z.object({
-    actorId: z.string(),
-    canonicalId: z.string().optional(),
-    interfaceType: z.string(),
-    role: messageRoleSchema,
-    displayName: z.string().optional(),
-    username: z.string().optional(),
-    isBot: z.boolean().optional(),
-  });
+const evalConversationMessageActorSchema: z.ZodType<
+  ConversationMessageActor,
+  unknown
+> = z.preprocess((value) => {
+  const parsed = conversationMessageMetadataSchema.safeParse({ actor: value });
+  return parsed.success ? parsed.data.actor : value;
+}, conversationMessageActorSchema);
 
 export interface ConversationMessageSource {
   messageId?: string | undefined;
@@ -259,7 +245,7 @@ export const turnContextSchema: z.ZodType<TurnContext> = z
     interfaceType: z.string().optional(),
     channelId: z.string().optional(),
     channelName: z.string().optional(),
-    actor: conversationMessageActorSchema.optional(),
+    actor: evalConversationMessageActorSchema.optional(),
     source: conversationMessageSourceSchema.optional(),
   })
   .partial();

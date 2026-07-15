@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { createExternalActorId } from "@brains/contracts";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
 import type { Mock } from "bun:test";
+
+const discordExternalIdentity = {
+  kind: "external" as const,
+  externalActorId: createExternalActorId("discord", "user-789"),
+};
 
 interface MockConversationService {
   startConversation: Mock<(request: { sessionId: string }) => Promise<string>>;
@@ -363,8 +369,11 @@ describe("DiscordInterface", () => {
           interfaceType: "discord",
           userPermissionLevel: "trusted",
           actor: expect.objectContaining({
-            userId: "usr_mira",
-            canonicalId: "user:mira",
+            identity: {
+              kind: "user",
+              userId: "usr_mira",
+              canonicalId: "user:mira",
+            },
             displayName: "Mira",
           }),
         }),
@@ -399,7 +408,7 @@ describe("DiscordInterface", () => {
         expect.stringContaining("discord-"),
         expect.objectContaining({
           actor: expect.objectContaining({
-            actorId: "discord:user-789",
+            identity: discordExternalIdentity,
             interfaceType: "discord",
             role: "user",
             displayName: "Mira Ops",
@@ -616,7 +625,7 @@ describe("DiscordInterface", () => {
         content: "Team update for summary",
         metadata: expect.objectContaining({
           actor: expect.objectContaining({
-            actorId: "discord:user-789",
+            identity: discordExternalIdentity,
             interfaceType: "discord",
             role: "user",
             displayName: "Mira Ops",
@@ -670,8 +679,11 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           metadata: expect.objectContaining({
             actor: expect.objectContaining({
-              userId: "usr_mira",
-              canonicalId: "user:mira",
+              identity: {
+                kind: "user",
+                userId: "usr_mira",
+                canonicalId: "user:mira",
+              },
               displayName: "Mira",
             }),
           }),
@@ -899,7 +911,7 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           userPermissionLevel: "public",
           interfaceType: "discord",
-          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+          actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
       );
     });
@@ -942,7 +954,7 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           userPermissionLevel: "public",
           interfaceType: "discord",
-          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+          actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
       );
       expect(mockSend).toHaveBeenCalledWith("Fresh topic answer.");
@@ -1081,7 +1093,7 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           userPermissionLevel: "public",
           interfaceType: "discord",
-          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+          actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
       );
       expect(mockSend).toHaveBeenCalledWith(
@@ -1147,7 +1159,7 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           userPermissionLevel: "public",
           interfaceType: "discord",
-          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+          actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
       );
       expect(mockSend).toHaveBeenCalledWith(
@@ -1353,7 +1365,7 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           userPermissionLevel: "public",
           interfaceType: "discord",
-          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+          actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
       );
       expect(mockSend).toHaveBeenCalledWith(
@@ -1424,7 +1436,7 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           userPermissionLevel: "public",
           interfaceType: "discord",
-          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+          actor: expect.objectContaining({ identity: discordExternalIdentity }),
         }),
       );
       expect(mockSend).toHaveBeenCalledWith(

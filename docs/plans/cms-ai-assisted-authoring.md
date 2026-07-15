@@ -79,7 +79,7 @@ Thin vertical slices, tests first in every phase.
 
 ### Phase 2 — Assist route + selection rewrite
 
-- Tests first (server): `POST /cms/api/assist` requires an operator session (401);
+- Tests first (server): `POST /cms/api/assist` requires an auth session (401);
   contract `{ entityType, instruction, selection, body, frontmatter }` →
   `{ suggestion }`; the handler calls the AI service and performs **no entity
   writes**; oversized/empty selection rejected with 400.
@@ -129,7 +129,7 @@ preset asks for replacement-only markdown and enables explicit replacement.
   it via `context.messaging.send` and degrades cleanly when a2a is not installed.
 - Tests first (a2a): the message handler refuses unapproved/archived agents and
   answers with the same result shape as the tool path.
-- Tests first (server): `POST /cms/api/ask-agent` requires an operator session
+- Tests first (server): `POST /cms/api/ask-agent` requires an auth session
   (401); contract `{ selection, instruction, agent }` → `{ agentId, response }`;
   performs no entity writes; unknown/unapproved agent → 4xx with a clear error.
 - Tests first (client): target-dropdown state (model default; agents from the entity

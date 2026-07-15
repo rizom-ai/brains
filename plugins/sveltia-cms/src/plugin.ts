@@ -298,7 +298,7 @@ export class CmsPlugin extends ServicePlugin<
         public: true,
         handler: async (request): Promise<Response> => {
           if (loginMethods.passkeyLogin) {
-            if (!(await hasOperatorSession(request))) {
+            if (!(await hasAuthSession(request))) {
               return new Response(null, {
                 status: 302,
                 headers: {
@@ -368,9 +368,9 @@ export class CmsPlugin extends ServicePlugin<
     }
 
     if (loginMethods.passkeyLogin) {
-      // An operator who already holds a session skips the passkey prompt and
+      // An authenticated user who already holds a session skips the passkey prompt and
       // goes straight to releasing the PAT.
-      const renderPage = (await hasOperatorSession(request))
+      const renderPage = (await hasAuthSession(request))
         ? renderPasskeyTokenPage
         : renderPasskeyLoginPage;
       return htmlResponse(
@@ -453,9 +453,9 @@ export class CmsPlugin extends ServicePlugin<
     passkeyLogin: EnabledPasskeyLoginConfig,
   ): Promise<Response> {
     const authService = getActiveAuthService();
-    const session = await authService?.getOperatorSession(request);
+    const session = await authService?.getAuthSession(request);
     if (!session) {
-      return jsonResponse({ error: "Operator session required" }, 401);
+      return jsonResponse({ error: "Authentication required" }, 401);
     }
 
     return jsonResponse(
@@ -614,8 +614,8 @@ function oauthErrorResponse(message: string): Response {
   );
 }
 
-async function hasOperatorSession(request: Request): Promise<boolean> {
-  return Boolean(await getActiveAuthService()?.getOperatorSession(request));
+async function hasAuthSession(request: Request): Promise<boolean> {
+  return Boolean(await getActiveAuthService()?.getAuthSession(request));
 }
 
 function renderPasskeyLoginPage(targetOrigin: string): string {

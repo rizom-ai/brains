@@ -60,12 +60,12 @@
           },
           "anchor": {
             "type": "object",
-            "description": "Minimal owner/operator snapshot for discovery grouping and display.",
+            "description": "Minimal Anchor snapshot for discovery grouping and display.",
             "required": ["did", "name", "kind"],
             "properties": {
               "did": {
                 "type": "string",
-                "description": "Public DID for the owner/operator anchor identity."
+                "description": "Public DID for the Anchor identity."
               },
               "name": {
                 "type": "string",

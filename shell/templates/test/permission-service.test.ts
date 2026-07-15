@@ -730,17 +730,17 @@ describe("PermissionService", () => {
       expect(() =>
         service.assertEntityActionAllowed("summary", "update", "trusted"),
       ).toThrow(
-        "Updating `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Updating `summary` requires Anchor permission; your current permission is Trusted.",
       );
       expect(() =>
         service.assertEntityActionAllowed("summary", "extract", "trusted"),
       ).toThrow(
-        "Extracting `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Extracting `summary` requires Anchor permission; your current permission is Trusted.",
       );
       expect(() =>
         service.assertEntityActionAllowed("summary", "publish", "trusted"),
       ).toThrow(
-        "Publishing `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Publishing `summary` requires Anchor permission; your current permission is Trusted.",
       );
     });
   });

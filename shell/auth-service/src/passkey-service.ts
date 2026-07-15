@@ -20,7 +20,7 @@ import {
 } from "./passkey-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 
-const DEFAULT_USER_NAME = "Operator";
+const DEFAULT_USER_NAME = "Anchor";
 const AUTHENTICATION_CHALLENGE_SUBJECT = "passkey-authentication";
 const DEFAULT_RP_NAME = "Brain";
 

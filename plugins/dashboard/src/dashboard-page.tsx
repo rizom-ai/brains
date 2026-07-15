@@ -38,7 +38,7 @@ interface WidgetTab {
   label: string;
   widgets: WidgetGroups;
   widgetCount: number;
-  needsOperator: number;
+  needsAttention: number;
 }
 
 interface OverviewDigestLine {
@@ -62,9 +62,9 @@ function createEmptyWidgetGroups(): WidgetGroups {
   };
 }
 
-function countNeedsOperator(tab: WidgetTab): number {
+function countNeedsAttention(tab: WidgetTab): number {
   return getTabWidgets(tab).reduce(
-    (total, widget) => total + (widget.widget.needsOperator ?? 0),
+    (total, widget) => total + (widget.widget.needsAttention ?? 0),
     0,
   );
 }
@@ -181,7 +181,7 @@ function groupExternalWidgets(
       label: getDashboardGroupLabel(group),
       widgets: widgetsForGroup,
       widgetCount: 0,
-      needsOperator: 0,
+      needsAttention: 0,
     };
     usedAnchors.set(baseAnchor, anchorCount + 1);
 
@@ -190,7 +190,7 @@ function groupExternalWidgets(
       // Built-ins are not counted: the muted badge reports registered
       // widget volume only (the mockup's System tab carries no badge).
       widgetCount: countTabWidgets(tabWithoutCounts),
-      needsOperator: countNeedsOperator(tabWithoutCounts),
+      needsAttention: countNeedsAttention(tabWithoutCounts),
     };
   });
 }
@@ -393,8 +393,8 @@ function TabBar({
           key={tab.id}
         >
           <span>{tab.label}</span>
-          {tab.needsOperator > 0 ? (
-            <span class="tab-badge tab-badge--needs">{tab.needsOperator}</span>
+          {tab.needsAttention > 0 ? (
+            <span class="tab-badge tab-badge--needs">{tab.needsAttention}</span>
           ) : tab.widgetCount > 0 ? (
             <span class="tab-badge tab-badge--muted">{tab.widgetCount}</span>
           ) : null}

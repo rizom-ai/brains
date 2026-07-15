@@ -1,4 +1,5 @@
 import { describe, it, expect, spyOn } from "bun:test";
+import { createExternalActorId } from "@brains/contracts";
 import type { Conversation, Message } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
@@ -55,6 +56,16 @@ const discordConversation: Conversation = {
   channelName: "Relay Pilot",
 };
 
+const externalIdentity = (
+  subject: string,
+): {
+  kind: "external";
+  externalActorId: string;
+} => ({
+  kind: "external",
+  externalActorId: createExternalActorId("discord", subject),
+});
+
 const canonicalLinkedMessages: Message[] = [
   {
     id: "cm1",
@@ -64,8 +75,11 @@ const canonicalLinkedMessages: Message[] = [
     timestamp: "2026-01-01T00:00:00.000Z",
     metadata: {
       actor: {
-        actorId: "discord:user-daniel",
-        canonicalId: "person:daniel",
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
         interfaceType: "discord",
         role: "user",
         displayName: "Daniel D.",
@@ -81,8 +95,11 @@ const canonicalLinkedMessages: Message[] = [
     timestamp: "2026-01-01T00:01:00.000Z",
     metadata: {
       actor: {
-        actorId: "mcp:daniel",
-        canonicalId: "person:daniel",
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
         interfaceType: "mcp",
         role: "user",
         displayName: "Daniel",
@@ -304,17 +321,17 @@ describe("SummaryProjector", () => {
     const summaryEntity = upsertSpy.mock.calls[0]?.[0]?.entity;
     expect(summaryEntity?.metadata["participants"]).toEqual([
       {
-        actorId: "discord:user-mira",
+        identity: externalIdentity("discord:user-mira"),
         displayName: "Mira Ops",
         roles: ["user"],
       },
       {
-        actorId: "brain:relay",
+        identity: { kind: "agent", agentId: "brain:relay" },
         displayName: "Relay",
         roles: ["assistant"],
       },
       {
-        actorId: "discord:user-daniel",
+        identity: externalIdentity("discord:user-daniel"),
         displayName: "Daniel",
         roles: ["user"],
       },
@@ -323,19 +340,31 @@ describe("SummaryProjector", () => {
     const decisionEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
     expect(decisionEntity?.entityType).toBe("decision");
     expect(decisionEntity?.metadata["decidedBy"]).toEqual([
-      { actorId: "discord:user-mira", displayName: "Mira Ops" },
+      {
+        identity: externalIdentity("discord:user-mira"),
+        displayName: "Mira Ops",
+      },
     ]);
     expect(decisionEntity?.metadata["mentionedBy"]).toEqual([
-      { actorId: "discord:user-mira", displayName: "Mira Ops" },
+      {
+        identity: externalIdentity("discord:user-mira"),
+        displayName: "Mira Ops",
+      },
     ]);
 
     const actionItemEntity = upsertSpy.mock.calls[2]?.[0]?.entity;
     expect(actionItemEntity?.entityType).toBe("action-item");
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
-      { actorId: "discord:user-daniel", displayName: "Daniel" },
+      {
+        identity: externalIdentity("discord:user-daniel"),
+        displayName: "Daniel",
+      },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
-      { actorId: "discord:user-daniel", displayName: "Daniel" },
+      {
+        identity: externalIdentity("discord:user-daniel"),
+        displayName: "Daniel",
+      },
     ]);
   });
 
@@ -414,14 +443,20 @@ describe("SummaryProjector", () => {
     expect(result.skipped).toBe(false);
     const actionItemEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
-      { actorId: "discord:user-daniel", displayName: "Daniel" },
+      {
+        identity: externalIdentity("discord:user-daniel"),
+        displayName: "Daniel",
+      },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
-      { actorId: "discord:user-mira", displayName: "Mira Ops" },
+      {
+        identity: externalIdentity("discord:user-mira"),
+        displayName: "Mira Ops",
+      },
     ]);
   });
 
-  it("carries canonical actor ids into projected memory metadata", async () => {
+  it("carries resolved user identities into projected memory metadata", async () => {
     const context = createMockEntityPluginContext({
       spaces: ["discord:relay-pilot"],
     });
@@ -462,19 +497,24 @@ describe("SummaryProjector", () => {
     const summaryEntity = upsertSpy.mock.calls[0]?.[0]?.entity;
     expect(summaryEntity?.metadata["participants"]).toEqual([
       {
-        actorId: "discord:user-daniel",
-        canonicalId: "person:daniel",
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
         displayName: "Daniel D.",
         roles: ["user"],
-        sourceActorIds: ["discord:user-daniel", "mcp:daniel"],
       },
     ]);
 
     const decisionEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
     expect(decisionEntity?.metadata["decidedBy"]).toEqual([
       {
-        actorId: "discord:user-daniel",
-        canonicalId: "person:daniel",
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
         displayName: "Daniel D.",
       },
     ]);
@@ -482,15 +522,21 @@ describe("SummaryProjector", () => {
     const actionItemEntity = upsertSpy.mock.calls[2]?.[0]?.entity;
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
       {
-        actorId: "discord:user-daniel",
-        canonicalId: "person:daniel",
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
         displayName: "Daniel D.",
       },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
       {
-        actorId: "discord:user-daniel",
-        canonicalId: "person:daniel",
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
         displayName: "Daniel D.",
       },
     ]);

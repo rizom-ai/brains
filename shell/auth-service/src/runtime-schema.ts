@@ -298,19 +298,19 @@ export const webauthnChallenges: WebauthnChallengesTable = sqliteTable(
   }),
 );
 
-type OperatorSessionsTable = AuthTable<
-  "operator_sessions",
+type AuthSessionsTable = AuthTable<
+  "auth_sessions",
   {
-    tokenHash: AuthTextColumn<"operator_sessions", "token_hash", true, true>;
-    userId: AuthTextColumn<"operator_sessions", "user_id", true>;
-    expiresAt: AuthIntegerColumn<"operator_sessions", "expires_at", true>;
-    revokedAt: AuthIntegerColumn<"operator_sessions", "revoked_at", false>;
-    createdAt: AuthIntegerColumn<"operator_sessions", "created_at", true>;
+    tokenHash: AuthTextColumn<"auth_sessions", "token_hash", true, true>;
+    userId: AuthTextColumn<"auth_sessions", "user_id", true>;
+    expiresAt: AuthIntegerColumn<"auth_sessions", "expires_at", true>;
+    revokedAt: AuthIntegerColumn<"auth_sessions", "revoked_at", false>;
+    createdAt: AuthIntegerColumn<"auth_sessions", "created_at", true>;
   }
 >;
 
-export const operatorSessions: OperatorSessionsTable = sqliteTable(
-  "operator_sessions",
+export const authSessions: AuthSessionsTable = sqliteTable(
+  "auth_sessions",
   {
     tokenHash: text("token_hash").primaryKey(),
     userId: text("user_id")
@@ -321,7 +321,7 @@ export const operatorSessions: OperatorSessionsTable = sqliteTable(
     createdAt: integer("created_at").notNull(),
   },
   (table) => ({
-    userIdIdx: index("idx_operator_sessions_user_id").on(table.userId),
+    userIdIdx: index("idx_auth_sessions_user_id").on(table.userId),
   }),
 );
 
@@ -580,7 +580,7 @@ export const authRuntimeSchema: {
   oauthClients: OauthClientsTable;
   oauthRefreshTokens: OauthRefreshTokensTable;
   oauthSigningKeys: OauthSigningKeysTable;
-  operatorSessions: OperatorSessionsTable;
+  authSessions: AuthSessionsTable;
   passkeyCredentials: PasskeyCredentialsTable;
   setupTokens: SetupTokensTable;
   webauthnChallenges: WebauthnChallengesTable;
@@ -594,7 +594,7 @@ export const authRuntimeSchema: {
   oauthClients,
   oauthRefreshTokens,
   oauthSigningKeys,
-  operatorSessions,
+  authSessions,
   passkeyCredentials,
   setupTokens,
   webauthnChallenges,

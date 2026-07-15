@@ -25,7 +25,7 @@ interface DashboardWidgetPayload {
   dataProvider: () => Promise<PipelineWidgetData>;
   digestProvider: (data: unknown) => {
     digest: Array<{ label: string; value: string; tone?: string }>;
-    needsOperator: number;
+    needsAttention: number;
   };
 }
 
@@ -137,7 +137,7 @@ describe("dashboard widget registration", () => {
       { label: "Published", value: "9", tone: "good" },
     ]);
     // Drafts and failures both wait on an operator decision.
-    expect(derived?.needsOperator).toBe(3);
+    expect(derived?.needsAttention).toBe(3);
   });
 
   it("should render a quiet digest when the pipeline is idle", async () => {
@@ -154,7 +154,7 @@ describe("dashboard widget registration", () => {
       { label: "Awaiting review", value: "0 drafts" },
       { label: "Published", value: "4", tone: "good" },
     ]);
-    expect(derived?.needsOperator).toBe(0);
+    expect(derived?.needsAttention).toBe(0);
   });
 
   it("should surface active content-pipeline jobs as generating items", async () => {

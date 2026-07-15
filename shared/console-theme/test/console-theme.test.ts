@@ -113,6 +113,13 @@ describe("renderConsoleStripHtml", () => {
     { id: "cms", label: "CMS", href: "/cms", isActive: true },
   ];
 
+  it("uses role-neutral authenticated-session copy", () => {
+    const html = renderConsoleStripHtml({ surfaces, sessionHref: "/logout" });
+
+    expect(html).toContain("Authenticated");
+    expect(html).not.toContain("Operator");
+  });
+
   it("renders the climate toggle between search and session", () => {
     const html = renderConsoleStripHtml({ surfaces, sessionHref: "/logout" });
 

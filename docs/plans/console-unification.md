@@ -191,8 +191,8 @@ styled by it end to end.
 ### Phase 2 — Web-chat adopts tokens and strip ✅
 
 - Tests first: served chat page contains the sheet and no `--chat-*` definitions; the strip
-  renders with `here` = Chat and route-derived links; operator session renders the operator
-  chip, anonymous renders the visitor chip.
+  renders with `here` = Chat and route-derived links; an auth session renders the authenticated
+  chip, while an anonymous session renders the visitor chip.
 - Replace `chat-page.css` token declarations and fallback chains with `--console-*` usages;
   render the strip (React, mirroring `ConsoleStrip`) above the sessions/thread layout; fold
   the session footer's identity indicator into the chip.
@@ -208,7 +208,7 @@ styled by it end to end.
 
 ### Phase 4 — Cross-surface ⌘K jump ✅
 
-- Tests first: `/api/console/jump` returns 401 without an operator session; a query returns
+- Tests first: `/api/console/jump` returns 401 without an auth session; a query returns
   grouped results (entities via entity-service search, tabs from the group registry,
   actions) with stable shape; entity results carry the CMS edit URL and tab results the
   dashboard anchor.

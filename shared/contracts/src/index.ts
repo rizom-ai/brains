@@ -50,6 +50,14 @@ export {
   type AgentContextResponse,
 } from "./agent-context";
 export {
+  actorRefFromLegacy,
+  actorRefKey,
+  actorRefSchema,
+  createExternalActorId,
+  type ActorRef,
+  type LegacyActorIdentity,
+} from "./actor-ref";
+export {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   authPrincipalAttributionSchema,
   authPrincipalResolveRequestSchema,

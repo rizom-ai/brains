@@ -11,10 +11,10 @@ export interface WidgetComponentProps {
 
 export type WidgetComponent = ComponentType<WidgetComponentProps>;
 export type WidgetDataProvider = () => Promise<unknown>;
-/** Derives live digest lines / operator counts from the widget's fetched data. */
+/** Derives live digest lines / attention counts from the widget's fetched data. */
 export type WidgetDigestProvider = (data: unknown) => {
   digest?: DashboardDigestLine[];
-  needsOperator?: number;
+  needsAttention?: number;
 };
 export type WidgetVisibility = UserPermissionLevel;
 
@@ -68,7 +68,7 @@ export interface DashboardWidgetMeta {
   section: DashboardWidgetSection;
   rendererName: string;
   visibility: WidgetVisibility;
-  needsOperator?: number | undefined;
+  needsAttention?: number | undefined;
   digest?: DashboardDigestLine[] | undefined;
 }
 
@@ -82,7 +82,7 @@ export interface DashboardWidgetInput {
   section?: DashboardWidgetSection | undefined;
   rendererName: string;
   visibility?: WidgetVisibility | undefined;
-  needsOperator?: number | undefined;
+  needsAttention?: number | undefined;
   digest?: DashboardDigestLine[] | undefined;
 }
 
@@ -99,7 +99,7 @@ export const dashboardWidgetSchema: z.ZodType<
   section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
   rendererName: z.string(),
   visibility: widgetVisibilitySchema.default("public"),
-  needsOperator: z.number().int().nonnegative().optional(),
+  needsAttention: z.number().int().nonnegative().optional(),
   digest: z.array(dashboardDigestLineSchema).max(4).optional(),
 });
 

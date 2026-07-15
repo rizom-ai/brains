@@ -16,7 +16,7 @@ export interface ConsoleRouteLike {
 }
 
 /**
- * Operator surfaces in strip order. A surface's link exists exactly when its
+ * Console surfaces in strip order. A surface's link exists exactly when its
  * plugin registered a web route — a brain without the CMS plugin shows no CMS
  * door, mirroring how dashboard tabs derive from widget groups.
  */

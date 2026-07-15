@@ -53,9 +53,11 @@ describe("buildBrainCallOptions", () => {
       ...base,
       hasAccessibleUploads: false,
       actor: {
-        actorId: "discord:123",
-        userId: "usr_mira",
-        canonicalId: "user:mira",
+        identity: {
+          kind: "user",
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+        },
         interfaceType: "discord",
         role: "user",
         displayName: "Mira",

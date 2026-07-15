@@ -160,7 +160,7 @@ describe("renderDashboardPageHtml", () => {
             priority: 10,
             rendererName: "PipelineWidget",
             visibility: "public",
-            needsOperator: 2,
+            needsAttention: 2,
           },
           data: { summary: {}, items: [] },
         },

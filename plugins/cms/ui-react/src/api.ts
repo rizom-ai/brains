@@ -1,6 +1,6 @@
 /**
  * Typed client for the CMS editor API served by plugins/cms.
- * All routes live under /cms/api and require an operator session cookie.
+ * All routes live under /cms/api and require an authenticated browser session.
  */
 
 export interface EntityTypeInfo {

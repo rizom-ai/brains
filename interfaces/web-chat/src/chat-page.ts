@@ -22,7 +22,7 @@ export const uiAssetFile: string = join(
 export interface ChatPageOptions {
   /** Console-strip doors, derived from the registered web routes. */
   surfaces: ConsoleSurface[];
-  /** Sign-out link for the session chip (the page is operator-only). */
+  /** Sign-out link for the session chip (the page is authenticated-only). */
   sessionHref: string;
 }
 

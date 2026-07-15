@@ -113,7 +113,7 @@ export function registerActionItemsWidget(params: {
                   ...(openCount > 0 ? { tone: "warn" } : {}),
                 },
               ],
-              needsOperator: openCount,
+              needsAttention: openCount,
             };
           },
         },

@@ -3,7 +3,7 @@ import { createClient } from "@libsql/client";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AuthService, OperatorSessionStore } from "../src";
+import { AuthService, AuthSessionStore } from "../src";
 
 const tempDirs: string[] = [];
 
@@ -19,10 +19,10 @@ afterEach(async () => {
   );
 });
 
-describe("legacy operator session migration", () => {
+describe("legacy browser session migration", () => {
   it("imports sessions once without modifying JSON or invalidating cookies", async () => {
     const storageDir = await tempStorageDir();
-    const legacyStore = new OperatorSessionStore({ storageDir });
+    const legacyStore = new AuthSessionStore({ storageDir });
     const legacySession = await legacyStore.createSession("single-operator", {
       secure: true,
     });
@@ -39,12 +39,16 @@ describe("legacy operator session migration", () => {
     const client = createClient({ url: `file:${join(storageDir, "auth.db")}` });
     try {
       const rows = await client.execute(
-        "SELECT user_id, expires_at, revoked_at FROM operator_sessions",
+        "SELECT user_id, expires_at, revoked_at FROM auth_sessions",
       );
       expect(rows.rows).toHaveLength(1);
       expect(String(rows.rows[0]?.["user_id"])).toStartWith("usr_");
       expect(rows.rows[0]?.["expires_at"]).toBe(legacySession.expiresAt);
       expect(rows.rows[0]?.["revoked_at"]).toBeNull();
+      const legacyTable = await client.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'anchor_sessions'",
+      );
+      expect(legacyTable.rows).toHaveLength(0);
     } finally {
       client.close();
     }

@@ -84,9 +84,9 @@ Available today:
 
 No special Rover-only app is required. Start from the interface that fits your setup.
 
-### Operator login and MCP OAuth
+### Passkey login and MCP OAuth
 
-Rover includes the built-in `auth-service` in every preset. On first start, Rover prints a one-shot `/setup` URL. Open it locally, register a passkey, and use that passkey for operator login.
+Rover includes the built-in `auth-service` in every preset. On first start, Rover prints a one-shot `/setup` URL. Open it locally, register a passkey, and use that passkey for browser login.
 
 OAuth-capable MCP clients connect to `/mcp`, discover Rover's OAuth metadata, open a browser/passkey authorization flow, and receive an MCP-scoped bearer token. `MCP_AUTH_TOKEN` remains only as a deprecated static fallback for older clients that cannot do OAuth.
 

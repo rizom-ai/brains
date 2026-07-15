@@ -76,7 +76,7 @@ Upload handling is permission-gated before download: public users can still chat
 
 ## Stored upload route policy
 
-Discord source uploads use runtime upload storage and unguessable `upload-<uuid>` refs. The download route is public because Discord links cannot carry the browser operator session used by web chat. Current guardrails are:
+Discord source uploads use runtime upload storage and unguessable `upload-<uuid>` refs. The download route is public because Discord links cannot carry the browser auth session used by web chat. Current guardrails are:
 
 - only trusted/anchor Discord users can create reusable upload refs;
 - public Discord users cannot cause attachments to be fetched or reused;

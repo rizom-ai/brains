@@ -1,46 +1,76 @@
 import { type SummaryTimeRange, summaryTimeRangeSchema } from "./summary";
+import {
+  actorRefFromLegacy,
+  actorRefSchema,
+  type ActorRef,
+} from "@brains/contracts";
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 export interface MemoryActorReference {
-  actorId: string;
-  canonicalId?: string | undefined;
+  identity: ActorRef;
   displayName?: string | undefined;
 }
 
 export const memoryActorReferenceSchema: z.ZodType<MemoryActorReference> =
   z.object({
-    actorId: z.string(),
-    canonicalId: z.string().optional(),
+    identity: actorRefSchema,
     displayName: z.string().optional(),
   });
 
-const memoryActorReferenceParserSchema: z.ZodType<MemoryActorReference> =
-  z.object({
-    actorId: z.string(),
-    canonicalId: z.string().optional(),
-    displayName: z.string().optional(),
-  });
+const memoryActorReferenceParserSchema: z.ZodType<
+  MemoryActorReference,
+  unknown
+> = z.preprocess(
+  (value) => normalizeLegacyMemoryActorReference(value, true),
+  memoryActorReferenceSchema,
+);
 
 export interface ActionItemAssignee {
-  actorId?: string | undefined;
-  canonicalId?: string | undefined;
+  identity?: ActorRef | undefined;
   displayName: string;
 }
 
 export const actionItemAssigneeSchema: z.ZodType<ActionItemAssignee> = z.object(
   {
-    actorId: z.string().optional(),
-    canonicalId: z.string().optional(),
+    identity: actorRefSchema.optional(),
     displayName: z.string().min(1),
   },
 );
 
-const actionItemAssigneeParserSchema: z.ZodType<ActionItemAssignee> = z.object({
-  actorId: z.string().optional(),
-  canonicalId: z.string().optional(),
-  displayName: z.string().min(1),
-});
+const actionItemAssigneeParserSchema: z.ZodType<ActionItemAssignee, unknown> =
+  z.preprocess(
+    (value) => normalizeLegacyMemoryActorReference(value, false),
+    actionItemAssigneeSchema,
+  );
+
+function normalizeLegacyMemoryActorReference(
+  value: unknown,
+  identityRequired: boolean,
+): unknown {
+  if (!isRecord(value) || "identity" in value) return value;
+  const actorId = value["actorId"];
+  if (typeof actorId !== "string") {
+    return identityRequired ? value : { displayName: value["displayName"] };
+  }
+  const separator = actorId.indexOf(":");
+  const canonicalId = value["canonicalId"];
+  return {
+    identity: actorRefFromLegacy({
+      actorId,
+      interfaceType: separator > 0 ? actorId.slice(0, separator) : "legacy",
+      role: actorId.startsWith("brain:") ? "assistant" : "user",
+      ...(typeof canonicalId === "string" ? { canonicalId } : {}),
+    }),
+    ...(typeof value["displayName"] === "string"
+      ? { displayName: value["displayName"] }
+      : {}),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 const memoryTimeRangeParserSchema: z.ZodType<SummaryTimeRange> = z.object({
   start: z.string().datetime(),

@@ -46,7 +46,7 @@ describe("cms plugin", () => {
     ]);
   });
 
-  it("always gates the editor shell on an operator session", async () => {
+  it("always gates the editor shell on an auth session", async () => {
     const shell = createCmsTestShell();
     const plugin = cmsPlugin();
 

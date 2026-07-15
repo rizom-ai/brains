@@ -58,7 +58,7 @@ const pipelineDigestSourceSchema = z.object({
 
 function derivePipelineDigest(data: unknown): {
   digest: Array<{ label: string; value: string; tone?: "good" | "warn" }>;
-  needsOperator: number;
+  needsAttention: number;
 } {
   const { summary, generating } = pipelineDigestSourceSchema.parse(data);
   const inFlight = summary.queued + generating.length;
@@ -70,7 +70,7 @@ function derivePipelineDigest(data: unknown): {
     summary.failed > 0
       ? `${summary.draft} drafts · ${summary.failed} failed`
       : `${summary.draft} drafts`;
-  const needsOperator = summary.draft + summary.failed;
+  const needsAttention = summary.draft + summary.failed;
 
   return {
     digest: [
@@ -82,12 +82,12 @@ function derivePipelineDigest(data: unknown): {
       {
         label: "Awaiting review",
         value: reviewValue,
-        ...(needsOperator > 0 ? { tone: "warn" as const } : {}),
+        ...(needsAttention > 0 ? { tone: "warn" as const } : {}),
       },
       { label: "Published", value: String(summary.published), tone: "good" },
     ],
-    // Drafts and failures both wait on an operator decision.
-    needsOperator,
+    // Drafts and failures both wait on a human review decision.
+    needsAttention,
   };
 }
 

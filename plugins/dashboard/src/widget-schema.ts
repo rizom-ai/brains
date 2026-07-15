@@ -33,7 +33,7 @@ export interface WidgetMeta {
   section: DashboardWidgetSection;
   rendererName: string;
   visibility: WidgetVisibility;
-  needsOperator?: number | undefined;
+  needsAttention?: number | undefined;
   digest?: WidgetDigestLine[] | undefined;
   component?: WidgetComponent | undefined;
 }
@@ -48,7 +48,7 @@ export const widgetMetaSchema: z.ZodType<WidgetMeta, WidgetMeta> = z.object({
   section: z.enum(["primary", "secondary", "sidebar"]),
   rendererName: z.string(),
   visibility: widgetVisibilitySchema,
-  needsOperator: z.number().int().nonnegative().optional(),
+  needsAttention: z.number().int().nonnegative().optional(),
   digest: z.array(widgetDigestLineSchema).max(4).optional(),
   component: z.custom<WidgetComponent>().optional(),
 });

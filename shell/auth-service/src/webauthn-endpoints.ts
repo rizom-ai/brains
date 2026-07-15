@@ -7,14 +7,14 @@ import type {
   PasskeyService,
   WebAuthnRequestContext,
 } from "./passkey-service";
-import type { OperatorSessionPersistence } from "./session-store";
+import type { AuthSessionPersistence } from "./session-store";
 import type { SetupFlow } from "./setup-flow";
 import { issuerFromRequest, isSecureRequest } from "./issuer";
 import { jsonResponse, oauthErrorResponse } from "./http-responses";
 
 export interface WebAuthnEndpointsOptions {
   passkeyService: PasskeyService;
-  sessionStore: OperatorSessionPersistence;
+  sessionStore: AuthSessionPersistence;
   setupFlow: SetupFlow;
   registrationUserProvider: (
     userId?: string,
@@ -29,12 +29,12 @@ export interface WebAuthnEndpointsOptions {
 
 /**
  * WebAuthn HTTP endpoints: passkey registration (gated by the one-shot
- * setup token) and passkey authentication, both ending in an operator
+ * setup token) and passkey authentication, both ending in an authenticated
  * session cookie.
  */
 export class WebAuthnEndpoints {
   private readonly passkeyService: PasskeyService;
-  private readonly sessionStore: OperatorSessionPersistence;
+  private readonly sessionStore: AuthSessionPersistence;
   private readonly setupFlow: SetupFlow;
   private readonly registrationUserProvider: (
     userId?: string,

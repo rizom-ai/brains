@@ -84,9 +84,9 @@ https://your-domain.com/mcp
 When the model includes `auth-service` (Rover does), HTTP MCP is protected by the brain's built-in OAuth provider:
 
 1. First boot prints a one-shot `/setup` URL.
-2. The operator opens that URL locally and registers a passkey.
+2. The first Anchor opens that URL locally and registers a passkey.
 3. OAuth-capable MCP clients discover metadata from the brain, open a browser authorization flow, and request the `mcp` scope.
-4. The brain verifies the passkey-backed operator session and issues MCP-scoped bearer tokens.
+4. The brain verifies the passkey-backed auth session and issues MCP-scoped bearer tokens.
 
 `MCP_AUTH_TOKEN` is still supported as a deprecated static fallback. Use it only for older clients that cannot complete OAuth. If `plugins.mcp.authToken` or `MCP_AUTH_TOKEN` is set, clients must send that value as `Authorization: Bearer <token>` and the OAuth path is bypassed for MCP.
 

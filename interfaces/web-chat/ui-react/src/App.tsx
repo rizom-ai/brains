@@ -333,7 +333,7 @@ export function ProgressPart({
 
 function describeFetchFailure(response: Response, fallback: string): string {
   if (response.status === 401 || response.status === 403) {
-    return "Your operator session may have expired. Refresh or sign in again.";
+    return "Your authenticated session may have expired. Refresh or sign in again.";
   }
   return `${fallback} (${response.status})`;
 }

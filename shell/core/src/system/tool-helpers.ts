@@ -20,8 +20,8 @@ const wrappedUpdateFieldsSchema = z.looseObject({
 });
 
 const ROLE_LABELS: Record<UserPermissionLevel, string> = {
-  anchor: "Owner/anchor",
-  trusted: "Collaborator/trusted",
+  anchor: "Anchor",
+  trusted: "Trusted",
   public: "Public",
 };
 

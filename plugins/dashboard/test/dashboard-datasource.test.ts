@@ -216,7 +216,7 @@ describe("DashboardDataSource", () => {
   });
 
   describe("digestProvider", () => {
-    it("should derive live digest and needsOperator from the widget's data", async () => {
+    it("should derive live digest and needsAttention from the widget's data", async () => {
       registry.register({
         id: "pipeline",
         pluginId: "content-pipeline",
@@ -227,7 +227,7 @@ describe("DashboardDataSource", () => {
         rendererName: "PipelineWidget",
         // Static fallbacks that the provider should override.
         digest: [{ label: "Workflow", value: "static" }],
-        needsOperator: 0,
+        needsAttention: 0,
         dataProvider: async () => ({ summary: { draft: 2, queued: 3 } }),
         digestProvider: (data) => {
           const summary = (
@@ -237,7 +237,7 @@ describe("DashboardDataSource", () => {
             digest: [
               { label: "Queued", value: String(summary.queued), tone: "warn" },
             ],
-            needsOperator: summary.draft,
+            needsAttention: summary.draft,
           };
         },
       });
@@ -248,7 +248,7 @@ describe("DashboardDataSource", () => {
       expect(widget?.widget.digest).toEqual([
         { label: "Queued", value: "3", tone: "warn" },
       ]);
-      expect(widget?.widget.needsOperator).toBe(2);
+      expect(widget?.widget.needsAttention).toBe(2);
     });
 
     it("should fall back to the static digest when the provider throws", async () => {
@@ -261,7 +261,7 @@ describe("DashboardDataSource", () => {
         priority: 10,
         rendererName: "StatsWidget",
         digest: [{ label: "Static", value: "kept" }],
-        needsOperator: 1,
+        needsAttention: 1,
         dataProvider: async () => ({ ok: true }),
         digestProvider: () => {
           throw new Error("derive failed");
@@ -274,7 +274,7 @@ describe("DashboardDataSource", () => {
       expect(widget?.widget.digest).toEqual([
         { label: "Static", value: "kept" },
       ]);
-      expect(widget?.widget.needsOperator).toBe(1);
+      expect(widget?.widget.needsAttention).toBe(1);
     });
   });
 

@@ -155,8 +155,8 @@ export interface AgentConfig {
   agentFactory: BrainAgentFactory;
   /** Brain-specific behavior instructions from the brain definition */
   agentInstructions?: string[];
-  /** Stable actor id used for assistant messages, e.g. brain:relay */
-  assistantActorId?: string;
+  /** Stable agent id used for assistant messages, e.g. brain:relay */
+  assistantAgentId?: string;
   /** Optional explicit actor -> canonical identity resolver */
   canonicalIdentityResolver?: CanonicalIdentityResolver;
   /** Optional semantic-index readiness gate for retrieval-backed chat. */

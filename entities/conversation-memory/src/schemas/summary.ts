@@ -1,3 +1,8 @@
+import {
+  actorRefFromLegacy,
+  actorRefSchema,
+  type ActorRef,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { baseEntityParserSchema } from "@brains/plugins";
 
@@ -41,20 +46,16 @@ export const summaryBodySchema: z.ZodType<SummaryBody> = z.object({
 });
 
 export interface SummaryParticipant {
-  actorId: string;
-  canonicalId?: string | undefined;
+  identity: ActorRef;
   displayName?: string | undefined;
   roles: Array<"user" | "assistant" | "system">;
-  sourceActorIds?: string[] | undefined;
 }
 
 export const summaryParticipantSchema: z.ZodType<SummaryParticipant> = z.object(
   {
-    actorId: z.string(),
-    canonicalId: z.string().optional(),
+    identity: actorRefSchema,
     displayName: z.string().optional(),
     roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
-    sourceActorIds: z.array(z.string()).optional(),
   },
 );
 
@@ -98,13 +99,41 @@ export const summaryMetadataSchema: SummaryMetadataSchema = z.object({
   projectionVersion: z.number().int().min(1),
 });
 
-const summaryParticipantParserSchema: z.ZodType<SummaryParticipant> = z.object({
-  actorId: z.string(),
-  canonicalId: z.string().optional(),
-  displayName: z.string().optional(),
-  roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
-  sourceActorIds: z.array(z.string()).optional(),
-});
+const summaryParticipantParserSchema: z.ZodType<SummaryParticipant, unknown> =
+  z.preprocess(
+    (value) => normalizeLegacySummaryParticipant(value),
+    summaryParticipantSchema,
+  );
+
+function normalizeLegacySummaryParticipant(value: unknown): unknown {
+  if (!isRecord(value) || "identity" in value) return value;
+  const actorId = value["actorId"];
+  const roles = value["roles"];
+  if (typeof actorId !== "string" || !Array.isArray(roles)) return value;
+  const canonicalId = value["canonicalId"];
+  const role = roles.includes("assistant") ? "assistant" : "user";
+  return {
+    identity: actorRefFromLegacy({
+      actorId,
+      interfaceType: sourceFromLegacyActorId(actorId),
+      role,
+      ...(typeof canonicalId === "string" ? { canonicalId } : {}),
+    }),
+    ...(typeof value["displayName"] === "string"
+      ? { displayName: value["displayName"] }
+      : {}),
+    roles,
+  };
+}
+
+function sourceFromLegacyActorId(actorId: string): string {
+  const separator = actorId.indexOf(":");
+  return separator > 0 ? actorId.slice(0, separator) : "legacy";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 const summaryEntityMetadataParserSchema: z.ZodType<SummaryMetadata> = z.object({
   conversationId: z.string(),

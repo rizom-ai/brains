@@ -1,9 +1,10 @@
 import { z } from "@brains/utils/zod";
+import { actorRefSchema, type ActorRef } from "./actor-ref";
 
 export const AUTH_PRINCIPAL_RESOLVE_CHANNEL = "auth:principal:resolve";
 
 export interface AuthPrincipalResolveRequest {
-  actorId: string;
+  actor: ActorRef;
 }
 
 export interface AuthPrincipalAttribution {
@@ -20,7 +21,7 @@ export const authPrincipalResolveRequestSchema: z.ZodType<
   AuthPrincipalResolveRequest,
   AuthPrincipalResolveRequest
 > = z.object({
-  actorId: z.string().min(1),
+  actor: actorRefSchema,
 });
 
 export const authPrincipalAttributionSchema: z.ZodType<

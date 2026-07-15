@@ -31,7 +31,7 @@ describe("legacy refresh token migration", () => {
     const runtimeDatabase = new AuthRuntimeDatabase({ storageDir });
     await runtimeDatabase.start();
     const user = await new AuthUserStore(runtimeDatabase.db).createUser({
-      displayName: "Existing owner",
+      displayName: "Existing anchor",
       role: "anchor",
     });
     await runtimeDatabase.stop();

@@ -74,9 +74,9 @@ const ACTION_LABELS: Record<EntityAction, string> = {
 };
 
 const LEVEL_LABELS: Record<UserPermissionLevel, string> = {
-  public: "Public/public",
-  trusted: "Collaborator/trusted",
-  anchor: "Owner/anchor",
+  public: "Public",
+  trusted: "Trusted",
+  anchor: "Anchor",
 };
 
 /**

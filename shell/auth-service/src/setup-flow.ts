@@ -15,7 +15,7 @@ interface SetupTokenState {
   expiresAt: number;
 }
 
-export interface OperatorSetupRequired {
+export interface PasskeySetupRequired {
   setupUrl: string;
   expiresAt: number;
   setupTokenId: string;
@@ -109,7 +109,7 @@ export class SetupFlow {
     await this.setupStateStore.consumeSetupToken(token);
   }
 
-  /** Clear first-owner setup state after legacy bootstrap completes. */
+  /** Clear first-anchor setup state after legacy bootstrap completes. */
   async clearSetupState(): Promise<void> {
     this.setupToken = undefined;
     await this.setupStateStore.clearSetupState();
@@ -124,10 +124,10 @@ export class SetupFlow {
     );
   }
 
-  async getOperatorSetupRequired(
+  async getPasskeySetupRequired(
     issuer: string,
     options: { rotateHidden?: boolean } = {},
-  ): Promise<OperatorSetupRequired | undefined> {
+  ): Promise<PasskeySetupRequired | undefined> {
     if (await this.passkeyService.hasCredentials()) return undefined;
     let setupToken = this.getValidSetupToken();
     if (!setupToken && options.rotateHidden) {
@@ -147,7 +147,7 @@ export class SetupFlow {
   async createUserPasskeySetup(
     userId: string,
     issuer: string,
-  ): Promise<OperatorSetupRequired> {
+  ): Promise<PasskeySetupRequired> {
     const setupToken = {
       token: `setup_${randomUUID()}`,
       expiresAt: Math.floor(Date.now() / 1000) + this.setupTokenTtlSeconds,

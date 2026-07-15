@@ -158,7 +158,7 @@ permissions:
       update: trusted
 ```
 
-Denials are explicit, for example: `Update summary requires Owner/anchor permission; your current permission is Collaborator/trusted.`
+Denials are explicit, for example: `Update summary requires Anchor permission; your current permission is Trusted.`
 
 ### 4. Run the instance
 

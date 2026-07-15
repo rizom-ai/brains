@@ -152,7 +152,7 @@ export class AgentService implements IAgentService {
       mcpService,
       identityService,
       getAgent: (): BrainAgent => this.getAgent(),
-      assistantActorId: config.assistantActorId,
+      assistantAgentId: config.assistantAgentId,
       canonicalIdentityResolver: config.canonicalIdentityResolver,
       agentContextProvider: config.agentContextProvider,
       uploadAttachmentResolver: config.uploadAttachmentResolver,

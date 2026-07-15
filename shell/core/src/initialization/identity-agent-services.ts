@@ -1,6 +1,6 @@
 import {
   AgentService,
-  createBrainActorId,
+  createBrainAgentId,
   createBrainAgentFactory,
   type ChatAttachment,
   type ChatAttachmentSource,
@@ -186,11 +186,11 @@ export function initializeIdentityAndAgentServices(
 
   const canonicalIdentityService = CanonicalIdentityService.getInstance(
     logger,
-    async (actorId) => {
+    async (actor) => {
       const response = await messageBus.send({
         type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
         sender: "shell:canonical-identity-service",
-        payload: { actorId },
+        payload: { actor },
       });
       if ("noop" in response || !response.success) return null;
       const parsed = authPrincipalResolveResponseSchema.safeParse(
@@ -214,7 +214,7 @@ export function initializeIdentityAndAgentServices(
     reasoningEffort: aiService.getConfig().reasoningEffort,
     messageBus,
   });
-  const assistantActorId = createBrainActorId(config.name);
+  const assistantAgentId = createBrainAgentId(config.name);
 
   const agentService = AgentService.getInstance(
     mcpService,
@@ -237,7 +237,7 @@ export function initializeIdentityAndAgentServices(
         if ("noop" in response || !response.success) return [];
         return parseAgentContextItems(response.data);
       },
-      ...(assistantActorId ? { assistantActorId } : {}),
+      ...(assistantAgentId ? { assistantAgentId } : {}),
       ...(config.agentInstructions && {
         agentInstructions: config.agentInstructions,
       }),

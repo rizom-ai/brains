@@ -1,3 +1,4 @@
+import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import type {
   ActionItemEntity,
@@ -36,9 +37,7 @@ export interface RetrieveConversationMemoryInput {
   limit?: number | undefined;
   includeOtherSpaces?: boolean | undefined;
   /** Explicit identity filter; does not cross spaces unless includeOtherSpaces is true. */
-  actorId?: string | undefined;
-  /** Explicit canonical identity filter; does not cross spaces unless includeOtherSpaces is true. */
-  canonicalId?: string | undefined;
+  identity?: ActorRef | undefined;
   /** Caller visibility scope; undefined fails closed in the entity service to public-only. */
   visibilityScope?: ContentVisibility | undefined;
 }
@@ -222,26 +221,19 @@ export class ConversationMemoryRetriever {
 
   private matchesIdentity(
     entity: ConversationMemorySearchEntity,
-    input: Pick<RetrieveConversationMemoryInput, "actorId" | "canonicalId">,
+    input: Pick<RetrieveConversationMemoryInput, "identity">,
   ): boolean {
-    if (!input.actorId && !input.canonicalId) return true;
-
-    return this.getIdentityReferences(entity).some((reference) => {
-      if (input.canonicalId && reference.canonicalId === input.canonicalId) {
-        return true;
-      }
-      if (!input.actorId) return false;
-      return (
-        reference.actorId === input.actorId ||
-        reference.sourceActorIds?.includes(input.actorId) === true
-      );
-    });
+    if (!input.identity) return true;
+    const expectedKey = actorRefKey(input.identity);
+    return this.getIdentityReferences(entity).some(
+      (reference) =>
+        reference.identity !== undefined &&
+        actorRefKey(reference.identity) === expectedKey,
+    );
   }
 
   private getIdentityReferences(entity: ConversationMemorySearchEntity): Array<{
-    actorId?: string | undefined;
-    canonicalId?: string | undefined;
-    sourceActorIds?: string[] | undefined;
+    identity?: ActorRef | undefined;
   }> {
     if (this.isSummaryEntity(entity)) {
       return entity.metadata.participants ?? [];

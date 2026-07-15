@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { createExternalActorId } from "@brains/contracts";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
@@ -13,6 +14,11 @@ import type {
   GatewayListenerOptions,
 } from "../src/types";
 import type { Mock } from "bun:test";
+
+const discordExternalIdentity = {
+  kind: "external" as const,
+  externalActorId: createExternalActorId("discord", "user-789"),
+};
 import type { ActionEvent, CardElement, StateAdapter } from "chat";
 
 type HarnessAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
@@ -625,7 +631,7 @@ describe("ChatInterface", () => {
         channelId: "discord:guild-123:channel-123:thread-456",
         userPermissionLevel: "public",
         actor: expect.objectContaining({
-          actorId: "discord:user-789",
+          identity: discordExternalIdentity,
           displayName: "Mira Ops",
           interfaceType: "discord",
         }),
@@ -2207,7 +2213,7 @@ describe("ChatInterface", () => {
           interfaceType: "discord",
           userPermissionLevel: "public",
           actor: expect.objectContaining({
-            actorId: "discord:user-789",
+            identity: discordExternalIdentity,
             displayName: "Mira Ops",
             username: "mira",
           }),
@@ -4029,7 +4035,7 @@ describe("ChatInterface", () => {
         interfaceType: "discord",
         channelId: "discord:guild-123:channel-123:thread-456",
         actor: expect.objectContaining({
-          actorId: "discord:user-789",
+          identity: discordExternalIdentity,
           displayName: "Mira Ops",
           username: "mira",
         }),

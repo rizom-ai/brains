@@ -1,7 +1,7 @@
 /**
  * Inline script applying the console-wide climate preference before first
- * paint. The "console.climate" key is shared by every operator surface, so a
- * toggle on one follows the operator to the others. The stored climate is
+ * paint. The "console.climate" key is shared by every console surface, so a
+ * toggle on one follows the user to the others. The stored climate is
  * applied immediately (the script may run from <head>), but the strip's
  * #climateToggle only exists once the body is parsed, so binding waits for
  * DOMContentLoaded when needed.

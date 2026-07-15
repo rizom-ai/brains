@@ -175,7 +175,7 @@ plugins:
     const config = resolve(rover, {}, { preset: "full" });
     const cms = config.plugins?.find((plugin) => plugin.id === "cms");
 
-    // The first-party editor authenticates via the operator session; the
+    // The first-party editor authenticates via the browser auth session; the
     // browser never receives a repository credential.
     expect(cms).toBeDefined();
     expect(cms?.config).not.toHaveProperty("passkeyLogin");

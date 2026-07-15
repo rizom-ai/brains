@@ -136,7 +136,7 @@ async function createSessionCookie(shell: MockShell): Promise<string> {
     storageDir: await mkdtemp(join(tmpdir(), "brains-cms-editor-auth-")),
   });
   await authPlugin.register(shell);
-  const session = await authPlugin.getService().createOperatorSession();
+  const session = await authPlugin.getService().createAuthSession();
   return session.cookie;
 }
 
@@ -197,7 +197,7 @@ describe("cms editor uploads", () => {
       type: "image/png",
     });
 
-  it("requires an operator session", async () => {
+  it("requires an auth session", async () => {
     const shell = createEditorTestShell();
     const plugin = await registerPlugin(shell);
 
@@ -267,7 +267,7 @@ describe("cms editor uploads", () => {
 });
 
 describe("cms editor shell", () => {
-  it("redirects to operator login without a session", async () => {
+  it("redirects to passkey login without a session", async () => {
     const shell = createEditorTestShell();
     const plugin = await registerPlugin(shell);
 
@@ -279,7 +279,7 @@ describe("cms editor shell", () => {
     expect(response.headers.get("location")).toBe("/login?return_to=%2Fcms");
   });
 
-  it("serves the editor shell with an operator session", async () => {
+  it("serves the editor shell with an auth session", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
     const plugin = await registerPlugin(shell);
@@ -309,7 +309,7 @@ describe("cms editor shell", () => {
 });
 
 describe("cms editor api", () => {
-  it("rejects every api route without an operator session", async () => {
+  it("rejects every api route without an auth session", async () => {
     const shell = createEditorTestShell();
     await seedPost(shell);
     const plugin = await registerPlugin(shell);
@@ -379,7 +379,7 @@ describe("cms editor api", () => {
       const response = await route.handler(request);
       expect(response.status).toBe(401);
       expect(await response.json()).toEqual({
-        error: "Operator session required",
+        error: "Authentication required",
       });
     }
   });
@@ -1450,7 +1450,7 @@ describe("cms editor sync status", () => {
     },
   };
 
-  it("requires an operator session", async () => {
+  it("requires an auth session", async () => {
     const shell = createEditorTestShell();
     const plugin = await registerPlugin(shell);
 

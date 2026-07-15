@@ -110,8 +110,11 @@ describe("TestRunner", () => {
             context: {
               userPermissionLevel: "anchor",
               actor: {
-                actorId: "alice-eval",
-                canonicalId: "alice",
+                identity: {
+                  kind: "user",
+                  userId: "usr_alice",
+                  canonicalId: "alice",
+                },
                 interfaceType: "evaluation",
                 role: "user",
                 displayName: "Alice",
@@ -128,8 +131,11 @@ describe("TestRunner", () => {
             context: {
               userPermissionLevel: "public",
               actor: {
-                actorId: "bob-eval",
-                canonicalId: "bob",
+                identity: {
+                  kind: "user",
+                  userId: "usr_bob",
+                  canonicalId: "bob",
+                },
                 interfaceType: "evaluation",
                 role: "user",
                 displayName: "Bob",
@@ -157,8 +163,11 @@ describe("TestRunner", () => {
         interfaceType: "evaluation",
         channelId: "shared-thread",
         actor: {
-          actorId: "alice-eval",
-          canonicalId: "alice",
+          identity: {
+            kind: "user",
+            userId: "usr_alice",
+            canonicalId: "alice",
+          },
           interfaceType: "evaluation",
           role: "user",
           displayName: "Alice",
@@ -174,8 +183,11 @@ describe("TestRunner", () => {
         interfaceType: "evaluation",
         channelId: "shared-thread",
         actor: {
-          actorId: "bob-eval",
-          canonicalId: "bob",
+          identity: {
+            kind: "user",
+            userId: "usr_bob",
+            canonicalId: "bob",
+          },
           interfaceType: "evaluation",
           role: "user",
           displayName: "Bob",
@@ -556,7 +568,7 @@ describe("TestRunner", () => {
             context: {
               userPermissionLevel: "public",
               actor: {
-                actorId: "bob",
+                identity: { kind: "external", externalActorId: "bob" },
                 interfaceType: "evaluation",
                 role: "user",
               },
@@ -573,7 +585,7 @@ describe("TestRunner", () => {
             context: {
               userPermissionLevel: "anchor",
               actor: {
-                actorId: "alice",
+                identity: { kind: "external", externalActorId: "alice" },
                 interfaceType: "evaluation",
                 role: "user",
               },

@@ -1,3 +1,4 @@
+import { createExternalActorId } from "@brains/contracts";
 import {
   MessageInterfacePlugin,
   buildCoalescedInput,
@@ -14,6 +15,7 @@ import {
   routeConfirmationResponse,
   type AgentResponse,
   type ChatAttachment,
+  type ConversationMessageActor,
   type InterfacePluginContext,
   type MessageInterfaceOutput,
   type ResponsePlan,
@@ -1264,9 +1266,12 @@ export class ChatInterface extends MessageInterfacePlugin<
       fullName: string;
       isBot: boolean | string;
     },
-  ): Record<string, unknown> {
+  ): ConversationMessageActor {
     return buildMessageActorMetadata({
-      actorId: `${platform}:${actor.userId}`,
+      identity: {
+        kind: "external",
+        externalActorId: createExternalActorId(platform, actor.userId),
+      },
       interfaceType: platform,
       displayName: actor.fullName || actor.userName,
       username: actor.userName,

@@ -1,3 +1,4 @@
+import { actorRefKey } from "@brains/contracts";
 import {
   conversationMessageMetadataSchema,
   type ConversationMessageActor,
@@ -460,9 +461,8 @@ export class SummaryProjector {
       ...(assignedActors.length > 0
         ? {
             assignedTo: assignedActors.map((actor) => ({
-              actorId: actor.actorId,
-              ...(actor.canonicalId ? { canonicalId: actor.canonicalId } : {}),
-              displayName: actor.displayName ?? actor.actorId,
+              identity: actor.identity,
+              displayName: actor.displayName ?? actorRefKey(actor.identity),
             })),
           }
         : {}),
@@ -512,21 +512,13 @@ export class SummaryProjector {
         if (!existing.displayName && actor.displayName) {
           existing.displayName = actor.displayName;
         }
-        if (actor.canonicalId) {
-          existing.sourceActorIds ??= [existing.actorId];
-          if (!existing.sourceActorIds.includes(actor.actorId)) {
-            existing.sourceActorIds.push(actor.actorId);
-          }
-        }
         continue;
       }
 
       participants.set(key, {
-        actorId: actor.actorId,
-        ...(actor.canonicalId ? { canonicalId: actor.canonicalId } : {}),
+        identity: actor.identity,
         ...(actor.displayName ? { displayName: actor.displayName } : {}),
         roles: [actor.role],
-        ...(actor.canonicalId ? { sourceActorIds: [actor.actorId] } : {}),
       });
     }
 
@@ -571,20 +563,14 @@ export class SummaryProjector {
     for (const actor of actors) {
       const key = this.actorIdentityKey(actor);
       if (seen.has(key)) continue;
-      const labels = [
-        actor.displayName,
-        actor.username,
-        actor.actorId,
-        actor.canonicalId,
-      ]
+      const labels = [actor.displayName, actor.username]
         .filter((label): label is string => Boolean(label?.trim()))
         .map((label) => this.normalizeForAttribution(label));
       if (!labels.some((label) => normalizedText.includes(label))) continue;
 
       seen.add(key);
       matches.push({
-        actorId: actor.actorId,
-        ...(actor.canonicalId ? { canonicalId: actor.canonicalId } : {}),
+        identity: actor.identity,
         ...(actor.displayName ? { displayName: actor.displayName } : {}),
       });
     }
@@ -632,8 +618,7 @@ export class SummaryProjector {
       if (assignedKeys.has(key) || requesters.has(key)) continue;
 
       requesters.set(key, {
-        actorId: actor.actorId,
-        ...(actor.canonicalId ? { canonicalId: actor.canonicalId } : {}),
+        identity: actor.identity,
         ...(actor.displayName ? { displayName: actor.displayName } : {}),
       });
     }
@@ -686,7 +671,7 @@ export class SummaryProjector {
   ): boolean {
     const normalizedText = this.normalizeForAttribution(text);
     return actors.some((actor) => {
-      const labels = [actor.displayName, actor.actorId, actor.canonicalId]
+      const labels = [actor.displayName]
         .filter((label): label is string => Boolean(label?.trim()))
         .map((label) => this.normalizeForAttribution(label));
       return labels.some((label) => normalizedText.includes(label));
@@ -694,10 +679,9 @@ export class SummaryProjector {
   }
 
   private actorIdentityKey(actor: {
-    actorId: string;
-    canonicalId?: string | undefined;
+    identity: ConversationMessageActor["identity"];
   }): string {
-    return actor.canonicalId ?? actor.actorId;
+    return actorRefKey(actor.identity);
   }
 
   private normalizeForAttribution(value: string): string {

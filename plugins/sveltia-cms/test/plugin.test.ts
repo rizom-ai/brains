@@ -210,13 +210,13 @@ describe("cms plugin", () => {
     expect(parsed.backend.auth_endpoint).toBe("auth");
   });
 
-  it("serves a pre-authorized CMS shell for logged-in passkey CMS operators", async () => {
+  it("serves a pre-authorized CMS shell for logged-in passkey CMS anchors", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
     });
     await authPlugin.register(shell);
-    const session = await authPlugin.getService().createOperatorSession();
+    const session = await authPlugin.getService().createAuthSession();
 
     const plugin = cmsPlugin({
       passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
@@ -239,7 +239,7 @@ describe("cms plugin", () => {
     expect(html).not.toContain("ghp_secret_pat");
   });
 
-  it("redirects unauthenticated passkey CMS visitors to operator login", async () => {
+  it("redirects unauthenticated passkey CMS visitors to passkey login", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const plugin = cmsPlugin({
       passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
@@ -275,7 +275,7 @@ describe("cms plugin", () => {
     expect(html).not.toContain('postMessage(message, "*")');
   });
 
-  it("requires an operator session before releasing the passkey PAT", async () => {
+  it("requires an auth session before releasing the passkey PAT", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const plugin = cmsPlugin({
       passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
@@ -293,17 +293,17 @@ describe("cms plugin", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Operator session required",
+      error: "Authentication required",
     });
   });
 
-  it("returns the passkey PAT with a valid operator session", async () => {
+  it("returns the passkey PAT with a valid auth session", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
     });
     await authPlugin.register(shell);
-    const session = await authPlugin.getService().createOperatorSession();
+    const session = await authPlugin.getService().createAuthSession();
 
     const plugin = cmsPlugin({
       passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
@@ -328,13 +328,13 @@ describe("cms plugin", () => {
     });
   });
 
-  it("auto-authorizes passkey CMS login when an operator session already exists", async () => {
+  it("auto-authorizes passkey CMS login when an auth session already exists", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const authPlugin = new AuthServicePlugin({
       storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
     });
     await authPlugin.register(shell);
-    const session = await authPlugin.getService().createOperatorSession();
+    const session = await authPlugin.getService().createAuthSession();
 
     const plugin = cmsPlugin({
       passkeyLogin: { contentRepoToken: "ghp_secret_pat" },

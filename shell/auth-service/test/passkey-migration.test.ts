@@ -38,7 +38,7 @@ describe("legacy passkey migration", () => {
       issuer: "https://brain.example.com",
     });
     await service.initialize();
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
     const request = new Request("https://brain.example.com/dashboard", {
       headers: { cookie: session.cookie },
     });

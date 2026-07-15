@@ -60,6 +60,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Check auth-session compatibility gate
+        run: bun run auth-session:compat-check
+
   typecheck:
     name: Type check
     timeout-minutes: 20

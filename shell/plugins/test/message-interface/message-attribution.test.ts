@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createExternalActorId } from "@brains/contracts";
 import {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
@@ -8,16 +9,22 @@ describe("message attribution metadata", () => {
   it("builds conversation actor metadata without optional empty fields", () => {
     expect(
       buildMessageActorMetadata({
-        actorId: "discord:user-123",
-        userId: "usr_mira",
+        identity: {
+          kind: "user",
+          userId: "usr_mira",
+          canonicalId: "user:mira",
+        },
         interfaceType: "discord",
         displayName: "Mira Ops",
         username: "mira",
         isBot: false,
       }),
     ).toEqual({
-      actorId: "discord:user-123",
-      userId: "usr_mira",
+      identity: {
+        kind: "user",
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+      },
       interfaceType: "discord",
       role: "user",
       displayName: "Mira Ops",
@@ -29,14 +36,20 @@ describe("message attribution metadata", () => {
   it("normalizes string bot flags from transport SDKs", () => {
     expect(
       buildMessageActorMetadata({
-        actorId: "discord:user-123",
+        identity: {
+          kind: "external",
+          externalActorId: createExternalActorId("discord", "user-123"),
+        },
         interfaceType: "discord",
         isBot: "false",
       }).isBot,
     ).toBe(false);
     expect(
       buildMessageActorMetadata({
-        actorId: "discord:bot-123",
+        identity: {
+          kind: "external",
+          externalActorId: createExternalActorId("discord", "bot-123"),
+        },
         interfaceType: "discord",
         isBot: "true",
       }).isBot,

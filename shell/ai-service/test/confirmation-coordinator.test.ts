@@ -50,7 +50,7 @@ describe("canConfirmPendingAction", () => {
       canConfirmPendingAction(confirmation, {
         userPermissionLevel: "anchor",
         actor: {
-          actorId: "someone-else",
+          identity: { kind: "external", externalActorId: "someone-else" },
           interfaceType: "matrix",
           role: "user",
         },
@@ -68,8 +68,7 @@ describe("canConfirmPendingAction", () => {
       canConfirmPendingAction(confirmation, {
         userPermissionLevel: "trusted",
         actor: {
-          actorId: "bob-id",
-          canonicalId: "bob",
+          identity: { kind: "user", userId: "bob", canonicalId: "bob" },
           interfaceType: "matrix",
           role: "user",
         },
@@ -77,9 +76,9 @@ describe("canConfirmPendingAction", () => {
     ).toBe(false);
   });
 
-  it("matches the requester by canonical id before actor id", () => {
+  it("matches the requester by stable user identity", () => {
     const confirmation = pendingConfirmation({
-      actorKey: "alice",
+      actorKey: "user:alice",
       userPermissionLevel: "public",
     });
 
@@ -87,8 +86,7 @@ describe("canConfirmPendingAction", () => {
       canConfirmPendingAction(confirmation, {
         userPermissionLevel: "public",
         actor: {
-          actorId: "matrix-alice-device-2",
-          canonicalId: "alice",
+          identity: { kind: "user", userId: "alice", canonicalId: "alice" },
           interfaceType: "matrix",
           role: "user",
         },
@@ -146,8 +144,11 @@ describe("resolveConfirmationContext", () => {
 
   it("prefers the caller's own transport fields and identity", () => {
     const actor = {
-      actorId: "alice-id",
-      canonicalId: "alice",
+      identity: {
+        kind: "user" as const,
+        userId: "alice",
+        canonicalId: "alice",
+      },
       interfaceType: "matrix",
       role: "user" as const,
     };

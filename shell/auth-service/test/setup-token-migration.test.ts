@@ -7,7 +7,7 @@ import { AuthService } from "../src";
 import { SetupStateStore, setupTokenId } from "../src/setup-state-store";
 
 const tempDirs: string[] = [];
-const recipient = "owner@example.com";
+const recipient = "anchor@example.com";
 
 async function tempStorageDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "brains-setup-token-migration-"));
@@ -76,7 +76,7 @@ describe("legacy setup token migration", () => {
         await second.hasSetupEmailDelivery(setupTokenIdValue, recipient),
       ).toBe(true);
 
-      const rotated = await second.getOperatorSetupRequired();
+      const rotated = await second.getPasskeySetupRequired();
       expect(rotated?.setupUrl).toStartWith(
         "https://brain.example.com/setup?token=setup_",
       );

@@ -136,7 +136,7 @@ describe("registerActionItemsWidget", () => {
 
     const digestProvider = payload?.["digestProvider"] as (data: unknown) => {
       digest: Array<{ label: string; value: string; tone?: string }>;
-      needsOperator: number;
+      needsAttention: number;
     };
 
     expect(payload).toMatchObject({
@@ -153,10 +153,10 @@ describe("registerActionItemsWidget", () => {
     expect(derived.digest).toEqual([
       { label: "Open actions", value: "3", tone: "warn" },
     ]);
-    expect(derived.needsOperator).toBe(3);
+    expect(derived.needsAttention).toBe(3);
 
     const idle = digestProvider({ items: [], openCount: 0 });
     expect(idle.digest).toEqual([{ label: "Open actions", value: "0" }]);
-    expect(idle.needsOperator).toBe(0);
+    expect(idle.needsAttention).toBe(0);
   });
 });

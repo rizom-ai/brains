@@ -5,7 +5,7 @@ import { slugify } from "@brains/utils/string-utils";
 const FALLBACK_ASSISTANT_ACTOR_ID = "brain:assistant";
 const FALLBACK_ASSISTANT_DISPLAY_NAME = "Assistant";
 
-export function createBrainActorId(
+export function createBrainAgentId(
   name: string | undefined,
 ): string | undefined {
   if (!name) return undefined;
@@ -15,13 +15,16 @@ export function createBrainActorId(
 
 export function buildAssistantActor(params: {
   character: BrainCharacter;
-  actorId?: string;
+  agentId?: string;
 }): ConversationMessageActor {
   const displayName =
     params.character.name.trim() || FALLBACK_ASSISTANT_DISPLAY_NAME;
 
   return {
-    actorId: params.actorId ?? FALLBACK_ASSISTANT_ACTOR_ID,
+    identity: {
+      kind: "agent",
+      agentId: params.agentId ?? FALLBACK_ASSISTANT_ACTOR_ID,
+    },
     interfaceType: "agent",
     role: "assistant",
     displayName,

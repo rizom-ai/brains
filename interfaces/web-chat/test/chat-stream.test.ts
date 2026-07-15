@@ -149,9 +149,11 @@ describe("chat stream", () => {
       "conversation-1",
       expect.objectContaining({
         actor: {
-          actorId: "usr_mira",
-          userId: "usr_mira",
-          canonicalId: "user:mira",
+          identity: {
+            kind: "user",
+            userId: "usr_mira",
+            canonicalId: "user:mira",
+          },
           displayName: "Mira",
           interfaceType: "web-chat",
           role: "user",

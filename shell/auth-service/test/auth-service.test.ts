@@ -7,7 +7,10 @@ import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { NOTIFICATIONS_SEND } from "@brains/notifications";
-import { AUTH_PRINCIPAL_RESOLVE_CHANNEL } from "@brains/contracts";
+import {
+  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  createExternalActorId,
+} from "@brains/contracts";
 import {
   AuthService,
   PasskeyStore,
@@ -333,7 +336,7 @@ describe("AuthService", () => {
     const options = await optionsResponse.json();
     expect(options).toMatchObject({
       rp: { name: "Brain", id: "localhost" },
-      user: { name: "Operator", displayName: "Operator" },
+      user: { name: "Anchor", displayName: "Anchor" },
       attestation: "none",
     });
     expect(typeof options.challenge).toBe("string");
@@ -375,7 +378,7 @@ describe("AuthService", () => {
 
     const before = Math.floor(Date.now() / 1000);
     await service.initialize();
-    const setup = await service.getOperatorSetupRequired();
+    const setup = await service.getPasskeySetupRequired();
     const after = Math.floor(Date.now() / 1000);
 
     expect(setup?.expiresAt).toBeGreaterThanOrEqual(before + 24 * 60 * 60);
@@ -504,7 +507,12 @@ describe("AuthService", () => {
       .send({
         type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
         sender: "test",
-        payload: { actorId: "discord:123" },
+        payload: {
+          actor: {
+            kind: "external",
+            externalActorId: createExternalActorId("discord", "123"),
+          },
+        },
       });
 
     expect(response).toEqual({
@@ -1150,7 +1158,7 @@ describe("AuthService", () => {
     authorizeUrl.searchParams.set("state", "state-123");
     authorizeUrl.searchParams.set("scope", "openid profile mcp");
 
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
     const pageResponse = await service.handleRequest(
       new Request(authorizeUrl.toString(), {
         headers: { cookie: session.cookie },
@@ -1343,7 +1351,7 @@ describe("AuthService", () => {
     const verifier =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~";
     const challenge = await pkceChallenge(verifier);
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
     const authorizeUrl = new URL("http://localhost:8080/authorize");
     authorizeUrl.searchParams.set("response_type", "code");
     authorizeUrl.searchParams.set("client_id", client.client_id);
@@ -1402,17 +1410,18 @@ describe("AuthService", () => {
     expect(token).toMatchObject({ token_type: "Bearer", scope: "mcp" });
   });
 
-  it("logs out and revokes the current operator session", async () => {
+  it("logs out, revokes the current auth session, and clears both cookie names", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
+    expect(session.cookie).toContain("brains_auth_session=");
     const request = new Request("https://brain.example.com/dashboard", {
       headers: { cookie: session.cookie },
     });
 
-    const beforeLogout = await service.getOperatorSession(request);
+    const beforeLogout = await service.getAuthSession(request);
     expect(beforeLogout).toMatchObject({
       subject: expect.stringMatching(/^usr_/),
     });
@@ -1425,24 +1434,76 @@ describe("AuthService", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/dashboard");
-    const cleared = response.headers.get("set-cookie") ?? "";
-    expect(cleared).toContain("Max-Age=0");
-    expect(cleared).toContain("; Secure");
-    expect(await service.getOperatorSession(request)).toBeUndefined();
+    const cleared = response.headers.getSetCookie();
+    expect(cleared).toHaveLength(2);
+    expect(cleared.join("\n")).toContain("brains_auth_session=");
+    expect(cleared.join("\n")).toContain("brains_operator_session=");
+    expect(cleared.join("\n")).toContain("Max-Age=0");
+    expect(cleared.join("\n")).toContain("; Secure");
+    expect(await service.getAuthSession(request)).toBeUndefined();
   });
 
-  it("marks the operator session cookie Secure outside loopback", async () => {
+  it("reads the legacy browser cookie during the compatibility window", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const session = await service.createAuthSession();
+    const legacyCookie = session.cookie.replace(
+      "brains_auth_session",
+      "brains_operator_session",
+    );
+
+    expect(
+      await service.resolveSession(
+        new Request("https://brain.example.com/dashboard", {
+          headers: { cookie: legacyCookie },
+        }),
+      ),
+    ).toMatchObject({ permissionLevel: "anchor" });
+  });
+
+  it("prefers the current cookie when both browser cookie names are present", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const anchorSession = await service.createAuthSession();
+    const trustedUser = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+      status: "active",
+    });
+    const currentSession = await service.createAuthSession(trustedUser.userId);
+    const legacyCookie = anchorSession.cookie.replace(
+      "brains_auth_session",
+      "brains_operator_session",
+    );
+
+    expect(
+      await service.resolveSession(
+        new Request("https://brain.example.com/dashboard", {
+          headers: { cookie: `${legacyCookie}; ${currentSession.cookie}` },
+        }),
+      ),
+    ).toMatchObject({
+      userId: trustedUser.userId,
+      permissionLevel: "trusted",
+    });
+  });
+
+  it("marks the auth session cookie Secure outside loopback", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
 
-    const secure = await service.createOperatorSession("single-operator", {
+    const secure = await service.createAuthSession("single-operator", {
       secure: true,
     });
     expect(secure.cookie).toContain("; Secure");
 
-    const insecure = await service.createOperatorSession("single-operator", {
+    const insecure = await service.createAuthSession("single-operator", {
       secure: false,
     });
     expect(insecure.cookie).not.toContain("Secure");
@@ -1453,7 +1514,7 @@ describe("AuthService", () => {
       storageDir: await tempStorageDir(),
       issuer: "http://localhost:8080",
     });
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
 
     const response = await service.handleRequest(
       new Request("http://localhost:8080/logout", {
@@ -1498,7 +1559,7 @@ describe("AuthService", () => {
       code_challenge: await pkceChallenge("verifier"),
       code_challenge_method: "S256",
     });
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
 
     const missingTokenResponse = await service.handleRequest(
       new Request("https://brain.example.com/authorize", {
@@ -1553,7 +1614,7 @@ describe("AuthService", () => {
     expect(reuseResponse.status).toBe(400);
   });
 
-  it("requires an operator session before showing the authorize page", async () => {
+  it("requires an auth session before showing the authorize page", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
@@ -1581,7 +1642,7 @@ describe("AuthService", () => {
 
     expect(response.status).toBe(401);
     const html = await response.text();
-    expect(html).toContain("Operator login required");
+    expect(html).toContain("Passkey login required");
   });
 
   it("rejects invalid PKCE verifiers", async () => {
@@ -1593,7 +1654,7 @@ describe("AuthService", () => {
       redirect_uris: ["http://127.0.0.1:6274/oauth/callback"],
     });
     const challenge = await pkceChallenge("correct-verifier");
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
     const code = await service["authCodeStore"].createCode({
       clientId: client.client_id,
       redirectUri: "http://127.0.0.1:6274/oauth/callback",

@@ -20,10 +20,10 @@ const webChatUploadFormField = "file";
    (boundary, headers) when guarding on Content-Length before buffering. */
 const webChatUploadEnvelopeSlackBytes = 16_384;
 
-type OperatorSessionResolver = (request: Request) => Promise<boolean>;
+type AuthSessionResolver = (request: Request) => Promise<boolean>;
 
 interface UploadHandlerDeps {
-  resolveOperatorSession: OperatorSessionResolver;
+  resolveAuthSession: AuthSessionResolver;
   getUploadStore: () => RuntimeUploadStore;
 }
 
@@ -31,7 +31,7 @@ export async function handleUploadRequest(
   request: Request,
   deps: UploadHandlerDeps,
 ): Promise<Response> {
-  if (!(await deps.resolveOperatorSession(request))) {
+  if (!(await deps.resolveAuthSession(request))) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -82,7 +82,7 @@ export async function handleUploadDownloadRequest(
   request: Request,
   deps: UploadHandlerDeps,
 ): Promise<Response> {
-  if (!(await deps.resolveOperatorSession(request))) {
+  if (!(await deps.resolveAuthSession(request))) {
     return new Response("Forbidden", { status: 403 });
   }
 

@@ -1,3 +1,4 @@
+import type { ActorRef } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import {
   handleAuthAdminRequest,
@@ -39,11 +40,11 @@ import {
 } from "./refresh-token-store";
 import { RuntimeSetupStateStore, SetupStateStore } from "./setup-state-store";
 import {
-  clearOperatorSessionCookie,
-  OperatorSessionStore,
-  RuntimeOperatorSessionStore,
-  type CreateOperatorSessionResult,
-  type OperatorSessionRecord,
+  AuthSessionStore,
+  clearAuthSessionCookies,
+  RuntimeAuthSessionStore,
+  type AuthSessionRecord,
+  type CreateAuthSessionResult,
 } from "./session-store";
 import {
   absoluteUrl,
@@ -71,7 +72,7 @@ import { WebAuthnEndpoints } from "./webauthn-endpoints";
 import {
   DEFAULT_SETUP_TOKEN_TTL_SECONDS,
   SetupFlow,
-  type OperatorSetupRequired,
+  type PasskeySetupRequired,
 } from "./setup-flow";
 import type {
   A2APrivateJwk,
@@ -81,7 +82,7 @@ import type {
   RegisteredOAuthClient,
 } from "./types";
 
-export type { OperatorSetupRequired } from "./setup-flow";
+export type { PasskeySetupRequired } from "./setup-flow";
 
 const MIGRATION_SINGLE_OPERATOR_SUBJECT = "single-operator";
 
@@ -144,8 +145,8 @@ export class AuthService {
   private readonly clientStore: RuntimeOAuthClientStore;
   private readonly legacyAuthCodeStore: AuthorizationCodeStore;
   private readonly authCodeStore: RuntimeAuthorizationCodeStore;
-  private readonly legacySessionStore: OperatorSessionStore;
-  private readonly sessionStore: RuntimeOperatorSessionStore;
+  private readonly legacySessionStore: AuthSessionStore;
+  private readonly sessionStore: RuntimeAuthSessionStore;
   private readonly legacyRefreshTokenStore: RefreshTokenStore;
   private readonly refreshTokenStore: RuntimeRefreshTokenStore;
   private readonly legacyPeerTrustStore: A2APeerTrustStore;
@@ -190,10 +191,10 @@ export class AuthService {
     this.authCodeStore = new RuntimeAuthorizationCodeStore(
       this.runtimeDatabase,
     );
-    this.legacySessionStore = new OperatorSessionStore({
+    this.legacySessionStore = new AuthSessionStore({
       storageDir: options.storageDir,
     });
-    this.sessionStore = new RuntimeOperatorSessionStore(this.runtimeDatabase);
+    this.sessionStore = new RuntimeAuthSessionStore(this.runtimeDatabase);
     this.legacyRefreshTokenStore = new RefreshTokenStore({
       storageDir: options.storageDir,
     });
@@ -383,7 +384,7 @@ export class AuthService {
     }
 
     if (migrated > 0) {
-      this.logger?.info("Migrated legacy operator passkey credentials", {
+      this.logger?.info("Migrated legacy passkey credentials", {
         migrated,
         ...(anchorUser ? { userId: anchorUser.id } : {}),
       });
@@ -402,7 +403,7 @@ export class AuthService {
           : await this.getUserStore().getUser(session.subject);
       if (!user) {
         throw new Error(
-          `Cannot migrate operator session: auth user ${session.subject} was not found`,
+          `Cannot migrate browser session: auth user ${session.subject} was not found`,
         );
       }
       if (await this.sessionStore.importSession(session, user.id)) {
@@ -411,7 +412,7 @@ export class AuthService {
     }
 
     if (migrated > 0) {
-      this.logger?.info("Migrated legacy operator sessions", {
+      this.logger?.info("Migrated legacy browser sessions", {
         migrated,
         ...(anchorUser ? { userId: anchorUser.id } : {}),
       });
@@ -819,16 +820,24 @@ export class AuthService {
   }
 
   async resolveActorPrincipal(
-    actorId: string,
+    actor: ActorRef,
   ): Promise<AuthPrincipal | undefined> {
     await this.ensureUserStoreStarted();
-    if (actorId.startsWith("usr_")) {
-      const user = await this.getUserStore().getUser(actorId);
+    if (actor.kind === "user") {
+      const user = await this.getUserStore().getUser(actor.userId);
       return user?.status === "active" ? principalFromUser(user) : undefined;
     }
+    if (actor.kind !== "external") return undefined;
 
-    const identityInput = identityInputFromActorId(actorId);
-    return identityInput ? this.resolveIdentity(identityInput) : undefined;
+    const identityKeyHash = actor.externalActorId.startsWith("ext_")
+      ? actor.externalActorId.slice("ext_".length)
+      : "";
+    if (!/^[a-f0-9]{64}$/.test(identityKeyHash)) return undefined;
+    const result =
+      await this.getUserStore().resolveIdentityHashAccess(identityKeyHash);
+    return result.state === "resolved"
+      ? principalFromUser(result.user)
+      : undefined;
   }
 
   async resolveIdentity(
@@ -848,10 +857,10 @@ export class AuthService {
       : result;
   }
 
-  async createOperatorSession(
+  async createAuthSession(
     subject?: string,
     options: { secure?: boolean } = {},
-  ): Promise<CreateOperatorSessionResult> {
+  ): Promise<CreateAuthSessionResult> {
     await this.ensureUserStoreStarted();
     const sessionSubject =
       !subject || subject === MIGRATION_SINGLE_OPERATOR_SUBJECT
@@ -860,15 +869,15 @@ export class AuthService {
     return this.sessionStore.createSession(sessionSubject, options);
   }
 
-  async getOperatorSession(
+  async getAuthSession(
     request: Request,
-  ): Promise<OperatorSessionRecord | undefined> {
+  ): Promise<AuthSessionRecord | undefined> {
     return this.sessionStore.getSessionFromRequest(request);
   }
 
   async resolveSession(request: Request): Promise<AuthPrincipal | undefined> {
     await this.ensureUserStoreStarted();
-    const session = await this.getOperatorSession(request);
+    const session = await this.getAuthSession(request);
     if (!session) {
       return undefined;
     }
@@ -880,7 +889,7 @@ export class AuthService {
     return principalFromUser(user);
   }
 
-  createOperatorLoginResponse(request: Request): Response {
+  createAuthLoginResponse(request: Request): Response {
     return unauthorizedHtmlResponse(request);
   }
 
@@ -945,18 +954,18 @@ export class AuthService {
     return { setupUrl: setup.setupUrl, expiresAt: setup.expiresAt };
   }
 
-  async getOperatorSetupRequired(
+  async getPasskeySetupRequired(
     issuer: string = this.issuer,
-  ): Promise<OperatorSetupRequired | undefined> {
-    return this.setupFlow.getOperatorSetupRequired(issuer, {
+  ): Promise<PasskeySetupRequired | undefined> {
+    return this.setupFlow.getPasskeySetupRequired(issuer, {
       rotateHidden: true,
     });
   }
 
-  async getOperatorSetupRequiredForDelivery(
+  async getPasskeySetupRequiredForDelivery(
     issuer: string = this.issuer,
-  ): Promise<OperatorSetupRequired | undefined> {
-    return this.setupFlow.getOperatorSetupRequired(issuer);
+  ): Promise<PasskeySetupRequired | undefined> {
+    return this.setupFlow.getPasskeySetupRequired(issuer);
   }
 
   async hasSetupEmailDelivery(
@@ -1133,34 +1142,14 @@ export class AuthService {
     const returnTo = safeRelativeReturnTo(
       new URL(request.url).searchParams.get("return_to"),
     );
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: returnTo,
-        "Set-Cookie": clearOperatorSessionCookie(isSecureRequest(request)),
-        "Cache-Control": "no-store",
-      },
+    const headers = new Headers({
+      Location: returnTo,
+      "Cache-Control": "no-store",
     });
-  }
-}
-
-function identityInputFromActorId(
-  actorId: string,
-): ResolveAuthIdentityInput | undefined {
-  const separator = actorId.indexOf(":");
-  if (separator <= 0 || separator === actorId.length - 1) return undefined;
-  const type = actorId.slice(0, separator);
-  const subject = actorId.slice(separator + 1);
-  switch (type) {
-    case "passkey":
-    case "discord":
-    case "mcp":
-    case "email":
-    case "did":
-    case "a2a":
-      return { type, subject };
-    default:
-      return undefined;
+    for (const cookie of clearAuthSessionCookies(isSecureRequest(request))) {
+      headers.append("Set-Cookie", cookie);
+    }
+    return new Response(null, { status: 302, headers });
   }
 }
 

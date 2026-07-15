@@ -110,17 +110,17 @@ describe("AuthService routing", () => {
     expect(wrongMethod.status).toBe(404);
   });
 
-  it("returns the operator login challenge response", async () => {
+  it("returns the passkey login challenge response", async () => {
     const service = await makeService();
 
-    const response = service.createOperatorLoginResponse(
+    const response = service.createAuthLoginResponse(
       new Request(`${ISSUER}/dashboard?tab=jobs`),
     );
 
     expect(response.status).toBe(401);
     expect(response.headers.get("cache-control")).toBe("no-store");
     const html = await response.text();
-    expect(html).toContain("Operator login required");
+    expect(html).toContain("Passkey login required");
     expect(html).toContain(JSON.stringify("/dashboard?tab=jobs"));
   });
 
@@ -145,7 +145,7 @@ describe("login page", () => {
 
     expect(response.status).toBe(200);
     const html = await response.text();
-    expect(html).toContain("Operator login");
+    expect(html).toContain("Passkey login");
     expect(html).toContain("Continue with passkey");
     expect(html).toContain(JSON.stringify("/dashboard"));
   });
@@ -171,7 +171,7 @@ describe("authorize request validation", () => {
     service: AuthService,
     params: URLSearchParams,
   ): Promise<Response> {
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
     return service.handleRequest(
       new Request(`${ISSUER}/authorize?${params}`, {
         headers: { cookie: session.cookie },
@@ -247,7 +247,7 @@ describe("authorize request validation", () => {
   it("rejects approval when form parameters differ from the issued token", async () => {
     const service = await makeService();
     const client = await registerTestClient(service);
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
     const params = authorizeParams(client, await pkceChallenge("v"), {
       scope: "mcp",
     });

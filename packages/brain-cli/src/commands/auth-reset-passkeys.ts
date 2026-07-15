@@ -22,10 +22,10 @@ const RESET_FILES = [
 ] as const;
 
 /**
- * Local break-glass recovery for lost/compromised operator passkeys.
+ * Local break-glass recovery for lost or compromised Anchor passkeys.
  *
  * This intentionally preserves OAuth clients and the signing key. It clears the
- * human operator credentials and active OAuth/session state; after restart,
+ * Anchor credentials and active OAuth/session state; after restart,
  * AuthService sees no passkeys and prints a fresh one-shot /setup URL.
  */
 export async function resetAuthPasskeys(
@@ -36,7 +36,7 @@ export async function resetAuthPasskeys(
     return {
       success: false,
       message:
-        "Refusing to reset operator passkeys without --yes. This clears passkeys, sessions, authorization codes, and refresh tokens.",
+        "Refusing to reset Anchor passkeys without --yes. This clears passkeys, sessions, authorization codes, and refresh tokens.",
     };
   }
 
@@ -60,7 +60,7 @@ export async function resetAuthPasskeys(
 
   return {
     success: true,
-    message: `Operator passkeys and active OAuth state reset in ${storageDir}. Restart the brain to print a new one-shot /setup token. OAuth clients and signing keys were preserved.`,
+    message: `Anchor passkeys and active OAuth state reset in ${storageDir}. Restart the brain to print a new one-shot /setup token. OAuth clients and signing keys were preserved.`,
   };
 }
 

@@ -114,28 +114,28 @@ export interface EditorRouteOptions {
   /** Base route the editor is served from, e.g. "/cms". */
   routePath: string;
   getContext: () => ServicePluginContext;
-  resolveOperatorSession: (request: Request) => Promise<boolean>;
+  resolveAuthSession: (request: Request) => Promise<boolean>;
   getEntityDisplay: () => CmsEntityDisplayMap | undefined;
 }
 
 /**
  * Routes for the first-party CMS editor: the React shell, its bundled
  * asset, and the entity read/write API. Every route except the asset is
- * gated on an operator session; writes go through the entity service so
+ * gated on an authenticated session; writes go through the entity service so
  * the entity DB stays the single authoritative writer.
  */
 export function createEditorRoutes(
   options: EditorRouteOptions,
 ): WebRouteDefinition[] {
-  const { routePath, getContext, resolveOperatorSession, getEntityDisplay } =
+  const { routePath, getContext, resolveAuthSession, getEntityDisplay } =
     options;
   const assetPath = `${routePath}/assets/app.js`;
   const apiPath = (suffix: string): string => `${routePath}/api/${suffix}`;
 
   const requireSession = async (request: Request): Promise<Response | null> =>
-    (await resolveOperatorSession(request))
+    (await resolveAuthSession(request))
       ? null
-      : jsonResponse({ error: "Operator session required" }, 401);
+      : jsonResponse({ error: "Authentication required" }, 401);
 
   return [
     {
@@ -143,7 +143,7 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        if (!(await resolveOperatorSession(request))) {
+        if (!(await resolveAuthSession(request))) {
           return new Response(null, {
             status: 302,
             headers: {
@@ -852,7 +852,7 @@ async function handleUpload(
 
   const result = await registration.handler(
     { upload: { kind: "upload", id: record.id } },
-    { interfaceType: "cms", userId: "operator" },
+    { interfaceType: "cms", userId: "authenticated-user" },
   );
 
   if (!result.success) {

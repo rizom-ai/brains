@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createExternalActorId } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { AuthService } from "../src";
 
@@ -113,13 +114,13 @@ async function issueAccessToken(
 }
 
 describe("AuthService principals", () => {
-  it("resolves operator sessions to active auth principals", async () => {
+  it("resolves auth sessions to active auth principals", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
 
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
     const principal = await service.resolveSession(
       new Request("https://brain.example.com/dashboard", {
         headers: { cookie: session.cookie },
@@ -128,7 +129,7 @@ describe("AuthService principals", () => {
 
     expect(principal).toMatchObject({
       userId: session.subject,
-      displayName: "Operator",
+      displayName: "Anchor",
       role: "anchor",
       status: "active",
       permissionLevel: "anchor",
@@ -145,7 +146,7 @@ describe("AuthService principals", () => {
       displayName: "Collaborator",
       role: "trusted",
     });
-    const session = await service.createOperatorSession(collaborator.userId);
+    const session = await service.createAuthSession(collaborator.userId);
     const request = new Request("https://brain.example.com/dashboard", {
       headers: { cookie: session.cookie },
     });
@@ -192,7 +193,7 @@ describe("AuthService principals", () => {
       role: "trusted",
       status: "suspended",
     });
-    const session = await service.createOperatorSession(suspended.userId);
+    const session = await service.createAuthSession(suspended.userId);
 
     const principal = await service.resolveSession(
       new Request("https://brain.example.com/dashboard", {
@@ -209,7 +210,7 @@ describe("AuthService principals", () => {
       issuer: "https://brain.example.com",
     });
 
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
     const token = await issueAccessToken(service, session.cookie);
     const principal = await service.resolveBearerToken(
       new Request("https://brain.example.com/mcp", {
@@ -220,7 +221,7 @@ describe("AuthService principals", () => {
 
     expect(principal).toMatchObject({
       userId: session.subject,
-      displayName: "Operator",
+      displayName: "Anchor",
       role: "anchor",
       status: "active",
       permissionLevel: "anchor",
@@ -238,7 +239,7 @@ describe("AuthService principals", () => {
       status: "suspended",
     });
 
-    const session = await service.createOperatorSession(suspended.userId);
+    const session = await service.createAuthSession(suspended.userId);
     const token = await issueAccessToken(service, session.cookie);
     const principal = await service.resolveBearerToken(
       new Request("https://brain.example.com/mcp", {
@@ -265,7 +266,7 @@ describe("AuthService principals", () => {
       subject: "1442828818493735015",
       verifiedAt: Date.now(),
     });
-    const session = await service.createOperatorSession(collaborator.userId);
+    const session = await service.createAuthSession(collaborator.userId);
     const request = new Request("https://brain.example.com/dashboard", {
       headers: { cookie: session.cookie },
     });
@@ -338,19 +339,31 @@ describe("AuthService principals", () => {
     });
 
     expect(
-      await service.resolveActorPrincipal(collaborator.userId),
+      await service.resolveActorPrincipal({
+        kind: "user",
+        userId: collaborator.userId,
+      }),
     ).toMatchObject({
       userId: collaborator.userId,
       canonicalId: collaborator.canonicalId,
     });
     expect(
-      await service.resolveActorPrincipal("discord:1442828818493735015"),
+      await service.resolveActorPrincipal({
+        kind: "external",
+        externalActorId: createExternalActorId(
+          "discord",
+          "1442828818493735015",
+        ),
+      }),
     ).toMatchObject({
       userId: collaborator.userId,
       canonicalId: collaborator.canonicalId,
     });
     expect(
-      await service.resolveActorPrincipal("discord:unknown"),
+      await service.resolveActorPrincipal({
+        kind: "external",
+        externalActorId: createExternalActorId("discord", "unknown"),
+      }),
     ).toBeUndefined();
   });
 

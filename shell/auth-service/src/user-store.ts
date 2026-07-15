@@ -94,7 +94,7 @@ export class AuthUserStore {
       const id = createPrefixedId("usr");
       const user = {
         id,
-        displayName: input.displayName ?? "Operator",
+        displayName: input.displayName ?? "Anchor",
         role: "anchor",
         status: "active",
         canonicalId: canonicalIdForUserId(id),
@@ -305,7 +305,14 @@ export class AuthUserStore {
   async resolveIdentityAccess(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityLookupResult> {
-    const identityKeyHash = hashIdentityKey(normalizeIdentityKey(input));
+    return this.resolveIdentityHashAccess(
+      hashIdentityKey(normalizeIdentityKey(input)),
+    );
+  }
+
+  async resolveIdentityHashAccess(
+    identityKeyHash: string,
+  ): Promise<AuthIdentityLookupResult> {
     const [row] = await this.db
       .select({ user: authUsers })
       .from(authIdentities)

@@ -8,7 +8,7 @@
  * and stays a thin orchestration façade.
  */
 
-import type { AgentContextItem } from "@brains/contracts";
+import { actorRefKey, type AgentContextItem } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
@@ -66,7 +66,7 @@ export interface TurnProcessorDeps {
   identityService: IBrainCharacterService;
   /** Lazy agent access so invalidation stays with AgentService. */
   getAgent: () => BrainAgent;
-  assistantActorId: string | undefined;
+  assistantAgentId: string | undefined;
   canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   agentContextProvider: AgentConfig["agentContextProvider"];
   uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
@@ -330,10 +330,14 @@ export class TurnProcessor {
 
     const context: ToolContext = {
       interfaceType,
-      userId:
-        attributedActor?.userId ?? attributedActor?.actorId ?? "agent-user",
-      ...(attributedActor?.canonicalId
-        ? { canonicalId: attributedActor.canonicalId }
+      userId: attributedActor
+        ? attributedActor.identity.kind === "user"
+          ? attributedActor.identity.userId
+          : actorRefKey(attributedActor.identity)
+        : "agent-user",
+      ...(attributedActor?.identity.kind === "user" &&
+      attributedActor.identity.canonicalId
+        ? { canonicalId: attributedActor.identity.canonicalId }
         : {}),
       ...(attributedActor?.displayName
         ? { displayName: attributedActor.displayName }
@@ -516,8 +520,8 @@ export class TurnProcessor {
   private getAssistantActor(): ConversationMessageActor {
     return buildAssistantActor({
       character: this.deps.identityService.getCharacter(),
-      ...(this.deps.assistantActorId
-        ? { actorId: this.deps.assistantActorId }
+      ...(this.deps.assistantAgentId
+        ? { agentId: this.deps.assistantAgentId }
         : {}),
     });
   }

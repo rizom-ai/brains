@@ -108,7 +108,7 @@ describe("DashboardPlugin", () => {
         storageDir: `/tmp/dashboard-jump-auth-${Date.now()}`,
       });
       await harness.installPlugin(authPlugin);
-      const session = await authPlugin.getService().createOperatorSession();
+      const session = await authPlugin.getService().createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
 
       const route = plugin
@@ -139,7 +139,7 @@ describe("DashboardPlugin", () => {
         storageDir: `/tmp/dashboard-jump-entities-${Date.now()}`,
       });
       await harness.installPlugin(authPlugin);
-      const session = await authPlugin.getService().createOperatorSession();
+      const session = await authPlugin.getService().createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
 
       const shell = harness.getMockShell();
@@ -224,7 +224,7 @@ describe("DashboardPlugin", () => {
         storageDir: `/tmp/dashboard-jump-degrade-${Date.now()}`,
       });
       await harness.installPlugin(authPlugin);
-      const session = await authPlugin.getService().createOperatorSession();
+      const session = await authPlugin.getService().createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
 
       const shell = harness.getMockShell();
@@ -404,7 +404,7 @@ describe("DashboardPlugin", () => {
       });
       const session = await authPlugin
         .getService()
-        .createOperatorSession(trustedUser.userId);
+        .createAuthSession(trustedUser.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       const shell = harness.getMockShell();
       shell.registerEndpoint({
@@ -449,7 +449,7 @@ describe("DashboardPlugin", () => {
       });
       const session = await authPlugin
         .getService()
-        .createOperatorSession(anchorUser.userId);
+        .createAuthSession(anchorUser.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       const shell = harness.getMockShell();
       shell.registerEndpoint({

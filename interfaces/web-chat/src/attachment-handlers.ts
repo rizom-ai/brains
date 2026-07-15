@@ -15,7 +15,7 @@ type ArtifactEntityType = "document" | "image";
 
 interface AttachmentHandlerDeps {
   resolvePermissionLevel: PermissionLevelResolver;
-  createOperatorLoginRequiredResponse: (request: Request) => Response;
+  createAuthLoginRequiredResponse: (request: Request) => Response;
   entityService: EntityService;
 }
 
@@ -25,7 +25,7 @@ export async function handleDocumentAttachmentRequest(
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
   if (permissionLevel === "public") {
-    return deps.createOperatorLoginRequiredResponse(request);
+    return deps.createAuthLoginRequiredResponse(request);
   }
 
   const url = new URL(request.url);
@@ -72,7 +72,7 @@ export async function handleImageAttachmentRequest(
 ): Promise<Response> {
   const permissionLevel = await deps.resolvePermissionLevel(request);
   if (permissionLevel === "public") {
-    return deps.createOperatorLoginRequiredResponse(request);
+    return deps.createAuthLoginRequiredResponse(request);
   }
 
   const url = new URL(request.url);

@@ -12,7 +12,7 @@ export interface EditorShellOptions {
   assetPath: string;
   /** Console-strip doors, derived from the registered web routes. */
   surfaces: ConsoleSurface[];
-  /** Sign-out link for the session chip (the editor is operator-only). */
+  /** Sign-out link for the authenticated-session chip. */
   sessionHref: string;
 }
 

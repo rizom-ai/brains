@@ -1,20 +1,20 @@
 import { describe, expect, it } from "bun:test";
 import {
   buildAssistantActor,
-  createBrainActorId,
+  createBrainAgentId,
 } from "../src/assistant-actor";
 
 describe("assistant actor identity", () => {
-  it("builds stable brain actor ids from brain names", () => {
-    expect(createBrainActorId("Relay Pilot")).toBe("brain:relay-pilot");
-    expect(createBrainActorId("  Rover_AI!!  ")).toBe("brain:rover-ai");
-    expect(createBrainActorId("---")).toBeUndefined();
+  it("builds stable brain agent ids from brain names", () => {
+    expect(createBrainAgentId("Relay Pilot")).toBe("brain:relay-pilot");
+    expect(createBrainAgentId("  Rover_AI!!  ")).toBe("brain:rover-ai");
+    expect(createBrainAgentId("---")).toBeUndefined();
   });
 
   it("builds assistant actor metadata from brain character", () => {
     expect(
       buildAssistantActor({
-        actorId: "brain:relay",
+        agentId: "brain:relay",
         character: {
           name: "Relay",
           role: "Team memory assistant",
@@ -23,7 +23,7 @@ describe("assistant actor identity", () => {
         },
       }),
     ).toEqual({
-      actorId: "brain:relay",
+      identity: { kind: "agent", agentId: "brain:relay" },
       interfaceType: "agent",
       role: "assistant",
       displayName: "Relay",

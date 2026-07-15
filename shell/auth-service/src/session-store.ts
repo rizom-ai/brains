@@ -1,17 +1,28 @@
 import { createHash, randomUUID } from "node:crypto";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { JsonFileStore } from "./json-file-store";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
 import { join } from "node:path";
 import type { AuthRuntimeDatabase } from "./runtime-db";
-import { operatorSessions } from "./runtime-schema";
+import { authSessions } from "./runtime-schema";
 
 const DEFAULT_SESSION_STORE_FILE = "oauth-sessions.json";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
-export const OPERATOR_SESSION_COOKIE = "brains_operator_session";
-
-export interface OperatorSessionRecord {
+export const AUTH_SESSION_COOKIE = "brains_auth_session";
+/**
+ * TODO(auth-session-compat): Remove the legacy cookie reader when both
+ * conditions are true:
+ * 1. Repository consumers use only AuthSession APIs.
+ * 2. The minimum supported upgrade source already issues
+ *    `brains_auth_session` (so pre-migration browser sessions are no longer a
+ *    supported direct-upgrade case).
+ *
+ * Until then, issue only AUTH_SESSION_COOKIE, dual-read both names, and clear
+ * both names on logout.
+ */
+const LEGACY_OPERATOR_SESSION_COOKIE = "brains_operator_session";
+export interface AuthSessionRecord {
   id: string;
   token_hash: string;
   subject: string;
@@ -20,28 +31,28 @@ export interface OperatorSessionRecord {
 }
 
 interface SessionStoreFile {
-  sessions: OperatorSessionRecord[];
+  sessions: AuthSessionRecord[];
 }
 
-export interface CreateOperatorSessionResult {
+export interface CreateAuthSessionResult {
   subject: string;
   cookie: string;
   expiresAt: number;
 }
 
-export interface OperatorSessionStoreOptions {
+export interface AuthSessionStoreOptions {
   storageDir: string;
   storeFile?: string;
 }
 
-export interface OperatorSessionPersistence {
+export interface AuthSessionPersistence {
   createSession(
     subject: string,
     options?: { secure?: boolean },
-  ): Promise<CreateOperatorSessionResult>;
+  ): Promise<CreateAuthSessionResult>;
   getSessionFromRequest(
     request: Request,
-  ): Promise<OperatorSessionRecord | undefined>;
+  ): Promise<AuthSessionRecord | undefined>;
   revokeSessionFromRequest(request: Request): Promise<boolean>;
   revokeSessionsForSubject(subject: string): Promise<number>;
 }
@@ -50,7 +61,7 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("base64url");
 }
 
-const operatorSessionRecordSchema = z.looseObject({
+const authSessionRecordSchema = z.looseObject({
   id: z.string(),
   token_hash: z.string(),
   subject: z.string(),
@@ -59,7 +70,7 @@ const operatorSessionRecordSchema = z.looseObject({
 });
 
 const sessionStoreFileSchema = z.looseObject({
-  sessions: z.array(operatorSessionRecordSchema).optional(),
+  sessions: z.array(authSessionRecordSchema).optional(),
 });
 
 function parseStoreFile(value: unknown): SessionStoreFile {
@@ -72,19 +83,31 @@ function sessionCookie(
   expiresAt: number,
   secure: boolean,
 ): string {
-  return `${OPERATOR_SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.max(
+  return `${AUTH_SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.max(
     0,
     expiresAt - nowSeconds(),
   )}${secure ? "; Secure" : ""}`;
 }
 
-export function clearOperatorSessionCookie(secure = false): string {
-  return `${OPERATOR_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${
+function clearSessionCookie(name: string, secure: boolean): string {
+  return `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${
     secure ? "; Secure" : ""
   }`;
 }
 
-export class RuntimeOperatorSessionStore implements OperatorSessionPersistence {
+export function clearAuthSessionCookie(secure = false): string {
+  return clearSessionCookie(AUTH_SESSION_COOKIE, secure);
+}
+
+function clearLegacyAuthSessionCookie(secure = false): string {
+  return clearSessionCookie(LEGACY_OPERATOR_SESSION_COOKIE, secure);
+}
+
+export function clearAuthSessionCookies(secure = false): [string, string] {
+  return [clearAuthSessionCookie(secure), clearLegacyAuthSessionCookie(secure)];
+}
+
+export class RuntimeAuthSessionStore implements AuthSessionPersistence {
   private readonly database: AuthRuntimeDatabase;
 
   constructor(database: AuthRuntimeDatabase) {
@@ -92,11 +115,11 @@ export class RuntimeOperatorSessionStore implements OperatorSessionPersistence {
   }
 
   async importSession(
-    session: OperatorSessionRecord,
+    session: AuthSessionRecord,
     userId: string,
   ): Promise<boolean> {
     const inserted = await this.database.db
-      .insert(operatorSessions)
+      .insert(authSessions)
       .values({
         tokenHash: session.token_hash,
         userId,
@@ -105,18 +128,18 @@ export class RuntimeOperatorSessionStore implements OperatorSessionPersistence {
         createdAt: session.created_at,
       })
       .onConflictDoNothing()
-      .returning({ tokenHash: operatorSessions.tokenHash });
+      .returning({ tokenHash: authSessions.tokenHash });
     return inserted.length > 0;
   }
 
   async createSession(
     subject: string,
     options: { secure?: boolean } = {},
-  ): Promise<CreateOperatorSessionResult> {
-    const token = `oss_${randomUUID()}`;
+  ): Promise<CreateAuthSessionResult> {
+    const token = `sess_${randomUUID()}`;
     const createdAt = nowSeconds();
     const expiresAt = createdAt + SESSION_TTL_SECONDS;
-    await this.database.db.insert(operatorSessions).values({
+    await this.database.db.insert(authSessions).values({
       tokenHash: hashToken(token),
       userId: subject,
       expiresAt,
@@ -132,68 +155,70 @@ export class RuntimeOperatorSessionStore implements OperatorSessionPersistence {
 
   async getSessionFromRequest(
     request: Request,
-  ): Promise<OperatorSessionRecord | undefined> {
-    const token = getSessionTokenFromRequest(request);
-    if (!token) return undefined;
-
-    const [row] = await this.database.db
-      .select()
-      .from(operatorSessions)
-      .where(
-        and(
-          eq(operatorSessions.tokenHash, hashToken(token)),
-          isNull(operatorSessions.revokedAt),
-          gt(operatorSessions.expiresAt, nowSeconds()),
-        ),
-      )
-      .limit(1);
-    return row
-      ? {
+  ): Promise<AuthSessionRecord | undefined> {
+    const tokens = getSessionTokensFromRequest(request);
+    for (const token of tokens) {
+      const [row] = await this.database.db
+        .select()
+        .from(authSessions)
+        .where(
+          and(
+            eq(authSessions.tokenHash, hashToken(token)),
+            isNull(authSessions.revokedAt),
+            gt(authSessions.expiresAt, nowSeconds()),
+          ),
+        )
+        .limit(1);
+      if (row) {
+        return {
           id: row.tokenHash,
           token_hash: row.tokenHash,
           subject: row.userId,
           created_at: row.createdAt,
           expires_at: row.expiresAt,
-        }
-      : undefined;
+        };
+      }
+    }
+    return undefined;
   }
 
   async revokeSessionFromRequest(request: Request): Promise<boolean> {
-    const token = getSessionTokenFromRequest(request);
-    if (!token) return false;
+    const tokenHashes = getSessionTokensFromRequest(request).map(hashToken);
+    if (tokenHashes.length === 0) return false;
 
     const revoked = await this.database.db
-      .update(operatorSessions)
+      .update(authSessions)
       .set({ revokedAt: nowSeconds() })
       .where(
         and(
-          eq(operatorSessions.tokenHash, hashToken(token)),
-          isNull(operatorSessions.revokedAt),
+          inArray(authSessions.tokenHash, tokenHashes),
+          isNull(authSessions.revokedAt),
         ),
       )
-      .returning({ tokenHash: operatorSessions.tokenHash });
+      .returning({ tokenHash: authSessions.tokenHash });
     return revoked.length > 0;
   }
 
   async revokeSessionsForSubject(subject: string): Promise<number> {
     const revoked = await this.database.db
-      .update(operatorSessions)
+      .update(authSessions)
       .set({ revokedAt: nowSeconds() })
       .where(
-        and(
-          eq(operatorSessions.userId, subject),
-          isNull(operatorSessions.revokedAt),
-        ),
+        and(eq(authSessions.userId, subject), isNull(authSessions.revokedAt)),
       )
-      .returning({ tokenHash: operatorSessions.tokenHash });
+      .returning({ tokenHash: authSessions.tokenHash });
     return revoked.length;
   }
 }
 
-export class OperatorSessionStore implements OperatorSessionPersistence {
+/**
+ * Legacy JSON session store retained only for immutable migration input and
+ * standalone-store compatibility.
+ */
+export class AuthSessionStore implements AuthSessionPersistence {
   private readonly store: JsonFileStore<SessionStoreFile>;
 
-  constructor(options: OperatorSessionStoreOptions) {
+  constructor(options: AuthSessionStoreOptions) {
     this.store = new JsonFileStore({
       filePath: join(
         options.storageDir,
@@ -207,11 +232,11 @@ export class OperatorSessionStore implements OperatorSessionPersistence {
   async createSession(
     subject: string,
     options: { secure?: boolean } = {},
-  ): Promise<CreateOperatorSessionResult> {
-    const token = `oss_${randomUUID()}`;
+  ): Promise<CreateAuthSessionResult> {
+    const token = `sess_${randomUUID()}`;
     const createdAt = nowSeconds();
     const expiresAt = createdAt + SESSION_TTL_SECONDS;
-    const record: OperatorSessionRecord = {
+    const record: AuthSessionRecord = {
       id: randomUUID(),
       token_hash: hashToken(token),
       subject,
@@ -235,7 +260,7 @@ export class OperatorSessionStore implements OperatorSessionPersistence {
     };
   }
 
-  async listSessions(): Promise<OperatorSessionRecord[]> {
+  async listSessions(): Promise<AuthSessionRecord[]> {
     const store = await this.store.read();
     const now = nowSeconds();
     return store.sessions.filter((session) => session.expires_at > now);
@@ -263,29 +288,32 @@ export class OperatorSessionStore implements OperatorSessionPersistence {
 
   async getSessionFromRequest(
     request: Request,
-  ): Promise<OperatorSessionRecord | undefined> {
-    const token = getSessionTokenFromRequest(request);
-    if (!token) return undefined;
+  ): Promise<AuthSessionRecord | undefined> {
+    const tokenHashes = getSessionTokensFromRequest(request).map(hashToken);
+    if (tokenHashes.length === 0) return undefined;
 
-    const tokenHash = hashToken(token);
     const now = nowSeconds();
     const store = await this.store.read();
-    return store.sessions.find(
-      (session) => session.token_hash === tokenHash && session.expires_at > now,
-    );
+    for (const tokenHash of tokenHashes) {
+      const session = store.sessions.find(
+        (candidate) =>
+          candidate.token_hash === tokenHash && candidate.expires_at > now,
+      );
+      if (session) return session;
+    }
+    return undefined;
   }
 
   async revokeSessionFromRequest(request: Request): Promise<boolean> {
-    const token = getSessionTokenFromRequest(request);
-    if (!token) return false;
+    const tokenHashes = getSessionTokensFromRequest(request).map(hashToken);
+    if (tokenHashes.length === 0) return false;
 
-    const tokenHash = hashToken(token);
     let revoked = false;
     await this.store.enqueueWrite(async () => {
       const store = await this.store.read();
       const before = store.sessions.length;
       store.sessions = store.sessions.filter(
-        (session) => session.token_hash !== tokenHash,
+        (session) => !tokenHashes.includes(session.token_hash),
       );
       revoked = store.sessions.length !== before;
       if (revoked) {
@@ -313,8 +341,12 @@ export class OperatorSessionStore implements OperatorSessionPersistence {
   }
 }
 
-function getSessionTokenFromRequest(request: Request): string | undefined {
-  return getCookie(request.headers.get("cookie"), OPERATOR_SESSION_COOKIE);
+function getSessionTokensFromRequest(request: Request): string[] {
+  const cookieHeader = request.headers.get("cookie");
+  return [
+    getCookie(cookieHeader, AUTH_SESSION_COOKIE),
+    getCookie(cookieHeader, LEGACY_OPERATOR_SESSION_COOKIE),
+  ].filter((token): token is string => token !== undefined);
 }
 
 function getCookie(

@@ -1,3 +1,4 @@
+import { actorRefKey } from "@brains/contracts";
 import type { ChatContext } from "./agent-types";
 import type { BrainCallOptions } from "./brain-agent";
 
@@ -25,9 +26,13 @@ export function buildBrainCallOptions(params: {
     interfaceType: params.interfaceType,
     ...(params.actor
       ? {
-          userId: params.actor.userId ?? params.actor.actorId,
-          ...(params.actor.canonicalId
-            ? { canonicalId: params.actor.canonicalId }
+          userId:
+            params.actor.identity.kind === "user"
+              ? params.actor.identity.userId
+              : actorRefKey(params.actor.identity),
+          ...(params.actor.identity.kind === "user" &&
+          params.actor.identity.canonicalId
+            ? { canonicalId: params.actor.identity.canonicalId }
             : {}),
           ...(params.actor.displayName
             ? { displayName: params.actor.displayName }

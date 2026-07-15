@@ -95,22 +95,22 @@ export class DashboardDataSource implements DataSource {
   }
 
   /**
-   * Digest lines and operator counts are derived from the widget's fetched
+   * Digest lines and attention counts are derived from the widget's fetched
    * data on every render, so Overview cards and tab badges stay live. The
    * statically registered values remain the fallback.
    */
   private deriveLiveDigest(
     widget: StoredRegisteredWidget,
     data: unknown,
-  ): { digest?: DashboardDigestLine[]; needsOperator?: number } {
+  ): { digest?: DashboardDigestLine[]; needsAttention?: number } {
     if (!widget.digestProvider) return {};
 
     try {
       const derived = widget.digestProvider(data);
       return {
         ...(derived.digest !== undefined && { digest: derived.digest }),
-        ...(derived.needsOperator !== undefined && {
-          needsOperator: derived.needsOperator,
+        ...(derived.needsAttention !== undefined && {
+          needsAttention: derived.needsAttention,
         }),
       };
     } catch (error) {

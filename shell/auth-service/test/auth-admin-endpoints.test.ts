@@ -15,11 +15,11 @@ async function createService(
   if (options.withPasskey) {
     const now = Math.floor(Date.now() / 1000);
     await new PasskeyStore({ storageDir }).addCredential({
-      id: "owner-credential",
+      id: "anchor-credential",
       public_key: Buffer.from("public-key").toString("base64url"),
       counter: 0,
       subject: "single-operator",
-      user_name: "Owner",
+      user_name: "Anchor",
       credential_device_type: "singleDevice",
       credential_backed_up: false,
       created_at: now,
@@ -73,15 +73,15 @@ describe("auth admin API", () => {
 
   it("requires an active anchor session", async () => {
     const service = await createService();
-    const owner = await service.createUser({
-      displayName: "Owner",
+    const anchor = await service.createUser({
+      displayName: "Anchor",
       role: "anchor",
     });
     const collaborator = await service.createUser({
       displayName: "Mira",
       role: "trusted",
     });
-    const collaboratorSession = await service.createOperatorSession(
+    const collaboratorSession = await service.createAuthSession(
       collaborator.userId,
     );
 
@@ -95,16 +95,16 @@ describe("auth admin API", () => {
     expect(unauthenticated.status).toBe(401);
     expect(forbidden.status).toBe(403);
     expect(await forbidden.json()).toEqual({ error: "Anchor access required" });
-    expect(owner.permissionLevel).toBe("anchor");
+    expect(anchor.permissionLevel).toBe("anchor");
   });
 
   it("requires same-origin JSON and explicit action confirmation", async () => {
     const service = await createService();
-    const owner = await service.createUser({
-      displayName: "Owner",
+    const anchor = await service.createUser({
+      displayName: "Anchor",
       role: "anchor",
     });
-    const session = await service.createOperatorSession(owner.userId);
+    const session = await service.createAuthSession(anchor.userId);
     const mutation = {
       action: "createUser",
       confirmation: "createUser",
@@ -134,13 +134,13 @@ describe("auth admin API", () => {
 
   it("creates user-specific passkey registration links after first setup", async () => {
     const service = await createService({ withPasskey: true });
-    const [owner] = await service.listUsers();
-    if (!owner) throw new Error("Expected migrated owner");
+    const [anchor] = await service.listUsers();
+    if (!anchor) throw new Error("Expected migrated anchor");
     const collaborator = await service.createUser({
       displayName: "Mira",
       role: "trusted",
     });
-    const session = await service.createOperatorSession(owner.userId);
+    const session = await service.createAuthSession(anchor.userId);
 
     const response = await service.handleRequest(
       adminRequest("/auth/admin/mutations", session.cookie, {
@@ -159,7 +159,7 @@ describe("auth admin API", () => {
       new Request(result.registration.setupUrl),
     );
     expect(setupPage.status).toBe(200);
-    expect(await setupPage.text()).not.toContain("become the operator");
+    expect(await setupPage.text()).not.toContain("become the anchor");
 
     const token = new URL(result.registration.setupUrl).searchParams.get(
       "token",
@@ -180,7 +180,7 @@ describe("auth admin API", () => {
     });
 
     await service.updateUserStatus(collaborator.userId, "suspended", {
-      actorUserId: owner.userId,
+      actorUserId: anchor.userId,
     });
     const suspendedResponse = await service.handleRequest(
       new Request(
@@ -194,7 +194,7 @@ describe("auth admin API", () => {
     expect(events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          actorUserId: owner.userId,
+          actorUserId: anchor.userId,
           action: "auth.passkey.registration_started",
           targetId: collaborator.userId,
         }),
@@ -204,15 +204,15 @@ describe("auth admin API", () => {
 
   it("lists and revokes passkeys without exposing credential material", async () => {
     const service = await createService({ withPasskey: true });
-    const [owner] = await service.listUsers();
-    if (!owner) throw new Error("Expected migrated owner");
-    const session = await service.createOperatorSession(owner.userId);
+    const [anchor] = await service.listUsers();
+    if (!anchor) throw new Error("Expected migrated anchor");
+    const session = await service.createAuthSession(anchor.userId);
 
     const listResponse = await service.handleRequest(
       adminRequest("/auth/admin/users", session.cookie),
     );
     const listText = await listResponse.text();
-    expect(listText).toContain("owner-credential");
+    expect(listText).toContain("anchor-credential");
     expect(listText).not.toContain("public-key");
     expect(listText).not.toContain("publicKey");
 
@@ -220,17 +220,17 @@ describe("auth admin API", () => {
       adminRequest("/auth/admin/mutations", session.cookie, {
         action: "revokePasskey",
         confirmation: "revokePasskey",
-        credentialId: "owner-credential",
+        credentialId: "anchor-credential",
       }),
     );
     expect(revokeResponse.status).toBe(200);
-    expect(await service.listUserPasskeys(owner.userId)).toEqual([]);
+    expect(await service.listUserPasskeys(anchor.userId)).toEqual([]);
     expect(await service.listAuditEvents()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          actorUserId: owner.userId,
+          actorUserId: anchor.userId,
           action: "auth.passkey.revoked",
-          targetId: "owner-credential",
+          targetId: "anchor-credential",
         }),
       ]),
     );
@@ -238,11 +238,11 @@ describe("auth admin API", () => {
 
   it("manages users and redacted identities with actor-attributed audit", async () => {
     const service = await createService();
-    const owner = await service.createUser({
-      displayName: "Owner",
+    const anchor = await service.createUser({
+      displayName: "Anchor",
       role: "anchor",
     });
-    const session = await service.createOperatorSession(owner.userId);
+    const session = await service.createAuthSession(anchor.userId);
 
     const createResponse = await service.handleRequest(
       adminRequest("/auth/admin/mutations", session.cookie, {
@@ -301,12 +301,12 @@ describe("auth admin API", () => {
     expect(events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          actorUserId: owner.userId,
+          actorUserId: anchor.userId,
           action: "auth.user.created",
           targetId: created.user.userId,
         }),
         expect.objectContaining({
-          actorUserId: owner.userId,
+          actorUserId: anchor.userId,
           action: "auth.identity.attached",
         }),
       ]),

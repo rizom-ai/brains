@@ -1,5 +1,11 @@
 import { z } from "@brains/utils/zod";
-import { messageRoleSchema, type MessageRole } from "@brains/contracts";
+import {
+  actorRefFromLegacy,
+  actorRefSchema,
+  messageRoleSchema,
+  type ActorRef,
+  type MessageRole,
+} from "@brains/contracts";
 import type { Message, Conversation } from "./schema";
 
 /** Source kind for projections that derive entities from conversation events. */
@@ -51,19 +57,20 @@ export interface StartConversationRequest {
   metadata: ConversationMetadata;
 }
 
-export const conversationMessageActorSchema: z.ZodObject<{
-  actorId: z.ZodString;
-  userId: z.ZodOptional<z.ZodString>;
-  canonicalId: z.ZodOptional<z.ZodString>;
-  interfaceType: z.ZodString;
-  role: typeof messageRoleSchema;
-  displayName: z.ZodOptional<z.ZodString>;
-  username: z.ZodOptional<z.ZodString>;
-  isBot: z.ZodOptional<z.ZodBoolean>;
-}> = z.object({
-  actorId: z.string(),
-  userId: z.string().optional(),
-  canonicalId: z.string().optional(),
+export interface ConversationMessageActor {
+  identity: ActorRef;
+  interfaceType: string;
+  role: MessageRole;
+  displayName?: string | undefined;
+  username?: string | undefined;
+  isBot?: boolean | undefined;
+}
+
+export const conversationMessageActorSchema: z.ZodType<
+  ConversationMessageActor,
+  ConversationMessageActor
+> = z.object({
+  identity: actorRefSchema,
   interfaceType: z.string(),
   role: messageRoleSchema,
   displayName: z.string().optional(),
@@ -71,9 +78,50 @@ export const conversationMessageActorSchema: z.ZodObject<{
   isBot: z.boolean().optional(),
 });
 
-export type ConversationMessageActor = z.output<
-  typeof conversationMessageActorSchema
->;
+const conversationMessageActorParserSchema: z.ZodType<
+  ConversationMessageActor,
+  unknown
+> = z.preprocess(
+  normalizeLegacyConversationMessageActor,
+  conversationMessageActorSchema,
+);
+
+function normalizeLegacyConversationMessageActor(value: unknown): unknown {
+  if (!isRecord(value) || "identity" in value) return value;
+  const actorId = value["actorId"];
+  const interfaceType = value["interfaceType"];
+  const role = value["role"];
+  if (
+    typeof actorId !== "string" ||
+    typeof interfaceType !== "string" ||
+    (role !== "user" && role !== "assistant")
+  ) {
+    return value;
+  }
+
+  const userId = value["userId"];
+  const canonicalId = value["canonicalId"];
+  const identity = actorRefFromLegacy({
+    actorId,
+    interfaceType,
+    role,
+    ...(typeof userId === "string" ? { userId } : {}),
+    ...(typeof canonicalId === "string" ? { canonicalId } : {}),
+  });
+
+  return {
+    identity,
+    interfaceType,
+    role,
+    ...(typeof value["displayName"] === "string"
+      ? { displayName: value["displayName"] }
+      : {}),
+    ...(typeof value["username"] === "string"
+      ? { username: value["username"] }
+      : {}),
+    ...(typeof value["isBot"] === "boolean" ? { isBot: value["isBot"] } : {}),
+  };
+}
 
 export const conversationMessageSourceSchema: z.ZodObject<{
   messageId: z.ZodOptional<z.ZodString>;
@@ -103,7 +151,7 @@ export const conversationMessageMetadataSchema: z.ZodType<
   ConversationMessageMetadata,
   unknown
 > = z.looseObject({
-  actor: conversationMessageActorSchema.optional(),
+  actor: conversationMessageActorParserSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
 });
 

@@ -242,7 +242,7 @@ function PipelineBody({ widget }: RendererProps): JSX.Element {
 
   const items = [...parsed.data.items].sort(comparePipelineItems);
   const queued = items.filter((item) => item.status === "queued");
-  // Review holds everything waiting on an operator: drafts and failures.
+  // Review holds everything waiting for human attention: drafts and failures.
   const review = [
     ...items.filter((item) => item.status === "draft"),
     ...items.filter((item) => item.status === "failed"),

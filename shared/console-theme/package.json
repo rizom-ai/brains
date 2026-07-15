@@ -1,7 +1,7 @@
 {
   "name": "@brains/console-theme",
   "version": "0.2.0-alpha.156",
-  "description": "Operator-console token sheet and shared chrome styles",
+  "description": "Brain Console token sheet and shared chrome styles",
   "dependencies": {},
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

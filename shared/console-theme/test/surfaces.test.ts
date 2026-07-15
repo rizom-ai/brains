@@ -7,7 +7,7 @@ const route = (
 ): { pluginId: string; fullPath: string } => ({ pluginId, fullPath });
 
 describe("deriveConsoleSurfaces", () => {
-  it("derives one link per registered operator surface", () => {
+  it("derives one link per registered console surface", () => {
     const surfaces = deriveConsoleSurfaces(
       [
         route("dashboard", "/dashboard"),
@@ -82,10 +82,15 @@ describe("deriveConsoleSurfaces", () => {
   it("prefers the self-declared door over the registry's", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard/deep/route")],
-      { activeId: "dashboard", self: { id: "dashboard", href: "/operator" } },
+      {
+        activeId: "dashboard",
+        self: { id: "dashboard", href: "/custom-dashboard" },
+      },
     );
 
-    expect(surfaces.find((s) => s.id === "dashboard")?.href).toBe("/operator");
+    expect(surfaces.find((s) => s.id === "dashboard")?.href).toBe(
+      "/custom-dashboard",
+    );
   });
 
   it("ignores routes from non-surface plugins", () => {

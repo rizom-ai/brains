@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { createExternalActorId } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { ToolResponse } from "@brains/mcp-service";
 import type {
@@ -67,12 +68,21 @@ function getChatContext(
       ? { channelName: toolContext.channelName }
       : {}),
     actor: {
-      actorId: toolContext.userId,
+      identity:
+        toolContext.canonicalId || toolContext.userId.startsWith("usr_")
+          ? {
+              kind: "user",
+              userId: toolContext.userId,
+              ...(toolContext.canonicalId
+                ? { canonicalId: toolContext.canonicalId }
+                : {}),
+            }
+          : {
+              kind: "external",
+              externalActorId: createExternalActorId("mcp", toolContext.userId),
+            },
       interfaceType: "mcp",
       role: "user",
-      ...(toolContext.canonicalId
-        ? { canonicalId: toolContext.canonicalId }
-        : {}),
       ...(toolContext.displayName
         ? { displayName: toolContext.displayName }
         : {}),

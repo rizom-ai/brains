@@ -19,7 +19,7 @@ export type {
   AuthMutationContext,
   AuthPrincipal,
   AuthServiceOptions,
-  OperatorSetupRequired,
+  PasskeySetupRequired,
 } from "./auth-service";
 export {
   AuthServicePlugin,
@@ -105,9 +105,11 @@ export type {
   RefreshTokenStoreOptions,
 } from "./refresh-token-store";
 export {
-  clearOperatorSessionCookie,
-  OPERATOR_SESSION_COOKIE,
-  OperatorSessionStore,
+  AUTH_SESSION_COOKIE,
+  AuthSessionStore,
+  clearAuthSessionCookie,
+  clearAuthSessionCookies,
+  RuntimeAuthSessionStore,
 } from "./session-store";
 export {
   AuthUserStore,
@@ -115,9 +117,10 @@ export {
   normalizeIdentityKey,
 } from "./user-store";
 export type {
-  CreateOperatorSessionResult,
-  OperatorSessionRecord,
-  OperatorSessionStoreOptions,
+  AuthSessionPersistence,
+  AuthSessionRecord,
+  AuthSessionStoreOptions,
+  CreateAuthSessionResult,
 } from "./session-store";
 export type {
   AttachAuthIdentityInput,

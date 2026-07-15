@@ -53,7 +53,7 @@ describe("AuthUserStore", () => {
   it("creates the first active anchor user once", async () => {
     await withUserStore(async (store) => {
       const first = await store.ensureFirstAnchorUser({
-        displayName: "Alex Owner",
+        displayName: "Alex Anchor",
       });
       const second = await store.ensureFirstAnchorUser({
         displayName: "Ignored",
@@ -61,7 +61,7 @@ describe("AuthUserStore", () => {
 
       expect(first.id).toStartWith("usr_");
       expect(first).toMatchObject({
-        displayName: "Alex Owner",
+        displayName: "Alex Anchor",
         role: "anchor",
         status: "active",
         canonicalId: `user:${first.id.slice("usr_".length)}`,
@@ -156,32 +156,34 @@ describe("AuthUserStore", () => {
 
   it("protects the last active anchor", async () => {
     await withUserStore(async (store) => {
-      const owner = await store.ensureFirstAnchorUser({ displayName: "Owner" });
+      const anchor = await store.ensureFirstAnchorUser({
+        displayName: "Anchor",
+      });
 
       await expectRejectsWithMessage(
-        store.updateUserRole(owner.id, "trusted"),
+        store.updateUserRole(anchor.id, "trusted"),
         "Cannot remove the last active anchor user",
       );
       await expectRejectsWithMessage(
-        store.updateUserStatus(owner.id, "suspended"),
+        store.updateUserStatus(anchor.id, "suspended"),
         "Cannot remove the last active anchor user",
       );
 
-      const secondOwner = await store.createUser({
-        displayName: "Second Owner",
+      const secondAnchor = await store.createUser({
+        displayName: "Second Anchor",
         role: "anchor",
       });
-      await store.updateUserRole(owner.id, "trusted");
+      await store.updateUserRole(anchor.id, "trusted");
       await expectRejectsWithMessage(
-        store.updateUserStatus(secondOwner.id, "suspended"),
+        store.updateUserStatus(secondAnchor.id, "suspended"),
         "Cannot remove the last active anchor user",
       );
 
-      expect(await store.getUser(owner.id)).toMatchObject({
+      expect(await store.getUser(anchor.id)).toMatchObject({
         role: "trusted",
         status: "active",
       });
-      expect(await store.getUser(secondOwner.id)).toMatchObject({
+      expect(await store.getUser(secondAnchor.id)).toMatchObject({
         role: "anchor",
         status: "active",
       });

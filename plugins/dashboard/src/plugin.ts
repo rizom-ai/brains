@@ -65,7 +65,7 @@ const registerWidgetPayloadSchema = z
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
     visibility: z.enum(["public", "trusted", "anchor"]).default("public"),
-    needsOperator: z.number().int().nonnegative().optional(),
+    needsAttention: z.number().int().nonnegative().optional(),
     digest: z
       .array(
         z.object({
@@ -157,8 +157,8 @@ function createRegisteredWidget(
     section: payload.section,
     rendererName: payload.rendererName,
     visibility: payload.visibility,
-    ...(payload.needsOperator !== undefined && {
-      needsOperator: payload.needsOperator,
+    ...(payload.needsAttention !== undefined && {
+      needsAttention: payload.needsAttention,
     }),
     ...(payload.digest ? { digest: payload.digest } : {}),
     ...(payload.component ? { component: payload.component } : {}),

@@ -14,7 +14,7 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { AuthService, type OperatorSetupRequired } from "./auth-service";
+import { AuthService, type PasskeySetupRequired } from "./auth-service";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
 
@@ -142,7 +142,7 @@ export class AuthServicePlugin extends ServicePlugin<
           return { success: false, error: "Invalid auth principal request" };
         }
         const principal = await this.getService().resolveActorPrincipal(
-          parsed.data.actorId,
+          parsed.data.actor,
         );
         return {
           success: true,
@@ -183,7 +183,7 @@ export class AuthServicePlugin extends ServicePlugin<
       {
         name: `${this.id}_get_passkey_setup_url`,
         description:
-          "Get the first-passkey setup URL when operator setup is required. Anchor-only.",
+          "Get the first-passkey setup URL when passkey setup is required. Anchor-only.",
         inputSchema: {},
         visibility: "anchor",
         handler: async (): Promise<PasskeySetupToolResponse> => {
@@ -195,7 +195,7 @@ export class AuthServicePlugin extends ServicePlugin<
             };
           }
 
-          const setup = await service.getOperatorSetupRequired();
+          const setup = await service.getPasskeySetupRequired();
           if (setup) {
             return {
               success: true,
@@ -387,7 +387,7 @@ export class AuthServicePlugin extends ServicePlugin<
     const service = this.getService();
     if (await service.hasPasskeyCredentials()) return;
 
-    const setup = await service.getOperatorSetupRequiredForDelivery();
+    const setup = await service.getPasskeySetupRequiredForDelivery();
     if (!setup) return;
 
     const setupEmail = resolveSetupEmail(this.config.setupEmail, setup);
@@ -429,7 +429,7 @@ export class AuthServicePlugin extends ServicePlugin<
 
 function resolveSetupEmail(
   config: NonNullable<AuthServiceConfig["setupEmail"]>,
-  setup: OperatorSetupRequired,
+  setup: PasskeySetupRequired,
 ): { to: string; subject: string; body: string } {
   if (typeof config === "string") {
     const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
@@ -459,7 +459,7 @@ function resolveSetupEmail(
 
 function interpolateSetupEmailTemplate(
   template: string,
-  setup: OperatorSetupRequired,
+  setup: PasskeySetupRequired,
 ): string {
   const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
   const origin = new URL(setup.setupUrl).origin;

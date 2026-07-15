@@ -272,37 +272,35 @@ describe("ConversationMemoryRetriever", () => {
     expect(result.results.map((item) => item.id)).toEqual(["summary-team"]);
   });
 
-  it("filters memory by canonical identity without crossing spaces by default", async () => {
+  it("filters memory by resolved user identity without crossing spaces by default", async () => {
     const context = createMockEntityPluginContext();
+    const userIdentity = {
+      kind: "user" as const,
+      userId: "usr_daniel",
+      canonicalId: "person:daniel",
+    };
     const sameSpaceDaniel = createDecision({
       id: "decision-daniel-same",
       channelId: "team",
       content: "# Decision\n\nDaniel chose the team checklist.",
-      decidedBy: [
-        {
-          actorId: "discord:user-daniel",
-          canonicalId: "person:daniel",
-          displayName: "Daniel",
-        },
-      ],
+      decidedBy: [{ identity: userIdentity, displayName: "Daniel" }],
     });
     const otherSpaceDaniel = createDecision({
       id: "decision-daniel-other",
       channelId: "other",
       content: "# Decision\n\nDaniel chose the other checklist.",
-      decidedBy: [
-        {
-          actorId: "mcp:daniel",
-          canonicalId: "person:daniel",
-          displayName: "Daniel",
-        },
-      ],
+      decidedBy: [{ identity: userIdentity, displayName: "Daniel" }],
     });
     const sameSpaceAlex = createDecision({
       id: "decision-alex-same",
       channelId: "team",
       content: "# Decision\n\nAlex chose a separate checklist.",
-      decidedBy: [{ actorId: "discord:user-alex", displayName: "Daniel" }],
+      decidedBy: [
+        {
+          identity: { kind: "external", externalActorId: "ext_alex" },
+          displayName: "Daniel",
+        },
+      ],
     });
     spyOn(context.entityService, "search").mockResolvedValue(
       asSearchResults([
@@ -317,7 +315,7 @@ describe("ConversationMemoryRetriever", () => {
       query: "checklist",
       interfaceType: "mcp",
       channelId: "team",
-      canonicalId: "person:daniel",
+      identity: { kind: "user", userId: "usr_daniel" },
     });
 
     expect(result.results.map((item) => item.id)).toEqual([
@@ -325,7 +323,7 @@ describe("ConversationMemoryRetriever", () => {
     ]);
   });
 
-  it("filters memory by source actor id", async () => {
+  it("filters memory by external actor identity", async () => {
     const context = createMockEntityPluginContext();
     const linkedSummary = createSummary({
       id: "summary-linked",
@@ -333,11 +331,9 @@ describe("ConversationMemoryRetriever", () => {
     });
     linkedSummary.metadata.participants = [
       {
-        actorId: "discord:user-daniel",
-        canonicalId: "person:daniel",
+        identity: { kind: "external", externalActorId: "ext_daniel" },
         displayName: "Daniel",
         roles: ["user"],
-        sourceActorIds: ["discord:user-daniel", "mcp:daniel"],
       },
     ];
     const otherSummary = createSummary({
@@ -346,7 +342,7 @@ describe("ConversationMemoryRetriever", () => {
     });
     otherSummary.metadata.participants = [
       {
-        actorId: "discord:user-other",
+        identity: { kind: "external", externalActorId: "ext_other" },
         displayName: "Daniel",
         roles: ["user"],
       },
@@ -363,43 +359,41 @@ describe("ConversationMemoryRetriever", () => {
       query: "Daniel",
       interfaceType: "mcp",
       channelId: "team",
-      actorId: "mcp:daniel",
+      identity: { kind: "external", externalActorId: "ext_daniel" },
     });
 
     expect(result.results.map((item) => item.id)).toEqual(["summary-linked"]);
   });
 
-  it("can expand canonical identity retrieval across spaces when requested", async () => {
+  it("can expand resolved user retrieval across spaces when requested", async () => {
     const context = createMockEntityPluginContext();
+    const userIdentity = {
+      kind: "user" as const,
+      userId: "usr_daniel",
+      canonicalId: "person:daniel",
+    };
     const discordDaniel = createDecision({
       id: "decision-discord-daniel",
       channelId: "discord-team",
       content: "# Decision\n\nDaniel chose the Discord checklist.",
-      decidedBy: [
-        {
-          actorId: "discord:user-daniel",
-          canonicalId: "person:daniel",
-          displayName: "Daniel",
-        },
-      ],
+      decidedBy: [{ identity: userIdentity, displayName: "Daniel" }],
     });
     const mcpDaniel = createActionItem({
       id: "action-mcp-daniel",
       channelId: "mcp-team",
       content: "# Action item\n\nDaniel will update the MCP checklist.",
-      assignedTo: [
-        {
-          actorId: "mcp:daniel",
-          canonicalId: "person:daniel",
-          displayName: "Daniel",
-        },
-      ],
+      assignedTo: [{ identity: userIdentity, displayName: "Daniel" }],
     });
     const unlinkedDaniel = createDecision({
       id: "decision-unlinked-daniel",
       channelId: "discord-team",
       content: "# Decision\n\nAnother Daniel chose the launch plan.",
-      decidedBy: [{ actorId: "discord:user-other", displayName: "Daniel" }],
+      decidedBy: [
+        {
+          identity: { kind: "external", externalActorId: "ext_other" },
+          displayName: "Daniel",
+        },
+      ],
     });
     spyOn(context.entityService, "search").mockResolvedValue(
       asSearchResults([
@@ -414,7 +408,7 @@ describe("ConversationMemoryRetriever", () => {
       query: "Daniel checklist",
       interfaceType: "mcp",
       channelId: "mcp-team",
-      canonicalId: "person:daniel",
+      identity: { kind: "user", userId: "usr_daniel" },
       includeOtherSpaces: true,
     });
 

@@ -37,7 +37,7 @@ const cmsPluginConfigSchema: z.ZodType<CmsPluginConfig, CmsPluginConfigInput> =
 
 /**
  * First-party CMS editor: a React app served at `routePath`, gated on the
- * operator passkey session, whose reads and writes go through the entity
+ * authenticated passkey session, whose reads and writes go through the entity
  * service. Git persistence follows via directory-sync + git-sync — no
  * repository credential is ever sent to the browser.
  */
@@ -74,7 +74,7 @@ export class CmsPlugin extends ServicePlugin<
     return createEditorRoutes({
       routePath: this.config.routePath,
       getContext: () => this.getContext(),
-      resolveOperatorSession: hasOperatorSession,
+      resolveAuthSession: hasAuthSession,
       getEntityDisplay: () =>
         (this.config.entityDisplay as CmsEntityDisplayMap | undefined) ??
         (this.getContext().entityDisplay as CmsEntityDisplayMap | undefined),
@@ -86,6 +86,6 @@ export function cmsPlugin(config: CmsPluginConfigInput = {}): CmsPlugin {
   return new CmsPlugin(config);
 }
 
-async function hasOperatorSession(request: Request): Promise<boolean> {
-  return Boolean(await getActiveAuthService()?.getOperatorSession(request));
+async function hasAuthSession(request: Request): Promise<boolean> {
+  return Boolean(await getActiveAuthService()?.getAuthSession(request));
 }

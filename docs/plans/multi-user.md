@@ -2,7 +2,7 @@
 
 ## Status
 
-Active implementation plan. Phases 1–4 are implemented on `feature/auth-runtime-db`; the required dashboard People UX, role-aware dashboard access, and legacy auth-session terminology migration remain. Invitation delivery is optional. Runtime auth now uses real users, role-aware sessions, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent anchor administration API. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Complete. Core implementation on `feature/auth-runtime-db` includes the dashboard People UX, role-aware dashboard access, and compatibility-safe auth-session terminology migration. Invitation delivery remains optional. Runtime auth uses real users, role-aware sessions, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent anchor administration API. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -21,9 +21,10 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Fresh setup and migrated installations use durable `usr_<uuid>` subjects; legacy files remain immutable migration backups.
 - HTTP MCP binds each authenticated session to the current user's permission level and rejects cross-user reuse or stale roles.
 - Discord, OAuth-authenticated MCP, and authenticated web chat propagate canonical runtime principals into conversations.
+- Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
 - A same-origin anchor-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
-- A usable dashboard People UI is still required; a local CLI remains optional.
+- The dashboard includes an Anchor-only People UI; a local CLI remains optional.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -71,8 +72,9 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - **Anchor**, **Trusted**, and **Public** are the only human permission-role names in code contracts and user-facing copy.
 - **Operator is not a role.** Existing names such as `operator_sessions`, `OperatorSessionStore`, `getOperatorSession`, `brains_operator_session`, and “Operator access” are legacy single-user terminology and must be migrated to authenticated/browser-session naming.
 - Rename the persisted session table to `auth_sessions` in an ordered auth DB migration. Preserve existing sessions during the rename.
-- Introduce `AuthSession`/`BrowserSession` service names and keep temporary aliases only where compatibility requires them.
+- Use `AuthSession`/`BrowserSession` service names; the private workspace API keeps no deprecated session wrappers.
 - Move the cookie to `brains_auth_session`; accept the legacy cookie during a bounded compatibility window and clear both names on logout.
+- Remove the legacy cookie reader only after CI confirms there are no deprecated source consumers and the recorded minimum supported upgrade version already issues `brains_auth_session`.
 - Rename first-setup types and copy from “operator setup” to “first anchor setup” or generic “passkey setup.”
 - `single-operator` remains only as a historical migration subject and must not appear in newly created state or user-facing copy.
 - The separate “Operator runtime database” plan may retain its infrastructure meaning; it does not define a human auth role.
@@ -330,15 +332,16 @@ Validation:
 
 ### Phase 5 — Dashboard People UX and terminology migration
 
-**Status: dashboard implemented; compatibility terminology migration remains open.**
+**Status: implemented; bounded legacy-cookie compatibility remains active.**
 
 - [x] Approve the lightweight [People dashboard mockup](../design/people-dashboard-mockup.html).
 - [x] Add an anchor-only People tab at `/dashboard#people` over the existing admin API.
 - [x] Support user listing/creation, role and status changes, identity attach/detach, passkey setup/revocation, and user-session revocation with explicit confirmations.
 - [x] Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-anchor elevation.
 - [x] Show `Name · Anchor|Trusted|Public · Sign out` in the console masthead.
-- [ ] Rename legacy operator session/store/cookie/setup identifiers according to the terminology contract, with DB and cookie compatibility migration.
-- [ ] Update remaining tests, docs, and shared UI copy so Operator and Owner are never presented as roles.
+- [x] Rename legacy operator session/store/cookie/setup identifiers according to the terminology contract, with DB and cookie compatibility migration.
+- [x] Update tests, docs, and shared auth UI copy so Operator and Owner are never presented as permission roles.
+- [x] Enforce compatibility removal with `bun run auth-session:compat-check` and release metadata in `shell/auth-service/auth-session-compat.json`.
 
 Validation:
 

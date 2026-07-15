@@ -658,7 +658,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Updating `agent` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Updating `agent` requires Anchor permission; your current permission is Trusted.",
     });
   });
 
@@ -684,7 +684,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Updating `agent` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Updating `agent` requires Anchor permission; your current permission is Trusted.",
     });
 
     const unchanged = services.getEntities().get("old-agent.io");
@@ -710,7 +710,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
     });
   });
 
@@ -740,7 +740,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
     });
   });
 
@@ -770,7 +770,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
     });
   });
 
@@ -816,7 +816,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
     });
   });
 
@@ -839,7 +839,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Deleting `newsletter` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Deleting `newsletter` requires Anchor permission; your current permission is Trusted.",
     });
   });
 

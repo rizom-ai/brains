@@ -135,7 +135,7 @@ describe("system_extract tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Extracting `topic` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Extracting `topic` requires Anchor permission; your current permission is Trusted.",
     });
   });
 

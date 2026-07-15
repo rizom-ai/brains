@@ -13,8 +13,8 @@ import {
 } from "./refresh-token-store";
 import type { AuthKeyStore } from "./key-store";
 import type {
-  OperatorSessionPersistence,
-  OperatorSessionRecord,
+  AuthSessionPersistence,
+  AuthSessionRecord,
 } from "./session-store";
 import { signJwt } from "./jwt";
 import { hasMatchingRedirectUri } from "./redirect-uri";
@@ -46,7 +46,7 @@ export interface OAuthEndpointsOptions {
   clientStore: OAuthClientPersistence;
   authCodeStore: AuthorizationCodePersistence;
   refreshTokenStore: RefreshTokenPersistence;
-  sessionStore: OperatorSessionPersistence;
+  sessionStore: AuthSessionPersistence;
   keyStore: AuthKeyStore;
 }
 
@@ -59,7 +59,7 @@ export class OAuthEndpoints {
   private readonly clientStore: OAuthClientPersistence;
   private readonly authCodeStore: AuthorizationCodePersistence;
   private readonly refreshTokenStore: RefreshTokenPersistence;
-  private readonly sessionStore: OperatorSessionPersistence;
+  private readonly sessionStore: AuthSessionPersistence;
   private readonly keyStore: AuthKeyStore;
   private readonly authorizationApprovalTokens = new Map<
     string,
@@ -142,7 +142,7 @@ export class OAuthEndpoints {
   }
 
   private createAuthorizationApprovalToken(
-    session: OperatorSessionRecord,
+    session: AuthSessionRecord,
     params: ValidAuthorizationRequest,
   ): string {
     this.pruneExpiredAuthorizationApprovalTokens();
@@ -164,7 +164,7 @@ export class OAuthEndpoints {
 
   private consumeAuthorizationApprovalToken(
     token: string,
-    session: OperatorSessionRecord,
+    session: AuthSessionRecord,
     params: ValidAuthorizationRequest,
   ): boolean {
     this.pruneExpiredAuthorizationApprovalTokens();

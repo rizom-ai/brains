@@ -6,7 +6,7 @@ import {
 import type { ConversationMessageActor } from "@brains/conversation-service";
 
 const actor: ConversationMessageActor = {
-  actorId: "actor-1",
+  identity: { kind: "external", externalActorId: "actor-1" },
   interfaceType: "cli",
   role: "user",
   displayName: "Operator",
@@ -26,14 +26,21 @@ describe("buildMessageMetadata", () => {
       canonicalIdentityResolver: {
         enrichActor: async (input: ConversationMessageActor) => ({
           ...input,
-          canonicalId: "canonical-1",
+          identity: {
+            kind: "user",
+            userId: "usr_canonical_1",
+            canonicalId: "canonical-1",
+          },
         }),
       },
     });
 
     expect(metadata.actor).toMatchObject({
-      actorId: "actor-1",
-      canonicalId: "canonical-1",
+      identity: {
+        kind: "user",
+        userId: "usr_canonical_1",
+        canonicalId: "canonical-1",
+      },
     });
   });
 

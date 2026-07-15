@@ -1,12 +1,14 @@
+import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ConversationMessageActor } from "@brains/conversation-service";
 import type { Logger } from "@brains/utils/logger";
 
 export interface CanonicalIdentityActor {
-  actorId: string;
+  identity: ActorRef;
   label?: string;
 }
 
 export interface CanonicalIdentityLink {
+  userId: string;
   canonicalId: string;
   displayName?: string;
   actors: CanonicalIdentityActor[];
@@ -23,13 +25,13 @@ export interface CanonicalIdentityLookup {
 }
 
 export type CanonicalIdentityResolver = (
-  actorId: string,
+  actor: ActorRef,
 ) => Promise<CanonicalIdentityLookup | null>;
 
 export interface ICanonicalIdentityService {
   refreshCache(): Promise<void>;
   getLinks(): CanonicalIdentityLink[];
-  resolveActor(actorId: string): CanonicalIdentityResolution | null;
+  resolveActor(actor: ActorRef): CanonicalIdentityResolution | null;
   /**
    * Return the actor with `canonicalId` filled in when a link exists. Returns
    * the actor unchanged when enrichment doesn't apply (already canonical, no
@@ -90,26 +92,39 @@ export class CanonicalIdentityService implements ICanonicalIdentityService {
     return this.links;
   }
 
-  public resolveActor(actorId: string): CanonicalIdentityResolution | null {
-    return this.actorIndex.get(actorId) ?? null;
+  public resolveActor(actor: ActorRef): CanonicalIdentityResolution | null {
+    return this.actorIndex.get(actorRefKey(actor)) ?? null;
   }
 
   public async enrichActor(
     actor: ConversationMessageActor,
   ): Promise<ConversationMessageActor> {
-    if ((actor.userId && actor.canonicalId) || actor.role !== "user") {
+    if (
+      (actor.identity.kind === "user" && actor.identity.canonicalId) ||
+      actor.role !== "user"
+    ) {
       return actor;
     }
-    const cachedResolution = this.resolveActor(actor.actorId);
+    const cachedResolution = this.resolveActor(actor.identity);
     if (cachedResolution) {
-      return { ...actor, canonicalId: cachedResolution.canonicalId };
+      return {
+        ...actor,
+        identity: {
+          kind: "user",
+          userId: cachedResolution.userId,
+          canonicalId: cachedResolution.canonicalId,
+        },
+      };
     }
-    const resolution = await this.resolver?.(actor.actorId);
+    const resolution = await this.resolver?.(actor.identity);
     return resolution
       ? {
           ...actor,
-          userId: resolution.userId,
-          canonicalId: actor.canonicalId ?? resolution.canonicalId,
+          identity: {
+            kind: "user",
+            userId: resolution.userId,
+            canonicalId: resolution.canonicalId,
+          },
           ...(resolution.displayName
             ? { displayName: resolution.displayName }
             : {}),

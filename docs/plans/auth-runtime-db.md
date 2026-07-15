@@ -2,7 +2,7 @@
 
 ## Status
 
-Core auth runtime implementation is complete on `feature/auth-runtime-db`: phases 1–6 and cross-consumer validation are implemented. A required phase 7 remains to migrate legacy Operator session/store/cookie/setup names and complete the role-aware People dashboard. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
+Complete. Auth runtime implementation on `feature/auth-runtime-db` includes the role-aware People dashboard and compatibility-safe session terminology migration. The bounded legacy-cookie reader remains active until its automated release gate permits removal. Legacy JSON/JWK files are retained only as immutable migration backups and optional standalone-store compatibility, not as the `AuthService` source of truth.
 
 ## Goal
 
@@ -34,7 +34,7 @@ The mainline runtime subject is still `single-operator`. Canonical identity plum
 
 Implemented on `feature/auth-runtime-db`:
 
-- Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, and four ordered, idempotent schema migrations.
+- Local libSQL/Drizzle auth database lifecycle, private directory/file modes, WAL configuration, and five ordered, idempotent schema migrations.
 - Database-backed users, identities, passkeys, WebAuthn challenges, sessions, OAuth clients/codes/refresh tokens, setup tokens, OAuth and A2A signing keys, A2A peer trust, and structured audit events.
 - Idempotent JSON/JWK imports that preserve legacy files unchanged; unsafe `single-operator` refresh tokens are deliberately skipped.
 - Transactional first-anchor creation and last-active-anchor protection with concurrent mutation coverage.
@@ -47,12 +47,9 @@ Implemented on `feature/auth-runtime-db`:
 - Actor-attributed management and A2A trust auditing plus secret-free WebAuthn failure events.
 - Explicit Drizzle table declarations with `isolatedDeclarations: true` restored.
 
-Required before the multi-user product is complete:
+The required People dashboard and terminology migration are complete. Migration 5 preserves existing session rows; new sessions use `brains_auth_session`; the runtime temporarily reads the historical cookie name and clears both names on logout. CI and release metadata enforce the removal boundary.
 
-1. **People dashboard.** Add an anchor-only `/dashboard#people` client over the authenticated admin API and show the signed-in principal's actual role.
-2. **Terminology migration.** Rename legacy Operator session/store/cookie/setup identifiers to authenticated/browser-session and first-anchor/passkey-setup names without invalidating existing sessions.
-
-A local CLI and invitation delivery remain optional. Cross-consumer validation completed across auth service, MCP interface/service, Discord, A2A, agent discovery, affected typechecks, and lint.
+A local CLI and invitation delivery remain optional. Cross-consumer validation covers auth service, dashboard, MCP interface/service, web chat, CMS surfaces, Discord, A2A, agent discovery, affected typechecks, and lint.
 
 ## Consumers to satisfy
 
@@ -62,7 +59,7 @@ A local CLI and invitation delivery remain optional. Cross-consumer validation c
 - **Conversation memory**: optional canonical identity enrichment from private runtime identity bindings.
 - **CMS passkey login**: a valid authenticated browser session to gate release of the shared content PAT (see `plugins/cms/src/plugin.ts`, where the GitHub OAuth and passkey-gated PAT login methods already consume `auth-service`). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
 - **A2A peer trust**: the peer-trust records (domain, pinned key fingerprint, granted inbound level) that directory approval writes per [a2a-request-signing.md](./a2a-request-signing.md) decision 6 — trust grants must live on this runtime plane, never in git-synced content.
-- **Future dashboard People UX / CLI**: user, role, passkey, and identity management.
+- **Dashboard People UX / future CLI**: user, role, passkey, and identity management.
 
 ## Core decisions
 
@@ -314,7 +311,7 @@ Validation: anchors can create/promote/suspend users; trusted users cannot manag
 
 ### Phase 6 — Consumers
 
-**Status: implemented.** `CanonicalIdentityService` resolves actors asynchronously through the private auth service; linked Discord messages carry canonical user attribution into active and passive conversations; OAuth-authenticated MCP and authenticated web chat propagate verified principals; agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain the authenticated requester.
+**Status: implemented.** `CanonicalIdentityService` resolves actors asynchronously through the private auth service; linked Discord messages carry canonical user attribution into active and passive conversations; OAuth-authenticated MCP and authenticated web chat propagate verified principals; agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain the authenticated requester. A discriminated `ActorRef` now separates local users, opaque external identities, agents, and services; legacy flattened actor metadata is read-compatible but no longer written.
 
 - Keep `CanonicalIdentityService` wired to auth DB identity lookup without storing raw provider subjects outside auth storage.
 - Wire chat/hosted Discord routing to identity lookup where needed.
@@ -324,14 +321,17 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 
 ### Phase 7 — Auth-session terminology and People dashboard
 
-**Status: dashboard implemented; compatibility terminology migration remains open.**
+**Status: implemented; bounded legacy-cookie compatibility remains active.**
 
 - [x] Approve the lightweight [People dashboard mockup](../design/people-dashboard-mockup.html).
-- [ ] Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
-- [ ] Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; retain temporary aliases only where compatibility requires them.
-- [ ] Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.
-- [ ] Rename `OperatorSetupRequired` and user-facing operator setup/login copy to first-anchor setup or generic passkey/authenticated-session language.
-- [ ] Keep `single-operator` only as an immutable historical migration alias.
+- [x] Rename `operator_sessions` to `auth_sessions` in migration 5 while preserving every active session row.
+- [x] Rename `OperatorSession*`, `getOperatorSession`, and related service APIs to `AuthSession*` or `BrowserSession*`; no deprecated wrappers remain in the private workspace API.
+- [x] Move `brains_operator_session` to `brains_auth_session`, dual-read the legacy cookie during a bounded compatibility window, and clear both cookies on logout.
+  - `bun run auth-session:compat-check` enforces zero deprecated source consumers and blocks early removal of the legacy cookie reader.
+  - `shell/auth-service/auth-session-compat.json` records the introduction release and minimum supported upgrade version. The release workflow stamps the introduction version after the auth-service package is versioned.
+  - Remove the legacy cookie reader only when the recorded minimum supported upgrade version is at least the introduction version.
+- [x] Rename `OperatorSetupRequired` and user-facing operator setup/login copy to generic passkey/authenticated-session language.
+- [x] Keep `single-operator` only as an immutable historical migration alias.
 - [x] Make dashboard permission resolution use `resolveSession()` and the principal's actual role instead of treating any session as anchor.
 - [x] Add the anchor-only People tab and canonical `Anchor`/`Trusted`/`Public` masthead labels required by the multi-user plan.
 

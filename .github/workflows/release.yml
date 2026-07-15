@@ -79,7 +79,13 @@ jobs:
           # changelog. Without a token, changeset version crashes before
           # it can write package.json or CHANGELOG.md.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run changeset:version
+        run: |
+          bun run changeset:version
+          if git diff --quiet -- shell/auth-service/package.json; then
+            bun run auth-session:compat-check
+          else
+            bun run auth-session:compat-check --stamp-release
+          fi
 
       - name: Commit and push version bump
         env:
@@ -127,4 +133,3 @@ jobs:
             git -C "$workdir/content" commit -m "docs: sync from rizom-ai/brains@${source_sha:0:7}"
             git -C "$workdir/content" push origin HEAD:main
           fi
-

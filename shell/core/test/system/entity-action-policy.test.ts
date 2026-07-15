@@ -122,8 +122,8 @@ describe("entity action policy", () => {
     );
 
     const error = expectError(result);
-    expect(error).toContain("Creating `note` requires Collaborator/trusted");
-    expect(error).toContain("Public/public");
+    expect(error).toContain("Creating `note` requires Trusted");
+    expect(error).toContain("Public");
   });
 
   it("hides system_delete from non-anchor tool surfaces and still fails closed for direct public calls", async () => {
@@ -166,8 +166,8 @@ describe("entity action policy", () => {
     );
 
     const error = expectError(result);
-    expect(error).toContain("Creating `summary` requires Owner/anchor");
-    expect(error).toContain("Collaborator/trusted");
+    expect(error).toContain("Creating `summary` requires Anchor");
+    expect(error).toContain("Trusted");
   });
 
   it("denies trusted update for anchor-only entity types before confirmation", async () => {
@@ -181,8 +181,8 @@ describe("entity action policy", () => {
     );
 
     const error = expectError(result);
-    expect(error).toContain("Updating `summary` requires Owner/anchor");
-    expect(error).toContain("Collaborator/trusted");
+    expect(error).toContain("Updating `summary` requires Anchor");
+    expect(error).toContain("Trusted");
   });
 
   it("denies trusted delete for default entity types", async () => {
@@ -192,8 +192,8 @@ describe("entity action policy", () => {
     );
 
     const error = expectError(result);
-    expect(error).toContain("Deleting `note` requires Owner/anchor");
-    expect(error).toContain("Collaborator/trusted");
+    expect(error).toContain("Deleting `note` requires Anchor");
+    expect(error).toContain("Trusted");
   });
 
   it("allows anchor update and delete to proceed to confirmation", async () => {
@@ -298,7 +298,7 @@ describe("entity action policy", () => {
       baseContext("trusted"),
     );
     const error = expectError(result);
-    expect(error).toContain("Creating `summary` requires Owner/anchor");
+    expect(error).toContain("Creating `summary` requires Anchor");
     expect(services.getEntities().has("intercepted-summary")).toBe(false);
   });
 });

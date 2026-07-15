@@ -32,13 +32,13 @@ describe("AuthService audit integration", () => {
     ).toContain("auth.setup_token.generated");
   });
 
-  it("audits automatic first-owner creation", async () => {
+  it("audits automatic first-anchor creation", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
 
-    const session = await service.createOperatorSession();
+    const session = await service.createAuthSession();
 
     expect(
       (await service.listAuditEvents()).map((event) => ({
@@ -60,11 +60,11 @@ describe("AuthService audit integration", () => {
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
-    const owner = await service.createUser({
-      displayName: "Owner",
+    const anchor = await service.createUser({
+      displayName: "Anchor",
       role: "anchor",
     });
-    const context = { actorUserId: owner.userId };
+    const context = { actorUserId: anchor.userId };
     const user = await service.createUser(
       { displayName: "Collaborator", role: "trusted" },
       context,
@@ -83,11 +83,11 @@ describe("AuthService audit integration", () => {
     await service.suspendUser(user.userId, context);
 
     const actorEvents = (await service.listAuditEvents()).filter(
-      (event) => event.targetId !== owner.userId,
+      (event) => event.targetId !== anchor.userId,
     );
     expect(actorEvents).toHaveLength(5);
     expect(
-      actorEvents.every((event) => event.actorUserId === owner.userId),
+      actorEvents.every((event) => event.actorUserId === anchor.userId),
     ).toBe(true);
   });
 
@@ -96,11 +96,11 @@ describe("AuthService audit integration", () => {
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
-    const owner = await service.createUser({
-      displayName: "Owner",
+    const anchor = await service.createUser({
+      displayName: "Anchor",
       role: "anchor",
     });
-    const context = { actorUserId: owner.userId };
+    const context = { actorUserId: anchor.userId };
 
     await service.grantA2APeerTrust(
       {
@@ -115,12 +115,12 @@ describe("AuthService audit integration", () => {
     expect(await service.listAuditEvents()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          actorUserId: owner.userId,
+          actorUserId: anchor.userId,
           action: "auth.a2a_peer_trust.granted",
           targetId: "peer.example.com",
         }),
         expect.objectContaining({
-          actorUserId: owner.userId,
+          actorUserId: anchor.userId,
           action: "auth.a2a_peer_trust.revoked",
           targetId: "peer.example.com",
         }),

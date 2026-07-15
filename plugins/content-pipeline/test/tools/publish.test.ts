@@ -105,7 +105,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       expect(result).toEqual({
         success: false,
         error:
-          "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+          "Publishing `social-post` requires Anchor permission; your current permission is Trusted.",
       });
     });
   });

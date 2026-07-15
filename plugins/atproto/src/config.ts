@@ -45,7 +45,7 @@ export const atprotoConfigSchema: z.ZodType<AtprotoConfig, AtprotoConfigInput> =
       .string()
       .optional()
       .describe(
-        "Optional human/operator DID referenced from records; defaults to did:web:<site-host>:anchor when omitted",
+        "Optional Anchor DID referenced from records; defaults to did:web:<site-host>:anchor when omitted",
       ),
     brainDid: z
       .string()
