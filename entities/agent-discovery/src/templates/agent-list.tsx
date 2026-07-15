@@ -61,7 +61,7 @@ const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
   return (
     <a
       href={url}
-      className={`flex items-start gap-5 p-6 rounded-xl border border-theme bg-theme-subtle hover:shadow-lg transition-shadow ${
+      className={`flex flex-wrap items-start gap-4 rounded-xl border border-theme bg-theme-subtle p-4 transition-shadow hover:shadow-lg sm:gap-5 sm:p-6 ${
         isApproved ? "" : isArchived ? "opacity-40" : "opacity-70"
       }`}
     >
@@ -91,7 +91,9 @@ const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
         {isApproved && <SkillPills skills={skills} />}
       </div>
 
-      <div className="flex flex-col items-end gap-1 flex-shrink-0 text-right">
+      {/* On phones the meta drops below the copy as one full-width line
+          instead of pinching the name column from the right. */}
+      <div className="flex w-full flex-row flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 sm:w-auto sm:shrink-0 sm:flex-col sm:items-end sm:gap-1 sm:text-right">
         <span className="text-xs text-theme-muted">
           {extractDomain(frontmatter.url)}
         </span>
@@ -318,12 +320,12 @@ export const AgentListTemplate = ({
                       selectedStatus,
                       pagination.currentPage - 1,
                     )}
-                    className="px-3 py-2 rounded-md border border-theme text-sm text-theme-muted hover:text-heading transition-colors"
+                    className="px-4 py-2.5 rounded-md border border-theme text-sm text-theme-muted hover:text-heading transition-colors"
                   >
                     ← Prev
                   </a>
                 ) : (
-                  <span className="px-3 py-2 rounded-md border border-theme text-sm text-theme-muted opacity-50">
+                  <span className="px-4 py-2.5 rounded-md border border-theme text-sm text-theme-muted opacity-50">
                     ← Prev
                   </span>
                 )}
@@ -337,12 +339,12 @@ export const AgentListTemplate = ({
                       selectedStatus,
                       pagination.currentPage + 1,
                     )}
-                    className="px-3 py-2 rounded-md border border-theme text-sm text-theme-muted hover:text-heading transition-colors"
+                    className="px-4 py-2.5 rounded-md border border-theme text-sm text-theme-muted hover:text-heading transition-colors"
                   >
                     Next →
                   </a>
                 ) : (
-                  <span className="px-3 py-2 rounded-md border border-theme text-sm text-theme-muted opacity-50">
+                  <span className="px-4 py-2.5 rounded-md border border-theme text-sm text-theme-muted opacity-50">
                     Next →
                   </span>
                 )}

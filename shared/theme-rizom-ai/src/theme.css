@@ -18,6 +18,7 @@
  * palette entries flip per mode, so room blocks stay mode-agnostic.
  */
 
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
@@ -510,6 +511,13 @@
     height: auto;
     overflow: visible;
   }
+  /* The organism scales down to a miniature on phones; strokes keep
+     their drawn weight so the filaments don't fade to sub-pixel. */
+  .growth path,
+  .growth line,
+  .growth circle {
+    vector-effect: non-scaling-stroke;
+  }
   .growth path {
     fill: none;
     stroke-linecap: round;
@@ -613,6 +621,20 @@
   .growth .tick {
     stroke: var(--color-border);
     stroke-width: 1;
+  }
+  /* Below md the 980-unit viewBox renders at a third scale: SVG text
+     would shrink to ~4px. Enlarge the zone labels in viewBox units so
+     they read at ~10px, and drop the sub lines and ticks — the detail
+     returns with room at md+. */
+  @media (max-width: 767px) {
+    .growth text {
+      font-size: 30px;
+      letter-spacing: 3px;
+    }
+    .growth text.gt-sub,
+    .growth .tick {
+      display: none;
+    }
   }
 
   /* ============================================

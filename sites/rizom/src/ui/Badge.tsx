@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import type { JSX, ComponentChildren } from "preact";
 import { cn } from "./cn";
 

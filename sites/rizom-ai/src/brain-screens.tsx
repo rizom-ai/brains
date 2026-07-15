@@ -97,6 +97,15 @@ export const SCREEN_STYLES = `
 @keyframes brainScreenFlicker { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .brain-screen .ifc-status i { animation: none; } }
 @media (max-width: 900px) { .brain-screen .dash-canvas { grid-template-columns: 1fr; } .brain-screen .dash-canvas .ifc-card { grid-column: auto !important; } }
+@media (max-width: 640px) {
+  .brain-screen .ifc-strip { flex-wrap: wrap; row-gap: 6px; }
+  .brain-screen .ifc-tabs { overflow-x: auto; }
+  /* The studio's library pane becomes a horizontal file strip above the
+     manuscript instead of a crushed side column. */
+  .brain-screen .cms-cols { grid-template-columns: 1fr; }
+  .brain-screen .cms-list { display: flex; gap: 2px; overflow-x: auto; padding: 8px 10px; border-right: 0; border-bottom: 1px solid rgba(241,234,221,.09); }
+  .brain-screen .cms-item { flex: none; gap: 6px; padding: 5px 10px; border-left: 0; border-radius: 6px; }
+}
 `;
 
 /** Emitted once per page; scopes all screen styles under `.brain-screen`. */

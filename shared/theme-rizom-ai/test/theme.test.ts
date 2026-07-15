@@ -1,16 +1,28 @@
 import { describe, expect, it } from "bun:test";
 import defaultThemeCSS from "@rizom/theme-default";
-import themeCSS, { themeCSSOnly } from "../src";
+import themeCSS, { themeCSSOnly, FONT_IMPORT_RE } from "../src";
 
 describe("theme-rizom-ai", () => {
-  it("layers over theme-default", () => {
-    expect(themeCSS.startsWith(defaultThemeCSS)).toBe(true);
+  it("layers over theme-default, minus the base's font imports", () => {
+    // The base's Barlow/JetBrains/partial-Fraunces imports are its own
+    // register; this theme owns its full font set instead.
+    const baseWithoutFonts = defaultThemeCSS.replace(FONT_IMPORT_RE, "");
+    expect(themeCSS.startsWith(baseWithoutFonts)).toBe(true);
     expect(themeCSS).toContain(themeCSSOnly);
   });
 
-  it("imports the IBM Plex fonts the rev-5 system pairs with Fraunces", () => {
+  it("ships exactly the rev-5 font set — no dead font requests", () => {
+    // Family names may survive in overridden base var stacks (no request);
+    // what must not survive is an @import fetching them.
+    expect(themeCSS).not.toMatch(/@import[^\n]*Barlow/);
+    expect(themeCSS).not.toMatch(/@import[^\n]*JetBrains/);
     expect(themeCSSOnly).toContain("IBM+Plex+Sans");
     expect(themeCSSOnly).toContain("IBM+Plex+Mono");
+    // Fraunces with the full SOFT axis: the brain screens dial SOFT 20,
+    // below the 30..100 slice the base theme requests.
+    expect(themeCSSOnly).toContain(
+      "family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100",
+    );
   });
 
   it("defines the rev-5 palette", () => {

@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import type { JSX } from "preact";
 import { RizomFrame, type RizomLayoutProps } from "../ui";
 

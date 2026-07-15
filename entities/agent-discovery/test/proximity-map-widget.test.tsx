@@ -5,6 +5,7 @@ import {
   AgentProximityWidget,
   ProximityMap,
 } from "../src/widgets/proximity-map";
+import { proximityMapScript } from "../src/widgets/proximity-map-script";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 
 const data: ProximityMapData = {
@@ -221,5 +222,19 @@ describe("ProximityMap", () => {
     );
 
     expect(html).toContain("Nothing to show yet");
+  });
+});
+
+describe("proximityMapScript", () => {
+  test("activates on tap, not just hover/focus — touch fires neither", () => {
+    expect(proximityMapScript).toContain('addEventListener("click"');
+    // A tap on the map ground dismisses whatever a previous tap lit up.
+    expect(proximityMapScript).toContain("closest(");
+  });
+
+  test("clamps the tooltip inside the map on every edge", () => {
+    // The horizontal clamp existed; without a bottom clamp a low node's
+    // tooltip is clipped by the card's overflow:hidden.
+    expect(proximityMapScript).toContain("offsetHeight");
   });
 });

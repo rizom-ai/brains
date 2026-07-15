@@ -7,6 +7,7 @@
  */
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { FONT_IMPORT_RE } from "../src";
 import themeCSSOnly from "../src/theme.css" with { type: "text" };
 
 const packageDir = join(import.meta.dir, "..");
@@ -20,7 +21,9 @@ writeFileSync(
   [
     `import defaultThemeCSS from "@rizom/theme-default";`,
     `const themeCSSOnly = ${JSON.stringify(themeCSSOnly)};`,
-    "const themeCSS = `${defaultThemeCSS}\\n\\n${themeCSSOnly}`;",
+    // The base's font imports are its own register — same strip as src/index.ts.
+    `const FONT_IMPORT_RE = ${FONT_IMPORT_RE.toString()};`,
+    'const themeCSS = `${defaultThemeCSS.replace(FONT_IMPORT_RE, "")}\\n\\n${themeCSSOnly}`;',
     `export default themeCSS;`,
     `export { themeCSS, themeCSSOnly };`,
     "",

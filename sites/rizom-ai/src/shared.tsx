@@ -44,11 +44,15 @@ export function SectCap({
     <p
       className={`reveal flex flex-wrap items-baseline gap-3.5 font-label text-label-xs uppercase tracking-[0.2em] ${className}`}
     >
-      <span
-        aria-hidden="true"
-        className="h-px w-[26px] self-center bg-accent opacity-80"
-      />
-      <span className="font-medium text-accent">{lead}</span>
+      {/* Tick and lead wrap as one unit — a long trail may drop to its
+          own line, but the tick never orphans away from the lead. */}
+      <span className="flex items-baseline gap-3.5">
+        <span
+          aria-hidden="true"
+          className="h-px w-[26px] self-center bg-accent opacity-80"
+        />
+        <span className="font-medium text-accent">{lead}</span>
+      </span>
       {trail && (
         <span className="normal-case tracking-[0.1em] text-theme-light">
           {trail}
@@ -133,7 +137,10 @@ export function IndexRow({
       <span className="font-label text-label-xs uppercase tracking-[0.1em] text-theme-light">
         {row.kicker}
       </span>
-      <span className="block">
+      {/* Below md the two-column grid is folio|kicker on the first row;
+          title and meta take full-width rows of their own instead of
+          falling into the 44px folio column. */}
+      <span className="col-span-2 block md:col-span-1">
         <span className="block font-display text-[26px] font-[470] tracking-[-0.01em] text-theme transition-colors group-hover:text-accent [font-variation-settings:'SOFT'_75,'opsz'_60]">
           {row.title}
         </span>
@@ -141,7 +148,7 @@ export function IndexRow({
           {row.text}
         </span>
       </span>
-      <span className="text-right font-label text-[12px] text-theme-light">
+      <span className="col-span-2 text-right font-label text-[12px] text-theme-light md:col-span-1">
         {row.meta ?? "→"}
         {row.metaSub && (
           <small className="block text-theme-light opacity-70">
@@ -152,7 +159,7 @@ export function IndexRow({
     </>
   );
 
-  const rowClass = `reveal ${delayClass} group grid max-w-[1040px] grid-cols-[44px_1fr] items-baseline gap-6 border-t border-theme-light py-6 no-underline md:grid-cols-[64px_176px_1fr_auto]`;
+  const rowClass = `reveal ${delayClass} group grid max-w-[1040px] grid-cols-[44px_1fr] items-baseline gap-x-6 gap-y-2 border-t border-theme-light py-6 no-underline md:grid-cols-[64px_176px_1fr_auto] md:gap-6`;
 
   return row.href ? (
     <a href={row.href} className={rowClass}>
@@ -181,7 +188,7 @@ export function AliveLine({
         <a
           key={link.href + link.label}
           href={link.href}
-          className={`reveal ${i > 0 ? "reveal-delay-1" : ""} border-b border-theme-light font-label text-[12px] text-theme-light no-underline transition-colors hover:text-accent-bright`}
+          className={`reveal ${i > 0 ? "reveal-delay-1" : ""} -mt-2 inline-block border-b border-theme-light pt-2 font-label text-[12px] text-theme-light no-underline transition-colors hover:text-accent-bright`}
         >
           {link.label}
         </a>
