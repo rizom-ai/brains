@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- [#59](https://github.com/rizom-ai/brains/pull/59) [`e52ca13`](https://github.com/rizom-ai/brains/commit/e52ca13cf888013687734af3bb39469859d4e23c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add shell-owned recurring checks with deterministic UTC staggering, a shared Effect test clock, cooperative cancellation, startup catch-up, bounded retries, condition-based alert deduplication, and notification delivery. Agent discovery now scans peer directories daily, while generated Rover and fleet configuration reuse the onboarding recipient for recurring alerts.
+
 ## 0.2.0-alpha.179
 
 ## 0.2.0-alpha.178

@@ -1,5 +1,25 @@
 # @brains/core
 
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- [`2499c50`](https://github.com/rizom-ai/brains/commit/2499c5055fa73b7bce87207a7e9db6fe4c52c4c3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own conversation-service database acquisition and release through a private package Effect Layer composed by the shell lifecycle.
+
+- [`3a7bb4a`](https://github.com/rizom-ai/brains/commit/3a7bb4a6bce7789d4bf82e151aee1e35c66ac184) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own entity-service acquisition and both entity databases through a private package Effect Layer, with transactional construction cleanup and original shell acquisition errors preserved.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.180
+  - @brains/image@0.2.0-alpha.180
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/notification-contracts@0.2.0-alpha.180
+  - @brains/site-composition@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+  - @brains/recurring-checks@0.2.0-alpha.180
+  - @brains/runtime-state@0.2.0-alpha.180
+  - @brains/scheduler@0.2.0-alpha.180
+  - @brains/templates@0.2.0-alpha.180
+
 ## 0.2.0-alpha.179
 
 ### Patch Changes

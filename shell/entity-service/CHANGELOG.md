@@ -1,5 +1,17 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- [`3a7bb4a`](https://github.com/rizom-ai/brains/commit/3a7bb4a6bce7789d4bf82e151aee1e35c66ac184) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own entity-service acquisition and both entity databases through a private package Effect Layer, with transactional construction cleanup and original shell acquisition errors preserved.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.180
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+  - @brains/job-queue@0.2.0-alpha.180
+
 ## 0.2.0-alpha.179
 
 ### Patch Changes

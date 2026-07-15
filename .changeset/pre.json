@@ -115,7 +115,10 @@
     "@brains/sveltia-cms": "0.2.0-alpha.141",
     "@brains/console-theme": "0.2.0-alpha.143",
     "@rizom/site-sections": "0.2.0-alpha.159",
-    "@rizom/theme-rizom-ai": "0.2.0-alpha.141"
+    "@rizom/theme-rizom-ai": "0.2.0-alpha.141",
+    "@brains/notification-contracts": "0.2.0-alpha.174",
+    "@brains/recurring-checks": "0.2.0-alpha.174",
+    "@brains/scheduler": "0.2.0-alpha.174"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -175,7 +178,9 @@
     "content-archive-upright-years",
     "content-overlay-merge",
     "content-pipeline-publish-assets",
+    "content-pipeline-scheduler-lifecycle",
     "conventional-site-package-merge",
+    "conversation-service-effect-layer",
     "core-preset-eval-release",
     "current-main-alpha-release",
     "dashboard-light-surface-tokens",
@@ -196,6 +201,7 @@
     "effect-runtime-lifecycle",
     "entity-adapter-purpose-required",
     "entity-memory-metadata",
+    "entity-service-effect-layer",
     "externalize-preact",
     "fix-a2a-proxied-signatures",
     "fix-brain-publish-origin-ca-subpath",
@@ -309,6 +315,7 @@
     "setup-token-ttl",
     "shared-kamal-template-sync",
     "shared-preview-host-and-workspace-runtime",
+    "shared-recurring-checks",
     "sharp-lazy-load",
     "site-datasource-helpers",
     "skill-derivation-backpressure",

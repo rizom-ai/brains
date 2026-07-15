@@ -1,5 +1,17 @@
 # @brains/content-pipeline
 
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- [`8db6656`](https://github.com/rizom-ai/brains/commit/8db665686c210e0fbdd15d0f80b9dadd57e00b95) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Supervise scheduled publication and generation cycles through the shared scheduler, skip overlapping firings, and drain active work during scheduler shutdown and singleton reset.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.180
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+  - @brains/scheduler@0.2.0-alpha.180
+
 ## 0.2.0-alpha.179
 
 ### Patch Changes

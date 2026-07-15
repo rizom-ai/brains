@@ -1,5 +1,16 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.180
+
+### Patch Changes
+
+- [`2499c50`](https://github.com/rizom-ai/brains/commit/2499c5055fa73b7bce87207a7e9db6fe4c52c4c3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own conversation-service database acquisition and release through a private package Effect Layer composed by the shell lifecycle.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.180
+  - @brains/utils@0.2.0-alpha.180
+  - @brains/messaging-service@0.2.0-alpha.180
+
 ## 0.2.0-alpha.179
 
 ### Patch Changes
