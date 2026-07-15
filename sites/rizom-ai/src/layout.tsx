@@ -67,13 +67,14 @@ const FACE_CHROME: Record<FaceKey, FaceChrome> = {
   },
 };
 
-// The umbrella page's own chrome: the plain wordmark, links into the room and
-// docs, and a get-started CTA that points at the product room.
+// The umbrella page's own chrome: the plain wordmark, the org-level indexes
+// (everything published, everyone in the network — the strip above already
+// offers the faces), and a get-started CTA that points at the product room.
 const HOME_CHROME: FaceChrome = {
   nameplate: null,
   links: [
-    { label: "Brain", href: "/brain" },
-    { label: "Docs ↗", href: "https://docs.rizom.ai", external: true },
+    { label: "Writing", href: "/writing" },
+    { label: "Network", href: "/network" },
   ],
   cta: { label: "Get Started", href: "/brain" },
 };
@@ -94,8 +95,9 @@ function activeFace(path: string): FaceKey {
 }
 
 // The org-level indexes: cross-room aggregations (everything published,
-// everyone in the network) that belong to no single face. They live
-// top-right on every face, and claim the current page on their own path.
+// everyone in the network) that belong to no single face. They live in the
+// home nav and the footer; the strip only needs their paths so no face
+// claims the current page there.
 const ORG_INDEXES: { label: string; href: string }[] = [
   { label: "Writing", href: "/writing" },
   { label: "Network", href: "/network" },
@@ -136,22 +138,7 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
           </a>
         ),
       )}
-      <div className="ml-auto flex items-baseline gap-4 sm:gap-6">
-        {ORG_INDEXES.map((index) => {
-          const active = activeIndex === index.href;
-          return (
-            <a
-              key={index.href}
-              href={index.href}
-              className={`-my-2 inline-block py-2 transition-colors ${
-                active ? "text-accent" : "text-theme-light hover:text-theme"
-              }`}
-              {...(active ? { "aria-current": "page" } : {})}
-            >
-              {index.label}
-            </a>
-          );
-        })}
+      <div className="ml-auto flex items-baseline">
         {/* boot.js binds by id and syncs the label; window.toggleTheme
             (injected by site-engine) flips data-theme + persists it. */}
         <button

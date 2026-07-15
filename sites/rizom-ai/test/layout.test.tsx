@@ -51,4 +51,23 @@ describe("AiLayout chrome", () => {
     expect(html).toContain("/work#workshop");
     expect(html).toContain("/work#contact");
   });
+
+  test("home nav carries the org indexes; the faces strip does not", () => {
+    const html = renderChrome("/");
+    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
+    const nav = html.slice(html.indexOf("<nav"), html.indexOf("</nav>"));
+    // Writing/Network moved from the strip into the home page's own nav
+    // (the strip keeps only the three faces and the theme toggle).
+    expect(nav).toContain('href="/writing"');
+    expect(nav).toContain('href="/network"');
+    expect(nav).not.toContain("docs.rizom.ai");
+    expect(strip).not.toContain('href="/writing"');
+    expect(strip).not.toContain('href="/network"');
+  });
+
+  test("org-index pages still claim no face in the strip", () => {
+    const html = renderChrome("/writing");
+    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
+    expect(strip).not.toContain('aria-current="page"');
+  });
 });
