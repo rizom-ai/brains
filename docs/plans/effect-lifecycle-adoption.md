@@ -2,11 +2,13 @@
 
 ## Status
 
-Proposed for Phases 2 and 3; Phase 1 is implemented. This is a companion to the directory-sync Effect lifecycle plan. The shared lifecycle prerequisite is now available on main; all conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
+Partial. Phase 1 is implemented; Phases 2 and 3 remain proposed and have not started. The shared shell lifecycle and ownership prerequisite is complete on `main`; all follow-up conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
 
-Scope was set by a repo-wide sweep. Explicitly excluded:
+Together with [directory-sync-effect-lifecycle.md](./directory-sync-effect-lifecycle.md), this plan records the concrete remaining follow-up scope from the repo-wide lifecycle sweep. The MCP HTTP eviction timer remains explicitly deferred; newly discovered candidates require a separate ownership audit rather than automatic conversion.
 
-- Everything the Effect branch already converted: job-queue worker and batch cleanup, entity-service index polling, ai-service `ActiveTurnSupervisor`, the message-interface `KeyedCleanupSupervisor`, plugin resource scopes, the shell bootloader's index-readiness monitor (now a lifecycle-forked Effect), and conversation-actor eviction (now a `FiberMap` supervisor).
+Explicitly excluded:
+
+- Everything the completed shell lifecycle work already converted: job-queue worker and batch cleanup, entity-service index polling, ai-service `ActiveTurnSupervisor`, the message-interface `KeyedCleanupSupervisor`, plugin resource scopes, the shell bootloader's index-readiness monitor (now a lifecycle-forked Effect), and conversation-actor eviction (now a `FiberMap` supervisor).
 - The MCP HTTP transport's session-eviction `setInterval`: it is unref'd and cleared in `stop()`; convert it opportunistically when that transport is next touched, not as a phase here.
 
 ## Goal
@@ -125,5 +127,5 @@ Behavioral gates:
 - Cancelling a2a turns whose polling clients are merely slow (only disconnect and shutdown cancel).
 - A browser pool or reuse in media-renderer; it stays launch-per-render.
 - Converting the MCP transport eviction timer (deferred until that transport is next touched).
-- Any change to packages already covered by `work/effect-shell-lifecycle`.
+- Any change to packages already covered by the completed shell lifecycle and ownership work.
 - Exposing Effect types from any package export.

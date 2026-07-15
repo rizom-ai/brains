@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed cleanup. The dependency on `work/effect-shell-lifecycle` is hard, not optional: the package must use the canonical private `@brains/utils/effect` boundary, and the shutdown design relies on that branch's lifecycle guarantees — `onShutdown()` after registration failure and plugin disable, plus the per-plugin resource scope that owns subscriptions and job registrations. (`onReady()` itself already exists on main's `BasePlugin`.) Stack this work on that branch, or start after it merges.
+Proposed cleanup; no delivery phase has started. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
 
-The worktree is currently 79 commits behind main (its directory-sync copy is at alpha.158, missing the seed-bootstrap `.git`-filter work). Rebasing it onto current main is part of the prerequisite and happens before Phase 1.
+Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. The raw watcher, debounce, periodic-git, auto-commit, and import-polling lifecycle constructs described below remain in directory-sync and still need the planned ownership conversion.
 
 ## Goal
 
@@ -22,13 +22,13 @@ Keep plugin, job, directory, and git contracts Promise-based. Cancellation cross
 | Git auto-commit      | `TrailingDebounce` plus fire-and-forget `git.withLock()`      | dispose cancels the delay but not an active commit/push                                               |
 | Git lock             | Promise chain                                                 | queued work has no closed state or cancellation check                                                 |
 | Import-job polling   | recursive `setTimeout` for up to five minutes                 | timing is not deterministic                                                                           |
-| Plugin subscriptions | manually retained inconsistently                              | the Effect branch's plugin scope fixes this; do not duplicate it here                                 |
+| Plugin subscriptions | owned by the shared plugin resource scope                     | keep that ownership in the shared scope; do not duplicate it in directory-sync                        |
 
 Characterize watcher startup before changing it. Plugin registration currently calls `initializeDirectory()`, while watcher startup lives under `initialize()`. Existing plugin tests do not prove that `autoSync: true` starts a watcher; the only production call to `initialize()` is reconfiguration.
 
-## Findings from the Effect worktree
+## Established Effect patterns
 
-Follow the patterns established in `work/effect-shell-lifecycle`:
+Follow the lifecycle patterns now established on `main`:
 
 - Import only through `@brains/utils/effect`, never from `effect` directly.
 - Public APIs stay Promise-based and accept optional `AbortSignal` at cancellation boundaries.
@@ -67,7 +67,7 @@ Do not expose Effect, Scope, Fiber, Layer, Clock, or Cause from package exports.
 
 Add a package-internal runtime backed by `Scope.CloseableScope`. `DirectorySyncPlugin` creates it before background acquisition and closes it from `onShutdown()`. Closure is idempotent and returns one shared Promise.
 
-The Effect branch guarantees `onShutdown()` after registration failure, plugin disable, and normal shell shutdown. Its plugin resource scope separately owns subscriptions and job registrations. Directory sync therefore needs no new public `context.lifecycle` API.
+The shell/plugin lifecycle guarantees `onShutdown()` after registration failure, plugin disable, and normal shell shutdown. The plugin resource scope separately owns subscriptions and job registrations. Directory sync therefore needs no new public `context.lifecycle` API.
 
 Use a child scope for the active sync-path generation so reconfiguration can replace one directory/git/watcher set without replacing plugin-level subscriptions.
 
