@@ -66,6 +66,7 @@ const registerWidgetPayloadSchema = z
     rendererName: z.string(),
     visibility: z.enum(["public", "trusted", "anchor"]).default("public"),
     needsAttention: z.number().int().nonnegative().optional(),
+    needsOperator: z.number().int().nonnegative().optional(),
     digest: z
       .array(
         z.object({
@@ -96,7 +97,13 @@ const registerWidgetPayloadSchema = z
         path: ["component"],
       });
     }
-  });
+  })
+  .transform(({ needsOperator, ...payload }) => ({
+    ...payload,
+    ...(payload.needsAttention === undefined && needsOperator !== undefined
+      ? { needsAttention: needsOperator }
+      : {}),
+  }));
 
 const unregisterWidgetPayloadSchema = z.object({
   pluginId: z.string(),

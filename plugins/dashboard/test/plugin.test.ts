@@ -519,6 +519,24 @@ describe("DashboardPlugin", () => {
       });
     });
 
+    it("normalizes deprecated attention counts received over messaging", async () => {
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "legacy-attention-widget",
+        pluginId: "legacy-plugin",
+        group: "knowledge",
+        title: "Legacy Attention Widget",
+        rendererName: "StatsWidget",
+        needsOperator: 2,
+        dataProvider: async () => ({}),
+      });
+
+      expect(
+        plugin
+          .getWidgetRegistry()
+          ?.get("legacy-plugin", "legacy-attention-widget"),
+      ).toMatchObject({ needsAttention: 2 });
+    });
+
     it("should unregister widget when receiving dashboard:unregister-widget message", async () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "test-widget",

@@ -107,11 +107,10 @@ export class DashboardDataSource implements DataSource {
 
     try {
       const derived = widget.digestProvider(data);
+      const needsAttention = derived.needsAttention ?? derived.needsOperator;
       return {
         ...(derived.digest !== undefined && { digest: derived.digest }),
-        ...(derived.needsAttention !== undefined && {
-          needsAttention: derived.needsAttention,
-        }),
+        ...(needsAttention !== undefined && { needsAttention }),
       };
     } catch (error) {
       this.logger.error("Widget digest provider failed", {

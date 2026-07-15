@@ -15,6 +15,8 @@ export type WidgetDataProvider = () => Promise<unknown>;
 export type WidgetDigestProvider = (data: unknown) => {
   digest?: DashboardDigestLine[];
   needsAttention?: number;
+  /** @deprecated Use needsAttention. Accepted only for compatibility. */
+  needsOperator?: number;
 };
 export type WidgetVisibility = UserPermissionLevel;
 
@@ -83,25 +85,35 @@ export interface DashboardWidgetInput {
   rendererName: string;
   visibility?: WidgetVisibility | undefined;
   needsAttention?: number | undefined;
+  /** @deprecated Use needsAttention. Accepted only for compatibility. */
+  needsOperator?: number | undefined;
   digest?: DashboardDigestLine[] | undefined;
 }
 
 export const dashboardWidgetSchema: z.ZodType<
   DashboardWidgetMeta,
   DashboardWidgetInput
-> = z.object({
-  id: z.string(),
-  pluginId: z.string(),
-  title: z.string(),
-  description: z.string().optional(),
-  group: z.string().min(1),
-  priority: z.number().default(50),
-  section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
-  rendererName: z.string(),
-  visibility: widgetVisibilitySchema.default("public"),
-  needsAttention: z.number().int().nonnegative().optional(),
-  digest: z.array(dashboardDigestLineSchema).max(4).optional(),
-});
+> = z
+  .object({
+    id: z.string(),
+    pluginId: z.string(),
+    title: z.string(),
+    description: z.string().optional(),
+    group: z.string().min(1),
+    priority: z.number().default(50),
+    section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
+    rendererName: z.string(),
+    visibility: widgetVisibilitySchema.default("public"),
+    needsAttention: z.number().int().nonnegative().optional(),
+    needsOperator: z.number().int().nonnegative().optional(),
+    digest: z.array(dashboardDigestLineSchema).max(4).optional(),
+  })
+  .transform(({ needsOperator, ...widget }) => ({
+    ...widget,
+    ...(widget.needsAttention === undefined && needsOperator !== undefined
+      ? { needsAttention: needsOperator }
+      : {}),
+  }));
 
 export interface RegisteredWidget extends DashboardWidgetInput {
   dataProvider: WidgetDataProvider;

@@ -30,6 +30,24 @@ describe("DashboardWidgetRegistry", () => {
       expect(registry.size).toBe(1);
     });
 
+    it("normalizes deprecated attention counts without overriding the current field", () => {
+      const widget: RegisteredWidget = {
+        id: "legacy-attention-widget",
+        pluginId: "legacy-plugin",
+        group: "publishing",
+        title: "Legacy Attention Widget",
+        rendererName: "StatsWidget",
+        needsAttention: 4,
+        needsOperator: 3,
+        dataProvider: async () => ({}),
+      };
+
+      registry.register(widget);
+
+      expect(registry.list()[0]?.needsAttention).toBe(4);
+      expect(registry.list()[0]).not.toHaveProperty("needsOperator");
+    });
+
     it("should store the widget rendererName and group", () => {
       const widget: RegisteredWidget = {
         id: "test-widget",

@@ -251,6 +251,26 @@ describe("DashboardDataSource", () => {
       expect(widget?.widget.needsAttention).toBe(2);
     });
 
+    it("normalizes deprecated live attention counts", async () => {
+      registry.register({
+        id: "legacy-live-count",
+        pluginId: "legacy",
+        group: "publishing",
+        title: "Legacy Live Count",
+        rendererName: "StatsWidget",
+        dataProvider: async () => ({ open: 4 }),
+        digestProvider: (data) => ({
+          needsOperator: (data as { open: number }).open,
+        }),
+      });
+
+      const result = await datasource.getDashboardData();
+
+      expect(
+        result.widgets["legacy:legacy-live-count"]?.widget.needsAttention,
+      ).toBe(4);
+    });
+
     it("should fall back to the static digest when the provider throws", async () => {
       registry.register({
         id: "flaky",
