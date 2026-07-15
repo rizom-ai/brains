@@ -1,6 +1,6 @@
 {
   "name": "@brains/business-development",
-  "version": "0.2.0-alpha.127",
+  "version": "0.2.0-alpha.178",
   "description": "Business development opportunity prioritization plugin",
   "dependencies": {
     "@brains/plugins": "workspace:*",
