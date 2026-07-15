@@ -1,3 +1,5 @@
+import { Cause, Effect, Exit } from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
 import type {
   IJobQueueService,
   JobHandler,
@@ -92,6 +94,9 @@ export interface RecurringCheckServiceOptions {
   jobQueue: IJobQueueService;
   delivery: RecurringCheckDelivery;
   logger: Logger;
+  /** Effect clock shared with scheduler tests. Defaults to the live clock. */
+  clock?: Clock.Clock | undefined;
+  /** @deprecated Prefer an Effect clock. */
   now?: (() => Date) | undefined;
 }
 
@@ -109,9 +114,10 @@ export class RecurringCheckService {
   private readonly jobQueue: IJobQueueService;
   private readonly delivery: RecurringCheckDelivery;
   private readonly logger: Logger;
-  private readonly now: () => Date;
+  private readonly clock: Clock.Clock | undefined;
+  private readonly nowFallback: () => Date;
   private readonly checks = new Map<string, RegisteredCheck>();
-  private readonly runningChecks = new Set<string>();
+  private readonly runningChecks = new Map<string, AbortController>();
   private started = false;
 
   constructor(options: RecurringCheckServiceOptions) {
@@ -120,7 +126,8 @@ export class RecurringCheckService {
     this.jobQueue = options.jobQueue;
     this.delivery = options.delivery;
     this.logger = options.logger.child("RecurringCheckService");
-    this.now = options.now ?? ((): Date => new Date());
+    this.clock = options.clock;
+    this.nowFallback = options.now ?? ((): Date => new Date());
     this.state = options.runtimeState.scoped({
       namespace: "shell.recurring-checks",
       schema: recurringCheckStateSchema,
@@ -196,10 +203,15 @@ export class RecurringCheckService {
       registered.scheduledJob?.stop();
       delete registered.scheduledJob;
     }
+    const stopError = new Error("Recurring check service stopped");
+    for (const controller of this.runningChecks.values()) {
+      controller.abort(stopError);
+    }
     this.started = false;
   }
 
-  async runNow(checkId: string): Promise<boolean> {
+  async runNow(checkId: string, signal?: AbortSignal): Promise<boolean> {
+    signal?.throwIfAborted();
     const registered = this.checks.get(checkId);
     if (!registered) throw new Error(`Unknown recurring check: ${checkId}`);
     if (this.runningChecks.has(checkId)) {
@@ -207,20 +219,41 @@ export class RecurringCheckService {
       return false;
     }
 
-    this.runningChecks.add(checkId);
+    const controller = new AbortController();
+    const runSignal = signal
+      ? AbortSignal.any([controller.signal, signal])
+      : controller.signal;
+    this.runningChecks.set(checkId, controller);
+    const execution = Effect.tryPromise({
+      try: async (effectSignal) => {
+        const checkSignal = AbortSignal.any([runSignal, effectSignal]);
+        await this.flushPendingAlerts(checkId);
+        checkSignal.throwIfAborted();
+        const rawResult = await registered.definition.run({
+          signal: checkSignal,
+        });
+        checkSignal.throwIfAborted();
+        const result = recurringCheckResultSchema.parse(rawResult);
+        for (const alert of result.alerts ?? []) {
+          checkSignal.throwIfAborted();
+          await this.deliverAlert(checkId, alert);
+        }
+        await this.state.set(this.lastSuccessKey(checkId), {
+          kind: "last-success",
+          checkId,
+          at: this.currentTime().toISOString(),
+        });
+      },
+      catch: (error) => error,
+    });
+
     try {
-      await this.flushPendingAlerts(checkId);
-      const rawResult = await registered.definition.run();
-      const result = recurringCheckResultSchema.parse(rawResult);
-      for (const alert of result.alerts ?? []) {
-        await this.deliverAlert(checkId, alert);
-      }
-      await this.state.set(this.lastSuccessKey(checkId), {
-        kind: "last-success",
-        checkId,
-        at: this.now().toISOString(),
+      const exit = await Effect.runPromiseExit(execution, {
+        signal: runSignal,
       });
-      return true;
+      if (Exit.isSuccess(exit)) return true;
+      if (runSignal.aborted) throw runSignal.reason;
+      throw Cause.squash(exit.cause);
     } finally {
       this.runningChecks.delete(checkId);
     }
@@ -262,7 +295,7 @@ export class RecurringCheckService {
   private async enqueueCatchUpIfNeeded(
     check: RecurringCheckDefinition,
   ): Promise<void> {
-    const currentTime = this.now();
+    const currentTime = this.currentTime();
     const schedule = createRecurringCheckSchedule(
       this.brainId,
       check.id,
@@ -328,7 +361,7 @@ export class RecurringCheckService {
       dedupeKey: parsedAlert.dedupeKey,
       status: "pending",
       alert: parsedAlert,
-      observedAt: this.now().toISOString(),
+      observedAt: this.currentTime().toISOString(),
     };
     await this.state.set(key, pending);
     await this.deliverStoredAlert(key, pending);
@@ -342,8 +375,14 @@ export class RecurringCheckService {
     await this.state.set(key, {
       ...state,
       status: "delivered",
-      deliveredAt: this.now().toISOString(),
+      deliveredAt: this.currentTime().toISOString(),
     });
+  }
+
+  private currentTime(): Date {
+    return this.clock
+      ? new Date(this.clock.unsafeCurrentTimeMillis())
+      : this.nowFallback();
   }
 
   private lastSuccessKey(checkId: string): string {

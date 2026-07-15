@@ -1824,6 +1824,7 @@
       "name": "@brains/scheduler",
       "version": "0.2.0-alpha.174",
       "dependencies": {
+        "@brains/utils": "workspace:*",
         "croner": "^10.0.1",
       },
       "devDependencies": {

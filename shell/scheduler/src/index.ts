@@ -1,3 +1,4 @@
+import type { Clock } from "@brains/utils/effect";
 import { Cron } from "croner";
 
 /** A scheduled job that can be stopped. */
@@ -62,6 +63,8 @@ export class CronerBackend implements SchedulerBackend {
 export interface TestSchedulerBackendOptions {
   /** Initial clock value. Defaults to the Unix epoch. */
   now?: Date | undefined;
+  /** Effect clock shared with the service under test. */
+  clock?: Clock.Clock | undefined;
 }
 
 interface TestCronJob {
@@ -96,9 +99,13 @@ export class TestSchedulerBackend implements SchedulerBackend {
   private nextId = 0;
   private currentTime: Date;
   private readonly initialTime: Date;
+  private readonly clock: Clock.Clock | undefined;
 
   constructor(options: TestSchedulerBackendOptions = {}) {
-    const initialTime = options.now ?? new Date(0);
+    this.clock = options.clock;
+    const initialTime = options.clock
+      ? new Date(options.clock.unsafeCurrentTimeMillis())
+      : (options.now ?? new Date(0));
     assertValidDate(initialTime);
     this.initialTime = new Date(initialTime);
     this.currentTime = new Date(initialTime);
@@ -162,8 +169,19 @@ export class TestSchedulerBackend implements SchedulerBackend {
     return new Date(this.currentTime);
   }
 
-  /** Advance the clock by a duration and run every callback that becomes due. */
+  /** Run callbacks due at the shared Effect clock's current time. */
+  async runDue(): Promise<void> {
+    if (!this.clock) {
+      throw new Error("runDue requires an injected Effect clock");
+    }
+    await this.processTo(new Date(this.clock.unsafeCurrentTimeMillis()));
+  }
+
+  /** Advance the standalone clock and run every callback that becomes due. */
   async advanceBy(durationMs: number): Promise<void> {
+    if (this.clock) {
+      throw new Error("Use TestClock.adjust with an injected Effect clock");
+    }
     if (!Number.isFinite(durationMs) || durationMs < 0) {
       throw new Error(
         "Scheduler duration must be a non-negative finite number",
@@ -172,8 +190,15 @@ export class TestSchedulerBackend implements SchedulerBackend {
     await this.advanceTo(new Date(this.currentTime.getTime() + durationMs));
   }
 
-  /** Advance the clock to a timestamp and run callbacks in cadence order. */
+  /** Advance the standalone clock to a timestamp and run callbacks in cadence order. */
   async advanceTo(targetTime: Date): Promise<void> {
+    if (this.clock) {
+      throw new Error("Use TestClock.adjust with an injected Effect clock");
+    }
+    await this.processTo(targetTime);
+  }
+
+  private async processTo(targetTime: Date): Promise<void> {
     assertValidDate(targetTime);
     if (targetTime < this.currentTime) {
       throw new Error("Scheduler clock cannot move backwards");
@@ -232,6 +257,9 @@ export class TestSchedulerBackend implements SchedulerBackend {
 
   /** Remove all jobs and restore the injected clock. */
   reset(now: Date = this.initialTime): void {
+    if (this.clock) {
+      throw new Error("Reset the injected Effect clock through TestClock");
+    }
     assertValidDate(now);
     for (const job of this.cronJobs) job.cron.stop();
     this.cronJobs = [];

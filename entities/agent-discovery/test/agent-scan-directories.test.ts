@@ -94,6 +94,48 @@ describe("agent_scan_directories", () => {
     harness.reset();
   });
 
+  it("aborts in-flight directory requests through the tool signal", async () => {
+    const controller = new AbortController();
+    const abortReason = new Error("scan canceled");
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const fetchFn: FetchFn = (_url, init) =>
+      new Promise((_resolve, reject) => {
+        markStarted?.();
+        init?.signal?.addEventListener(
+          "abort",
+          () => reject(init.signal?.reason),
+          { once: true },
+        );
+      });
+    const harness = await setupHarness({ fetch: fetchFn });
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({ id: "kai.brain", status: "approved" }),
+    });
+    const tool = harness
+      .getCapabilities()
+      .tools.find((candidate) => candidate.name === "agent_scan_directories");
+    if (!tool) throw new Error("agent_scan_directories not registered");
+    const run = tool.handler(
+      {},
+      {
+        interfaceType: "test",
+        userId: "operator",
+        userPermissionLevel: "anchor",
+        signal: controller.signal,
+      },
+    );
+    await started;
+
+    controller.abort(abortReason);
+
+    expect(run).rejects.toBe(abortReason);
+    await run.catch(() => undefined);
+    harness.reset();
+  });
+
   it("sights agents reported by approved peers' directories with provenance", async () => {
     const network = createMockNetwork({
       "kai.brain": {

@@ -42,15 +42,17 @@ const agentAdapter = new AgentAdapter();
 async function fetchAgentDirectory(
   domain: string,
   fetchFn: FetchFn,
+  signal?: AbortSignal,
 ): Promise<z.infer<typeof remoteDirectorySchema> | null> {
   const url = `https://${domain}/.well-known/agent-directory.json`;
   try {
-    const response = await fetchFn(url);
+    const response = await fetchFn(url, signal ? { signal } : undefined);
     if (!response.ok) return null;
 
     const parsed = remoteDirectorySchema.safeParse(await response.json());
     return parsed.success ? parsed.data : null;
   } catch {
+    if (signal?.aborted) throw signal.reason;
     return null;
   }
 }
@@ -58,6 +60,7 @@ async function fetchAgentDirectory(
 export async function scanAgentDirectories(
   context: AgentScanContext,
   fetchFn: FetchFn = globalThis.fetch,
+  signal?: AbortSignal,
 ): Promise<AgentScanDirectoriesResult> {
   const allAgents = await context.entityService.listEntities<AgentEntity>({
     entityType: AGENT_ENTITY_TYPE,
@@ -72,7 +75,8 @@ export async function scanAgentDirectories(
   const introducersByDomain = new Map<string, Set<string>>();
   let unreachablePeers = 0;
   for (const peer of peers) {
-    const directory = await fetchAgentDirectory(peer.id, fetchFn);
+    signal?.throwIfAborted();
+    const directory = await fetchAgentDirectory(peer.id, fetchFn, signal);
     if (!directory) {
       unreachablePeers += 1;
       continue;
@@ -96,6 +100,7 @@ export async function scanAgentDirectories(
   let unverified = 0;
 
   for (const [domain, introducers] of introducersByDomain) {
+    signal?.throwIfAborted();
     const existing = agentsById.get(domain);
     if (existing) {
       const { frontmatter, body } = agentAdapter.parseEntity(existing);
@@ -132,7 +137,7 @@ export async function scanAgentDirectories(
 
     // The pointee's own card is the source of truth — the peer only
     // vouches that it exists.
-    const card = await fetchAgentCard(domain, fetchFn);
+    const card = await fetchAgentCard(domain, fetchFn, signal);
     if (!card) {
       unverified += 1;
       continue;
@@ -205,7 +210,11 @@ export function createAgentScanDirectoriesTool(
         };
       }
 
-      const result = await scanAgentDirectories(context, fetchFn);
+      const result = await scanAgentDirectories(
+        context,
+        fetchFn,
+        toolContext.signal,
+      );
       return {
         success: true,
         data: {

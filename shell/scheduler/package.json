@@ -3,6 +3,7 @@
   "version": "0.2.0-alpha.174",
   "description": "Shared scheduler backend contracts and deterministic test implementation",
   "dependencies": {
+    "@brains/utils": "workspace:*",
     "croner": "^10.0.1"
   },
   "devDependencies": {
