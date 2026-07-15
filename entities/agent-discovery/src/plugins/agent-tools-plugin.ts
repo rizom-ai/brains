@@ -50,6 +50,7 @@ export class AgentToolsPlugin extends ServicePlugin<
     context.recurringChecks.register({
       id: "directory-scan",
       cadence: "daily",
+      deliverAlerts: this.config.notifyOnNewAgents,
       run: async ({ signal }) => {
         const result = await scanAgentDirectories(
           context,

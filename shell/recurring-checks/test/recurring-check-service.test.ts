@@ -400,6 +400,42 @@ describe("RecurringCheckService", () => {
     expect(delivered).toEqual(["one", "two"]);
   });
 
+  it("discards pending alerts when alert delivery is disabled", async () => {
+    let attempts = 0;
+    const { service, state } = createService({
+      delivery: async () => {
+        attempts += 1;
+        throw new Error("delivery failed");
+      },
+    });
+    const checks = service.namespace("agent");
+    const unregister = checks.register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [{ dedupeKey: "episode-1", title: "Sightings", body: "one" }],
+      }),
+    });
+    const firstAttempt = service.runNow("agent:directory-scan");
+    expect(firstAttempt).rejects.toThrow("delivery failed");
+    await firstAttempt.catch(() => undefined);
+    unregister();
+    checks.register({
+      id: "directory-scan",
+      cadence: "daily",
+      deliverAlerts: false,
+      run: async () => ({
+        alerts: [{ dedupeKey: "episode-2", title: "Sightings", body: "two" }],
+      }),
+    });
+
+    expect(await service.runNow("agent:directory-scan")).toBe(true);
+    expect(attempts).toBe(1);
+    expect(state.snapshot()).not.toContainEqual(
+      expect.objectContaining({ kind: "alert", status: "pending" }),
+    );
+  });
+
   it("retries pending delivery even when the domain result becomes empty", async () => {
     let attempts = 0;
     let runs = 0;
