@@ -159,7 +159,7 @@ export function IndexRow({
     </>
   );
 
-  const rowClass = `reveal ${delayClass} group grid max-w-[1040px] grid-cols-[44px_1fr] items-baseline gap-x-6 gap-y-2 border-t border-theme-light py-6 no-underline md:grid-cols-[64px_176px_1fr_auto] md:gap-6`;
+  const rowClass = `reveal ${delayClass} group grid grid-cols-[44px_1fr] items-baseline gap-x-6 gap-y-2 border-t border-theme-light py-6 no-underline md:grid-cols-[64px_176px_1fr_auto] md:gap-6`;
 
   return row.href ? (
     <a href={row.href} className={rowClass}>
@@ -237,7 +237,7 @@ export function Trio({
   mono: boolean;
 }): JSX.Element {
   return (
-    <div className="mt-[30px] grid max-w-[1040px] gap-11 md:grid-cols-3">
+    <div className="mt-[30px] grid gap-11 md:grid-cols-3">
       {items.map((item, i) => (
         <div key={item.title} className={`reveal ${delayClass(i)}`}>
           {mono ? (

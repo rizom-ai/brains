@@ -8,7 +8,7 @@ import type { JSX } from "preact";
    The wrapper's `reveal` class lets boot.js trigger the sequence. */
 export function GrowthDiagram(): JSX.Element {
   return (
-    <div className="growth reveal reveal-delay-1 mt-5 max-w-[1020px]">
+    <div className="growth reveal reveal-delay-1 mt-5">
       <svg
         viewBox="0 0 980 290"
         role="img"

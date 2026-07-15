@@ -159,7 +159,7 @@ function FoundationSupportSection({
   return (
     <Section id="support" className="py-14">
       <SectCap lead={cap} trail={capNote} />
-      <div className="mt-[26px] grid max-w-[900px] gap-13 md:grid-cols-2">
+      <div className="mt-[26px] grid gap-13 md:grid-cols-2">
         {options.map((option, i) => (
           <div key={option.kicker} className={`reveal ${delayClass(i + 1)}`}>
             <span className="font-label text-label-xs uppercase tracking-[0.16em] text-accent">
@@ -168,7 +168,7 @@ function FoundationSupportSection({
             <div className="mt-2 font-display text-[30px] font-[480] text-theme [font-variation-settings:'SOFT'_40]">
               {option.amount}
             </div>
-            <p className="mt-2 font-body text-[15.5px] text-theme-light">
+            <p className="mt-2 max-w-[52ch] font-body text-[15.5px] text-theme-light">
               {option.text}
             </p>
           </div>
