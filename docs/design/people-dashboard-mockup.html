@@ -135,13 +135,19 @@
       }
       @keyframes pulse-ring {
         0% {
-          box-shadow: 0 0 0 0 var(--ok-soft), 0 0 0 3px var(--ok-soft);
+          box-shadow:
+            0 0 0 0 var(--ok-soft),
+            0 0 0 3px var(--ok-soft);
         }
         70% {
-          box-shadow: 0 0 0 6px transparent, 0 0 0 3px var(--ok-soft);
+          box-shadow:
+            0 0 0 6px transparent,
+            0 0 0 3px var(--ok-soft);
         }
         100% {
-          box-shadow: 0 0 0 0 transparent, 0 0 0 3px var(--ok-soft);
+          box-shadow:
+            0 0 0 0 transparent,
+            0 0 0 3px var(--ok-soft);
         }
       }
 
@@ -268,11 +274,7 @@
       .frame {
         position: relative;
         background:
-          radial-gradient(
-            640px 220px at 18% -4%,
-            var(--glow),
-            transparent 70%
-          ),
+          radial-gradient(640px 220px at 18% -4%, var(--glow), transparent 70%),
           var(--frame);
         border: 1px solid var(--rule-strong);
         border-radius: 12px;
@@ -464,11 +466,13 @@
         border-color: var(--accent);
         color: var(--bg-deep);
         font-weight: 600;
-        box-shadow: 0 4px 18px -6px color-mix(in srgb, var(--accent) 65%, transparent);
+        box-shadow: 0 4px 18px -6px
+          color-mix(in srgb, var(--accent) 65%, transparent);
       }
       .button.primary:hover {
         transform: translateY(-1px);
-        box-shadow: 0 7px 22px -6px color-mix(in srgb, var(--accent) 75%, transparent);
+        box-shadow: 0 7px 22px -6px
+          color-mix(in srgb, var(--accent) 75%, transparent);
       }
       .button.quiet {
         background: transparent;
@@ -740,6 +744,44 @@
         color: var(--text-muted);
         font-size: 11px;
       }
+      .dossier-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 0 20px;
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule-strong);
+        background: color-mix(in srgb, var(--bg-deep) 22%, transparent);
+      }
+      .dossier-tab {
+        position: relative;
+        border: 0;
+        background: transparent;
+        color: var(--text-muted);
+        padding: 11px 12px 12px;
+        cursor: pointer;
+        font: 500 9px var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .dossier-tab:hover {
+        color: var(--text-dim);
+      }
+      .dossier-tab.active {
+        color: var(--text);
+      }
+      .dossier-tab.active::after {
+        content: "";
+        position: absolute;
+        height: 2px;
+        left: 10px;
+        right: 10px;
+        bottom: -1px;
+        background: var(--accent);
+      }
+      .dossier-panel[hidden],
+      .agent-state[hidden] {
+        display: none !important;
+      }
       select,
       input {
         border: 1px solid var(--rule-strong);
@@ -759,7 +801,264 @@
         min-width: 112px;
       }
       .detail-sections {
+        border-top: 0;
+      }
+      .profile-sheet {
+        padding: 20px;
+        display: grid;
+        gap: 16px;
+      }
+      .profile-lede {
+        border-left: 2px solid var(--accent);
+        padding: 2px 0 2px 14px;
+      }
+      .profile-lede strong {
+        display: block;
+        font: 520 18px/1.25 var(--display);
+      }
+      .profile-lede span {
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+      .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .profile-fact {
         border-top: 1px solid var(--rule);
+        padding-top: 9px;
+      }
+      .profile-fact span {
+        display: block;
+        color: var(--text-muted);
+        font: 500 8px var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .profile-fact strong {
+        display: block;
+        margin-top: 3px;
+        color: var(--text-dim);
+        font-weight: 400;
+        font-size: 12px;
+      }
+      .agent-workbench {
+        padding: 20px;
+      }
+      .agent-kicker {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .agent-kicker h3 {
+        margin: 0;
+        font: 520 20px/1.1 var(--display);
+      }
+      .agent-kicker p {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+      .agent-status-chip,
+      .micro-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 999px;
+        padding: 4px 7px;
+        color: var(--text-muted);
+        font: 500 8px var(--mono);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .agent-status-chip.ready {
+        color: var(--ok);
+        border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+        background: var(--ok-soft);
+      }
+      .agent-status-chip.pending {
+        color: var(--warn);
+        border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+        background: var(--warn-soft);
+      }
+      .representation-map {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 68px minmax(0, 1fr);
+        align-items: stretch;
+        margin: 12px 0 16px;
+      }
+      .representation-node {
+        min-width: 0;
+        border: 1px solid var(--rule-strong);
+        border-radius: 10px;
+        padding: 12px;
+        background: color-mix(in srgb, var(--card-raised) 45%, transparent);
+      }
+      .representation-node.agent-node {
+        border-color: color-mix(in srgb, var(--accent) 40%, var(--rule-strong));
+        background: var(--accent-soft);
+      }
+      .node-kind {
+        color: var(--text-muted);
+        font: 500 8px var(--mono);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .node-name {
+        display: block;
+        margin-top: 4px;
+        color: var(--text);
+        font-weight: 500;
+      }
+      .node-id {
+        display: block;
+        color: var(--text-muted);
+        font: 9px var(--mono);
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .representation-link {
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        font: 500 8px var(--mono);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .representation-link::before {
+        content: "";
+        position: absolute;
+        width: 68px;
+        height: 1px;
+        background: color-mix(in srgb, var(--accent) 45%, transparent);
+      }
+      .representation-link span {
+        z-index: 1;
+        padding: 2px 4px;
+        background: var(--card);
+      }
+      .inheritance-card {
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .inheritance-head {
+        padding: 10px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        border-bottom: 1px solid var(--rule);
+        background: color-mix(in srgb, var(--bg-deep) 28%, transparent);
+      }
+      .inheritance-head strong {
+        font: 500 9px var(--mono);
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      .inheritance-head span {
+        color: var(--text-muted);
+        font-size: 10px;
+      }
+      .identity-route {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+      }
+      .identity-route + .identity-route {
+        border-top: 1px solid var(--rule);
+      }
+      .identity-route strong {
+        display: block;
+        color: var(--text-dim);
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .identity-route small {
+        color: var(--text-muted);
+        font: 9px var(--mono);
+      }
+      .route-purposes {
+        display: flex;
+        gap: 5px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+      .micro-chip.on {
+        color: var(--ok);
+        border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+      }
+      .micro-chip.off {
+        opacity: 0.55;
+      }
+      .agent-empty-action {
+        margin-top: 14px;
+        padding: 13px;
+        border: 1px dashed color-mix(in srgb, var(--accent) 34%, var(--rule));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .agent-empty-action p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+      .consent-card {
+        border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+        border-left: 3px solid var(--warn);
+        border-radius: 9px;
+        background: var(--warn-soft);
+        padding: 12px 14px;
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: center;
+      }
+      .consent-card strong {
+        display: block;
+        color: var(--text-dim);
+      }
+      .consent-card span {
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+      .agent-facts {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .agent-fact {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        padding: 9px 10px;
+      }
+      .agent-fact span {
+        display: block;
+        color: var(--text-muted);
+        font: 8px var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .agent-fact strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .agent-actions {
+        margin-top: 14px;
       }
       .detail-section {
         padding: 18px 20px;
@@ -906,8 +1205,13 @@
         background: var(--card);
         color: var(--text);
         padding: 0;
-        overflow: hidden;
+        max-height: calc(100dvh - 32px);
+        overflow-x: hidden;
+        overflow-y: auto;
         box-shadow: 0 30px 100px rgba(0, 0, 0, 0.65);
+      }
+      dialog.dialog-wide {
+        width: min(760px, calc(100vw - 32px));
       }
       dialog::before {
         content: "";
@@ -946,6 +1250,91 @@
         padding: 18px 20px;
         display: grid;
         gap: 14px;
+      }
+      .flow-steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-bottom: 1px solid var(--rule);
+      }
+      .flow-step {
+        padding: 10px 12px;
+        color: var(--text-muted);
+        font: 500 8px var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-align: center;
+      }
+      .flow-step + .flow-step {
+        border-left: 1px solid var(--rule);
+      }
+      .flow-step.active {
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .agent-dialog-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 18px;
+      }
+      .dialog-subhead {
+        margin: 0 0 9px;
+        color: var(--text-dim);
+        font: 500 9px var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .inherit-list {
+        display: grid;
+        gap: 7px;
+      }
+      .inherit-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 9px;
+        border: 1px solid var(--rule);
+        border-radius: 7px;
+        color: var(--text-dim);
+        font-size: 11px;
+      }
+      .inherit-row span:last-child {
+        color: var(--ok);
+        font: 8px var(--mono);
+        text-transform: uppercase;
+      }
+      .agent-fields {
+        display: grid;
+        gap: 11px;
+      }
+      .field textarea {
+        width: 100%;
+        min-height: 72px;
+        resize: vertical;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: var(--card-raised);
+        color: var(--text);
+        padding: 8px 9px;
+        font: inherit;
+      }
+      .field textarea:focus {
+        outline: none;
+        border-color: color-mix(in srgb, var(--accent) 45%, var(--rule-strong));
+      }
+      .consent-line {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        padding: 10px 11px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+      .consent-line input {
+        margin-top: 2px;
+        accent-color: var(--accent);
       }
       .field {
         display: grid;
@@ -1064,6 +1453,30 @@
           grid-template-columns: 1fr;
           gap: 10px;
         }
+        .profile-grid,
+        .agent-facts,
+        .agent-dialog-grid {
+          grid-template-columns: 1fr;
+        }
+        .representation-map {
+          grid-template-columns: 1fr;
+          gap: 26px;
+        }
+        .representation-link::before {
+          width: 1px;
+          height: 26px;
+        }
+        .identity-route {
+          grid-template-columns: 1fr;
+        }
+        .route-purposes {
+          justify-content: flex-start;
+        }
+        .agent-empty-action,
+        .consent-card {
+          align-items: flex-start;
+          flex-direction: column;
+        }
         .section-label p {
           margin-left: 0;
         }
@@ -1124,8 +1537,8 @@
               <div class="eyebrow">Anchor access</div>
               <h2>People</h2>
               <p>
-                Manage who can enter this brain and what level of trust each
-                person carries.
+                Manage each person’s profile, access, and the agents that
+                represent them.
               </p>
               <div class="trust-legend" aria-hidden="true">
                 <span class="k-anchor"><i></i>Anchor</span>
@@ -1151,8 +1564,8 @@
                   <span>
                     <span class="person-name">Yeehaa</span>
                     <span class="person-meta"
-                      ><span class="you">You</span> · 2 identities · 2
-                      passkeys</span
+                      ><span class="you">You</span> · agent active · 2
+                      identities</span
                     >
                   </span>
                   <span class="role-stack"
@@ -1172,7 +1585,7 @@
                   <span class="avatar">MR</span>
                   <span>
                     <span class="person-name">Mira Reyes</span>
-                    <span class="person-meta">2 identities · 1 passkey</span>
+                    <span class="person-meta">No agent · profile ready</span>
                   </span>
                   <span class="role-stack"
                     ><span class="role trusted"
@@ -1187,7 +1600,7 @@
                   <span class="avatar">SK</span>
                   <span>
                     <span class="person-name">Sam K.</span>
-                    <span class="person-meta">Discord · no passkey</span>
+                    <span class="person-meta">Agent pending · Discord</span>
                   </span>
                   <span class="role-stack"
                     ><span class="role public"
@@ -1200,7 +1613,7 @@
               </div>
             </section>
 
-            <section class="detail" aria-label="Mira Reyes access details">
+            <section class="detail" aria-label="Mira Reyes person dossier">
               <div class="detail-identity">
                 <div class="detail-person">
                   <span class="avatar">MR</span>
@@ -1219,109 +1632,344 @@
                 </div>
               </div>
 
-              <div class="detail-sections">
-                <section class="detail-section">
-                  <div class="section-label">
-                    <h3>Identities</h3>
-                    <p>Ways this person is recognized.</p>
-                  </div>
-                  <div class="stack">
-                    <div class="access-item">
-                      <div>
-                        <div class="access-kind">Discord</div>
-                        <div class="access-value">MiraR · verified</div>
-                      </div>
-                      <button
-                        class="text-action danger"
-                        type="button"
-                        data-open="detach"
-                      >
-                        Detach
-                      </button>
-                    </div>
-                    <div class="access-item">
-                      <div>
-                        <div class="access-kind">Email</div>
-                        <div class="access-value">
-                          m***@example.com · verified
-                        </div>
-                      </div>
-                      <button
-                        class="text-action danger"
-                        type="button"
-                        data-open="detach"
-                      >
-                        Detach
-                      </button>
-                    </div>
-                    <div class="inline-actions">
-                      <button
-                        class="button quiet"
-                        type="button"
-                        data-open="attach"
-                      >
-                        Attach identity
-                      </button>
-                    </div>
-                  </div>
-                </section>
+              <nav class="dossier-tabs" aria-label="Person dossier sections">
+                <button
+                  class="dossier-tab"
+                  type="button"
+                  data-dossier="profile"
+                >
+                  Profile
+                </button>
+                <button class="dossier-tab" type="button" data-dossier="access">
+                  Access
+                </button>
+                <button
+                  class="dossier-tab active"
+                  type="button"
+                  data-dossier="agent"
+                  aria-current="page"
+                >
+                  Agent
+                </button>
+              </nav>
 
-                <section class="detail-section">
-                  <div class="section-label">
-                    <h3>Passkeys</h3>
-                    <p>Private authentication credentials.</p>
+              <div class="dossier-panel" data-dossier-panel="profile" hidden>
+                <div class="profile-sheet">
+                  <div class="profile-lede">
+                    <strong>Independent systems researcher</strong>
+                    <span
+                      >A durable person profile shared by access and every agent
+                      that represents Mira.</span
+                    >
                   </div>
-                  <div class="stack">
-                    <div class="access-item">
-                      <div>
-                        <div class="access-kind">Passkey</div>
-                        <div class="access-value">
-                          MacBook Touch ID · added 8 Jul
-                        </div>
-                      </div>
-                      <button
-                        class="text-action danger"
-                        type="button"
-                        data-open="revoke"
-                      >
-                        Revoke
-                      </button>
+                  <div class="profile-grid">
+                    <div class="profile-fact">
+                      <span>Organization</span><strong>Common Field Lab</strong>
                     </div>
-                    <div class="inline-actions">
-                      <button
-                        class="button quiet"
-                        type="button"
-                        data-open="setup"
+                    <div class="profile-fact">
+                      <span>Location</span><strong>Lisbon · Remote</strong>
+                    </div>
+                    <div class="profile-fact">
+                      <span>Expertise</span
+                      ><strong
+                        >Public systems, field research, facilitation</strong
                       >
-                        Create setup link
-                      </button>
+                    </div>
+                    <div class="profile-fact">
+                      <span>Profile identity</span
+                      ><strong>prsn_mira_7vK1 · Private</strong>
                     </div>
                   </div>
-                </section>
+                  <div class="inline-actions">
+                    <button class="button quiet" type="button">
+                      Edit profile
+                    </button>
+                    <button class="text-action" type="button">
+                      Continue in chat ↗
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-                <section class="detail-section">
-                  <div class="section-label">
-                    <h3>Sessions</h3>
-                    <p>Current authenticated access.</p>
-                  </div>
-                  <div class="stack">
-                    <div class="access-item">
+              <div class="dossier-panel" data-dossier-panel="agent">
+                <div class="agent-workbench">
+                  <div class="agent-state" data-agent-panel="empty">
+                    <div class="agent-kicker">
                       <div>
-                        <div class="access-kind">Authenticated sessions</div>
-                        <div class="access-value">
-                          2 active · newest 14 minutes ago
+                        <h3>Ready for an agent</h3>
+                        <p>
+                          Create a representative without entering Mira’s
+                          information again.
+                        </p>
+                      </div>
+                      <span class="agent-status-chip">Not created</span>
+                    </div>
+
+                    <div
+                      class="representation-map"
+                      aria-label="Representation map"
+                    >
+                      <div class="representation-node">
+                        <span class="node-kind">Person profile</span>
+                        <span class="node-name">Mira Reyes</span>
+                        <span class="node-id">prsn_mira_7vK1</span>
+                      </div>
+                      <div class="representation-link">
+                        <span>represents</span>
+                      </div>
+                      <div class="representation-node agent-node">
+                        <span class="node-kind">Agent</span>
+                        <span class="node-name">Not created</span>
+                        <span class="node-id">Profile source prepared</span>
+                      </div>
+                    </div>
+
+                    <div class="inheritance-card">
+                      <div class="inheritance-head">
+                        <strong>Available to the agent runtime</strong>
+                        <span>Referenced, never copied</span>
+                      </div>
+                      <div class="identity-route">
+                        <div>
+                          <strong>Discord · @MiraR</strong>
+                          <small>verified · canonical subject …4182</small>
+                        </div>
+                        <div class="route-purposes">
+                          <span class="micro-chip on">Recognize</span>
+                          <span class="micro-chip on">Deliver</span>
+                          <span class="micro-chip off">Publish off</span>
                         </div>
                       </div>
+                      <div class="identity-route">
+                        <div>
+                          <strong>Email · m***@example.com</strong>
+                          <small>verified · private identity</small>
+                        </div>
+                        <div class="route-purposes">
+                          <span class="micro-chip on">Recognize</span>
+                          <span class="micro-chip off">Deliver off</span>
+                          <span class="micro-chip off">Publish off</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="agent-empty-action">
+                      <p>
+                        Profile data and private identity routing remain
+                        governed by Mira’s person record.
+                      </p>
                       <button
-                        class="text-action danger"
+                        class="button primary"
                         type="button"
-                        data-open="sessions"
+                        data-open="create-agent"
                       >
-                        Revoke all
+                        Create Mira’s agent
                       </button>
                     </div>
                   </div>
-                </section>
+
+                  <div class="agent-state" data-agent-panel="pending" hidden>
+                    <div class="agent-kicker">
+                      <div>
+                        <h3>Mira Field</h3>
+                        <p>
+                          Configured by Yeehaa · awaiting represented-person
+                          consent.
+                        </p>
+                      </div>
+                      <span class="agent-status-chip pending"
+                        >Consent pending</span
+                      >
+                    </div>
+                    <div class="representation-map">
+                      <div class="representation-node">
+                        <span class="node-kind">Person profile</span>
+                        <span class="node-name">Mira Reyes</span>
+                        <span class="node-id">Consent request sent</span>
+                      </div>
+                      <div class="representation-link">
+                        <span>pending</span>
+                      </div>
+                      <div class="representation-node agent-node">
+                        <span class="node-kind">Agent draft</span>
+                        <span class="node-name">Mira Field</span>
+                        <span class="node-id">agt_mira_field</span>
+                      </div>
+                    </div>
+                    <div class="consent-card">
+                      <div>
+                        <strong>Mira must approve representation</strong>
+                        <span
+                          >The request appears in My Agent. Activation will not
+                          expose private identity values.</span
+                        >
+                      </div>
+                      <button class="button quiet" type="button">
+                        Copy request link
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="agent-state" data-agent-panel="linked" hidden>
+                    <div class="agent-kicker">
+                      <div>
+                        <h3>Mira Field</h3>
+                        <p>
+                          Represents Mira Reyes · managed by Mira and Yeehaa.
+                        </p>
+                      </div>
+                      <span class="agent-status-chip ready">Active</span>
+                    </div>
+                    <div class="representation-map">
+                      <div class="representation-node">
+                        <span class="node-kind">Represented person</span>
+                        <span class="node-name">Mira Reyes</span>
+                        <span class="node-id"
+                          >Profile + verified identities</span
+                        >
+                      </div>
+                      <div class="representation-link"><span>active</span></div>
+                      <div class="representation-node agent-node">
+                        <span class="node-kind">Agent</span>
+                        <span class="node-name">Mira Field</span>
+                        <span class="node-id">agt_mira_field · Private</span>
+                      </div>
+                    </div>
+                    <div class="agent-facts">
+                      <div class="agent-fact">
+                        <span>Profile source</span><strong>Mira Reyes</strong>
+                      </div>
+                      <div class="agent-fact">
+                        <span>Identity routes</span><strong>2 inherited</strong>
+                      </div>
+                      <div class="agent-fact">
+                        <span>Public claims</span><strong>None</strong>
+                      </div>
+                    </div>
+                    <div class="inline-actions agent-actions">
+                      <button class="button quiet" type="button">
+                        Open agent
+                      </button>
+                      <button class="text-action" type="button">
+                        Manage identity sharing
+                      </button>
+                      <button
+                        class="text-action danger"
+                        type="button"
+                        data-open="unlink-agent"
+                      >
+                        End representation
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dossier-panel" data-dossier-panel="access" hidden>
+                <div class="detail-sections">
+                  <section class="detail-section">
+                    <div class="section-label">
+                      <h3>Identities</h3>
+                      <p>Ways this person is recognized.</p>
+                    </div>
+                    <div class="stack">
+                      <div class="access-item">
+                        <div>
+                          <div class="access-kind">Discord</div>
+                          <div class="access-value">MiraR · verified</div>
+                        </div>
+                        <button
+                          class="text-action danger"
+                          type="button"
+                          data-open="detach"
+                        >
+                          Detach
+                        </button>
+                      </div>
+                      <div class="access-item">
+                        <div>
+                          <div class="access-kind">Email</div>
+                          <div class="access-value">
+                            m***@example.com · verified
+                          </div>
+                        </div>
+                        <button
+                          class="text-action danger"
+                          type="button"
+                          data-open="detach"
+                        >
+                          Detach
+                        </button>
+                      </div>
+                      <div class="inline-actions">
+                        <button
+                          class="button quiet"
+                          type="button"
+                          data-open="attach"
+                        >
+                          Attach identity
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="detail-section">
+                    <div class="section-label">
+                      <h3>Passkeys</h3>
+                      <p>Private authentication credentials.</p>
+                    </div>
+                    <div class="stack">
+                      <div class="access-item">
+                        <div>
+                          <div class="access-kind">Passkey</div>
+                          <div class="access-value">
+                            MacBook Touch ID · added 8 Jul
+                          </div>
+                        </div>
+                        <button
+                          class="text-action danger"
+                          type="button"
+                          data-open="revoke"
+                        >
+                          Revoke
+                        </button>
+                      </div>
+                      <div class="inline-actions">
+                        <button
+                          class="button quiet"
+                          type="button"
+                          data-open="setup"
+                        >
+                          Create setup link
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="detail-section">
+                    <div class="section-label">
+                      <h3>Sessions</h3>
+                      <p>Current authenticated access.</p>
+                    </div>
+                    <div class="stack">
+                      <div class="access-item">
+                        <div>
+                          <div class="access-kind">Authenticated sessions</div>
+                          <div class="access-value">
+                            2 active · newest 14 minutes ago
+                          </div>
+                        </div>
+                        <button
+                          class="text-action danger"
+                          type="button"
+                          data-open="sessions"
+                        >
+                          Revoke all
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                </div>
               </div>
 
               <footer class="detail-footer">
@@ -1335,13 +1983,21 @@
 
           <aside class="mock-note">
             <span
-              ><strong>Mockup note:</strong> every destructive action opens a
-              plain-language confirmation before calling the admin API.</span
+              ><strong>Mockup note:</strong> profile work may continue in chat,
+              but identity linking, representation consent, and activation stay
+              in the dashboard.</span
             >
             <span class="state-buttons">
-              <button type="button" data-open="add-person">Add state</button>
-              <button type="button" data-open="role-confirm">Role state</button>
-              <button type="button" data-open="setup">Setup-link state</button>
+              <button type="button" data-agent-state="empty">No agent</button>
+              <button type="button" data-agent-state="pending">Pending</button>
+              <button type="button" data-agent-state="linked">Linked</button>
+              <button type="button" data-open="create-agent">
+                Create flow
+              </button>
+              <button type="button" data-open="link-person">
+                Agent → person
+              </button>
+              <button type="button" data-open="setup">Setup link</button>
             </span>
           </aside>
         </div>
@@ -1428,6 +2084,111 @@
       </form>
     </dialog>
 
+    <dialog class="dialog-wide" id="create-agent">
+      <form method="dialog" id="create-agent-form">
+        <header class="dialog-head">
+          <h3>Create Mira’s agent</h3>
+          <p>
+            The agent references Mira’s person profile and verified identities;
+            it does not copy her account data.
+          </p>
+        </header>
+        <div class="flow-steps" aria-label="Create agent steps">
+          <div class="flow-step active">1 · Representation</div>
+          <div class="flow-step active">2 · Configure</div>
+          <div class="flow-step">3 · Consent</div>
+        </div>
+        <div class="dialog-body">
+          <div class="agent-dialog-grid">
+            <section>
+              <h4 class="dialog-subhead">Inherited by reference</h4>
+              <div class="inherit-list">
+                <div class="inherit-row">
+                  <span>Mira Reyes · person profile</span><span>Included</span>
+                </div>
+                <div class="inherit-row">
+                  <span>Discord @MiraR · private route</span
+                  ><span>Available</span>
+                </div>
+                <div class="inherit-row">
+                  <span>Email m***@example.com</span><span>Private</span>
+                </div>
+                <div class="inherit-row">
+                  <span>Passkeys and sessions</span><span>Excluded</span>
+                </div>
+              </div>
+            </section>
+            <section class="agent-fields">
+              <h4 class="dialog-subhead">Agent-specific details</h4>
+              <div class="field">
+                <label for="agent-name">Agent name</label>
+                <input id="agent-name" value="Mira Field" />
+              </div>
+              <div class="field">
+                <label for="agent-purpose">Purpose</label>
+                <textarea id="agent-purpose">
+Represent Mira’s research practice and help collaborators navigate her published work.</textarea>
+              </div>
+              <div class="field">
+                <label for="agent-visibility">Initial visibility</label>
+                <select id="agent-visibility">
+                  <option selected>Private</option>
+                  <option>Trusted</option>
+                  <option>Public</option>
+                </select>
+              </div>
+            </section>
+          </div>
+          <label class="consent-line">
+            <input type="checkbox" checked />
+            <span
+              >Request Mira’s approval before activation. Public identity claims
+              remain off until she explicitly enables them.</span
+            >
+          </label>
+        </div>
+        <footer class="dialog-foot">
+          <button class="button quiet" value="cancel">Cancel</button>
+          <button class="button primary" value="create-agent">
+            Create and request consent
+          </button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog id="link-person">
+      <form method="dialog">
+        <header class="dialog-head">
+          <h3>Who does this agent represent?</h3>
+          <p>
+            This is the reverse path from an agent dossier. Existing people can
+            be linked; new people are invited to claim the profile.
+          </p>
+        </header>
+        <div class="dialog-body">
+          <div class="field">
+            <label for="represented-person">Represented person</label>
+            <select id="represented-person">
+              <option selected>Select an existing person…</option>
+              <option>Mira Reyes · Trusted</option>
+              <option>Yeehaa · Anchor</option>
+            </select>
+          </div>
+          <div class="warning-box">
+            Linking another active person creates a pending request. The agent
+            cannot use their profile or identity routes until they consent.
+          </div>
+          <button class="text-action" type="button">
+            Invite a new represented person instead ↗
+          </button>
+        </div>
+        <footer class="dialog-foot">
+          <button class="button quiet" value="cancel">Cancel</button>
+          <button class="button primary" value="confirm">Request link</button>
+        </footer>
+      </form>
+    </dialog>
+
     <dialog id="generic-confirm">
       <form method="dialog">
         <header class="dialog-head">
@@ -1450,6 +2211,8 @@
       const dialogs = {
         "add-person": document.getElementById("add-person"),
         "role-confirm": document.getElementById("role-confirm"),
+        "create-agent": document.getElementById("create-agent"),
+        "link-person": document.getElementById("link-person"),
         setup: document.getElementById("setup"),
       };
       const generic = document.getElementById("generic-confirm");
@@ -1479,6 +2242,11 @@
           "The production flow opens identity type, subject, and display-label fields.",
           "Raw provider subjects remain private in auth storage.",
         ],
+        "unlink-agent": [
+          "End this representation?",
+          "Mira Field will stop representing Mira immediately.",
+          "The person profile and verified identities remain intact; only the agent link is revoked.",
+        ],
       };
       document.querySelectorAll("[data-open]").forEach((button) => {
         button.addEventListener("click", () => {
@@ -1492,6 +2260,40 @@
           generic.showModal();
         });
       });
+      const selectDossier = (name) => {
+        document.querySelectorAll("[data-dossier]").forEach((tab) => {
+          const selected = tab.dataset.dossier === name;
+          tab.classList.toggle("active", selected);
+          if (selected) tab.setAttribute("aria-current", "page");
+          else tab.removeAttribute("aria-current");
+        });
+        document.querySelectorAll("[data-dossier-panel]").forEach((panel) => {
+          panel.hidden = panel.dataset.dossierPanel !== name;
+        });
+      };
+      document.querySelectorAll("[data-dossier]").forEach((tab) => {
+        tab.addEventListener("click", () => selectDossier(tab.dataset.dossier));
+      });
+
+      const selectAgentState = (state) => {
+        selectDossier("agent");
+        document.querySelectorAll("[data-agent-panel]").forEach((panel) => {
+          panel.hidden = panel.dataset.agentPanel !== state;
+        });
+      };
+      document.querySelectorAll("[data-agent-state]").forEach((button) => {
+        button.addEventListener("click", () =>
+          selectAgentState(button.dataset.agentState),
+        );
+      });
+      document
+        .getElementById("create-agent-form")
+        .addEventListener("submit", (event) => {
+          if (event.submitter?.value === "create-agent") {
+            window.setTimeout(() => selectAgentState("pending"), 0);
+          }
+        });
+
       document
         .querySelector("[data-confirm-role]")
         .addEventListener("change", (event) => {
