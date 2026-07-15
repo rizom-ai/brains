@@ -197,7 +197,6 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
-- [shell-service-ownership.md](./plans/shell-service-ownership.md) — verify fresh per-shell ownership through two-shell failure isolation and packaged startup/distribution checks.
 - [directory-sync-effect-lifecycle.md](./plans/directory-sync-effect-lifecycle.md) — scope directory watchers, git schedules, debounce work, cancellation, and shutdown under the private Effect runtime while keeping plugin APIs Promise-based.
 - [effect-lifecycle-adoption.md](./plans/effect-lifecycle-adoption.md) — companion sweep: supervise content-pipeline's scheduled publishes, link a2a streaming turns to stream lifetime, and scope media-renderer browser processes, all behind Promise-based contracts.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
