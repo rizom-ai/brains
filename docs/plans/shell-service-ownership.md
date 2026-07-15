@@ -2,15 +2,7 @@
 
 ## Status
 
-In progress. Fresh per-shell construction and the three package-owned database Layer slices have shipped on `main`:
-
-- shell construction no longer uses process-global resets or singleton factories;
-- one fresh `ShellInitializer` is retained by each shell;
-- runtime-state, conversation, and entity services are acquired through private package-owned scoped Layers;
-- the entity Layer owns both entity and embedding database clients;
-- supplied `ShellDependencies` follow the same shell lifetime as defaults.
-
-The remaining work is Phase 3's combined lifecycle audit—especially the recurring-check service that landed alongside this refactor—and Phase 4's integration and distribution verification. This cleanup is not a stable `v0.2.0` release gate and must not preempt roadmap P0/P1 work.
+Partial. Phases 0-3 have landed: fresh per-shell construction, package-owned database Layers, and cross-service lifecycle rollback. Phase 4 integration and distribution verification remains. This cleanup is not a stable `v0.2.0` release gate and must not preempt roadmap P0/P1 work.
 
 ## Goal
 
@@ -30,21 +22,10 @@ The previous process-global composition model has been replaced:
 6. Scoped release replaces manual core database finalizers for runtime-state, conversation, and entity services.
 7. Synchronous Layer acquisition rethrows the original failure rather than leaking `FiberFailure`.
 8. Public declarations remain Promise-based and do not expose Effect types.
+9. Recurring-check handler and daemon registrations roll back synchronously; entity release unregisters its embedding handler before queue database release.
+10. Combined tests cover construction failure identity, supplied-service exact-once cleanup, normal cleanup order, and exclusion of singleton resets from normal composition.
 
 Legacy `getInstance()`, `resetInstance()`, `resetServiceSingletons()`, and `resetAllSingletons()` remain compatibility/test utilities. Normal shell construction, boot, rollback, and shutdown must not depend on them.
-
-## Remaining integration gap
-
-The shared recurring-check scheduler landed while this plan was in progress. Core now constructs `RecurringCheckService` after job/runtime-state acquisition and before entity/conversation acquisition. Its constructor registers a durable job handler, and its daemon starts scheduling later during shell boot.
-
-Phase 3 must prove that a later construction failure cannot strand:
-
-- the recurring-check job handler in an injected queue;
-- a daemon registration or scheduled job;
-- a runtime-state namespace or active check;
-- any database client acquired by a package Layer.
-
-The audit must preserve the current boot and shutdown barriers rather than wrapping pure services in cosmetic Layers.
 
 ## Invariants
 
@@ -88,17 +69,6 @@ Do not use Effect for pure registries, configuration, schemas, CRUD logic, synch
 
 ## Remaining delivery
 
-### Phase 3 — Core lifecycle consolidation and audit
-
-1. Audit the combined acquisition order in `createShellServices()`: runtime-state Layer, job scopes, recurring checks, entity Layer, conversation Layer, then later service wiring.
-2. Register ownership immediately when a constructor creates resources or durable registrations. A later synchronous failure must roll back recurring-check handlers/daemons and all acquired Layers.
-3. Add failure-path coverage for default and injected recurring-check/job services, preserving the first failure and exact-once cleanup.
-4. Verify no normal runtime path calls `resetServiceSingletons()` or package singleton factories; retain those APIs only for compatibility and explicit test reset.
-5. Preserve explicit barriers for graceful job drain, plugin/daemon shutdown, recurring-check stop, active turns, and database close order.
-6. Keep architecture documentation synchronized with the final fresh-graph and private Layer boundaries.
-
-Phase 3 should be a small consolidation change. Do not introduce Layers for pure services and do not refactor directory-sync, content-pipeline, A2A, or media-renderer lifecycle work into this plan.
-
 ### Phase 4 — Integration and distribution verification
 
 1. Boot and shut down two isolated no-interface shells in one process against separate persistent SQLite paths.
@@ -133,7 +103,7 @@ Behavioral gates:
 - supplied dependencies are honored and cleaned up exactly once;
 - recurring-check registration cannot survive failed shell construction;
 - initialization and registration order is unchanged;
-- jobs drain first, and recurring checks stop with daemon shutdown before databases close;
+- recurring checks stop before the job runtime drains, then plugins stop before databases close;
 - repeated shutdown is idempotent;
 - original startup and cleanup failure identity is preserved;
 - no normal shell path depends on singleton reset helpers;

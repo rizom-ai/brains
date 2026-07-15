@@ -26,6 +26,35 @@ describe("DaemonRegistry", () => {
     expect(registry.get("test-daemon")?.pluginId).toBe("test-plugin");
   });
 
+  it("should abandon an unstarted registration idempotently", () => {
+    const mockDaemon: Daemon = {
+      start: async () => {},
+      stop: async () => {},
+    };
+
+    registry.register("test-daemon", mockDaemon, "test-plugin");
+    registry.abandon("test-daemon");
+    registry.abandon("test-daemon");
+
+    expect(registry.has("test-daemon")).toBe(false);
+  });
+
+  it("should reject abandoning an active daemon", async () => {
+    const mockDaemon: Daemon = {
+      start: async () => {},
+      stop: async () => {},
+    };
+
+    registry.register("test-daemon", mockDaemon, "test-plugin");
+    await registry.start("test-daemon");
+
+    expect(() => registry.abandon("test-daemon")).toThrow(
+      "Cannot abandon active daemon",
+    );
+
+    await registry.stop("test-daemon");
+  });
+
   it("should start and stop daemons", async () => {
     let started = false;
     let stopped = false;

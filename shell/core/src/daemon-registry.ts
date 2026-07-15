@@ -213,6 +213,20 @@ export class DaemonRegistry {
   }
 
   /**
+   * Synchronously discard a daemon that has not started yet.
+   * Used only for construction rollback; running daemons require unregister().
+   */
+  public abandon(name: string): void {
+    const daemonInfo = this.daemons.get(name);
+    if (!daemonInfo) return;
+    if (daemonInfo.status !== "stopped" || this.daemonScopes.has(name)) {
+      throw new Error(`Cannot abandon active daemon: ${name}`);
+    }
+    this.daemons.delete(name);
+    this.logger.debug(`Abandoned daemon registration: ${name}`);
+  }
+
+  /**
    * Start all daemons for a plugin
    */
   public async startPlugin(pluginId: string): Promise<void> {

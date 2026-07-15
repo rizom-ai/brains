@@ -46,6 +46,8 @@ The first layer-owned slice is the job-service stack. The private `@brains/job-q
 
 Core also composes package-owned scoped layers for runtime state, conversations, and entities through each package's private `/effect` subpath. These layers own fresh or injected services and their database connections for exactly one shell lifetime, replacing manual core finalizers while preserving Promise service contracts. Pure registries, adapters, schemas, and configuration remain normal TypeScript services rather than Layer dependencies.
 
+Durable registrations created during synchronous construction need ownership even when they are not Layers. Core registers synchronous abandonment immediately after recurring-check handler and daemon registration; entity release unregisters its embedding handler before the injected or default queue database closes. A later constructor failure therefore cannot leave handlers or stopped daemons in supplied registries.
+
 Future layers must meet the same criteria:
 
 1. construct fresh service instances without static singleton state;

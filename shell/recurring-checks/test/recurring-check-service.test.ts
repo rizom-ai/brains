@@ -86,10 +86,20 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
 
 class TestJobQueue {
   readonly enqueued: JobQueueEnqueueRequest[] = [];
+  readonly unregistered: string[] = [];
   private readonly handlers = new Map<string, JobHandler>();
 
   registerHandler(type: string, handler: JobHandler): void {
     this.handlers.set(type, handler);
+  }
+
+  unregisterHandler(type: string): void {
+    this.handlers.delete(type);
+    this.unregistered.push(type);
+  }
+
+  hasHandler(type: string): boolean {
+    return this.handlers.has(type);
   }
 
   enqueue(request: JobQueueEnqueueRequest): Promise<string> {
@@ -192,6 +202,30 @@ function createService(
 }
 
 describe("RecurringCheckService", () => {
+  it("abandons its unused durable handler exactly once", () => {
+    const { service, queue } = createService();
+
+    expect(queue.hasHandler(RECURRING_CHECK_JOB_TYPE)).toBe(true);
+    service.abandon();
+    service.abandon();
+
+    expect(queue.hasHandler(RECURRING_CHECK_JOB_TYPE)).toBe(false);
+    expect(queue.unregistered).toEqual([RECURRING_CHECK_JOB_TYPE]);
+  });
+
+  it("refuses synchronous abandonment while running", async () => {
+    const { service, queue } = createService();
+    await service.start();
+
+    expect(() => service.abandon()).toThrow(
+      "Cannot abandon a running recurring check service",
+    );
+
+    await service.stop();
+    service.abandon();
+    expect(queue.hasHandler(RECURRING_CHECK_JOB_TYPE)).toBe(false);
+  });
+
   it("creates stable, staggered UTC schedules", () => {
     const first = createRecurringCheckSchedule(
       "brain.example",
