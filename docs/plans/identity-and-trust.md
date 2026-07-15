@@ -107,16 +107,19 @@ later change without overlap (no grace-window rotation via JWKS
 multi-key publishing), the peer drops back to discovered and requires
 re-approval. No secret is ever exchanged in any trust flow.
 
-### 5. Humans and brains stay distinct subjects in v1
+### 5. Humans and brains stay distinct actors and link through a person subject
 
-Multi-user's `AuthUserIdentity` already reserves `a2a` and `did` identity
-types, so a peer brain (or its anchor) can eventually be bound to a
-runtime user for attribution ("this change came from Jane's brain"). That
-linking is explicitly **not** wired in v1: brains resolve through the
-runtime peer-trust store (verified domain → granted level), humans
-through auth users, and the two meet only at the permission model.
-Cross-subject linking is a follow-on that needs multi-user phases 1–2
-and a2a signing both landed first.
+Multi-user phases 1–5 deliberately kept auth users and peer agents separate. The approved phase 6 follow-on now introduces the missing person-centered link without collapsing attribution:
+
+```text
+Auth user ─────► Person ◄───── Agent
+```
+
+The person owns canonical human identity claims such as Discord, email, and human DIDs. The auth user is the access/account facet; the agent is the acting representative. Linking them reuses the same person and claim ids rather than copying provider subjects. Agent-owned bot identities, brain DIDs, domains, and A2A keys remain attached to the agent/brain subject and never become human login identities.
+
+Promotion runs from an existing agent dossier to a represented person's invited auth-user facet. Agent-asserted contact data retains its provenance but cannot authenticate the new user until a passkey or provider proves control. Linking an existing user follows the same person path, reuses exact verified claims, and requires explicit reconciliation for conflicts.
+
+Actors remain distinct after linking: an autonomous or delegated action is attributed to the agent, while the initiating or represented user is retained separately as delegation/`onBehalfOf` provenance. The link does not inherit `anchor` authority, alter peer trust, publish private claims, or make auth administration model-visible.
 
 ## What this settles in the execution plans
 
@@ -128,11 +131,7 @@ requests only (response/stream signing is a separate future question);
 and directory approval writes the runtime peer-trust record — pinned
 fingerprint plus granted inbound level — per decision 4.
 
-**multi-user.md** — unchanged in substance; its identity-key
-normalization (`did:<did>`, `a2a` bindings) is the reserved hook for
-decision 5's follow-on. Its dependency note ("depends on a2a-request-signing
-for cross-interface identity") applies to that follow-on, not to phases
-1–3, which can proceed independently.
+**multi-user.md** — phase 6 owns person-centered canonical identity claims, agent-to-user promotion, existing-user linking, consent, and migration from user-only identity ownership. Brain/agent proof remains dependent on A2A/ATProto verification; an asserted agent profile alone cannot establish a human authentication binding.
 
 **atproto-integration.md** — the brain-DID convention
 (`did:web:<site-host>`) is ratified as the DID spelling of decision 2's
@@ -149,4 +148,4 @@ The two subject tracks are independent and can proceed in parallel:
 - **Brains**: a2a-request-signing phases 1–6 (keys, signing, verification,
   task binding); ATProto OAuth hardening on its own track.
 
-Cross-subject identity linking (decision 5 follow-on) is gated on both.
+Person-centered linking can land incrementally now that human auth and signed brain identity exist. Storage migration and exact-claim reuse come first; promotion/consent UX follows; public identity projection remains opt-in.

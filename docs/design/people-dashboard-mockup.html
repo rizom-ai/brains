@@ -1585,7 +1585,9 @@
                   <span class="avatar">MR</span>
                   <span>
                     <span class="person-name">Mira Reyes</span>
-                    <span class="person-meta">No agent · profile ready</span>
+                    <span class="person-meta"
+                      >Mira Field linked · 2 identities</span
+                    >
                   </span>
                   <span class="role-stack"
                     ><span class="role trusted"
@@ -1693,7 +1695,7 @@
 
               <div class="dossier-panel" data-dossier-panel="agent">
                 <div class="agent-workbench">
-                  <div class="agent-state" data-agent-panel="empty">
+                  <div class="agent-state" data-agent-panel="empty" hidden>
                     <div class="agent-kicker">
                       <div>
                         <h3>Ready for an agent</h3>
@@ -1810,7 +1812,7 @@
                     </div>
                   </div>
 
-                  <div class="agent-state" data-agent-panel="linked" hidden>
+                  <div class="agent-state" data-agent-panel="linked">
                     <div class="agent-kicker">
                       <div>
                         <h3>Mira Field</h3>
@@ -1983,19 +1985,20 @@
 
           <aside class="mock-note">
             <span
-              ><strong>Mockup note:</strong> profile work may continue in chat,
-              but identity linking, representation consent, and activation stay
-              in the dashboard.</span
+              ><strong>Mockup note:</strong> promotion begins in an agent
+              dossier and grants its represented person access. User → agent
+              creation is a secondary linking flow. Security changes stay in the
+              dashboard.</span
             >
             <span class="state-buttons">
               <button type="button" data-agent-state="empty">No agent</button>
               <button type="button" data-agent-state="pending">Pending</button>
               <button type="button" data-agent-state="linked">Linked</button>
-              <button type="button" data-open="create-agent">
-                Create flow
+              <button type="button" data-open="promote-person">
+                Agent → user promotion
               </button>
-              <button type="button" data-open="link-person">
-                Agent → person
+              <button type="button" data-open="create-agent">
+                User → agent link
               </button>
               <button type="button" data-open="setup">Setup link</button>
             </span>
@@ -2156,35 +2159,75 @@ Represent Mira’s research practice and help collaborators navigate her publish
       </form>
     </dialog>
 
-    <dialog id="link-person">
+    <dialog class="dialog-wide" id="promote-person">
       <form method="dialog">
         <header class="dialog-head">
-          <h3>Who does this agent represent?</h3>
+          <h3>Grant Mira access</h3>
           <p>
-            This is the reverse path from an agent dossier. Existing people can
-            be linked; new people are invited to claim the profile.
+            Start from Mira Field’s represented person and add an authenticated
+            user facet. The agent, profile, and canonical claims remain intact.
           </p>
         </header>
+        <div class="flow-steps" aria-label="Promotion steps">
+          <div class="flow-step active">1 · Agent person</div>
+          <div class="flow-step active">2 · Access</div>
+          <div class="flow-step">3 · Claim</div>
+        </div>
         <div class="dialog-body">
-          <div class="field">
-            <label for="represented-person">Represented person</label>
-            <select id="represented-person">
-              <option selected>Select an existing person…</option>
-              <option>Mira Reyes · Trusted</option>
-              <option>Yeehaa · Anchor</option>
-            </select>
+          <div class="agent-dialog-grid">
+            <section>
+              <h4 class="dialog-subhead">Reused from Mira Field</h4>
+              <div class="inherit-list">
+                <div class="inherit-row">
+                  <span>Mira Reyes · prsn_mira_7vK1</span
+                  ><span>Same person</span>
+                </div>
+                <div class="inherit-row">
+                  <span>Discord @MiraR · verified</span><span>Same claim</span>
+                </div>
+                <div class="inherit-row">
+                  <span>Professional profile</span><span>Referenced</span>
+                </div>
+                <div class="inherit-row">
+                  <span>Agent bot identities</span><span>Excluded</span>
+                </div>
+              </div>
+            </section>
+            <section class="agent-fields">
+              <h4 class="dialog-subhead">New access facet</h4>
+              <div class="field">
+                <label for="promoted-role">Initial role</label>
+                <select id="promoted-role">
+                  <option>Public</option>
+                  <option selected>Trusted</option>
+                  <option>Anchor</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="claim-channel">Deliver claim through</label>
+                <select id="claim-channel">
+                  <option selected>Discord · @MiraR</option>
+                  <option>Email · m***@example.com</option>
+                  <option>Copy private setup link</option>
+                </select>
+              </div>
+              <div class="consent-line">
+                The invited user cannot authenticate until Mira verifies control
+                and registers a passkey. Agent assertions alone grant nothing.
+              </div>
+            </section>
           </div>
           <div class="warning-box">
-            Linking another active person creates a pending request. The agent
-            cannot use their profile or identity routes until they consent.
+            Promotion reuses canonical claim <strong>idn_discord_mira</strong>;
+            it does not create a second Discord identity or publish the raw
+            provider subject.
           </div>
-          <button class="text-action" type="button">
-            Invite a new represented person instead ↗
-          </button>
         </div>
         <footer class="dialog-foot">
           <button class="button quiet" value="cancel">Cancel</button>
-          <button class="button primary" value="confirm">Request link</button>
+          <button class="button primary" value="confirm">
+            Create invited user
+          </button>
         </footer>
       </form>
     </dialog>
@@ -2212,7 +2255,7 @@ Represent Mira’s research practice and help collaborators navigate her publish
         "add-person": document.getElementById("add-person"),
         "role-confirm": document.getElementById("role-confirm"),
         "create-agent": document.getElementById("create-agent"),
-        "link-person": document.getElementById("link-person"),
+        "promote-person": document.getElementById("promote-person"),
         setup: document.getElementById("setup"),
       };
       const generic = document.getElementById("generic-confirm");

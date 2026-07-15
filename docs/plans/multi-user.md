@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete. Core implementation on `feature/auth-runtime-db` includes the dashboard People UX, role-aware dashboard access, and compatibility-safe auth-session terminology migration. Invitation delivery remains optional. Runtime auth uses real users, role-aware sessions, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent anchor administration API. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
+Core multi-user access is complete. A person-centered identity and agent-to-user promotion follow-on is approved in phase 6. The current implementation includes the dashboard People UX, role-aware dashboard access, compatibility-safe auth-session terminology migration, real users, per-principal MCP permissions, canonical conversation/tool/job attribution, and a non-agent Anchor administration API. Invitation delivery remains optional. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -350,15 +350,80 @@ Validation:
 - existing browser sessions survive the table/code/cookie terminology migration
 - dashboard and setup/login copy use Anchor/Trusted/Public consistently
 
-### Phase 6 — Optional invitations/onboarding
+### Phase 6 — Person-centered identity and agent promotion
 
-Only build if real anchor workflows need it. This phase adds convenience on top of the v1 anchor-managed foundation:
+**Status: approved for implementation.** The [People dashboard mockup](../design/people-dashboard-mockup.html) explores the profile, access, representation, and consent states. Promotion runs from an existing agent to an authenticated user; creating an agent for an existing user is a secondary linking flow, not promotion.
 
-- invite token
-- pending user status
-- invited-user passkey setup
+Introduce a stable person subject between auth users and agents:
+
+```text
+Auth user ─────► Person ◄───── Agent
+                   │
+                   ├─ profile
+                   ├─ Discord identity
+                   ├─ email identity
+                   └─ DID
+```
+
+- An auth user is the access/account facet: role, status, passkeys, sessions, and grants.
+- A person is the canonical human subject: durable profile plus private, verified identity claims.
+- An agent is a distinct actor that can represent a person and resolve that person's permitted profile and identity claims.
+- Canonical identity claims belong to the person. Linking an existing user and agent to the same person reuses claim ids; it never copies Discord ids, email addresses, or profile fields.
+- Agent-owned identities such as bot accounts, brain DIDs, domains, and A2A endpoints remain separate from represented-person identities.
+- Sensitive canonical subjects remain in private runtime storage. Agent views receive opaque claim references or display handles; delivery adapters resolve raw routing subjects only when authorized. Public Agent Cards include only claims the person explicitly marks public.
+- Identity claims carry provenance and assurance. Agent-asserted profile/contact data may seed a person record, but it cannot authenticate a user until independently verified.
+- Conflicting verified claims require explicit reconciliation. Never merge by display name, similar email, or agent assertion alone.
+
+Promotion flow:
+
+1. Open an existing agent dossier and choose **Grant represented person access**.
+2. Reuse or create the agent's represented person and existing canonical claims.
+3. Select the initial `public`, `trusted`, or `anchor` role.
+4. Create an invited auth-user facet linked to that person.
+5. Deliver a targeted setup/claim link through an approved channel.
+6. Activate authentication bindings only after passkey or provider verification.
+
+Linking flow for an existing user:
+
+1. Select an agent and an existing person-backed user.
+2. Compare the agent's represented-person claims with the user's claims.
+3. Reuse exact verified matches, request reconciliation for conflicts, and retain provenance for unverified assertions.
+4. Require represented-person consent unless the signed-in user is linking their own agent.
+5. Keep agent execution attributed as the agent, with the initiating or represented user retained separately as `onBehalfOf`/delegation provenance.
+
+Storage boundaries:
+
+- Add stable person ids and user-to-person links in private auth runtime storage, backfilling one person for every existing user without changing user ids, sessions, roles, or credentials.
+- Move canonical provider identity ownership from user-only bindings to person identity claims through an ordered, row-preserving migration. Keep temporary legacy reads only behind an explicit compatibility gate.
+- Keep semantic person profiles entity-driven and markdown-based; runtime person records may reference a profile entity id but do not duplicate profile content.
+- Keep representation consent, authentication bindings, and management grants on the runtime plane. Git-synced agent/profile entities cannot grant access.
+
+Management UX:
+
+- Agent dossier: **Grant represented person access** is the primary promotion action.
+- People dossier: Profile, Access, and Agent sections show the shared person and linked facets.
+- The agent may help collect or edit semantic profile content and prepare a configuration proposal.
+- Identity linking, role selection, representation consent, activation, and revocation remain dashboard/API operations and are not model-visible administration.
+- An active user can approve their own representation request through a self-service **My Agent** view; anchors manage roster-wide requests from People.
+
+Validation:
+
+- promoting an agent creates an invited user linked to the same person and does not duplicate identity claims
+- provider-asserted identities cannot authenticate until verified
+- linking an existing user reuses an exact canonical Discord claim
+- conflicting Discord claims block automatic linking and require explicit reconciliation
+- linking never publishes a private identity or exposes raw provider subjects to the model
+- existing users, passkeys, sessions, roles, identity lookup, and browser cookies survive the person migration
+- agent actions remain attributed to the agent while retaining initiating-user/delegation provenance
+
+### Phase 7 — Optional invitation delivery
+
+Build delivery convenience on top of the targeted setup/claim mechanism only when real workflows need it:
+
+- invite token lifecycle beyond the existing targeted setup token
 - email/Discord delivery hooks
 - resend/expiry UX
+- self-service claim notifications
 
 ## Security notes
 
@@ -391,3 +456,4 @@ Only build if real anchor workflows need it. This phase adds convenience on top 
 7. Conversations/jobs can be attributed to users.
 8. Auth state remains outside `brain-data`.
 9. Dashboard permissions use the authenticated user's actual role, People management is anchor-only, and legacy Operator/Owner role terminology is removed with compatibility-safe session migration.
+10. An agent's represented person can be promoted to an invited auth user without copying canonical identity claims, and existing users can link to agents through the same person subject.

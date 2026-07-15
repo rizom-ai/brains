@@ -337,6 +337,21 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 
 Validation: existing sessions survive migration; trusted sessions stay trusted in the dashboard; only anchors can use People administration; no user-facing role copy says Owner or Operator.
 
+### Phase 8 — Person subjects and canonical identity claims
+
+**Status: approved for implementation.** Product behavior and promotion UX are specified in [Multi-user and permissions](./multi-user.md#phase-6--person-centered-identity-and-agent-promotion).
+
+- Add stable runtime person records and link every auth user to one person through an ordered migration.
+- Preserve user ids, passkeys, sessions, roles, statuses, and existing identity row ids during backfill.
+- Make canonical provider claims person-owned while retaining user authentication bindings and claim provenance/assurance.
+- Add runtime agent-to-person representation links with explicit consent state; content-plane agent records cannot grant access.
+- Resolve linked user and agent views through shared person/claim ids without copying raw subjects.
+- Keep raw delivery subjects private to auth/interface adapters and public projection opt-in.
+- Promote an agent's represented person by creating an invited auth-user facet; require independent passkey/provider verification before activation.
+- Keep agent attribution distinct and add initiating-user/delegation provenance rather than rewriting the agent actor as a user.
+
+Validation: migrations are row-preserving and restart-idempotent; exact verified Discord claims are reused; asserted/conflicting claims cannot silently authenticate or merge; existing auth and identity lookup behavior remains compatible throughout the bounded migration.
+
 ## Security notes
 
 - Hash bearer/session/refresh/setup tokens before storage.
