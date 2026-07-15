@@ -1,5 +1,13 @@
 # @rizom/site-rizom-foundation
 
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- Updated dependencies [[`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75)]:
+  - @rizom/site-rizom@0.2.0-alpha.181
+  - @rizom/site@0.2.0-alpha.181
+
 ## 0.2.0-alpha.180
 
 ### Patch Changes

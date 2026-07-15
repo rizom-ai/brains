@@ -1,5 +1,14 @@
 # @brains/theme-rizom-ai
 
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- [`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The theme now owns its complete font set: the base theme's Google-font imports (Barlow, JetBrains Mono, and a Fraunces slice missing SOFT below 30) are stripped at composition, and theme.css imports Fraunces with the full SOFT 0–100 axis (the brain screens dial SOFT 20) alongside IBM Plex Sans/Mono. Every deployed page loses two dead font-CSS requests. The growth diagram gets a real mobile treatment: filaments and node rings keep their drawn stroke weight at any scale (`vector-effect: non-scaling-stroke`), and below `md` the zone labels enlarge to stay legible while the sub-captions and ticks yield until there is room.
+
+- Updated dependencies []:
+  - @rizom/theme-default@0.2.0-alpha.181
+
 ## 0.2.0-alpha.180
 
 ### Patch Changes

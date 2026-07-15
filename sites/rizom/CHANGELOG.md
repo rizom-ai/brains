@@ -1,5 +1,14 @@
 # @brains/site-rizom
 
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- [`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the `/** @jsxImportSource preact */` pragma to the ui components and runtime layout. Production bundling already compiled them as Preact, but under `bun test` the pragma-less files fell back to the React JSX runtime and rendered as empty strings — the frame was untestable from consuming packages.
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.181
+
 ## 0.2.0-alpha.180
 
 ### Patch Changes

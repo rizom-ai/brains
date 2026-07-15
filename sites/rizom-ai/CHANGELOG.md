@@ -1,5 +1,16 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- [`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Visual pass on the consolidated-site chrome and sections across breakpoints. The faces strip wraps with tighter mobile metrics instead of overflowing narrow phones, the per-face nav links appear from `sm` (the footer covers them below), and the wordmark clamps so `rizom.foundation` fits a 360px row. A `#themeToggle` button joins the strip — boot.js and the site-engine `window.toggleTheme` were already wired, so this makes the theme's first-class light mode actually reachable. The org indexes (Writing, Network) move out of the strip into the home page's own nav, replacing the Brain/Docs links that duplicated the strip and footer; the strip keeps just the three faces and the toggle. The footer takes its four-column form from `lg`. IndexRow no longer drops its display title into the 44px folio column below `md` (title and meta take full-width rows). SectCap's accent tick wraps as one unit with its lead. The /brain product screens collapse on phones: the studio's library pane becomes a horizontal file strip and the dashboard strip/tabs wrap or scroll. Small mono links across the chrome and colophon carry enlarged tap areas.
+
+- Updated dependencies [[`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75)]:
+  - @rizom/site-rizom@0.2.0-alpha.181
+  - @rizom/site@0.2.0-alpha.181
+  - @rizom/site-sections@0.2.0-alpha.181
+
 ## 0.2.0-alpha.180
 
 ### Patch Changes

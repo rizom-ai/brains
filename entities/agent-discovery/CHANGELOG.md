@@ -1,5 +1,23 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- [`d73368f`](https://github.com/rizom-ai/brains/commit/d73368f4c44dcf473ba78eff5485af723ad8bc75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The proximity map works under touch: taps activate nodes, clusters, and sightings (hover/focus never fire on mobile SVG), a tap on the map ground dismisses the highlight, and the tooltip clamps inside the card on every edge instead of clipping under `overflow: hidden`. The directory surfaces stack properly on phones: agent-card meta drops below the copy as a full-width line instead of pinching the name column, the detail header stacks its avatar, skill-tag rows wrap, the endpoint URL breaks instead of overflowing, and the stacked sidebar gains a hairline separator. Pagination targets grow to a comfortable tap size.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.181
+  - @brains/atproto-contracts@0.2.0-alpha.181
+  - @brains/content-formatters@0.2.0-alpha.181
+  - @brains/contracts@0.2.0-alpha.181
+  - @brains/http-signatures@0.2.0-alpha.181
+  - @brains/ui-library@0.2.0-alpha.181
+  - @brains/utils@0.2.0-alpha.181
+  - @brains/auth-service@0.2.0-alpha.181
+  - @brains/plugins@0.2.0-alpha.181
+  - @brains/templates@0.2.0-alpha.181
+
 ## 0.2.0-alpha.180
 
 ### Patch Changes

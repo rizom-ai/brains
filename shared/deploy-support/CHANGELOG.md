@@ -1,5 +1,14 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.181
+
+### Patch Changes
+
+- [`f3f042c`](https://github.com/rizom-ai/brains/commit/f3f042cc4e7b51e27bdaf25676c551e806134aed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the Bitwarden bootstrap token out of post-resolution runtime secret validation and generated deploy-script drift.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.181
+
 ## 0.2.0-alpha.180
 
 ### Patch Changes
