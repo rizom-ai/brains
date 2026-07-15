@@ -1,5 +1,21 @@
 # @brains/plugins
 
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies [[`31866d8`](https://github.com/rizom-ai/brains/commit/31866d8598f83241217b9281419f36b67e9c1970), [`fed9280`](https://github.com/rizom-ai/brains/commit/fed9280ea2dac1bb8e5b6f087bb6bfb70b91f4a9)]:
+  - @brains/conversation-service@0.2.0-alpha.179
+  - @brains/runtime-state@0.2.0-alpha.179
+  - @brains/identity-service@0.2.0-alpha.179
+  - @brains/content-formatters@0.2.0-alpha.179
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/site-composition@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+  - @brains/job-queue@0.2.0-alpha.179
+  - @brains/messaging-service@0.2.0-alpha.179
+  - @brains/templates@0.2.0-alpha.179
+
 ## 0.2.0-alpha.178
 
 ### Patch Changes

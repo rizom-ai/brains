@@ -1,5 +1,14 @@
 # @brains/runtime-state
 
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- [`fed9280`](https://github.com/rizom-ai/brains/commit/fed9280ea2dac1bb8e5b6f087bb6bfb70b91f4a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own runtime-state database acquisition and release through a private package Effect Layer composed by the shell lifecycle.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.179
+
 ## 0.2.0-alpha.178
 
 ### Patch Changes

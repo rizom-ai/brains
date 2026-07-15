@@ -1,5 +1,16 @@
 # @brains/playbooks
 
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies [[`fed9280`](https://github.com/rizom-ai/brains/commit/fed9280ea2dac1bb8e5b6f087bb6bfb70b91f4a9)]:
+  - @brains/runtime-state@0.2.0-alpha.179
+  - @brains/plugins@0.2.0-alpha.179
+  - @brains/content-formatters@0.2.0-alpha.179
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+
 ## 0.2.0-alpha.178
 
 ### Patch Changes

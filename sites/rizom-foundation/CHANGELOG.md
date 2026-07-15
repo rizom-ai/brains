@@ -1,5 +1,13 @@
 # @rizom/site-rizom-foundation
 
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site-rizom@0.2.0-alpha.179
+  - @rizom/site@0.2.0-alpha.179
+
 ## 0.2.0-alpha.178
 
 ### Patch Changes

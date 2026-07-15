@@ -1,5 +1,16 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- [`31866d8`](https://github.com/rizom-ai/brains/commit/31866d8598f83241217b9281419f36b67e9c1970) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Construct each shell from fresh service and initializer instances without resetting process-global singletons, honor entity service/registry overrides, and keep site-builder profile access bound to its owning shell.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+  - @brains/messaging-service@0.2.0-alpha.179
+
 ## 0.2.0-alpha.178
 
 ### Patch Changes

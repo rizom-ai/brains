@@ -1,5 +1,22 @@
 # @brains/core
 
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- [`31866d8`](https://github.com/rizom-ai/brains/commit/31866d8598f83241217b9281419f36b67e9c1970) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Construct each shell from fresh service and initializer instances without resetting process-global singletons, honor entity service/registry overrides, and keep site-builder profile access bound to its owning shell.
+
+- [`fed9280`](https://github.com/rizom-ai/brains/commit/fed9280ea2dac1bb8e5b6f087bb6bfb70b91f4a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own runtime-state database acquisition and release through a private package Effect Layer composed by the shell lifecycle.
+
+- Updated dependencies [[`fed9280`](https://github.com/rizom-ai/brains/commit/fed9280ea2dac1bb8e5b6f087bb6bfb70b91f4a9)]:
+  - @brains/runtime-state@0.2.0-alpha.179
+  - @brains/image@0.2.0-alpha.179
+  - @brains/plugins@0.2.0-alpha.179
+  - @brains/contracts@0.2.0-alpha.179
+  - @brains/site-composition@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+  - @brains/templates@0.2.0-alpha.179
+
 ## 0.2.0-alpha.178
 
 ### Patch Changes
