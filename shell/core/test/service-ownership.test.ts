@@ -294,6 +294,28 @@ describe("Shell service ownership", () => {
     expect(entities).toEqual([]);
   });
 
+  it("preserves entity layer construction failure identity", async () => {
+    const directory = await createDirectory();
+    await migrateTestDatabases(directory.dir);
+    const failure = new Error("entity handler registration failed");
+    const jobQueueService = createMockJobQueueService();
+    jobQueueService.registerHandler = (): void => {
+      throw failure;
+    };
+    let constructionError: unknown;
+
+    try {
+      Shell.createFresh(createTestConfig(directory.dir), {
+        ...defaultDependencies(),
+        jobQueueService,
+      });
+    } catch (error) {
+      constructionError = error;
+    }
+
+    expect(constructionError).toBe(failure);
+  });
+
   it("honors the advertised entity service and registry overrides", async () => {
     const directory = await createDirectory();
     await migrateTestDatabases(directory.dir);

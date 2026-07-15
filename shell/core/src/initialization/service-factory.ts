@@ -4,12 +4,11 @@ import {
   ConversationServiceTag,
   createConversationServiceLayer,
 } from "@brains/conversation-service/effect";
+import { DataSourceRegistry, EntityRegistry } from "@brains/entity-service";
 import {
-  DataSourceRegistry,
-  EntityRegistry,
-  EntityService,
-  type IEntityService,
-} from "@brains/entity-service";
+  EntityServiceTag,
+  createEntityServiceLayer,
+} from "@brains/entity-service/effect";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -40,12 +39,6 @@ import {
   createDatabaseConfig,
   createServiceLogger,
 } from "./service-config";
-
-function isCloseableEntityService(
-  service: IEntityService,
-): service is IEntityService & { close(): void } {
-  return "close" in service && typeof service.close === "function";
-}
 
 export function createShellServices(options: {
   config: ShellConfig;
@@ -122,9 +115,8 @@ export function createShellServices(options: {
   lifecycle.addSyncFinalizer(() => jobServices.closeDatabase());
   lifecycle.addSyncFinalizer(() => jobServices.rollbackRuntime());
 
-  const entityService =
-    dependencies?.entityService ??
-    EntityService.createFresh({
+  const entityContext = lifecycle.buildLayer(
+    createEntityServiceLayer({
       embeddingService,
       entityRegistry,
       logger,
@@ -132,10 +124,12 @@ export function createShellServices(options: {
       messageBus,
       dbConfig: createDatabaseConfig(config.database),
       embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
-    });
-  if (isCloseableEntityService(entityService)) {
-    lifecycle.addSyncFinalizer(() => entityService.close());
-  }
+      ...(dependencies?.entityService && {
+        service: dependencies.entityService,
+      }),
+    }),
+  );
+  const entityService = Context.get(entityContext, EntityServiceTag);
 
   const conversationContext = lifecycle.buildLayer(
     createConversationServiceLayer({

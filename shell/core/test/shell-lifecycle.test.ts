@@ -27,6 +27,32 @@ describe("ShellLifecycle", () => {
     expect(releases).toBe(1);
   });
 
+  it("preserves synchronous layer acquisition error identity", () => {
+    const ServiceTag = Context.GenericTag<"test/Failure", { value: string }>(
+      "test/Failure",
+    );
+    const failure = new Error("layer acquisition failed");
+    const lifecycle = new ShellLifecycle();
+    let actualError: unknown;
+
+    try {
+      lifecycle.buildLayer(
+        Layer.effect(
+          ServiceTag,
+          Effect.sync((): { value: string } => {
+            throw failure;
+          }),
+        ),
+      );
+    } catch (error) {
+      actualError = error;
+    } finally {
+      lifecycle.closeSync(Exit.fail(failure));
+    }
+
+    expect(actualError).toBe(failure);
+  });
+
   it("rolls back synchronous acquisition in reverse order", () => {
     const order: string[] = [];
     const lifecycle = new ShellLifecycle();

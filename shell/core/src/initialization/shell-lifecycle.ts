@@ -1,4 +1,4 @@
-import { Effect, Exit, Layer, Scope } from "@brains/utils/effect";
+import { Cause, Effect, Exit, Layer, Scope } from "@brains/utils/effect";
 import type { Context } from "@brains/utils/effect";
 import { runEffectPromise } from "../effect-runtime";
 
@@ -22,7 +22,9 @@ export class ShellLifecycle {
     layer: Layer.Layer<ROut, never, never>,
   ): Context.Context<ROut> {
     this.assertOpen();
-    return Effect.runSync(Layer.buildWithScope(layer, this.scope));
+    const exit = Effect.runSyncExit(Layer.buildWithScope(layer, this.scope));
+    if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+    return exit.value;
   }
 
   /** Register cleanup in acquisition order; close runs it in reverse order. */
