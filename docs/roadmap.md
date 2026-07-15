@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -197,6 +197,7 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
+- [shell-service-ownership.md](./plans/shell-service-ownership.md) — finish the fresh per-shell ownership migration with recurring-check rollback auditing and two-shell/package integration verification.
 - [directory-sync-effect-lifecycle.md](./plans/directory-sync-effect-lifecycle.md) — scope directory watchers, git schedules, debounce work, cancellation, and shutdown under the private Effect runtime while keeping plugin APIs Promise-based.
 - [effect-lifecycle-adoption.md](./plans/effect-lifecycle-adoption.md) — companion sweep: supervise content-pipeline's scheduled publishes, link a2a streaming turns to stream lifetime, and scope media-renderer browser processes, all behind Promise-based contracts.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
