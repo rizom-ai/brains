@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed cleanup, companion to the directory-sync Effect lifecycle plan. Same hard prerequisite: `work/effect-shell-lifecycle` must be rebased onto main and available (stacked on, or merged), because all conversions import through the canonical private `@brains/utils/effect` boundary and reuse its patterns. Execute after or alongside the directory-sync plan — they share the prerequisite and the same boundary rules.
+Proposed for Phases 2 and 3; Phase 1 is implemented. This is a companion to the directory-sync Effect lifecycle plan. The shared lifecycle prerequisite is now available on main; all conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
 
 Scope was set by a repo-wide sweep. Explicitly excluded:
 
@@ -17,7 +17,9 @@ Public contracts stay Promise-based. Cancellation crosses package boundaries onl
 
 ## Why these packages
 
-### plugins/content-pipeline — scheduled publishes race shutdown
+### plugins/content-pipeline — scheduled publishes raced shutdown
+
+Pre-Phase 1 findings:
 
 - `CronerBackend.scheduleCron` and `scheduleInterval` fire `void callback()`; `ScheduledJob.stop()` stops future firings only (`src/scheduler-backend.ts:54-56,64-67`).
 - `ContentScheduler.stop()` flips `running` and stops the runners, but runner callbacks check `isRunning()` only at entry (`src/scheduler-publish-runner.ts:52,68`) — an in-flight cycle runs to completion after `stop()` returns, unsupervised.
@@ -83,6 +85,8 @@ Rewrite `withBrowser()` as an internal Effect `acquireUseRelease`:
 Each phase is a complete vertical slice — characterization tests first, conversion, deterministic timing tests via `TestClock` from the start — and ships independently.
 
 ### Phase 1 — content-pipeline
+
+**Implemented in the shared `@brains/scheduler` boundary.**
 
 1. Characterization tests: an in-flight publish cycle continues after `stop()` returns; same-key cron firings can overlap; `resetInstance()` does not settle work.
 2. Use `@brains/utils/effect`; convert `CronerBackend` to keyed supervised fibers with non-overlap and draining `stop()`; make `ScheduledJob.stop()` async through `ContentScheduler` and both runners; fix `resetInstance()`.

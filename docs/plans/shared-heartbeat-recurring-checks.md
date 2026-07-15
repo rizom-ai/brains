@@ -74,8 +74,10 @@ Previously listed as open; settled with the pull-forward:
 ### Slice 1 — scheduler contracts
 
 **Implemented on `work/shared-heartbeat`.** Extract generic scheduler backend contracts
-from content-pipeline (its domain-specific scheduler stays where it is). Deterministic
-contract tests: cadence, injected time, reset, failure. No test sleeps on wall time.
+from content-pipeline (its domain-specific scheduler stays where it is). Scheduled
+callbacks are supervised, same-job overlap is skipped, and asynchronous stop drains active
+work. Deterministic contract tests cover cadence, injected time, reset, failure, overlap,
+and shutdown without wall-time sleeps.
 
 ### Slice 2 — recurring-check service + first consumer
 
@@ -105,8 +107,9 @@ after both consumers run in production.
 - Repeated checks do not duplicate an unchanged condition episode.
 - A changed/reset domain condition permits a later alert.
 - Failed checks and failed delivery follow explicit retry semantics.
-- Daemons start only after plugin ready hooks; stopping aborts active remote checks cleanly.
-- Content-pipeline remains green against the extracted scheduler backend.
+- Daemons start only after plugin ready hooks; stopping aborts active remote checks cleanly
+  and drains active scheduler callbacks.
+- Content-pipeline remains green against the extracted, supervised scheduler backend.
 - A fleet brain runs the daily scan unattended; a re-scan that creates nothing produces
   no repeat notification.
 

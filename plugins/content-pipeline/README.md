@@ -6,6 +6,7 @@ Content pipeline plugin for managing entity publishing queues, scheduling, and g
 
 - **Durable Queue Management**: Add, remove, reorder, and recover publication intent across restarts
 - **Cron Scheduling**: Schedule publishing at specific times per entity type
+- **Supervised Cycles**: Skip overlapping firings and drain active work during shutdown
 - **Generation Scheduling**: Trigger automatic draft creation on schedule
 - **Failure Recovery**: Track failed publications and let operators explicitly retry them
 - **Provider Registry**: Register custom publish providers per entity type

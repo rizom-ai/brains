@@ -1,9 +1,10 @@
+import { Effect, Exit, Fiber, FiberMap, Scope } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { Cron } from "croner";
 
-/** A scheduled job that can be stopped. */
+/** A scheduled job that prevents future cycles and drains active callbacks. */
 export interface ScheduledJob {
-  stop(): void;
+  stop(): Promise<void>;
 }
 
 /** Callback invoked by a scheduler backend. */
@@ -27,20 +28,43 @@ export interface SchedulerBackend {
   validateCron(expression: string): void;
 }
 
-/** Production scheduler backed by Croner and the process timer API. */
+export interface CronerBackendOptions {
+  clock?: Clock.Clock | undefined;
+  onOverlapSkipped?: ((jobKey: string) => void) | undefined;
+  onCallbackError?: ((jobKey: string, error: unknown) => void) | undefined;
+}
+
+/** Production scheduler backed by Croner and supervised Effect fibers. */
 export class CronerBackend implements SchedulerBackend {
+  private readonly options: CronerBackendOptions;
+  private nextJobId = 0;
+
+  constructor(options: CronerBackendOptions = {}) {
+    this.options = options;
+  }
+
   scheduleCron(
     expression: string,
     callback: SchedulerCallback,
     options: CronScheduleOptions = {},
   ): ScheduledJob {
-    const cronOptions = options.timezone
-      ? { timezone: options.timezone }
-      : undefined;
-    const job = new Cron(expression, cronOptions, () => {
-      void callback();
-    });
-    return { stop: (): void => job.stop() };
+    const key = `cron:${this.nextJobId++}:${expression}`;
+    const cronRef: { current?: Cron } = {};
+    const scheduledJob = new SupervisedScheduledJob(
+      key,
+      callback,
+      this.options,
+      () => cronRef.current?.stop(),
+    );
+    const cron = new Cron(
+      expression,
+      options.timezone ? { timezone: options.timezone } : undefined,
+      () => {
+        scheduledJob.trigger();
+      },
+    );
+    cronRef.current = cron;
+    return scheduledJob;
   }
 
   scheduleInterval(
@@ -48,15 +72,104 @@ export class CronerBackend implements SchedulerBackend {
     callback: SchedulerCallback,
   ): ScheduledJob {
     assertValidInterval(intervalMs);
-    const id = setInterval(() => {
-      void callback();
-    }, intervalMs);
-    return { stop: (): void => clearInterval(id) };
+    const key = `interval:${this.nextJobId++}:${intervalMs}`;
+    const scheduledJob = new SupervisedScheduledJob(
+      key,
+      callback,
+      this.options,
+    );
+    scheduledJob.startInterval(intervalMs);
+    return scheduledJob;
   }
 
   validateCron(expression: string): void {
     const job = new Cron(expression, { paused: true });
     job.stop();
+  }
+}
+
+class SupervisedScheduledJob implements ScheduledJob {
+  private readonly key: string;
+  private readonly callback: SchedulerCallback;
+  private readonly options: CronerBackendOptions;
+  private readonly stopTrigger: () => void;
+  private readonly scope: Scope.CloseableScope;
+  private readonly cycles: FiberMap.FiberMap<string, void, never>;
+  private intervalFiber: Fiber.RuntimeFiber<unknown, never> | null = null;
+  private stopPromise: Promise<void> | null = null;
+  private stopped = false;
+
+  constructor(
+    key: string,
+    callback: SchedulerCallback,
+    options: CronerBackendOptions,
+    stopTrigger: () => void = () => {},
+  ) {
+    this.key = key;
+    this.callback = callback;
+    this.options = options;
+    this.stopTrigger = stopTrigger;
+    this.scope = Effect.runSync(Scope.make());
+    this.cycles = Effect.runSync(
+      Scope.extend(FiberMap.make<string, void, never>(), this.scope),
+    );
+  }
+
+  startInterval(intervalMs: number): void {
+    const schedule = Effect.sleep(intervalMs).pipe(
+      Effect.andThen(
+        Effect.sync(() => {
+          this.trigger();
+        }),
+      ),
+      Effect.forever,
+    );
+    const ownedSchedule = this.options.clock
+      ? Effect.withClock(schedule, this.options.clock)
+      : schedule;
+    this.intervalFiber = Effect.runFork(ownedSchedule);
+  }
+
+  trigger(): void {
+    if (this.stopped) return;
+    if (FiberMap.unsafeHas(this.cycles, this.key)) {
+      this.options.onOverlapSkipped?.(this.key);
+      return;
+    }
+
+    const callbackEffect = Effect.tryPromise({
+      try: async () => {
+        await this.callback();
+      },
+      catch: (error) => error,
+    }).pipe(
+      Effect.catchAll((error) =>
+        Effect.sync(() => {
+          this.options.onCallbackError?.(this.key, error);
+        }),
+      ),
+    );
+    const fiber = Effect.runFork(callbackEffect);
+    FiberMap.unsafeSet(this.cycles, this.key, fiber, { onlyIfMissing: true });
+  }
+
+  stop(): Promise<void> {
+    this.stopPromise ??= this.stopScheduledJob();
+    return this.stopPromise;
+  }
+
+  private async stopScheduledJob(): Promise<void> {
+    this.stopped = true;
+    this.stopTrigger();
+
+    const intervalFiber = this.intervalFiber;
+    this.intervalFiber = null;
+    if (intervalFiber) {
+      await Effect.runPromise(Fiber.interrupt(intervalFiber));
+    }
+
+    await Effect.runPromise(FiberMap.awaitEmpty(this.cycles));
+    await Effect.runPromise(Scope.close(this.scope, Exit.void));
   }
 }
 
@@ -100,6 +213,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
   private currentTime: Date;
   private readonly initialTime: Date;
   private readonly clock: Clock.Clock | undefined;
+  private readonly activeCallbacks = new Map<number, Set<Promise<void>>>();
 
   constructor(options: TestSchedulerBackendOptions = {}) {
     this.clock = options.clock;
@@ -130,9 +244,10 @@ export class TestSchedulerBackend implements SchedulerBackend {
     this.cronJobs.push(entry);
 
     return {
-      stop: (): void => {
+      stop: async (): Promise<void> => {
         cron.stop();
         this.cronJobs = this.cronJobs.filter((job) => job.id !== entry.id);
+        await this.drainCallbacks(entry.id);
       },
     };
   }
@@ -151,10 +266,11 @@ export class TestSchedulerBackend implements SchedulerBackend {
     this.intervalJobs.push(entry);
 
     return {
-      stop: (): void => {
+      stop: async (): Promise<void> => {
         this.intervalJobs = this.intervalJobs.filter(
           (job) => job.id !== entry.id,
         );
+        await this.drainCallbacks(entry.id);
       },
     };
   }
@@ -209,7 +325,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
     while (dueTime !== null) {
       this.currentTime = dueTime;
       const callbacks = this.takeDueCallbacks(dueTime);
-      failures.push(...(await settleCallbacks(callbacks)));
+      failures.push(...(await this.settleCallbacks(callbacks)));
       dueTime = this.nextDueTime(targetTime);
     }
 
@@ -234,7 +350,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
       );
     }
 
-    throwFailures(await settleCallbacks(callbacks));
+    throwFailures(await this.settleCallbacks(callbacks));
   }
 
   /** Trigger every registered interval callback once. */
@@ -243,7 +359,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
       id: job.id,
       callback: job.callback,
     }));
-    throwFailures(await settleCallbacks(callbacks));
+    throwFailures(await this.settleCallbacks(callbacks));
   }
 
   /** Trigger every registered cron callback once. */
@@ -252,7 +368,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
       id: job.id,
       callback: job.callback,
     }));
-    throwFailures(await settleCallbacks(callbacks));
+    throwFailures(await this.settleCallbacks(callbacks));
   }
 
   /** Remove all jobs and restore the injected clock. */
@@ -278,6 +394,39 @@ export class TestSchedulerBackend implements SchedulerBackend {
 
   getIntervalCount(): number {
     return this.intervalJobs.length;
+  }
+
+  private async settleCallbacks(callbacks: DueCallback[]): Promise<unknown[]> {
+    const results = await Promise.allSettled(
+      callbacks.map((callback) => this.runCallback(callback)),
+    );
+    return results.flatMap((result) =>
+      result.status === "rejected" ? [result.reason] : [],
+    );
+  }
+
+  private runCallback({ id, callback }: DueCallback): Promise<void> {
+    const active = Promise.resolve()
+      .then(() => callback())
+      .then(() => undefined);
+    const callbacks = this.activeCallbacks.get(id) ?? new Set<Promise<void>>();
+    callbacks.add(active);
+    this.activeCallbacks.set(id, callbacks);
+    void active.then(
+      () => this.removeActiveCallback(id, active),
+      () => this.removeActiveCallback(id, active),
+    );
+    return active;
+  }
+
+  private removeActiveCallback(id: number, active: Promise<void>): void {
+    const callbacks = this.activeCallbacks.get(id);
+    callbacks?.delete(active);
+    if (callbacks?.size === 0) this.activeCallbacks.delete(id);
+  }
+
+  private async drainCallbacks(id: number): Promise<void> {
+    await Promise.allSettled(Array.from(this.activeCallbacks.get(id) ?? []));
   }
 
   private nextDueTime(targetTime: Date): Date | null {
@@ -324,15 +473,6 @@ function assertValidInterval(intervalMs: number): void {
   if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
     throw new Error("Scheduler interval must be a positive finite number");
   }
-}
-
-async function settleCallbacks(callbacks: DueCallback[]): Promise<unknown[]> {
-  const results = await Promise.allSettled(
-    callbacks.map(async ({ callback }) => callback()),
-  );
-  return results.flatMap((result) =>
-    result.status === "rejected" ? [result.reason] : [],
-  );
 }
 
 function throwFailures(failures: unknown[]): void {

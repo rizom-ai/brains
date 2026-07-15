@@ -31,8 +31,10 @@ export class GenerationScheduleRunner {
     }
   }
 
-  public stop(): void {
-    stopAndClearJobs(this.generationJobs);
+  public async stop(): Promise<void> {
+    const jobs = Array.from(this.generationJobs.values());
+    this.generationJobs.clear();
+    await Promise.all(jobs.map((job) => job.stop()));
   }
 
   private async handleTriggerGeneration(entityType: string): Promise<void> {
@@ -51,11 +53,4 @@ export class GenerationScheduleRunner {
   private get generationSchedules(): Record<string, string> {
     return this.deps.config.generationSchedules as Record<string, string>;
   }
-}
-
-function stopAndClearJobs(jobs: Map<string, ScheduledJob>): void {
-  for (const job of jobs.values()) {
-    job.stop();
-  }
-  jobs.clear();
 }

@@ -199,15 +199,19 @@ export class RecurringCheckService {
   }
 
   async stop(): Promise<void> {
+    this.started = false;
+    const stoppingJobs: Promise<void>[] = [];
     for (const registered of this.checks.values()) {
-      registered.scheduledJob?.stop();
-      delete registered.scheduledJob;
+      if (registered.scheduledJob) {
+        stoppingJobs.push(registered.scheduledJob.stop());
+        delete registered.scheduledJob;
+      }
     }
     const stopError = new Error("Recurring check service stopped");
     for (const controller of this.runningChecks.values()) {
       controller.abort(stopError);
     }
-    this.started = false;
+    await Promise.all(stoppingJobs);
   }
 
   async runNow(checkId: string, signal?: AbortSignal): Promise<boolean> {
@@ -265,7 +269,7 @@ export class RecurringCheckService {
 
   private unregister(checkId: string): void {
     const registered = this.checks.get(checkId);
-    registered?.scheduledJob?.stop();
+    void registered?.scheduledJob?.stop();
     this.checks.delete(checkId);
   }
 

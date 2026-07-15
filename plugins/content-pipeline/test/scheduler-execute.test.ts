@@ -60,7 +60,7 @@ describe("ContentScheduler - provider execution", () => {
 
   afterEach(async () => {
     await scheduler.stop();
-    ContentScheduler.resetInstance();
+    await ContentScheduler.resetInstance();
   });
 
   describe("queued publishing", () => {

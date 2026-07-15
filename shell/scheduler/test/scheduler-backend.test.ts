@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
-import { TestSchedulerBackend } from "../src";
+import { CronerBackend, TestSchedulerBackend } from "../src";
+
+function yieldToFibers(): Effect.Effect<void> {
+  return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
+}
 
 describe("TestSchedulerBackend", () => {
   it("runs interval callbacks at each elapsed cadence", async () => {
@@ -134,10 +138,105 @@ describe("TestSchedulerBackend", () => {
     const job = scheduler.scheduleInterval(1_000, () => {
       runs += 1;
     });
-    job.stop();
+    await job.stop();
 
     await scheduler.advanceBy(1_000);
 
     expect(runs).toBe(0);
+  });
+
+  it("drains active manual callbacks when a test job stops", async () => {
+    const scheduler = new TestSchedulerBackend();
+    let releaseCycle: (() => void) | undefined;
+    const activeCycle = new Promise<void>((resolve) => {
+      releaseCycle = resolve;
+    });
+    const job = scheduler.scheduleInterval(1_000, () => activeCycle);
+    const ticking = scheduler.tickIntervals();
+    await Promise.resolve();
+
+    let stopSettled = false;
+    const stopping = job.stop().then(() => {
+      stopSettled = true;
+    });
+    await Promise.resolve();
+    expect(stopSettled).toBe(false);
+
+    releaseCycle?.();
+    await Promise.all([ticking, stopping]);
+    expect(stopSettled).toBe(true);
+  });
+});
+
+describe("CronerBackend lifecycle", () => {
+  it("uses the injected clock and waits one interval before the first cycle", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const scheduler = new CronerBackend({ clock });
+        let calls = 0;
+        const job = scheduler.scheduleInterval(100, () => {
+          calls++;
+        });
+
+        yield* TestClock.adjust(99);
+        yield* yieldToFibers();
+        expect(calls).toBe(0);
+
+        yield* TestClock.adjust(1);
+        yield* yieldToFibers();
+        expect(calls).toBe(1);
+
+        yield* Effect.promise(() => job.stop());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("skips overlapping cycles and drains the active cycle on stop", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        let releaseFirst: (() => void) | undefined;
+        const firstCycle = new Promise<void>((resolve) => {
+          releaseFirst = resolve;
+        });
+        let calls = 0;
+        let skipped = 0;
+        const scheduler = new CronerBackend({
+          clock,
+          onOverlapSkipped: (): void => {
+            skipped++;
+          },
+        });
+        const job = scheduler.scheduleInterval(100, async () => {
+          calls++;
+          if (calls === 1) await firstCycle;
+        });
+
+        yield* TestClock.adjust(100);
+        yield* yieldToFibers();
+        expect(calls).toBe(1);
+
+        yield* TestClock.adjust(100);
+        yield* yieldToFibers();
+        expect(calls).toBe(1);
+        expect(skipped).toBe(1);
+
+        let stopSettled = false;
+        const stopping = job.stop().then(() => {
+          stopSettled = true;
+        });
+        yield* yieldToFibers();
+        expect(stopSettled).toBe(false);
+
+        releaseFirst?.();
+        yield* Effect.promise(() => stopping);
+        expect(stopSettled).toBe(true);
+
+        yield* TestClock.adjust(500);
+        yield* yieldToFibers();
+        expect(calls).toBe(1);
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
   });
 });

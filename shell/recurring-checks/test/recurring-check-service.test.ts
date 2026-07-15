@@ -14,6 +14,11 @@ import type {
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
 import { TestSchedulerBackend } from "@brains/scheduler";
+import type {
+  ScheduledJob,
+  SchedulerBackend,
+  SchedulerCallback,
+} from "@brains/scheduler";
 import type { Logger } from "@brains/utils/logger";
 import {
   RECURRING_CHECK_JOB_TYPE,
@@ -103,27 +108,67 @@ class TestJobQueue {
   }
 }
 
+class DrainingSchedulerBackend implements SchedulerBackend {
+  private stopResolver: (() => void) | undefined;
+
+  scheduleCron(
+    _expression: string,
+    _callback: SchedulerCallback,
+  ): ScheduledJob {
+    return {
+      stop: (): Promise<void> =>
+        new Promise<void>((resolve) => {
+          this.stopResolver = resolve;
+        }),
+    };
+  }
+
+  scheduleInterval(): ScheduledJob {
+    throw new Error("Unexpected interval schedule");
+  }
+
+  validateCron(): void {}
+
+  resolveStop(): void {
+    this.stopResolver?.();
+  }
+}
+
 const logger = {
   child: (): Logger => logger,
   debug: (): void => {},
   error: (): void => {},
 } as unknown as Logger;
 
-function createService(options?: {
+interface CreateServiceOptions {
   now?: Date;
   clock?: Clock.Clock;
   delivery?: (body: string) => Promise<void>;
-}): {
+}
+
+interface ServiceFixture<TScheduler extends SchedulerBackend> {
   service: RecurringCheckService;
-  scheduler: TestSchedulerBackend;
+  scheduler: TScheduler;
   queue: TestJobQueue;
   state: MemoryRuntimeState;
   delivered: string[];
-} {
-  const now = options?.now ?? new Date("2026-07-14T12:00:00.000Z");
-  const scheduler = new TestSchedulerBackend({
-    ...(options?.clock ? { clock: options.clock } : { now }),
-  });
+}
+
+function createService<TScheduler extends SchedulerBackend>(
+  options: CreateServiceOptions & { scheduler: TScheduler },
+): ServiceFixture<TScheduler>;
+function createService(
+  options?: CreateServiceOptions,
+): ServiceFixture<TestSchedulerBackend>;
+function createService(
+  options: CreateServiceOptions & { scheduler?: SchedulerBackend } = {},
+): ServiceFixture<SchedulerBackend> {
+  const now = options.now ?? new Date("2026-07-14T12:00:00.000Z");
+  const scheduler =
+    options.scheduler ??
+    new TestSchedulerBackend({
+      ...(options.clock ? { clock: options.clock } : { now }),
+    });
   const queue = new TestJobQueue();
   const state = new MemoryRuntimeState();
   const delivered: string[] = [];
@@ -133,12 +178,12 @@ function createService(options?: {
     runtimeState: state,
     jobQueue: queue as unknown as IJobQueueService,
     logger,
-    ...(options?.clock
+    ...(options.clock
       ? { clock: options.clock }
       : { now: (): Date => new Date(now) }),
     delivery: {
       deliver: async (alert): Promise<void> => {
-        if (options?.delivery) await options.delivery(alert.body);
+        if (options.delivery) await options.delivery(alert.body);
         delivered.push(alert.body);
       },
     },
@@ -254,6 +299,28 @@ describe("RecurringCheckService", () => {
         });
       }).pipe(Effect.provide(TestContext.TestContext)),
     );
+  });
+
+  it("waits for scheduled callbacks to drain when the service stops", async () => {
+    const scheduler = new DrainingSchedulerBackend();
+    const { service } = createService({ scheduler });
+    service.namespace("agent").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async () => ({}),
+    });
+    await service.start();
+
+    let stopSettled = false;
+    const stopping = service.stop().then(() => {
+      stopSettled = true;
+    });
+    await Promise.resolve();
+    expect(stopSettled).toBe(false);
+
+    scheduler.resolveStop();
+    await stopping;
+    expect(stopSettled).toBe(true);
   });
 
   it("aborts an active check when the service stops", async () => {

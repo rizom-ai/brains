@@ -40,7 +40,19 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     providerRegistry,
     retryTracker,
     logger,
-    backend: new CronerBackend(),
+    backend: new CronerBackend({
+      onOverlapSkipped: (jobKey): void => {
+        logger.debug("Skipping overlapping content scheduler cycle", {
+          jobKey,
+        });
+      },
+      onCallbackError: (jobKey, error): void => {
+        logger.error("Unhandled content scheduler callback error", {
+          jobKey,
+          error,
+        });
+      },
+    }),
     ...(config.entitySchedules && {
       entitySchedules: config.entitySchedules,
     }),
