@@ -23,6 +23,7 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./effect": "./src/effect.ts",
     "./migrate": "./src/migrate.ts"
   },
   "files": [

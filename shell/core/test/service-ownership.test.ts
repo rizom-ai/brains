@@ -8,6 +8,7 @@ import {
   type JobQueueWorkerStats,
 } from "@brains/job-queue";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
+import { ConversationService } from "@brains/conversation-service";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { MessageBus } from "@brains/messaging-service";
 import type { Plugin } from "@brains/plugins";
@@ -294,6 +295,28 @@ describe("Shell service ownership", () => {
     expect(entities).toEqual([]);
   });
 
+  it("preserves entity layer construction failure identity", async () => {
+    const directory = await createDirectory();
+    await migrateTestDatabases(directory.dir);
+    const failure = new Error("entity handler registration failed");
+    const jobQueueService = createMockJobQueueService();
+    jobQueueService.registerHandler = (): void => {
+      throw failure;
+    };
+    let constructionError: unknown;
+
+    try {
+      Shell.createFresh(createTestConfig(directory.dir), {
+        ...defaultDependencies(),
+        jobQueueService,
+      });
+    } catch (error) {
+      constructionError = error;
+    }
+
+    expect(constructionError).toBe(failure);
+  });
+
   it("honors the advertised entity service and registry overrides", async () => {
     const directory = await createDirectory();
     await migrateTestDatabases(directory.dir);
@@ -390,6 +413,18 @@ describe("Shell service ownership", () => {
     };
 
     const messageBus = MessageBus.createFresh(logger);
+    const conversationService = ConversationService.createFreshFromConfig(
+      logger,
+      messageBus,
+      { url: `file:${directory.dir}/conversations.db` },
+    );
+    const closeConversation =
+      conversationService.close.bind(conversationService);
+    conversationService.close = (): void => {
+      order.push("conversation-database");
+      closeConversation();
+    };
+
     const entityRegistry = EntityRegistry.createFresh(logger);
     const entityService = EntityService.createFresh({
       dbConfig: { url: `file:${directory.dir}/entities.db` },
@@ -435,6 +470,7 @@ describe("Shell service ownership", () => {
       jobQueueWorker,
       runtimeStateService,
       messageBus,
+      conversationService,
       entityRegistry,
       entityService,
     });
@@ -445,14 +481,6 @@ describe("Shell service ownership", () => {
     agentService.shutdown = async (): Promise<void> => {
       order.push("agent");
       await shutdownAgent?.();
-    };
-
-    const conversationService = shell.getConversationService();
-    const closeConversation =
-      conversationService.close.bind(conversationService);
-    conversationService.close = (): void => {
-      order.push("conversation-database");
-      closeConversation();
     };
 
     await shell.initialize();

@@ -1,13 +1,14 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
-import { Clock } from "@brains/utils/effect";
-import { ConversationService } from "@brains/conversation-service";
 import {
-  DataSourceRegistry,
-  EntityRegistry,
-  EntityService,
-  type IEntityService,
-} from "@brains/entity-service";
+  ConversationServiceTag,
+  createConversationServiceLayer,
+} from "@brains/conversation-service/effect";
+import { DataSourceRegistry, EntityRegistry } from "@brains/entity-service";
+import {
+  EntityServiceTag,
+  createEntityServiceLayer,
+} from "@brains/entity-service/effect";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -32,7 +33,7 @@ import {
   RenderService,
   TemplateRegistry,
 } from "@brains/templates";
-import { Context } from "@brains/utils/effect";
+import { Clock, Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 
 import { DaemonRegistry } from "../daemon-registry";
@@ -46,12 +47,6 @@ import {
   createDatabaseConfig,
   createServiceLogger,
 } from "./service-config";
-
-function isCloseableEntityService(
-  service: IEntityService,
-): service is IEntityService & { close(): void } {
-  return "close" in service && typeof service.close === "function";
-}
 
 export function createShellServices(options: {
   config: ShellConfig;
@@ -171,9 +166,8 @@ export function createShellServices(options: {
     "shell",
   );
 
-  const entityService =
-    dependencies?.entityService ??
-    EntityService.createFresh({
+  const entityContext = lifecycle.buildLayer(
+    createEntityServiceLayer({
       embeddingService,
       entityRegistry,
       logger,
@@ -181,19 +175,27 @@ export function createShellServices(options: {
       messageBus,
       dbConfig: createDatabaseConfig(config.database),
       embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
-    });
-  if (isCloseableEntityService(entityService)) {
-    lifecycle.addSyncFinalizer(() => entityService.close());
-  }
+      ...(dependencies?.entityService && {
+        service: dependencies.entityService,
+      }),
+    }),
+  );
+  const entityService = Context.get(entityContext, EntityServiceTag);
 
-  const conversationService =
-    dependencies?.conversationService ??
-    ConversationService.createFreshFromConfig(
+  const conversationContext = lifecycle.buildLayer(
+    createConversationServiceLayer({
+      dbConfig: createDatabaseConfig(config.conversationDatabase),
       logger,
       messageBus,
-      createDatabaseConfig(config.conversationDatabase),
-    );
-  lifecycle.addSyncFinalizer(() => conversationService.close());
+      ...(dependencies?.conversationService && {
+        service: dependencies.conversationService,
+      }),
+    }),
+  );
+  const conversationService = Context.get(
+    conversationContext,
+    ConversationServiceTag,
+  );
 
   lifecycle.addSyncFinalizer(() => {
     for (const dispose of disposables.splice(0)) {
