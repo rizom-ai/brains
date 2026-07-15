@@ -231,16 +231,23 @@ export class RecurringCheckService {
     const execution = Effect.tryPromise({
       try: async (effectSignal) => {
         const checkSignal = AbortSignal.any([runSignal, effectSignal]);
-        await this.flushPendingAlerts(checkId);
+        const deliverAlerts = registered.definition.deliverAlerts !== false;
+        if (deliverAlerts) {
+          await this.flushPendingAlerts(checkId);
+        } else {
+          await this.discardPendingAlerts(checkId);
+        }
         checkSignal.throwIfAborted();
         const rawResult = await registered.definition.run({
           signal: checkSignal,
         });
         checkSignal.throwIfAborted();
         const result = recurringCheckResultSchema.parse(rawResult);
-        for (const alert of result.alerts ?? []) {
-          checkSignal.throwIfAborted();
-          await this.deliverAlert(checkId, alert);
+        if (deliverAlerts) {
+          for (const alert of result.alerts ?? []) {
+            checkSignal.throwIfAborted();
+            await this.deliverAlert(checkId, alert);
+          }
         }
         await this.state.set(this.lastSuccessKey(checkId), {
           kind: "last-success",
@@ -342,6 +349,17 @@ export class RecurringCheckService {
     for (const record of records) {
       if (record.value.kind === "alert" && record.value.status === "pending") {
         await this.deliverStoredAlert(record.key, record.value);
+      }
+    }
+  }
+
+  private async discardPendingAlerts(checkId: string): Promise<void> {
+    const records = await this.state.list({
+      keyPrefix: this.alertKeyPrefix(checkId),
+    });
+    for (const record of records) {
+      if (record.value.kind === "alert" && record.value.status === "pending") {
+        await this.state.delete(record.key);
       }
     }
   }

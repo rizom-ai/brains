@@ -131,6 +131,7 @@ describe("agent_scan_directories", () => {
 
     const result = await check.run({ signal: new AbortController().signal });
 
+    expect(check.deliverAlerts).toBe(false);
     expect(result.alerts).toBeUndefined();
     expect(
       await harness.getEntityService().getEntity({
@@ -157,6 +158,7 @@ describe("agent_scan_directories", () => {
 
     const result = await check.run({ signal: new AbortController().signal });
 
+    expect(check.deliverAlerts).toBe(true);
     expect(result.alerts).toEqual([
       expect.objectContaining({
         title: "New agent sightings",

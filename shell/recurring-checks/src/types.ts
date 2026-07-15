@@ -22,6 +22,8 @@ export interface RecurringCheckRunContext {
 export interface RecurringCheckDefinition {
   id: string;
   cadence: RecurringCheckCadence;
+  /** Deliver returned alerts and retry pending alerts. False discards pending alerts. Defaults to true. */
+  deliverAlerts?: boolean | undefined;
   run(context: RecurringCheckRunContext): Promise<RecurringCheckResult>;
 }
 
