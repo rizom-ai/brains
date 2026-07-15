@@ -14,12 +14,16 @@ import {
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
-import { RuntimeStateService } from "@brains/runtime-state";
+import {
+  RuntimeStateServiceTag,
+  createRuntimeStateServiceLayer,
+} from "@brains/runtime-state/effect";
 import {
   PermissionService,
   RenderService,
   TemplateRegistry,
 } from "@brains/templates";
+import { Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 
 import { DaemonRegistry } from "../daemon-registry";
@@ -83,13 +87,19 @@ export function createShellServices(options: {
   const runtimeUploadRegistry =
     dependencies?.runtimeUploadRegistry ??
     RuntimeUploadRegistry.createFresh({ dataDir: config.dataDir });
-  const runtimeStateService =
-    dependencies?.runtimeStateService ??
-    RuntimeStateService.createFresh(
-      createDatabaseConfig(config.runtimeStateDatabase),
+  const runtimeStateContext = lifecycle.buildLayer(
+    createRuntimeStateServiceLayer({
+      config: createDatabaseConfig(config.runtimeStateDatabase),
       logger,
-    );
-  lifecycle.addSyncFinalizer(() => runtimeStateService.close());
+      ...(dependencies?.runtimeStateService && {
+        service: dependencies.runtimeStateService,
+      }),
+    }),
+  );
+  const runtimeStateService = Context.get(
+    runtimeStateContext,
+    RuntimeStateServiceTag,
+  );
 
   const mcpService =
     dependencies?.mcpService ?? MCPService.createFresh(messageBus, logger);

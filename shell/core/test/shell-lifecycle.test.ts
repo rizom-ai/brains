@@ -1,8 +1,32 @@
 import { describe, expect, it } from "bun:test";
-import { Effect, Exit } from "@brains/utils/effect";
+import { Context, Effect, Exit, Layer } from "@brains/utils/effect";
 import { ShellLifecycle } from "../src/initialization/shell-lifecycle";
 
 describe("ShellLifecycle", () => {
+  it("owns scoped layers for the shell lifetime", () => {
+    const ServiceTag = Context.GenericTag<"test/Service", { value: string }>(
+      "test/Service",
+    );
+    let releases = 0;
+    const lifecycle = new ShellLifecycle();
+    const context = lifecycle.buildLayer(
+      Layer.scoped(
+        ServiceTag,
+        Effect.acquireRelease(Effect.succeed({ value: "owned" }), () =>
+          Effect.sync(() => {
+            releases++;
+          }),
+        ),
+      ),
+    );
+
+    expect(Context.get(context, ServiceTag)).toEqual({ value: "owned" });
+    lifecycle.closeSync(Exit.void);
+    lifecycle.closeSync(Exit.void);
+
+    expect(releases).toBe(1);
+  });
+
   it("rolls back synchronous acquisition in reverse order", () => {
     const order: string[] = [];
     const lifecycle = new ShellLifecycle();

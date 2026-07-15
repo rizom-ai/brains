@@ -1,4 +1,5 @@
-import { Effect, Exit, Scope } from "@brains/utils/effect";
+import { Effect, Exit, Layer, Scope } from "@brains/utils/effect";
+import type { Context } from "@brains/utils/effect";
 import { runEffectPromise } from "../effect-runtime";
 
 /**
@@ -14,6 +15,14 @@ export class ShellLifecycle {
 
   public constructor() {
     this.scope = Effect.runSync(Scope.make());
+  }
+
+  /** Build a synchronous scoped layer owned by this shell lifecycle. */
+  public buildLayer<ROut>(
+    layer: Layer.Layer<ROut, never, never>,
+  ): Context.Context<ROut> {
+    this.assertOpen();
+    return Effect.runSync(Layer.buildWithScope(layer, this.scope));
   }
 
   /** Register cleanup in acquisition order; close runs it in reverse order. */
