@@ -1,6 +1,6 @@
 {
   "name": "@brains/atproto-contracts",
-  "version": "0.2.0-alpha.178",
+  "version": "0.2.0-alpha.179",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"

@@ -1,6 +1,6 @@
 {
   "name": "@brains/prompt",
-  "version": "0.2.0-alpha.178",
+  "version": "0.2.0-alpha.179",
   "description": "Prompt entity type — AI prompts as editable markdown entities",
   "dependencies": {
     "@brains/plugins": "workspace:*",

@@ -1,5 +1,13 @@
 # @brains/identity-service
 
+## 0.2.0-alpha.179
+
+### Patch Changes
+
+- Updated dependencies [[`31866d8`](https://github.com/rizom-ai/brains/commit/31866d8598f83241217b9281419f36b67e9c1970)]:
+  - @brains/entity-service@0.2.0-alpha.179
+  - @brains/utils@0.2.0-alpha.179
+
 ## 0.2.0-alpha.178
 
 ### Patch Changes

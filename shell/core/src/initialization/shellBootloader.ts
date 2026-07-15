@@ -1,6 +1,6 @@
 import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
-import { ShellInitializer } from "./shellInitializer";
+import type { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import { runConcurrentPhase } from "../effect-runtime";
@@ -41,26 +41,26 @@ export class ShellBootloader {
   private readonly config: ShellConfig;
   private readonly services: ShellServices;
   private readonly lifecycle: ShellLifecycle;
+  private readonly initializer: ShellInitializer;
   private readonly hooks: ShellBootloaderHooks;
   constructor(
     config: ShellConfig,
     services: ShellServices,
     lifecycle: ShellLifecycle,
+    initializer: ShellInitializer,
     hooks: ShellBootloaderHooks,
   ) {
     this.config = config;
     this.services = services;
     this.lifecycle = lifecycle;
+    this.initializer = initializer;
     this.hooks = hooks;
   }
 
   public async boot(options?: ShellBootloaderOptions): Promise<void> {
     this.services.logger.debug("Starting Shell boot");
 
-    const shellInitializer = ShellInitializer.getInstance(
-      this.services.logger,
-      this.config,
-    );
+    const shellInitializer = this.initializer;
 
     // Settle database readiness (WAL mode, migrations, indexes, ATTACH)
     // before plugins load or runtime services can use the connections.

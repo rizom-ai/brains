@@ -75,10 +75,7 @@ import { createShellConfig } from "./config";
 import { SHELL_TEMPLATE_NAMES } from "./constants";
 import { registerCoreDataSources } from "./core-data-sources";
 import { generateShellContent } from "./shell-content";
-import {
-  ShellInitializer,
-  resetServiceSingletons,
-} from "./initialization/shellInitializer";
+import { ShellInitializer } from "./initialization/shellInitializer";
 import {
   ShellBootloader,
   type BootMode,
@@ -130,19 +127,14 @@ export class Shell implements IShell {
     config?: ShellConfigInput,
     dependencies?: ShellDependencies,
   ): Shell {
-    // Reset all service singletons so this truly creates a fresh shell.
-    // The caller must shutdown() any previous shell first to stop
-    // background services; this handles the singleton references.
-    resetServiceSingletons();
-    const fullConfig = createShellConfig(config);
-    return new Shell(fullConfig, dependencies);
+    return new Shell(createShellConfig(config), dependencies);
   }
 
   private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
     this.config = config;
     this.lifecycle = new ShellLifecycle();
     const constructionLogger = dependencies?.logger ?? Logger.getInstance();
-    const shellInitializer = ShellInitializer.getInstance(
+    const shellInitializer = ShellInitializer.createFresh(
       constructionLogger,
       this.config,
     );
@@ -163,6 +155,7 @@ export class Shell implements IShell {
         this.config,
         this.services,
         this.lifecycle,
+        shellInitializer,
         {
           registerCoreDataSources: (): void =>
             registerCoreDataSources(this.services, this.config),
@@ -186,14 +179,6 @@ export class Shell implements IShell {
         constructionLogger.error(
           "Failed to roll back Shell service construction",
           cleanupError,
-        );
-      }
-      try {
-        resetServiceSingletons();
-      } catch (resetError) {
-        constructionLogger.error(
-          "Failed to reset services after construction rollback",
-          resetError,
         );
       }
       throw error;

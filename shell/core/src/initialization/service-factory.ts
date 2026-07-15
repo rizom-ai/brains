@@ -2,8 +2,12 @@ import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import { Clock } from "@brains/utils/effect";
 import { ConversationService } from "@brains/conversation-service";
-import { DataSourceRegistry } from "@brains/entity-service";
-import { EntityRegistry, EntityService } from "@brains/entity-service";
+import {
+  DataSourceRegistry,
+  EntityRegistry,
+  EntityService,
+  type IEntityService,
+} from "@brains/entity-service";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -18,13 +22,17 @@ import {
   RuntimeUploadRegistry,
 } from "@brains/plugins";
 import { RecurringCheckService } from "@brains/recurring-checks";
-import { RuntimeStateService } from "@brains/runtime-state";
+import {
+  RuntimeStateServiceTag,
+  createRuntimeStateServiceLayer,
+} from "@brains/runtime-state/effect";
 import { CronerBackend } from "@brains/scheduler";
 import {
   PermissionService,
   RenderService,
   TemplateRegistry,
 } from "@brains/templates";
+import { Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 
 import { DaemonRegistry } from "../daemon-registry";
@@ -38,6 +46,12 @@ import {
   createDatabaseConfig,
   createServiceLogger,
 } from "./service-config";
+
+function isCloseableEntityService(
+  service: IEntityService,
+): service is IEntityService & { close(): void } {
+  return "close" in service && typeof service.close === "function";
+}
 
 export function createShellServices(options: {
   config: ShellConfig;
@@ -53,44 +67,51 @@ export function createShellServices(options: {
 
   const embeddingService =
     dependencies?.embeddingService ??
-    OnlineEmbeddingProvider.getInstance({
+    OnlineEmbeddingProvider.createFresh({
       apiKey: config.ai.apiKey,
       logger,
     });
   const aiService =
     dependencies?.aiService ??
-    AIService.getInstance(createAIModelConfig(config), logger);
-  const entityRegistry = EntityRegistry.getInstance(logger);
-  const messageBus = dependencies?.messageBus ?? MessageBus.getInstance(logger);
+    AIService.createFresh(createAIModelConfig(config), logger);
+  const entityRegistry =
+    dependencies?.entityRegistry ?? EntityRegistry.createFresh(logger);
+  const messageBus = dependencies?.messageBus ?? MessageBus.createFresh(logger);
   const templateRegistry =
-    dependencies?.templateRegistry ?? TemplateRegistry.getInstance(logger);
+    dependencies?.templateRegistry ?? TemplateRegistry.createFresh(logger);
   const dataSourceRegistry =
-    dependencies?.dataSourceRegistry ?? DataSourceRegistry.getInstance(logger);
+    dependencies?.dataSourceRegistry ?? DataSourceRegistry.createFresh(logger);
   const renderService =
-    dependencies?.renderService ?? RenderService.getInstance(templateRegistry);
+    dependencies?.renderService ?? RenderService.createFresh(templateRegistry);
   const daemonRegistry =
-    dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(logger);
+    dependencies?.daemonRegistry ?? DaemonRegistry.createFresh(logger);
   const pluginManager =
     dependencies?.pluginManager ??
-    PluginManager.getInstance(logger, daemonRegistry);
+    PluginManager.createFresh(logger, daemonRegistry);
   const permissionService =
     dependencies?.permissionService ??
     new PermissionService(config.permissions, { spaces: config.spaces });
   const attachmentRegistry =
-    dependencies?.attachmentRegistry ?? AttachmentRegistry.getInstance();
+    dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
     dependencies?.runtimeUploadRegistry ??
     RuntimeUploadRegistry.createFresh({ dataDir: config.dataDir });
-  const runtimeStateService =
-    dependencies?.runtimeStateService ??
-    RuntimeStateService.createFresh(
-      createDatabaseConfig(config.runtimeStateDatabase),
+  const runtimeStateContext = lifecycle.buildLayer(
+    createRuntimeStateServiceLayer({
+      config: createDatabaseConfig(config.runtimeStateDatabase),
       logger,
-    );
-  lifecycle.addSyncFinalizer(() => runtimeStateService.close());
+      ...(dependencies?.runtimeStateService && {
+        service: dependencies.runtimeStateService,
+      }),
+    }),
+  );
+  const runtimeStateService = Context.get(
+    runtimeStateContext,
+    RuntimeStateServiceTag,
+  );
 
   const mcpService =
-    dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
+    dependencies?.mcpService ?? MCPService.createFresh(messageBus, logger);
 
   const jobServices = initializeJobServices({
     dependencies,
@@ -150,20 +171,24 @@ export function createShellServices(options: {
     "shell",
   );
 
-  const entityService = EntityService.getInstance({
-    embeddingService,
-    entityRegistry,
-    logger,
-    jobQueueService,
-    messageBus,
-    dbConfig: createDatabaseConfig(config.database),
-    embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
-  });
-  lifecycle.addSyncFinalizer(() => entityService.close());
+  const entityService =
+    dependencies?.entityService ??
+    EntityService.createFresh({
+      embeddingService,
+      entityRegistry,
+      logger,
+      jobQueueService,
+      messageBus,
+      dbConfig: createDatabaseConfig(config.database),
+      embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
+    });
+  if (isCloseableEntityService(entityService)) {
+    lifecycle.addSyncFinalizer(() => entityService.close());
+  }
 
   const conversationService =
     dependencies?.conversationService ??
-    ConversationService.getInstance(
+    ConversationService.createFreshFromConfig(
       logger,
       messageBus,
       createDatabaseConfig(config.conversationDatabase),

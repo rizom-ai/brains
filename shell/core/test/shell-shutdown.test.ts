@@ -276,8 +276,8 @@ describe("Shell shutdown", () => {
 
     await shell1.shutdown();
 
-    // Second shell with fresh DB paths — no resetAllSingletons() needed,
-    // Shell.createFresh() handles singleton cleanup internally.
+    // Second shell with fresh DB paths — no singleton reset is needed because
+    // each Shell.createFresh() owns an independent service graph.
     const testDir2 = await createTestDirectory();
     await runMigrations(testDir2.dir);
     const config2 = createTestConfig(testDir2.dir);
