@@ -1,0 +1,139 @@
+import { eq } from "drizzle-orm";
+import type { AuthRuntimeDB } from "./runtime-db";
+import {
+  agentPersonLinks,
+  authPeople,
+  authUsers,
+  type AgentPersonLink,
+  type AuthUser,
+} from "./runtime-schema";
+
+export interface LinkAgentToPersonInput {
+  agentId: string;
+  personId: string;
+  createdByUserId: string;
+}
+
+/**
+ * Stores consent-bearing links between runtime people and agent directory ids.
+ * Profile and provider identity data remain person-owned and are not copied.
+ */
+export class PersonAgentStore {
+  private readonly db: AuthRuntimeDB;
+
+  constructor(db: AuthRuntimeDB) {
+    this.db = db;
+  }
+
+  async getByAgentId(agentId: string): Promise<AgentPersonLink | undefined> {
+    const [link] = await this.db
+      .select()
+      .from(agentPersonLinks)
+      .where(eq(agentPersonLinks.agentId, normalizeAgentId(agentId)))
+      .limit(1);
+    return link;
+  }
+
+  async linkAgent(input: LinkAgentToPersonInput): Promise<AgentPersonLink> {
+    const agentId = normalizeAgentId(input.agentId);
+    return this.db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(agentPersonLinks)
+        .where(eq(agentPersonLinks.agentId, agentId))
+        .limit(1);
+      if (existing) {
+        if (existing.personId !== input.personId) {
+          throw new Error("Agent is already linked to another person");
+        }
+        return existing;
+      }
+
+      const [person] = await tx
+        .select({ id: authPeople.id })
+        .from(authPeople)
+        .where(eq(authPeople.id, input.personId))
+        .limit(1);
+      if (!person) {
+        throw new Error(`Auth person not found: ${input.personId}`);
+      }
+
+      const creator = await requireUser(tx, input.createdByUserId);
+      const isSelfLink = creator.personId === input.personId;
+      const now = Date.now();
+      const link = {
+        agentId,
+        personId: input.personId,
+        status: isSelfLink ? "active" : "pending",
+        createdByUserId: creator.id,
+        consentedByUserId: isSelfLink ? creator.id : null,
+        createdAt: now,
+        updatedAt: now,
+      } satisfies typeof agentPersonLinks.$inferInsert;
+      await tx.insert(agentPersonLinks).values(link);
+      return link;
+    });
+  }
+
+  async acceptRepresentation(
+    agentId: string,
+    userId: string,
+  ): Promise<AgentPersonLink> {
+    return this.db.transaction(async (tx) => {
+      const normalizedAgentId = normalizeAgentId(agentId);
+      const [link] = await tx
+        .select()
+        .from(agentPersonLinks)
+        .where(eq(agentPersonLinks.agentId, normalizedAgentId))
+        .limit(1);
+      if (!link) {
+        throw new Error(`Agent-person link not found: ${normalizedAgentId}`);
+      }
+
+      const user = await requireUser(tx, userId);
+      if (user.personId !== link.personId) {
+        throw new Error(
+          "Only the represented person can accept this agent link",
+        );
+      }
+      if (link.status === "active" && link.consentedByUserId === user.id) {
+        return link;
+      }
+
+      const updatedAt = Date.now();
+      await tx
+        .update(agentPersonLinks)
+        .set({ status: "active", consentedByUserId: user.id, updatedAt })
+        .where(eq(agentPersonLinks.agentId, normalizedAgentId));
+      return {
+        ...link,
+        status: "active",
+        consentedByUserId: user.id,
+        updatedAt,
+      };
+    });
+  }
+}
+
+function normalizeAgentId(agentId: string): string {
+  const normalized = agentId.trim();
+  if (!normalized) {
+    throw new Error("Agent id is required");
+  }
+  return normalized;
+}
+
+async function requireUser(
+  db: Pick<AuthRuntimeDB, "select">,
+  userId: string,
+): Promise<AuthUser> {
+  const [user] = await db
+    .select()
+    .from(authUsers)
+    .where(eq(authUsers.id, userId))
+    .limit(1);
+  if (!user) {
+    throw new Error(`Auth user not found: ${userId}`);
+  }
+  return user;
+}

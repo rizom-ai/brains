@@ -25,6 +25,7 @@ const OPTIONAL_CHALLENGE_USER_MIGRATION_ID = 2;
 const A2A_PEER_TRUST_MIGRATION_ID = 3;
 const SIGNING_KEY_PURPOSE_MIGRATION_ID = 4;
 const AUTH_SESSION_TERMINOLOGY_MIGRATION_ID = 5;
+const PERSON_SUBJECT_MIGRATION_ID = 6;
 
 export class AuthRuntimeDatabase {
   private readonly storageDir: string;
@@ -76,6 +77,7 @@ export class AuthRuntimeDatabase {
       await this.runA2APeerTrustMigration();
       await this.runSigningKeyPurposeMigration();
       await this.runAuthSessionTerminologyMigration();
+      await this.runPersonSubjectMigration();
       await this.secureLocalDatabaseFile();
     } catch (error) {
       await this.stop();
@@ -112,6 +114,81 @@ export class AuthRuntimeDatabase {
       return;
     }
     await chmod(path, 0o600);
+  }
+
+  private async runPersonSubjectMigration(): Promise<void> {
+    const existing = await this.client.execute({
+      sql: "SELECT id FROM auth_schema_migrations WHERE id = ?",
+      args: [PERSON_SUBJECT_MIGRATION_ID],
+    });
+    if (existing.rows.length > 0) {
+      return;
+    }
+
+    await this.client.batch(
+      [
+        `CREATE TABLE IF NOT EXISTS auth_people (
+          id TEXT PRIMARY KEY,
+          display_name TEXT NOT NULL,
+          profile_entity_id TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_people_profile_entity_id
+          ON auth_people(profile_entity_id)
+          WHERE profile_entity_id IS NOT NULL`,
+        `ALTER TABLE auth_users
+          ADD COLUMN person_id TEXT REFERENCES auth_people(id) ON DELETE RESTRICT`,
+        `INSERT INTO auth_people
+          (id, display_name, profile_entity_id, created_at, updated_at)
+          SELECT
+            CASE
+              WHEN id LIKE 'usr_%' THEN 'prsn_' || substr(id, 5)
+              ELSE 'prsn_' || id
+            END,
+            display_name,
+            NULL,
+            created_at,
+            updated_at
+          FROM auth_users`,
+        `UPDATE auth_users
+          SET person_id = CASE
+            WHEN id LIKE 'usr_%' THEN 'prsn_' || substr(id, 5)
+            ELSE 'prsn_' || id
+          END
+          WHERE person_id IS NULL`,
+        `CREATE UNIQUE INDEX idx_auth_users_person_id
+          ON auth_users(person_id)`,
+        `ALTER TABLE auth_identities
+          ADD COLUMN person_id TEXT REFERENCES auth_people(id) ON DELETE CASCADE`,
+        `UPDATE auth_identities
+          SET person_id = (
+            SELECT auth_users.person_id
+            FROM auth_users
+            WHERE auth_users.id = auth_identities.user_id
+          )
+          WHERE person_id IS NULL`,
+        `CREATE INDEX idx_auth_identities_person_id
+          ON auth_identities(person_id)`,
+        `CREATE TABLE agent_person_links (
+          agent_id TEXT PRIMARY KEY,
+          person_id TEXT NOT NULL REFERENCES auth_people(id) ON DELETE CASCADE,
+          status TEXT NOT NULL CHECK (status IN ('pending', 'active', 'revoked')),
+          created_by_user_id TEXT REFERENCES auth_users(id) ON DELETE SET NULL,
+          consented_by_user_id TEXT REFERENCES auth_users(id) ON DELETE SET NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )`,
+        `CREATE INDEX idx_agent_person_links_person_id
+          ON agent_person_links(person_id)`,
+        {
+          sql: `INSERT INTO auth_schema_migrations (id, name, applied_at)
+            VALUES (?, ?, ?)`,
+          args: [PERSON_SUBJECT_MIGRATION_ID, "person-subjects", Date.now()],
+        },
+      ],
+      "write",
+    );
   }
 
   private async runAuthSessionTerminologyMigration(): Promise<void> {

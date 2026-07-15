@@ -4,8 +4,10 @@ import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
   authIdentities,
+  authPeople,
   authUsers,
   type AuthIdentity,
+  type AuthPerson,
   type AuthUser,
 } from "./runtime-schema";
 
@@ -13,8 +15,14 @@ export type AuthUserRole = AuthUser["role"];
 export type AuthUserStatus = AuthUser["status"];
 export type AuthIdentityType = AuthIdentity["type"];
 
+export interface CreateAuthPersonInput {
+  displayName: string;
+  profileEntityId?: string;
+}
+
 export interface CreateAuthUserInput {
   displayName: string;
+  personId?: string;
   role?: AuthUserRole;
   status?: AuthUserStatus;
   canonicalId?: string;
@@ -92,9 +100,19 @@ export class AuthUserStore {
 
       const now = Date.now();
       const id = createPrefixedId("usr");
+      const personId = createPrefixedId("prsn");
+      const displayName = input.displayName ?? "Anchor";
+      await tx.insert(authPeople).values({
+        id: personId,
+        displayName,
+        profileEntityId: null,
+        createdAt: now,
+        updatedAt: now,
+      });
       const user = {
         id,
-        displayName: input.displayName ?? "Anchor",
+        personId,
+        displayName,
         role: "anchor",
         status: "active",
         canonicalId: canonicalIdForUserId(id),
@@ -106,21 +124,67 @@ export class AuthUserStore {
     });
   }
 
-  async createUser(input: CreateAuthUserInput): Promise<AuthUser> {
+  async createPerson(input: CreateAuthPersonInput): Promise<AuthPerson> {
     const now = Date.now();
-    const id = createPrefixedId("usr");
-    const user = {
-      id,
+    const person = {
+      id: createPrefixedId("prsn"),
       displayName: input.displayName,
-      role: input.role ?? "public",
-      status: input.status ?? "active",
-      canonicalId: input.canonicalId ?? canonicalIdForUserId(id),
+      profileEntityId: input.profileEntityId ?? null,
       createdAt: now,
       updatedAt: now,
-    } satisfies typeof authUsers.$inferInsert;
+    } satisfies typeof authPeople.$inferInsert;
+    await this.db.insert(authPeople).values(person);
+    return person;
+  }
 
-    await this.db.insert(authUsers).values(user);
-    return user;
+  async getPerson(personId: string): Promise<AuthPerson | undefined> {
+    const [person] = await this.db
+      .select()
+      .from(authPeople)
+      .where(eq(authPeople.id, personId))
+      .limit(1);
+    return person;
+  }
+
+  async createUser(input: CreateAuthUserInput): Promise<AuthUser> {
+    return this.db.transaction(async (tx) => {
+      const now = Date.now();
+      const id = createPrefixedId("usr");
+      const personId = input.personId ?? createPrefixedId("prsn");
+
+      if (input.personId) {
+        const [person] = await tx
+          .select({ id: authPeople.id })
+          .from(authPeople)
+          .where(eq(authPeople.id, input.personId))
+          .limit(1);
+        if (!person) {
+          throw new Error(`Auth person not found: ${input.personId}`);
+        }
+      } else {
+        await tx.insert(authPeople).values({
+          id: personId,
+          displayName: input.displayName,
+          profileEntityId: null,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      const user = {
+        id,
+        personId,
+        displayName: input.displayName,
+        role: input.role ?? "public",
+        status: input.status ?? "active",
+        canonicalId: input.canonicalId ?? canonicalIdForUserId(id),
+        createdAt: now,
+        updatedAt: now,
+      } satisfies typeof authUsers.$inferInsert;
+
+      await tx.insert(authUsers).values(user);
+      return user;
+    });
   }
 
   async listUsers(): Promise<AuthUser[]> {
@@ -228,10 +292,11 @@ export class AuthUserStore {
   }
 
   async attachIdentity(input: AttachAuthIdentityInput): Promise<AuthIdentity> {
-    await this.requireUser(input.userId);
+    const user = await this.requireUser(input.userId);
 
     const identity = {
       id: createPrefixedId("aid"),
+      personId: user.personId,
       userId: input.userId,
       type: input.type,
       issuer: input.issuer ?? null,
@@ -248,17 +313,18 @@ export class AuthUserStore {
   }
 
   async listIdentities(userId: string): Promise<AuthIdentity[]> {
-    await this.requireUser(userId);
+    const user = await this.requireUser(userId);
     return this.db
       .select()
       .from(authIdentities)
-      .where(eq(authIdentities.userId, userId))
+      .where(eq(authIdentities.personId, user.personId))
       .orderBy(authIdentities.createdAt);
   }
 
   async detachIdentityBySubject(
     input: ResolveAuthIdentityInput & { userId: string },
   ): Promise<AuthIdentity | undefined> {
+    const user = await this.requireUser(input.userId);
     const identityKeyHash = hashIdentityKey(normalizeIdentityKey(input));
     const [identity] = await this.db
       .select()
@@ -266,7 +332,7 @@ export class AuthUserStore {
       .where(
         and(
           eq(authIdentities.identityKeyHash, identityKeyHash),
-          eq(authIdentities.userId, input.userId),
+          eq(authIdentities.personId, user.personId),
           isNull(authIdentities.revokedAt),
         ),
       )
@@ -316,7 +382,7 @@ export class AuthUserStore {
     const [row] = await this.db
       .select({ user: authUsers })
       .from(authIdentities)
-      .innerJoin(authUsers, eq(authIdentities.userId, authUsers.id))
+      .innerJoin(authUsers, eq(authIdentities.personId, authUsers.personId))
       .where(
         and(
           eq(authIdentities.identityKeyHash, identityKeyHash),

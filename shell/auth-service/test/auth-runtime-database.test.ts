@@ -36,8 +36,10 @@ describe("AuthRuntimeDatabase", () => {
       expect(database.url).toBe(`file:${join(storageDir, "auth.db")}`);
       expect(await tableNames(database)).toEqual([
         "a2a_peer_trust",
+        "agent_person_links",
         "auth_audit_events",
         "auth_identities",
+        "auth_people",
         "auth_schema_migrations",
         "auth_sessions",
         "auth_users",
@@ -100,6 +102,83 @@ describe("AuthRuntimeDatabase", () => {
     }
   });
 
+  it("backfills one stable person per existing user without changing identity rows", async () => {
+    const storageDir = await tempStorageDir();
+    const legacy = new AuthRuntimeDatabase({ storageDir });
+    await legacy.start();
+    await legacy.client.batch(
+      [
+        `INSERT INTO auth_users
+          (id, display_name, role, status, canonical_id, created_at, updated_at)
+          VALUES ('usr_mira', 'Mira Reyes', 'trusted', 'active', 'user:mira', 10, 20)`,
+        `INSERT INTO auth_identities
+          (id, user_id, type, identity_key_hash, label, verified_at, created_at)
+          VALUES ('aid_mira_discord', 'usr_mira', 'discord', 'hash-mira', 'MiraR', 15, 12)`,
+        "DROP TABLE agent_person_links",
+        "DROP INDEX idx_auth_identities_person_id",
+        "ALTER TABLE auth_identities DROP COLUMN person_id",
+        "DROP INDEX idx_auth_users_person_id",
+        "ALTER TABLE auth_users DROP COLUMN person_id",
+        "DROP TABLE auth_people",
+        "DELETE FROM auth_schema_migrations WHERE id = 6",
+      ],
+      "write",
+    );
+    await legacy.stop();
+
+    const migrated = new AuthRuntimeDatabase({ storageDir });
+    await migrated.start();
+    try {
+      const users = await migrated.client.execute(
+        "SELECT id, person_id FROM auth_users WHERE id = 'usr_mira'",
+      );
+      expect(
+        users.rows.map((row) => ({
+          id: row["id"],
+          personId: row["person_id"],
+        })),
+      ).toEqual([{ id: "usr_mira", personId: "prsn_mira" }]);
+
+      const people = await migrated.client.execute(
+        "SELECT id, display_name, created_at, updated_at FROM auth_people WHERE id = 'prsn_mira'",
+      );
+      expect(
+        people.rows.map((row) => ({
+          id: row["id"],
+          displayName: row["display_name"],
+          createdAt: row["created_at"],
+          updatedAt: row["updated_at"],
+        })),
+      ).toEqual([
+        {
+          id: "prsn_mira",
+          displayName: "Mira Reyes",
+          createdAt: 10,
+          updatedAt: 20,
+        },
+      ]);
+
+      const identities = await migrated.client.execute(
+        "SELECT id, person_id, user_id FROM auth_identities",
+      );
+      expect(
+        identities.rows.map((row) => ({
+          id: row["id"],
+          personId: row["person_id"],
+          userId: row["user_id"],
+        })),
+      ).toEqual([
+        {
+          id: "aid_mira_discord",
+          personId: "prsn_mira",
+          userId: "usr_mira",
+        },
+      ]);
+    } finally {
+      await migrated.stop();
+    }
+  });
+
   it("runs migrations idempotently", async () => {
     const storageDir = await tempStorageDir();
     const first = new AuthRuntimeDatabase({ storageDir });
@@ -114,7 +193,9 @@ describe("AuthRuntimeDatabase", () => {
         sql: "SELECT id FROM auth_schema_migrations ORDER BY id",
         args: [],
       });
-      expect(migrations.rows.map((row) => row["id"])).toEqual([1, 2, 3, 4, 5]);
+      expect(migrations.rows.map((row) => row["id"])).toEqual([
+        1, 2, 3, 4, 5, 6,
+      ]);
       expect(await tableNames(second)).toContain("auth_users");
       expect(await tableNames(second)).not.toContain("operator_sessions");
     } finally {

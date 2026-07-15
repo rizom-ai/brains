@@ -32,6 +32,8 @@ export type {
 } from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
+export { PersonAgentStore } from "./person-agent-store";
+export type { LinkAgentToPersonInput } from "./person-agent-store";
 export {
   A2APeerTrustStore,
   RuntimeA2APeerTrustStore,
@@ -44,6 +46,7 @@ export type {
 } from "./peer-trust-store";
 export { AuthRuntimeDatabase } from "./runtime-db";
 export type { AuthRuntimeDatabaseOptions, AuthRuntimeDB } from "./runtime-db";
+export type { AgentPersonLink, AuthPerson } from "./runtime-schema";
 export {
   InvalidClientMetadataError,
   OAuthClientStore,
@@ -127,6 +130,7 @@ export type {
   AuthIdentityType,
   AuthUserRole,
   AuthUserStatus,
+  CreateAuthPersonInput,
   CreateAuthUserInput,
   ResolveAuthIdentityInput,
 } from "./user-store";

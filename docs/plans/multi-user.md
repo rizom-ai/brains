@@ -352,7 +352,7 @@ Validation:
 
 ### Phase 6 — Person-centered identity and agent promotion
 
-**Status: approved for implementation.** The [People dashboard mockup](../design/people-dashboard-mockup.html) explores the profile, access, representation, and consent states. Promotion runs from an existing agent to an authenticated user; creating an agent for an existing user is a secondary linking flow, not promotion.
+**Status: in progress.** Runtime person backfill, person-addressable canonical identity rows, and consent-bearing agent/person link storage are implemented in migration 6. Promotion APIs and dashboard workflows remain. The [People dashboard mockup](../design/people-dashboard-mockup.html) explores the profile, access, representation, and consent states. Promotion runs from an existing agent to an authenticated user; creating an agent for an existing user is a secondary linking flow, not promotion.
 
 Introduce a stable person subject between auth users and agents:
 

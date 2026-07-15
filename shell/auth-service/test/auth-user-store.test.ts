@@ -60,6 +60,7 @@ describe("AuthUserStore", () => {
       });
 
       expect(first.id).toStartWith("usr_");
+      expect(first.personId).toStartWith("prsn_");
       expect(first).toMatchObject({
         displayName: "Alex Anchor",
         role: "anchor",
@@ -68,6 +69,11 @@ describe("AuthUserStore", () => {
       });
       expect(second.id).toBe(first.id);
       expect(await store.listUsers()).toHaveLength(1);
+      expect(await store.getPerson(first.personId)).toMatchObject({
+        id: first.personId,
+        displayName: "Alex Anchor",
+        profileEntityId: null,
+      });
     });
   });
 
@@ -83,6 +89,43 @@ describe("AuthUserStore", () => {
     });
   });
 
+  it("creates a distinct person subject transactionally with each user", async () => {
+    await withUserStore(async (store) => {
+      const first = await store.createUser({ displayName: "First" });
+      const second = await store.createUser({ displayName: "Second" });
+
+      expect(first.personId).not.toBe(second.personId);
+      expect(await store.getPerson(first.personId)).toMatchObject({
+        displayName: "First",
+      });
+      expect(await store.getPerson(second.personId)).toMatchObject({
+        displayName: "Second",
+      });
+    });
+  });
+
+  it("creates an invited user facet for an existing person", async () => {
+    await withUserStore(async (store) => {
+      const person = await store.createPerson({
+        displayName: "Promoted Person",
+        profileEntityId: "person-profile/promoted-person",
+      });
+      const user = await store.createUser({
+        displayName: "Promoted Person",
+        personId: person.id,
+        role: "trusted",
+        status: "invited",
+      });
+
+      expect(user).toMatchObject({
+        personId: person.id,
+        role: "trusted",
+        status: "invited",
+      });
+      expect(await store.getPerson(person.id)).toEqual(person);
+    });
+  });
+
   it("resolves verified active identity bindings without storing raw lookup subjects", async () => {
     await withUserStore(async (store, database) => {
       const user = await store.createUser({
@@ -90,13 +133,14 @@ describe("AuthUserStore", () => {
         role: "trusted",
       });
 
-      await store.attachIdentity({
+      const identity = await store.attachIdentity({
         userId: user.id,
         type: "discord",
         subject: "1442828818493735015",
         label: "Alex on Discord",
         verifiedAt: 123,
       });
+      expect(identity.personId).toBe(user.personId);
 
       expect(
         await store.resolveIdentity({

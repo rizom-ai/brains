@@ -102,10 +102,38 @@ type AuthTable<
   dialect: "sqlite";
 }>;
 
+type AuthPeopleTable = AuthTable<
+  "auth_people",
+  {
+    id: AuthTextColumn<"auth_people", "id", true, true>;
+    displayName: AuthTextColumn<"auth_people", "display_name", true>;
+    profileEntityId: AuthTextColumn<"auth_people", "profile_entity_id", false>;
+    createdAt: AuthIntegerColumn<"auth_people", "created_at", true>;
+    updatedAt: AuthIntegerColumn<"auth_people", "updated_at", true>;
+  }
+>;
+
+export const authPeople: AuthPeopleTable = sqliteTable(
+  "auth_people",
+  {
+    id: text("id").primaryKey(),
+    displayName: text("display_name").notNull(),
+    profileEntityId: text("profile_entity_id"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => ({
+    profileEntityIdIdx: uniqueIndex("idx_auth_people_profile_entity_id").on(
+      table.profileEntityId,
+    ),
+  }),
+);
+
 type AuthUsersTable = AuthTable<
   "auth_users",
   {
     id: AuthTextColumn<"auth_users", "id", true, true>;
+    personId: AuthTextColumn<"auth_users", "person_id", true>;
     displayName: AuthTextColumn<"auth_users", "display_name", true>;
     role: AuthTextColumn<
       "auth_users",
@@ -133,6 +161,11 @@ export const authUsers: AuthUsersTable = sqliteTable(
   "auth_users",
   {
     id: text("id").primaryKey(),
+    personId: text("person_id")
+      .notNull()
+      .references(() => authPeople.id, {
+        onDelete: "restrict",
+      }),
     displayName: text("display_name").notNull(),
     role: text("role", { enum: ["anchor", "trusted", "public"] }).notNull(),
     status: text("status", {
@@ -146,6 +179,7 @@ export const authUsers: AuthUsersTable = sqliteTable(
     canonicalIdIdx: uniqueIndex("idx_auth_users_canonical_id").on(
       table.canonicalId,
     ),
+    personIdIdx: uniqueIndex("idx_auth_users_person_id").on(table.personId),
   }),
 );
 
@@ -153,6 +187,7 @@ type AuthIdentitiesTable = AuthTable<
   "auth_identities",
   {
     id: AuthTextColumn<"auth_identities", "id", true, true>;
+    personId: AuthTextColumn<"auth_identities", "person_id", true>;
     userId: AuthTextColumn<"auth_identities", "user_id", true>;
     type: AuthTextColumn<
       "auth_identities",
@@ -184,6 +219,9 @@ export const authIdentities: AuthIdentitiesTable = sqliteTable(
   "auth_identities",
   {
     id: text("id").primaryKey(),
+    personId: text("person_id")
+      .notNull()
+      .references(() => authPeople.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
       .references(() => authUsers.id, { onDelete: "cascade" }),
@@ -202,7 +240,61 @@ export const authIdentities: AuthIdentitiesTable = sqliteTable(
     activeKeyIdx: uniqueIndex("idx_auth_identities_active_key")
       .on(table.identityKeyHash)
       .where(sql`revoked_at IS NULL`),
+    personIdIdx: index("idx_auth_identities_person_id").on(table.personId),
     userIdIdx: index("idx_auth_identities_user_id").on(table.userId),
+  }),
+);
+
+type AgentPersonLinksTable = AuthTable<
+  "agent_person_links",
+  {
+    agentId: AuthTextColumn<"agent_person_links", "agent_id", true, true>;
+    personId: AuthTextColumn<"agent_person_links", "person_id", true>;
+    status: AuthTextColumn<
+      "agent_person_links",
+      "status",
+      true,
+      false,
+      "pending" | "active" | "revoked",
+      ["pending", "active", "revoked"]
+    >;
+    createdByUserId: AuthTextColumn<
+      "agent_person_links",
+      "created_by_user_id",
+      false
+    >;
+    consentedByUserId: AuthTextColumn<
+      "agent_person_links",
+      "consented_by_user_id",
+      false
+    >;
+    createdAt: AuthIntegerColumn<"agent_person_links", "created_at", true>;
+    updatedAt: AuthIntegerColumn<"agent_person_links", "updated_at", true>;
+  }
+>;
+
+export const agentPersonLinks: AgentPersonLinksTable = sqliteTable(
+  "agent_person_links",
+  {
+    agentId: text("agent_id").primaryKey(),
+    personId: text("person_id")
+      .notNull()
+      .references(() => authPeople.id, { onDelete: "cascade" }),
+    status: text("status", {
+      enum: ["pending", "active", "revoked"],
+    }).notNull(),
+    createdByUserId: text("created_by_user_id").references(() => authUsers.id, {
+      onDelete: "set null",
+    }),
+    consentedByUserId: text("consented_by_user_id").references(
+      () => authUsers.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => ({
+    personIdIdx: index("idx_agent_person_links_person_id").on(table.personId),
   }),
 );
 
@@ -572,8 +664,10 @@ export const authSchemaMigrations: AuthSchemaMigrationsTable = sqliteTable(
 
 export const authRuntimeSchema: {
   a2aPeerTrust: A2aPeerTrustTable;
+  agentPersonLinks: AgentPersonLinksTable;
   authAuditEvents: AuthAuditEventsTable;
   authIdentities: AuthIdentitiesTable;
+  authPeople: AuthPeopleTable;
   authSchemaMigrations: AuthSchemaMigrationsTable;
   authUsers: AuthUsersTable;
   oauthAuthCodes: OauthAuthCodesTable;
@@ -586,8 +680,10 @@ export const authRuntimeSchema: {
   webauthnChallenges: WebauthnChallengesTable;
 } = {
   a2aPeerTrust,
+  agentPersonLinks,
   authAuditEvents,
   authIdentities,
+  authPeople,
   authSchemaMigrations,
   authUsers,
   oauthAuthCodes,
@@ -600,6 +696,10 @@ export const authRuntimeSchema: {
   webauthnChallenges,
 };
 
+export type AgentPersonLink = typeof agentPersonLinks.$inferSelect;
+export type InsertAgentPersonLink = typeof agentPersonLinks.$inferInsert;
+export type AuthPerson = typeof authPeople.$inferSelect;
+export type InsertAuthPerson = typeof authPeople.$inferInsert;
 export type AuthUser = typeof authUsers.$inferSelect;
 export type InsertAuthUser = typeof authUsers.$inferInsert;
 export type AuthIdentity = typeof authIdentities.$inferSelect;
