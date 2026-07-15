@@ -237,7 +237,7 @@ function BrainRunSection({
         headline={headline}
         intro={intro}
       />
-      <div className="reveal reveal-delay-1 mt-7 max-w-[1120px]">
+      <div className="reveal reveal-delay-1 mt-7">
         <DashboardScreen />
       </div>
       <p className="reveal reveal-delay-2 mt-5 max-w-[52em] font-display text-[17px] font-normal italic text-theme-light [font-variation-settings:'SOFT'_85]">
@@ -334,7 +334,7 @@ function BrainQuickstartSection({
   return (
     <Section id="quickstart" className="py-14">
       <SectCap lead={cap} trail={capNote} />
-      <div className="mt-7 grid max-w-[1000px] items-start gap-12 md:grid-cols-[1.15fr_1fr]">
+      <div className="mt-7 grid items-start gap-12 md:grid-cols-[1.15fr_1fr]">
         <div className="reveal reveal-delay-1 border border-theme bg-theme-subtle/60 px-6 py-5 font-label text-[14px] leading-[1.9]">
           {lines.map((line, i) => (
             <div key={i} className={termLineClass(line.kind)}>

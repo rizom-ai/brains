@@ -116,7 +116,12 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
   const home = isHome(path);
   return (
     <div className="relative z-[2] flex flex-wrap items-baseline gap-x-4 gap-y-1.5 border-b border-theme-light px-4 py-3 font-label text-label-xs uppercase tracking-[0.12em] sm:gap-x-6 sm:px-6 sm:tracking-[0.14em] md:px-10 xl:px-20">
-      <span className="text-theme-muted">rizom</span>
+      <a
+        href="/"
+        className="-my-2 inline-block py-2 text-theme-muted transition-colors hover:text-theme"
+      >
+        rizom
+      </a>
       {FACES.map((item) =>
         // No face is current on the umbrella home, nor on a cross-room index.
         item.key === face && !activeIndex && !home ? (
@@ -174,12 +179,14 @@ function Wordmark({ nameplate }: { nameplate: string | null }): JSX.Element {
 
 function FaceNav({
   face,
-  home,
+  umbrella,
 }: {
   face: FaceKey;
-  home: boolean;
+  umbrella: boolean;
 }): JSX.Element {
-  const chrome = home ? HOME_CHROME : FACE_CHROME[face];
+  // Home and the org indexes (/writing, /network) belong to no face —
+  // they wear the plain umbrella chrome, not a room nameplate.
+  const chrome = umbrella ? HOME_CHROME : FACE_CHROME[face];
   // Deliberately NOT merged with siteInfo.navigation: entity plugins
   // register slot-based nav entries for every list route (topics,
   // posts, …), which floods the bar. Each room owns its own links.
@@ -356,7 +363,7 @@ function RizomAiChrome({
   children: ComponentChildren;
 }): JSX.Element {
   const face = activeFace(path);
-  const home = isHome(path);
+  const umbrella = isHome(path) || orgIndexActive(path) !== null;
   return (
     <RizomFrame canvas={false}>
       {/* xl:pl matches the mockup's 148px left rail (68 + the 80px
@@ -365,7 +372,7 @@ function RizomAiChrome({
         <MyceliumRail />
         <header className="sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
           <FacesStrip path={path} />
-          <FaceNav face={face} home={home} />
+          <FaceNav face={face} umbrella={umbrella} />
         </header>
         <main>{children}</main>
         <SiteFooter siteInfo={siteInfo} />

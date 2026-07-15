@@ -70,4 +70,19 @@ describe("AiLayout chrome", () => {
     const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
     expect(strip).not.toContain('aria-current="page"');
   });
+
+  test("the strip's rizom mark links back to the homepage", () => {
+    const html = renderChrome("/brain");
+    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
+    expect(strip).toMatch(/<a href="\/"[^>]*>rizom<\/a>/);
+  });
+
+  test("org-index pages wear the plain umbrella wordmark, not rizom.brain", () => {
+    for (const path of ["/writing", "/network"]) {
+      const html = renderChrome(path);
+      expect(html).not.toContain(">brain</span>");
+    }
+    // The face pages keep their nameplates.
+    expect(renderChrome("/brain")).toContain(">brain</span>");
+  });
 });
