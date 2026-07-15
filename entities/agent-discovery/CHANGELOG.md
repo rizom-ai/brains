@@ -1,5 +1,23 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.183
+
+### Patch Changes
+
+- [`0383fc3`](https://github.com/rizom-ai/brains/commit/0383fc3f425465eb148a2c87dbff7c18ff777aa5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Respect disabled recurring-alert delivery by discarding pending alerts, and apply the agent-directory notification opt-in to persisted retries.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.183
+  - @brains/atproto-contracts@0.2.0-alpha.183
+  - @brains/dashboard@0.2.0-alpha.183
+  - @brains/auth-service@0.2.0-alpha.183
+  - @brains/content-formatters@0.2.0-alpha.183
+  - @brains/contracts@0.2.0-alpha.183
+  - @brains/http-signatures@0.2.0-alpha.183
+  - @brains/ui-library@0.2.0-alpha.183
+  - @brains/utils@0.2.0-alpha.183
+  - @brains/templates@0.2.0-alpha.183
+
 ## 0.2.0-alpha.182
 
 ### Patch Changes
