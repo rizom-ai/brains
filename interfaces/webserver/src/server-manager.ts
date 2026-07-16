@@ -67,6 +67,13 @@ interface AppOptions {
   defaultCache: string;
   /** File extensions that get immutable cache headers */
   immutableExtensions: RegExp;
+  /**
+   * File extensions that must revalidate on every request (no-cache).
+   * For assets at stable URLs whose content changes on rebuild (main.css,
+   * boot.js) — a max-age lets the CDN edge serve pages against stale
+   * styles/scripts for the full window. Checked before immutableExtensions.
+   */
+  revalidateExtensions?: RegExp;
   healthEndpoint: boolean;
 }
 
@@ -112,7 +119,9 @@ export class ServerManager {
       distDir: this.options.productionDistDir,
       compress: true,
       defaultCache: "public, max-age=3600",
-      immutableExtensions: /\.(js|css|jpg|jpeg|png|gif|ico|woff|woff2)$/,
+      // js/css are rebuilt in place at stable URLs — never immutable.
+      immutableExtensions: /\.(jpg|jpeg|png|gif|ico|webp|svg|woff|woff2)$/,
+      revalidateExtensions: /\.(js|css)$/,
       healthEndpoint: true,
     });
     const previewApp = this.options.previewDistDir
@@ -215,7 +224,9 @@ export class ServerManager {
 
     app.use("/*", async (c, next) => {
       await next();
-      if (opts.immutableExtensions.test(c.req.path)) {
+      if (opts.revalidateExtensions?.test(c.req.path)) {
+        c.header("Cache-Control", "no-cache");
+      } else if (opts.immutableExtensions.test(c.req.path)) {
         c.header("Cache-Control", CACHE_IMMUTABLE);
       } else {
         c.header("Cache-Control", opts.defaultCache);
