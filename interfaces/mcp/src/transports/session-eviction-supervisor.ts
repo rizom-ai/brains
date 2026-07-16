@@ -13,6 +13,14 @@ interface SessionEvictionSupervisorOptions {
   onError?: ((error: unknown) => void) | undefined;
 }
 
+function unrefSleep(durationMs: number): Effect.Effect<void> {
+  return Effect.async<void>((resume) => {
+    const timer = setTimeout(() => resume(Effect.void), durationMs);
+    timer.unref();
+    return Effect.sync(() => clearTimeout(timer));
+  });
+}
+
 /** Owns the MCP HTTP idle-session sweep and drains admitted sweeps. @internal */
 export class SessionEvictionSupervisor {
   private readonly scope: Scope.CloseableScope;
@@ -43,10 +51,10 @@ export class SessionEvictionSupervisor {
         ),
       ),
     );
-    const schedule = Effect.sleep(Math.max(1, intervalMs)).pipe(
-      Effect.andThen(runSweep),
-      Effect.forever,
-    );
+    const interval = Math.max(1, intervalMs);
+    const schedule = (
+      options.clock ? Effect.sleep(interval) : unrefSleep(interval)
+    ).pipe(Effect.andThen(runSweep), Effect.forever);
     const timed = options.clock
       ? Effect.withClock(schedule, options.clock)
       : schedule;
