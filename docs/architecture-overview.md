@@ -38,6 +38,8 @@ The boundary is intentionally narrow:
 
 This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages. Workspace packages import the curated private `@brains/utils/effect` subpath rather than depending on Effect independently; deterministic test services use `@brains/utils/effect/test`.
 
+The A2A interface applies the same boundary locally: its private turn supervisor owns streaming and polling fibers plus scoped SSE heartbeat schedules. Stream disconnect, explicit task cancellation, and daemon shutdown propagate through `AbortSignal`; no Effect type appears in the interface contract.
+
 ### Layer adoption
 
 Effect `Layer` is adopted only for complete vertical slices. Wrapping process-global `getInstance()` calls in layers would hide singleton state, add a parallel dependency system, and risk changing registration and boot order.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Partial. Phase 1 is implemented; Phases 2 and 3 remain proposed and have not started. The shared shell lifecycle and ownership prerequisite is complete on `main`; all follow-up conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
+Partial. Phases 1 and 2 are implemented; Phase 3 remains proposed and has not started. The shared shell lifecycle and ownership prerequisite is complete on `main`; all follow-up conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
 
 Together with [directory-sync-effect-lifecycle.md](./directory-sync-effect-lifecycle.md), this plan records the concrete remaining follow-up scope from the repo-wide lifecycle sweep. The MCP HTTP eviction timer remains explicitly deferred; newly discovered candidates require a separate ownership audit rather than automatic conversion.
 
@@ -32,12 +32,14 @@ Pre-Phase 1 findings:
 
 What is already good: the `SchedulerBackend` abstraction with `TestSchedulerBackend.tick()` gives deterministic tests today. Keep it.
 
-### interfaces/a2a — streaming turn is decoupled from stream lifetime
+### interfaces/a2a — streaming turn was decoupled from stream lifetime
 
-- `streamingAgentMessage()` launches `agentService.chat(...)` as a floating `.then/.catch` chain (`src/jsonrpc-handler.ts:372-402`). The stream's `cancel()` only stops the heartbeat and sets `closed` (`jsonrpc-handler.ts:404-407`) — a client disconnect leaves the full agent turn running with no destination and no way to stop it. The non-streaming task path (around `jsonrpc-handler.ts:201`) has the same detached shape.
-- `ChatContext` carries no `AbortSignal` (`shell/plugins/src/contracts/agent.ts:95-110`), so there is currently no cancellation path into the turn at all.
-- The a2a daemon's `stop()` only logs (`src/a2a-interface.ts:473-474`); in-flight streams are neither tracked nor drained at plugin shutdown.
-- The task manager already models a `canceled` terminal state (`src/task-manager.ts:12`) — the protocol supports what the implementation doesn't do.
+Pre-Phase 2 findings:
+
+- `handleStreamMessage()` launched `agentService.chat(...)` as a floating `.then/.catch` chain. The stream's `cancel()` only stopped the heartbeat and set `closed`, so a client disconnect left the full agent turn running with no destination. The non-streaming task path had the same detached shape.
+- The public agent boundary had already gained an optional `AbortSignal` argument during shell lifecycle hardening, but A2A did not supply one.
+- The A2A daemon's `stop()` only logged; in-flight streams and polling turns were neither tracked nor interrupted at plugin shutdown.
+- The task manager already modeled a `canceled` terminal state, but active chat completion could overwrite it with `completed`.
 
 ### shared/media-renderer — hand-rolled browser supervision
 
@@ -66,11 +68,13 @@ The remove-before-publish ordering in `processEntry` stays as is — reordering 
 
 ### a2a: turn lifetime linked to stream lifetime
 
-1. Add `signal?: AbortSignal` to `ChatContext` (`shell/plugins/src/contracts/agent.ts`) — optional, non-breaking, and the natural handoff point to the Effect branch's `ActiveTurnSupervisor`, which already checks caller signals. Wiring the signal into turn interruption inside ai-service is part of this phase; if the supervisor path isn't reachable for a given turn, the signal is still observed at the message-bus boundaries (best-effort cancellation, guaranteed no orphaned delivery).
-2. In `streamingAgentMessage()`, own the turn as a supervised fiber whose lifetime is linked to the stream: stream `cancel()` aborts the signal, the turn is interrupted, and the task transitions to `canceled` in the task manager. `finish()` semantics are unchanged for the happy path.
-3. The heartbeat interval becomes a scoped schedule owned by the same fiber — it cannot fire after the stream closes.
-4. Track in-flight streams in a plugin-level `FiberSet`; the a2a daemon's `stop()` aborts their signals and awaits settlement (bounded by the turn's own timeout) instead of only logging.
-5. Apply the same signal linkage to the non-streaming task path: a task abandoned by its client keeps running (polling clients may return), but plugin shutdown aborts it and records `canceled`.
+Implemented in the private `A2ATurnSupervisor`:
+
+1. Streaming and polling turns run in keyed fibers under one interface-owned `Scope` and `FiberMap`; the package still exposes only Promise and `AbortSignal` contracts.
+2. Stream cancellation aborts the signal passed to `AgentNamespace.chat()`, interrupts the turn, and records `canceled`. A canceled task cannot later be overwritten by a late chat response.
+3. SSE heartbeats are scoped Effect schedules owned by the same turn and stop on completion, disconnect, cancellation, or shutdown.
+4. The A2A daemon's `stop()` aborts every active streaming and polling turn, then awaits scope closure.
+5. Polling clients may return without canceling their task; explicit `tasks/cancel` and interface shutdown are the cancellation boundaries.
 
 ### media-renderer: scoped browser acquisition
 
@@ -96,10 +100,12 @@ Each phase is a complete vertical slice — characterization tests first, conver
 
 ### Phase 2 — a2a
 
-1. Characterization tests: stream `cancel()` leaves the chat running; daemon `stop()` does not settle in-flight streams; heartbeat cannot fire after close (current behavior to preserve).
-2. Add `signal` to `ChatContext` and thread it through ai-service turn supervision.
-3. Convert `streamingAgentMessage()` and the task path to signal-linked supervised fibers; heartbeat as scoped schedule; `canceled` task state on abort; plugin-level `FiberSet` drained in daemon `stop()`.
-4. Timing tests (heartbeat cadence, cancel-before-response, shutdown drain) use `TestClock`.
+**Implemented.**
+
+1. Characterization tests captured detached stream and polling turns, including late completion overwriting `canceled`.
+2. `A2ATurnSupervisor` owns signal-linked streaming and polling fibers under the interface lifecycle.
+3. Stream disconnect, `tasks/cancel`, and daemon shutdown interrupt turns and record `canceled`; ordinary polling client return does not cancel work.
+4. Heartbeat cadence and termination use deterministic `TestClock` coverage; disconnect and shutdown tests verify signal propagation and settlement.
 
 ### Phase 3 — media-renderer
 
