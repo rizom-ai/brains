@@ -4,12 +4,12 @@
 
 Partial. Phases 1 and 2 are implemented; Phase 3 remains proposed and has not started. The shared shell lifecycle and ownership prerequisite is complete on `main`; all follow-up conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
 
-Together with [directory-sync-effect-lifecycle.md](./directory-sync-effect-lifecycle.md), this plan records the concrete remaining follow-up scope from the repo-wide lifecycle sweep. The MCP HTTP eviction timer remains explicitly deferred; newly discovered candidates require a separate ownership audit rather than automatic conversion.
+Together with [directory-sync-effect-lifecycle.md](./directory-sync-effect-lifecycle.md), this plan records the concrete remaining follow-up scope from the repo-wide lifecycle sweep. The previously deferred MCP HTTP eviction timer was converted after a focused ownership audit exposed constructor-failure leakage and detached transport closes; newly discovered candidates still require their own audit rather than automatic conversion.
 
 Explicitly excluded:
 
 - Everything the completed shell lifecycle work already converted: job-queue worker and batch cleanup, entity-service index polling, ai-service `ActiveTurnSupervisor`, the message-interface `KeyedCleanupSupervisor`, plugin resource scopes, the shell bootloader's index-readiness monitor (now a lifecycle-forked Effect), and conversation-actor eviction (now a `FiberMap` supervisor).
-- The MCP HTTP transport's session-eviction `setInterval`: it is unref'd and cleared in `stop()`; convert it opportunistically when that transport is next touched, not as a phase here.
+  The MCP HTTP transport remains outside the numbered delivery phases, but its opportunistic lifecycle conversion is now complete and recorded below.
 
 ## Goal
 
@@ -76,6 +76,15 @@ Implemented in the private `A2ATurnSupervisor`:
 4. The A2A daemon's `stop()` aborts every active streaming and polling turn, then awaits scope closure.
 5. Polling clients may return without canceling their task; explicit `tasks/cancel` and interface shutdown are the cancellation boundaries.
 
+### MCP HTTP: scoped session eviction
+
+Implemented as an opportunistic follow-up in the private `SessionEvictionSupervisor`:
+
+- Authentication validation completes before the eviction schedule is acquired, so failed construction cannot leave an unreachable timer.
+- A scoped Effect schedule replaces `setInterval`, runs non-overlapping sweeps, and uses an injectable Effect `Clock` for deterministic timing tests.
+- Eviction transport closes are admitted into the supervisor before execution. `stop()` interrupts future sweeps and waits for every admitted close before closing remaining sessions and the server.
+- Singleton reset is asynchronous and stops the owned server before discarding it.
+
 ### media-renderer: scoped browser acquisition
 
 Rewrite `withBrowser()` as an internal Effect `acquireUseRelease`:
@@ -132,6 +141,5 @@ Behavioral gates:
 - Reordering content-pipeline's remove-before-publish or making publishes idempotent/durable jobs.
 - Cancelling a2a turns whose polling clients are merely slow (only disconnect and shutdown cancel).
 - A browser pool or reuse in media-renderer; it stays launch-per-render.
-- Converting the MCP transport eviction timer (deferred until that transport is next touched).
 - Any change to packages already covered by the completed shell lifecycle and ownership work.
 - Exposing Effect types from any package export.
