@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { AgentNamespace, AgentResponse } from "@brains/plugins";
 import { handleJsonRpc, handleStreamMessage } from "../src/jsonrpc-handler";
 import { TaskManager } from "../src/task-manager";
+import { A2ATurnSupervisor } from "../src/turn-supervisor";
 
 const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
@@ -39,8 +40,9 @@ function slowAgent(
 }
 
 describe("A2A lifecycle characterization", () => {
-  it("currently lets a streaming turn complete after consumer cancellation", async () => {
+  it("cancels a streaming turn when its consumer disconnects", async () => {
     const taskManager = new TaskManager();
+    const turnSupervisor = new A2ATurnSupervisor();
     const started = deferred();
     const release = deferred();
     let receivedSignal: AbortSignal | undefined;
@@ -49,6 +51,7 @@ describe("A2A lifecycle characterization", () => {
       { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
       {
         taskManager,
+        turnSupervisor,
         agentService: slowAgent(started, release, (signal) => {
           receivedSignal = signal;
         }),
@@ -61,26 +64,29 @@ describe("A2A lifecycle characterization", () => {
     await reader.read();
     await started.promise;
     await reader.cancel();
-    expect(receivedSignal).toBeUndefined();
+    expect(receivedSignal?.aborted).toBe(true);
     expect(taskManager.getTask(result.taskId)?.task.status.state).toBe(
-      "working",
+      "canceled",
     );
 
     release.resolve();
     await Promise.resolve();
     await Promise.resolve();
     expect(taskManager.getTask(result.taskId)?.task.status.state).toBe(
-      "completed",
+      "canceled",
     );
+    await turnSupervisor.close();
   });
 
-  it("currently lets a canceled polling task overwrite canceled with completed", async () => {
+  it("interrupts a polling turn when its task is canceled", async () => {
     const taskManager = new TaskManager();
+    const turnSupervisor = new A2ATurnSupervisor();
     const started = deferred();
     const release = deferred();
     let receivedSignal: AbortSignal | undefined;
     const context = {
       taskManager,
+      turnSupervisor,
       agentService: slowAgent(started, release, (signal) => {
         receivedSignal = signal;
       }),
@@ -115,7 +121,7 @@ describe("A2A lifecycle characterization", () => {
       },
       context,
     );
-    expect(receivedSignal).toBeUndefined();
+    expect(receivedSignal?.aborted).toBe(true);
     expect(taskManager.getTask(sent.result.id)?.task.status.state).toBe(
       "canceled",
     );
@@ -124,7 +130,8 @@ describe("A2A lifecycle characterization", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(taskManager.getTask(sent.result.id)?.task.status.state).toBe(
-      "completed",
+      "canceled",
     );
+    await turnSupervisor.close();
   });
 });

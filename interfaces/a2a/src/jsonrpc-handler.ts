@@ -3,6 +3,7 @@ import type { AgentNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { Task } from "@a2a-js/sdk";
 import { TERMINAL_STATES, type TaskManager } from "./task-manager";
+import type { A2ATurnSupervisor } from "./turn-supervisor";
 
 const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
 
@@ -99,6 +100,7 @@ export const jsonrpcRequestSchema: z.ZodType<
 
 export interface JsonRpcHandlerContext {
   taskManager: TaskManager;
+  turnSupervisor: A2ATurnSupervisor;
   agentService: AgentNamespace;
   callerPermissionLevel: UserPermissionLevel;
   /** Verified caller domain for signed A2A requests; null/undefined for anonymous callers. */
@@ -187,33 +189,55 @@ async function handleSendMessage(
   return successResponse(id, workingRecord.task);
 }
 
-/**
- * Process agent chat in the background (fire-and-forget).
- * Transitions task to completed or failed when done.
- * Own try/catch to prevent unhandled rejections.
- */
+/** Start a polling task whose lifetime is owned by the interface supervisor. */
 function processInBackground(
   taskId: string,
   messageText: string,
   conversationId: string,
   context: JsonRpcHandlerContext,
 ): void {
-  context.agentService
-    .chat(messageText, conversationId, {
-      userPermissionLevel: context.callerPermissionLevel,
-      interfaceType: "a2a",
-    })
-    .then((agentResponse) => {
-      context.taskManager.updateState(taskId, "completed", agentResponse.text);
-    })
-    .catch((err: unknown) => {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      context.taskManager.updateState(
-        taskId,
-        "failed",
-        `Error: ${errorMessage}`,
-      );
-    });
+  context.turnSupervisor.start(
+    taskId,
+    async (signal) => {
+      try {
+        const agentResponse = await context.agentService.chat(
+          messageText,
+          conversationId,
+          {
+            userPermissionLevel: context.callerPermissionLevel,
+            interfaceType: "a2a",
+          },
+          signal,
+        );
+        if (signal.aborted || isTaskCanceled(taskId, context.taskManager)) {
+          return;
+        }
+        context.taskManager.updateState(
+          taskId,
+          "completed",
+          agentResponse.text,
+        );
+      } catch (error) {
+        if (signal.aborted) return;
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        context.taskManager.updateState(
+          taskId,
+          "failed",
+          `Error: ${errorMessage}`,
+        );
+      }
+    },
+    {
+      onCancel: () => {
+        context.taskManager.updateState(taskId, "canceled");
+      },
+    },
+  );
+}
+
+function isTaskCanceled(taskId: string, taskManager: TaskManager): boolean {
+  return taskManager.getTask(taskId)?.task.status.state === "canceled";
 }
 
 // -- Streaming (SSE) handler --
@@ -302,15 +326,7 @@ export function handleStreamMessage(
   const encoder = new TextEncoder();
   const heartbeatIntervalMs =
     options.heartbeatIntervalMs ?? SSE_HEARTBEAT_INTERVAL_MS;
-  let heartbeat: ReturnType<typeof setInterval> | undefined;
   let closed = false;
-
-  function stopHeartbeat(): void {
-    if (heartbeat) {
-      clearInterval(heartbeat);
-      heartbeat = undefined;
-    }
-  }
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller): void {
@@ -320,7 +336,10 @@ export function handleStreamMessage(
           controller.enqueue(encoder.encode(payload));
         } catch {
           closed = true;
-          stopHeartbeat();
+          context.turnSupervisor.cancel(
+            taskId,
+            new Error("A2A stream consumer disconnected"),
+          );
         }
       }
 
@@ -331,18 +350,11 @@ export function handleStreamMessage(
       function finish(): void {
         if (closed) return;
         closed = true;
-        stopHeartbeat();
         try {
           controller.close();
         } catch {
           // already closed
         }
-      }
-
-      if (heartbeatIntervalMs > 0) {
-        heartbeat = setInterval(() => {
-          sendRaw(": heartbeat\n\n");
-        }, heartbeatIntervalMs);
       }
 
       function statusEvent(
@@ -368,42 +380,74 @@ export function handleStreamMessage(
         send(statusEvent(workingTask.task, false));
       }
 
-      // Process in background, send completion event, then close
-      context.agentService
-        .chat(messageText, record.conversationId, {
-          userPermissionLevel: context.callerPermissionLevel,
-          interfaceType: "a2a",
-        })
-        .then((agentResponse) => {
-          context.taskManager.updateState(
-            taskId,
-            "completed",
-            agentResponse.text,
-          );
-          const completed = context.taskManager.getTask(taskId);
-          if (completed) {
-            send(statusEvent(completed.task, true));
+      context.turnSupervisor.start(
+        taskId,
+        async (signal) => {
+          try {
+            const agentResponse = await context.agentService.chat(
+              messageText,
+              record.conversationId,
+              {
+                userPermissionLevel: context.callerPermissionLevel,
+                interfaceType: "a2a",
+              },
+              signal,
+            );
+            if (signal.aborted || isTaskCanceled(taskId, context.taskManager)) {
+              return;
+            }
+            context.taskManager.updateState(
+              taskId,
+              "completed",
+              agentResponse.text,
+            );
+            const completed = context.taskManager.getTask(taskId);
+            if (completed) {
+              send(statusEvent(completed.task, true));
+            }
+          } catch (error) {
+            if (signal.aborted) return;
+            const errorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            context.taskManager.updateState(
+              taskId,
+              "failed",
+              `Error: ${errorMessage}`,
+            );
+            const failed = context.taskManager.getTask(taskId);
+            if (failed) {
+              send(statusEvent(failed.task, true));
+            }
+          } finally {
+            finish();
           }
-          finish();
-        })
-        .catch((err: unknown) => {
-          const errorMessage =
-            err instanceof Error ? err.message : "Unknown error";
-          context.taskManager.updateState(
-            taskId,
-            "failed",
-            `Error: ${errorMessage}`,
-          );
-          const failed = context.taskManager.getTask(taskId);
-          if (failed) {
-            send(statusEvent(failed.task, true));
-          }
-          finish();
-        });
+        },
+        {
+          onCancel: () => {
+            context.taskManager.updateState(taskId, "canceled");
+            const canceled = context.taskManager.getTask(taskId);
+            if (canceled) {
+              send(statusEvent(canceled.task, true));
+            }
+            finish();
+          },
+          ...(heartbeatIntervalMs > 0
+            ? {
+                heartbeat: {
+                  intervalMs: heartbeatIntervalMs,
+                  tick: (): void => sendRaw(": heartbeat\n\n"),
+                },
+              }
+            : {}),
+        },
+      );
     },
-    cancel(): void {
+    cancel(reason): void {
       closed = true;
-      stopHeartbeat();
+      context.turnSupervisor.cancel(
+        taskId,
+        reason ?? new Error("A2A stream consumer disconnected"),
+      );
     },
   });
 
@@ -496,7 +540,13 @@ function handleCancelTask(
     );
   }
 
-  const updated = context.taskManager.updateState(parsed.data.id, "canceled");
+  const canceled = context.turnSupervisor.cancel(
+    parsed.data.id,
+    new Error("A2A task canceled by caller"),
+  );
+  const updated = canceled
+    ? context.taskManager.getTask(parsed.data.id)
+    : context.taskManager.updateState(parsed.data.id, "canceled");
   if (!updated) {
     return errorResponse(id, -32603, "Internal error: task disappeared");
   }

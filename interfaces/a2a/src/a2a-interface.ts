@@ -23,6 +23,7 @@ import { buildAgentCard } from "./agent-card";
 import { buildAgentDirectory } from "./agent-directory";
 import { skillDataSchema, type SkillData } from "@brains/plugins";
 import { TaskManager } from "./task-manager";
+import { A2ATurnSupervisor } from "./turn-supervisor";
 import {
   handleJsonRpc,
   handleStreamMessage,
@@ -56,6 +57,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
   private taskManager = new TaskManager();
+  private readonly turnSupervisor = new A2ATurnSupervisor();
   private agentService: AgentNamespace | undefined;
   private readonly jwksResolver = new JwksResolver();
   private app: Hono | undefined;
@@ -332,6 +334,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
           streamParams.data.message,
           {
             taskManager: this.taskManager,
+            turnSupervisor: this.turnSupervisor,
             agentService: this.agentService,
             callerPermissionLevel: caller.permissionLevel,
             callerDomain: caller.callerDomain,
@@ -357,6 +360,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
       const response = await handleJsonRpc(parsed.data, {
         taskManager: this.taskManager,
+        turnSupervisor: this.turnSupervisor,
         agentService: this.agentService,
         callerPermissionLevel: caller.permissionLevel,
         callerDomain: caller.callerDomain,
@@ -471,6 +475,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
         }
       },
       stop: async (): Promise<void> => {
+        await this.turnSupervisor.close();
         this.logger.info("A2A server stopped");
       },
     };

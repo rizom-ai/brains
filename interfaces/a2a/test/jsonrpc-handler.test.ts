@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { TaskManager } from "../src/task-manager";
+import { A2ATurnSupervisor } from "../src/turn-supervisor";
 import {
   handleJsonRpc,
   handleStreamMessage,
@@ -110,11 +111,17 @@ function userMessage(
 
 describe("JSON-RPC Handler", () => {
   let taskManager: TaskManager;
+  let turnSupervisor: A2ATurnSupervisor;
   let agentService: AgentNamespace;
 
   beforeEach(() => {
     taskManager = new TaskManager();
+    turnSupervisor = new A2ATurnSupervisor();
     agentService = createMockAgentService();
+  });
+
+  afterEach(async () => {
+    await turnSupervisor.close();
   });
 
   describe("message/send", () => {
@@ -133,6 +140,7 @@ describe("JSON-RPC Handler", () => {
       const request = rpcRequest("message/send", userMessage("Hello agent"));
       await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: trackingService,
         callerPermissionLevel: "public",
       });
@@ -154,6 +162,7 @@ describe("JSON-RPC Handler", () => {
       const request = rpcRequest("message/send", userMessage("Hello"));
       await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: trackingService,
         callerPermissionLevel: "trusted",
       });
@@ -171,6 +180,7 @@ describe("JSON-RPC Handler", () => {
 
       const response = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService,
         callerPermissionLevel: "public",
       });
@@ -203,6 +213,7 @@ describe("JSON-RPC Handler", () => {
 
       await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: trackingService,
         callerPermissionLevel: "public",
       });
@@ -215,6 +226,7 @@ describe("JSON-RPC Handler", () => {
 
       const response = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService,
         callerPermissionLevel: "public",
       });
@@ -237,6 +249,7 @@ describe("JSON-RPC Handler", () => {
 
       const response = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: failingService,
         callerPermissionLevel: "public",
       });
@@ -255,6 +268,7 @@ describe("JSON-RPC Handler", () => {
 
       const response = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService,
         callerPermissionLevel: "public",
       });
@@ -275,6 +289,7 @@ describe("JSON-RPC Handler", () => {
 
       const response = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService,
         callerPermissionLevel: "public",
       });
@@ -291,6 +306,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("message/send", userMessage("Hello")),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -306,6 +322,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("tasks/get", { id: taskId }),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -322,6 +339,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("message/send", userMessage("Hello")),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -334,6 +352,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("tasks/get", { id: taskId, historyLength: 1 }),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -347,7 +366,12 @@ describe("JSON-RPC Handler", () => {
     it("should return error for unknown task ID", async () => {
       const response = await handleJsonRpc(
         rpcRequest("tasks/get", { id: "nonexistent" }),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          callerPermissionLevel: "public",
+        },
       );
 
       const error = expectError(response);
@@ -357,6 +381,7 @@ describe("JSON-RPC Handler", () => {
     it("should return error when id is missing", async () => {
       const response = await handleJsonRpc(rpcRequest("tasks/get", {}), {
         taskManager,
+        turnSupervisor,
         agentService,
         callerPermissionLevel: "public",
       });
@@ -368,13 +393,23 @@ describe("JSON-RPC Handler", () => {
     it("should hide public caller tasks from polling without a verified caller", async () => {
       const sendResponse = await handleJsonRpc(
         rpcRequest("message/send", userMessage("Hello")),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          callerPermissionLevel: "public",
+        },
       );
       const taskId = expectSuccess(sendResponse).id;
 
       const getResponse = await handleJsonRpc(
         rpcRequest("tasks/get", { id: taskId }),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          callerPermissionLevel: "public",
+        },
       );
 
       const error = expectError(getResponse);
@@ -386,6 +421,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("message/send", userMessage("Hello")),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -397,6 +433,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("tasks/get", { id: taskId }),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-b.example",
@@ -412,7 +449,12 @@ describe("JSON-RPC Handler", () => {
     it("should return error for unknown task ID", async () => {
       const response = await handleJsonRpc(
         rpcRequest("tasks/cancel", { id: "nonexistent" }),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          callerPermissionLevel: "public",
+        },
       );
 
       const error = expectError(response);
@@ -424,6 +466,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("message/send", userMessage("Hello")),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -438,6 +481,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("tasks/cancel", { id: taskId }),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -456,6 +500,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("message/send", userMessage("Hello")),
         {
           taskManager,
+          turnSupervisor,
           agentService: slowAgent,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -467,6 +512,7 @@ describe("JSON-RPC Handler", () => {
         rpcRequest("tasks/cancel", { id: taskId }),
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-b.example",
@@ -482,6 +528,7 @@ describe("JSON-RPC Handler", () => {
     it("should return method not found for unknown methods", async () => {
       const response = await handleJsonRpc(rpcRequest("unknown/method", {}), {
         taskManager,
+        turnSupervisor,
         agentService,
         callerPermissionLevel: "public",
       });
@@ -494,7 +541,12 @@ describe("JSON-RPC Handler", () => {
     it("should preserve request id in error responses", async () => {
       const response = await handleJsonRpc(
         rpcRequest("unknown/method", {}, 42),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          callerPermissionLevel: "public",
+        },
       );
 
       expect(response.id).toBe(42);
@@ -503,7 +555,12 @@ describe("JSON-RPC Handler", () => {
     it("should preserve request id in success responses", async () => {
       const response = await handleJsonRpc(
         rpcRequest("message/send", userMessage("Hello"), "req-abc"),
-        { taskManager, agentService, callerPermissionLevel: "public" },
+        {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          callerPermissionLevel: "public",
+        },
       );
 
       expect(response.id).toBe("req-abc");
@@ -525,6 +582,7 @@ describe("JSON-RPC Handler", () => {
       const request = rpcRequest("message/send", userMessage("Hello"));
       const response = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: slowAgent,
         callerPermissionLevel: "public",
       });
@@ -553,6 +611,7 @@ describe("JSON-RPC Handler", () => {
       const request = rpcRequest("message/send", userMessage("Hello"));
       const response = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: delayedAgent,
         callerPermissionLevel: "public",
       });
@@ -581,6 +640,7 @@ describe("JSON-RPC Handler", () => {
       const request = rpcRequest("message/send", userMessage("Hello"));
       const response = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: failingAgent,
         callerPermissionLevel: "public",
       });
@@ -607,12 +667,14 @@ describe("JSON-RPC Handler", () => {
       const request = rpcRequest("message/send", userMessage("Hello"));
       const first = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: trackingService,
         callerPermissionLevel: "trusted",
         callerDomain: "peer-a.example",
       });
       const second = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService: trackingService,
         callerPermissionLevel: "trusted",
         callerDomain: "peer-a.example",
@@ -626,11 +688,13 @@ describe("JSON-RPC Handler", () => {
       const request = rpcRequest("message/send", userMessage("Hello"));
       const first = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService,
         callerPermissionLevel: "public",
       });
       const second = await handleJsonRpc(request, {
         taskManager,
+        turnSupervisor,
         agentService,
         callerPermissionLevel: "public",
       });
@@ -684,6 +748,7 @@ describe("JSON-RPC Handler", () => {
         { kind: "message", parts: [{ kind: "data", data: {} }] },
         {
           taskManager,
+          turnSupervisor,
           agentService,
           callerPermissionLevel: "public",
         },
@@ -709,6 +774,7 @@ describe("JSON-RPC Handler", () => {
           { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
           {
             taskManager,
+            turnSupervisor,
             agentService,
             callerPermissionLevel: "public",
           },
@@ -750,6 +816,7 @@ describe("JSON-RPC Handler", () => {
           { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
           {
             taskManager,
+            turnSupervisor,
             agentService: failingAgent,
             callerPermissionLevel: "public",
           },
@@ -771,6 +838,7 @@ describe("JSON-RPC Handler", () => {
           { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
           {
             taskManager,
+            turnSupervisor,
             agentService,
             callerPermissionLevel: "public",
           },
@@ -798,6 +866,7 @@ describe("JSON-RPC Handler", () => {
       const first = expectStream(
         handleStreamMessage(1, message, {
           taskManager,
+          turnSupervisor,
           agentService: trackingService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -808,6 +877,7 @@ describe("JSON-RPC Handler", () => {
       const second = expectStream(
         handleStreamMessage(2, message, {
           taskManager,
+          turnSupervisor,
           agentService: trackingService,
           callerPermissionLevel: "trusted",
           callerDomain: "peer-a.example",
@@ -831,6 +901,7 @@ describe("JSON-RPC Handler", () => {
           { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
           {
             taskManager,
+            turnSupervisor,
             agentService: slowAgent,
             callerPermissionLevel: "public",
           },
@@ -862,6 +933,7 @@ describe("JSON-RPC Handler", () => {
           { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
           {
             taskManager,
+            turnSupervisor,
             agentService: slowAgent,
             callerPermissionLevel: "public",
           },
