@@ -141,19 +141,17 @@ describe("StreamableHTTPServer", () => {
   });
 
   afterEach(async () => {
-    if (server?.isRunning()) {
-      await server.stop();
-    }
+    await server?.stop();
   });
 
   describe("Server Lifecycle", () => {
-    test("currently starts session eviction before constructor validation", () => {
+    test("validates before starting session eviction", () => {
       const intervalSpy = spyOn(globalThis, "setInterval");
       try {
         expect(() => new StreamableHTTPServer()).toThrow(
           /requires an auth token/,
         );
-        expect(intervalSpy).toHaveBeenCalledTimes(1);
+        expect(intervalSpy).not.toHaveBeenCalled();
       } finally {
         intervalSpy.mockRestore();
       }
@@ -540,7 +538,7 @@ describe("StreamableHTTPServer", () => {
   });
 
   describe("Session idle eviction", () => {
-    test("currently lets stop return before an eviction close settles", async () => {
+    test("waits for an admitted eviction close before stopping", async () => {
       let releaseClose: (() => void) | undefined;
       const closePending = new Promise<void>((resolve) => {
         releaseClose = resolve;
@@ -593,7 +591,7 @@ describe("StreamableHTTPServer", () => {
           stopped = true;
         });
         await Promise.resolve();
-        expect(stopped).toBe(true);
+        expect(stopped).toBe(false);
 
         releaseClose?.();
         await stopping;
