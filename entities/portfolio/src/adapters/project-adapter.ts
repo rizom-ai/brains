@@ -24,7 +24,7 @@ export class ProjectAdapter extends BaseEntityAdapter<
   constructor() {
     super({
       entityType: "project",
-      purpose: "A project record in the user's portfolio.",
+      purpose: "A portfolio project or case study.",
       schema: projectSchema,
       frontmatterSchema: projectFrontmatterSchema,
       supportsCoverImage: true,

@@ -49,6 +49,7 @@ describe("ProjectAdapter", () => {
   describe("schema", () => {
     it("should have correct entity type", () => {
       expect(adapter.entityType).toBe("project");
+      expect(adapter.purpose).toContain("case study");
     });
 
     it("should have a valid zod schema", () => {

@@ -289,16 +289,18 @@ describe("system_create tool", () => {
     );
   });
 
-  it("tells models not to create duplicates for edits to imported entities", () => {
+  it("directs edits of known entities to system_update concisely", () => {
     const services = createMockSystemServices();
     const tool = createSystemTools(services).find(
       (candidate) => candidate.name === "system_create",
     );
 
     expect(tool?.description).toContain(
-      "already created or imported in this conversation",
+      "use system_update for entities already created or imported in this conversation",
     );
-    expect(tool?.description).toContain("instead of creating a duplicate");
+    expect(tool?.description).toContain(
+      "even while an upload import is generating",
+    );
   });
 
   let tools: Tool[];
