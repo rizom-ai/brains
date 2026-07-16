@@ -7,6 +7,7 @@ import type {
 
 interface AdminPrincipal {
   userId: string;
+  personId: string;
   displayName: string;
   role: AuthUserRole;
   status: AuthUserStatus;
@@ -16,6 +17,7 @@ interface AdminPrincipal {
 
 export interface AuthIdentitySummary {
   id: string;
+  personId: string;
   userId: string;
   type: AuthIdentityType;
   issuer?: string;
@@ -38,6 +40,17 @@ export interface AuthPasskeySummary {
 export interface AuthAdminOperations {
   resolveSession(request: Request): Promise<AdminPrincipal | undefined>;
   listUsers(): Promise<AdminPrincipal[]>;
+  listPersonAgents(personId: string): Promise<
+    Array<{
+      agentId: string;
+      personId: string;
+      status: "pending" | "active" | "revoked";
+      createdByUserId: string | null;
+      consentedByUserId: string | null;
+      createdAt: number;
+      updatedAt: number;
+    }>
+  >;
   listUserIdentities(userId: string): Promise<AuthIdentitySummary[]>;
   listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]>;
   createUser(
@@ -48,6 +61,23 @@ export interface AuthAdminOperations {
     },
     actorUserId: string,
   ): Promise<AdminPrincipal>;
+  promoteAgentPerson(
+    input: {
+      agentId: string;
+      displayName: string;
+      profileEntityId?: string;
+      role: AuthUserRole;
+    },
+    actorUserId: string,
+  ): Promise<{
+    user: AdminPrincipal;
+    representation: {
+      agentId: string;
+      personId: string;
+      status: "pending" | "active" | "revoked";
+    };
+    registration: { setupUrl: string; expiresAt: number };
+  }>;
   updateUserRole(
     userId: string,
     role: AuthUserRole,
@@ -103,6 +133,14 @@ const adminMutationSchema = z.discriminatedUnion("action", [
     displayName: z.string().trim().min(1).max(200),
     role: roleSchema,
     status: statusSchema.default("active"),
+  }),
+  z.strictObject({
+    action: z.literal("promoteAgentPerson"),
+    confirmation: z.literal("promoteAgentPerson"),
+    agentId: z.string().trim().min(1).max(500),
+    displayName: z.string().trim().min(1).max(200),
+    profileEntityId: z.string().trim().min(1).max(500).optional(),
+    role: roleSchema,
   }),
   z.strictObject({
     action: z.literal("updateUserRole"),
@@ -170,6 +208,7 @@ export async function handleAuthAdminRequest(
           ...user,
           identities: await operations.listUserIdentities(user.userId),
           passkeys: await operations.listUserPasskeys(user.userId),
+          agents: await operations.listPersonAgents(user.personId),
         })),
       ),
     });
@@ -220,6 +259,18 @@ async function executeMutation(
           actorUserId,
         ),
       };
+    case "promoteAgentPerson":
+      return operations.promoteAgentPerson(
+        {
+          agentId: mutation.agentId,
+          displayName: mutation.displayName,
+          ...(mutation.profileEntityId
+            ? { profileEntityId: mutation.profileEntityId }
+            : {}),
+          role: mutation.role,
+        },
+        actorUserId,
+      );
     case "updateUserRole":
       return {
         user: await operations.updateUserRole(

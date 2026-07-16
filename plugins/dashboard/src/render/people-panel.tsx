@@ -16,8 +16,8 @@ export function PeoplePanel(): JSX.Element {
           <div class="eyebrow">Anchor access</div>
           <h2>People</h2>
           <p>
-            Manage who can enter this brain and what level of trust each person
-            carries.
+            Manage each person’s profile, access, and linked agent
+            representatives.
           </p>
         </div>
         <button
@@ -338,7 +338,8 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
 
       var identity = node("span", "people-row-identity");
       identity.append(node("span", "people-row-name", user.displayName));
-      identity.append(node("span", "people-row-meta", user.identities.length + " identities · " + user.passkeys.length + " passkeys"));
+      var agentCount = (user.agents || []).filter(function (agent) { return agent.status !== "revoked"; }).length;
+      identity.append(node("span", "people-row-meta", agentCount + (agentCount === 1 ? " linked agent · " : " linked agents · ") + user.identities.length + " identities"));
       button.append(identity);
 
       var access = node("span", "people-row-access");
@@ -352,6 +353,18 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
       });
       list.append(button);
     });
+  }
+
+  function agentContent(user) {
+    var content = node("div", "people-stack");
+    var agents = user.agents || [];
+    agents.forEach(function (agent) {
+      content.append(item("Agent", agent.agentId + " · " + roleLabel(agent.status)));
+    });
+    if (!agents.length) {
+      content.append(node("p", "people-empty", "No linked agents. Promotion begins from an agent dossier."));
+    }
+    return content;
   }
 
   function identityContent(user) {
@@ -447,7 +460,7 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
     person.append(node("span", "people-avatar people-avatar--large", initials(user.displayName)));
     var personCopy = node("span");
     personCopy.append(node("span", "people-detail-name", user.displayName));
-    personCopy.append(node("span", "people-detail-id", user.userId + " · " + roleLabel(user.status)));
+    personCopy.append(node("span", "people-detail-id", user.personId + " · " + user.userId + " · " + roleLabel(user.status)));
     person.append(personCopy);
     heading.append(person);
 
@@ -480,6 +493,7 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
     detail.append(heading);
 
     var sections = node("div", "people-detail-sections");
+    sections.append(section("Linked agents", "Representatives sharing this person’s canonical profile and identity claims.", agentContent(user)));
     sections.append(section("Identities", "Ways this person is recognized.", identityContent(user)));
     sections.append(section("Passkeys", "Private authentication credentials.", passkeyContent(user)));
     sections.append(section("Sessions", "Current authenticated access.", sessionContent(user)));

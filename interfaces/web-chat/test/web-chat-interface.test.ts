@@ -529,6 +529,7 @@ describe("WebChatInterface", () => {
         resolveAuthSession: async (): Promise<boolean> => true,
         resolveAuthPrincipal: async (): Promise<AuthPrincipal> => ({
           userId: "usr_collaborator",
+          personId: "prsn_collaborator",
           displayName: "Collaborator",
           role: "trusted",
           status: "active",

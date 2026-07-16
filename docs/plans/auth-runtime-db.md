@@ -339,7 +339,7 @@ Validation: existing sessions survive migration; trusted sessions stay trusted i
 
 ### Phase 8 — Person subjects and canonical identity claims
 
-**Status: in progress.** Migration 6 now backfills a stable person for every existing user, makes canonical identity rows person-addressable without changing their ids or user bindings, and adds consent-bearing runtime agent/person links. Promotion APIs and the dashboard workflow remain. Product behavior and promotion UX are specified in [Multi-user and permissions](./multi-user.md#phase-6--person-centered-identity-and-agent-promotion).
+**Status: in progress.** Migration 6 backfills a stable person for every existing user, makes canonical identity rows person-addressable without changing their ids or user bindings, and adds consent-bearing runtime agent/person links. The Anchor-confirmed promotion API atomically creates a person, invited user, and pending representation; targeted passkey registration activates the invited user and accepts the link before issuing a session. People now lists linked-agent state. Agent-dossier promotion controls and asserted-claim provenance/reconciliation remain. Product behavior and promotion UX are specified in [Multi-user and permissions](./multi-user.md#phase-6--person-centered-identity-and-agent-promotion).
 
 - Add stable runtime person records and link every auth user to one person through an ordered migration.
 - Preserve user ids, passkeys, sessions, roles, statuses, and existing identity row ids during backfill.

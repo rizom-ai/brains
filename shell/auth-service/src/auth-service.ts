@@ -19,13 +19,17 @@ import {
 } from "./passkey-service";
 import { PasskeyStore } from "./passkey-store";
 import {
+  PersonAgentStore,
+  type PromoteAgentPersonInput,
+} from "./person-agent-store";
+import {
   A2APeerTrustStore,
   RuntimeA2APeerTrustStore,
   type A2APeerTrustRecord,
   type GrantA2APeerTrustInput,
 } from "./peer-trust-store";
 import { AuthRuntimeDatabase } from "./runtime-db";
-import type { AuthIdentity, AuthUser } from "./runtime-schema";
+import type { AgentPersonLink, AuthIdentity, AuthUser } from "./runtime-schema";
 import {
   AuthUserStore,
   type AttachAuthIdentityInput,
@@ -88,6 +92,7 @@ const MIGRATION_SINGLE_OPERATOR_SUBJECT = "single-operator";
 
 export interface AuthPrincipal {
   userId: string;
+  personId: string;
   displayName: string;
   role: "anchor" | "trusted" | "public";
   status: "active" | "invited" | "suspended";
@@ -108,6 +113,17 @@ export interface AuthMutationContext {
 export interface UserPasskeyRegistration {
   setupUrl: string;
   expiresAt: number;
+}
+
+export type PromoteAgentPersonRequest = Omit<
+  PromoteAgentPersonInput,
+  "createdByUserId"
+>;
+
+export interface PromotedAgentAccess {
+  user: AuthPrincipal;
+  representation: AgentPersonLink;
+  registration: UserPasskeyRegistration;
 }
 
 export interface A2ASigningKey {
@@ -135,6 +151,7 @@ export class AuthService {
   private readonly allowLocalhostIssuers: boolean;
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private userStore: AuthUserStore | undefined;
+  private personAgentStore: PersonAgentStore | undefined;
   private auditStore: AuthAuditStore | undefined;
   private credentialStore: AuthCredentialStore | undefined;
   private initialization: Promise<void> | undefined;
@@ -235,14 +252,17 @@ export class AuthService {
       recordAuditEvent: async (event): Promise<void> => {
         await this.getAuditStore().append(event);
       },
+      completeTargetedRegistration: async (userId: string): Promise<void> => {
+        await this.completeTargetedRegistration(userId);
+      },
       registrationUserProvider: async (
         userId?: string,
       ): Promise<PasskeyRegistrationUser> => {
         const user = userId
           ? await this.getUserStore().getUser(userId)
           : await this.ensureFirstAnchorUser();
-        if (user?.status !== "active") {
-          throw new Error("Passkey registration user is not active");
+        if (!user || user.status === "suspended") {
+          throw new Error("Passkey registration user is unavailable");
         }
         return {
           subject: user.id,
@@ -307,6 +327,7 @@ export class AuthService {
 
   async close(): Promise<void> {
     this.userStore = undefined;
+    this.personAgentStore = undefined;
     this.auditStore = undefined;
     this.credentialStore = undefined;
     this.initialization = undefined;
@@ -320,6 +341,7 @@ export class AuthService {
     }
     await this.runtimeDatabase.start();
     this.userStore = new AuthUserStore(this.runtimeDatabase.db);
+    this.personAgentStore = new PersonAgentStore(this.runtimeDatabase.db);
     this.auditStore = new AuthAuditStore(this.runtimeDatabase.db);
     this.credentialStore = new AuthCredentialStore(this.runtimeDatabase.db);
   }
@@ -511,6 +533,13 @@ export class AuthService {
     return this.userStore;
   }
 
+  private getPersonAgentStore(): PersonAgentStore {
+    if (!this.personAgentStore) {
+      throw new Error("Auth service has not been initialized");
+    }
+    return this.personAgentStore;
+  }
+
   private getAuditStore(): AuthAuditStore {
     if (!this.auditStore) {
       throw new Error("Auth service has not been initialized");
@@ -693,9 +722,48 @@ export class AuthService {
     return principalFromUser(user);
   }
 
+  async promoteAgentPerson(
+    input: PromoteAgentPersonRequest,
+    context: AuthMutationContext,
+  ): Promise<PromotedAgentAccess> {
+    await this.ensureUserStoreStarted();
+    if (!context.actorUserId) {
+      throw new Error("Authenticated actor is required for agent promotion");
+    }
+    const promoted = await this.getPersonAgentStore().promoteAgentPerson({
+      ...input,
+      createdByUserId: context.actorUserId,
+    });
+    const registration = await this.startPasskeyRegistrationForUser(
+      promoted.user.id,
+      context,
+    );
+    await this.getAuditStore().append({
+      ...auditActor(context),
+      action: "auth.agent_person.promoted",
+      targetType: "agent",
+      targetId: promoted.link.agentId,
+      metadata: {
+        personId: promoted.person.id,
+        userId: promoted.user.id,
+        role: promoted.user.role,
+      },
+    });
+    return {
+      user: principalFromUser(promoted.user),
+      representation: promoted.link,
+      registration,
+    };
+  }
+
   async listUsers(): Promise<AuthPrincipal[]> {
     await this.ensureUserStoreStarted();
     return (await this.getUserStore().listUsers()).map(principalFromUser);
+  }
+
+  async listPersonAgents(personId: string): Promise<AgentPersonLink[]> {
+    await this.ensureUserStoreStarted();
+    return this.getPersonAgentStore().listByPersonId(personId);
   }
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
@@ -937,8 +1005,8 @@ export class AuthService {
   ): Promise<UserPasskeyRegistration> {
     await this.ensureUserStoreStarted();
     const user = await this.getUserStore().getUser(userId);
-    if (user?.status !== "active") {
-      throw new Error(`Active auth user not found: ${userId}`);
+    if (!user || user.status === "suspended") {
+      throw new Error(`Eligible auth user not found: ${userId}`);
     }
     const setup = await this.setupFlow.createUserPasskeySetup(
       userId,
@@ -952,6 +1020,34 @@ export class AuthService {
       metadata: { expiresAt: setup.expiresAt },
     });
     return { setupUrl: setup.setupUrl, expiresAt: setup.expiresAt };
+  }
+
+  private async completeTargetedRegistration(userId: string): Promise<void> {
+    const user = await this.getUserStore().getUser(userId);
+    if (!user || user.status === "suspended") {
+      throw new Error("Passkey registration user is unavailable");
+    }
+    if (user.status === "invited") {
+      await this.updateUserStatus(user.id, "active", { actorUserId: user.id });
+    }
+
+    const links = await this.getPersonAgentStore().listByPersonId(
+      user.personId,
+    );
+    for (const link of links) {
+      if (link.status !== "pending") continue;
+      const accepted = await this.getPersonAgentStore().acceptRepresentation(
+        link.agentId,
+        user.id,
+      );
+      await this.getAuditStore().append({
+        actorUserId: user.id,
+        action: "auth.agent_person.accepted",
+        targetType: "agent",
+        targetId: accepted.agentId,
+        metadata: { personId: user.personId },
+      });
+    }
   }
 
   async getPasskeySetupRequired(
@@ -1095,10 +1191,13 @@ export class AuthService {
     return handleAuthAdminRequest(request, {
       resolveSession: (adminRequest) => this.resolveSession(adminRequest),
       listUsers: () => this.listUsers(),
+      listPersonAgents: (personId) => this.listPersonAgents(personId),
       listUserIdentities: (userId) => this.listUserIdentities(userId),
       listUserPasskeys: (userId) => this.listUserPasskeys(userId),
       createUser: (input, actorUserId) =>
         this.createUser(input, { actorUserId }),
+      promoteAgentPerson: (input, actorUserId) =>
+        this.promoteAgentPerson(input, { actorUserId }),
       updateUserRole: (userId, role, actorUserId) =>
         this.updateUserRole(userId, role, { actorUserId }),
       updateUserStatus: (userId, status, actorUserId) =>
@@ -1166,6 +1265,7 @@ function legacyTimestampToMilliseconds(timestamp: number): number {
 function identitySummary(identity: AuthIdentity): AuthIdentitySummary {
   return {
     id: identity.id,
+    personId: identity.personId,
     userId: identity.userId,
     type: identity.type,
     ...(identity.issuer ? { issuer: identity.issuer } : {}),
@@ -1195,6 +1295,7 @@ function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {
 function principalFromUser(user: AuthUser): AuthPrincipal {
   return {
     userId: user.id,
+    personId: user.personId,
     displayName: user.displayName,
     role: user.role,
     status: user.status,

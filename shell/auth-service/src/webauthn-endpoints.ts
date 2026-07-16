@@ -19,6 +19,7 @@ export interface WebAuthnEndpointsOptions {
   registrationUserProvider: (
     userId?: string,
   ) => Promise<PasskeyRegistrationUser>;
+  completeTargetedRegistration?: (userId: string) => Promise<void>;
   recordAuditEvent?: (event: {
     action: string;
     targetType?: string;
@@ -39,6 +40,8 @@ export class WebAuthnEndpoints {
   private readonly registrationUserProvider: (
     userId?: string,
   ) => Promise<PasskeyRegistrationUser>;
+  private readonly completeTargetedRegistration:
+    ((userId: string) => Promise<void>) | undefined;
   private readonly recordAuditEvent:
     | ((event: {
         action: string;
@@ -53,6 +56,7 @@ export class WebAuthnEndpoints {
     this.sessionStore = options.sessionStore;
     this.setupFlow = options.setupFlow;
     this.registrationUserProvider = options.registrationUserProvider;
+    this.completeTargetedRegistration = options.completeTargetedRegistration;
     this.recordAuditEvent = options.recordAuditEvent;
   }
 
@@ -115,6 +119,9 @@ export class WebAuthnEndpoints {
       return oauthErrorResponse("access_denied", "Passkey registration failed");
     }
 
+    if (setup.targetUserId) {
+      await this.completeTargetedRegistration?.(setup.targetUserId);
+    }
     await this.setupFlow.consumeSetupToken(setup.token);
     const session = await this.sessionStore.createSession(
       result.subject ?? "single-operator",

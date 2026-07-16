@@ -20,6 +20,8 @@ export type {
   AuthPrincipal,
   AuthServiceOptions,
   PasskeySetupRequired,
+  PromoteAgentPersonRequest,
+  PromotedAgentAccess,
 } from "./auth-service";
 export {
   AuthServicePlugin,
@@ -33,7 +35,11 @@ export type {
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";
 export { PersonAgentStore } from "./person-agent-store";
-export type { LinkAgentToPersonInput } from "./person-agent-store";
+export type {
+  LinkAgentToPersonInput,
+  PromoteAgentPersonInput,
+  PromotedAgentPerson,
+} from "./person-agent-store";
 export {
   A2APeerTrustStore,
   RuntimeA2APeerTrustStore,

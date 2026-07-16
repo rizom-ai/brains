@@ -132,6 +132,83 @@ describe("auth admin API", () => {
     expect(await service.listUsers()).toHaveLength(1);
   });
 
+  it("promotes an agent's represented person into an invited user facet", async () => {
+    const service = await createService();
+    const anchor = await service.createUser({
+      displayName: "Anchor",
+      role: "anchor",
+    });
+    const session = await service.createAuthSession(anchor.userId);
+
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "promoteAgentPerson",
+        confirmation: "promoteAgentPerson",
+        agentId: "agent:mira-field",
+        displayName: "Mira Reyes",
+        profileEntityId: "person-profile/mira-reyes",
+        role: "trusted",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const promoted = (await response.json()) as {
+      user: { userId: string; personId: string; status: string };
+      representation: {
+        agentId: string;
+        personId: string;
+        status: string;
+      };
+      registration: { setupUrl: string; expiresAt: number };
+    };
+    expect(promoted.user).toMatchObject({ status: "invited" });
+    expect(promoted.representation).toMatchObject({
+      agentId: "agent:mira-field",
+      personId: promoted.user.personId,
+      status: "pending",
+    });
+
+    expect(promoted.registration.setupUrl).toStartWith(
+      `${ISSUER}/setup?token=`,
+    );
+    const setupToken = new URL(promoted.registration.setupUrl).searchParams.get(
+      "token",
+    );
+    const optionsResponse = await service.handleRequest(
+      new Request(
+        `${ISSUER}/webauthn/register/options?setup_token=${encodeURIComponent(setupToken ?? "")}`,
+        { method: "POST" },
+      ),
+    );
+    expect(optionsResponse.status).toBe(200);
+
+    const listResponse = await service.handleRequest(
+      adminRequest("/auth/admin/users", session.cookie),
+    );
+    const roster = (await listResponse.json()) as {
+      users: Array<{
+        userId: string;
+        personId: string;
+        agents: Array<{ agentId: string; status: string }>;
+      }>;
+    };
+    expect(
+      roster.users.find((user) => user.userId === promoted.user.userId),
+    ).toMatchObject({
+      personId: promoted.user.personId,
+      agents: [{ agentId: "agent:mira-field", status: "pending" }],
+    });
+    expect(await service.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorUserId: anchor.userId,
+          action: "auth.agent_person.promoted",
+          targetId: "agent:mira-field",
+        }),
+      ]),
+    );
+  });
+
   it("creates user-specific passkey registration links after first setup", async () => {
     const service = await createService({ withPasskey: true });
     const [anchor] = await service.listUsers();

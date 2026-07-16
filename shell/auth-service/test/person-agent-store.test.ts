@@ -48,6 +48,37 @@ afterEach(async () => {
 });
 
 describe("PersonAgentStore", () => {
+  it("atomically promotes an agent person into an invited user", async () => {
+    await withStores(async (users, links) => {
+      const anchor = await users.ensureFirstAnchorUser({
+        displayName: "Anchor",
+      });
+
+      const promoted = await links.promoteAgentPerson({
+        agentId: "agent:mira-field",
+        displayName: "Mira Reyes",
+        profileEntityId: "person-profile/mira-reyes",
+        role: "trusted",
+        createdByUserId: anchor.id,
+      });
+
+      expect(promoted.person).toMatchObject({
+        displayName: "Mira Reyes",
+        profileEntityId: "person-profile/mira-reyes",
+      });
+      expect(promoted.user).toMatchObject({
+        personId: promoted.person.id,
+        role: "trusted",
+        status: "invited",
+      });
+      expect(promoted.link).toMatchObject({
+        agentId: "agent:mira-field",
+        personId: promoted.person.id,
+        status: "pending",
+      });
+    });
+  });
+
   it("creates a pending representation when an anchor links another person", async () => {
     await withStores(async (users, links) => {
       const anchor = await users.ensureFirstAnchorUser({

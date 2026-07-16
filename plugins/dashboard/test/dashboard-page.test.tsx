@@ -118,6 +118,9 @@ describe("renderDashboardPageHtml", () => {
     expect(anchorHtml).toContain("revokePasskey");
     expect(anchorHtml).toContain("startPasskeyRegistration");
     expect(anchorHtml).toContain("revokeUserSessions");
+    expect(anchorHtml).toContain("function agentContent(user)");
+    expect(anchorHtml).toContain("Linked agents");
+    expect(anchorHtml).toContain("user.agents");
     expect(trustedHtml).not.toContain('href="#people"');
     expect(trustedHtml).not.toContain('data-people-list="true"');
   });
