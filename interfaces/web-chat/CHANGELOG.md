@@ -1,5 +1,18 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.185
+
+### Patch Changes
+
+- [`7140e69`](https://github.com/rizom-ai/brains/commit/7140e69388dc3b1ebefc37c5dd1f2e76226fce16) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore the persisted active conversation and its message history when web chat reloads, including after a new application release.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.185
+  - @brains/contracts@0.2.0-alpha.185
+  - @brains/utils@0.2.0-alpha.185
+  - @brains/auth-service@0.2.0-alpha.185
+  - @brains/plugins@0.2.0-alpha.185
+
 ## 0.2.0-alpha.184
 
 ### Patch Changes

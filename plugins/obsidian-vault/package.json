@@ -1,6 +1,6 @@
 {
   "name": "@brains/obsidian-vault",
-  "version": "0.2.0-alpha.184",
+  "version": "0.2.0-alpha.185",
   "description": "Obsidian vault integration — generates templates from entity schemas",
   "dependencies": {
     "@brains/plugins": "workspace:*",

@@ -365,6 +365,7 @@
     "web-chat-native-file-uploads",
     "web-chat-prior-upload-hydration",
     "web-chat-session-query",
+    "web-chat-session-restore",
     "web-chat-spine-and-tool-collapse",
     "web-chat-stale-upload-context",
     "web-chat-streamdown-markdown",
