@@ -2,7 +2,7 @@
 
 ## Status
 
-Active cleanup. Phase 0 characterization is complete; Phase 1 runtime and watcher ownership is next. No ownership conversion has started. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
+Active cleanup. Phases 0 and 1 are complete; Phase 2 Git scheduling and draining is next. Watcher startup now runs from plugin ready, and scoped shutdown awaits Chokidar plus active file callbacks. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
 
 Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. The raw watcher, debounce, periodic-git, auto-commit, and import-polling lifecycle constructs described below remain in directory-sync and still need the planned ownership conversion.
 
@@ -144,7 +144,7 @@ Register subscriptions and handlers only once; callbacks resolve the active gene
 1. Add tests for watcher startup, ready, shutdown, periodic first-tick semantics, trailing debounce, and reconfiguration.
 2. Add regression tests showing current cleanup can return before watcher/git work settles.
 
-### Phase 1 — Runtime and watcher ownership
+### Phase 1 — Runtime and watcher ownership (complete)
 
 1. Use the existing `@brains/utils/effect` workspace boundary.
 2. Add the private scope and Promise boundary helper that does not leak `FiberFailure`.

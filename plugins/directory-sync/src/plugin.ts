@@ -18,6 +18,7 @@ import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
 import { bootstrapContentRemoteFromSeed } from "./lib/content-remote-bootstrap";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
+import { DirectorySyncRuntime } from "./lib/directory-sync-runtime";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
@@ -28,6 +29,8 @@ export class DirectorySyncPlugin extends ServicePlugin<
   private directorySync?: DirectorySync;
   private gitSync?: GitSync;
   private gitCleanups: Array<() => void> = [];
+  private readonly runtime = new DirectorySyncRuntime();
+  private watcherOwned = false;
 
   constructor(config: DirectorySyncConfigInput = {}) {
     super("directory-sync", packageJson, config, directorySyncConfigSchema);
@@ -193,6 +196,17 @@ export class DirectorySyncPlugin extends ServicePlugin<
     );
   }
 
+  protected override async onReady(): Promise<void> {
+    if (!this.config.autoSync || this.watcherOwned) return;
+
+    const directorySync = this.requireDirectorySync();
+    await this.runtime.acquire(
+      () => directorySync.startWatching(),
+      () => directorySync.stopWatching(),
+    );
+    this.watcherOwned = true;
+  }
+
   protected override async getTools(): Promise<Tool[]> {
     const directorySync = this.requireDirectorySync();
     return createDirectorySyncTools(
@@ -204,10 +218,38 @@ export class DirectorySyncPlugin extends ServicePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
-    for (const cleanup of this.gitCleanups) cleanup();
+    const failures: unknown[] = [];
+    const recordFailure = (error: unknown): void => {
+      failures.push(error);
+    };
+
+    for (const cleanup of this.gitCleanups) {
+      try {
+        cleanup();
+      } catch (error) {
+        recordFailure(error);
+      }
+    }
     this.gitCleanups = [];
-    this.directorySync?.stopWatching();
-    this.gitSync?.cleanup();
+
+    try {
+      await this.runtime.close();
+    } catch (error) {
+      recordFailure(error);
+    }
+    try {
+      await this.directorySync?.stopWatching();
+    } catch (error) {
+      recordFailure(error);
+    }
+    try {
+      this.gitSync?.cleanup();
+    } catch (error) {
+      recordFailure(error);
+    }
+
+    this.watcherOwned = false;
+    if (failures.length > 0) throw failures[0];
   }
 
   public getDirectorySync(): DirectorySync | undefined {

@@ -76,7 +76,16 @@ describe("FileWatcher lifecycle characterization", () => {
     restoreWatch = (): void => watchSpy.mockRestore();
   }
 
-  it("currently returns from stop before Chokidar close settles", async () => {
+  async function startWatcher(
+    watcher: FileWatcher,
+    fakeWatcher: FSWatcher,
+  ): Promise<void> {
+    const starting = watcher.start();
+    fakeWatcher.emit("ready");
+    await starting;
+  }
+
+  it("waits for Chokidar close to settle", async () => {
     const closeGate = deferred();
     const fakeWatcher = new FSWatcher();
     const close = mock((): Promise<void> => closeGate.promise);
@@ -88,22 +97,23 @@ describe("FileWatcher lifecycle characterization", () => {
       logger: createSilentLogger("file-watcher-close"),
     });
 
-    await watcher.start();
-    watcher.stop();
+    await startWatcher(watcher, fakeWatcher);
+    const stopping = watcher.stop();
 
     expect(close).toHaveBeenCalledTimes(1);
-    let closeSettled = false;
-    void closeGate.promise.then(() => {
-      closeSettled = true;
+    let stopSettled = false;
+    void stopping.then(() => {
+      stopSettled = true;
     });
     await Promise.resolve();
-    expect(closeSettled).toBe(false);
+    expect(stopSettled).toBe(false);
 
     closeGate.resolve();
-    await closeGate.promise;
+    await stopping;
+    expect(stopSettled).toBe(true);
   });
 
-  it("currently returns from stop before an already-fired callback settles", async () => {
+  it("waits for an already-fired callback to settle", async () => {
     const callbackStarted = deferred();
     const releaseCallback = deferred();
     const callbackFinished = deferred();
@@ -121,19 +131,21 @@ describe("FileWatcher lifecycle characterization", () => {
       },
     });
 
-    await watcher.start();
+    await startWatcher(watcher, fakeWatcher);
     fakeWatcher.emit("change", "/tmp/file-watcher-callback/note.md");
     await callbackStarted.promise;
 
-    watcher.stop();
-    let callbackSettled = false;
-    void callbackFinished.promise.then(() => {
-      callbackSettled = true;
+    const stopping = watcher.stop();
+    let stopSettled = false;
+    void stopping.then(() => {
+      stopSettled = true;
     });
     await Promise.resolve();
-    expect(callbackSettled).toBe(false);
+    expect(stopSettled).toBe(false);
 
     releaseCallback.resolve();
+    await stopping;
+    expect(stopSettled).toBe(true);
     await callbackFinished.promise;
   });
 });

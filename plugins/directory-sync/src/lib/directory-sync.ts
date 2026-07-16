@@ -257,8 +257,10 @@ export class DirectorySync implements IDirectorySync {
     });
   }
 
-  stopWatching(): void {
-    this.fileWatcher = stopDirectoryWatcher(this.fileWatcher);
+  async stopWatching(): Promise<void> {
+    const fileWatcher = this.fileWatcher;
+    this.fileWatcher = undefined;
+    await stopDirectoryWatcher(fileWatcher);
   }
 
   setWatchCallback(callback: (event: string, path: string) => void): void {

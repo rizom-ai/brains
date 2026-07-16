@@ -139,7 +139,7 @@ export function createMockDirectorySync(
     })),
     queueSyncBatch: mock(async (): Promise<BatchResult | null> => null),
     startWatching: mock(async () => {}),
-    stopWatching: mock(() => {}),
+    stopWatching: mock(() => Promise.resolve()),
     setWatchCallback: mock(() => {}),
   };
   return Object.assign(base, overrides);

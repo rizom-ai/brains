@@ -70,7 +70,7 @@ export interface IDirectorySync {
     totalFiles: number;
   } | null>;
   startWatching(): Promise<void>;
-  stopWatching(): void;
+  stopWatching(): Promise<void>;
   setWatchCallback(callback: (event: string, path: string) => void): void;
 }
 

@@ -45,34 +45,35 @@ describe("directory-sync lifecycle characterization", () => {
     return path;
   }
 
-  it("currently returns from initialization before watcher startup settles", async () => {
+  it("waits for watcher startup during direct initialization", async () => {
     const syncPath = createPath("watcher-start");
+    const watcherStartCalled = deferred<void>();
     const watcherStart = deferred<void>();
-    let watcherStartCalled = false;
 
-    await initializeDirectorySync(
+    const initialization = initializeDirectorySync(
       createSilentLogger("directory-lifecycle"),
       syncPath,
       true,
       (): Promise<void> => {
-        watcherStartCalled = true;
+        watcherStartCalled.resolve();
         return watcherStart.promise;
       },
     );
+    await watcherStartCalled.promise;
 
-    expect(watcherStartCalled).toBe(true);
-    let watcherSettled = false;
-    void watcherStart.promise.then(() => {
-      watcherSettled = true;
+    let initializationSettled = false;
+    void initialization.then(() => {
+      initializationSettled = true;
     });
     await Promise.resolve();
-    expect(watcherSettled).toBe(false);
+    expect(initializationSettled).toBe(false);
 
     watcherStart.resolve();
-    await watcherStart.promise;
+    await initialization;
+    expect(initializationSettled).toBe(true);
   });
 
-  it("currently leaves autoSync unwatched after registration and ready", async () => {
+  it("starts autoSync watching during ready and closes it during shutdown", async () => {
     const syncPath = createPath("ready");
     const harness = createPluginHarness<DirectorySyncPlugin>({
       dataDir: syncPath,
@@ -90,6 +91,9 @@ describe("directory-sync lifecycle characterization", () => {
 
     expect((await directorySync.getStatus()).watching).toBe(false);
     await plugin.ready();
+    expect((await directorySync.getStatus()).watching).toBe(true);
+
+    await plugin.shutdown?.();
     expect((await directorySync.getStatus()).watching).toBe(false);
   });
 
