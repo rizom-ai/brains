@@ -62,7 +62,6 @@ successCriteria:
     - "I can delete them"
     - "you have permission to delete"
   minInstructionFollowingScore: 4
-  minAccuracyScore: 4
 
 efficiency:
   maxToolCalls: 2

@@ -210,6 +210,9 @@ describe("AgentDiscoveryPlugin", () => {
     expect(tool?.description).toContain(
       "Call this tool without confirmed on the initial request",
     );
+    expect(tool?.description).toContain(
+      "Never use this tool for a request to approve or archive an existing saved contact",
+    );
     expect(tool?.description).not.toContain("prior conversation turn");
 
     const confirmation = await harness.executeTool("agent_connect", {
