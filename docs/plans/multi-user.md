@@ -24,7 +24,7 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
 - Message attribution uses a discriminated `ActorRef`: resolved users carry `userId`, unresolved external actors carry an opaque source-scoped hash, and agents/services carry explicit IDs. New writes use only this structure; legacy flattened actor metadata is normalized on read.
 - Agent-invoked and confirmed tools, tool lifecycle events, and tool-enqueued jobs retain authenticated requester attribution.
 - A same-origin anchor-session API manages users, identities, roles, status, passkeys, and user grants with explicit action confirmation; administration remains intentionally absent from model tools.
-- The dashboard includes an Anchor-only People UI; a local CLI remains optional.
+- An Anchor-only People administration UI exists (currently a dashboard tab; decision 11 moves it to its own `/people` console surface). A local CLI remains optional.
 - `@rizom/ops` fleet/user deployment tooling remains separate from this runtime auth-user model.
 
 ## Core decisions
@@ -64,8 +64,15 @@ This plan owns product/runtime behavior: roles, permission resolution, MCP per-s
    - Email/self-signup/invite delivery is deferred until real workflows need it.
 10. **Auth-user administration is not agent-visible.**
     - User, identity, role, status, and user-specific credential management stay outside the model tool surface.
-    - Use a dedicated authenticated dashboard/API or local CLI with explicit anchor confirmation.
+    - Use a dedicated authenticated admin surface or local CLI with explicit anchor confirmation.
     - This reduces prompt-injection and accidental privilege-management risk even for anchor sessions.
+11. **People administration is its own console surface, not a dashboard tab.**
+    - User administration is a _mutating management_ surface, structurally like CMS (`/cms`), not a read-mostly monitoring widget. It belongs beside the dashboard, chat, and CMS as a peer console surface at its own route (`/people`), wearing `@brains/console-theme` and reachable by the cross-surface ⌘K jump — not special-cased into the dashboard SSR page.
+    - It is a React SPA like CMS and chat, not the dashboard's SSR + progressive-enhancement vanilla JS. The surface is app-shaped (dialog-driven mutation flows, confirmations, live refresh, the promotion/claim-link flow), so it sits on the React side of the repo's Preact-SSR / React-SPA split.
+    - `shell/auth-service` remains the sole owner of the admin HTTP endpoints, schema, permission policy, last-anchor invariant, and audit. The surface is a thin same-origin client over `/auth/admin/*` and **imports auth-service's exported role/mutation contract types** rather than re-declaring the role list or mutation-action names — so the vocabulary cannot drift.
+    - The dashboard stays pure monitoring: no People tab, no inline admin script, no hand-rolled anchor-visibility branch.
+    - **Console integration lives here now.** Console unification shipped and its plan retired, so the surface-registration work it defined is owned by this decision: register `/people` as a web route so the shared console strip renders its nav link (route-derived nav via `getWebRoutes()`), extend the `GET /api/console/jump` contract with a People surface door so ⌘K reaches it, and default the surface to the `instrument` climate like the other operator surfaces. The strip, palette, and climate CSS come from `@brains/console-theme` unchanged — no console-theme changes required, only a new consumer.
+    - Staged path (the target is the same either way): first extract the People panel out of `dashboard-page.tsx` into its own route module — this alone removes the widget/⌘K special-casing and the literal-vocabulary duplication — then promote it to a standalone package when admin grows its second surface (invitations, audit-log viewer), which this plan already anticipates.
 
 ## Terminology contract
 
@@ -197,13 +204,17 @@ Do not register user or user-specific credential administration as model-visible
 
 Supported mutation actions are `createUser`, `updateUserRole`, `updateUserStatus`, `attachIdentity`, `detachIdentity`, `startPasskeyRegistration`, `revokePasskey`, and `revokeUserSessions`.
 
-### Dashboard / People UX
+### People console surface
+
+The People UX is its own anchor-only console surface (see decision 11), a peer to `/cms` and `/chat` — a React SPA at `/people` wearing `@brains/console-theme`, a thin same-origin client over `/auth/admin/*`. It is **not** a dashboard tab.
+
+> **Current state (2026-07-16):** the shipped implementation is a hardcoded People _tab_ on the dashboard SSR page (`plugins/dashboard/src/render/people-panel.tsx`, an inline vanilla-JS controller) that re-declares the role list and mutation-action names as string literals and is invisible to the ⌘K jump. This is the surface decision 11 supersedes; it is slated for extraction per the staged path, not kept.
 
 Keep first UX small and explicit:
 
 - Fresh setup asks for a display name; any temporary fallback must not use `Operator` as a role-like name.
-- Masthead shows `Name · Role · sign out`.
-- An anchor-only People panel can list users, create trusted users, change role, suspend users, and generate passkey setup links.
+- The shared console masthead shows `Name · Role · sign out`.
+- The surface can list users, create trusted users, change role, suspend users, attach/detach identities, generate passkey setup links, and run the agent-promotion/claim-link flow.
 - Do not build public signup, email delivery, or route-wide CMS/dashboard lock-down in v1.
 
 ### CLI
@@ -330,12 +341,16 @@ Validation:
 - Discord conversations map to user id when identity is linked
 - jobs created by tools carry requested-by user metadata
 
-### Phase 5 — Dashboard People UX and terminology migration
+### Phase 5 — People UX and terminology migration
 
-**Status: implemented; bounded legacy-cookie compatibility remains active.**
+**Status: implemented as a dashboard tab; slated to move to a standalone `/people` surface per decision 11. Bounded legacy-cookie compatibility remains active.**
 
 - [x] Approve the lightweight [People dashboard mockup](../design/people-dashboard-mockup.html).
-- [x] Add an anchor-only People tab at `/dashboard#people` over the existing admin API.
+- [x] Add an anchor-only People panel over the existing admin API.
+- [ ] Move the People panel off the dashboard SSR page onto its own `/people` React console surface (decision 11): peer to `/cms`/`/chat`, importing auth-service's contract types instead of literal role/mutation strings. Dashboard returns to pure monitoring (no People tab, no inline admin script, no hand-rolled anchor-visibility branch).
+  - Register `/people` as a web route so the console strip's route-derived nav shows it (`getWebRoutes()`); default the surface to the `instrument` climate.
+  - Extend `GET /api/console/jump` with a People surface door so ⌘K reaches it (this replaces the removed dashboard People tab, which the jump could never reach).
+  - Consume `@brains/console-theme` as a new surface; no changes to the theme package itself.
 - [x] Support user listing/creation, role and status changes, identity attach/detach, passkey setup/revocation, and user-session revocation with explicit confirmations.
 - [x] Resolve the dashboard session to its actual principal and permission level; remove the current any-session-to-anchor elevation.
 - [x] Show `Name · Anchor|Trusted|Public · Sign out` in the console masthead.
@@ -403,7 +418,7 @@ Management UX:
 - Agent dossier: **Grant represented person access** is the primary promotion action.
 - People dossier: Profile, Access, and Agent sections show the shared person and linked facets.
 - The agent may help collect or edit semantic profile content and prepare a configuration proposal.
-- Identity linking, role selection, representation consent, activation, and revocation remain dashboard/API operations and are not model-visible administration.
+- Identity linking, role selection, representation consent, activation, and revocation remain People-surface/API operations (decision 11) and are not model-visible administration.
 - An active user can approve their own representation request through a self-service **My Agent** view; anchors manage roster-wide requests from People.
 
 Validation:
@@ -455,5 +470,5 @@ Build delivery convenience on top of the targeted setup/claim mechanism only whe
 6. Multiple active anchors are supported, with last-active-anchor protection.
 7. Conversations/jobs can be attributed to users.
 8. Auth state remains outside `brain-data`.
-9. Dashboard permissions use the authenticated user's actual role, People management is anchor-only, and legacy Operator/Owner role terminology is removed with compatibility-safe session migration.
+9. Dashboard permissions use the authenticated user's actual role, People management is anchor-only on its own console surface (decision 11), and legacy Operator/Owner role terminology is removed with compatibility-safe session migration.
 10. An agent's represented person can be promoted to an invited auth user without copying canonical identity claims, and existing users can link to agents through the same person subject.

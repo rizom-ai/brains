@@ -204,7 +204,6 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
-- [console-unification.md](./plans/console-unification.md) — reopened after the shared foundation was retired prematurely. Active work: CMS-first visual fidelity across palette, typography, texture, controls, manuscript styling, and responsive composition; then Chat/Dashboard review and committed screenshot gates.
 - [cms-ai-assisted-authoring.md](./plans/cms-ai-assisted-authoring.md) — selection-scoped AI assist inside the shipped first-party CMS editor. The CodeMirror 6 upgrade and the selection rewrite (read-only `/cms/api/assist`) have shipped; summarise/tag-suggest prompt variants and the authoring-pass polish backlog remain.
 - [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, building on the shared `MessageInterface` helpers already extracted from Discord/web-chat workflows.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
