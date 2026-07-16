@@ -2,6 +2,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { IGitSync } from "../types";
 import type { DirectorySyncScheduler } from "./directory-sync-runtime";
+import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
 
 const AUTO_COMMIT_KEY = "git-auto-commit";
 
@@ -18,6 +19,7 @@ export function setupGitAutoCommit(
   debounceMs: number,
   logger: Logger,
   runtime: DirectorySyncScheduler,
+  operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   const getGitSync =
     typeof gitSync === "function" ? gitSync : (): IGitSync => gitSync;
@@ -28,8 +30,18 @@ export function setupGitAutoCommit(
         await git.commit();
         await git.push();
       });
+      await operationStatus?.clearIssues(["git"]);
+      await operationStatus?.recordTerminal(
+        "save",
+        "succeeded",
+        "Local content committed and pushed",
+      );
     } catch (error) {
       logger.error("Git auto-commit failed", { error });
+      const message =
+        error instanceof Error ? error.message : "Git auto-commit failed";
+      await operationStatus?.recordIssue({ kind: "git", message });
+      await operationStatus?.recordTerminal("save", "failed", message);
     }
   };
 
