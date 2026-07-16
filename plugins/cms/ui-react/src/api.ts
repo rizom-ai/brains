@@ -15,7 +15,8 @@ export interface CmsWorkspaceInfo {
   id: string;
   pluginId: string;
   label: string;
-  rendererName: string;
+  rendererName: "PublishingWorkspace" | "SiteWorkspace";
+  priority: number;
   entityTypes: string[];
 }
 
@@ -64,11 +65,66 @@ export interface PublicationPipelineSnapshot {
   publishableEntityTypes: string[];
 }
 
-export interface CmsWorkspaceData {
-  id: string;
-  rendererName: string;
-  data: PublicationPipelineSnapshot;
+export interface SiteBuildSuccess {
+  jobId: string;
+  completedAt: string;
+  routesBuilt: number;
+  warnings: string[];
 }
+
+export interface SiteBuildFailure {
+  jobId: string;
+  completedAt: string;
+  message: string;
+}
+
+export interface SiteEnvironmentSnapshot {
+  environment: "preview" | "production";
+  active?: {
+    jobId?: string;
+    state: "debouncing" | "queued" | "building";
+    requestedAt: string;
+    startedAt?: string;
+  };
+  lastSuccess?: SiteBuildSuccess;
+  lastFailure?: SiteBuildFailure;
+}
+
+export interface SiteWorkspaceSnapshot {
+  site: {
+    title: string;
+    previewUrl?: string;
+    liveUrl?: string;
+  };
+  automation: {
+    autoRebuild: boolean;
+    debounceMs: number;
+    defaultEnvironment: "preview" | "production";
+  };
+  environments: SiteEnvironmentSnapshot[];
+  recentBuilds: Array<{
+    jobId: string;
+    environment: "preview" | "production";
+    outcome: "succeeded" | "failed";
+    completedAt: string;
+    routesBuilt?: number;
+    warnings?: string[];
+    message?: string;
+  }>;
+  routes: Array<{ id: string; path: string; title: string }>;
+}
+
+export type CmsWorkspaceData =
+  | {
+      id: string;
+      rendererName: "PublishingWorkspace";
+      data: PublicationPipelineSnapshot;
+    }
+  | {
+      id: string;
+      rendererName: "SiteWorkspace";
+      data: SiteWorkspaceSnapshot;
+    };
 
 export interface PublishConfirmationArgs {
   confirmed: true;
@@ -89,6 +145,14 @@ export type PublishingAction =
       type: "publish";
       confirmation?: PublishConfirmationArgs;
     } & PublishingTargetAction);
+
+export type SiteWorkspaceAction =
+  { type: "build-preview" } | { type: "build-production"; confirmed: true };
+
+export interface SiteWorkspaceActionResult {
+  accepted: true;
+  environment: "preview" | "production";
+}
 
 export type PublishingActionResult =
   | { success: true; [key: string]: unknown }
@@ -217,11 +281,11 @@ export async function fetchWorkspace(id: string): Promise<CmsWorkspaceData> {
   return workspace;
 }
 
-export async function runWorkspaceAction(
+export async function runWorkspaceAction<TResult>(
   id: string,
-  action: PublishingAction,
-): Promise<PublishingActionResult> {
-  const { result } = await requestJson<{ result: PublishingActionResult }>(
+  action: unknown,
+): Promise<TResult> {
+  const { result } = await requestJson<{ result: TResult }>(
     cmsApiPath("workspace"),
     {
       method: "POST",

@@ -92,7 +92,8 @@
   .commit-ref {
     display: none;
   }
-  .publishing-grid {
+  .publishing-grid,
+  .site-workspace-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .publishing-aside {
@@ -231,8 +232,28 @@
   .studio[data-view="editor"] .rail {
     display: none;
   }
-  .publishing-workspace {
+  .publishing-workspace,
+  .site-workspace {
     padding: 20px 16px 30px;
+  }
+  .site-workspace-head,
+  .site-environments {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .site-workspace-head {
+    gap: 12px;
+  }
+  .site-workspace-head > strong {
+    justify-self: start;
+  }
+  .site-build-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .site-build-facts > div + div {
+    padding: 10px 0 0;
+    border-top: 1px solid var(--console-rule-strong);
+    border-left: 0;
   }
   .publishing-head {
     grid-template-columns: minmax(0, 1fr);

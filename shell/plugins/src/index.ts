@@ -539,6 +539,7 @@ export {
   type CmsWorkspaceDescriptor,
   type CmsWorkspaceRegistration,
   type CmsWorkspaceRegistrationResult,
+  type CmsWorkspaceRendererName,
 } from "./types/cms-workspace";
 export {
   RouteDefinitionSchema,

@@ -1,6 +1,7 @@
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import type { SiteBuilderConfig } from "../config";
+import type { SiteBuildStatusService } from "./site-build-status";
 
 interface EntityChangeMessage {
   payload: { entityType: string };
@@ -48,6 +49,7 @@ export class RebuildManager {
   private readonly context: AutoRebuildContext;
   private readonly pluginId: string;
   private readonly logger: Logger;
+  private readonly statusService: SiteBuildStatusService | undefined;
   private debounces = new Map<string, LeadingTrailingDebounce>();
   private unsubscribeFunctions: Array<() => void> = [];
 
@@ -56,11 +58,13 @@ export class RebuildManager {
     context: AutoRebuildContext,
     pluginId: string,
     logger: Logger,
+    statusService?: SiteBuildStatusService,
   ) {
     this.config = config;
     this.context = context;
     this.pluginId = pluginId;
     this.logger = logger;
+    this.statusService = statusService;
   }
 
   /**
@@ -70,6 +74,8 @@ export class RebuildManager {
   requestBuild(environment?: "preview" | "production"): void {
     const env =
       environment ?? (this.config.previewOutputDir ? "preview" : "production");
+
+    void this.statusService?.markRequested(env);
 
     let debounce = this.debounces.get(env);
     if (!debounce) {
@@ -138,7 +144,7 @@ export class RebuildManager {
     this.logger.debug(`Triggering ${environment} site rebuild`);
 
     try {
-      await this.context.jobs.enqueue({
+      const jobId = await this.context.jobs.enqueue({
         type: "site-build",
         data: {
           environment,
@@ -159,8 +165,10 @@ export class RebuildManager {
           deduplication: "skip",
         },
       });
+      await this.statusService?.markQueued(environment, jobId);
       this.logger.debug("Site rebuild enqueued");
     } catch (error) {
+      await this.statusService?.clearActive(environment);
       this.logger.error("Failed to enqueue site rebuild", { error });
     }
   }

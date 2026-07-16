@@ -2,9 +2,9 @@
 
 ## Status
 
-**Proposed.** Add a Site workspace to the CMS when `@brains/site-builder-plugin` is
-installed. The workspace operates preview and production builds without making the CMS
-depend on site-builder or duplicating site configuration.
+**Implemented.** Add a Site workspace to the CMS when
+`@brains/site-builder-plugin` is installed. The workspace operates preview and production
+builds without making the CMS depend on site-builder or duplicating site configuration.
 
 Interaction reference:
 [cms-site-workspace-mockup.html](../design/cms-site-workspace-mockup.html).
@@ -68,10 +68,10 @@ the build-control path.
 
 ## Current state
 
-- The CMS is a first-party React editor with entity, schema, assist, upload, and sync APIs,
-  but no plugin workspace registry.
-- The publishing-workspace plan introduces the generic registration boundary and the first
-  `publishing` renderer.
+- The CMS is a first-party React editor with entity, schema, assist, upload, sync, and an
+  optional Publishing workspace.
+- Publishing established the first server-side workspace registry, authenticated provider
+  transport, addressable workspace state, and CMS-owned renderer.
 - Dashboard already supports provider-registered, permission-filtered widgets and group
   digests, but site-builder does not register one.
 - Site-builder has one `site-builder_build-site` tool. It routes explicit and automatic
@@ -114,10 +114,10 @@ The CMS registry must:
 
 - reject duplicate workspace IDs rather than silently replacing a provider;
 - sort by `priority`, then `id`, independent of plugin startup order;
-- expose serializable descriptors through `GET <cms-route>/api/workspaces`;
-- continue to expose provider data and actions through
-  `GET/POST <cms-route>/api/workspaces/:id`;
-- return the resolved deep link, such as `<cms-route>#/workspaces/site`, from successful
+- expose serializable descriptors through the authenticated CMS navigation payload;
+- continue to expose provider data and actions through the existing authenticated
+  workspace endpoint;
+- return the resolved deep link, such as `<cms-route>#/workspace/site`, from successful
   registration;
 - subscribe during CMS `onRegister`; providers register during `onReady`;
 - treat a missing CMS registration handler as a valid, non-fatal result.
@@ -317,8 +317,8 @@ Build controls remain in CMS, tools, and chat.
 
 1. Expand the workspace contract from the publishing plan with `priority`, descriptor
    listing, duplicate-ID rejection, and deterministic ordering.
-2. Add the authenticated workspace-list route and CMS query key.
-3. Add URL parsing for `#/workspaces/:id` without changing existing entity deep links.
+2. Include ordered descriptors in the existing authenticated navigation query.
+3. Preserve URL parsing for `#/workspace/:id` without changing existing entity deep links.
 4. Render all registered workspaces under Operations using CMS-owned renderer names.
 5. Test zero, one, and two registrations in both provider startup orders.
 

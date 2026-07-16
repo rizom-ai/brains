@@ -3,6 +3,7 @@ import { mockFetch } from "@brains/test-utils";
 import {
   removeEntity,
   runCmsWorkspaceAction,
+  runSiteWorkspaceAction,
   saveEntity,
   uploadImage,
 } from "./mutations";
@@ -48,6 +49,29 @@ describe("CMS workspace mutation", () => {
     });
     expect(result).toEqual({ success: true });
     expect(requests).toBe(1);
+  });
+});
+
+describe("CMS Site workspace mutation", () => {
+  it("requires the typed production confirmation payload", async () => {
+    let payload: unknown;
+    mockFetch(async (_url, options) => {
+      payload = JSON.parse(String(options.body));
+      return Response.json({
+        result: { accepted: true, environment: "production" },
+      });
+    });
+
+    const result = await runSiteWorkspaceAction({
+      workspaceId: "site",
+      action: { type: "build-production", confirmed: true },
+    });
+
+    expect(payload).toEqual({
+      id: "site",
+      action: { type: "build-production", confirmed: true },
+    });
+    expect(result).toEqual({ accepted: true, environment: "production" });
   });
 });
 
