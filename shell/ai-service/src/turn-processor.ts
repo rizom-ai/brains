@@ -42,6 +42,7 @@ import {
   buildAgentContextInstructions,
   buildMessageWithAttachments,
   buildModelMessages,
+  filterConversationHistoryForPermission,
   resolveConversationUploadContinuity,
 } from "./conversation-messages";
 import {
@@ -116,7 +117,12 @@ export class TurnProcessor {
         conversationId,
         role: "user",
         content: message,
-        ...this.messageMetadata({ actor, source, attachments }),
+        ...this.messageMetadata({
+          actor,
+          source,
+          userPermissionLevel,
+          attachments,
+        }),
       });
 
       const responseText = buildAttachmentOnlyResponse(attachments);
@@ -129,6 +135,7 @@ export class TurnProcessor {
         ...this.messageMetadata({
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
+          userPermissionLevel,
           cards: responseCards,
         }),
       });
@@ -142,9 +149,13 @@ export class TurnProcessor {
     }
 
     // Load conversation history
-    const historyMessages = await this.deps.conversationService.getMessages(
-      conversationId,
-      { limit: 50 },
+    const storedHistoryMessages =
+      await this.deps.conversationService.getMessages(conversationId, {
+        limit: 50,
+      });
+    const historyMessages = filterConversationHistoryForPermission(
+      storedHistoryMessages,
+      userPermissionLevel,
     );
 
     const uploadContinuity = resolveConversationUploadContinuity({
@@ -207,6 +218,7 @@ export class TurnProcessor {
       ...this.messageMetadata({
         actor,
         source,
+        userPermissionLevel,
         attachments: effectiveAttachments,
       }),
     });
@@ -269,6 +281,7 @@ export class TurnProcessor {
         ...this.messageMetadata({
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
+          userPermissionLevel,
           cards: responseCards,
           entityMemoryRefs,
           agentContactCandidates,
@@ -376,6 +389,7 @@ export class TurnProcessor {
       ...this.messageMetadata({
         actor: this.getAssistantActor(),
         source: this.buildAssistantSource(channelId, channelName),
+        userPermissionLevel,
         cards,
         entityMemoryRefs,
       }),
@@ -448,9 +462,13 @@ export class TurnProcessor {
     params.signal?.throwIfAborted();
     if (!contextItems || contextItems.length === 0) return undefined;
 
-    const historyMessages = await this.deps.conversationService.getMessages(
-      params.conversationId,
-      { limit: 50 },
+    const storedHistoryMessages =
+      await this.deps.conversationService.getMessages(params.conversationId, {
+        limit: 50,
+      });
+    const historyMessages = filterConversationHistoryForPermission(
+      storedHistoryMessages,
+      params.userPermissionLevel,
     );
     const messages = buildModelMessages(historyMessages, followUpPrompt);
     const agentContextInstructions =
@@ -488,6 +506,7 @@ export class TurnProcessor {
   private messageMetadata(params: {
     actor: ConversationMessageActor | null;
     source: ConversationMessageSource | null;
+    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
     attachments?: ChatAttachment[];
     cards?: StructuredChatCard[];
     entityMemoryRefs?: EntityMemoryRef[];

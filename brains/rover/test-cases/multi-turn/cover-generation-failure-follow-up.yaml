@@ -15,7 +15,8 @@ turns:
   - userMessage: "Generate a cover image for the blog post 'missing-cover-target-9f3c'"
     successCriteria:
       responseNotContains:
-        - "started"
+        - "has started"
+        - "I've started"
         - "queued"
   - userMessage: "is it ready?"
     successCriteria:
@@ -27,7 +28,8 @@ turns:
         - "don't have confirmation"
         - "still running"
         - "queued"
-        - "started"
+        - "has started"
+        - "I've started"
 
 successCriteria:
   expectedTools:

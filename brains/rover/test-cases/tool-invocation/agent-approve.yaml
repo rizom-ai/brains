@@ -32,6 +32,10 @@ permissions:
           entityType: "agent"
           id: "approval-candidate.io"
           fields.status: "approved"
+      - toolName: agent_connect
+        shouldBeCalled: false
+    responseContains:
+      - "permission"
     responseNotContains:
       - "status set to approved"
   anchor:
