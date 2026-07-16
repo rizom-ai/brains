@@ -81,6 +81,11 @@ Key fields:
 - `role`
 - `purpose`
 - `values`
+- `communicationPreferences` (optional): default content `audience` and output `tone`;
+  task, template, or channel instructions can override these defaults
+
+Communication preferences affect brain behavior but remain outside the stable public
+brain-character projection.
 
 ### `anchor-profile`
 
@@ -98,6 +103,18 @@ Key fields:
 - `website`
 - `email`
 - `socialLinks`
+
+Rover's opt-in professional profile extension also supports:
+
+- `headline`, `industry`, and `location`
+- curated `expertise` and broader/importable `skills`
+- structured `positions`, `education`, and `certifications`
+- `currentFocus` and `availability`
+
+The owner's concise `role` remains distinct from their public-facing `headline` and from
+the brain's own role. Legacy `audience` and `desiredTone` fields remain accepted during
+migration. New communication preferences belong on
+`brain-character.communicationPreferences`, not the public anchor profile.
 
 ## Core knowledge entities
 

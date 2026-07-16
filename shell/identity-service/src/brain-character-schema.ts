@@ -20,11 +20,34 @@ export const brainCharacterSchema: ReturnType<
  */
 export type BrainCharacterEntity = z.infer<typeof brainCharacterSchema>;
 
+export interface CommunicationPreferences {
+  audience?: string | undefined;
+  tone?: string | undefined;
+}
+
+export type CommunicationPreferencesSchema = z.ZodObject<{
+  audience: z.ZodOptional<z.ZodString>;
+  tone: z.ZodOptional<z.ZodString>;
+}>;
+
+export const communicationPreferencesSchema: CommunicationPreferencesSchema =
+  z.object({
+    audience: z
+      .string()
+      .optional()
+      .describe("Default intended readership for generated content"),
+    tone: z
+      .string()
+      .optional()
+      .describe("Default tone for generated content and responses"),
+  });
+
 export interface BrainCharacter {
   name: string;
   role: string;
   purpose: string;
   values: string[];
+  communicationPreferences?: CommunicationPreferences | undefined;
 }
 
 export type BrainCharacterBodySchema = z.ZodObject<{
@@ -32,6 +55,7 @@ export type BrainCharacterBodySchema = z.ZodObject<{
   role: z.ZodString;
   purpose: z.ZodString;
   values: z.ZodArray<z.ZodString>;
+  communicationPreferences: z.ZodOptional<CommunicationPreferencesSchema>;
 }>;
 
 /**
@@ -43,6 +67,11 @@ export const brainCharacterBodySchema: BrainCharacterBodySchema = z.object({
   role: z.string().describe("The brain's primary role"),
   purpose: z.string().describe("The brain's purpose and goals"),
   values: z.array(z.string()).describe("Core values that guide behavior"),
+  communicationPreferences: communicationPreferencesSchema
+    .optional()
+    .describe(
+      "Default communication behavior, overridable per task or channel",
+    ),
 });
 
 /**

@@ -78,7 +78,9 @@ export const HomepageListLayout = ({
   // description
   const tagline = profile.tagline?.length
     ? profile.tagline
-    : profile.description;
+    : profile.headline?.length
+      ? profile.headline
+      : profile.description;
 
   const postItems: ContentItem[] = posts.map((post) => ({
     id: post.id,
@@ -109,9 +111,10 @@ export const HomepageListLayout = ({
     [profile.intro, profile.description, tagline].find((value) => value) ??
     "Professional site";
 
-  const hasAbout =
-    Boolean(profile.description) ||
-    (profile.expertise !== undefined && profile.expertise.length > 0);
+  const subjects = profile.expertise?.length
+    ? profile.expertise
+    : (profile.skills ?? []);
+  const hasAbout = Boolean(profile.description) || subjects.length > 0;
 
   return (
     <>
@@ -180,9 +183,7 @@ export const HomepageListLayout = ({
                   {profile.description}
                 </p>
               )}
-              {profile.expertise && profile.expertise.length > 0 && (
-                <SubjectsList subjects={profile.expertise} />
-              )}
+              {subjects.length > 0 && <SubjectsList subjects={subjects} />}
               <a
                 href="/about"
                 className="mt-6 inline-flex items-center gap-2 font-mono text-[0.7rem] font-medium uppercase tracking-[0.18em] text-accent pb-1 relative before:content-[''] before:absolute before:left-0 before:right-full before:bottom-0 before:h-px before:bg-accent before:transition-[right] before:duration-300 hover:before:right-0"

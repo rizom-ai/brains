@@ -15,6 +15,10 @@ describe("public identity contracts", () => {
       role: "assistant",
       purpose: "Help with publishing",
       values: ["clear", "useful"],
+      communicationPreferences: {
+        audience: "independent professionals",
+        tone: "clear and practical",
+      },
     });
 
     expect(BrainCharacterSchema.parse(character)).toEqual({

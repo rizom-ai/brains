@@ -33,22 +33,127 @@ export const baseProfileExtension: BaseProfileExtensionSchema = z.object({
     .describe("Extended bio/narrative (multi-paragraph markdown)"),
 });
 
+export interface ProfessionalPosition {
+  companyName: string;
+  title: string;
+  description?: string | undefined;
+  employmentType?: string | undefined;
+  location?: string | undefined;
+  startedOn?: string | undefined;
+  finishedOn?: string | undefined;
+}
+
+export type ProfessionalPositionSchema = z.ZodObject<{
+  companyName: z.ZodString;
+  title: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  employmentType: z.ZodOptional<z.ZodString>;
+  location: z.ZodOptional<z.ZodString>;
+  startedOn: z.ZodOptional<z.ZodString>;
+  finishedOn: z.ZodOptional<z.ZodString>;
+}>;
+
+export const professionalPositionSchema: ProfessionalPositionSchema = z.object({
+  companyName: z.string().describe("Organization where the position was held"),
+  title: z.string().describe("Title held at the organization"),
+  description: z.string().optional().describe("Position summary"),
+  employmentType: z.string().optional().describe("Employment type"),
+  location: z.string().optional().describe("Position location"),
+  startedOn: z.string().optional().describe("Start date or partial date"),
+  finishedOn: z.string().optional().describe("End date or partial date"),
+});
+
+export interface ProfessionalEducation {
+  schoolName: string;
+  degreeName?: string | undefined;
+  fieldOfStudy?: string | undefined;
+  startedOn?: string | undefined;
+  finishedOn?: string | undefined;
+  notes?: string | undefined;
+}
+
+export type ProfessionalEducationSchema = z.ZodObject<{
+  schoolName: z.ZodString;
+  degreeName: z.ZodOptional<z.ZodString>;
+  fieldOfStudy: z.ZodOptional<z.ZodString>;
+  startedOn: z.ZodOptional<z.ZodString>;
+  finishedOn: z.ZodOptional<z.ZodString>;
+  notes: z.ZodOptional<z.ZodString>;
+}>;
+
+export const professionalEducationSchema: ProfessionalEducationSchema =
+  z.object({
+    schoolName: z.string().describe("School or educational institution"),
+    degreeName: z.string().optional().describe("Degree or qualification"),
+    fieldOfStudy: z.string().optional().describe("Field of study"),
+    startedOn: z.string().optional().describe("Start date or partial date"),
+    finishedOn: z.string().optional().describe("End date or partial date"),
+    notes: z.string().optional().describe("Additional education details"),
+  });
+
+export interface ProfessionalCertification {
+  name: string;
+  issuingOrganization?: string | undefined;
+  issuedOn?: string | undefined;
+  expiresOn?: string | undefined;
+  credentialId?: string | undefined;
+  credentialUrl?: string | undefined;
+}
+
+export type ProfessionalCertificationSchema = z.ZodObject<{
+  name: z.ZodString;
+  issuingOrganization: z.ZodOptional<z.ZodString>;
+  issuedOn: z.ZodOptional<z.ZodString>;
+  expiresOn: z.ZodOptional<z.ZodString>;
+  credentialId: z.ZodOptional<z.ZodString>;
+  credentialUrl: z.ZodOptional<z.ZodString>;
+}>;
+
+export const professionalCertificationSchema: ProfessionalCertificationSchema =
+  z.object({
+    name: z.string().describe("Certification or credential name"),
+    issuingOrganization: z
+      .string()
+      .optional()
+      .describe("Organization that issued the credential"),
+    issuedOn: z.string().optional().describe("Issue date or partial date"),
+    expiresOn: z.string().optional().describe("Expiry date or partial date"),
+    credentialId: z.string().optional().describe("Credential identifier"),
+    credentialUrl: z.string().optional().describe("Credential URL"),
+  });
+
 export interface ProfessionalProfileExtension extends BaseProfileExtension {
-  role?: string | undefined;
-  audience?: string | undefined;
+  headline?: string | undefined;
+  industry?: string | undefined;
+  location?: string | undefined;
+  skills?: string[] | undefined;
+  positions?: ProfessionalPosition[] | undefined;
+  education?: ProfessionalEducation[] | undefined;
+  certifications?: ProfessionalCertification[] | undefined;
   expertise?: string[] | undefined;
   currentFocus?: string | undefined;
   availability?: string | undefined;
+  role?: string | undefined;
+  /** @deprecated Use brain-character.communicationPreferences.audience. */
+  audience?: string | undefined;
+  /** @deprecated Use brain-character.communicationPreferences.tone. */
   desiredTone?: string | undefined;
 }
 
 export type ProfessionalProfileExtensionSchema = ReturnType<
   typeof baseProfileExtension.extend<{
-    role: z.ZodOptional<z.ZodString>;
-    audience: z.ZodOptional<z.ZodString>;
+    headline: z.ZodOptional<z.ZodString>;
+    industry: z.ZodOptional<z.ZodString>;
+    location: z.ZodOptional<z.ZodString>;
+    skills: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    positions: z.ZodOptional<z.ZodArray<ProfessionalPositionSchema>>;
+    education: z.ZodOptional<z.ZodArray<ProfessionalEducationSchema>>;
+    certifications: z.ZodOptional<z.ZodArray<ProfessionalCertificationSchema>>;
     expertise: z.ZodOptional<z.ZodArray<z.ZodString>>;
     currentFocus: z.ZodOptional<z.ZodString>;
     availability: z.ZodOptional<z.ZodString>;
+    role: z.ZodOptional<z.ZodString>;
+    audience: z.ZodOptional<z.ZodString>;
     desiredTone: z.ZodOptional<z.ZodString>;
   }>
 >;
@@ -62,18 +167,29 @@ export type ProfessionalProfileExtensionSchema = ReturnType<
  */
 export const professionalProfileExtension: ProfessionalProfileExtensionSchema =
   baseProfileExtension.extend({
-    role: z
-      .string()
+    headline: z.string().optional().describe("Public professional headline"),
+    industry: z.string().optional().describe("Professional industry"),
+    location: z.string().optional().describe("Professional location"),
+    skills: z
+      .array(z.string())
       .optional()
-      .describe("Professional role or working identity"),
-    audience: z
-      .string()
+      .describe("Broad professional capabilities, including imported skills"),
+    positions: z
+      .array(professionalPositionSchema)
       .optional()
-      .describe("Primary audience or community served"),
+      .describe("Professional position history"),
+    education: z
+      .array(professionalEducationSchema)
+      .optional()
+      .describe("Education history"),
+    certifications: z
+      .array(professionalCertificationSchema)
+      .optional()
+      .describe("Professional certifications and credentials"),
     expertise: z
       .array(z.string())
       .optional()
-      .describe("Skills, domains, areas of focus"),
+      .describe("Curated areas of professional authority"),
     currentFocus: z
       .string()
       .optional()
@@ -82,10 +198,18 @@ export const professionalProfileExtension: ProfessionalProfileExtensionSchema =
       .string()
       .optional()
       .describe("What you're open to (consulting, speaking, etc.)"),
+    role: z
+      .string()
+      .optional()
+      .describe("Concise professional role or working identity"),
+    audience: z
+      .string()
+      .optional()
+      .describe("Deprecated default content audience"),
     desiredTone: z
       .string()
       .optional()
-      .describe("Preferred tone for profile-shaped outputs"),
+      .describe("Deprecated default communication tone"),
   });
 
 /**

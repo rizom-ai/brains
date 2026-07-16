@@ -22,10 +22,16 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
   const title = `About ${profile.name || "Me"}`;
   // First non-empty wins — empty strings fall through like absent values.
   const description =
-    [profile.description, profile.intro].find((value) => value) ?? "About page";
+    [profile.description, profile.intro, profile.headline].find(
+      (value) => value,
+    ) ?? "About page";
+  const heroDescription = [profile.description, profile.headline].find(
+    (value) => value,
+  );
 
   const hasStructuredContent =
     (profile.expertise !== undefined && profile.expertise.length > 0) ||
+    (profile.skills !== undefined && profile.skills.length > 0) ||
     Boolean(profile.currentFocus) ||
     Boolean(profile.availability) ||
     Boolean(profile.email) ||
@@ -42,9 +48,9 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
             <h1 className="text-5xl md:text-6xl font-semibold mb-6 text-heading">
               About {profile.name || "Me"}
             </h1>
-            {profile.description && (
+            {heroDescription && (
               <p className="text-xl md:text-2xl text-theme-muted leading-relaxed">
-                {profile.description}
+                {heroDescription}
               </p>
             )}
           </div>
@@ -70,6 +76,28 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
                   </h2>
                   <ul className="flex flex-wrap gap-3">
                     {profile.expertise.map((skill, i) => (
+                      <li
+                        key={i}
+                        className={tagVariants({
+                          variant: "accent",
+                          size: "lg",
+                        })}
+                      >
+                        {skill}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {/* Skills */}
+              {profile.skills && profile.skills.length > 0 && (
+                <section>
+                  <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-6">
+                    Skills
+                  </h2>
+                  <ul className="flex flex-wrap gap-3">
+                    {profile.skills.map((skill, i) => (
                       <li
                         key={i}
                         className={tagVariants({

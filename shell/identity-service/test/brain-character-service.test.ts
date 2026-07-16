@@ -84,6 +84,9 @@ purpose: Help with academic research
 values:
   - rigor
   - accuracy
+communicationPreferences:
+  audience: research practitioners
+  tone: precise and accessible
 ---
 `;
       const mockEntity = createTestEntity<BrainCharacterEntity>(
@@ -106,6 +109,10 @@ values:
       expect(character.role).toBe("Research assistant");
       expect(character.purpose).toBe("Help with academic research");
       expect(character.values).toEqual(["rigor", "accuracy"]);
+      expect(character.communicationPreferences).toEqual({
+        audience: "research practitioners",
+        tone: "precise and accessible",
+      });
     });
   });
 

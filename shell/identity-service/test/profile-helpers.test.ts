@@ -29,29 +29,69 @@ describe("baseProfileExtension", () => {
 
   it("should be extendable with additional fields", () => {
     const extended = baseProfileExtension.extend({
-      expertise: professionalProfileExtension.shape.expertise,
+      skills: professionalProfileExtension.shape.skills,
     });
     const result = extended.parse({
       tagline: "hello",
-      expertise: ["TypeScript", "Rust"],
+      skills: ["TypeScript", "Rust"],
     });
     expect(result.tagline).toBe("hello");
-    expect(result.expertise).toEqual(["TypeScript", "Rust"]);
+    expect(result.skills).toEqual(["TypeScript", "Rust"]);
   });
 });
 
 describe("professionalProfileExtension", () => {
-  it("should parse professional profile fields", () => {
+  it("should parse canonical professional profile fields", () => {
     const result = professionalProfileExtension.parse({
-      role: "advisor",
-      audience: "climate-tech founders",
+      role: "Advisor",
+      headline: "Advisor for resilient systems",
+      industry: "Climate technology",
+      location: "Rotterdam, Netherlands",
+      skills: ["TypeScript", "Systems architecture"],
       expertise: ["resilient software systems"],
+      currentFocus: "Low-carbon infrastructure",
+      availability: "Available for advisory work",
+      positions: [
+        {
+          companyName: "Rizom",
+          title: "Advisor",
+          employmentType: "Self-employed",
+          startedOn: "2024-01",
+        },
+      ],
+      education: [
+        {
+          schoolName: "TU Delft",
+          degreeName: "MSc",
+          fieldOfStudy: "Computer Science",
+        },
+      ],
+      certifications: [
+        {
+          name: "Cloud Architect",
+          issuingOrganization: "Example Institute",
+          issuedOn: "2025",
+          credentialId: "credential-1",
+        },
+      ],
+    });
+
+    expect(result.role).toBe("Advisor");
+    expect(result.headline).toBe("Advisor for resilient systems");
+    expect(result.skills).toEqual(["TypeScript", "Systems architecture"]);
+    expect(result.expertise).toEqual(["resilient software systems"]);
+    expect(result.positions?.[0]?.title).toBe("Advisor");
+    expect(result.education?.[0]?.schoolName).toBe("TU Delft");
+    expect(result.certifications?.[0]?.credentialId).toBe("credential-1");
+  });
+
+  it("should preserve legacy communication fields during migration", () => {
+    const result = professionalProfileExtension.parse({
+      audience: "climate-tech founders",
       desiredTone: "clear, practical, quietly confident",
     });
 
-    expect(result.role).toBe("advisor");
     expect(result.audience).toBe("climate-tech founders");
-    expect(result.expertise).toEqual(["resilient software systems"]);
     expect(result.desiredTone).toBe("clear, practical, quietly confident");
   });
 });

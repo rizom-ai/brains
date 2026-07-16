@@ -50,7 +50,7 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Update my anchor profile now: my name is Ada Morgan. My role is advisor, my audience is climate-tech founders, my expertise is resilient software systems, and my desired tone is clear, practical, quietly confident."
+  - userMessage: "Update my anchor profile now: my name is Ada Morgan, my role is advisor, my professional headline is helping climate-tech founders build resilient software, and my expertise is resilient software systems."
     successCriteria:
       expectedTools:
         - toolName: system_update
@@ -72,6 +72,29 @@ turns:
         - 'Completed: Update "'
         - "What should I call you"
         - "what should I call you"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "My default content audience is climate-tech founders, and my default tone is clear, practical, and quietly confident."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: brain-character
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving those communication defaults."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "brain"
+      responseNotContains:
+        - 'Completed: Update "'
         - "I cannot"
         - "I don't have access"
 

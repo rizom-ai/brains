@@ -574,9 +574,16 @@ export {
   anchorProfileBodySchema,
   brainCharacterBodySchema,
   baseProfileExtension,
+  professionalPositionSchema,
+  professionalEducationSchema,
+  professionalCertificationSchema,
   professionalProfileExtension,
   fetchAnchorProfile,
   fetchAnchorProfileData,
+  type ProfessionalPosition,
+  type ProfessionalEducation,
+  type ProfessionalCertification,
+  type ProfessionalProfileExtension,
 } from "@brains/identity-service";
 
 // ============================================================================

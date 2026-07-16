@@ -8,16 +8,26 @@ export {
   brainCharacterSchema,
   brainCharacterBodySchema,
   brainCharacterFrontmatterSchema,
+  communicationPreferencesSchema,
   type BrainCharacter,
   type BrainCharacterEntity,
+  type CommunicationPreferences,
 } from "./brain-character-schema";
 
 // Profile helpers (shared across layout packages)
 export {
   baseProfileExtension,
+  professionalPositionSchema,
+  professionalEducationSchema,
+  professionalCertificationSchema,
   professionalProfileExtension,
   fetchAnchorProfile,
   fetchAnchorProfileData,
+  type BaseProfileExtension,
+  type ProfessionalPosition,
+  type ProfessionalEducation,
+  type ProfessionalCertification,
+  type ProfessionalProfileExtension,
 } from "./profile-helpers";
 
 // Anchor profile (was: profile)

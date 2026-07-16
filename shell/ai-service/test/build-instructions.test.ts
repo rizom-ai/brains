@@ -19,6 +19,30 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("anchor-level operator permissions");
   });
 
+  it("includes communication defaults separately from identity values", () => {
+    const instructions = buildInstructions(
+      {
+        ...identity,
+        communicationPreferences: {
+          audience: "climate-tech founders",
+          tone: "clear, practical, and quietly confident",
+        },
+      },
+      "anchor",
+    );
+
+    expect(instructions).toContain("## Communication Defaults");
+    expect(instructions).toContain(
+      "**Default Content Audience:** climate-tech founders",
+    );
+    expect(instructions).toContain(
+      "**Default Tone:** clear, practical, and quietly confident",
+    );
+    expect(instructions).toContain(
+      "Follow more specific task, template, or channel instructions",
+    );
+  });
+
   it("includes profile when provided", () => {
     const instructions = buildInstructions(identity, "anchor", undefined, {
       name: "Jan Hein",

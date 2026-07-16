@@ -25,7 +25,7 @@ describe("Rover onboarding playbook bundle", () => {
         lifecycle: "onboarding",
         starterText: "Set up Rover",
         description:
-          "Tune Rover's identity and anchor profile before using the knowledge loop.",
+          "Tune Rover's identity, anchor profile, and communication defaults before using the knowledge loop.",
         starterPrompt: "Start playbook rover-onboarding.",
       }),
     );
@@ -34,6 +34,7 @@ describe("Rover onboarding playbook bundle", () => {
     expect([...statesById.keys()]).toEqual([
       "brain-identity",
       "anchor-profile",
+      "communication-preferences",
       "done",
     ]);
 
@@ -51,12 +52,22 @@ describe("Rover onboarding playbook bundle", () => {
         id: "anchor-profile",
         prompt: expect.any(String),
         doneWhen: [expect.any(String)],
+        transitions: [{ event: "NEXT", target: "communication-preferences" }],
+      }),
+    );
+
+    expect(statesById.get("communication-preferences")).toEqual(
+      expect.objectContaining({
+        id: "communication-preferences",
+        prompt: expect.any(String),
+        requiredDetails: ["audience", "tone"],
+        doneWhen: [expect.any(String)],
         transitions: [{ event: "NEXT", target: "done" }],
       }),
     );
-    expect(statesById.get("anchor-profile")?.instructions.join("\n")).toContain(
-      "Start playbook rover-first-knowledge-loop.",
-    );
+    expect(
+      statesById.get("communication-preferences")?.instructions.join("\n"),
+    ).toContain("Start playbook rover-first-knowledge-loop.");
 
     expect(body.nextPrompts).toContain(
       "Start playbook rover-first-knowledge-loop.",

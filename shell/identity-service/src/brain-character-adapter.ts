@@ -32,13 +32,9 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<
   /**
    * Create character content in frontmatter format
    */
-  public createCharacterContent(params: {
-    name: string;
-    role: string;
-    purpose: string;
-    values: string[];
-  }): string {
-    return this.buildMarkdown("", params);
+  public createCharacterContent(params: BrainCharacter): string {
+    const validatedData = brainCharacterBodySchema.parse(params);
+    return this.buildMarkdown("", validatedData);
   }
 
   /**

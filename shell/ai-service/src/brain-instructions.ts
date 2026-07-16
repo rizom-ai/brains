@@ -35,12 +35,27 @@ The current caller is a **public user** with limited, read-oriented access. Publ
     }
   }
 
+  let communicationSection = "";
+  const communicationPreferences = identity.communicationPreferences;
+  if (communicationPreferences) {
+    const fields = [
+      communicationPreferences.audience &&
+        `**Default Content Audience:** ${communicationPreferences.audience}`,
+      communicationPreferences.tone &&
+        `**Default Tone:** ${communicationPreferences.tone}`,
+    ].filter(Boolean);
+    if (fields.length > 0) {
+      communicationSection = `\n## Communication Defaults\n${fields.join("\n")}\nThese are defaults. Follow more specific task, template, or channel instructions when provided.`;
+    }
+  }
+
   return (
     `# ${identity.name}
 
 **Role:** ${identity.role}
 **Purpose:** ${identity.purpose}
 **Values:** ${identity.values.join(", ")}
+${communicationSection}
 ${profileSection}
 ${userContext}
 

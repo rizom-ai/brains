@@ -43,7 +43,7 @@ const bundledPlaybooks: BundledPlaybook[] = [
       once: true,
       starterText: "Set up Rover",
       description:
-        "Tune Rover's identity and anchor profile before using the knowledge loop.",
+        "Tune Rover's identity, anchor profile, and communication defaults before using the knowledge loop.",
       starterPrompt: "Start playbook rover-onboarding.",
     },
   },

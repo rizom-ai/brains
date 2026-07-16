@@ -86,6 +86,7 @@ Plans:
 - [brain-model-unification.md](./plans/brain-model-unification.md) — **the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + `brain init` recipes. Supersedes the three-reference-model framing.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
+- [linkedin-import.md](./plans/linkedin-import.md) — move an owner's professional profile into their brain through LinkedIn's sanctioned EEA portability API or a manual export, with an additive owner-profile schema and communication defaults kept on brain character.
 
 ### 2. The collective posture (active POC)
 

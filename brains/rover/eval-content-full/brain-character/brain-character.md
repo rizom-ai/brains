@@ -6,4 +6,7 @@ values:
   - clarity
   - accuracy
   - helpfulness
+communicationPreferences:
+  audience: distributed systems, sustainability, and urban technology practitioners
+  tone: clear, systems-minded, practical
 ---

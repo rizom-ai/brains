@@ -69,6 +69,9 @@ describe("BrainCharacterAdapter", () => {
       expect(adapter.frontmatterSchema.shape).toHaveProperty("role");
       expect(adapter.frontmatterSchema.shape).toHaveProperty("purpose");
       expect(adapter.frontmatterSchema.shape).toHaveProperty("values");
+      expect(adapter.frontmatterSchema.shape).toHaveProperty(
+        "communicationPreferences",
+      );
     });
 
     it("should be a singleton", () => {
@@ -119,6 +122,9 @@ values:
   - academic rigor
   - citation accuracy
   - critical thinking
+communicationPreferences:
+  audience: research practitioners
+  tone: precise and accessible
 ---
 `;
 
@@ -134,6 +140,10 @@ values:
         "citation accuracy",
         "critical thinking",
       ]);
+      expect(result.communicationPreferences).toEqual({
+        audience: "research practitioners",
+        tone: "precise and accessible",
+      });
     });
 
     it("should throw error for markdown without proper structure", () => {
@@ -243,6 +253,10 @@ values:
         purpose:
           "Help organize, understand, and retrieve information from your knowledge base.",
         values: ["clarity", "accuracy", "helpfulness"],
+        communicationPreferences: {
+          audience: "independent professionals",
+          tone: "clear and practical",
+        },
       };
 
       const content = adapter.createCharacterContent(originalData);
@@ -252,6 +266,9 @@ values:
       expect(parsed.role).toBe(originalData.role);
       expect(parsed.purpose).toBe(originalData.purpose);
       expect(parsed.values).toEqual(originalData.values);
+      expect(parsed.communicationPreferences).toEqual(
+        originalData.communicationPreferences,
+      );
     });
 
     it("should preserve data through toMarkdown and parseCharacterBody", () => {
