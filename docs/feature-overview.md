@@ -338,7 +338,8 @@ Interfaces can be enabled or removed independently from the content bundles wher
 | Git host                  | Core                   | Private content-repository synchronization       | `GIT_SYNC_TOKEN`                                                    |
 | Resend                    | Core                   | Setup and transactional email delivery           | `SETUP_EMAIL_API_KEY`                                               |
 | Cloudflare Web Analytics  | Site                   | Website analytics                                | Cloudflare API token and site tag                                   |
-| LinkedIn                  | Publishing             | Text, image, and native document publishing      | `LINKEDIN_ACCESS_TOKEN`                                             |
+| LinkedIn publishing       | Publishing             | Text, image, and native document publishing      | `LINKEDIN_ACCESS_TOKEN`                                             |
+| LinkedIn portability      | Core (Rover)           | Consenting owner's PROFILE snapshot import       | `LINKEDIN_ACCESS_TOKEN` with `r_dma_portability_3rd_party`          |
 | Buttondown                | Publishing             | Newsletter subscribers and delivery              | `BUTTONDOWN_API_KEY`                                                |
 | Unsplash                  | Publishing             | Stock-photo search and selection                 | `UNSPLASH_ACCESS_KEY`                                               |
 | AT Protocol / Bluesky PDS | Publishing             | Brain-card and entity publishing                 | `ATPROTO_APP_PASSWORD`                                              |

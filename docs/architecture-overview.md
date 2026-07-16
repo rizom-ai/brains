@@ -146,6 +146,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                     |
 | `plugins/directory-sync`   | File sync + git operations                                         |
 | `plugins/email-resend`     | Generic email delivery adapter for Resend                          |
+| `plugins/linkedin-import`  | LinkedIn member-data portability profile import                    |
 | `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability       |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                          |

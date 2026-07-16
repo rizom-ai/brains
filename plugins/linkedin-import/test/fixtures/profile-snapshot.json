@@ -1,0 +1,31 @@
+{
+  "paging": {
+    "start": 0,
+    "count": 10,
+    "links": [
+      {
+        "type": "application/json",
+        "rel": "next",
+        "href": "/rest/memberSnapshotData?count=10&domain=PROFILE&q=criteria&start=1"
+      }
+    ],
+    "total": 2
+  },
+  "elements": [
+    {
+      "snapshotData": [
+        {
+          "Websites": "Portfolio: https://ada.example.com",
+          "Address": "",
+          "First Name": "Ada",
+          "Geo Location": "Rotterdam, Netherlands",
+          "Industry": "Climate Technology",
+          "Headline": "Advisor helping climate-tech founders build resilient software",
+          "Summary": "I build resilient software systems for climate technology organizations.",
+          "Last Name": "Morgan"
+        }
+      ],
+      "snapshotDomain": "PROFILE"
+    }
+  ]
+}

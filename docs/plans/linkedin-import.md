@@ -4,9 +4,10 @@
 
 In progress on `work/professional-profile-v2`. Phase 1A's additive profile schema and
 site fallbacks are implemented. Phase 1B's communication-preferences contract,
-instruction wiring, public-projection boundary, and onboarding ownership change are
-implemented; the explicit legacy-data migration remains. The LinkedIn source plugin and
-later phases are not yet started.
+instruction wiring, public-projection boundary, onboarding ownership change, and
+non-destructive legacy-data migration are implemented. Phase 2A's sanctioned PROFILE
+snapshot client, deterministic mapper, merge-not-clobber job, tool, and Rover wiring are
+implemented. Rich professional-history domains and later phases are not yet started.
 
 ## Context
 
@@ -209,35 +210,50 @@ Work:
 - Change Rover onboarding into three clear concerns: brain identity, owner profile, then
   communication defaults. Stop writing new `audience`/`desiredTone` values to
   `anchor-profile`.
-- Preserve legacy profile fields on read/write. Provide an explicit migration that copies
+- Preserve legacy profile fields on read/write. Rover's profile capability now runs an
+  idempotent migration after plugins are ready, copying
   `anchor-profile.audience`→`brain-character.communicationPreferences.audience` and
   `anchor-profile.desiredTone`→`brain-character.communicationPreferences.tone` only when
-  the destination is absent; do not delete the source fields automatically.
+  the destination is absent; it does not delete the source fields.
 - Keep the public brain-character projection limited to `{ name, role, purpose, values }`
   unless a separate decision intentionally exposes communication defaults.
 - Add focused identity-instruction, onboarding, migration, and cache-invalidation tests.
 
 LinkedIn import must neither read nor write communication preferences.
 
-## Phase 2 — `linkedin-import` plugin (walking skeleton, EEA, deterministic)
+## Phase 2A — `linkedin-import` PROFILE walking skeleton (implemented)
 
-New `plugins/linkedin-import` ServicePlugin, templated on `stock-photo`:
+`plugins/linkedin-import` is a ServicePlugin templated on `stock-photo`:
 
-- `env-schema.ts` — `LINKEDIN_ACCESS_TOKEN` (sensitive); plugin inert without it.
-- `lib/linkedin-client.ts` — Snapshot API client (bearer + `Linkedin-Version: 202312`,
-  pagination loop), zod-validated responses.
-- `lib/transform/registry.ts` — domain→mapper registry; phase 2 registers only the
-  profile mapper (identity + professional). Everything-ready seam for later domains.
-- `lib/transform/profile-mapper.ts` — PROFILE/POSITIONS/EDUCATION/SKILLS/CERTIFICATIONS
-  domains → a `professionalProfileExtension`-shaped body (deterministic key-normalization).
-- `handlers/linkedin-import-handler.ts` — `BaseJobHandler`: fetch snapshot → map → read
-  current `anchor-profile` → merge-not-clobber → upsert → `refreshCache`. Idempotent via
-  the singleton id.
-- `tools/index.ts` — `linkedin-import_import` tool → `jobs.enqueue({ type: "linkedin-import" })`.
+- `env-schema.ts` declares sensitive `LINKEDIN_ACCESS_TOKEN`; the plugin is inert without
+  it.
+- `lib/linkedin-client.ts` calls the sanctioned Snapshot API with bearer auth and the
+  endpoint's fixed `Linkedin-Version: 202312`, validates responses with Zod, follows
+  pagination, and bounds surfaced error bodies.
+- `lib/transform/registry.ts` provides the domain→mapper seam and currently registers only
+  `PROFILE`, the one domain whose exact source keys are documented and captured in-repo.
+- `lib/transform/profile-mapper.ts` deterministically maps documented PROFILE keys to
+  `name`, `headline`, `industry`, `location`, `website`, and `story`.
+- `handlers/linkedin-import-handler.ts` fetches the singleton, fills absent fields or known
+  untouched seed placeholders, preserves owner-authored values, uses optimistic
+  concurrency, and relies on the normal
+  `entity:updated` cache-invalidation path. Re-running unchanged data performs no write.
+- `tools/index.ts` exposes the anchor-only, write-marked `linkedin-import_import` tool,
+  which queues the import job.
+- Rover includes the inert capability in each preset and supplies the access token from
+  its declared environment schema.
 
-Tests first: client (fixture snapshot JSON), profile-mapper (pure fn, fixture→expected
-body), handler (in-memory entityService; assert merge + idempotent re-run), plugin wiring
-(inert without token).
+Tests cover the official PROFILE-shaped fixture, API headers/pagination/errors, pure
+mapping and merging, idempotent handler behavior, conflict handling, tool queuing, and
+inert/configured plugin wiring.
+
+## Phase 2B — Rich professional domains
+
+Capture representative sanctioned Snapshot/export fixtures before enabling
+`POSITIONS`, `EDUCATION`, `SKILLS`, or `CERTIFICATIONS`. Add one deterministic mapper per
+domain, register it through the existing transform registry, and merge arrays by stable
+provider-neutral fingerprints. Do not guess source keys from display labels or third-party
+export examples.
 
 ## Phase 3 — LLM distillation pass
 
@@ -293,6 +309,6 @@ _same_ transform + sink. Selected when the member is not EEA-eligible.
   token.
 - **Write-path/cache** — extension-field write + singleton cache invalidation must be
   verified (see Architecture).
-- **Preference migration** — legacy profile `audience`/`desiredTone` data must remain
-  readable until copied into brain-character communication preferences; automatic source
-  deletion would risk losing user intent.
+- **Preference migration** — legacy profile `audience`/`desiredTone` data remains in place
+  after the idempotent copy into brain-character communication preferences; automatic
+  source deletion would risk losing user intent.

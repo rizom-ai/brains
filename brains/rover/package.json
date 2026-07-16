@@ -23,6 +23,7 @@
     "@brains/email-resend": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
+    "@brains/linkedin-import": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/newsletter": "workspace:*",
     "@brains/note": "workspace:*",

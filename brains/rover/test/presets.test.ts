@@ -34,6 +34,33 @@ describe("rover presets", () => {
     }
   });
 
+  it("includes inert LinkedIn profile import in every preset", () => {
+    for (const preset of ["core", "default", "full"] as const) {
+      const config = resolve(rover, {}, { preset });
+      const linkedinImport = config.plugins?.find(
+        (plugin) => plugin.id === "linkedin-import",
+      );
+
+      expect(linkedinImport).toBeDefined();
+      expect(linkedinImport?.config).not.toHaveProperty("accessToken");
+    }
+  });
+
+  it("configures LinkedIn import from the declared secret", () => {
+    const config = resolve(
+      rover,
+      { LINKEDIN_ACCESS_TOKEN: "linkedin-token" },
+      { preset: "core" },
+    );
+    const linkedinImport = config.plugins?.find(
+      (plugin) => plugin.id === "linkedin-import",
+    );
+
+    expect(linkedinImport?.config).toMatchObject({
+      accessToken: "linkedin-token",
+    });
+  });
+
   it("keeps site-content opt-in for hosted custom site packages", () => {
     const defaultConfig = resolve(rover, {}, { preset: "default" });
     const defaultPluginIds =

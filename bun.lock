@@ -129,6 +129,7 @@
         "@brains/email-resend": "workspace:*",
         "@brains/image-plugin": "workspace:*",
         "@brains/link": "workspace:*",
+        "@brains/linkedin-import": "workspace:*",
         "@brains/mcp": "workspace:*",
         "@brains/newsletter": "workspace:*",
         "@brains/note": "workspace:*",
@@ -949,6 +950,23 @@
       "version": "0.2.0-alpha.178",
       "dependencies": {
         "@brains/email-contracts": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
+    "plugins/linkedin-import": {
+      "name": "@brains/linkedin-import",
+      "version": "0.2.0-alpha.186",
+      "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -2110,6 +2128,8 @@
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
 
     "@brains/link": ["@brains/link@workspace:entities/link"],
+
+    "@brains/linkedin-import": ["@brains/linkedin-import@workspace:plugins/linkedin-import"],
 
     "@brains/mcp": ["@brains/mcp@workspace:interfaces/mcp"],
 

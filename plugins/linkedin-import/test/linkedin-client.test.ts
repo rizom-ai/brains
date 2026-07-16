@@ -1,0 +1,78 @@
+import { describe, expect, it, mock } from "bun:test";
+import { LinkedInClient, type LinkedInFetch } from "../src/lib/linkedin-client";
+import profileSnapshot from "./fixtures/profile-snapshot.json" with { type: "json" };
+
+describe("LinkedInClient", () => {
+  it("fetches PROFILE pages with the required versioned API headers", async () => {
+    const requests: Array<{ url: string; headers: Headers }> = [];
+    const fetchFn = mock(
+      async (input: string | URL | Request, init?: RequestInit) => {
+        requests.push({
+          url: String(input),
+          headers: new Headers(init?.headers),
+        });
+        if (requests.length === 1) {
+          return Response.json(profileSnapshot);
+        }
+        return new Response("No data found for this memberId", {
+          status: 404,
+        });
+      },
+    ) as LinkedInFetch;
+
+    const records = await new LinkedInClient(
+      "test-access-token",
+      fetchFn,
+    ).fetchProfile();
+
+    expect(records).toHaveLength(1);
+    expect(records[0]?.["First Name"]).toBe("Ada");
+    expect(requests).toHaveLength(2);
+
+    const firstUrl = new URL(requests[0]?.url ?? "");
+    expect(firstUrl.pathname).toBe("/rest/memberSnapshotData");
+    expect(firstUrl.searchParams.get("q")).toBe("criteria");
+    expect(firstUrl.searchParams.get("domain")).toBe("PROFILE");
+    expect(firstUrl.searchParams.get("start")).toBe("0");
+    expect(requests[0]?.headers.get("Authorization")).toBe(
+      "Bearer test-access-token",
+    );
+    expect(requests[0]?.headers.get("Linkedin-Version")).toBe("202312");
+
+    const secondUrl = new URL(requests[1]?.url ?? "");
+    expect(secondUrl.searchParams.get("start")).toBe("1");
+  });
+
+  it("returns an empty snapshot when LinkedIn reports no member data", async () => {
+    const fetchFn = mock(
+      async () =>
+        new Response('{"message":"No data found for this memberId"}', {
+          status: 404,
+        }),
+    ) as LinkedInFetch;
+
+    const records = await new LinkedInClient("token", fetchFn).fetchProfile();
+
+    expect(records).toEqual([]);
+  });
+
+  it("rejects malformed successful responses", async () => {
+    const fetchFn = mock(async () =>
+      Response.json({ elements: "invalid" }),
+    ) as LinkedInFetch;
+
+    expect(
+      new LinkedInClient("token", fetchFn).fetchProfile(),
+    ).rejects.toThrow();
+  });
+
+  it("surfaces bounded LinkedIn API errors", async () => {
+    const fetchFn = mock(
+      async () => new Response(`denied-${"x".repeat(2_000)}`, { status: 403 }),
+    ) as LinkedInFetch;
+
+    expect(new LinkedInClient("token", fetchFn).fetchProfile()).rejects.toThrow(
+      /^LinkedIn snapshot API error: 403 - denied-x{1,1000}$/,
+    );
+  });
+});

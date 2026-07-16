@@ -25,6 +25,7 @@ import { docsPlugin } from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
+import { linkedinImportPlugin } from "@brains/linkedin-import";
 import { portfolioPlugin } from "@brains/portfolio";
 import { productsPlugin } from "@brains/products";
 import { topicsPlugin } from "@brains/topics";
@@ -83,6 +84,7 @@ const core = [
   "playbook",
   "playbooks",
   "rover-onboarding",
+  "linkedin-import",
   "email-resend",
   "cms",
   "dashboard-root",
@@ -160,6 +162,15 @@ const roverBrain: BrainDefinition = defineBrain({
     ["playbook", playbookPlugin, {}],
     ["playbooks", playbooksPlugin, {}],
     ["rover-onboarding", roverOnboardingPlugin, {}],
+    [
+      "linkedin-import",
+      linkedinImportPlugin,
+      (env): PluginConfig => ({
+        ...(env["LINKEDIN_ACCESS_TOKEN"]
+          ? { accessToken: env["LINKEDIN_ACCESS_TOKEN"] }
+          : {}),
+      }),
+    ],
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],
