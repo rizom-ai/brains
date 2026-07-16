@@ -1,5 +1,14 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve user edits made while markdown uploads are still importing, and guide Rover to update the imported note instead of creating duplicate copies.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.186
+
 ## 0.2.0-alpha.185
 
 ### Patch Changes

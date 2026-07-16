@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve user edits made while markdown uploads are still importing, and guide Rover to update the imported note instead of creating duplicate copies.
+
+- Updated dependencies [[`45c57a1`](https://github.com/rizom-ai/brains/commit/45c57a1330e11fb79ea376a82924c9f02e4a84d4), [`143788b`](https://github.com/rizom-ai/brains/commit/143788beb9544649f3d1bac16bcea605c36cd94a)]:
+  - @brains/plugins@0.2.0-alpha.186
+  - @brains/image@0.2.0-alpha.186
+  - @brains/contracts@0.2.0-alpha.186
+  - @brains/notification-contracts@0.2.0-alpha.186
+  - @brains/site-composition@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+  - @brains/recurring-checks@0.2.0-alpha.186
+  - @brains/runtime-state@0.2.0-alpha.186
+  - @brains/scheduler@0.2.0-alpha.186
+  - @brains/templates@0.2.0-alpha.186
+
 ## 0.2.0-alpha.185
 
 ### Patch Changes

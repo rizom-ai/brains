@@ -1,5 +1,15 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.186
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-engine@0.2.0-alpha.186
+  - @brains/media-renderer@0.2.0-alpha.186
+  - @brains/ui-library@0.2.0-alpha.186
+  - @brains/utils@0.2.0-alpha.186
+
 ## 0.2.0-alpha.185
 
 ### Patch Changes
