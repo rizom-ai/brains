@@ -96,10 +96,13 @@ describe("@rizom/site-rizom-ai", () => {
     expect(site.entityDisplay["agent"]?.label).toBe("Agent");
   });
 
-  test("ships boot.js but no theme-profile canvas", () => {
+  test("ships boot.js exactly once, no theme-profile canvas", () => {
     const head = site.headScripts?.join("\n") ?? "";
-    // boot.js drives the reveal/growth animations and must load.
+    // boot.js drives the reveal/growth animations and must load — once.
+    // A second copy double-binds #themeToggle and the theme toggle becomes
+    // a per-click no-op (each click flips dark→light→dark).
     expect(head).toContain("/boot.js");
+    expect(head.split("/boot.js").length - 1).toBe(1);
     // The rev-5 design draws its own motifs (mycelium rail, growth diagram);
     // the profile-driven background canvas and data-theme-profile attribute
     // are products-era machinery and must not ship.
