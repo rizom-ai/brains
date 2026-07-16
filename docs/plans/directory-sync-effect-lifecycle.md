@@ -2,9 +2,9 @@
 
 ## Status
 
-Active cleanup. Phases 0–3 are complete; Phase 4 import-job polling is next. Watcher startup and Git background scheduling now run from plugin ready. Scoped shutdown awaits Chokidar plus active file callbacks, interrupts pending periodic/debounce admission, aborts active periodic pulls, and drains commit/push operations. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
+Active cleanup. Phases 0–4 are complete; Phase 5 transactional reconfiguration is next. Watcher startup and Git background scheduling now run from plugin ready. Scoped shutdown awaits Chokidar plus active file callbacks, interrupts pending periodic/debounce admission, aborts active periodic pulls, and drains commit/push operations. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
 
-Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. Watcher batch debounce, import polling, and transactional reconfiguration remain to be converted.
+Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. Watcher batch debounce and transactional reconfiguration remain to be converted.
 
 ## Goal
 
@@ -21,7 +21,7 @@ Keep plugin, job, directory, and git contracts Promise-based. Cancellation cross
 | Periodic git sync    | supervised fixed-cadence fiber; active pull aborts on shutdown     | none in the periodic schedule itself                                           |
 | Git auto-commit      | keyed replaceable delay; active commit/push is tracked and drained | repository mutations intentionally remain non-interruptible once started       |
 | Git lock             | Promise chain with cancellation checks before callback admission   | active mutations follow their operation-specific cancellation policy           |
-| Import-job polling   | recursive `setTimeout` for up to five minutes                      | timing is not deterministic                                                    |
+| Import-job polling   | one non-overlapping Effect schedule with a five-minute bound       | none in the polling lifecycle                                                  |
 | Plugin subscriptions | owned by the shared plugin resource scope                          | keep that ownership in the shared scope; do not duplicate it in directory-sync |
 
 Phase 0 confirmed that plugin registration called `initializeDirectory()` while watcher startup lived under `initialize()`, so normal startup never watched. Phase 1 moved watcher acquisition to `onReady()` and added direct startup/shutdown coverage; reconfiguration still calls `initialize()` and is addressed in Phase 5.
@@ -166,7 +166,7 @@ Register subscriptions and handlers only once; callbacks resolve the active gene
 3. Make canceled lock waiters skip their callback without blocking later waiters.
 4. Preserve abort reason and `GitStallError` identity in tests, using `TestClock` for stall-timing cases.
 
-### Phase 4 — Import-job polling
+### Phase 4 — Import-job polling (complete)
 
 1. Convert import-job polling recursion to one Effect schedule with `TestClock` tests.
 2. Preserve progress, the five-minute timeout, non-overlap, and logging behavior.

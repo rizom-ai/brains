@@ -10,6 +10,7 @@ import {
   type ExportResult,
   type IDirectorySync,
 } from "../types";
+import { waitForImportJobs } from "../lib/import-job-polling";
 
 export class DirectorySyncJobHandler extends BaseJobHandler<
   "directory-sync",
@@ -162,53 +163,16 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   }
 
   /** Wait for import jobs to complete before export to prevent stale reads */
-  private async waitForImportJobs(
+  private waitForImportJobs(
     jobIds: string[],
     reporter: ProgressReporter,
   ): Promise<void> {
-    if (jobIds.length === 0) {
-      return;
-    }
-
-    this.logger.debug(`Waiting for ${jobIds.length} import jobs to complete`);
-
-    const { entityService } = this.context;
-    const maxWaitTime = 300000;
-    const pollInterval = 500;
-    const startTime = Date.now();
-
-    const pollJobs = async (): Promise<void> => {
-      const statuses = await Promise.all(
-        jobIds.map((id) => entityService.getAsyncJobStatus(id)),
-      );
-
-      const completed = statuses.filter(
-        (s) => s && (s.status === "completed" || s.status === "failed"),
-      ).length;
-
-      if (completed === jobIds.length) {
-        this.logger.debug("All import jobs completed");
-        return;
-      }
-
-      if (Date.now() - startTime > maxWaitTime) {
-        this.logger.warn(
-          `Timeout waiting for import jobs (${completed}/${jobIds.length} completed)`,
-        );
-        return;
-      }
-
-      const percentage = Math.round((completed / jobIds.length) * 100);
-      await reporter.report({
-        progress: 50 + Math.round(percentage * 0.05), // 50-55% range
-        message: `Processing ${completed}/${jobIds.length} entities`,
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
-      return pollJobs();
-    };
-
-    return pollJobs();
+    return waitForImportJobs({
+      jobIds,
+      entityService: this.context.entityService,
+      reporter,
+      logger: this.logger,
+    });
   }
 
   protected override summarizeDataForLog(
