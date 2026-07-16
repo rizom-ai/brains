@@ -2,4 +2,4 @@
 "@brains/directory-sync": patch
 ---
 
-Own directory watcher startup and shutdown with a private Effect scope, start auto-sync watching from plugin ready, and await Chokidar closure plus active file callbacks during teardown.
+Own watcher, periodic Git, and auto-commit lifecycle with a private Effect runtime. Start background work from plugin ready, use supervised deterministic schedules, interrupt pending debounce work, and await Chokidar callbacks plus active Git operations during teardown.

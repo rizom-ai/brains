@@ -1,9 +1,12 @@
-import { describe, it, expect, mock, afterEach } from "bun:test";
-import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
+import { describe, expect, it, mock } from "bun:test";
+import { Effect } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
 import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
+import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
+import { DirectorySyncRuntime } from "../../src/lib/directory-sync-runtime";
 import type { PullResult } from "../../src/lib/git-sync";
 import type { BatchResult } from "../../src/lib/batch-operations";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
@@ -27,193 +30,223 @@ function deferred(): {
   return { promise, resolve: (): void => settle?.() };
 }
 
+function yieldToFibers(): Effect.Effect<void> {
+  return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
+}
+
 describe("setupPeriodicGitSync", () => {
-  let cleanup: (() => void) | undefined;
+  it("waits one complete interval and runs at fixed cadence", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
 
-  afterEach(() => {
-    cleanup?.();
+        setupPeriodicGitSync(
+          createMockGitSync({ pull: pullMock }),
+          createMockDirectorySync(),
+          createMockServicePluginContext(),
+          0.001,
+          createSilentLogger(),
+          runtime,
+        );
+
+        yield* TestClock.adjust(59);
+        yield* yieldToFibers();
+        expect(pullMock).not.toHaveBeenCalled();
+
+        yield* TestClock.adjust(1);
+        yield* yieldToFibers();
+        expect(pullMock).toHaveBeenCalledTimes(1);
+
+        yield* TestClock.adjust(60);
+        yield* yieldToFibers();
+        expect(pullMock).toHaveBeenCalledTimes(2);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
   });
 
-  it("should wait one complete interval before the first cycle", async () => {
-    const pullMock = mock(async (): Promise<PullResult> => ({
-      files: ["a.md"],
-    }));
+  it("queues imports only when pull returns changed files", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const queueSyncBatchMock = mock(
+          async (): Promise<BatchResult | null> => emptyBatchResult,
+        );
+        const pullMock = mock(async (): Promise<PullResult> => ({
+          files: ["a.md"],
+        }));
 
-    cleanup = setupPeriodicGitSync(
-      createMockGitSync({ pull: pullMock }),
-      createMockDirectorySync(),
-      createMockServicePluginContext(),
-      0.002,
-      createSilentLogger(),
+        setupPeriodicGitSync(
+          createMockGitSync({ pull: pullMock }),
+          createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
+          createMockServicePluginContext(),
+          0.001,
+          createSilentLogger(),
+          runtime,
+        );
+        yield* TestClock.adjust(60);
+        yield* yieldToFibers();
+        expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+
+        pullMock.mockImplementation(async () => ({ files: [] }));
+        yield* TestClock.adjust(60);
+        yield* yieldToFibers();
+        expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
     );
-
-    expect(pullMock).not.toHaveBeenCalled();
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(pullMock).not.toHaveBeenCalled();
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(pullMock.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("should call pull and queueSyncBatch on each interval", async () => {
-    const pullMock = mock(async (): Promise<PullResult> => ({
-      files: ["a.md"],
-    }));
-    const queueSyncBatchMock = mock(
-      async (): Promise<BatchResult | null> => emptyBatchResult,
+  it("uses queueSyncBatch instead of blocking sync", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const syncMock = mock(async () => {
+          throw new Error("sync() should not be called");
+        });
+        const queueSyncBatchMock = mock(
+          async (): Promise<BatchResult | null> => emptyBatchResult,
+        );
+
+        setupPeriodicGitSync(
+          createMockGitSync({
+            pull: mock(async (): Promise<PullResult> => ({ files: ["a.md"] })),
+          }),
+          createMockDirectorySync({
+            sync: syncMock,
+            queueSyncBatch: queueSyncBatchMock,
+          }),
+          createMockServicePluginContext(),
+          0.001,
+          createSilentLogger(),
+          runtime,
+        );
+        yield* TestClock.adjust(60);
+        yield* yieldToFibers();
+
+        expect(syncMock).not.toHaveBeenCalled();
+        expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
     );
-
-    cleanup = setupPeriodicGitSync(
-      createMockGitSync({ pull: pullMock }),
-      createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
-      createMockServicePluginContext(),
-      0.001,
-      createSilentLogger(),
-    );
-
-    await new Promise((r) => setTimeout(r, 150));
-
-    expect(pullMock.mock.calls.length).toBeGreaterThanOrEqual(1);
-    expect(queueSyncBatchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("should skip queueSyncBatch when pull returns no files", async () => {
-    const queueSyncBatchMock = mock(
-      async (): Promise<BatchResult | null> => emptyBatchResult,
+  it("does not schedule a disabled interval", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
+
+        setupPeriodicGitSync(
+          createMockGitSync({ pull: pullMock }),
+          createMockDirectorySync(),
+          createMockServicePluginContext(),
+          0,
+          createSilentLogger(),
+          runtime,
+        );
+        yield* TestClock.adjust(1_000);
+        yield* yieldToFibers();
+
+        expect(pullMock).not.toHaveBeenCalled();
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
     );
-
-    cleanup = setupPeriodicGitSync(
-      createMockGitSync({
-        pull: mock(async (): Promise<PullResult> => ({ files: [] })),
-      }),
-      createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
-      createMockServicePluginContext(),
-      0.001,
-      createSilentLogger(),
-    );
-
-    await new Promise((r) => setTimeout(r, 150));
-
-    expect(queueSyncBatchMock).not.toHaveBeenCalled();
   });
 
-  it("should not call sync() directly (non-blocking)", async () => {
-    const syncMock = mock(async () => {
-      throw new Error("sync() should not be called — use queueSyncBatch");
-    });
-    const queueSyncBatchMock = mock(
-      async (): Promise<BatchResult | null> => emptyBatchResult,
-    );
-
-    cleanup = setupPeriodicGitSync(
-      createMockGitSync({
-        pull: mock(async (): Promise<PullResult> => ({ files: ["a.md"] })),
-      }),
-      createMockDirectorySync({
-        sync: syncMock,
-        queueSyncBatch: queueSyncBatchMock,
-      }),
-      createMockServicePluginContext(),
-      0.001,
-      createSilentLogger(),
-    );
-
-    await new Promise((r) => setTimeout(r, 150));
-
-    expect(syncMock).not.toHaveBeenCalled();
-    expect(queueSyncBatchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("should not start when intervalMinutes is 0", () => {
-    const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
-
-    cleanup = setupPeriodicGitSync(
-      createMockGitSync({ pull: pullMock }),
-      createMockDirectorySync(),
-      createMockServicePluginContext(),
-      0,
-      createSilentLogger(),
-    );
-
-    expect(pullMock).not.toHaveBeenCalled();
-  });
-
-  it("should stop when cleanup is called", async () => {
-    const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
-
-    cleanup = setupPeriodicGitSync(
-      createMockGitSync({ pull: pullMock }),
-      createMockDirectorySync(),
-      createMockServicePluginContext(),
-      0.001,
-      createSilentLogger(),
-    );
-
-    cleanup();
-
-    const callsBefore = pullMock.mock.calls.length;
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(pullMock.mock.calls.length).toBe(callsBefore);
-  });
-
-  it("currently returns from cleanup before an active cycle settles", async () => {
-    const pullStarted = deferred();
-    const releasePull = deferred();
-    const cycleFinished = deferred();
-    const queueSyncBatchMock = mock(async (): Promise<BatchResult | null> => {
-      cycleFinished.resolve();
-      return emptyBatchResult;
-    });
-
-    cleanup = setupPeriodicGitSync(
-      createMockGitSync({
-        pull: mock(async (): Promise<PullResult> => {
+  it("stops future cycles and drains an active cycle on close", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const pullStarted = deferred();
+        const releasePull = deferred();
+        const queueSyncBatchMock = mock(
+          async (): Promise<BatchResult | null> => emptyBatchResult,
+        );
+        const pullMock = mock(async (): Promise<PullResult> => {
           pullStarted.resolve();
           await releasePull.promise;
           return { files: ["a.md"] };
-        }),
-      }),
-      createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
-      createMockServicePluginContext(),
-      0.001,
-      createSilentLogger(),
+        });
+
+        setupPeriodicGitSync(
+          createMockGitSync({ pull: pullMock }),
+          createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
+          createMockServicePluginContext(),
+          0.001,
+          createSilentLogger(),
+          runtime,
+        );
+        yield* TestClock.adjust(60);
+        yield* Effect.promise(() => pullStarted.promise);
+
+        let closeSettled = false;
+        const closing = runtime.close().then(() => {
+          closeSettled = true;
+        });
+        yield* yieldToFibers();
+        expect(closeSettled).toBe(false);
+
+        releasePull.resolve();
+        yield* Effect.promise(() => closing);
+        expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+
+        yield* TestClock.adjust(600);
+        yield* yieldToFibers();
+        expect(pullMock).toHaveBeenCalledTimes(1);
+      }).pipe(Effect.provide(TestContext.TestContext)),
     );
-
-    await pullStarted.promise;
-    cleanup();
-    expect(queueSyncBatchMock).not.toHaveBeenCalled();
-
-    releasePull.resolve();
-    await cycleFinished.promise;
-    expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("should not overlap cycles", async () => {
-    let concurrentCalls = 0;
-    let maxConcurrent = 0;
+  it("does not overlap cycles", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const releaseFirst = deferred();
+        const firstFinished = deferred();
+        let calls = 0;
+        const pullMock = mock(async (): Promise<PullResult> => {
+          calls++;
+          if (calls === 1) await releaseFirst.promise;
+          return { files: ["a.md"] };
+        });
+        const queueSyncBatchMock = mock(
+          async (): Promise<BatchResult | null> => {
+            firstFinished.resolve();
+            return emptyBatchResult;
+          },
+        );
 
-    const slowPull = mock(async (): Promise<PullResult> => {
-      concurrentCalls++;
-      maxConcurrent = Math.max(maxConcurrent, concurrentCalls);
-      await new Promise((r) => setTimeout(r, 80));
-      concurrentCalls--;
-      return { files: ["a.md"] };
-    });
+        setupPeriodicGitSync(
+          createMockGitSync({ pull: pullMock }),
+          createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
+          createMockServicePluginContext(),
+          0.001,
+          createSilentLogger(),
+          runtime,
+        );
+        yield* TestClock.adjust(60);
+        yield* yieldToFibers();
+        expect(pullMock).toHaveBeenCalledTimes(1);
 
-    cleanup = setupPeriodicGitSync(
-      createMockGitSync({ pull: slowPull }),
-      createMockDirectorySync({
-        queueSyncBatch: mock(
-          async (): Promise<BatchResult | null> => emptyBatchResult,
-        ),
-      }),
-      createMockServicePluginContext(),
-      0.001,
-      createSilentLogger(),
+        yield* TestClock.adjust(60);
+        yield* yieldToFibers();
+        expect(pullMock).toHaveBeenCalledTimes(1);
+
+        releaseFirst.resolve();
+        yield* Effect.promise(() => firstFinished.promise);
+        yield* TestClock.adjust(60);
+        yield* yieldToFibers();
+        expect(pullMock).toHaveBeenCalledTimes(2);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
     );
-
-    await new Promise((r) => setTimeout(r, 300));
-
-    expect(maxConcurrent).toBe(1);
   });
 });

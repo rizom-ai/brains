@@ -2,9 +2,9 @@
 
 ## Status
 
-Active cleanup. Phases 0 and 1 are complete; Phase 2 Git scheduling and draining is next. Watcher startup now runs from plugin ready, and scoped shutdown awaits Chokidar plus active file callbacks. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
+Active cleanup. Phases 0–2 are complete; Phase 3 Git cancellation is next. Watcher startup and Git background scheduling now run from plugin ready. Scoped shutdown awaits Chokidar plus active file callbacks, interrupts pending periodic/debounce admission, and drains active periodic or commit/push operations. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
 
-Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. The raw watcher, debounce, periodic-git, auto-commit, and import-polling lifecycle constructs described below remain in directory-sync and still need the planned ownership conversion.
+Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. Watcher batch debounce, Git cancellation, import polling, and transactional reconfiguration remain to be converted.
 
 ## Goal
 
@@ -14,17 +14,17 @@ Keep plugin, job, directory, and git contracts Promise-based. Cancellation cross
 
 ## Why this package benefits
 
-| Resource             | Current ownership                                             | Risk                                                                                                  |
-| -------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Chokidar watcher     | `FileWatcher.stop()` calls `void watcher.close()`             | shutdown can finish while the watcher or a callback is active                                         |
-| Watcher debounce     | raw `setTimeout`; `stop()` clears the timeout and pending map | an already-fired `processPendingChanges()` is fire-and-forget and never awaited; tests use wall clock |
-| Periodic git sync    | `setInterval` plus `running`                                  | cleanup stops future ticks but neither cancels nor awaits an active cycle                             |
-| Git auto-commit      | `TrailingDebounce` plus fire-and-forget `git.withLock()`      | dispose cancels the delay but not an active commit/push                                               |
-| Git lock             | Promise chain                                                 | queued work has no closed state or cancellation check                                                 |
-| Import-job polling   | recursive `setTimeout` for up to five minutes                 | timing is not deterministic                                                                           |
-| Plugin subscriptions | owned by the shared plugin resource scope                     | keep that ownership in the shared scope; do not duplicate it in directory-sync                        |
+| Resource             | Current ownership                                                  | Remaining risk                                                                 |
+| -------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Chokidar watcher     | private Effect resource scope awaits close and active callbacks    | none in the watcher resource itself                                            |
+| Watcher debounce     | raw `setTimeout`; stop clears pending and awaits an active batch   | timing tests still use wall clock                                              |
+| Periodic git sync    | supervised fixed-cadence fiber; active cycle drains on shutdown    | active network work cannot yet consume lifecycle cancellation                  |
+| Git auto-commit      | keyed replaceable delay; active commit/push is tracked and drained | repository mutations intentionally remain non-interruptible once started       |
+| Git lock             | Promise chain                                                      | queued work has no closed state or cancellation check                          |
+| Import-job polling   | recursive `setTimeout` for up to five minutes                      | timing is not deterministic                                                    |
+| Plugin subscriptions | owned by the shared plugin resource scope                          | keep that ownership in the shared scope; do not duplicate it in directory-sync |
 
-Characterize watcher startup before changing it. Plugin registration currently calls `initializeDirectory()`, while watcher startup lives under `initialize()`. Existing plugin tests do not prove that `autoSync: true` starts a watcher; the only production call to `initialize()` is reconfiguration.
+Phase 0 confirmed that plugin registration called `initializeDirectory()` while watcher startup lived under `initialize()`, so normal startup never watched. Phase 1 moved watcher acquisition to `onReady()` and added direct startup/shutdown coverage; reconfiguration still calls `initialize()` and is addressed in Phase 5.
 
 ## Established Effect patterns
 
@@ -151,7 +151,7 @@ Register subscriptions and handlers only once; callbacks resolve the active gene
 3. Make `FileWatcher.stop()` asynchronous: reject new events during stop, await Chokidar's close, and settle an already-fired `processPendingChanges()` (timeout and pending-map clearing already exist).
 4. Start and close the watcher through the runtime scope.
 
-### Phase 2 — Git scheduling and draining
+### Phase 2 — Git scheduling and draining (complete)
 
 1. Replace periodic `setInterval` with one supervised non-overlapping schedule.
 2. Replace auto-commit debounce with replaceable delayed fibers.

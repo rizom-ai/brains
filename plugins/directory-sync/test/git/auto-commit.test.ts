@@ -1,14 +1,12 @@
-import { describe, it, expect, mock, beforeEach } from "bun:test";
-import { setupGitAutoCommit } from "../../src/lib/git-auto-commit";
+import { describe, expect, it, mock } from "bun:test";
+import { Effect } from "@brains/utils/effect";
+import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
-import type { IGitSync } from "../../src/types";
+import { setupGitAutoCommit } from "../../src/lib/git-auto-commit";
+import { DirectorySyncRuntime } from "../../src/lib/directory-sync-runtime";
 import { createMockGitSync } from "../fixtures";
 
-/**
- * Minimal messaging mock that wires subscribe → send.
- * Calling send(channel, payload) invokes all handlers for that channel.
- */
 function deferred(): {
   promise: Promise<void>;
   resolve(): void;
@@ -20,193 +18,189 @@ function deferred(): {
   return { promise, resolve: (): void => settle?.() };
 }
 
-function createTestMessaging(): {
-  messaging: ServicePluginContext["messaging"];
-  channels: string[];
-} {
-  const subs = new Map<string, Array<(msg: unknown) => Promise<unknown>>>();
-  const channels: string[] = [];
-
-  const messaging = {
-    subscribe: (
-      channel: string,
-      handler: (msg: unknown) => Promise<unknown>,
-    ): (() => void) => {
-      channels.push(channel);
-      const list = subs.get(channel) ?? [];
-      list.push(handler);
-      subs.set(channel, list);
-      return (): void => {
-        const arr = subs.get(channel);
-        if (arr)
-          subs.set(
-            channel,
-            arr.filter((h) => h !== handler),
-          );
-      };
-    },
-    send: async (request: {
-      type: string;
-      payload: unknown;
-    }): Promise<unknown> => {
-      const list = subs.get(request.type) ?? [];
-      for (const h of list) await h({ payload: request.payload });
-      return { success: true };
-    },
-  } as unknown as ServicePluginContext["messaging"];
-
-  return { messaging, channels };
+function yieldToFibers(): Effect.Effect<void> {
+  return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
 }
 
+const eventPayload = {
+  entity: {},
+  entityType: "post",
+  entityId: "1",
+};
+
 describe("setupGitAutoCommit", () => {
-  let git: IGitSync;
-  let commitMock: ReturnType<typeof mock>;
-  let pushMock: ReturnType<typeof mock>;
+  it("subscribes to every entity CRUD event", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const harness = createPluginHarness();
+        const commitMock = mock(async (): Promise<void> => {});
+        const pushMock = mock(async (): Promise<void> => {});
+        setupGitAutoCommit(
+          harness.getServiceContext("directory-sync").messaging,
+          createMockGitSync({ commit: commitMock, push: pushMock }),
+          50,
+          createSilentLogger(),
+          runtime,
+        );
 
-  beforeEach(() => {
-    commitMock = mock(async () => {});
-    pushMock = mock(async () => {});
-    git = createMockGitSync({ commit: commitMock, push: pushMock });
-  });
+        for (const type of [
+          "entity:created",
+          "entity:updated",
+          "entity:deleted",
+        ]) {
+          yield* Effect.promise(() =>
+            harness.sendMessage(type, eventPayload, "test", true),
+          );
+          yield* TestClock.adjust(50);
+          yield* yieldToFibers();
+        }
 
-  it("should subscribe to entity CRUD events", () => {
-    const { messaging, channels } = createTestMessaging();
-    setupGitAutoCommit(messaging, git, 50, createSilentLogger());
-
-    expect(channels).toContain("entity:created");
-    expect(channels).toContain("entity:updated");
-    expect(channels).toContain("entity:deleted");
-  });
-
-  it("should commit and push after debounce", async () => {
-    const { messaging } = createTestMessaging();
-    setupGitAutoCommit(messaging, git, 50, createSilentLogger());
-
-    await messaging.send({
-      type: "entity:created",
-      payload: {
-        entity: {},
-        entityType: "post",
-        entityId: "1",
-      },
-    });
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(commitMock).toHaveBeenCalledTimes(1);
-    expect(pushMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("should never commit before the debounce window", async () => {
-    // The entity event fires before the auto-export subscriber has written
-    // the file — an immediate (leading-edge) commit captures nothing and
-    // strands the export as a dirty tree until the next periodic sync.
-    const { messaging } = createTestMessaging();
-    setupGitAutoCommit(messaging, git, 50, createSilentLogger());
-
-    await messaging.send({
-      type: "entity:created",
-      payload: {
-        entity: {},
-        entityType: "post",
-        entityId: "1",
-      },
-    });
-
-    expect(commitMock).toHaveBeenCalledTimes(0);
-    await new Promise((r) => setTimeout(r, 100));
-    expect(commitMock).toHaveBeenCalledTimes(1);
-    expect(pushMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("should cancel a pending commit on cleanup", async () => {
-    const { messaging } = createTestMessaging();
-    const cleanup = setupGitAutoCommit(
-      messaging,
-      git,
-      50,
-      createSilentLogger(),
+        expect(commitMock).toHaveBeenCalledTimes(3);
+        expect(pushMock).toHaveBeenCalledTimes(3);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
     );
-
-    await messaging.send({
-      type: "entity:created",
-      payload: {
-        entity: {},
-        entityType: "post",
-        entityId: "1",
-      },
-    });
-    await messaging.send({
-      type: "entity:updated",
-      payload: {
-        entity: {},
-        entityType: "post",
-        entityId: "2",
-      },
-    });
-
-    cleanup();
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(commitMock).toHaveBeenCalledTimes(0);
   });
 
-  it("currently returns from cleanup before an active commit and push settle", async () => {
-    const { messaging } = createTestMessaging();
-    const commitStarted = deferred();
-    const releaseCommit = deferred();
-    const pushFinished = deferred();
-    const activePush = mock(async (): Promise<void> => {
-      pushFinished.resolve();
-    });
-    const activeGit = createMockGitSync({
-      commit: mock(async (): Promise<void> => {
-        commitStarted.resolve();
-        await releaseCommit.promise;
-      }),
-      push: activePush,
-    });
-    const cleanup = setupGitAutoCommit(
-      messaging,
-      activeGit,
-      10,
-      createSilentLogger(),
+  it("never commits before the trailing debounce window", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const harness = createPluginHarness();
+        const commitMock = mock(async (): Promise<void> => {});
+        const pushMock = mock(async (): Promise<void> => {});
+        setupGitAutoCommit(
+          harness.getServiceContext("directory-sync").messaging,
+          createMockGitSync({ commit: commitMock, push: pushMock }),
+          50,
+          createSilentLogger(),
+          runtime,
+        );
+
+        yield* Effect.promise(() =>
+          harness.sendMessage("entity:created", eventPayload, "test", true),
+        );
+        yield* TestClock.adjust(49);
+        yield* yieldToFibers();
+        expect(commitMock).not.toHaveBeenCalled();
+
+        yield* TestClock.adjust(1);
+        yield* yieldToFibers();
+        expect(commitMock).toHaveBeenCalledTimes(1);
+        expect(pushMock).toHaveBeenCalledTimes(1);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
     );
-
-    await messaging.send({
-      type: "entity:created",
-      payload: {
-        entity: {},
-        entityType: "post",
-        entityId: "1",
-      },
-    });
-    await commitStarted.promise;
-
-    cleanup();
-    expect(activePush).not.toHaveBeenCalled();
-
-    releaseCommit.resolve();
-    await pushFinished.promise;
-    expect(activePush).toHaveBeenCalledTimes(1);
   });
 
-  it("should batch rapid events into one commit", async () => {
-    const { messaging } = createTestMessaging();
-    setupGitAutoCommit(messaging, git, 50, createSilentLogger());
+  it("interrupts a pending debounce on close", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const harness = createPluginHarness();
+        const commitMock = mock(async (): Promise<void> => {});
+        setupGitAutoCommit(
+          harness.getServiceContext("directory-sync").messaging,
+          createMockGitSync({ commit: commitMock }),
+          50,
+          createSilentLogger(),
+          runtime,
+        );
 
-    for (let i = 0; i < 5; i++) {
-      await messaging.send({
-        type: "entity:updated",
-        payload: {
-          entity: {},
-          entityType: "post",
-          entityId: String(i),
-        },
-      });
-    }
+        yield* Effect.promise(() =>
+          harness.sendMessage("entity:created", eventPayload, "test", true),
+        );
+        yield* Effect.promise(() => runtime.close());
+        yield* TestClock.adjust(500);
+        yield* yieldToFibers();
 
-    await new Promise((r) => setTimeout(r, 100));
+        expect(commitMock).not.toHaveBeenCalled();
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
 
-    expect(commitMock).toHaveBeenCalledTimes(1);
+  it("drains commit and push after the debounce has fired", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const harness = createPluginHarness();
+        const commitStarted = deferred();
+        const releaseCommit = deferred();
+        const pushMock = mock(async (): Promise<void> => {});
+        setupGitAutoCommit(
+          harness.getServiceContext("directory-sync").messaging,
+          createMockGitSync({
+            commit: mock(async (): Promise<void> => {
+              commitStarted.resolve();
+              await releaseCommit.promise;
+            }),
+            push: pushMock,
+          }),
+          10,
+          createSilentLogger(),
+          runtime,
+        );
+
+        yield* Effect.promise(() =>
+          harness.sendMessage("entity:created", eventPayload, "test", true),
+        );
+        yield* TestClock.adjust(10);
+        yield* Effect.promise(() => commitStarted.promise);
+
+        let closeSettled = false;
+        const closing = runtime.close().then(() => {
+          closeSettled = true;
+        });
+        yield* yieldToFibers();
+        expect(closeSettled).toBe(false);
+        expect(pushMock).not.toHaveBeenCalled();
+
+        releaseCommit.resolve();
+        yield* Effect.promise(() => closing);
+        expect(pushMock).toHaveBeenCalledTimes(1);
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
+  it("batches rapid events into one trailing operation", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const harness = createPluginHarness();
+        const commitMock = mock(async (): Promise<void> => {});
+        setupGitAutoCommit(
+          harness.getServiceContext("directory-sync").messaging,
+          createMockGitSync({ commit: commitMock }),
+          50,
+          createSilentLogger(),
+          runtime,
+        );
+
+        for (let index = 0; index < 5; index++) {
+          yield* Effect.promise(() =>
+            harness.sendMessage(
+              "entity:updated",
+              { ...eventPayload, entityId: String(index) },
+              "test",
+              true,
+            ),
+          );
+          yield* TestClock.adjust(10);
+          yield* yieldToFibers();
+        }
+        expect(commitMock).not.toHaveBeenCalled();
+
+        yield* TestClock.adjust(40);
+        yield* yieldToFibers();
+        expect(commitMock).toHaveBeenCalledTimes(1);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
   });
 });

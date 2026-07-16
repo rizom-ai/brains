@@ -28,9 +28,9 @@ export class DirectorySyncPlugin extends ServicePlugin<
 > {
   private directorySync?: DirectorySync;
   private gitSync?: GitSync;
-  private gitCleanups: Array<() => void> = [];
   private readonly runtime = new DirectorySyncRuntime();
   private watcherOwned = false;
+  private gitBackgroundStarted = false;
 
   constructor(config: DirectorySyncConfigInput = {}) {
     super("directory-sync", packageJson, config, directorySyncConfigSchema);
@@ -153,27 +153,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
           this.gitSync,
         ),
       );
-
-      this.gitCleanups.push(
-        setupGitAutoCommit(
-          context.messaging,
-          this.gitSync,
-          this.config.commitDebounce,
-          this.logger.child("GitAutoCommit"),
-        ),
-      );
-
-      if (this.config.autoSync) {
-        this.gitCleanups.push(
-          setupPeriodicGitSync(
-            this.gitSync,
-            this.requireDirectorySync(),
-            context,
-            this.config.syncInterval,
-            this.logger.child("GitPeriodicSync"),
-          ),
-        );
-      }
     }
 
     if (this.config.initialSync) {
@@ -197,14 +176,37 @@ export class DirectorySyncPlugin extends ServicePlugin<
   }
 
   protected override async onReady(): Promise<void> {
-    if (!this.config.autoSync || this.watcherOwned) return;
-
     const directorySync = this.requireDirectorySync();
-    await this.runtime.acquire(
-      () => directorySync.startWatching(),
-      () => directorySync.stopWatching(),
-    );
-    this.watcherOwned = true;
+    if (this.config.autoSync && !this.watcherOwned) {
+      await this.runtime.acquire(
+        () => directorySync.startWatching(),
+        () => directorySync.stopWatching(),
+      );
+      this.watcherOwned = true;
+    }
+
+    if (this.gitSync && !this.gitBackgroundStarted) {
+      const context = this.getContext();
+      setupGitAutoCommit(
+        context.messaging,
+        this.gitSync,
+        this.config.commitDebounce,
+        this.logger.child("GitAutoCommit"),
+        this.runtime,
+      );
+
+      if (this.config.autoSync) {
+        setupPeriodicGitSync(
+          this.gitSync,
+          directorySync,
+          context,
+          this.config.syncInterval,
+          this.logger.child("GitPeriodicSync"),
+          this.runtime,
+        );
+      }
+      this.gitBackgroundStarted = true;
+    }
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -223,15 +225,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
       failures.push(error);
     };
 
-    for (const cleanup of this.gitCleanups) {
-      try {
-        cleanup();
-      } catch (error) {
-        recordFailure(error);
-      }
-    }
-    this.gitCleanups = [];
-
     try {
       await this.runtime.close();
     } catch (error) {
@@ -249,6 +242,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     }
 
     this.watcherOwned = false;
+    this.gitBackgroundStarted = false;
     if (failures.length > 0) throw failures[0];
   }
 

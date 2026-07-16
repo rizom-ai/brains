@@ -1,15 +1,14 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { IGitSync, IDirectorySync } from "../types";
+import type { DirectorySyncRuntime } from "./directory-sync-runtime";
 
 /**
- * Periodic pull → queue imports → auto-commit cycle.
+ * Periodic pull → queue imports cycle.
  *
- * Uses queueSyncBatch (non-blocking) instead of sync() (blocking).
- * Imports run through the job queue so MCP/Discord stay responsive.
- * Git commit+push is handled by auto-commit when entity changes land.
- *
- * Returns a cleanup function that stops the timer.
+ * Uses queueSyncBatch (non-blocking) instead of sync() (blocking). The runtime
+ * owns the fixed-cadence schedule, prevents overlapping cycles, and drains an
+ * active cycle during shutdown. Git commit+push remains auto-commit's job.
  */
 export function setupPeriodicGitSync(
   gitSync: IGitSync,
@@ -17,18 +16,12 @@ export function setupPeriodicGitSync(
   pluginContext: ServicePluginContext,
   intervalMinutes: number,
   logger: Logger,
-): () => void {
-  if (intervalMinutes <= 0) {
-    return (): void => {};
-  }
+  runtime: DirectorySyncRuntime,
+): void {
+  if (intervalMinutes <= 0) return;
 
   const intervalMs = intervalMinutes * 60 * 1000;
-  let running = false;
-
   const cycle = async (): Promise<void> => {
-    if (running) return;
-    running = true;
-
     try {
       const { files, result } = await gitSync.withLock(async () => {
         const pullResult = await gitSync.pull();
@@ -56,18 +49,9 @@ export function setupPeriodicGitSync(
       }
     } catch (error) {
       logger.error("Periodic git sync failed", { error });
-    } finally {
-      running = false;
     }
   };
 
-  const timer = setInterval(() => {
-    void cycle();
-  }, intervalMs);
-
+  runtime.schedulePeriodic(intervalMs, cycle);
   logger.info("Started periodic git sync", { intervalMinutes });
-
-  return (): void => {
-    clearInterval(timer);
-  };
 }
