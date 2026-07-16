@@ -8,7 +8,11 @@ const workspaceRegistrationSchema = z.object({
   id: z.string().trim().min(1),
   pluginId: z.string().trim().min(1),
   label: z.string().trim().min(1),
-  rendererName: z.enum(["PublishingWorkspace", "SiteWorkspace"]),
+  rendererName: z.enum([
+    "PublishingWorkspace",
+    "SiteWorkspace",
+    "DirectorySyncWorkspace",
+  ]),
   priority: z.number().int(),
   entityTypes: z.array(z.string().trim().min(1)).default([]),
   dataProvider: z.custom<() => Promise<unknown>>(

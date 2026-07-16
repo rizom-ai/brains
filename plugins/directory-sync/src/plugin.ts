@@ -18,6 +18,8 @@ import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
 import { bootstrapContentRemoteFromSeed } from "./lib/content-remote-bootstrap";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
+import { DirectorySyncOperationStatusService } from "./lib/directory-sync-operation-status";
+import { DirectorySyncWorkspaceProvider } from "./lib/cms-workspace";
 import {
   DirectorySyncRuntime,
   type DirectorySyncScheduler,
@@ -35,6 +37,9 @@ export class DirectorySyncPlugin extends ServicePlugin<
 > {
   private directorySync: DirectorySync | undefined;
   private gitSync: GitSync | undefined;
+  private operationStatus: DirectorySyncOperationStatusService | undefined;
+  private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
+  private cmsWorkspaceUrl: string | undefined;
   private runtime = new DirectorySyncRuntime();
   private readonly directorySyncFacade = createDirectorySyncFacade(() =>
     this.requireDirectorySync(),
@@ -72,6 +77,13 @@ export class DirectorySyncPlugin extends ServicePlugin<
     return this.gitSync;
   }
 
+  private requireOperationStatus(): DirectorySyncOperationStatusService {
+    if (!this.operationStatus) {
+      throw new Error("Directory sync operation status not initialized");
+    }
+    return this.operationStatus;
+  }
+
   /** Whether git integration has a configured repository. */
   public hasGitSync(): boolean {
     return this.gitSync !== undefined;
@@ -101,8 +113,21 @@ export class DirectorySyncPlugin extends ServicePlugin<
       throw error;
     }
 
+    this.operationStatus = new DirectorySyncOperationStatusService(
+      context.runtimeState,
+      context.jobs,
+      this.logger.child("OperationStatus"),
+      syncPath,
+    );
+    await this.operationStatus.initialize();
+
     if (this.config.autoSync) {
-      setupFileWatcher(context, this.directorySync, syncPath);
+      setupFileWatcher(
+        context,
+        this.directorySync,
+        syncPath,
+        this.operationStatus,
+      );
     }
 
     await this.registerJobHandlers(context);
@@ -114,6 +139,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       () => this.requireDirectorySync(),
       this.logger,
       this.config.entityTypes,
+      this.operationStatus,
     );
 
     if (this.config.git && !this.isGitConfigured()) {
@@ -146,6 +172,15 @@ export class DirectorySyncPlugin extends ServicePlugin<
       );
     }
 
+    this.workspaceProvider = new DirectorySyncWorkspaceProvider({
+      context,
+      pluginId: this.id,
+      config: this.config,
+      getDirectorySync: (): DirectorySync => this.requireDirectorySync(),
+      getGitSync: (): GitSync | undefined => this.gitSync,
+      operationStatus: this.operationStatus,
+    });
+
     registerMessageHandlers(
       context,
       () => this.requireDirectorySync(),
@@ -153,12 +188,14 @@ export class DirectorySyncPlugin extends ServicePlugin<
       this.logger,
       this.config.git,
       () => this.gitSync,
+      () => this.cmsWorkspaceUrl,
     );
   }
 
   protected override async onReady(): Promise<void> {
     await this.startBackgroundWork();
     this.readyState = true;
+    this.cmsWorkspaceUrl = await this.workspaceProvider?.registerCmsWorkspace();
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -167,6 +204,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       this.getContext(),
       this.id,
       this.gitSync ? this.gitSyncFacade : undefined,
+      this.operationStatus,
     );
   }
 
@@ -205,7 +243,12 @@ export class DirectorySyncPlugin extends ServicePlugin<
     try {
       await candidateDirectorySync.initializeDirectory();
       if (this.config.autoSync) {
-        setupFileWatcher(context, candidateDirectorySync, syncPath);
+        setupFileWatcher(
+          context,
+          candidateDirectorySync,
+          syncPath,
+          this.operationStatus,
+        );
       }
       if (this.isGitConfigured()) {
         candidateGitSync = await this.initializeGitSync(syncPath);
@@ -242,6 +285,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     this.runtime = candidateRuntime;
     this.directorySync = candidateDirectorySync;
     this.gitSync = candidateGitSync;
+    this.operationStatus?.setSyncPath(syncPath);
     this.watcherOwned = false;
     this.gitBackgroundStarted = false;
 
@@ -330,6 +374,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.config.commitDebounce,
         this.logger.child("GitAutoCommit"),
         this.runtimeScheduler,
+        this.operationStatus,
       );
       this.gitAutoCommitRegistered = true;
     }
@@ -342,6 +387,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.config.syncInterval,
         this.logger.child("GitPeriodicSync"),
         this.runtime,
+        this.operationStatus,
       );
     }
     this.gitBackgroundStarted = true;
@@ -401,6 +447,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       this.directorySyncFacade,
       this.logger,
       () => this.requireDirectorySync(),
+      this.requireOperationStatus(),
     );
   }
 }

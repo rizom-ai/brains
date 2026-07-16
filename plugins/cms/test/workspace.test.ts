@@ -11,7 +11,8 @@ interface TestWorkspaceRegistration {
   id: string;
   pluginId: string;
   label: string;
-  rendererName: "PublishingWorkspace" | "SiteWorkspace";
+  rendererName:
+    "PublishingWorkspace" | "SiteWorkspace" | "DirectorySyncWorkspace";
   priority: number;
   entityTypes?: string[];
   dataProvider: () => Promise<unknown>;
@@ -173,6 +174,14 @@ describe("optional CMS workspaces", () => {
       dataProvider: async () => ({}),
     });
     await registerWorkspace(shell, {
+      id: "sync",
+      pluginId: "directory-sync",
+      label: "Sync",
+      rendererName: "DirectorySyncWorkspace",
+      priority: 60,
+      dataProvider: async () => ({}),
+    });
+    await registerWorkspace(shell, {
       id: "publishing",
       pluginId: "content-pipeline",
       label: "Publishing",
@@ -185,7 +194,7 @@ describe("optional CMS workspaces", () => {
       request("/cms/api/types", { cookie }),
     );
     expect(await response.json()).toMatchObject({
-      workspaces: [{ id: "publishing" }, { id: "site" }],
+      workspaces: [{ id: "publishing" }, { id: "site" }, { id: "sync" }],
     });
   });
 

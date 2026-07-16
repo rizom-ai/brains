@@ -44,6 +44,7 @@ export function registerMessageHandlers(
   logger: Logger,
   gitConfig?: GitConfig,
   getGitSync?: () => GitStatusSource | undefined,
+  getManagementUrl?: () => string | undefined,
 ): void {
   const { subscribe } = context.messaging;
 
@@ -89,6 +90,7 @@ export function registerMessageHandlers(
     try {
       const ds = getDirectorySync();
       const status = await ds.getStatus();
+      const managementUrl = getManagementUrl?.();
       return {
         success: true,
         data: {
@@ -99,6 +101,7 @@ export function registerMessageHandlers(
           totalFiles: status.stats.totalFiles,
           byEntityType: status.stats.byEntityType,
           git: await queryGitStatus(getGitSync?.(), logger),
+          ...(managementUrl ? { managementUrl } : {}),
         },
       };
     } catch (error) {

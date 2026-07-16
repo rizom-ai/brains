@@ -3,6 +3,7 @@ import { mockFetch } from "@brains/test-utils";
 import {
   removeEntity,
   runCmsWorkspaceAction,
+  runDirectorySyncWorkspaceAction,
   runSiteWorkspaceAction,
   saveEntity,
   uploadImage,
@@ -72,6 +73,33 @@ describe("CMS Site workspace mutation", () => {
       action: { type: "build-production", confirmed: true },
     });
     expect(result).toEqual({ accepted: true, environment: "production" });
+  });
+});
+
+describe("CMS Directory Sync workspace mutation", () => {
+  it("posts only the normal Sync now action", async () => {
+    let payload: unknown;
+    mockFetch(async (_url, options) => {
+      payload = JSON.parse(String(options.body));
+      return Response.json({
+        result: { accepted: true, status: "queued", runId: "run-1" },
+      });
+    });
+
+    const result = await runDirectorySyncWorkspaceAction({
+      workspaceId: "sync",
+      action: { type: "sync-now" },
+    });
+
+    expect(payload).toEqual({
+      id: "sync",
+      action: { type: "sync-now" },
+    });
+    expect(result).toEqual({
+      accepted: true,
+      status: "queued",
+      runId: "run-1",
+    });
   });
 });
 

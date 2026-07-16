@@ -15,7 +15,8 @@ export interface CmsWorkspaceInfo {
   id: string;
   pluginId: string;
   label: string;
-  rendererName: "PublishingWorkspace" | "SiteWorkspace";
+  rendererName:
+    "PublishingWorkspace" | "SiteWorkspace" | "DirectorySyncWorkspace";
   priority: number;
   entityTypes: string[];
 }
@@ -114,6 +115,72 @@ export interface SiteWorkspaceSnapshot {
   routes: Array<{ id: string; path: string; title: string }>;
 }
 
+export interface DirectorySyncRunMetrics {
+  imported: number;
+  skipped: number;
+  failed: number;
+  quarantined: number;
+  exported: number;
+}
+
+export interface DirectorySyncActiveRun extends DirectorySyncRunMetrics {
+  id: string;
+  source: "manual" | "periodic" | "watcher" | "save";
+  state: "pulling" | "scanning" | "importing" | "settling";
+  startedAt: string;
+  jobId?: string;
+  batchId?: string;
+}
+
+export interface DirectorySyncRecentRun extends DirectorySyncRunMetrics {
+  id: string;
+  source: "manual" | "periodic" | "watcher" | "save";
+  outcome: "succeeded" | "attention" | "failed";
+  startedAt: string;
+  completedAt: string;
+  summary: string;
+}
+
+export interface DirectorySyncIssue {
+  id: string;
+  kind: "quarantined" | "import" | "export" | "git" | "source";
+  path?: string;
+  message: string;
+  occurredAt: string;
+}
+
+export interface DirectorySyncWorkspaceSnapshot {
+  health: "healthy" | "active" | "attention";
+  directory: {
+    displayPath: string;
+    exists: boolean;
+    watching: boolean;
+    totalFiles: number;
+    byEntityType: Record<string, number>;
+    lastSettledAt?: string;
+  };
+  git: {
+    branch: string;
+    remoteLabel?: string;
+    hasChanges: boolean;
+    ahead: number;
+    behind: number;
+    lastCommit?: string;
+    changedFiles: Array<{ path: string; status: string }>;
+    changedFilesTruncated: boolean;
+  } | null;
+  automation: {
+    autoSync: boolean;
+    watchIntervalMs: number;
+    remoteIntervalMinutes?: number;
+    commitDebounceMs?: number;
+    deleteOnFileRemoval: boolean;
+  };
+  activeRun?: DirectorySyncActiveRun;
+  recentRuns: DirectorySyncRecentRun[];
+  issues: DirectorySyncIssue[];
+}
+
 export type CmsWorkspaceData =
   | {
       id: string;
@@ -124,6 +191,11 @@ export type CmsWorkspaceData =
       id: string;
       rendererName: "SiteWorkspace";
       data: SiteWorkspaceSnapshot;
+    }
+  | {
+      id: string;
+      rendererName: "DirectorySyncWorkspace";
+      data: DirectorySyncWorkspaceSnapshot;
     };
 
 export interface PublishConfirmationArgs {
@@ -148,6 +220,18 @@ export type PublishingAction =
 
 export type SiteWorkspaceAction =
   { type: "build-preview" } | { type: "build-production"; confirmed: true };
+
+export interface DirectorySyncWorkspaceAction {
+  type: "sync-now";
+}
+
+export interface DirectorySyncWorkspaceActionResult {
+  accepted: boolean;
+  status: "queued" | "settled";
+  runId?: string;
+  jobId?: string;
+  batchId?: string;
+}
 
 export interface SiteWorkspaceActionResult {
   accepted: true;

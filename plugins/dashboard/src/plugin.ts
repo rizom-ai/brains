@@ -136,11 +136,17 @@ const directorySyncStatusResponseSchema = z.object({
     syncPath: z.string(),
     isInitialized: z.boolean(),
     watchEnabled: z.boolean(),
-    lastSync: z.string().datetime().optional(),
+    lastSync: z
+      .string()
+      .datetime()
+      .nullable()
+      .optional()
+      .transform((value) => value ?? undefined),
     totalFiles: z.number().int().nonnegative().optional(),
     byEntityType: z
       .record(z.string(), z.number().int().nonnegative())
       .optional(),
+    managementUrl: z.string().optional(),
   }),
 });
 

@@ -14,6 +14,7 @@ For a git-command-oriented explanation of the sync lifecycle and conflict policy
 - supports images under `image/`
 - copies seed content on first run
 - optionally pulls, commits, and pushes a git-backed content repo
+- registers an optional CMS Sync workspace for operational status and manual sync
 - can bootstrap a missing/empty local `file://` bare remote from seed content
 
 ## Path conventions
@@ -88,6 +89,21 @@ brain tool directory-sync_history '{"entityType":"post","id":"my-first-post"}'
 ```
 
 `sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. `status` reports sync and git state. `directory-sync_history` reads git history for synced files.
+
+## Optional CMS workspace
+
+When `@brains/cms` is installed, directory-sync registers an **Operations → Sync**
+workspace at `#/workspace/sync`. It shows directory, watcher, Git, automation, recent-run,
+and quarantined-file status from a bounded runtime projection.
+
+**Sync now** follows the same request path as the `directory-sync_sync` tool. The workspace
+is intentionally not a file browser or configuration editor. It exposes relative content
+paths and a sanitized remote label; credentials and internal stack traces are never sent
+to the browser.
+
+Dashboard's existing read-only Content sync card links to the workspace when CMS returns a
+management URL. Without CMS, tools, messages, watcher, periodic sync, and Git automation
+continue unchanged.
 
 ## Seed and local remote bootstrap
 

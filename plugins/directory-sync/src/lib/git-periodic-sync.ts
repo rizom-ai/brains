@@ -2,6 +2,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { IGitSync, IDirectorySync } from "../types";
 import type { DirectorySyncRuntime } from "./directory-sync-runtime";
+import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
 
 /**
  * Periodic pull → queue imports cycle.
@@ -17,11 +18,13 @@ export function setupPeriodicGitSync(
   intervalMinutes: number,
   logger: Logger,
   runtime: DirectorySyncRuntime,
+  operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   if (intervalMinutes <= 0) return;
 
   const intervalMs = intervalMinutes * 60 * 1000;
   const cycle = async (signal: AbortSignal): Promise<void> => {
+    const runId = await operationStatus?.startRun("periodic", "pulling");
     try {
       const { files, result } = await gitSync.withLock(async () => {
         const pullResult = await gitSync.pull(signal);
@@ -47,10 +50,26 @@ export function setupPeriodicGitSync(
           importOperations: result.importOperationsCount,
           totalFiles: result.totalFiles,
         });
+        if (runId) await operationStatus?.attachBatch(runId, result.batchId);
+      } else if (runId) {
+        await operationStatus?.completeRun(
+          runId,
+          files.length === 0
+            ? "Remote checked; no changes found"
+            : "Remote changes required no imports",
+        );
       }
     } catch (error) {
-      if (!signal.aborted) {
+      if (signal.aborted) {
+        if (runId) await operationStatus?.clearRun(runId);
+      } else {
         logger.error("Periodic git sync failed", { error });
+        if (runId) {
+          await operationStatus?.failRun(
+            runId,
+            error instanceof Error ? error.message : "Periodic Git sync failed",
+          );
+        }
       }
     }
   };

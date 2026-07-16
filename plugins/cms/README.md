@@ -47,6 +47,7 @@ Service plugins may register a CMS-owned renderer through `cms:register-workspac
 The bundled renderer vocabulary is deliberately narrow:
 
 - `PublishingWorkspace` operates the content-pipeline queue and publication failures;
-- `SiteWorkspace` operates site-builder preview and production builds.
+- `SiteWorkspace` operates site-builder preview and production builds;
+- `DirectorySyncWorkspace` operates directory/Git sync status and manual sync requests.
 
 Providers own snapshots, validation, authorization, and actions. The CMS owns authenticated transport, navigation, rendering, and targeted query invalidation. Runtime React components are never accepted through registration.

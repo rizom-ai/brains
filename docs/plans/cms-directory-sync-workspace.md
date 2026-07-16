@@ -2,9 +2,11 @@
 
 ## Status
 
-**Proposed.** Add a Sync workspace to the CMS when `@brains/directory-sync` is installed.
-The workspace is an operational control surface for file and Git durability; it is not a
-file editor or configuration panel.
+**Implemented.** `@brains/directory-sync` registers a Sync workspace when CMS is present.
+The workspace provides a sanitized live directory/Git snapshot, one shared manual-sync
+action, bounded runtime history, active-run reconciliation, actionable issue badges, and a
+Dashboard management link. It remains an operational control surface, not a file editor or
+configuration panel.
 
 Interaction reference:
 [cms-directory-sync-workspace-mockup.html](../design/cms-directory-sync-workspace-mockup.html).
