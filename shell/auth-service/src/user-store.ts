@@ -319,7 +319,9 @@ export class AuthUserStore {
         .limit(1);
 
       if (existing && existing.personId !== user.personId) {
-        throw new Error("Canonical identity claim belongs to another person");
+        throw new Error(
+          "Canonical identity claim belongs to another person; reconciliation required",
+        );
       }
 
       let currentClaimId: string;

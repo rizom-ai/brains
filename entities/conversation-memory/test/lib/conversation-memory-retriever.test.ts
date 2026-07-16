@@ -1,4 +1,5 @@
 import { describe, expect, it, spyOn } from "bun:test";
+import { createExternalActorId } from "@brains/contracts";
 import type { Conversation, SearchResult } from "@brains/plugins";
 import { createMockEntityPluginContext } from "@brains/test-utils";
 import { ConversationMemoryRetriever } from "../../src/lib/conversation-memory-retriever";
@@ -6,7 +7,7 @@ import type {
   ActionItemEntity,
   DecisionEntity,
 } from "../../src/schemas/conversation-memory";
-import type { SummaryEntity } from "../../src/schemas/summary";
+import { summarySchema, type SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
@@ -363,6 +364,50 @@ describe("ConversationMemoryRetriever", () => {
     });
 
     expect(result.results.map((item) => item.id)).toEqual(["summary-linked"]);
+  });
+
+  it("matches opaque aliases retained from legacy actor references", async () => {
+    const context = createMockEntityPluginContext();
+    const currentSummary = createSummary({
+      id: "summary-legacy",
+      channelId: "team",
+    });
+    const summary = summarySchema.parse({
+      ...currentSummary,
+      metadata: {
+        ...currentSummary.metadata,
+        participants: [
+          {
+            actorId: "discord:42",
+            canonicalId: "person-jan",
+            sourceActorIds: ["discord:42"],
+            displayName: "Jan",
+            roles: ["user"],
+          },
+        ],
+      },
+    });
+    expect(summary.metadata.participants?.[0]?.identityAliases).toEqual([
+      {
+        kind: "external",
+        externalActorId: createExternalActorId("discord", "discord:42"),
+      },
+    ]);
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([{ entity: summary, score: 0.8, excerpt: "Legacy Jan" }]),
+    );
+
+    const result = await new ConversationMemoryRetriever(context).retrieve({
+      query: "Jan",
+      interfaceType: "mcp",
+      channelId: "team",
+      identity: {
+        kind: "external",
+        externalActorId: createExternalActorId("discord", "discord:42"),
+      },
+    });
+
+    expect(result.results.map((item) => item.id)).toEqual(["summary-legacy"]);
   });
 
   it("can expand resolved user retrieval across spaces when requested", async () => {

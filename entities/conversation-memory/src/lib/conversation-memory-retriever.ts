@@ -225,15 +225,17 @@ export class ConversationMemoryRetriever {
   ): boolean {
     if (!input.identity) return true;
     const expectedKey = actorRefKey(input.identity);
-    return this.getIdentityReferences(entity).some(
-      (reference) =>
-        reference.identity !== undefined &&
-        actorRefKey(reference.identity) === expectedKey,
+    return this.getIdentityReferences(entity).some((reference) =>
+      [reference.identity, ...(reference.identityAliases ?? [])].some(
+        (identity) =>
+          identity !== undefined && actorRefKey(identity) === expectedKey,
+      ),
     );
   }
 
   private getIdentityReferences(entity: ConversationMemorySearchEntity): Array<{
     identity?: ActorRef | undefined;
+    identityAliases?: ActorRef[] | undefined;
   }> {
     if (this.isSummaryEntity(entity)) {
       return entity.metadata.participants ?? [];

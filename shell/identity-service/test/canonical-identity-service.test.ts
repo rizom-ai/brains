@@ -35,6 +35,40 @@ describe("CanonicalIdentityService", () => {
     expect(await service.enrichActor(actor)).toEqual(actor);
   });
 
+  it("caches positive and negative private identity resolutions", async () => {
+    let calls = 0;
+    const service = CanonicalIdentityService.createFresh(
+      logger,
+      async (identity) => {
+        calls += 1;
+        return actorRefKey(identity) === "external:linked"
+          ? { userId: "usr_mira", canonicalId: "user:mira" }
+          : null;
+      },
+    );
+    const linked = {
+      identity: { kind: "external" as const, externalActorId: "linked" },
+      interfaceType: "mcp",
+      role: "user" as const,
+    };
+    const unlinked = {
+      identity: { kind: "external" as const, externalActorId: "unlinked" },
+      interfaceType: "mcp",
+      role: "user" as const,
+    };
+
+    await service.enrichActor(linked);
+    await service.enrichActor(linked);
+    await service.enrichActor(unlinked);
+    await service.enrichActor(unlinked);
+
+    expect(calls).toBe(2);
+    expect(service.resolveActor(linked.identity)).toMatchObject({
+      userId: "usr_mira",
+      canonicalId: "user:mira",
+    });
+  });
+
   it("enriches actors through an injected private identity resolver", async () => {
     const service = CanonicalIdentityService.createFresh(
       logger,

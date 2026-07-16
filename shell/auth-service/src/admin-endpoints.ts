@@ -87,6 +87,18 @@ export interface AuthAdminOperations {
     };
     registration: { setupUrl: string; expiresAt: number };
   }>;
+  linkAgentPerson(
+    input: { agentId: string; userId: string },
+    actorUserId: string,
+  ): Promise<{
+    agentId: string;
+    personId: string;
+    status: "pending" | "active" | "revoked";
+    createdByUserId: string | null;
+    consentedByUserId: string | null;
+    createdAt: number;
+    updatedAt: number;
+  }>;
   updateUserRole(
     userId: string,
     role: AuthUserRole,
@@ -150,6 +162,12 @@ const adminMutationSchema = z.discriminatedUnion("action", [
     displayName: z.string().trim().min(1).max(200),
     profileEntityId: z.string().trim().min(1).max(500).optional(),
     role: roleSchema,
+  }),
+  z.strictObject({
+    action: z.literal("linkAgentPerson"),
+    confirmation: z.literal("linkAgentPerson"),
+    agentId: z.string().trim().min(1).max(500),
+    userId: z.string().min(1),
   }),
   z.strictObject({
     action: z.literal("updateUserRole"),
@@ -280,6 +298,13 @@ async function executeMutation(
         },
         actorUserId,
       );
+    case "linkAgentPerson":
+      return {
+        representation: await operations.linkAgentPerson(
+          { agentId: mutation.agentId, userId: mutation.userId },
+          actorUserId,
+        ),
+      };
     case "updateUserRole":
       return {
         user: await operations.updateUserRole(

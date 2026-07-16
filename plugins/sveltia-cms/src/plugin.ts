@@ -298,7 +298,7 @@ export class CmsPlugin extends ServicePlugin<
         public: true,
         handler: async (request): Promise<Response> => {
           if (loginMethods.passkeyLogin) {
-            if (!(await hasAuthSession(request))) {
+            if (!(await hasAnchorAuthSession(request))) {
               return new Response(null, {
                 status: 302,
                 headers: {
@@ -370,7 +370,7 @@ export class CmsPlugin extends ServicePlugin<
     if (loginMethods.passkeyLogin) {
       // An authenticated user who already holds a session skips the passkey prompt and
       // goes straight to releasing the PAT.
-      const renderPage = (await hasAuthSession(request))
+      const renderPage = (await hasAnchorAuthSession(request))
         ? renderPasskeyTokenPage
         : renderPasskeyLoginPage;
       return htmlResponse(
@@ -453,9 +453,12 @@ export class CmsPlugin extends ServicePlugin<
     passkeyLogin: EnabledPasskeyLoginConfig,
   ): Promise<Response> {
     const authService = getActiveAuthService();
-    const session = await authService?.getAuthSession(request);
-    if (!session) {
+    const principal = await authService?.resolveSession(request);
+    if (!principal) {
       return jsonResponse({ error: "Authentication required" }, 401);
+    }
+    if (principal.permissionLevel !== "anchor") {
+      return jsonResponse({ error: "Anchor access required" }, 403);
     }
 
     return jsonResponse(
@@ -614,8 +617,9 @@ function oauthErrorResponse(message: string): Response {
   );
 }
 
-async function hasAuthSession(request: Request): Promise<boolean> {
-  return Boolean(await getActiveAuthService()?.getAuthSession(request));
+async function hasAnchorAuthSession(request: Request): Promise<boolean> {
+  const principal = await getActiveAuthService()?.resolveSession(request);
+  return principal?.permissionLevel === "anchor";
 }
 
 function renderPasskeyLoginPage(targetOrigin: string): string {

@@ -1,5 +1,6 @@
 import {
   actorRefFromLegacy,
+  actorRefKey,
   actorRefSchema,
   type ActorRef,
 } from "@brains/contracts";
@@ -47,6 +48,7 @@ export const summaryBodySchema: z.ZodType<SummaryBody> = z.object({
 
 export interface SummaryParticipant {
   identity: ActorRef;
+  identityAliases?: ActorRef[] | undefined;
   displayName?: string | undefined;
   roles: Array<"user" | "assistant" | "system">;
 }
@@ -54,6 +56,7 @@ export interface SummaryParticipant {
 export const summaryParticipantSchema: z.ZodType<SummaryParticipant> = z.object(
   {
     identity: actorRefSchema,
+    identityAliases: z.array(actorRefSchema).optional(),
     displayName: z.string().optional(),
     roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
   },
@@ -112,6 +115,23 @@ function normalizeLegacySummaryParticipant(value: unknown): unknown {
   if (typeof actorId !== "string" || !Array.isArray(roles)) return value;
   const canonicalId = value["canonicalId"];
   const role = roles.includes("assistant") ? "assistant" : "user";
+  const sourceActorIds = Array.isArray(value["sourceActorIds"])
+    ? value["sourceActorIds"].filter(
+        (candidate): candidate is string => typeof candidate === "string",
+      )
+    : [];
+  const identityAliases = Array.from(
+    new Map(
+      [actorId, ...sourceActorIds].map((legacyActorId) => {
+        const alias = actorRefFromLegacy({
+          actorId: legacyActorId,
+          interfaceType: sourceFromLegacyActorId(legacyActorId),
+          role,
+        });
+        return [actorRefKey(alias), alias];
+      }),
+    ).values(),
+  );
   return {
     identity: actorRefFromLegacy({
       actorId,
@@ -119,6 +139,7 @@ function normalizeLegacySummaryParticipant(value: unknown): unknown {
       role,
       ...(typeof canonicalId === "string" ? { canonicalId } : {}),
     }),
+    ...(identityAliases.length > 0 ? { identityAliases } : {}),
     ...(typeof value["displayName"] === "string"
       ? { displayName: value["displayName"] }
       : {}),

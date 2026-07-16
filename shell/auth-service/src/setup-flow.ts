@@ -131,6 +131,10 @@ export class SetupFlow {
     if (await this.passkeyService.hasCredentials()) return undefined;
     let setupToken = this.getValidSetupToken();
     if (!setupToken && options.rotateHidden) {
+      const now = Math.floor(Date.now() / 1000);
+      if (await this.setupStateStore.hasActiveSetupDelivery(now)) {
+        return undefined;
+      }
       setupToken = await this.createSetupToken();
     }
     if (!setupToken) return undefined;

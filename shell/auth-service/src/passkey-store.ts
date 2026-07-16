@@ -149,9 +149,11 @@ export class PasskeyStore {
     return store.credentials.length > 0;
   }
 
-  async listCredentials(): Promise<StoredPasskeyCredential[]> {
+  async listCredentials(subject?: string): Promise<StoredPasskeyCredential[]> {
     const store = await this.store.read();
-    return store.credentials;
+    return subject
+      ? store.credentials.filter((credential) => credential.subject === subject)
+      : store.credentials;
   }
 
   async getCredential(

@@ -48,6 +48,7 @@ import {
   RefreshTokenStore,
   RuntimeRefreshTokenStore,
 } from "./refresh-token-store";
+import { handleAuthRepresentationRequest } from "./representation-endpoints";
 import { RuntimeSetupStateStore, SetupStateStore } from "./setup-state-store";
 import {
   AuthSessionStore,
@@ -125,6 +126,11 @@ export type PromoteAgentPersonRequest = Omit<
   PromoteAgentPersonInput,
   "createdByUserId"
 >;
+
+export interface LinkAgentPersonRequest {
+  agentId: string;
+  userId: string;
+}
 
 export interface PromotedAgentAccess {
   user: AuthPrincipal;
@@ -790,6 +796,60 @@ export class AuthService {
     };
   }
 
+  async linkAgentPerson(
+    input: LinkAgentPersonRequest,
+    context: AuthMutationContext,
+  ): Promise<AgentPersonLink> {
+    await this.ensureUserStoreStarted();
+    if (!context.actorUserId) {
+      throw new Error("Authenticated actor is required for agent linking");
+    }
+    const user = await this.getUserStore().getUser(input.userId);
+    if (!user) throw new Error(`Auth user not found: ${input.userId}`);
+
+    const link = await this.getPersonAgentStore().linkAgent({
+      agentId: input.agentId,
+      personId: user.personId,
+      createdByUserId: context.actorUserId,
+    });
+    await this.getAuditStore().append({
+      ...auditActor(context),
+      action: "auth.agent_person.linked",
+      targetType: "agent",
+      targetId: link.agentId,
+      metadata: {
+        personId: link.personId,
+        userId: user.id,
+        status: link.status,
+      },
+    });
+    return link;
+  }
+
+  async acceptAgentRepresentation(
+    agentId: string,
+    context: AuthMutationContext,
+  ): Promise<AgentPersonLink> {
+    await this.ensureUserStoreStarted();
+    if (!context.actorUserId) {
+      throw new Error(
+        "Authenticated actor is required for representation consent",
+      );
+    }
+    const accepted = await this.getPersonAgentStore().acceptRepresentation(
+      agentId,
+      context.actorUserId,
+    );
+    await this.getAuditStore().append({
+      ...auditActor(context),
+      action: "auth.agent_person.accepted",
+      targetType: "agent",
+      targetId: accepted.agentId,
+      metadata: { personId: accepted.personId },
+    });
+    return accepted;
+  }
+
   async listUsers(): Promise<AuthPrincipal[]> {
     await this.ensureUserStoreStarted();
     return (await this.getUserStore().listUsers()).map(principalFromUser);
@@ -1148,6 +1208,9 @@ export class AuthService {
     if (path === "/auth/admin/users" || path === "/auth/admin/mutations") {
       return this.handleAdminRequest(request);
     }
+    if (path === "/auth/representations") {
+      return this.handleRepresentationRequest(request);
+    }
 
     if (request.method === "OPTIONS" && isCorsMachineEndpoint(path)) {
       return corsPreflightResponse();
@@ -1235,6 +1298,16 @@ export class AuthService {
     return this.handleRequest(request);
   }
 
+  private handleRepresentationRequest(request: Request): Promise<Response> {
+    return handleAuthRepresentationRequest(request, {
+      resolveSession: (representationRequest) =>
+        this.resolveSession(representationRequest),
+      listPersonAgents: (personId) => this.listPersonAgents(personId),
+      acceptRepresentation: (agentId, actorUserId) =>
+        this.acceptAgentRepresentation(agentId, { actorUserId }),
+    });
+  }
+
   private handleAdminRequest(request: Request): Promise<Response> {
     return handleAuthAdminRequest(request, {
       resolveSession: (adminRequest) => this.resolveSession(adminRequest),
@@ -1246,6 +1319,8 @@ export class AuthService {
         this.createUser(input, { actorUserId }),
       promoteAgentPerson: (input, actorUserId) =>
         this.promoteAgentPerson(input, { actorUserId }),
+      linkAgentPerson: (input, actorUserId) =>
+        this.linkAgentPerson(input, { actorUserId }),
       updateUserRole: (userId, role, actorUserId) =>
         this.updateUserRole(userId, role, { actorUserId }),
       updateUserStatus: (userId, status, actorUserId) =>

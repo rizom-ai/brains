@@ -1,6 +1,7 @@
 import { type SummaryTimeRange, summaryTimeRangeSchema } from "./summary";
 import {
   actorRefFromLegacy,
+  actorRefKey,
   actorRefSchema,
   type ActorRef,
 } from "@brains/contracts";
@@ -9,12 +10,14 @@ import { z } from "@brains/utils/zod";
 
 export interface MemoryActorReference {
   identity: ActorRef;
+  identityAliases?: ActorRef[] | undefined;
   displayName?: string | undefined;
 }
 
 export const memoryActorReferenceSchema: z.ZodType<MemoryActorReference> =
   z.object({
     identity: actorRefSchema,
+    identityAliases: z.array(actorRefSchema).optional(),
     displayName: z.string().optional(),
   });
 
@@ -28,12 +31,14 @@ const memoryActorReferenceParserSchema: z.ZodType<
 
 export interface ActionItemAssignee {
   identity?: ActorRef | undefined;
+  identityAliases?: ActorRef[] | undefined;
   displayName: string;
 }
 
 export const actionItemAssigneeSchema: z.ZodType<ActionItemAssignee> = z.object(
   {
     identity: actorRefSchema.optional(),
+    identityAliases: z.array(actorRefSchema).optional(),
     displayName: z.string().min(1),
   },
 );
@@ -55,13 +60,36 @@ function normalizeLegacyMemoryActorReference(
   }
   const separator = actorId.indexOf(":");
   const canonicalId = value["canonicalId"];
+  const role = actorId.startsWith("brain:") ? "assistant" : "user";
+  const sourceActorIds = Array.isArray(value["sourceActorIds"])
+    ? value["sourceActorIds"].filter(
+        (candidate): candidate is string => typeof candidate === "string",
+      )
+    : [];
+  const identityAliases = Array.from(
+    new Map(
+      [actorId, ...sourceActorIds].map((legacyActorId) => {
+        const sourceSeparator = legacyActorId.indexOf(":");
+        const alias = actorRefFromLegacy({
+          actorId: legacyActorId,
+          interfaceType:
+            sourceSeparator > 0
+              ? legacyActorId.slice(0, sourceSeparator)
+              : "legacy",
+          role,
+        });
+        return [actorRefKey(alias), alias];
+      }),
+    ).values(),
+  );
   return {
     identity: actorRefFromLegacy({
       actorId,
       interfaceType: separator > 0 ? actorId.slice(0, separator) : "legacy",
-      role: actorId.startsWith("brain:") ? "assistant" : "user",
+      role,
       ...(typeof canonicalId === "string" ? { canonicalId } : {}),
     }),
+    ...(identityAliases.length > 0 ? { identityAliases } : {}),
     ...(typeof value["displayName"] === "string"
       ? { displayName: value["displayName"] }
       : {}),

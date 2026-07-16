@@ -76,17 +76,10 @@ describe("legacy setup token migration", () => {
         await second.hasSetupEmailDelivery(setupTokenIdValue, recipient),
       ).toBe(true);
 
-      const rotated = await second.getPasskeySetupRequired();
-      expect(rotated?.setupUrl).toStartWith(
-        "https://brain.example.com/setup?token=setup_",
-      );
-      expect(rotated?.setupUrl).not.toBe(setupUrl);
+      expect(await second.getPasskeySetupRequired()).toBeUndefined();
       expect((await second.handleRequest(new Request(setupUrl))).status).toBe(
-        404,
+        200,
       );
-      expect(
-        await second.handleRequest(new Request(rotated?.setupUrl ?? "")),
-      ).toMatchObject({ status: 200 });
     } finally {
       await second.close();
     }

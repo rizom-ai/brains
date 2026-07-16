@@ -68,8 +68,8 @@ export class RuntimePasskeyStore {
     return (await this.store().listPasskeys()).length > 0;
   }
 
-  async listCredentials(): Promise<StoredPasskeyCredential[]> {
-    return (await this.store().listPasskeys()).map(toLegacyPasskeyShape);
+  async listCredentials(subject?: string): Promise<StoredPasskeyCredential[]> {
+    return (await this.store().listPasskeys(subject)).map(toLegacyPasskeyShape);
   }
 
   async getCredential(

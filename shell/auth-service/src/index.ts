@@ -19,6 +19,7 @@ export type {
   AuthMutationContext,
   AuthPrincipal,
   AuthServiceOptions,
+  LinkAgentPersonRequest,
   PasskeySetupRequired,
   PromoteAgentPersonRequest,
   PromotedAgentAccess,

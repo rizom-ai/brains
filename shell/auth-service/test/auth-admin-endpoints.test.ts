@@ -67,6 +67,14 @@ describe("auth admin API", () => {
           path: "/auth/admin/mutations",
           method: "POST",
         }),
+        expect.objectContaining({
+          path: "/auth/representations",
+          method: "GET",
+        }),
+        expect.objectContaining({
+          path: "/auth/representations",
+          method: "POST",
+        }),
       ]),
     );
   });
@@ -203,6 +211,121 @@ describe("auth admin API", () => {
         expect.objectContaining({
           actorUserId: anchor.userId,
           action: "auth.agent_person.promoted",
+          targetId: "agent:mira-field",
+        }),
+      ]),
+    );
+  });
+
+  it("links an existing user's person to an agent pending their consent", async () => {
+    const service = await createService();
+    const anchor = await service.createUser({
+      displayName: "Anchor",
+      role: "anchor",
+    });
+    const collaborator = await service.createUser({
+      displayName: "Mira Reyes",
+      role: "trusted",
+    });
+    const session = await service.createAuthSession(anchor.userId);
+
+    const response = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "linkAgentPerson",
+        confirmation: "linkAgentPerson",
+        agentId: "agent:mira-field",
+        userId: collaborator.userId,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      representation: {
+        agentId: "agent:mira-field",
+        personId: collaborator.personId,
+        status: "pending",
+        createdByUserId: anchor.userId,
+        consentedByUserId: null,
+        createdAt: expect.any(Number),
+        updatedAt: expect.any(Number),
+      },
+    });
+    expect(await service.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorUserId: anchor.userId,
+          action: "auth.agent_person.linked",
+          targetId: "agent:mira-field",
+          metadata: expect.objectContaining({
+            personId: collaborator.personId,
+            userId: collaborator.userId,
+            status: "pending",
+          }),
+        }),
+      ]),
+    );
+
+    const collaboratorSession = await service.createAuthSession(
+      collaborator.userId,
+    );
+    const pending = await service.handleRequest(
+      adminRequest("/auth/representations", collaboratorSession.cookie),
+    );
+    expect(pending.status).toBe(200);
+    expect(await pending.json()).toEqual({
+      representations: [
+        expect.objectContaining({
+          agentId: "agent:mira-field",
+          personId: collaborator.personId,
+          status: "pending",
+        }),
+      ],
+    });
+
+    const crossOrigin = await service.handleRequest(
+      adminRequest(
+        "/auth/representations",
+        collaboratorSession.cookie,
+        {
+          action: "acceptRepresentation",
+          confirmation: "acceptRepresentation",
+          agentId: "agent:mira-field",
+        },
+        "https://evil.example",
+      ),
+    );
+    expect(crossOrigin.status).toBe(403);
+
+    const wrongPerson = await service.handleRequest(
+      adminRequest("/auth/representations", session.cookie, {
+        action: "acceptRepresentation",
+        confirmation: "acceptRepresentation",
+        agentId: "agent:mira-field",
+      }),
+    );
+    expect(wrongPerson.status).toBe(400);
+
+    const accepted = await service.handleRequest(
+      adminRequest("/auth/representations", collaboratorSession.cookie, {
+        action: "acceptRepresentation",
+        confirmation: "acceptRepresentation",
+        agentId: "agent:mira-field",
+      }),
+    );
+    expect(accepted.status).toBe(200);
+    expect(await accepted.json()).toEqual({
+      representation: expect.objectContaining({
+        agentId: "agent:mira-field",
+        personId: collaborator.personId,
+        status: "active",
+        consentedByUserId: collaborator.userId,
+      }),
+    });
+    expect(await service.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorUserId: collaborator.userId,
+          action: "auth.agent_person.accepted",
           targetId: "agent:mira-field",
         }),
       ]),

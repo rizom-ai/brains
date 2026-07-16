@@ -512,6 +512,12 @@ export class DashboardPlugin extends ServicePlugin<
               { status: 401 },
             );
           }
+          if (principal.permissionLevel !== "anchor") {
+            return Response.json(
+              { error: "Anchor access required" },
+              { status: 403 },
+            );
+          }
           const ctx = this.ctx;
           if (!ctx) {
             return Response.json({ groups: [] });

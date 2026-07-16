@@ -232,6 +232,31 @@ describe("AuthUserStore", () => {
     });
   });
 
+  it("blocks conflicting exact claims across people for reconciliation", async () => {
+    await withUserStore(async (store) => {
+      const first = await store.createUser({ displayName: "First Person" });
+      const second = await store.createUser({ displayName: "Second Person" });
+      await store.attachIdentity({
+        userId: first.id,
+        type: "discord",
+        subject: "1442828818493735015",
+        verifiedAt: 200,
+        source: { kind: "provider", id: "discord" },
+      });
+
+      await expectRejectsWithMessage(
+        store.attachIdentity({
+          userId: second.id,
+          type: "discord",
+          subject: "1442828818493735015",
+          source: { kind: "agent", id: "agent:second" },
+        }),
+        "Canonical identity claim belongs to another person; reconciliation required",
+      );
+      expect(await store.listIdentities(second.id)).toHaveLength(0);
+    });
+  });
+
   it("does not treat agent-carried verification as authentication evidence", async () => {
     await withUserStore(async (store) => {
       const user = await store.createUser({ displayName: "Asserted Person" });

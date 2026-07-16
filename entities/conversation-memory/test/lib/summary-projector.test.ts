@@ -1,6 +1,10 @@
 import { describe, it, expect, spyOn } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
-import type { Conversation, Message } from "@brains/plugins";
+import type {
+  Conversation,
+  ConversationMessageActor,
+  Message,
+} from "@brains/plugins";
 import {
   createMockEntityPluginContext,
   createSilentLogger,
@@ -199,6 +203,32 @@ describe("SummaryProjector", () => {
       summaryConfigSchema.parse({ memoryVisibility: "private" })
         .memoryVisibility,
     ).toBe("restricted");
+  });
+
+  it("attributes label-less actors by their stable actor key", () => {
+    const projector = new SummaryProjector(
+      createMockEntityPluginContext(),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+    const actor: ConversationMessageActor = {
+      identity: { kind: "external", externalActorId: "ext_label_less" },
+      interfaceType: "mcp",
+      role: "user",
+    };
+    const internal = projector as unknown as {
+      getActorsMentionedInText(
+        text: string,
+        actors: ConversationMessageActor[],
+      ): Array<{ identity: ConversationMessageActor["identity"] }>;
+    };
+
+    expect(
+      internal.getActorsMentionedInText(
+        "external:ext_label_less will update the checklist",
+        [actor],
+      ),
+    ).toEqual([{ identity: actor.identity }]);
   });
 
   it("projects a conversation summary from stored messages", async () => {

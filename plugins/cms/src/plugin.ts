@@ -74,7 +74,7 @@ export class CmsPlugin extends ServicePlugin<
     return createEditorRoutes({
       routePath: this.config.routePath,
       getContext: () => this.getContext(),
-      resolveAuthSession: hasAuthSession,
+      resolveAuthSession: hasAnchorAuthSession,
       getEntityDisplay: () =>
         (this.config.entityDisplay as CmsEntityDisplayMap | undefined) ??
         (this.getContext().entityDisplay as CmsEntityDisplayMap | undefined),
@@ -86,6 +86,7 @@ export function cmsPlugin(config: CmsPluginConfigInput = {}): CmsPlugin {
   return new CmsPlugin(config);
 }
 
-async function hasAuthSession(request: Request): Promise<boolean> {
-  return Boolean(await getActiveAuthService()?.getAuthSession(request));
+async function hasAnchorAuthSession(request: Request): Promise<boolean> {
+  const principal = await getActiveAuthService()?.resolveSession(request);
+  return principal?.permissionLevel === "anchor";
 }

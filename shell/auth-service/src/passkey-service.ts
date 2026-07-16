@@ -77,7 +77,7 @@ export class PasskeyService {
     context: WebAuthnRequestContext,
     user: PasskeyRegistrationUser,
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const existingCredentials = await this.store.listCredentials();
+    const existingCredentials = await this.store.listCredentials(user.subject);
     const userName = user.userName ?? DEFAULT_USER_NAME;
     const userDisplayName = user.userDisplayName ?? userName;
     const options = await generateRegistrationOptions({

@@ -179,11 +179,9 @@ export function registerToolOnServer(
       const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
       const verifiedSubject = extra.authInfo?.extra?.["subject"];
       const userId =
-        (typeof verifiedSubject === "string" && verifiedSubject.length > 0
+        typeof verifiedSubject === "string" && verifiedSubject.length > 0
           ? verifiedSubject
-          : undefined) ??
-        extra._meta?.["userId"] ??
-        "mcp-user";
+          : "mcp-user";
       const verifiedCanonicalId = extra.authInfo?.extra?.["canonicalId"];
       const canonicalId =
         typeof verifiedCanonicalId === "string" &&

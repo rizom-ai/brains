@@ -1,4 +1,8 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import { cmsPlugin } from "../src";
@@ -58,6 +62,34 @@ describe("cms plugin", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/login?return_to=%2Fcms");
+  });
+
+  it("does not grant CMS access to a non-Anchor session", async () => {
+    const shell = createCmsTestShell();
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
+    });
+    await authPlugin.register(shell);
+    const trusted = await authPlugin.getService().createUser({
+      displayName: "Trusted editor",
+      role: "trusted",
+    });
+    const session = await authPlugin
+      .getService()
+      .createAuthSession(trusted.userId);
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+
+    const request = new Request("https://yeehaa.io/cms", {
+      headers: { Cookie: session.cookie },
+    });
+    const [shellResponse, apiResponse] = await Promise.all([
+      findRoute(plugin.getWebRoutes(), "/cms").handler(request),
+      findRoute(plugin.getWebRoutes(), "/cms/api/types").handler(request),
+    ]);
+
+    expect(shellResponse.status).toBe(302);
+    expect(apiResponse.status).toBe(401);
   });
 
   it("respects a custom route path", async () => {

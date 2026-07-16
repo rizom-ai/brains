@@ -37,6 +37,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Restricted access");
     expect(html).toContain("1 private console widget is hidden.");
     expect(html).toContain('href="/login?return_to=%2Fdashboard"');
+    expect(html).not.toContain('href="#my-agents"');
   });
 
   it("should explain role-limited widgets without asking signed-in users to sign in again", () => {
@@ -102,6 +103,7 @@ describe("renderDashboardPageHtml", () => {
     const trustedHtml = renderDashboardPageHtml(trustedInput);
 
     expect(anchorHtml).toContain('href="#people"');
+    expect(anchorHtml).toContain('href="#my-agents"');
     expect(anchorHtml).toContain('data-people-list="true"');
     expect(anchorHtml).toContain('data-people-detail="true"');
     expect(anchorHtml).toContain('id="people-add-dialog"');
@@ -125,9 +127,14 @@ describe("renderDashboardPageHtml", () => {
     expect(anchorHtml).toContain("identity.evidence");
     expect(anchorHtml).toContain("Asserted — cannot authenticate");
     expect(anchorHtml).toContain("promoteAgentPerson");
+    expect(anchorHtml).toContain("linkAgentPerson");
+    expect(anchorHtml).toContain("Link an existing person");
     expect(anchorHtml).toContain("brains:agent-promote");
     expect(trustedHtml).not.toContain('href="#people"');
     expect(trustedHtml).not.toContain('data-people-list="true"');
+    expect(trustedHtml).toContain('href="#my-agents"');
+    expect(trustedHtml).toContain("/auth/representations");
+    expect(trustedHtml).toContain("acceptRepresentation");
   });
 
   it("should inject theme CSS before dashboard component styles", () => {

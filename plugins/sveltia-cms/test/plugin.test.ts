@@ -297,6 +297,40 @@ describe("cms plugin", () => {
     });
   });
 
+  it("does not release the passkey PAT to a non-Anchor session", async () => {
+    const shell = createCmsTestShell({ domain: "yeehaa.io" });
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
+    });
+    await authPlugin.register(shell);
+    const trusted = await authPlugin.getService().createUser({
+      displayName: "Trusted editor",
+      role: "trusted",
+    });
+    const session = await authPlugin
+      .getService()
+      .createAuthSession(trusted.userId);
+
+    const plugin = cmsPlugin({
+      passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
+    });
+    await plugin.register(shell);
+
+    const response = await findRoute(
+      plugin.getWebRoutes(),
+      "/auth/cms-token",
+      "POST",
+    ).handler(
+      new Request("https://yeehaa.io/auth/cms-token", {
+        method: "POST",
+        headers: { Cookie: session.cookie },
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "Anchor access required" });
+  });
+
   it("returns the passkey PAT with a valid auth session", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const authPlugin = new AuthServicePlugin({

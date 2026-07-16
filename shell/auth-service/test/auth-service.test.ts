@@ -755,13 +755,12 @@ describe("AuthService", () => {
       return { success: true, data: { status: "sent", deliveryId: "email_2" } };
     });
 
-    await secondHarness.installPlugin(
-      authServicePlugin({
-        storageDir,
-        issuer: "https://brain.example.com",
-        setupEmail: "user@example.com",
-      }),
-    );
+    const secondPlugin = authServicePlugin({
+      storageDir,
+      issuer: "https://brain.example.com",
+      setupEmail: "user@example.com",
+    });
+    await secondHarness.installPlugin(secondPlugin);
     await readyAuthPlugin(secondHarness);
 
     const secondResponse = await secondHarness.executeTool(
@@ -769,10 +768,17 @@ describe("AuthService", () => {
       {},
     );
     expectSuccess(secondResponse);
-    const secondSetup = setupRequiredToolDataSchema.parse(secondResponse.data);
+    expect(secondResponse.data).toEqual({
+      status: "unavailable",
+      reason: "Passkey setup URL is not available.",
+    });
 
     expect(secondNotifications).toHaveLength(0);
-    expect(secondSetup.setupUrl).not.toBe(firstSetup.setupUrl);
+    expect(
+      await secondPlugin
+        .getService()
+        .handleRequest(new Request(firstSetup.setupUrl)),
+    ).toMatchObject({ status: 200 });
   });
 
   it("persists hashed setup-token id and recipient — not raw values — at 0o600", async () => {

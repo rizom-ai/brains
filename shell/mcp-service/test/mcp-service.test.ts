@@ -214,7 +214,7 @@ describe("MCPService", () => {
       expect(mcpService.listToolsForPermissionLevel("trusted")).toHaveLength(1);
     });
 
-    it("should forward protocol metadata when executing a tool", async () => {
+    it("forwards channel metadata without trusting client user metadata", async () => {
       const tool: Tool = {
         name: "metadata_tool",
         description: "Metadata tool",
@@ -252,7 +252,7 @@ describe("MCPService", () => {
           progressToken: "progress-1",
           hasProgress: true,
           interfaceType: "matrix",
-          userId: "user-1",
+          userId: "mcp-user",
           channelId: "room-1",
           channelName: "Room One",
           userPermissionLevel: "anchor",

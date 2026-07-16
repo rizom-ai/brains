@@ -42,12 +42,20 @@ export interface ICanonicalIdentityService {
   ): Promise<ConversationMessageActor>;
 }
 
+const IDENTITY_CACHE_TTL_MS = 30_000;
+
+interface CachedIdentityResolution {
+  resolution: CanonicalIdentityResolution;
+  expiresAt: number;
+}
+
 export class CanonicalIdentityService implements ICanonicalIdentityService {
   private static instance: CanonicalIdentityService | null = null;
   private readonly logger: Logger;
   private resolver: CanonicalIdentityResolver | undefined;
   private links: CanonicalIdentityLink[] = [];
-  private actorIndex = new Map<string, CanonicalIdentityResolution>();
+  private actorIndex = new Map<string, CachedIdentityResolution>();
+  private negativeActorIndex = new Map<string, number>();
 
   public static getInstance(
     logger: Logger,
@@ -82,6 +90,7 @@ export class CanonicalIdentityService implements ICanonicalIdentityService {
   public async refreshCache(): Promise<void> {
     this.links = [];
     this.actorIndex = new Map();
+    this.negativeActorIndex = new Map();
     this.logger.debug("Canonical identity links refreshed", {
       linkCount: 0,
       actorCount: 0,
@@ -93,7 +102,14 @@ export class CanonicalIdentityService implements ICanonicalIdentityService {
   }
 
   public resolveActor(actor: ActorRef): CanonicalIdentityResolution | null {
-    return this.actorIndex.get(actorRefKey(actor)) ?? null;
+    const key = actorRefKey(actor);
+    const cached = this.actorIndex.get(key);
+    if (!cached) return null;
+    if (cached.expiresAt <= Date.now()) {
+      this.actorIndex.delete(key);
+      return null;
+    }
+    return cached.resolution;
   }
 
   public async enrichActor(
@@ -107,28 +123,54 @@ export class CanonicalIdentityService implements ICanonicalIdentityService {
     }
     const cachedResolution = this.resolveActor(actor.identity);
     if (cachedResolution) {
-      return {
-        ...actor,
-        identity: {
-          kind: "user",
-          userId: cachedResolution.userId,
-          canonicalId: cachedResolution.canonicalId,
-        },
-      };
+      return this.enrichedActor(actor, cachedResolution);
     }
-    const resolution = await this.resolver?.(actor.identity);
-    return resolution
-      ? {
-          ...actor,
-          identity: {
-            kind: "user",
-            userId: resolution.userId,
-            canonicalId: resolution.canonicalId,
-          },
-          ...(resolution.displayName
-            ? { displayName: resolution.displayName }
-            : {}),
-        }
-      : actor;
+
+    const key = actorRefKey(actor.identity);
+    const negativeExpiry = this.negativeActorIndex.get(key);
+    if (negativeExpiry && negativeExpiry > Date.now()) return actor;
+    this.negativeActorIndex.delete(key);
+
+    const lookup = await this.resolver?.(actor.identity);
+    if (!lookup) {
+      this.negativeActorIndex.set(key, Date.now() + IDENTITY_CACHE_TTL_MS);
+      return actor;
+    }
+
+    const matchedActor = {
+      identity: actor.identity,
+      ...(actor.displayName ? { label: actor.displayName } : {}),
+    } satisfies CanonicalIdentityActor;
+    const resolution = {
+      ...lookup,
+      actors: [matchedActor],
+      matchedActor,
+    } satisfies CanonicalIdentityResolution;
+    this.actorIndex.set(key, {
+      resolution,
+      expiresAt: Date.now() + IDENTITY_CACHE_TTL_MS,
+    });
+    this.links = [
+      ...this.links.filter((link) => link.userId !== resolution.userId),
+      resolution,
+    ];
+    return this.enrichedActor(actor, resolution);
+  }
+
+  private enrichedActor(
+    actor: ConversationMessageActor,
+    resolution: CanonicalIdentityResolution,
+  ): ConversationMessageActor {
+    return {
+      ...actor,
+      identity: {
+        kind: "user",
+        userId: resolution.userId,
+        canonicalId: resolution.canonicalId,
+      },
+      ...(resolution.displayName
+        ? { displayName: resolution.displayName }
+        : {}),
+    };
   }
 }

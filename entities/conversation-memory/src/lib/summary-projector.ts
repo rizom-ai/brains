@@ -563,7 +563,11 @@ export class SummaryProjector {
     for (const actor of actors) {
       const key = this.actorIdentityKey(actor);
       if (seen.has(key)) continue;
-      const labels = [actor.displayName, actor.username]
+      const labels = [
+        actor.displayName,
+        actor.username,
+        actorRefKey(actor.identity),
+      ]
         .filter((label): label is string => Boolean(label?.trim()))
         .map((label) => this.normalizeForAttribution(label));
       if (!labels.some((label) => normalizedText.includes(label))) continue;
@@ -671,7 +675,7 @@ export class SummaryProjector {
   ): boolean {
     const normalizedText = this.normalizeForAttribution(text);
     return actors.some((actor) => {
-      const labels = [actor.displayName]
+      const labels = [actor.displayName, actorRefKey(actor.identity)]
         .filter((label): label is string => Boolean(label?.trim()))
         .map((label) => this.normalizeForAttribution(label));
       return labels.some((label) => normalizedText.includes(label));

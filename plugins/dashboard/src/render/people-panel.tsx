@@ -104,8 +104,8 @@ export function PeoplePanel(): JSX.Element {
             <div class="eyebrow">Agent → user promotion</div>
             <h3>Grant represented person access</h3>
             <p>
-              Create an invited user from this agent’s represented person, then
-              send the one-time claim link privately.
+              Invite a new person or connect this agent to an existing person.
+              Existing-person links remain pending until that person consents.
             </p>
           </header>
           <div class="people-dialog-body">
@@ -115,10 +115,21 @@ export function PeoplePanel(): JSX.Element {
               <input name="agentId" type="hidden" />
             </label>
             <label>
+              <span>Access path</span>
+              <select name="accessPath" data-promote-access-path>
+                <option value="invite">Invite a new person</option>
+                <option value="link">Link an existing person</option>
+              </select>
+            </label>
+            <label data-promote-new-person>
               <span>Represented person</span>
               <input name="displayName" maxlength={200} required />
             </label>
-            <label>
+            <label data-promote-existing-person hidden>
+              <span>Existing person</span>
+              <select name="userId" disabled />
+            </label>
+            <label data-promote-new-person>
               <span>Initial role</span>
               <select name="role">
                 <option value="public">Public</option>
@@ -129,8 +140,8 @@ export function PeoplePanel(): JSX.Element {
               </select>
             </label>
             <p class="people-warning">
-              Agent assertions do not authenticate this person. Access activates
-              only after they register a passkey with the targeted claim link.
+              Agent assertions never authenticate a person. New access requires
+              a passkey; existing-person links require that person’s consent.
             </p>
           </div>
           <footer>
@@ -143,7 +154,7 @@ export function PeoplePanel(): JSX.Element {
               Cancel
             </button>
             <button class="people-button people-button--primary" type="submit">
-              Create invitation
+              Continue
             </button>
           </footer>
         </form>
@@ -283,6 +294,7 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
   var addDialog = document.getElementById("people-add-dialog");
   var identityDialog = document.getElementById("people-identity-dialog");
   var promoteAgentDialog = document.getElementById("people-promote-agent-dialog");
+  var promotionForm = panel.querySelector("[data-people-promote-agent-form]");
   var confirmDialog = document.getElementById("people-confirm-dialog");
   var setupDialog = document.getElementById("people-setup-dialog");
   var users = [];
@@ -601,12 +613,35 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
     }
   }
 
+  function syncPromotionAccessPath() {
+    var linksExisting = promotionForm.elements.accessPath.value === "link";
+    promotionForm.querySelectorAll("[data-promote-new-person]").forEach(function (field) {
+      field.hidden = linksExisting;
+      field.querySelectorAll("input, select").forEach(function (control) { control.disabled = linksExisting; });
+    });
+    var existingField = promotionForm.querySelector("[data-promote-existing-person]");
+    existingField.hidden = !linksExisting;
+    existingField.querySelector("select").disabled = !linksExisting;
+  }
+
+  promotionForm.elements.accessPath.addEventListener("change", syncPromotionAccessPath);
+
   window.addEventListener("brains:agent-promote", function (event) {
     if (!event.detail || !event.detail.agentId) return;
-    var form = panel.querySelector("[data-people-promote-agent-form]");
-    form.elements.agentId.value = event.detail.agentId;
-    form.elements.agentLabel.value = event.detail.displayName || event.detail.agentId;
-    form.elements.displayName.value = event.detail.displayName || "";
+    promotionForm.reset();
+    promotionForm.elements.agentId.value = event.detail.agentId;
+    promotionForm.elements.agentLabel.value = event.detail.displayName || event.detail.agentId;
+    promotionForm.elements.displayName.value = event.detail.displayName || "";
+    var existingSelect = promotionForm.elements.userId;
+    existingSelect.replaceChildren();
+    users.forEach(function (user) {
+      var option = document.createElement("option");
+      option.value = user.userId;
+      option.textContent = user.displayName + " · " + roleLabel(user.role) + " · " + roleLabel(user.status);
+      option.selected = user.userId === selectedUserId;
+      existingSelect.append(option);
+    });
+    syncPromotionAccessPath();
     promoteAgentDialog.showModal();
   });
 
@@ -634,11 +669,26 @@ export const DASHBOARD_PEOPLE_SCRIPT = `(function () {
     } catch (error) { setFeedback(error.message, "error"); }
   });
 
-  panel.querySelector("[data-people-promote-agent-form]").addEventListener("submit", async function (event) {
+  promotionForm.addEventListener("submit", async function (event) {
     event.preventDefault();
     var form = event.currentTarget;
     var formData = new FormData(form);
     try {
+      if (formData.get("accessPath") === "link") {
+        var userId = String(formData.get("userId") || "");
+        await mutate({
+          action: "linkAgentPerson",
+          confirmation: "linkAgentPerson",
+          agentId: String(formData.get("agentId") || ""),
+          userId: userId
+        });
+        promoteAgentDialog.close("confirm");
+        form.reset();
+        await loadUsers(userId);
+        setFeedback("Representation request created", "good");
+        return;
+      }
+
       var result = await mutate({
         action: "promoteAgentPerson",
         confirmation: "promoteAgentPerson",

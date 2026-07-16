@@ -103,6 +103,32 @@ describe("DashboardPlugin", () => {
       expect(response?.status).toBe(401);
     });
 
+    it("should require Anchor access for the console jump", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-jump-trusted-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const trusted = await authPlugin.getService().createUser({
+        displayName: "Trusted user",
+        role: "trusted",
+      });
+      const session = await authPlugin
+        .getService()
+        .createAuthSession(trusted.userId);
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+      const route = plugin
+        .getWebRoutes()
+        .find((r) => r.path === "/api/console/jump");
+
+      const response = await route?.handler(
+        new Request("http://brain/api/console/jump?q=system", {
+          headers: { Cookie: cookie },
+        }),
+      );
+
+      expect(response?.status).toBe(403);
+    });
+
     it("should return grouped jump doors for an authenticated user", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: `/tmp/dashboard-jump-auth-${Date.now()}`,
