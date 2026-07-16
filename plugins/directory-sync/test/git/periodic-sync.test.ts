@@ -16,6 +16,17 @@ const emptyBatchResult: BatchResult = {
   totalFiles: 3,
 };
 
+function deferred(): {
+  promise: Promise<void>;
+  resolve(): void;
+} {
+  let settle: (() => void) | undefined;
+  const promise = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: (): void => settle?.() };
+}
+
 describe("setupPeriodicGitSync", () => {
   let cleanup: (() => void) | undefined;
 
@@ -23,10 +34,30 @@ describe("setupPeriodicGitSync", () => {
     cleanup?.();
   });
 
-  it("should call pull and queueSyncBatch on each interval", async () => {
-    const pullMock = mock(
-      async (): Promise<PullResult> => ({ files: ["a.md"] }),
+  it("should wait one complete interval before the first cycle", async () => {
+    const pullMock = mock(async (): Promise<PullResult> => ({
+      files: ["a.md"],
+    }));
+
+    cleanup = setupPeriodicGitSync(
+      createMockGitSync({ pull: pullMock }),
+      createMockDirectorySync(),
+      createMockServicePluginContext(),
+      0.002,
+      createSilentLogger(),
     );
+
+    expect(pullMock).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(pullMock).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(pullMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should call pull and queueSyncBatch on each interval", async () => {
+    const pullMock = mock(async (): Promise<PullResult> => ({
+      files: ["a.md"],
+    }));
     const queueSyncBatchMock = mock(
       async (): Promise<BatchResult | null> => emptyBatchResult,
     );
@@ -123,6 +154,38 @@ describe("setupPeriodicGitSync", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     expect(pullMock.mock.calls.length).toBe(callsBefore);
+  });
+
+  it("currently returns from cleanup before an active cycle settles", async () => {
+    const pullStarted = deferred();
+    const releasePull = deferred();
+    const cycleFinished = deferred();
+    const queueSyncBatchMock = mock(async (): Promise<BatchResult | null> => {
+      cycleFinished.resolve();
+      return emptyBatchResult;
+    });
+
+    cleanup = setupPeriodicGitSync(
+      createMockGitSync({
+        pull: mock(async (): Promise<PullResult> => {
+          pullStarted.resolve();
+          await releasePull.promise;
+          return { files: ["a.md"] };
+        }),
+      }),
+      createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
+      createMockServicePluginContext(),
+      0.001,
+      createSilentLogger(),
+    );
+
+    await pullStarted.promise;
+    cleanup();
+    expect(queueSyncBatchMock).not.toHaveBeenCalled();
+
+    releasePull.resolve();
+    await cycleFinished.promise;
+    expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
   });
 
   it("should not overlap cycles", async () => {

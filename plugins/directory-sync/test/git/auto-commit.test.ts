@@ -9,6 +9,17 @@ import { createMockGitSync } from "../fixtures";
  * Minimal messaging mock that wires subscribe → send.
  * Calling send(channel, payload) invokes all handlers for that channel.
  */
+function deferred(): {
+  promise: Promise<void>;
+  resolve(): void;
+} {
+  let settle: (() => void) | undefined;
+  const promise = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: (): void => settle?.() };
+}
+
 function createTestMessaging(): {
   messaging: ServicePluginContext["messaging"];
   channels: string[];
@@ -137,6 +148,46 @@ describe("setupGitAutoCommit", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     expect(commitMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("currently returns from cleanup before an active commit and push settle", async () => {
+    const { messaging } = createTestMessaging();
+    const commitStarted = deferred();
+    const releaseCommit = deferred();
+    const pushFinished = deferred();
+    const activePush = mock(async (): Promise<void> => {
+      pushFinished.resolve();
+    });
+    const activeGit = createMockGitSync({
+      commit: mock(async (): Promise<void> => {
+        commitStarted.resolve();
+        await releaseCommit.promise;
+      }),
+      push: activePush,
+    });
+    const cleanup = setupGitAutoCommit(
+      messaging,
+      activeGit,
+      10,
+      createSilentLogger(),
+    );
+
+    await messaging.send({
+      type: "entity:created",
+      payload: {
+        entity: {},
+        entityType: "post",
+        entityId: "1",
+      },
+    });
+    await commitStarted.promise;
+
+    cleanup();
+    expect(activePush).not.toHaveBeenCalled();
+
+    releaseCommit.resolve();
+    await pushFinished.promise;
+    expect(activePush).toHaveBeenCalledTimes(1);
   });
 
   it("should batch rapid events into one commit", async () => {
