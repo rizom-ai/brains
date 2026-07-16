@@ -12,6 +12,15 @@ interface DirectorySyncRuntimeOptions {
   clock?: Clock.Clock | undefined;
 }
 
+/** Minimal stable scheduling surface used by one-time subscriptions. @internal */
+export interface DirectorySyncScheduler {
+  scheduleTrailing(
+    key: string,
+    delayMs: number,
+    operation: () => Promise<void>,
+  ): void;
+}
+
 /** Owns directory-sync resources and supervised background work. @internal */
 export class DirectorySyncRuntime {
   private readonly resourceScope: Scope.CloseableScope;

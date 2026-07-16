@@ -1,7 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { IGitSync } from "../types";
-import type { DirectorySyncRuntime } from "./directory-sync-runtime";
+import type { DirectorySyncScheduler } from "./directory-sync-runtime";
 
 const AUTO_COMMIT_KEY = "git-auto-commit";
 
@@ -14,12 +14,15 @@ const AUTO_COMMIT_KEY = "git-auto-commit";
  */
 export function setupGitAutoCommit(
   messaging: ServicePluginContext["messaging"],
-  git: IGitSync,
+  gitSync: IGitSync | (() => IGitSync),
   debounceMs: number,
   logger: Logger,
-  runtime: DirectorySyncRuntime,
+  runtime: DirectorySyncScheduler,
 ): void {
+  const getGitSync =
+    typeof gitSync === "function" ? gitSync : (): IGitSync => gitSync;
   const commitAndPush = async (): Promise<void> => {
+    const git = getGitSync();
     try {
       await git.withLock(async () => {
         await git.commit();

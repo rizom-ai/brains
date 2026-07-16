@@ -14,7 +14,7 @@ const jobDataSchema = z.record(z.string(), z.unknown());
  */
 export function setupAutoSync(
   context: ServicePluginContext,
-  directorySync: DirectorySync,
+  getDirectorySync: () => DirectorySync,
   logger: Logger,
   entityTypes: DirectorySyncConfig["entityTypes"],
 ): void {
@@ -27,7 +27,7 @@ export function setupAutoSync(
       const { entity } = message.payload;
 
       try {
-        await directorySync.fileOps.writeEntity(entity);
+        await getDirectorySync().fileOps.writeEntity(entity);
         logger.debug("Auto-exported created entity", {
           id: entity.id,
           entityType: entity.entityType,
@@ -63,7 +63,7 @@ export function setupAutoSync(
           return { success: false };
         }
 
-        await directorySync.fileOps.writeEntity(currentEntity);
+        await getDirectorySync().fileOps.writeEntity(currentEntity);
         logger.debug("Auto-exported updated entity", {
           id: currentEntity.id,
           entityType: currentEntity.entityType,
@@ -85,7 +85,10 @@ export function setupAutoSync(
     async (message) => {
       const { entityId, entityType } = message.payload;
 
-      const filePath = directorySync.fileOps.getFilePath(entityId, entityType);
+      const filePath = getDirectorySync().fileOps.getFilePath(
+        entityId,
+        entityType,
+      );
       const exists = await access(filePath).then(
         () => true,
         () => false,

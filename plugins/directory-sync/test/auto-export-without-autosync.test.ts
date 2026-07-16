@@ -40,9 +40,12 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
  */
 describe("auto-export without autoSync", () => {
   let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
+  let plugin: DirectorySyncPlugin;
   let syncPath: string;
+  let replacementPath: string | undefined;
 
   beforeEach(async () => {
+    replacementPath = undefined;
     syncPath = join(tmpdir(), `test-auto-export-${Date.now()}`);
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
 
@@ -53,7 +56,7 @@ describe("auto-export without autoSync", () => {
       new TestAdapter(),
     );
 
-    const plugin = new DirectorySyncPlugin({
+    plugin = new DirectorySyncPlugin({
       syncPath,
       autoSync: false,
       initialSync: false,
@@ -66,6 +69,9 @@ describe("auto-export without autoSync", () => {
     harness.reset();
     if (existsSync(syncPath)) {
       rmSync(syncPath, { recursive: true, force: true });
+    }
+    if (replacementPath && existsSync(replacementPath)) {
+      rmSync(replacementPath, { recursive: true, force: true });
     }
   });
 
@@ -112,6 +118,27 @@ describe("auto-export without autoSync", () => {
 
     const filePath = join(syncPath, "updated-note.md");
     expect(existsSync(filePath)).toBe(true);
+  });
+
+  it("resolves the replacement path after reconfiguration", async () => {
+    replacementPath = join(
+      tmpdir(),
+      `test-auto-export-replacement-${Date.now()}`,
+    );
+    await plugin.configure({ syncPath: replacementPath });
+    const entity = createTestEntity("note", {
+      id: "replacement-note",
+      content: "---\n---\nReplacement content",
+    });
+
+    await harness.sendMessage(
+      "entity:created",
+      { entity, entityType: "note", entityId: "replacement-note" },
+      "test",
+    );
+
+    expect(existsSync(join(replacementPath, "replacement-note.md"))).toBe(true);
+    expect(existsSync(join(syncPath, "replacement-note.md"))).toBe(false);
   });
 
   it("should delete entity file when entity:deleted fires", async () => {

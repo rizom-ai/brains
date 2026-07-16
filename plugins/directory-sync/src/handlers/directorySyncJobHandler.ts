@@ -17,20 +17,20 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   DirectorySyncJobData,
   SyncResult
 > {
-  private directorySync: IDirectorySync;
+  private readonly getDirectorySync: () => IDirectorySync;
   private context: ServicePluginContext;
 
   constructor(
     logger: Logger,
     context: ServicePluginContext,
-    directorySync: IDirectorySync,
+    getDirectorySync: () => IDirectorySync,
   ) {
     super(logger, {
       schema: directorySyncJobSchema,
       jobTypeName: "directory-sync",
     });
     this.context = context;
-    this.directorySync = directorySync;
+    this.getDirectorySync = getDirectorySync;
   }
 
   async process(
@@ -40,6 +40,7 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   ): Promise<SyncResult> {
     const startTime = Date.now();
     const syncDirection = data.syncDirection ?? "both";
+    const directorySync = this.getDirectorySync();
 
     this.logger.info("Starting directory sync job", {
       jobId,
@@ -70,6 +71,7 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
       });
 
       importResult = await this.importWithProgress(
+        directorySync,
         data.paths,
         progressReporter,
       );
@@ -101,6 +103,7 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
       });
 
       exportResult = await this.exportWithProgress(
+        directorySync,
         data.entityTypes,
         progressReporter,
       );
@@ -131,11 +134,12 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   }
 
   private async importWithProgress(
+    directorySync: IDirectorySync,
     paths: string[] | undefined,
     reporter: ProgressReporter,
   ): Promise<ImportResult> {
     try {
-      return await this.directorySync.importEntitiesWithProgress(
+      return await directorySync.importEntitiesWithProgress(
         paths,
         reporter,
         10, // Default batch size
@@ -147,11 +151,12 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   }
 
   private async exportWithProgress(
+    directorySync: IDirectorySync,
     entityTypes: string[] | undefined,
     reporter: ProgressReporter,
   ): Promise<ExportResult> {
     try {
-      return await this.directorySync.exportEntitiesWithProgress(
+      return await directorySync.exportEntitiesWithProgress(
         entityTypes,
         reporter,
         10, // Default batch size

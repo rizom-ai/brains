@@ -18,6 +18,7 @@ export function registerDirectorySyncJobHandlers(
   context: ServicePluginContext,
   directorySync: IDirectorySync,
   logger: Logger,
+  getDirectorySync: () => IDirectorySync = () => directorySync,
 ): void {
   const childLogger = (name: string): Logger => logger.child(name);
 
@@ -26,7 +27,7 @@ export function registerDirectorySyncJobHandlers(
     new DirectorySyncJobHandler(
       childLogger("DirectorySyncJobHandler"),
       context,
-      directorySync,
+      getDirectorySync,
     ),
   );
   context.jobs.registerHandler(

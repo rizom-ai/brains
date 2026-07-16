@@ -2,20 +2,21 @@
 
 ## Status
 
-Partial. Phases 1 and 2 are implemented; Phase 3 is queued after the active directory-sync lifecycle plan. The shared shell lifecycle and ownership prerequisite is complete on `main`; all follow-up conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
+Partial. Phases 1 and 2 and the separate directory-sync lifecycle slice are implemented. Phase 3 media-renderer scoping remains. The shared shell lifecycle and ownership prerequisite is complete on `main`; all follow-up conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
 
-Together with [directory-sync-effect-lifecycle.md](./directory-sync-effect-lifecycle.md), this plan records the concrete remaining follow-up scope from the repo-wide lifecycle sweep. The previously deferred MCP HTTP eviction timer was converted after a focused ownership audit exposed constructor-failure leakage and detached transport closes; newly discovered candidates still require their own audit rather than automatic conversion.
+This plan records the concrete remaining follow-up scope from the repo-wide lifecycle sweep. The previously deferred MCP HTTP eviction timer was converted after a focused ownership audit exposed constructor-failure leakage and detached transport closes; newly discovered candidates still require their own audit rather than automatic conversion.
 
 Explicitly excluded:
 
-- Everything the completed shell lifecycle work already converted: job-queue worker and batch cleanup, entity-service index polling, ai-service `ActiveTurnSupervisor`, the message-interface `KeyedCleanupSupervisor`, plugin resource scopes, the shell bootloader's index-readiness monitor (now a lifecycle-forked Effect), and conversation-actor eviction (now a `FiberMap` supervisor).
-  The MCP HTTP transport remains outside the numbered delivery phases, but its opportunistic lifecycle conversion is now complete and recorded below.
+- Everything the completed shell and directory-sync lifecycle work already converted: job-queue worker and batch cleanup, entity-service index polling, ai-service `ActiveTurnSupervisor`, the message-interface `KeyedCleanupSupervisor`, plugin resource scopes, the shell bootloader's index-readiness monitor, conversation-actor eviction, directory watchers/debounce, periodic Git cancellation, auto-commit draining, and import-job polling.
+
+The MCP HTTP transport remains outside the numbered delivery phases, but its opportunistic lifecycle conversion is now complete and recorded below.
 
 ## Goal
 
 Give each package explicit ownership of its background work: scheduled cycles, streaming turns, and browser processes must be supervised, drain or cancel on shutdown according to an explicit policy, and never outlive their owner silently.
 
-Public contracts stay Promise-based. Cancellation crosses package boundaries only as `AbortSignal`; Effect remains an internal control-plane detail. Same boundary rules as the directory-sync plan: import only through `@brains/utils/effect`, never expose Effect, Scope, Fiber, Layer, Clock, or Cause from package exports, no Effect Schema or Layer.
+Public contracts stay Promise-based. Cancellation crosses package boundaries only as `AbortSignal`; Effect remains an internal control-plane detail. Import only through `@brains/utils/effect`; never expose Effect, Scope, Fiber, Layer, Clock, or Cause from package exports; add no Effect Schema or Layer.
 
 ## Why these packages
 
@@ -58,7 +59,7 @@ Keep croner as the trigger source (cron parsing and `validateCron` are its value
 
 Inside `CronerBackend`, run each callback in a keyed supervised fiber (`FiberMap` keyed by job, following `KeyedCleanupSupervisor`):
 
-- Non-overlap per job: if the previous cycle for a key is still active when the trigger fires, skip the firing and log it. This matches the periodic-git-sync policy in the directory-sync plan.
+- Non-overlap per job: if the previous cycle for a key is still active when the trigger fires, skip the firing and log it. This matches the established directory-sync periodic Git policy.
 - `stop()` prevents new firings, then drains the active cycle rather than interrupting it — a publish is a remote mutation, same drain-don't-interrupt policy as git commit/push.
 - The 1-second immediate interval becomes a supervised Effect schedule with an injectable `Clock`.
 

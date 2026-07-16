@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
@@ -97,7 +97,7 @@ describe("directory-sync lifecycle characterization", () => {
     expect((await directorySync.getStatus()).watching).toBe(false);
   });
 
-  it("currently leaves installed tools bound to the old path after reconfiguration", async () => {
+  it("keeps installed tools bound to the active path after reconfiguration", async () => {
     const originalPath = createPath("original");
     const replacementPath = createPath("replacement");
     const harness = createPluginHarness<DirectorySyncPlugin>({
@@ -117,6 +117,65 @@ describe("directory-sync lifecycle characterization", () => {
     expect(plugin.getDirectorySync()).not.toBe(originalService);
     const result = await harness.executeTool("directory-sync_status");
     expectSuccess(result);
+    expect(result.data).toMatchObject({ syncPath: replacementPath });
+  });
+
+  it("keeps the old generation active when candidate initialization fails", async () => {
+    const originalPath = createPath("rollback-original");
+    const invalidPath = createPath("rollback-invalid");
+    writeFileSync(invalidPath, "not a directory");
+    const harness = createPluginHarness<DirectorySyncPlugin>({
+      dataDir: originalPath,
+    });
+    const plugin = new DirectorySyncPlugin({
+      syncPath: originalPath,
+      autoSync: true,
+      initialSync: false,
+    });
+    plugins.push(plugin);
+
+    await harness.installPlugin(plugin);
+    await plugin.ready();
+    const originalService = plugin.getDirectorySync();
+    if (!originalService) throw new Error("DirectorySync not initialized");
+    try {
+      await plugin.configure({ syncPath: invalidPath });
+      throw new Error("Expected candidate initialization failure");
+    } catch {
+      // The candidate must fail without replacing the active generation.
+    }
+
+    expect(plugin.getDirectorySync()).toBe(originalService);
+    expect((await originalService.getStatus()).watching).toBe(true);
+    const result = await harness.executeTool("directory-sync_status");
+    expectSuccess(result);
     expect(result.data).toMatchObject({ syncPath: originalPath });
+  });
+
+  it("closes the old watcher before publishing the replacement", async () => {
+    const originalPath = createPath("watcher-original");
+    const replacementPath = createPath("watcher-replacement");
+    const harness = createPluginHarness<DirectorySyncPlugin>({
+      dataDir: originalPath,
+    });
+    const plugin = new DirectorySyncPlugin({
+      syncPath: originalPath,
+      autoSync: true,
+      initialSync: false,
+    });
+    plugins.push(plugin);
+
+    await harness.installPlugin(plugin);
+    await plugin.ready();
+    const originalService = plugin.getDirectorySync();
+    if (!originalService) throw new Error("DirectorySync not initialized");
+    expect((await originalService.getStatus()).watching).toBe(true);
+
+    await plugin.configure({ syncPath: replacementPath });
+    const replacementService = plugin.getDirectorySync();
+    if (!replacementService) throw new Error("Replacement not initialized");
+
+    expect((await originalService.getStatus()).watching).toBe(false);
+    expect((await replacementService.getStatus()).watching).toBe(true);
   });
 });

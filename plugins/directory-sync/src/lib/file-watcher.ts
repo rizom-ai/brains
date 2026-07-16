@@ -1,6 +1,8 @@
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import type { Logger } from "@brains/utils/logger";
+import { Cause, Effect, Exit, FiberMap, Scope } from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
 import { isImageFile } from "./image-file-utils";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 
@@ -28,6 +30,7 @@ export interface FileWatcherOptions {
   watchInterval: number;
   logger: Logger;
   onFileChange?: ((event: string, path: string) => Promise<void>) | undefined;
+  clock?: Clock.Clock | undefined;
 }
 
 /**
@@ -37,7 +40,9 @@ export class FileWatcher {
   private watcher?: FSWatcher | undefined;
   private watchCallback?: ((event: string, path: string) => void) | undefined;
   private pendingChanges = new Map<string, string>();
-  private batchTimeout?: NodeJS.Timeout | undefined;
+  private readonly delayScope: Scope.CloseableScope;
+  private readonly delayedBatches: FiberMap.FiberMap<string, void, never>;
+  private readonly clock: Clock.Clock | undefined;
   private readonly activeCallbacks = new Set<Promise<void>>();
   private stopPromise: Promise<void> | null = null;
   private stopping = false;
@@ -52,6 +57,11 @@ export class FileWatcher {
     this.watchInterval = options.watchInterval;
     this.logger = options.logger;
     this.onFileChange = options.onFileChange;
+    this.clock = options.clock;
+    this.delayScope = Effect.runSync(Scope.make());
+    this.delayedBatches = Effect.runSync(
+      Scope.extend(FiberMap.make<string, void, never>(), this.delayScope),
+    );
   }
 
   async start(): Promise<void> {
@@ -112,13 +122,11 @@ export class FileWatcher {
     const watcher = this.watcher;
     this.watcher = undefined;
 
-    if (this.batchTimeout) {
-      clearTimeout(this.batchTimeout);
-      this.batchTimeout = undefined;
-    }
+    const closeDelay = this.closeDelayScope();
     this.pendingChanges.clear();
 
     const cleanup = [
+      closeDelay,
       ...(watcher ? [watcher.close()] : []),
       ...this.activeCallbacks,
     ];
@@ -163,18 +171,17 @@ export class FileWatcher {
     const relativePath = toSyncRelativePath(this.syncPath, path);
     this.pendingChanges.set(relativePath, event);
 
-    if (this.batchTimeout) {
-      clearTimeout(this.batchTimeout);
-    }
-
-    this.batchTimeout = setTimeout(() => {
-      const callback = this.processPendingChanges();
-      this.activeCallbacks.add(callback);
-      void callback.then(
-        () => this.activeCallbacks.delete(callback),
-        () => this.activeCallbacks.delete(callback),
-      );
-    }, 500);
+    const delayedBatch = Effect.sleep(500).pipe(
+      Effect.andThen(Effect.sync(() => this.startPendingProcessing())),
+    );
+    const ownedDelay = this.clock
+      ? Effect.withClock(delayedBatch, this.clock)
+      : delayedBatch;
+    FiberMap.unsafeSet(
+      this.delayedBatches,
+      "file-change-batch",
+      Effect.runFork(ownedDelay),
+    );
   }
 
   private async processPendingChanges(): Promise<void> {
@@ -184,7 +191,6 @@ export class FileWatcher {
 
     const changes = new Map(this.pendingChanges);
     this.pendingChanges.clear();
-    this.batchTimeout = undefined;
 
     this.logger.debug("Processing batched file changes", {
       changeCount: changes.size,
@@ -205,6 +211,24 @@ export class FileWatcher {
         });
       }
     }
+  }
+
+  private startPendingProcessing(): void {
+    if (this.stopping) return;
+
+    const callback = this.processPendingChanges();
+    this.activeCallbacks.add(callback);
+    void callback.then(
+      () => this.activeCallbacks.delete(callback),
+      () => this.activeCallbacks.delete(callback),
+    );
+  }
+
+  private async closeDelayScope(): Promise<void> {
+    const result = await Effect.runPromiseExit(
+      Scope.close(this.delayScope, Exit.void),
+    );
+    if (Exit.isFailure(result)) throw Cause.squash(result.cause);
   }
 
   isWatching(): boolean {
