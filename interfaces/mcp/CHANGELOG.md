@@ -1,5 +1,17 @@
 # @brains/mcp
 
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- [`2707db8`](https://github.com/rizom-ai/brains/commit/2707db83205ddcc44d1186499ae3b5db2b4e6e30) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Supervise MCP HTTP idle-session eviction with a scoped Effect schedule, validate before acquisition, and drain admitted transport closes during shutdown.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.188
+  - @brains/auth-service@0.2.0-alpha.188
+  - @brains/mcp-service@0.2.0-alpha.188
+  - @brains/plugins@0.2.0-alpha.188
+
 ## 0.2.0-alpha.187
 
 ### Patch Changes

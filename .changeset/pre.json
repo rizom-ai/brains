@@ -236,6 +236,7 @@
     "local-auth-issuer-defaults",
     "mcp-auth-token-local-override",
     "mcp-forwarded-resource-metadata",
+    "mcp-http-effect-lifecycle",
     "model-safe-attachment-tools",
     "native-file-chat-attachments",
     "node24-action-upgrades",

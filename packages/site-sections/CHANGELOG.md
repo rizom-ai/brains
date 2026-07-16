@@ -1,5 +1,12 @@
 # @rizom/site-sections
 
+## 0.2.0-alpha.188
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/site@0.2.0-alpha.188
+
 ## 0.2.0-alpha.187
 
 ### Patch Changes
