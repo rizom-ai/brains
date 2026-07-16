@@ -45,8 +45,8 @@ export class GitSync implements IGitSync {
    * Serialize git operations — prevents auto-commit and periodic-sync
    * from racing each other on commit/push/pull.
    */
-  withLock<T>(fn: () => Promise<T>): Promise<T> {
-    return this.lock.run(fn);
+  withLock<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+    return this.lock.run(fn, signal);
   }
 
   constructor(options: GitSyncOptions) {
@@ -103,12 +103,12 @@ export class GitSync implements IGitSync {
     await commitGitChanges(this.git, this.logger, message);
   }
 
-  async push(): Promise<void> {
-    await pushGitChanges(this.logger, this.branch, this.net);
+  async push(signal?: AbortSignal): Promise<void> {
+    await pushGitChanges(this.logger, this.branch, this.net, signal);
   }
 
-  async pull(): Promise<PullResult> {
-    return pullGitChanges(this.git, this.logger, this.branch, this.net);
+  async pull(signal?: AbortSignal): Promise<PullResult> {
+    return pullGitChanges(this.git, this.logger, this.branch, this.net, signal);
   }
 
   async log(filePath: string, limit?: number): Promise<GitLogEntry[]> {

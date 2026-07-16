@@ -147,7 +147,10 @@ export function createMockDirectorySync(
 
 export function createMockGitSync(overrides: Partial<IGitSync> = {}): IGitSync {
   const base: IGitSync = {
-    withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
+    withLock: <T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> => {
+      signal?.throwIfAborted();
+      return fn();
+    },
     initialize: mock(async () => {}),
     hasRemote: () => true,
     getStatus: mock(async () => ({

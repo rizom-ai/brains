@@ -16,21 +16,28 @@ interface DirectorySyncRuntimeOptions {
 export class DirectorySyncRuntime {
   private readonly resourceScope: Scope.CloseableScope;
   private readonly scheduleScope: Scope.CloseableScope;
+  private readonly periodicScope: Scope.CloseableScope;
   private readonly delayScope: Scope.CloseableScope;
   private readonly scheduleFibers: FiberSet.FiberSet<void, never>;
+  private readonly periodicFibers: FiberMap.FiberMap<number, void, unknown>;
   private readonly delayedFibers: FiberMap.FiberMap<string, void, never>;
   private readonly clock: Clock.Clock | undefined;
   private readonly activeOperations = new Set<Promise<void>>();
   private readonly activeFailures: unknown[] = [];
+  private nextPeriodicId = 0;
   private closePromise: Promise<void> | null = null;
   private closed = false;
 
   constructor(options: DirectorySyncRuntimeOptions = {}) {
     this.resourceScope = Effect.runSync(Scope.make());
     this.scheduleScope = Effect.runSync(Scope.make());
+    this.periodicScope = Effect.runSync(Scope.make());
     this.delayScope = Effect.runSync(Scope.make());
     this.scheduleFibers = Effect.runSync(
       Scope.extend(FiberSet.make<void, never>(), this.scheduleScope),
+    );
+    this.periodicFibers = Effect.runSync(
+      Scope.extend(FiberMap.make<number, void, unknown>(), this.periodicScope),
     );
     this.delayedFibers = Effect.runSync(
       Scope.extend(FiberMap.make<string, void, never>(), this.delayScope),
@@ -56,19 +63,32 @@ export class DirectorySyncRuntime {
     return result.value;
   }
 
-  /** Start one fixed-cadence schedule whose active callback is drained on close. */
-  schedulePeriodic(intervalMs: number, operation: () => Promise<void>): void {
+  /** Start one fixed-cadence schedule with one cancellable active callback. */
+  schedulePeriodic(
+    intervalMs: number,
+    operation: (signal: AbortSignal) => Promise<void>,
+  ): void {
     if (this.closed) return;
     if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
       throw new Error("Periodic interval must be a positive finite number");
     }
 
-    let running = false;
+    const key = this.nextPeriodicId++;
     const trigger = (): void => {
-      if (this.closed || running) return;
-      running = true;
-      this.trackActive(operation, () => {
-        running = false;
+      if (this.closed || FiberMap.unsafeHas(this.periodicFibers, key)) return;
+
+      const active = Effect.tryPromise({
+        try: operation,
+        catch: (error) => error,
+      }).pipe(
+        Effect.catchAll((error) =>
+          Effect.sync(() => {
+            this.activeFailures.push(error);
+          }),
+        ),
+      );
+      FiberMap.unsafeSet(this.periodicFibers, key, Effect.runFork(active), {
+        onlyIfMissing: true,
       });
     };
     const schedule = Effect.sleep(intervalMs).pipe(
@@ -109,10 +129,7 @@ export class DirectorySyncRuntime {
     return this.closePromise;
   }
 
-  private trackActive(
-    operation: () => Promise<void>,
-    onSettled: () => void = () => {},
-  ): void {
+  private trackActive(operation: () => Promise<void>): void {
     if (this.closed) return;
 
     let active: Promise<void>;
@@ -128,7 +145,6 @@ export class DirectorySyncRuntime {
       })
       .finally(() => {
         this.activeOperations.delete(tracked);
-        onSettled();
       });
     this.activeOperations.add(tracked);
   }
@@ -144,6 +160,7 @@ export class DirectorySyncRuntime {
     };
 
     await settle(() => this.closeScope(this.scheduleScope));
+    await settle(() => this.closeScope(this.periodicScope));
     await settle(() => this.closeScope(this.delayScope));
     await settle(() => this.closeScope(this.resourceScope));
 

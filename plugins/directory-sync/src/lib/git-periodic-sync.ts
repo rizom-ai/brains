@@ -21,10 +21,11 @@ export function setupPeriodicGitSync(
   if (intervalMinutes <= 0) return;
 
   const intervalMs = intervalMinutes * 60 * 1000;
-  const cycle = async (): Promise<void> => {
+  const cycle = async (signal: AbortSignal): Promise<void> => {
     try {
       const { files, result } = await gitSync.withLock(async () => {
-        const pullResult = await gitSync.pull();
+        const pullResult = await gitSync.pull(signal);
+        signal.throwIfAborted();
         if (pullResult.files.length === 0) {
           return { files: [], result: null };
         }
@@ -33,7 +34,7 @@ export function setupPeriodicGitSync(
           "periodic-sync",
         );
         return { files: pullResult.files, result: batchResult };
-      });
+      }, signal);
 
       if (files.length > 0) {
         logger.info("Periodic sync: pulled changes", {
@@ -48,7 +49,9 @@ export function setupPeriodicGitSync(
         });
       }
     } catch (error) {
-      logger.error("Periodic git sync failed", { error });
+      if (!signal.aborted) {
+        logger.error("Periodic git sync failed", { error });
+      }
     }
   };
 

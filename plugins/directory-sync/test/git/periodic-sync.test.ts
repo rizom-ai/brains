@@ -159,21 +159,32 @@ describe("setupPeriodicGitSync", () => {
     );
   });
 
-  it("stops future cycles and drains an active cycle on close", async () => {
+  it("stops future cycles and aborts an active pull on close", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
         const clock = yield* TestClock.testClock();
         const runtime = new DirectorySyncRuntime({ clock });
         const pullStarted = deferred();
-        const releasePull = deferred();
+        const pullAborted = deferred();
         const queueSyncBatchMock = mock(
           async (): Promise<BatchResult | null> => emptyBatchResult,
         );
-        const pullMock = mock(async (): Promise<PullResult> => {
-          pullStarted.resolve();
-          await releasePull.promise;
-          return { files: ["a.md"] };
-        });
+        let abortReason: unknown;
+        const pullMock = mock(
+          async (signal?: AbortSignal): Promise<PullResult> => {
+            if (!signal) throw new Error("Expected periodic pull signal");
+            pullStarted.resolve();
+            return new Promise<PullResult>((_resolve, reject) => {
+              const onAbort = (): void => {
+                abortReason = signal.reason;
+                pullAborted.resolve();
+                reject(signal.reason);
+              };
+              signal.addEventListener("abort", onAbort, { once: true });
+              if (signal.aborted) onAbort();
+            });
+          },
+        );
 
         setupPeriodicGitSync(
           createMockGitSync({ pull: pullMock }),
@@ -186,16 +197,10 @@ describe("setupPeriodicGitSync", () => {
         yield* TestClock.adjust(60);
         yield* Effect.promise(() => pullStarted.promise);
 
-        let closeSettled = false;
-        const closing = runtime.close().then(() => {
-          closeSettled = true;
-        });
-        yield* yieldToFibers();
-        expect(closeSettled).toBe(false);
-
-        releasePull.resolve();
-        yield* Effect.promise(() => closing);
-        expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+        yield* Effect.promise(() => runtime.close());
+        yield* Effect.promise(() => pullAborted.promise);
+        expect(abortReason).toBeDefined();
+        expect(queueSyncBatchMock).not.toHaveBeenCalled();
 
         yield* TestClock.adjust(600);
         yield* yieldToFibers();

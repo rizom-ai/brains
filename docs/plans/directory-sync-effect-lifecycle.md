@@ -2,9 +2,9 @@
 
 ## Status
 
-Active cleanup. Phases 0–2 are complete; Phase 3 Git cancellation is next. Watcher startup and Git background scheduling now run from plugin ready. Scoped shutdown awaits Chokidar plus active file callbacks, interrupts pending periodic/debounce admission, and drains active periodic or commit/push operations. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
+Active cleanup. Phases 0–3 are complete; Phase 4 import-job polling is next. Watcher startup and Git background scheduling now run from plugin ready. Scoped shutdown awaits Chokidar plus active file callbacks, interrupts pending periodic/debounce admission, aborts active periodic pulls, and drains commit/push operations. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
 
-Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. Watcher batch debounce, Git cancellation, import polling, and transactional reconfiguration remain to be converted.
+Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. Watcher batch debounce, import polling, and transactional reconfiguration remain to be converted.
 
 ## Goal
 
@@ -18,9 +18,9 @@ Keep plugin, job, directory, and git contracts Promise-based. Cancellation cross
 | -------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
 | Chokidar watcher     | private Effect resource scope awaits close and active callbacks    | none in the watcher resource itself                                            |
 | Watcher debounce     | raw `setTimeout`; stop clears pending and awaits an active batch   | timing tests still use wall clock                                              |
-| Periodic git sync    | supervised fixed-cadence fiber; active cycle drains on shutdown    | active network work cannot yet consume lifecycle cancellation                  |
+| Periodic git sync    | supervised fixed-cadence fiber; active pull aborts on shutdown     | none in the periodic schedule itself                                           |
 | Git auto-commit      | keyed replaceable delay; active commit/push is tracked and drained | repository mutations intentionally remain non-interruptible once started       |
-| Git lock             | Promise chain                                                      | queued work has no closed state or cancellation check                          |
+| Git lock             | Promise chain with cancellation checks before callback admission   | active mutations follow their operation-specific cancellation policy           |
 | Import-job polling   | recursive `setTimeout` for up to five minutes                      | timing is not deterministic                                                    |
 | Plugin subscriptions | owned by the shared plugin resource scope                          | keep that ownership in the shared scope; do not duplicate it in directory-sync |
 
@@ -159,7 +159,7 @@ Register subscriptions and handlers only once; callbacks resolve the active gene
 4. Remove `gitCleanups` and raw fire-and-forget background calls from `plugin.ts`.
 5. Write the new schedule and debounce tests against `TestClock` from the start; delete the wall-clock sleeps from periodic-sync and auto-commit unit tests in the same phase.
 
-### Phase 3 — Git cancellation
+### Phase 3 — Git cancellation (complete)
 
 1. Add optional signals to internal git interfaces and adapters.
 2. Bridge Effect interruption into simple-git through `runGitWithStallTimeout`.

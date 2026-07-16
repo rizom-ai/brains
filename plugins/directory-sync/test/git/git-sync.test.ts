@@ -358,6 +358,44 @@ describe("GitSync (simplified)", () => {
       }
     }, 20_000);
 
+    it("preserves caller abort reason during pull", async () => {
+      const gs = createGitSync({ timeoutMs: 10_000 });
+      await gs.initialize();
+      writeFileSync(join(dataDir, ".gitkeep"), "");
+      await gs.commit("initial");
+
+      const controller = new AbortController();
+      const reason = new Error("directory sync shutdown");
+      const pulling = gs.pull(controller.signal);
+      controller.abort(reason);
+
+      try {
+        await pulling;
+        throw new Error("Expected pull cancellation");
+      } catch (error) {
+        expect(error).toBe(reason);
+      }
+    });
+
+    it("preserves caller abort reason during push", async () => {
+      const gs = createGitSync({ timeoutMs: 10_000 });
+      await gs.initialize();
+      writeFileSync(join(dataDir, "note.md"), "# Note");
+      await gs.commit("initial");
+
+      const controller = new AbortController();
+      const reason = new Error("cancel content push");
+      const pushing = gs.push(controller.signal);
+      controller.abort(reason);
+
+      try {
+        await pushing;
+        throw new Error("Expected push cancellation");
+      } catch (error) {
+        expect(error).toBe(reason);
+      }
+    });
+
     it("does not wedge: operations recover after a stalled pull", async () => {
       const { port, close } = await startUnresponsiveServer();
       try {
