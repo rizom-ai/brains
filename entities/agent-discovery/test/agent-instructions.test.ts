@@ -27,5 +27,6 @@ describe("getAgentDiscoveryInstructions", () => {
     );
     expect(instructions).toContain("returned entity id/domain");
     expect(instructions).toContain("never recommend archived contacts");
+    expect(instructions).toContain("using only the requested topic verbatim");
   });
 });
