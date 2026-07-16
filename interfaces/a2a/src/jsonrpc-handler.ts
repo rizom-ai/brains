@@ -230,7 +230,7 @@ function processInBackground(
     },
     {
       onCancel: () => {
-        context.taskManager.updateState(taskId, "canceled");
+        transitionTaskToCanceled(taskId, context.taskManager);
       },
     },
   );
@@ -238,6 +238,16 @@ function processInBackground(
 
 function isTaskCanceled(taskId: string, taskManager: TaskManager): boolean {
   return taskManager.getTask(taskId)?.task.status.state === "canceled";
+}
+
+function transitionTaskToCanceled(
+  taskId: string,
+  taskManager: TaskManager,
+): void {
+  const record = taskManager.getTask(taskId);
+  if (record && !TERMINAL_STATES.has(record.task.status.state)) {
+    taskManager.updateState(taskId, "canceled");
+  }
 }
 
 // -- Streaming (SSE) handler --
@@ -424,7 +434,7 @@ export function handleStreamMessage(
         },
         {
           onCancel: () => {
-            context.taskManager.updateState(taskId, "canceled");
+            transitionTaskToCanceled(taskId, context.taskManager);
             const canceled = context.taskManager.getTask(taskId);
             if (canceled) {
               send(statusEvent(canceled.task, true));
