@@ -147,13 +147,16 @@ describe("StreamableHTTPServer", () => {
   describe("Server Lifecycle", () => {
     test("validates before starting session eviction", () => {
       const intervalSpy = spyOn(globalThis, "setInterval");
+      const timeoutSpy = spyOn(globalThis, "setTimeout");
       try {
         expect(() => new StreamableHTTPServer()).toThrow(
           /requires an auth token/,
         );
         expect(intervalSpy).not.toHaveBeenCalled();
+        expect(timeoutSpy).not.toHaveBeenCalled();
       } finally {
         intervalSpy.mockRestore();
+        timeoutSpy.mockRestore();
       }
     });
 
