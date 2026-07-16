@@ -2,7 +2,7 @@
 
 ## Status
 
-Partial. Phases 1 and 2 are implemented; Phase 3 remains proposed and has not started. The shared shell lifecycle and ownership prerequisite is complete on `main`; all follow-up conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
+Partial. Phases 1 and 2 are implemented; Phase 3 is queued after the active directory-sync lifecycle plan. The shared shell lifecycle and ownership prerequisite is complete on `main`; all follow-up conversions use the canonical private `@brains/utils/effect` boundary and the same boundary rules.
 
 Together with [directory-sync-effect-lifecycle.md](./directory-sync-effect-lifecycle.md), this plan records the concrete remaining follow-up scope from the repo-wide lifecycle sweep. The previously deferred MCP HTTP eviction timer was converted after a focused ownership audit exposed constructor-failure leakage and detached transport closes; newly discovered candidates still require their own audit rather than automatic conversion.
 

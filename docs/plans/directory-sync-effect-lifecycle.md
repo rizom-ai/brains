@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed cleanup; no delivery phase has started. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
+Active cleanup. Phase 0 characterization is next; no implementation phase has started. The shared prerequisites are complete on `main`: packages use the canonical private `@brains/utils/effect` boundary, plugin teardown runs after registration failure and disable, and each plugin has a resource scope for subscriptions and job registrations. `onReady()` is also available on `BasePlugin`.
 
 Implementation must start from current `main`, not from the obsolete pre-merge Effect worktree. The raw watcher, debounce, periodic-git, auto-commit, and import-polling lifecycle constructs described below remain in directory-sync and still need the planned ownership conversion.
 
