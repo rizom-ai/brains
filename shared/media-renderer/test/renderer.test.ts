@@ -159,7 +159,7 @@ describe("media renderer", () => {
     expect(browser.closeCalls).toBe(1);
   });
 
-  it("currently returns a timeout before browser close settles", async () => {
+  it("waits for browser release before returning a timeout", async () => {
     const releaseClose = deferred();
     let closeStarted: (() => void) | undefined;
     const closeWasStarted = new Promise<void>((resolve) => {
@@ -197,11 +197,42 @@ describe("media renderer", () => {
       ),
     ]);
 
-    expect(state).toBe("settled");
-    expect(renderError).toMatchObject({ code: "render-timeout" });
+    expect(state).toBe("pending");
+    expect(renderError).toBeUndefined();
     expect(killCalls).toBe(0);
+
     releaseClose.resolve();
     await rendering;
+    expect(renderError).toMatchObject({ code: "render-timeout" });
+  });
+
+  it("preserves caller abort reasons and releases the browser", async () => {
+    const enteredGoto = deferred();
+    const abortReason = new Error("caller stopped rendering");
+    const controller = new AbortController();
+    const page = new FakePage();
+    page.goto = async (): Promise<void> => {
+      enteredGoto.resolve();
+      await new Promise<void>(() => {});
+    };
+    const browser = new FakeBrowser(page);
+    const rendering = renderPdf("http://localhost/_media/carousel/aborted", {
+      browserFactory: fakeFactory(browser),
+      signal: controller.signal,
+    });
+
+    await enteredGoto.promise;
+    controller.abort(abortReason);
+
+    let rejection: unknown;
+    try {
+      await rendering;
+    } catch (error) {
+      rejection = error;
+    }
+
+    expect(rejection).toBe(abortReason);
+    expect(browser.closeCalls).toBe(1);
   });
 
   it("times out when browser launch hangs", async () => {

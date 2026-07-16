@@ -79,7 +79,7 @@ The personal-publishing posture is the public reference and must stay sharp with
 - give setup/first-run friction disproportionate weight — current users are past the onboarding wall, so it is invisible from inside the project but lethal for anyone new;
 - keep the friction queue durable so the same papercut is not re-reported and re-deferred silently.
 
-The bundled web chat UI (`/chat` — sessions, confirmations, uploads, progress, attachments, sources, suggested actions) and the media/OG pipeline (PDF carousels, printable PDFs, OG images, publish assets) both landed and are now maintained through normal bug/release work rather than standing plans.
+The bundled web chat UI (`/chat` — sessions, confirmations, uploads, progress, attachments, sources, suggested actions) and the media/OG pipeline (PDF carousels, printable PDFs, OG images, publish assets) both landed and are now maintained through normal bug/release work rather than standing plans. Media rendering now owns each browser through scoped, cancellable acquisition and bounded process cleanup behind its existing Promise API.
 
 Plans:
 
@@ -197,7 +197,6 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
-- [effect-lifecycle-adoption.md](./plans/effect-lifecycle-adoption.md) — content-pipeline, directory-sync, and A2A supervision are complete; remaining work scopes media-renderer browser processes behind Promise-based contracts.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
 

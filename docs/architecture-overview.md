@@ -40,6 +40,8 @@ This keeps Effect focused on runtime orchestration while preserving the stable a
 
 The A2A interface applies the same boundary locally: its private turn supervisor owns streaming and polling fibers plus scoped SSE heartbeat schedules. Stream disconnect, explicit task cancellation, and daemon shutdown propagate through `AbortSignal`; no Effect type appears in the interface contract. MCP HTTP similarly owns idle-session eviction through a private scoped schedule, validates before acquisition, and drains transport closes admitted by a sweep before shutdown returns.
 
+The shared media renderer applies scoped ownership to each launch-per-render browser. Acquisition remains interruptible, late launches are released exactly once, and render timeout or caller cancellation does not settle until an acquired browser has completed bounded cleanup. A hung or failed close falls back to process `SIGKILL`. Its public functions remain Promise-based and accept cancellation only through optional `AbortSignal`; fake-browser `TestClock` coverage exercises timeout and close-timeout behavior without launching Chromium.
+
 ### Layer adoption
 
 Effect `Layer` is adopted only for complete vertical slices. Wrapping process-global `getInstance()` calls in layers would hide singleton state, add a parallel dependency system, and risk changing registration and boot order.
