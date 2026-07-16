@@ -197,10 +197,9 @@ export function extendSite<
   const themeOverride = [baseSite.themeOverride, overrideThemeOverride]
     .filter(Boolean)
     .join("\n\n");
-  const headScripts = [
-    ...(baseSite.headScripts ?? []),
-    ...(overrideHeadScripts ?? []),
-  ];
+  // Replace, don't concat: a variant's head script bundle supersedes the
+  // base's (both include /boot.js — stacking them double-binds #themeToggle).
+  const headScripts = overrideHeadScripts ?? baseSite.headScripts ?? [];
   const content = mergeContent(baseSite.content, overrides.content);
   const sections = mergeSections(baseSite.sections, overrides.sections);
 
