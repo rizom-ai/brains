@@ -1,5 +1,17 @@
 # @brains/a2a
 
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- [`e6bdf07`](https://github.com/rizom-ai/brains/commit/e6bdf07284aad8ed017577db2322bd4a5479c77c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Supervise A2A polling and streaming turns with scoped cancellation, and replace SSE heartbeat timers with Effect schedules.
+
+- Updated dependencies []:
+  - @brains/http-signatures@0.2.0-alpha.187
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/auth-service@0.2.0-alpha.187
+  - @brains/plugins@0.2.0-alpha.187
+
 ## 0.2.0-alpha.186
 
 ### Patch Changes

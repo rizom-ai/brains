@@ -1,5 +1,14 @@
 # @brains/cms
 
+## 0.2.0-alpha.187
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.187
+  - @brains/auth-service@0.2.0-alpha.187
+  - @brains/plugins@0.2.0-alpha.187
+
 ## 0.2.0-alpha.186
 
 ### Patch Changes

@@ -122,6 +122,7 @@
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
+    "a2a-effect-lifecycle",
     "agent-approval-frontmatter-sync",
     "agent-connect-approves",
     "agent-directory-redesign",
