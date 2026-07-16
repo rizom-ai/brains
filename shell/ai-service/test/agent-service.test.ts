@@ -531,7 +531,7 @@ describe("AgentService", () => {
             role: "user",
             content: "Previous message",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
           {
             id: "msg2",
@@ -539,7 +539,7 @@ describe("AgentService", () => {
             role: "assistant",
             content: "Previous response",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
         ]),
       );
@@ -570,6 +570,66 @@ describe("AgentService", () => {
       );
     });
 
+    it("filters higher-permission history before a lower-permission model turn", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "anchor-user",
+            conversationId: "shared-conversation",
+            role: "user",
+            content: "Show the restricted note",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({ userPermissionLevel: "anchor" }),
+          },
+          {
+            id: "anchor-assistant",
+            conversationId: "shared-conversation",
+            role: "assistant",
+            content: "restricted phrase",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({ userPermissionLevel: "anchor" }),
+          },
+          {
+            id: "public-assistant",
+            conversationId: "shared-conversation",
+            role: "assistant",
+            content: "public context",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
+          },
+        ]),
+      );
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("What happened?", "shared-conversation", {
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+      });
+
+      const serializedMessages = JSON.stringify(
+        mockGenerate.mock.calls[0]?.[0].messages,
+      );
+      expect(serializedMessages).toContain("public context");
+      expect(serializedMessages).not.toContain("restricted phrase");
+      expect(serializedMessages).not.toContain("Show the restricted note");
+      expect(mockConversationService.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: "user",
+          metadata: expect.objectContaining({
+            userPermissionLevel: "public",
+          }),
+        }),
+      );
+    });
+
     it("injects stored entity memory metadata into the model turn without polluting visible history text", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
@@ -580,6 +640,7 @@ describe("AgentService", () => {
             content: "Queued image generation.",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               entityMemoryRefs: [
                 {
                   entityType: "image",
@@ -692,6 +753,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -710,6 +772,7 @@ describe("AgentService", () => {
             content: "I got `robot.png`. What would you like me to do with it?",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               cards: [
                 {
                   kind: "actions",
@@ -796,6 +859,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -815,6 +879,7 @@ describe("AgentService", () => {
               "I got `flirty-robot.png`. What would you like me to do with it?",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               cards: [{ kind: "actions", id: "actions:upload-intent" }],
             }),
           },
@@ -824,7 +889,7 @@ describe("AgentService", () => {
             role: "assistant",
             content: "It is a retro-futuristic robot illustration.",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
           {
             id: "msg-pdf-upload",
@@ -833,6 +898,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -852,6 +918,7 @@ describe("AgentService", () => {
               "I got `distributed-systems-primer.pdf`. What would you like me to do with it?",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               cards: [{ kind: "actions", id: "actions:upload-intent" }],
             }),
           },
@@ -916,6 +983,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -940,6 +1008,7 @@ describe("AgentService", () => {
               "I got `alpha.pdf`, `beta.png`. What would you like me to do with these files?",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               cards: [
                 {
                   kind: "actions",
@@ -1003,6 +1072,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -1044,6 +1114,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -1061,6 +1132,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -1146,6 +1218,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -1163,6 +1236,7 @@ describe("AgentService", () => {
             content: "",
             timestamp: new Date().toISOString(),
             metadata: JSON.stringify({
+              userPermissionLevel: "public",
               attachments: [
                 {
                   kind: "file",
@@ -1179,7 +1253,7 @@ describe("AgentService", () => {
             role: "user",
             content: "save it as an image",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
           {
             id: "msg-clarify",
@@ -1188,7 +1262,7 @@ describe("AgentService", () => {
             content:
               "Which uploaded file should I use? `first-robot.png`, `second-robot.png`",
             timestamp: new Date().toISOString(),
-            metadata: null,
+            metadata: JSON.stringify({ userPermissionLevel: "public" }),
           },
         ]),
       );
