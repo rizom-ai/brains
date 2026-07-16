@@ -22,6 +22,7 @@ import {
   PublicationActions,
   PublishConfirmationDialog,
   PublishingWorkspace,
+  SiteWorkspace,
   styles,
   typeHasPublicationField,
   TypeSwitcher,
@@ -42,6 +43,8 @@ import type {
   FieldDescriptor,
   GitSyncState,
   PublicationPipelineSnapshot,
+  SiteWorkspaceActionResult,
+  SiteWorkspaceSnapshot,
 } from "./api";
 
 const stringField: FieldDescriptor = {
@@ -418,6 +421,7 @@ describe("TypeSwitcher", () => {
       pluginId: "content-pipeline",
       label: "Publishing",
       rendererName: "PublishingWorkspace",
+      priority: 40,
       entityTypes: ["post"],
     };
     const withWorkspace = renderToStaticMarkup(
@@ -574,6 +578,71 @@ describe("PublishingWorkspace", () => {
     expect(html).toContain('aria-label="Move Domain as identity later"');
     expect(html).toContain('aria-label="Remove Domain as identity from queue"');
     expect(html).toContain(">Retry<");
+  });
+});
+
+describe("SiteWorkspace", () => {
+  const data: SiteWorkspaceSnapshot = {
+    site: {
+      title: "Fern & Fable",
+      previewUrl: "https://preview.example.com",
+      liveUrl: "https://example.com",
+    },
+    automation: {
+      autoRebuild: true,
+      debounceMs: 5000,
+      defaultEnvironment: "preview",
+    },
+    environments: [
+      {
+        environment: "preview",
+        lastSuccess: {
+          jobId: "preview-1",
+          completedAt: "2026-07-16T09:00:00.000Z",
+          routesBuilt: 18,
+          warnings: [],
+        },
+      },
+      {
+        environment: "production",
+        lastFailure: {
+          jobId: "production-1",
+          completedAt: "2026-07-16T08:00:00.000Z",
+          message: "Template failed",
+        },
+      },
+    ],
+    recentBuilds: [
+      {
+        jobId: "preview-1",
+        environment: "preview",
+        outcome: "succeeded",
+        completedAt: "2026-07-16T09:00:00.000Z",
+        routesBuilt: 18,
+      },
+    ],
+    routes: [{ id: "home", path: "/", title: "Home" }],
+  };
+
+  it("renders preview and live state without duplicating site settings", () => {
+    const onAction = async (): Promise<SiteWorkspaceActionResult> => ({
+      accepted: true,
+      environment: "preview",
+    });
+    const html = renderToStaticMarkup(
+      createElement(SiteWorkspace, {
+        data,
+        onAction,
+      }),
+    );
+
+    expect(html).toContain("Site control");
+    expect(html).toContain("Build preview");
+    expect(html).toContain("Update live site");
+    expect(html).toContain("18 routes");
+    expect(html).toContain("Template failed");
+    expect(html).toContain("Registered routes · 1");
+    expect(html).toContain("Auto-rebuild");
   });
 });
 

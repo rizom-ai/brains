@@ -9,11 +9,14 @@ export interface CmsWorkspaceActor {
 }
 
 /** Optional server-side capability hosted by the first-party CMS. */
+export type CmsWorkspaceRendererName = "PublishingWorkspace" | "SiteWorkspace";
+
 export interface CmsWorkspaceRegistration {
   id: string;
   pluginId: string;
   label: string;
-  rendererName: string;
+  rendererName: CmsWorkspaceRendererName;
+  priority: number;
   entityTypes?: string[] | undefined;
   dataProvider: () => Promise<unknown>;
   actionHandler?:
@@ -26,7 +29,8 @@ export interface CmsWorkspaceDescriptor {
   id: string;
   pluginId: string;
   label: string;
-  rendererName: string;
+  rendererName: CmsWorkspaceRendererName;
+  priority: number;
   entityTypes: string[];
 }
 

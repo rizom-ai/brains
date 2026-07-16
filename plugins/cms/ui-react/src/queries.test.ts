@@ -117,6 +117,7 @@ describe("CMS navigation query", () => {
             pluginId: "content-pipeline",
             label: "Publishing",
             rendererName: "PublishingWorkspace",
+            priority: 40,
             entityTypes: ["post"],
           },
         ],
@@ -199,6 +200,9 @@ describe("CMS workspace query", () => {
       "workspace",
       "publishing",
     ]);
+    if (first.rendererName !== "PublishingWorkspace") {
+      throw new Error("Expected Publishing workspace data");
+    }
     expect(first.data.summary.queued).toBe(1);
     expect(second).toBe(first);
     expect(requests).toBe(1);

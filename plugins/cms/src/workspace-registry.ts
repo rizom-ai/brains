@@ -8,7 +8,8 @@ const workspaceRegistrationSchema = z.object({
   id: z.string().trim().min(1),
   pluginId: z.string().trim().min(1),
   label: z.string().trim().min(1),
-  rendererName: z.literal("PublishingWorkspace"),
+  rendererName: z.enum(["PublishingWorkspace", "SiteWorkspace"]),
+  priority: z.number().int(),
   entityTypes: z.array(z.string().trim().min(1)).default([]),
   dataProvider: z.custom<() => Promise<unknown>>(
     (value) => typeof value === "function",
@@ -32,11 +33,15 @@ export class CmsWorkspaceRegistry {
 
   register(input: CmsWorkspaceRegistration): StoredCmsWorkspace {
     const parsed = workspaceRegistrationSchema.parse(input);
+    if (this.workspaces.has(parsed.id)) {
+      throw new Error(`CMS workspace already registered: ${parsed.id}`);
+    }
     const workspace: StoredCmsWorkspace = {
       id: parsed.id,
       pluginId: parsed.pluginId,
       label: parsed.label,
       rendererName: parsed.rendererName,
+      priority: parsed.priority,
       entityTypes: parsed.entityTypes,
       dataProvider: parsed.dataProvider,
       ...(parsed.actionHandler ? { actionHandler: parsed.actionHandler } : {}),
@@ -50,14 +55,15 @@ export class CmsWorkspaceRegistry {
   }
 
   listDescriptors(): CmsWorkspaceDescriptor[] {
-    return Array.from(this.workspaces.values()).map(
-      ({ id, pluginId, label, rendererName, entityTypes }) => ({
+    return Array.from(this.workspaces.values())
+      .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id))
+      .map(({ id, pluginId, label, rendererName, priority, entityTypes }) => ({
         id,
         pluginId,
         label,
         rendererName,
+        priority,
         entityTypes,
-      }),
-    );
+      }));
   }
 }

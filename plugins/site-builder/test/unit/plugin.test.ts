@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import { createTemplate, type AnchorProfile } from "@brains/plugins";
+import {
+  createTemplate,
+  type AnchorProfile,
+  type CmsWorkspaceRegistration,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { h } from "preact";
 import { createTestConfig } from "../test-helpers";
@@ -10,6 +14,15 @@ import { mkdtemp, readFile, rm } from "fs/promises";
 import { existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+
+interface DashboardWidgetRegistration {
+  id: string;
+  group: string;
+  rendererName: string;
+  visibility: string;
+  dataProvider: () => Promise<unknown>;
+  digestProvider: (data: unknown) => unknown;
+}
 
 describe("SiteBuilderPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
@@ -180,6 +193,108 @@ describe("SiteBuilderPlugin", () => {
     expect(registeredJobTypes).not.toContain(
       "site-builder:media-carousel-generate",
     );
+  });
+
+  it("registers the optional CMS Site workspace and Dashboard health", async () => {
+    let registration: CmsWorkspaceRegistration | undefined;
+    let dashboardWidget: DashboardWidgetRegistration | undefined;
+    harness.subscribe<DashboardWidgetRegistration, { success: boolean }>(
+      "dashboard:register-widget",
+      async (message) => {
+        dashboardWidget = message.payload;
+        return { success: true };
+      },
+    );
+    harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
+      "cms:register-workspace",
+      async (message) => {
+        registration = message.payload;
+        return {
+          success: true,
+          data: { workspaceUrl: "/cms#/workspace/site" },
+        };
+      },
+    );
+
+    plugin = new SiteBuilderPlugin(
+      createTestConfig({
+        routes: [
+          {
+            id: "home",
+            path: "/",
+            title: "Home",
+            description: "Home page",
+            layout: "default",
+            sections: [],
+          },
+        ],
+      }),
+    );
+    await harness.installPlugin(plugin);
+    await plugin.ready();
+
+    expect(registration).toMatchObject({
+      id: "site",
+      pluginId: "site-builder",
+      label: "Site",
+      rendererName: "SiteWorkspace",
+      priority: 50,
+    });
+    if (!registration) throw new Error("Expected CMS workspace registration");
+    if (!registration.actionHandler) {
+      throw new Error("Expected CMS workspace actions");
+    }
+    const actionHandler = registration.actionHandler;
+    expect(await registration.dataProvider()).toMatchObject({
+      site: { title: "Test Site" },
+      routes: [{ id: "home", path: "/", title: "Home" }],
+    });
+
+    const result = await actionHandler(
+      { type: "build-preview" },
+      {
+        interfaceType: "cms",
+        userId: "operator",
+        userPermissionLevel: "anchor",
+      },
+    );
+    expect(result).toEqual({ accepted: true, environment: "preview" });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(await registration.dataProvider()).toMatchObject({
+      environments: [
+        {
+          environment: "preview",
+          active: {
+            state: "queued",
+          },
+        },
+        { environment: "production" },
+      ],
+    });
+    expect(
+      actionHandler(
+        { type: "build-production" },
+        {
+          interfaceType: "cms",
+          userId: "operator",
+          userPermissionLevel: "anchor",
+        },
+      ),
+    ).rejects.toThrow("Invalid site workspace action");
+    expect(dashboardWidget).toMatchObject({
+      id: "site-health",
+      group: "site",
+      rendererName: "SiteHealthWidget",
+      visibility: "anchor",
+    });
+    const dashboardData = await dashboardWidget?.dataProvider();
+    expect(dashboardData).toMatchObject({
+      site: { title: "Test Site" },
+      managementUrl: "/cms#/workspace/site",
+    });
+    expect(dashboardWidget?.digestProvider(dashboardData)).toMatchObject({
+      needsOperator: 0,
+    });
   });
 
   it("should provide site builder tools", async () => {

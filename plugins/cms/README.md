@@ -29,7 +29,7 @@ Transport calls belong in `api.ts`; query and mutation wrappers belong in `queri
 - saves refresh the affected list and sync status, then explicitly reopen the saved detail with its fresh content hash;
 - deletes remove the affected detail and refresh its list and sync status;
 - image uploads refresh only image-list, navigation-count, and sync-status data;
-- publishing actions refresh only their workspace snapshot;
+- publishing and site-build actions refresh only their workspace snapshot;
 - sync polling invalidates only `cmsKeys.syncStatus()`.
 
 Do not optimistically rewrite entity content or advance the pinned content hash. The entity service remains authoritative for byte-identical no-op saves and content-hash conflicts. Tests must cover exact request counts, stale responses, deduplication, draft preservation, and invalidation with `@brains/test-utils` `mockFetch` before a server-state path is migrated.
@@ -38,4 +38,15 @@ Do not optimistically rewrite entity content or advance the pinned content hash.
 
 Reducer actions are discriminated transitions; rejected transitions return the existing state. Add XState only if this reducer can no longer express the workflow without scattered timers or guards.
 
-CMS doors use `#/{encodedEntityType}` or `#/{encodedEntityType}/{encodedEntityId}`. The hash selects the initial collection and optional entity. Draft values, conflicts, dialogs, pane selection, and other transient workflow state do not belong in the URL.
+CMS doors use `#/{encodedEntityType}` or `#/{encodedEntityType}/{encodedEntityId}`. Optional operational workspaces use `#/workspace/{encodedWorkspaceId}`. The hash selects the initial collection, entity, or workspace. Draft values, conflicts, dialogs, pane selection, and other transient workflow state do not belong in the URL.
+
+## Optional workspaces
+
+Service plugins may register a CMS-owned renderer through `cms:register-workspace`. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the CMS to start.
+
+The bundled renderer vocabulary is deliberately narrow:
+
+- `PublishingWorkspace` operates the content-pipeline queue and publication failures;
+- `SiteWorkspace` operates site-builder preview and production builds.
+
+Providers own snapshots, validation, authorization, and actions. The CMS owns authenticated transport, navigation, rendering, and targeted query invalidation. Runtime React components are never accepted through registration.

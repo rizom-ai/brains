@@ -6,6 +6,8 @@ import {
   uploadFile,
   type PublishingAction,
   type PublishingActionResult,
+  type SiteWorkspaceAction,
+  type SiteWorkspaceActionResult,
 } from "./api";
 
 export type SaveEntityInput =
@@ -34,6 +36,11 @@ export interface CmsWorkspaceActionInput {
   action: PublishingAction;
 }
 
+export interface SiteWorkspaceActionInput {
+  workspaceId: string;
+  action: SiteWorkspaceAction;
+}
+
 export interface UploadImageResult {
   entityId: string;
   jobId?: string;
@@ -48,7 +55,19 @@ export interface SaveEntityResult {
 export function runCmsWorkspaceAction(
   input: CmsWorkspaceActionInput,
 ): Promise<PublishingActionResult> {
-  return runWorkspaceAction(input.workspaceId, input.action);
+  return runWorkspaceAction<PublishingActionResult>(
+    input.workspaceId,
+    input.action,
+  );
+}
+
+export function runSiteWorkspaceAction(
+  input: SiteWorkspaceActionInput,
+): Promise<SiteWorkspaceActionResult> {
+  return runWorkspaceAction<SiteWorkspaceActionResult>(
+    input.workspaceId,
+    input.action,
+  );
 }
 
 export function uploadImage(file: File): Promise<UploadImageResult> {

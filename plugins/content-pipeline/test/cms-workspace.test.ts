@@ -84,6 +84,7 @@ describe("content-pipeline CMS workspace registration", () => {
       pluginId: "content-pipeline",
       label: "Publishing",
       rendererName: "PublishingWorkspace",
+      priority: 40,
       entityTypes: ["social-post"],
     });
     expect(await registration?.dataProvider()).toMatchObject({

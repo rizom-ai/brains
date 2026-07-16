@@ -28,6 +28,9 @@ import {
 } from "@brains/site-composition";
 import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
+import { SiteBuildStatusService } from "./lib/site-build-status";
+import { SiteWorkspaceProvider } from "./lib/site-workspace";
+import { registerSiteHealthWidget } from "./lib/dashboard-widget";
 import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 
@@ -48,6 +51,8 @@ export class SiteBuilderPlugin extends ServicePlugin<
   private profileService?: SiteBuildProfileService;
   private layouts: Record<string, LayoutComponent>;
   private rebuildManager?: RebuildManager;
+  private buildStatusService?: SiteBuildStatusService;
+  private siteWorkspaceProvider?: SiteWorkspaceProvider;
   private headScripts = new Map<string, string>();
 
   private get routeRegistry(): RouteRegistry {
@@ -116,6 +121,11 @@ export class SiteBuilderPlugin extends ServicePlugin<
     this.profileService = {
       getProfile: (): SiteBuildProfile => context.identity.getProfile(),
     };
+    this.buildStatusService = new SiteBuildStatusService(
+      context.runtimeState,
+      context.jobs,
+    );
+    await this.buildStatusService.initialize();
 
     setupRouteHandlers(context, this._routeRegistry, this.logger);
 
@@ -166,6 +176,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
           }),
+          statusService: this.buildStatusService,
         },
       ),
     );
@@ -176,7 +187,18 @@ export class SiteBuilderPlugin extends ServicePlugin<
       context,
       this.id,
       this.logger,
+      this.buildStatusService,
     );
+
+    this.siteWorkspaceProvider = new SiteWorkspaceProvider({
+      context,
+      config: this.config,
+      routeRegistry: this.routeRegistry,
+      statusService: this.buildStatusService,
+      requestBuild: (environment): void => {
+        this.rebuildManager?.requestBuild(environment);
+      },
+    });
 
     if (this.config.autoRebuild) {
       this.logger.debug("Auto-rebuild enabled");
@@ -201,6 +223,19 @@ export class SiteBuilderPlugin extends ServicePlugin<
       routeRegistry: this._routeRegistry,
       logger: this.logger,
     });
+  }
+
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (!this.siteWorkspaceProvider) return;
+    const managementUrl =
+      await this.siteWorkspaceProvider.registerCmsWorkspace();
+    await registerSiteHealthWidget(
+      context,
+      this.siteWorkspaceProvider,
+      managementUrl,
+    );
   }
 
   /**

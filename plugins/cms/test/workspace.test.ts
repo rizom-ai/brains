@@ -11,7 +11,8 @@ interface TestWorkspaceRegistration {
   id: string;
   pluginId: string;
   label: string;
-  rendererName: string;
+  rendererName: "PublishingWorkspace" | "SiteWorkspace";
+  priority: number;
   entityTypes?: string[];
   dataProvider: () => Promise<unknown>;
   actionHandler?: (action: unknown, actor: unknown) => Promise<unknown>;
@@ -95,6 +96,7 @@ describe("optional CMS workspaces", () => {
       pluginId: "content-pipeline",
       label: "Publishing",
       rendererName: "PublishingWorkspace",
+      priority: 40,
       entityTypes: ["post", "newsletter"],
       dataProvider: async () => ({ summary: { queued: 2 } }),
     });
@@ -115,6 +117,7 @@ describe("optional CMS workspaces", () => {
       pluginId: "content-pipeline",
       label: "Publishing",
       rendererName: "PublishingWorkspace",
+      priority: 40,
       entityTypes: ["post"],
       dataProvider: async () => ({ summary: { queued: 2 } }),
     });
@@ -131,6 +134,7 @@ describe("optional CMS workspaces", () => {
         pluginId: "content-pipeline",
         label: "Publishing",
         rendererName: "PublishingWorkspace",
+        priority: 40,
         entityTypes: ["post"],
       },
     ]);
@@ -154,6 +158,65 @@ describe("optional CMS workspaces", () => {
     });
   });
 
+  it("orders multiple workspaces deterministically", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+
+    await registerWorkspace(shell, {
+      id: "site",
+      pluginId: "site-builder",
+      label: "Site",
+      rendererName: "SiteWorkspace",
+      priority: 50,
+      dataProvider: async () => ({}),
+    });
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "PublishingWorkspace",
+      priority: 40,
+      dataProvider: async () => ({}),
+    });
+
+    const response = await findRoute(plugin, "/cms/api/types").handler(
+      request("/cms/api/types", { cookie }),
+    );
+    expect(await response.json()).toMatchObject({
+      workspaces: [{ id: "publishing" }, { id: "site" }],
+    });
+  });
+
+  it("rejects duplicate workspace ids without replacing the provider", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+
+    await registerWorkspace(shell, {
+      id: "site",
+      pluginId: "site-builder",
+      label: "Site",
+      rendererName: "SiteWorkspace",
+      priority: 50,
+      dataProvider: async () => ({ source: "original" }),
+    });
+    const duplicate = await registerWorkspace(shell, {
+      id: "site",
+      pluginId: "other-plugin",
+      label: "Other site",
+      rendererName: "SiteWorkspace",
+      priority: 10,
+      dataProvider: async () => ({ source: "duplicate" }),
+    });
+
+    expect(duplicate).toEqual({
+      success: false,
+      error: "CMS workspace already registered: site",
+    });
+  });
+
   it("derives an anchor CMS actor for registered actions", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
@@ -165,6 +228,7 @@ describe("optional CMS workspaces", () => {
       pluginId: "content-pipeline",
       label: "Publishing",
       rendererName: "PublishingWorkspace",
+      priority: 40,
       dataProvider: async () => ({}),
       actionHandler: async (action, actor) => {
         calls.push({ action, actor });

@@ -105,6 +105,7 @@ export async function registerCmsWorkspace(
     pluginId,
     label: "Publishing",
     rendererName: "PublishingWorkspace",
+    priority: 40,
     entityTypes: deps.providerRegistry.getRegisteredTypes(),
     dataProvider: () =>
       getPublicationPipelineSnapshot(
